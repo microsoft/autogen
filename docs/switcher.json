@@ -1,0 +1,47 @@
+[
+    {
+        "name": "0.2 (stable)",
+        "version": "0.2-stable",
+        "url": "/autogen/0.2/"
+    },
+    {
+        "version": "dev",
+        "url": "/autogen/dev/"
+    },
+    {
+        "name": "0.4.0.dev0",
+        "version": "0.4.0.dev0",
+        "url": "/autogen/0.4.0dev0/"
+    },
+    {
+        "name": "0.4.0.dev1",
+        "version": "0.4.0.dev1",
+        "url": "/autogen/0.4.0.dev1/"
+    },
+    {
+        "name": "0.4.0.dev2",
+        "version": "0.4.0.dev2",
+        "url": "/autogen/0.4.0.dev2/"
+    },
+    {
+        "name": "0.4.0.dev3",
+        "version": "0.4.0.dev3",
+        "url": "/autogen/0.4.0.dev3/"
+    },
+    {
+        "name": "0.4.0.dev4",
+        "version": "0.4.0.dev4",
+        "url": "/autogen/0.4.0.dev4/"
+    },
+    {
+        "name": "0.4.0.dev5",
+        "version": "0.4.0.dev5",
+        "url": "/autogen/0.4.0.dev5/"
+    },
+    {
+        "name": "0.4.0.dev6",
+        "version": "0.4.0.dev6",
+        "url": "/autogen/0.4.0.dev6/",
+        "preferred": true
+    }
+]

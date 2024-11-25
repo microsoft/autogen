@@ -1,61 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import List, Sequence
+from typing import AsyncGenerator, List, Sequence
 
 from autogen_core.base import CancellationToken
-from autogen_core.components import FunctionCall, Image
-from autogen_core.components.models import FunctionExecutionResult
-from autogen_core.components.tools import Tool
-from pydantic import BaseModel
+
+from ..base import ChatAgent, Response, TaskResult
+from ..messages import AgentMessage, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
 
 
-class BaseMessage(BaseModel):
-    """A base message."""
-
-    source: str
-    """The name of the agent that sent this message."""
-
-
-class TextMessage(BaseMessage):
-    """A text message."""
-
-    content: str
-    """The content of the message."""
-
-
-class MultiModalMessage(BaseMessage):
-    """A multimodal message."""
-
-    content: List[str | Image]
-    """The content of the message."""
-
-
-class ToolCallMessage(BaseMessage):
-    """A message containing a list of function calls."""
-
-    content: List[FunctionCall]
-    """The list of function calls."""
-
-
-class ToolCallResultMessage(BaseMessage):
-    """A message containing the results of function calls."""
-
-    content: List[FunctionExecutionResult]
-    """The list of function execution results."""
-
-
-class StopMessage(BaseMessage):
-    """A message requesting stop of a conversation."""
-
-    content: str
-    """The content for the stop message."""
-
-
-ChatMessage = TextMessage | MultiModalMessage | StopMessage | ToolCallMessage | ToolCallResultMessage
-"""A message used by agents in a team."""
-
-
-class BaseChatAgent(ABC):
-    """Base class for a chat agent that can participant in a team."""
+class BaseChatAgent(ChatAgent, ABC):
+    """Base class for a chat agent."""
 
     def __init__(self, name: str, description: str) -> None:
         self._name = name
@@ -76,25 +29,91 @@ class BaseChatAgent(ABC):
         describe the agent's capabilities and how to interact with it."""
         return self._description
 
+    @property
     @abstractmethod
-    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> ChatMessage:
-        """Handle incoming messages and return a response message."""
+    def produced_message_types(self) -> List[type[ChatMessage]]:
+        """The types of messages that the agent produces."""
         ...
 
+    @abstractmethod
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+        """Handles incoming messages and returns a response."""
+        ...
 
-class BaseToolUseChatAgent(BaseChatAgent):
-    """Base class for a chat agent that can use tools.
+    async def on_messages_stream(
+        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[AgentMessage | Response, None]:
+        """Handles incoming messages and returns a stream of messages and
+        and the final item is the response. The base implementation in :class:`BaseChatAgent`
+        simply calls :meth:`on_messages` and yields the messages in the response."""
+        response = await self.on_messages(messages, cancellation_token)
+        for inner_message in response.inner_messages or []:
+            yield inner_message
+        yield response
 
-    Subclass this base class to create an agent class that uses tools by returning
-    ToolCallMessage message from the :meth:`on_messages` method and receiving
-    ToolCallResultMessage message from the input to the :meth:`on_messages` method.
-    """
+    async def run(
+        self,
+        *,
+        task: str | ChatMessage | None = None,
+        cancellation_token: CancellationToken | None = None,
+    ) -> TaskResult:
+        """Run the agent with the given task and return the result."""
+        if cancellation_token is None:
+            cancellation_token = CancellationToken()
+        input_messages: List[ChatMessage] = []
+        output_messages: List[AgentMessage] = []
+        if task is None:
+            pass
+        elif isinstance(task, str):
+            text_msg = TextMessage(content=task, source="user")
+            input_messages.append(text_msg)
+            output_messages.append(text_msg)
+        elif isinstance(task, TextMessage | MultiModalMessage | StopMessage | HandoffMessage):
+            input_messages.append(task)
+            output_messages.append(task)
+        else:
+            raise ValueError(f"Invalid task type: {type(task)}")
+        response = await self.on_messages(input_messages, cancellation_token)
+        if response.inner_messages is not None:
+            output_messages += response.inner_messages
+        output_messages.append(response.chat_message)
+        return TaskResult(messages=output_messages)
 
-    def __init__(self, name: str, description: str, registered_tools: List[Tool]) -> None:
-        super().__init__(name, description)
-        self._registered_tools = registered_tools
+    async def run_stream(
+        self,
+        *,
+        task: str | ChatMessage | None = None,
+        cancellation_token: CancellationToken | None = None,
+    ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
+        """Run the agent with the given task and return a stream of messages
+        and the final task result as the last item in the stream."""
+        if cancellation_token is None:
+            cancellation_token = CancellationToken()
+        input_messages: List[ChatMessage] = []
+        output_messages: List[AgentMessage] = []
+        if task is None:
+            pass
+        elif isinstance(task, str):
+            text_msg = TextMessage(content=task, source="user")
+            input_messages.append(text_msg)
+            output_messages.append(text_msg)
+            yield text_msg
+        elif isinstance(task, TextMessage | MultiModalMessage | StopMessage | HandoffMessage):
+            input_messages.append(task)
+            output_messages.append(task)
+            yield task
+        else:
+            raise ValueError(f"Invalid task type: {type(task)}")
+        async for message in self.on_messages_stream(input_messages, cancellation_token):
+            if isinstance(message, Response):
+                yield message.chat_message
+                output_messages.append(message.chat_message)
+                yield TaskResult(messages=output_messages)
+            else:
+                output_messages.append(message)
+                yield message
 
-    @property
-    def registered_tools(self) -> List[Tool]:
-        """The list of tools that the agent can use."""
-        return self._registered_tools
+    @abstractmethod
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
+        """Resets the agent to its initialization state."""
+        ...

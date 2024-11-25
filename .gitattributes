@@ -33,10 +33,8 @@
 *.tsx             text
 *.xml             text
 *.xhtml           text diff=html
-
 # Docker
 Dockerfile        text eol=lf
-
 # Documentation
 *.ipynb           text
 *.markdown        text diff=markdown eol=lf
@@ -62,7 +60,6 @@ NEWS              text eol=lf
 readme            text eol=lf
 *README*          text eol=lf
 TODO              text
-
 # Configs
 *.cnf             text eol=lf
 *.conf            text eol=lf
@@ -84,8 +81,9 @@ yarn.lock         text -diff
 browserslist      text
 Makefile          text eol=lf
 makefile          text eol=lf
-
 # Images
 *.png filter=lfs diff=lfs merge=lfs -text
 *.jpg filter=lfs diff=lfs merge=lfs -text
 *.jpeg filter=lfs diff=lfs merge=lfs -text
+python/packages/autogen-magentic-one/imgs/autogen-magentic-one-example.png filter=lfs diff=lfs merge=lfs -text
+python/packages/autogen-magentic-one/imgs/autogen-magentic-one-agents.png filter=lfs diff=lfs merge=lfs -text

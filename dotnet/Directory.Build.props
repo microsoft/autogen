@@ -3,7 +3,8 @@
   <Import Project="./eng/MetaInfo.props" />
   <Import Project="./eng/Sign.props" />
   <PropertyGroup>
-    <PackageTargetFrameworks>netstandard2.0;net6.0;net8.0</PackageTargetFrameworks>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
+    <PackageTargetFrameworks>netstandard2.0;net8.0</PackageTargetFrameworks>
     <TestTargetFrameworks>net8.0</TestTargetFrameworks>
     <LangVersion>preview</LangVersion>
 	  <Nullable>enable</Nullable>
@@ -13,13 +14,13 @@
     <CSNoWarn>CS1998;CS1591;CS8002;</CSNoWarn>
     <SKEXPNoWarn>SKEXP0001;SKEXP0010;SKEXP0020</SKEXPNoWarn>
     <NoWarn>$(NoWarn);$(CSNoWarn);$(SKEXPNoWarn);NU5104</NoWarn>
+
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <IsPackable>false</IsPackable>
     <EnableNetAnalyzers>true</EnableNetAnalyzers>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <IsTestProject>false</IsTestProject>
-
     <DebugType>embedded</DebugType>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
@@ -28,13 +29,14 @@
     <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(MSBuildProjectName.StartsWith(`AutoGen`))' == 'true'">
+    <VersionPrefix>$(VersionPrefixForAutoGen0_2)</VersionPrefix>
+    <IsAutoGen0_2>true</IsAutoGen0_2>
+  </PropertyGroup>
+
   <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
     <NoWarn>$(NoWarn);CA1829</NoWarn>
   </PropertyGroup>
-
-  <ItemGroup>
-    <PackageReference Include="System.Text.Json" />
-  </ItemGroup>
 
   <ItemGroup Condition="'$(IsTestProject)' == 'true'">
     <PackageReference Include="ApprovalTests" />

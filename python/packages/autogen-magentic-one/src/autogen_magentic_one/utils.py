@@ -8,11 +8,10 @@ from typing import Any, Dict, List, Literal
 from autogen_core.application.logging.events import LLMCallEvent
 from autogen_core.components import Image
 from autogen_core.components.models import (
-    AzureOpenAIChatCompletionClient,
     ChatCompletionClient,
     ModelCapabilities,
-    OpenAIChatCompletionClient,
 )
+from autogen_ext.models import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 
 from .messages import (
     AgentEvent,
@@ -66,7 +65,7 @@ def create_completion_client_from_env(env: Dict[str, str] | None = None, **kwarg
 
     # Instantiate the correct client
     if _provider == "openai":
-        return OpenAIChatCompletionClient(**_kwargs)
+        return OpenAIChatCompletionClient(**_kwargs)  # type: ignore
     elif _provider == "azure":
         if _kwargs.get("azure_ad_token_provider", "").lower() == "default":
             if _default_azure_ad_token_provider is None:
@@ -76,7 +75,7 @@ def create_completion_client_from_env(env: Dict[str, str] | None = None, **kwarg
                     DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
                 )
             _kwargs["azure_ad_token_provider"] = _default_azure_ad_token_provider
-        return AzureOpenAIChatCompletionClient(**_kwargs)
+        return AzureOpenAIChatCompletionClient(**_kwargs)  # type: ignore
     else:
         raise ValueError(f"Unknown OAI provider '{_provider}'")
 
@@ -105,6 +104,7 @@ def message_content_to_str(
 class LogHandler(logging.FileHandler):
     def __init__(self, filename: str = "log.jsonl") -> None:
         super().__init__(filename)
+        self.logs_list: List[Dict[str, Any]] = []
 
     def emit(self, record: logging.LogRecord) -> None:
         try:
@@ -122,6 +122,7 @@ class LogHandler(logging.FileHandler):
                         "type": "OrchestrationEvent",
                     }
                 )
+                self.logs_list.append(json.loads(record.msg))
                 super().emit(record)
             elif isinstance(record.msg, AgentEvent):
                 console_message = (
@@ -136,6 +137,7 @@ class LogHandler(logging.FileHandler):
                         "type": "AgentEvent",
                     }
                 )
+                self.logs_list.append(json.loads(record.msg))
                 super().emit(record)
             elif isinstance(record.msg, WebSurferEvent):
                 console_message = f"\033[96m[{ts}], {record.msg.source}: {record.msg.message}\033[0m"
@@ -146,6 +148,7 @@ class LogHandler(logging.FileHandler):
                 }
                 payload.update(asdict(record.msg))
                 record.msg = json.dumps(payload)
+                self.logs_list.append(json.loads(record.msg))
                 super().emit(record)
             elif isinstance(record.msg, LLMCallEvent):
                 record.msg = json.dumps(
@@ -156,6 +159,7 @@ class LogHandler(logging.FileHandler):
                         "type": "LLMCallEvent",
                     }
                 )
+                self.logs_list.append(json.loads(record.msg))
                 super().emit(record)
         except Exception:
             self.handleError(record)

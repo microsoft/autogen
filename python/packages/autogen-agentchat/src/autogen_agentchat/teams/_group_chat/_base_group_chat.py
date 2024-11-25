@@ -1,173 +1,388 @@
+import asyncio
+import logging
 import uuid
 from abc import ABC, abstractmethod
-from typing import Callable, List
+from typing import AsyncGenerator, Callable, List
 
 from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, AgentInstantiationContext, AgentRuntime, AgentType, MessageContext, TopicId
+from autogen_core.base import (
+    AgentId,
+    AgentInstantiationContext,
+    AgentRuntime,
+    AgentType,
+    CancellationToken,
+    MessageContext,
+)
 from autogen_core.components import ClosureAgent, TypeSubscription
-from autogen_core.components.tool_agent import ToolAgent
-from autogen_core.components.tools import Tool
 
-from ...agents import BaseChatAgent, BaseToolUseChatAgent, ChatMessage, TextMessage
-from .._base_team import BaseTeam, TeamRunResult
-from .._events import ContentPublishEvent, ContentRequestEvent
-from .._termination import TerminationCondition
-from ._base_chat_agent_container import BaseChatAgentContainer
-from ._base_group_chat_manager import BaseGroupChatManager
+from ... import EVENT_LOGGER_NAME
+from ...base import ChatAgent, TaskResult, Team, TerminationCondition
+from ...messages import AgentMessage, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
+from ._chat_agent_container import ChatAgentContainer
+from ._events import GroupChatMessage, GroupChatReset, GroupChatStart, GroupChatTermination
+from ._sequential_routed_agent import SequentialRoutedAgent
+
+event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
-class BaseGroupChat(BaseTeam, ABC):
+class BaseGroupChat(Team, ABC):
     """The base class for group chat teams.
 
     To implement a group chat team, first create a subclass of :class:`BaseGroupChatManager` and then
     create a subclass of :class:`BaseGroupChat` that uses the group chat manager.
     """
 
-    def __init__(self, participants: List[BaseChatAgent], group_chat_manager_class: type[BaseGroupChatManager]):
+    def __init__(
+        self,
+        participants: List[ChatAgent],
+        group_chat_manager_class: type[SequentialRoutedAgent],
+        termination_condition: TerminationCondition | None = None,
+        max_turns: int | None = None,
+    ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
         if len(participants) != len(set(participant.name for participant in participants)):
             raise ValueError("The participant names must be unique.")
-        for participant in participants:
-            if isinstance(participant, BaseToolUseChatAgent) and not participant.registered_tools:
-                raise ValueError(
-                    f"Participant '{participant.name}' is a tool use agent so it must have registered tools."
-                )
         self._participants = participants
-        self._team_id = str(uuid.uuid4())
         self._base_group_chat_manager_class = group_chat_manager_class
+        self._termination_condition = termination_condition
+        self._max_turns = max_turns
+
+        # Constants for the group chat.
+        self._team_id = str(uuid.uuid4())
+        self._group_topic_type = "group_topic"
+        self._output_topic_type = "output_topic"
+        self._group_chat_manager_topic_type = "group_chat_manager"
+        self._participant_topic_types: List[str] = [participant.name for participant in participants]
+        self._participant_descriptions: List[str] = [participant.description for participant in participants]
+        self._collector_agent_type = "collect_output_messages"
+
+        # Constants for the closure agent to collect the output messages.
+        self._stop_reason: str | None = None
+        self._output_message_queue: asyncio.Queue[AgentMessage | None] = asyncio.Queue()
+
+        # Create a runtime for the team.
+        # TODO: The runtime should be created by a managed context.
+        self._runtime = SingleThreadedAgentRuntime()
+
+        # Flag to track if the group chat has been initialized.
+        self._initialized = False
+
+        # Flag to track if the group chat is running.
+        self._is_running = False
 
     @abstractmethod
     def _create_group_chat_manager_factory(
         self,
-        parent_topic_type: str,
         group_topic_type: str,
+        output_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
-    ) -> Callable[[], BaseGroupChatManager]: ...
+        max_turns: int | None,
+    ) -> Callable[[], SequentialRoutedAgent]: ...
 
     def _create_participant_factory(
-        self, parent_topic_type: str, agent: BaseChatAgent, tool_agent_type: AgentType | None
-    ) -> Callable[[], BaseChatAgentContainer]:
-        def _factory() -> BaseChatAgentContainer:
+        self,
+        parent_topic_type: str,
+        output_topic_type: str,
+        agent: ChatAgent,
+    ) -> Callable[[], ChatAgentContainer]:
+        def _factory() -> ChatAgentContainer:
             id = AgentInstantiationContext.current_agent_id()
             assert id == AgentId(type=agent.name, key=self._team_id)
-            container = BaseChatAgentContainer(parent_topic_type, agent, tool_agent_type)
+            container = ChatAgentContainer(parent_topic_type, output_topic_type, agent)
             assert container.id == id
             return container
 
         return _factory
 
-    def _create_tool_agent_factory(
-        self,
-        caller_name: str,
-        tools: List[Tool],
-    ) -> Callable[[], ToolAgent]:
-        def _factory() -> ToolAgent:
-            return ToolAgent(f"Tool agent for {caller_name}", tools)
-
-        return _factory
-
-    async def run(self, task: str, *, termination_condition: TerminationCondition | None = None) -> TeamRunResult:
-        """Run the team and return the result."""
-        # Create intervention handler for termination.
-
-        # Create the runtime.
-        runtime = SingleThreadedAgentRuntime()
-
+    async def _init(self, runtime: AgentRuntime) -> None:
         # Constants for the group chat manager.
-        group_chat_manager_agent_type = AgentType("group_chat_manager")
-        group_chat_manager_topic_type = group_chat_manager_agent_type.type
-        group_topic_type = "round_robin_group_topic"
-        team_topic_type = "team_topic"
+        group_chat_manager_agent_type = AgentType(self._group_chat_manager_topic_type)
 
         # Register participants.
-        participant_topic_types: List[str] = []
-        participant_descriptions: List[str] = []
-        for participant in self._participants:
-            if isinstance(participant, BaseToolUseChatAgent):
-                assert participant.registered_tools is not None and len(participant.registered_tools) > 0
-                # Register the tool agent.
-                tool_agent_type = await ToolAgent.register(
-                    runtime,
-                    f"tool_agent_for_{participant.name}",
-                    self._create_tool_agent_factory(participant.name, participant.registered_tools),
-                )
-                # No subscriptions are needed for the tool agent, which will be called via direct messages.
-            else:
-                # No tool agent is needed.
-                tool_agent_type = None
-
-            # Use the participant name as the agent type and topic type.
-            agent_type = participant.name
-            topic_type = participant.name
+        for participant, participant_topic_type in zip(self._participants, self._participant_topic_types, strict=False):
+            # Use the participant topic type as the agent type.
+            agent_type = participant_topic_type
             # Register the participant factory.
-            await BaseChatAgentContainer.register(
+            await ChatAgentContainer.register(
                 runtime,
                 type=agent_type,
-                factory=self._create_participant_factory(group_topic_type, participant, tool_agent_type),
+                factory=self._create_participant_factory(self._group_topic_type, self._output_topic_type, participant),
             )
             # Add subscriptions for the participant.
-            await runtime.add_subscription(TypeSubscription(topic_type=topic_type, agent_type=agent_type))
-            await runtime.add_subscription(TypeSubscription(topic_type=group_topic_type, agent_type=agent_type))
-            # Add the participant to the lists.
-            participant_descriptions.append(participant.description)
-            participant_topic_types.append(topic_type)
+            await runtime.add_subscription(TypeSubscription(topic_type=participant_topic_type, agent_type=agent_type))
+            await runtime.add_subscription(TypeSubscription(topic_type=self._group_topic_type, agent_type=agent_type))
 
         # Register the group chat manager.
         await self._base_group_chat_manager_class.register(
             runtime,
             type=group_chat_manager_agent_type.type,
             factory=self._create_group_chat_manager_factory(
-                parent_topic_type=team_topic_type,
-                group_topic_type=group_topic_type,
-                participant_topic_types=participant_topic_types,
-                participant_descriptions=participant_descriptions,
-                termination_condition=termination_condition,
+                group_topic_type=self._group_topic_type,
+                output_topic_type=self._output_topic_type,
+                participant_topic_types=self._participant_topic_types,
+                participant_descriptions=self._participant_descriptions,
+                termination_condition=self._termination_condition,
+                max_turns=self._max_turns,
             ),
         )
         # Add subscriptions for the group chat manager.
         await runtime.add_subscription(
-            TypeSubscription(topic_type=group_chat_manager_topic_type, agent_type=group_chat_manager_agent_type.type)
+            TypeSubscription(
+                topic_type=self._group_chat_manager_topic_type, agent_type=group_chat_manager_agent_type.type
+            )
         )
         await runtime.add_subscription(
-            TypeSubscription(topic_type=group_topic_type, agent_type=group_chat_manager_agent_type.type)
-        )
-        await runtime.add_subscription(
-            TypeSubscription(topic_type=team_topic_type, agent_type=group_chat_manager_agent_type.type)
+            TypeSubscription(topic_type=self._group_topic_type, agent_type=group_chat_manager_agent_type.type)
         )
 
-        group_chat_messages: List[ChatMessage] = []
-
-        async def collect_group_chat_messages(
-            _runtime: AgentRuntime, id: AgentId, message: ContentPublishEvent, ctx: MessageContext
+        async def collect_output_messages(
+            _runtime: AgentRuntime,
+            id: AgentId,
+            message: GroupChatStart | GroupChatMessage | GroupChatTermination,
+            ctx: MessageContext,
         ) -> None:
-            group_chat_messages.append(message.agent_message)
+            event_logger.info(message.message)
+            if isinstance(message, GroupChatTermination):
+                self._stop_reason = message.message.content
+                return
+            await self._output_message_queue.put(message.message)
 
         await ClosureAgent.register(
             runtime,
-            type="collect_group_chat_messages",
-            closure=collect_group_chat_messages,
+            type=self._collector_agent_type,
+            closure=collect_output_messages,
             subscriptions=lambda: [
-                TypeSubscription(topic_type=group_topic_type, agent_type="collect_group_chat_messages"),
+                TypeSubscription(topic_type=self._output_topic_type, agent_type=self._collector_agent_type),
             ],
         )
+        self._initialized = True
+
+    async def run(
+        self,
+        *,
+        task: str | ChatMessage | None = None,
+        cancellation_token: CancellationToken | None = None,
+    ) -> TaskResult:
+        """Run the team and return the result. The base implementation uses
+        :meth:`run_stream` to run the team and then returns the final result.
+        Once the team is stopped, the termination condition is reset.
+
+        Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
+
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_ext.models import OpenAIChatCompletionClient
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+                agent1 = AssistantAgent("Assistant1", model_client=model_client)
+                agent2 = AssistantAgent("Assistant2", model_client=model_client)
+                termination = MaxMessageTermination(3)
+                team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
+
+                result = await team.run(task="Count from 1 to 10, respond one at a time.")
+                print(result)
+
+                # Run the team again without a task to continue the previous task.
+                result = await team.run()
+                print(result)
+
+
+            asyncio.run(main())
+        """
+        result: TaskResult | None = None
+        async for message in self.run_stream(
+            task=task,
+            cancellation_token=cancellation_token,
+        ):
+            if isinstance(message, TaskResult):
+                result = message
+        if result is not None:
+            return result
+        raise AssertionError("The stream should have returned the final result.")
+
+    async def run_stream(
+        self,
+        *,
+        task: str | ChatMessage | None = None,
+        cancellation_token: CancellationToken | None = None,
+    ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
+        """Run the team and produces a stream of messages and the final result
+        of the type :class:`TaskResult` as the last item in the stream. Once the
+        team is stopped, the termination condition is reset.
+
+        Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_ext.models import OpenAIChatCompletionClient
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+                agent1 = AssistantAgent("Assistant1", model_client=model_client)
+                agent2 = AssistantAgent("Assistant2", model_client=model_client)
+                termination = MaxMessageTermination(3)
+                team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
+
+                stream = team.run_stream(task="Count from 1 to 10, respond one at a time.")
+                async for message in stream:
+                    print(message)
+
+                # Run the team again without a task to continue the previous task.
+                stream = team.run_stream()
+                async for message in stream:
+                    print(message)
+
+
+            asyncio.run(main())
+        """
+        # Create the first chat message if the task is a string or a chat message.
+        first_chat_message: ChatMessage | None = None
+        if task is None:
+            pass
+        elif isinstance(task, str):
+            first_chat_message = TextMessage(content=task, source="user")
+        elif isinstance(task, TextMessage | MultiModalMessage | StopMessage | HandoffMessage):
+            first_chat_message = task
+        else:
+            raise ValueError(f"Invalid task type: {type(task)}")
+
+        if self._is_running:
+            raise ValueError("The team is already running, it cannot run again until it is stopped.")
+        self._is_running = True
 
         # Start the runtime.
-        runtime.start()
+        # TODO: The runtime should be started by a managed context.
+        self._runtime.start()
 
-        # Run the team by publishing the task to the team topic and then requesting the result.
-        team_topic_id = TopicId(type=team_topic_type, source=self._team_id)
-        group_chat_manager_topic_id = TopicId(type=group_chat_manager_topic_type, source=self._team_id)
-        await runtime.publish_message(
-            ContentPublishEvent(agent_message=TextMessage(content=task, source="user")),
-            topic_id=team_topic_id,
-        )
-        await runtime.publish_message(ContentRequestEvent(), topic_id=group_chat_manager_topic_id)
+        if not self._initialized:
+            await self._init(self._runtime)
 
-        # Wait for the runtime to stop.
-        await runtime.stop_when_idle()
+        # Start a coroutine to stop the runtime and signal the output message queue is complete.
+        async def stop_runtime() -> None:
+            await self._runtime.stop_when_idle()
+            await self._output_message_queue.put(None)
 
-        # Return the result.
-        return TeamRunResult(messages=group_chat_messages)
+        shutdown_task = asyncio.create_task(stop_runtime())
+
+        try:
+            # Run the team by sending the start message to the group chat manager.
+            # The group chat manager will start the group chat by relaying the message to the participants
+            # and the closure agent.
+            await self._runtime.send_message(
+                GroupChatStart(message=first_chat_message),
+                recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+            )
+            # Collect the output messages in order.
+            output_messages: List[AgentMessage] = []
+            # Yield the messsages until the queue is empty.
+            while True:
+                message = await self._output_message_queue.get()
+                if message is None:
+                    break
+                yield message
+                output_messages.append(message)
+
+            # Yield the final result.
+            yield TaskResult(messages=output_messages, stop_reason=self._stop_reason)
+
+        finally:
+            # Wait for the shutdown task to finish.
+            await shutdown_task
+
+            # Clear the output message queue.
+            while not self._output_message_queue.empty():
+                self._output_message_queue.get_nowait()
+
+            # Indicate that the team is no longer running.
+            self._is_running = False
+
+    async def reset(self) -> None:
+        """Reset the team and its participants to their initial state.
+
+        The team must be stopped before it can be reset.
+
+        Raises:
+            RuntimeError: If the team has not been initialized or is currently running.
+
+        Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_ext.models import OpenAIChatCompletionClient
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+                agent1 = AssistantAgent("Assistant1", model_client=model_client)
+                agent2 = AssistantAgent("Assistant2", model_client=model_client)
+                termination = MaxMessageTermination(3)
+                team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
+                stream = team.run_stream(task="Count from 1 to 10, respond one at a time.")
+                async for message in stream:
+                    print(message)
+
+                # Reset the team.
+                await team.reset()
+                stream = team.run_stream(task="Count from 1 to 10, respond one at a time.")
+                async for message in stream:
+                    print(message)
+
+
+            asyncio.run(main())
+        """
+
+        if not self._initialized:
+            raise RuntimeError("The group chat has not been initialized. It must be run before it can be reset.")
+
+        if self._is_running:
+            raise RuntimeError("The group chat is currently running. It must be stopped before it can be reset.")
+        self._is_running = True
+
+        # Start the runtime.
+        self._runtime.start()
+
+        try:
+            # Send a reset messages to all participants.
+            for participant_topic_type in self._participant_topic_types:
+                await self._runtime.send_message(
+                    GroupChatReset(),
+                    recipient=AgentId(type=participant_topic_type, key=self._team_id),
+                )
+            # Send a reset message to the group chat manager.
+            await self._runtime.send_message(
+                GroupChatReset(),
+                recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+            )
+        finally:
+            # Stop the runtime.
+            await self._runtime.stop_when_idle()
+
+            # Reset the output message queue.
+            self._stop_reason = None
+            while not self._output_message_queue.empty():
+                self._output_message_queue.get_nowait()
+
+            # Indicate that the team is no longer running.
+            self._is_running = False

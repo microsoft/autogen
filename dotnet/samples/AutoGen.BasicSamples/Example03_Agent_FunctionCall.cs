@@ -6,6 +6,7 @@ using AutoGen.Core;
 using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
 using FluentAssertions;
+using Microsoft.Extensions.AI;
 
 /// <summary>
 /// This example shows how to add type-safe function call to an agent.
@@ -37,13 +38,20 @@ public partial class Example03_Agent_FunctionCall
     /// </summary>
     /// <param name="price">price, should be an integer</param>
     /// <param name="taxRate">tax rate, should be in range (0, 1)</param>
-    [FunctionAttribute]
+    [Function]
     public async Task<string> CalculateTax(int price, float taxRate)
     {
         return $"tax is {price * taxRate}";
     }
 
-    public static async Task RunAsync()
+    /// <summary>
+    /// This example shows how to add type-safe function call using AutoGen.SourceGenerator.
+    /// The SourceGenerator will automatically generate FunctionDefinition and FunctionCallWrapper during compiling time.
+    ///
+    /// For adding type-safe function call from M.E.A.I tools, please refer to <see cref="ToolCallWithMEAITools"/>.
+    /// </summary>
+    /// <returns></returns>
+    public static async Task ToolCallWithSourceGenerator()
     {
         var instance = new Example03_Agent_FunctionCall();
         var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
@@ -63,6 +71,62 @@ public partial class Example03_Agent_FunctionCall
                 { nameof(instance.UpperCase), instance.UpperCaseWrapper },
                 { nameof(instance.CalculateTax), instance.CalculateTaxWrapper },
             });
+
+        var agent = new OpenAIChatAgent(
+            chatClient: gpt4o,
+            name: "agent",
+            systemMessage: "You are a helpful AI assistant")
+            .RegisterMessageConnector()
+            .RegisterStreamingMiddleware(toolCallMiddleware)
+            .RegisterPrintMessage();
+
+        // talk to the assistant agent
+        var upperCase = await agent.SendAsync("convert to upper case: hello world");
+        upperCase.GetContent()?.Should().Be("HELLO WORLD");
+        upperCase.Should().BeOfType<ToolCallAggregateMessage>();
+        upperCase.GetToolCalls().Should().HaveCount(1);
+        upperCase.GetToolCalls().First().FunctionName.Should().Be(nameof(UpperCase));
+
+        var concatString = await agent.SendAsync("concatenate strings: a, b, c, d, e");
+        concatString.GetContent()?.Should().Be("a b c d e");
+        concatString.Should().BeOfType<ToolCallAggregateMessage>();
+        concatString.GetToolCalls().Should().HaveCount(1);
+        concatString.GetToolCalls().First().FunctionName.Should().Be(nameof(ConcatString));
+
+        var calculateTax = await agent.SendAsync("calculate tax: 100, 0.1");
+        calculateTax.GetContent().Should().Be("tax is 10");
+        calculateTax.Should().BeOfType<ToolCallAggregateMessage>();
+        calculateTax.GetToolCalls().Should().HaveCount(1);
+        calculateTax.GetToolCalls().First().FunctionName.Should().Be(nameof(CalculateTax));
+
+        // parallel function calls
+        var calculateTaxes = await agent.SendAsync("calculate tax: 100, 0.1; calculate tax: 200, 0.2");
+        calculateTaxes.GetContent().Should().Be("tax is 10\ntax is 40"); // "tax is 10\n tax is 40
+        calculateTaxes.Should().BeOfType<ToolCallAggregateMessage>();
+        calculateTaxes.GetToolCalls().Should().HaveCount(2);
+        calculateTaxes.GetToolCalls().First().FunctionName.Should().Be(nameof(CalculateTax));
+
+        // send aggregate message back to llm to get the final result
+        var finalResult = await agent.SendAsync(calculateTaxes);
+    }
+
+    /// <summary>
+    /// This example shows how to add type-safe function call from M.E.A.I tools.
+    ///
+    /// For adding type-safe function call from source generator, please refer to <see cref="ToolCallWithSourceGenerator"/>.
+    /// </summary>
+    public static async Task ToolCallWithMEAITools()
+    {
+        var gpt4o = LLMConfiguration.GetOpenAIGPT4o_mini();
+        var instance = new Example03_Agent_FunctionCall();
+
+        AIFunction[] tools = [
+            AIFunctionFactory.Create(instance.UpperCase),
+            AIFunctionFactory.Create(instance.ConcatString),
+            AIFunctionFactory.Create(instance.CalculateTax),
+        ];
+
+        var toolCallMiddleware = new FunctionCallMiddleware(tools);
 
         var agent = new OpenAIChatAgent(
             chatClient: gpt4o,

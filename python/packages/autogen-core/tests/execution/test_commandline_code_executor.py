@@ -2,8 +2,11 @@
 # Credit to original authors
 
 import asyncio
+import os
+import shutil
 import sys
 import tempfile
+import venv
 from pathlib import Path
 from typing import AsyncGenerator, TypeAlias
 
@@ -143,3 +146,51 @@ print("hello world")
     assert "test.py" in result.code_file
     assert (temp_dir / Path("test.py")).resolve() == Path(result.code_file).resolve()
     assert (temp_dir / Path("test.py")).exists()
+
+
+@pytest.mark.asyncio
+async def test_local_executor_with_custom_venv() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        env_builder = venv.EnvBuilder(with_pip=True)
+        env_builder.create(temp_dir)
+        env_builder_context = env_builder.ensure_directories(temp_dir)
+
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, virtual_env_context=env_builder_context)
+        code_blocks = [
+            # https://stackoverflow.com/questions/1871549/how-to-determine-if-python-is-running-inside-a-virtualenv
+            CodeBlock(code="import sys; print(sys.prefix != sys.base_prefix)", language="python"),
+        ]
+        cancellation_token = CancellationToken()
+        result = await executor.execute_code_blocks(code_blocks, cancellation_token=cancellation_token)
+
+        assert result.exit_code == 0
+        assert result.output.strip() == "True"
+
+
+@pytest.mark.asyncio
+async def test_local_executor_with_custom_venv_in_local_relative_path() -> None:
+    relative_folder_path = "tmp_dir"
+    try:
+        if not os.path.isdir(relative_folder_path):
+            os.mkdir(relative_folder_path)
+
+        env_path = os.path.join(relative_folder_path, ".venv")
+        env_builder = venv.EnvBuilder(with_pip=True)
+        env_builder.create(env_path)
+        env_builder_context = env_builder.ensure_directories(env_path)
+
+        executor = LocalCommandLineCodeExecutor(work_dir=relative_folder_path, virtual_env_context=env_builder_context)
+        code_blocks = [
+            CodeBlock(code="import sys; print(sys.executable)", language="python"),
+        ]
+        cancellation_token = CancellationToken()
+        result = await executor.execute_code_blocks(code_blocks, cancellation_token=cancellation_token)
+
+        assert result.exit_code == 0
+
+        # Check if the expected venv has been used
+        bin_path = os.path.abspath(env_builder_context.bin_path)
+        assert Path(result.output.strip()).parent.samefile(bin_path)
+    finally:
+        if os.path.isdir(relative_folder_path):
+            shutil.rmtree(relative_folder_path)

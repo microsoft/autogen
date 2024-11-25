@@ -172,3 +172,6 @@ docs/**/jupyter_execute
 
 # Temporary files
 tmp_code_*.py
+
+# .NET Development settings
+appsettings.Development.json

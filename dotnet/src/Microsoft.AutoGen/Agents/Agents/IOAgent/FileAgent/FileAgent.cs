@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// FileAgent.cs
+
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -6,11 +9,11 @@ namespace Microsoft.AutoGen.Agents;
 
 [TopicSubscription("FileIO")]
 public abstract class FileAgent(
-    IAgentContext context,
+    IAgentRuntime context,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
     string inputPath = "input.txt",
     string outputPath = "output.txt"
-    ) : IOAgent<AgentState>(context, typeRegistry),
+    ) : IOAgent(context, typeRegistry),
         IUseFiles,
         IHandle<Input>,
         IHandle<Output>
@@ -21,13 +24,13 @@ public abstract class FileAgent(
         if (!File.Exists(inputPath))
         {
             var errorMessage = $"File not found: {inputPath}";
-            Logger.LogError(errorMessage);
+            _logger.LogError(errorMessage);
             //publish IOError event
             var err = new IOError
             {
                 Message = errorMessage
-            }.ToCloudEvent(this.AgentId.Key);
-            await PublishEvent(err);
+            };
+            await PublishMessageAsync(err);
             return;
         }
         string content;
@@ -39,8 +42,9 @@ public abstract class FileAgent(
         var evt = new InputProcessed
         {
             Route = _route
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+
+        };
+        await PublishMessageAsync(evt);
     }
     public override async Task Handle(Output item)
     {
@@ -51,16 +55,16 @@ public abstract class FileAgent(
         var evt = new OutputWritten
         {
             Route = _route
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
     }
     public override async Task<string> ProcessInput(string message)
     {
         var evt = new InputProcessed
         {
             Route = _route,
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt);
+        };
+        await PublishMessageAsync(evt);
         return message;
     }
     public override Task ProcessOutput(string message)
