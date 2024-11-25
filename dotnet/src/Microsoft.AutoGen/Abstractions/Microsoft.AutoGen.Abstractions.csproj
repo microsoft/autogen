@@ -18,8 +18,6 @@
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Grpc.Net.ClientFactory" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
-    <PackageReference Include="Microsoft.Orleans.Core.Abstractions" />
- 		<PackageReference Include="Microsoft.Orleans.Sdk" />
 	  <PackageReference Include="Microsoft.SemanticKernel" />
   </ItemGroup>
 </Project>
