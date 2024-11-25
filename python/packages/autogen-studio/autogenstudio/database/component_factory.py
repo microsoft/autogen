@@ -1,10 +1,10 @@
 import json
 import logging
-import os
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Literal, Optional, Type, Union
+from typing import Callable, Dict, List, Literal, Optional, Union
 
+import aiofiles
 import yaml
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.task import MaxMessageTermination, StopMessageTermination, TextMentionTermination
@@ -13,15 +13,14 @@ from autogen_core.components.tools import FunctionTool
 from autogen_ext.models import OpenAIChatCompletionClient
 
 from ..components import UserProxyAgent
-from ..datamodel import (
+from ..datamodel.types import (
     AgentConfig,
     AgentTypes,
     ComponentConfig,
     ComponentConfigInput,
-    ComponentType,
+    ComponentTypes,
     ModelConfig,
     ModelTypes,
-    Response,
     TeamConfig,
     TeamTypes,
     TerminationConfig,
@@ -33,21 +32,15 @@ from ..utils.utils import Version
 
 logger = logging.getLogger(__name__)
 
-# Type definitions for supported components
 TeamComponent = Union[RoundRobinGroupChat, SelectorGroupChat]
-AgentComponent = Union[AssistantAgent]  # Will grow with more agent types
-# Will grow with more model types
+AgentComponent = Union[AssistantAgent]
 ModelComponent = Union[OpenAIChatCompletionClient]
 ToolComponent = Union[FunctionTool]  # Will grow with more tool types
 TerminationComponent = Union[MaxMessageTermination, StopMessageTermination, TextMentionTermination]
 
-# Config type definitions
-
-Component = Union[TeamComponent, AgentComponent, ModelComponent, ToolComponent]
-
+Component = Union[TeamComponent, AgentComponent, ModelComponent, ToolComponent, TerminationComponent]
 
 ReturnType = Literal["object", "dict", "config"]
-Component = Union[RoundRobinGroupChat, SelectorGroupChat, AssistantAgent, OpenAIChatCompletionClient, FunctionTool]
 
 DEFAULT_SELECTOR_PROMPT = """You are in a role play game. The following roles are available:
 {roles}.
@@ -65,11 +58,11 @@ class ComponentFactory:
     """Creates and manages agent components with versioned configuration loading"""
 
     SUPPORTED_VERSIONS = {
-        ComponentType.TEAM: ["1.0.0"],
-        ComponentType.AGENT: ["1.0.0"],
-        ComponentType.MODEL: ["1.0.0"],
-        ComponentType.TOOL: ["1.0.0"],
-        ComponentType.TERMINATION: ["1.0.0"],
+        ComponentTypes.TEAM: ["1.0.0"],
+        ComponentTypes.AGENT: ["1.0.0"],
+        ComponentTypes.MODEL: ["1.0.0"],
+        ComponentTypes.TOOL: ["1.0.0"],
+        ComponentTypes.TERMINATION: ["1.0.0"],
     }
 
     def __init__(self):
@@ -117,11 +110,11 @@ class ComponentFactory:
 
             # Otherwise create and return component instance
             handlers = {
-                ComponentType.TEAM: lambda c: self.load_team(c, input_func),
-                ComponentType.AGENT: lambda c: self.load_agent(c, input_func),
-                ComponentType.MODEL: self.load_model,
-                ComponentType.TOOL: self.load_tool,
-                ComponentType.TERMINATION: self.load_termination,
+                ComponentTypes.TEAM: lambda c: self.load_team(c, input_func),
+                ComponentTypes.AGENT: lambda c: self.load_agent(c, input_func),
+                ComponentTypes.MODEL: self.load_model,
+                ComponentTypes.TOOL: self.load_tool,
+                ComponentTypes.TERMINATION: self.load_termination,
             }
 
             handler = handlers.get(config.component_type)
@@ -163,14 +156,14 @@ class ComponentFactory:
             raise ValueError("component_type is required in configuration")
 
         config_types = {
-            ComponentType.TEAM: TeamConfig,
-            ComponentType.AGENT: AgentConfig,
-            ComponentType.MODEL: ModelConfig,
-            ComponentType.TOOL: ToolConfig,
-            ComponentType.TERMINATION: TerminationConfig,  # Add mapping for termination
+            ComponentTypes.TEAM: TeamConfig,
+            ComponentTypes.AGENT: AgentConfig,
+            ComponentTypes.MODEL: ModelConfig,
+            ComponentTypes.TOOL: ToolConfig,
+            ComponentTypes.TERMINATION: TerminationConfig,  # Add mapping for termination
         }
 
-        component_type = ComponentType(config_dict["component_type"])
+        component_type = ComponentTypes(config_dict["component_type"])
         config_class = config_types.get(component_type)
 
         if not config_class:
@@ -216,7 +209,7 @@ class ComponentFactory:
 
         except Exception as e:
             logger.error(f"Failed to create termination condition: {str(e)}")
-            raise ValueError(f"Termination condition creation failed: {str(e)}")
+            raise ValueError(f"Termination condition creation failed: {str(e)}") from e
 
     async def load_team(self, config: TeamConfig, input_func: Optional[Callable] = None) -> TeamComponent:
         """Create team instance from configuration."""
@@ -255,7 +248,7 @@ class ComponentFactory:
 
         except Exception as e:
             logger.error(f"Failed to create team {config.name}: {str(e)}")
-            raise ValueError(f"Team creation failed: {str(e)}")
+            raise ValueError(f"Team creation failed: {str(e)}") from e
 
     async def load_agent(self, config: AgentConfig, input_func: Optional[Callable] = None) -> AgentComponent:
         """Create agent instance from configuration."""
@@ -293,7 +286,7 @@ class ComponentFactory:
 
         except Exception as e:
             logger.error(f"Failed to create agent {config.name}: {str(e)}")
-            raise ValueError(f"Agent creation failed: {str(e)}")
+            raise ValueError(f"Agent creation failed: {str(e)}") from e
 
     async def load_model(self, config: ModelConfig) -> ModelComponent:
         """Create model instance from configuration."""
@@ -313,7 +306,7 @@ class ComponentFactory:
 
         except Exception as e:
             logger.error(f"Failed to create model {config.model}: {str(e)}")
-            raise ValueError(f"Model creation failed: {str(e)}")
+            raise ValueError(f"Model creation failed: {str(e)}") from e
 
     async def load_tool(self, config: ToolConfig) -> ToolComponent:
         """Create tool instance from configuration."""
@@ -341,7 +334,6 @@ class ComponentFactory:
             logger.error(f"Failed to create tool '{config.name}': {str(e)}")
             raise
 
-    # Helper methods remain largely the same
     async def _load_from_file(self, path: Union[str, Path]) -> dict:
         """Load configuration from JSON or YAML file."""
         path = Path(path)
@@ -349,15 +341,16 @@ class ComponentFactory:
             raise FileNotFoundError(f"Config file not found: {path}")
 
         try:
-            with open(path) as f:
+            async with aiofiles.open(path) as f:
+                content = await f.read()
                 if path.suffix == ".json":
-                    return json.load(f)
+                    return json.loads(content)
                 elif path.suffix in (".yml", ".yaml"):
-                    return yaml.safe_load(f)
+                    return yaml.safe_load(content)
                 else:
                     raise ValueError(f"Unsupported file format: {path.suffix}")
         except Exception as e:
-            raise ValueError(f"Failed to load file {path}: {str(e)}")
+            raise ValueError(f"Failed to load file {path}: {str(e)}") from e
 
     def _func_from_string(self, content: str) -> callable:
         """Convert function string to callable."""
@@ -369,9 +362,9 @@ class ComponentFactory:
                     return item
             raise ValueError("No function found in provided code")
         except Exception as e:
-            raise ValueError(f"Failed to create function: {str(e)}")
+            raise ValueError(f"Failed to create function: {str(e)}") from e
 
-    def _is_version_supported(self, component_type: ComponentType, ver: str) -> bool:
+    def _is_version_supported(self, component_type: ComponentTypes, ver: str) -> bool:
         """Check if version is supported for component type."""
         try:
             version = Version(ver)

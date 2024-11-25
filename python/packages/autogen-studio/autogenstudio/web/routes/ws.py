@@ -1,18 +1,16 @@
 # api/ws.py
 import json
-import logging
 from datetime import datetime
-from typing import Dict
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
+from loguru import logger
 
 from ...datamodel import Run, RunStatus
-from ..deps import get_db, get_team_manager, get_websocket_manager
+from ..deps import get_db, get_websocket_manager
 from ..managers import WebSocketManager
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
 
 
 @router.websocket("/runs/{run_id}")
@@ -21,7 +19,6 @@ async def run_websocket(
     run_id: UUID,
     ws_manager: WebSocketManager = Depends(get_websocket_manager),
     db=Depends(get_db),
-    team_manager=Depends(get_team_manager),
 ):
     """WebSocket endpoint for run communication"""
     # Verify run exists and is in valid state
@@ -50,7 +47,7 @@ async def run_websocket(
                 message = json.loads(raw_message)
 
                 if message.get("type") == "stop":
-                    print(f"Received stop request for run {run_id}")
+                    logger.info(f"Received stop request for run {run_id}")
                     reason = message.get("reason") or "User requested stop/cancellation"
                     await ws_manager.stop_run(run_id, reason=reason)
                     break

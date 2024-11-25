@@ -5,6 +5,7 @@ from enum import Enum
 from typing import List, Optional, Tuple, Type, Union
 from uuid import UUID, uuid4
 
+from loguru import logger
 from pydantic import BaseModel
 from sqlalchemy import ForeignKey, Integer, UniqueConstraint
 from sqlmodel import JSON, Column, DateTime, Field, Relationship, SQLModel, func
@@ -22,7 +23,7 @@ elif hasattr(SQLModel, "Config"):
 
     SQLModel = CustomSQLModel
 else:
-    print("Warning: Unable to set protected_namespaces.")
+    logger.warning("Unable to set protected_namespaces.")
 
 # pylint: disable=protected-access
 

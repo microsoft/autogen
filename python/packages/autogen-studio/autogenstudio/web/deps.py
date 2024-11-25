@@ -31,7 +31,9 @@ def get_db_context():
         yield _db_manager
     except Exception as e:
         logger.error(f"Database operation failed: {str(e)}")
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database operation failed")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database operation failed"
+        ) from e
 
 
 # Dependency providers
@@ -94,9 +96,7 @@ async def init_managers(database_uri: str, config_dir: str, app_root: str) -> No
         # init default team config
 
         _team_config_manager = ConfigurationManager(db_manager=_db_manager)
-        import_result = await _team_config_manager.import_directory(
-            config_dir, settings.DEFAULT_USER_ID, check_exists=True
-        )
+        await _team_config_manager.import_directory(config_dir, settings.DEFAULT_USER_ID, check_exists=True)
 
         # Initialize connection manager
         _websocket_manager = WebSocketManager(db_manager=_db_manager)

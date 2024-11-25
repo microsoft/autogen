@@ -24,6 +24,7 @@ dependencies = [
     "fastapi",
     "typer",
     "uvicorn", 
+    "aiofiles",
     "python-dotenv",
     "websockets",
     "numpy < 2.0.0",
@@ -78,5 +79,11 @@ include = [
     "autogenstudio/**"
 ]
 
-[tool.poe]
-include = "../../shared_tasks.toml"
+[tool.ruff.lint] 
+ignore = ["B008"] 
+
+
+[tool.poe.tasks]
+fmt = "ruff format"
+format.ref = "fmt"
+lint = "ruff check"

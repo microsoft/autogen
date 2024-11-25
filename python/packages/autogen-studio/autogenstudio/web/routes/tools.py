@@ -37,23 +37,5 @@ async def create_tool(tool: Tool, db=Depends(get_db)) -> Dict:
 @router.delete("/{tool_id}")
 async def delete_tool(tool_id: int, user_id: str, db=Depends(get_db)) -> Dict:
     """Delete a tool"""
-    response = db.delete(filters={"id": tool_id, "user_id": user_id}, model_class=Tool)
+    db.delete(filters={"id": tool_id, "user_id": user_id}, model_class=Tool)
     return {"status": True, "message": "Tool deleted successfully"}
-
-
-@router.post("/{tool_id}/test")
-async def test_tool(tool_id: int, user_id: str, db=Depends(get_db)) -> Dict:
-    """Test a tool configuration"""
-    # Get tool
-    tool_response = db.get(Tool, filters={"id": tool_id, "user_id": user_id})
-    if not tool_response.status or not tool_response.data:
-        raise HTTPException(status_code=404, detail="Tool not found")
-
-    tool = tool_response.data[0]
-
-    try:
-        # Implement tool testing logic here
-        # This would depend on the tool type and configuration
-        return {"status": True, "message": "Tool tested successfully", "data": {"tool_id": tool_id}}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error testing tool: {str(e)}")

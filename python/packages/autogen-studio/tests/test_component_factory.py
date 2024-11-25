@@ -6,10 +6,10 @@ from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
 from autogen_agentchat.task import MaxMessageTermination, StopMessageTermination, TextMentionTermination
 from autogen_core.components.tools import FunctionTool
 
-from autogenstudio.datamodel import (
+from autogenstudio.datamodel.types import (
     AgentConfig, ModelConfig, TeamConfig, ToolConfig, TerminationConfig,
     ModelTypes, AgentTypes, TeamTypes, TerminationTypes, ToolTypes,
-    ComponentType
+    ComponentTypes
 )
 from autogenstudio.database import ComponentFactory
 
@@ -41,7 +41,7 @@ def calculator(a: int, b: int, operation: str = '+') -> int:
         raise ValueError("Invalid operation")
 """,
         tool_type=ToolTypes.PYTHON_FUNCTION,
-        component_type=ComponentType.TOOL,
+        component_type=ComponentTypes.TOOL,
         version="1.0.0"
     )
 
@@ -52,7 +52,7 @@ def sample_model_config():
         model_type=ModelTypes.OPENAI,
         model="gpt-4",
         api_key="test-key",
-        component_type=ComponentType.MODEL,
+        component_type=ComponentTypes.MODEL,
         version="1.0.0"
     )
 
@@ -65,7 +65,7 @@ def sample_agent_config(sample_model_config: ModelConfig, sample_tool_config: To
         system_message="You are a helpful assistant",
         model_client=sample_model_config,
         tools=[sample_tool_config],
-        component_type=ComponentType.AGENT,
+        component_type=ComponentTypes.AGENT,
         version="1.0.0"
     )
 
@@ -75,7 +75,7 @@ def sample_termination_config():
     return TerminationConfig(
         termination_type=TerminationTypes.MAX_MESSAGES,
         max_messages=10,
-        component_type=ComponentType.TERMINATION,
+        component_type=ComponentTypes.TERMINATION,
         version="1.0.0"
     )
 
@@ -88,7 +88,7 @@ def sample_team_config(sample_agent_config: AgentConfig, sample_termination_conf
         participants=[sample_agent_config],
         termination_condition=sample_termination_config,
         model_client=sample_model_config,
-        component_type=ComponentType.TEAM,
+        component_type=ComponentTypes.TEAM,
         version="1.0.0"
     )
 
@@ -115,7 +115,7 @@ async def test_load_tool_invalid_config(component_factory: ComponentFactory):
             description="",
             content="",
             tool_type=ToolTypes.PYTHON_FUNCTION,
-            component_type=ComponentType.TOOL,
+            component_type=ComponentTypes.TOOL,
             version="1.0.0"
         ))
 
@@ -125,7 +125,7 @@ async def test_load_tool_invalid_config(component_factory: ComponentFactory):
         description="Invalid function",
         content="def invalid_func(): return invalid syntax",
         tool_type=ToolTypes.PYTHON_FUNCTION,
-        component_type=ComponentType.TOOL,
+        component_type=ComponentTypes.TOOL,
         version="1.0.0"
     )
     with pytest.raises(ValueError):
@@ -154,7 +154,7 @@ async def test_load_termination(component_factory: ComponentFactory):
     max_msg_config = TerminationConfig(
         termination_type=TerminationTypes.MAX_MESSAGES,
         max_messages=5,
-        component_type=ComponentType.TERMINATION,
+        component_type=ComponentTypes.TERMINATION,
         version="1.0.0"
     )
     termination = await component_factory.load_termination(max_msg_config)
@@ -164,7 +164,7 @@ async def test_load_termination(component_factory: ComponentFactory):
     # Test StopMessageTermination
     stop_msg_config = TerminationConfig(
         termination_type=TerminationTypes.STOP_MESSAGE,
-        component_type=ComponentType.TERMINATION,
+        component_type=ComponentTypes.TERMINATION,
         version="1.0.0"
     )
     termination = await component_factory.load_termination(stop_msg_config)
@@ -174,7 +174,7 @@ async def test_load_termination(component_factory: ComponentFactory):
     text_mention_config = TerminationConfig(
         termination_type=TerminationTypes.TEXT_MENTION,
         text="DONE",
-        component_type=ComponentType.TERMINATION,
+        component_type=ComponentTypes.TERMINATION,
         version="1.0.0"
     )
     termination = await component_factory.load_termination(text_mention_config)
@@ -189,17 +189,17 @@ async def test_load_termination(component_factory: ComponentFactory):
             TerminationConfig(
                 termination_type=TerminationTypes.MAX_MESSAGES,
                 max_messages=5,
-                component_type=ComponentType.TERMINATION,
+                component_type=ComponentTypes.TERMINATION,
                 version="1.0.0"
             ),
             TerminationConfig(
                 termination_type=TerminationTypes.TEXT_MENTION,
                 text="DONE",
-                component_type=ComponentType.TERMINATION,
+                component_type=ComponentTypes.TERMINATION,
                 version="1.0.0"
             )
         ],
-        component_type=ComponentType.TERMINATION,
+        component_type=ComponentTypes.TERMINATION,
         version="1.0.0"
     )
     termination = await component_factory.load_termination(and_combo_config)
@@ -213,17 +213,17 @@ async def test_load_termination(component_factory: ComponentFactory):
             TerminationConfig(
                 termination_type=TerminationTypes.MAX_MESSAGES,
                 max_messages=5,
-                component_type=ComponentType.TERMINATION,
+                component_type=ComponentTypes.TERMINATION,
                 version="1.0.0"
             ),
             TerminationConfig(
                 termination_type=TerminationTypes.TEXT_MENTION,
                 text="DONE",
-                component_type=ComponentType.TERMINATION,
+                component_type=ComponentTypes.TERMINATION,
                 version="1.0.0"
             )
         ],
-        component_type=ComponentType.TERMINATION,
+        component_type=ComponentTypes.TERMINATION,
         version="1.0.0"
     )
     termination = await component_factory.load_termination(or_combo_config)
@@ -234,7 +234,7 @@ async def test_load_termination(component_factory: ComponentFactory):
         await component_factory.load_termination(TerminationConfig(
             termination_type=TerminationTypes.COMBINATION,
             conditions=[],  # Empty conditions
-            component_type=ComponentType.TERMINATION,
+            component_type=ComponentTypes.TERMINATION,
             version="1.0.0"
         ))
 
@@ -246,11 +246,11 @@ async def test_load_termination(component_factory: ComponentFactory):
                 TerminationConfig(
                     termination_type=TerminationTypes.MAX_MESSAGES,
                     max_messages=5,
-                    component_type=ComponentType.TERMINATION,
+                    component_type=ComponentTypes.TERMINATION,
                     version="1.0.0"
                 )
             ],
-            component_type=ComponentType.TERMINATION,
+            component_type=ComponentTypes.TERMINATION,
             version="1.0.0"
         ))
 
@@ -262,17 +262,17 @@ async def test_load_termination(component_factory: ComponentFactory):
                 TerminationConfig(
                     termination_type=TerminationTypes.MAX_MESSAGES,
                     max_messages=5,
-                    component_type=ComponentType.TERMINATION,
+                    component_type=ComponentTypes.TERMINATION,
                     version="1.0.0"
                 ),
                 TerminationConfig(
                     termination_type=TerminationTypes.TEXT_MENTION,
                     text="DONE",
-                    component_type=ComponentType.TERMINATION,
+                    component_type=ComponentTypes.TERMINATION,
                     version="1.0.0"
                 )
             ],
-            component_type=ComponentType.TERMINATION,
+            component_type=ComponentTypes.TERMINATION,
             version="1.0.0"
         ))
 
@@ -296,13 +296,13 @@ async def test_load_team(component_factory: ComponentFactory, sample_team_config
                 system_message="You are another helpful assistant",
                 model_client=sample_model_config,
                 tools=sample_team_config.participants[0].tools,
-                component_type=ComponentType.AGENT,
+                component_type=ComponentTypes.AGENT,
                 version="1.0.0"
             )
         ],
         termination_condition=sample_team_config.termination_condition,
         model_client=sample_model_config,
-        component_type=ComponentType.TEAM,
+        component_type=ComponentTypes.TEAM,
         version="1.0.0"
     )
     team = await component_factory.load_team(selector_team_config)
@@ -318,7 +318,7 @@ async def test_invalid_configs(component_factory: ComponentFactory):
             name="test",
             agent_type="InvalidAgent",  # type: ignore
             system_message="test",
-            component_type=ComponentType.AGENT,
+            component_type=ComponentTypes.AGENT,
             version="1.0.0"
         ))
 
@@ -328,7 +328,7 @@ async def test_invalid_configs(component_factory: ComponentFactory):
             name="test",
             team_type="InvalidTeam",  # type: ignore
             participants=[],
-            component_type=ComponentType.TEAM,
+            component_type=ComponentTypes.TEAM,
             version="1.0.0"
         ))
 
@@ -336,6 +336,6 @@ async def test_invalid_configs(component_factory: ComponentFactory):
     with pytest.raises(ValueError):
         await component_factory.load_termination(TerminationConfig(
             termination_type="InvalidTermination",  # type: ignore
-            component_type=ComponentType.TERMINATION,
+            component_type=ComponentTypes.TERMINATION,
             version="1.0.0"
         ))

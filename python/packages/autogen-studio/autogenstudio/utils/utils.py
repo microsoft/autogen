@@ -253,48 +253,13 @@ def sanitize_model(model: Model):
     return sanitized_model
 
 
-def test_model(model: Model):
-    """
-    Test the model endpoint by sending a simple message to the model and returning the response.
-    """
-
-    print("Testing model", model)
-
-
-# def summarize_chat_history(task: str, messages: List[Dict[str, str]], client: ModelClient):
-#     """
-#     Summarize the chat history using the model endpoint and returning the response.
-#     """
-#     summarization_system_prompt = f"""
-#     You are a helpful assistant that is able to review the chat history between a set of agents (userproxy agents, assistants etc) as they try to address a given TASK and provide a summary. Be SUCCINCT but also comprehensive enough to allow others (who cannot see the chat history) understand and recreate the solution.
-
-#     The task requested by the user is:
-#     ===
-#     {task}
-#     ===
-#     The summary should focus on extracting the actual solution to the task from the chat history (assuming the task was addressed) such that any other agent reading the summary will understand what the actual solution is. Use a neutral tone and DO NOT directly mention the agents. Instead only focus on the actions that were carried out (e.g. do not say 'assistant agent generated some code visualization code ..'  instead say say 'visualization code was generated ..'. The answer should be framed as a response to the user task. E.g. if the task is "What is the height of the Eiffel tower", the summary should be "The height of the Eiffel Tower is ...").
-#     """
-#     summarization_prompt = [
-#         {
-#             "role": "system",
-#             "content": summarization_system_prompt,
-#         },
-#         {
-#             "role": "user",
-#             "content": f"Summarize the following chat history. {str(messages)}",
-#         },
-#     ]
-#     response = client.create(messages=summarization_prompt, cache_seed=None)
-#     return response.choices[0].message.content
-
-
 class Version:
     def __init__(self, ver_str: str):
         try:
             # Split into major.minor.patch
             self.major, self.minor, self.patch = map(int, ver_str.split("."))
-        except (ValueError, AttributeError):
-            raise ValueError(f"Invalid version format: {ver_str}. Expected: major.minor.patch")
+        except (ValueError, AttributeError) as err:
+            raise ValueError(f"Invalid version format: {ver_str}. Expected: major.minor.patch") from err
 
     def __str__(self):
         return f"{self.major}.{self.minor}.{self.patch}"

@@ -5,7 +5,6 @@ from fastapi import APIRouter, Depends, HTTPException
 from openai import OpenAIError
 
 from ...datamodel import Model
-from ...utils import test_model
 from ..deps import get_db
 
 router = APIRouter()
@@ -39,17 +38,5 @@ async def create_model(model: Model, db=Depends(get_db)) -> Dict:
 @router.delete("/{model_id}")
 async def delete_model(model_id: int, user_id: str, db=Depends(get_db)) -> Dict:
     """Delete a model"""
-    response = db.delete(filters={"id": model_id, "user_id": user_id}, model_class=Model)
+    db.delete(filters={"id": model_id, "user_id": user_id}, model_class=Model)
     return {"status": True, "message": "Model deleted successfully"}
-
-
-@router.post("/test")
-async def test_model_endpoint(model: Model) -> Dict:
-    """Test a model configuration"""
-    try:
-        response = test_model(model)
-        return {"status": True, "message": "Model tested successfully", "data": response}
-    except OpenAIError as e:
-        raise HTTPException(status_code=400, detail=f"OpenAI API error: {str(e)}")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error testing model: {str(e)}")

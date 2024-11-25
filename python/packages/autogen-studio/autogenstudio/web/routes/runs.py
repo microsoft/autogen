@@ -41,7 +41,7 @@ async def create_run(
         )
         return {"status": run.status, "data": {"run_id": str(run.data.id)}}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @router.post("/{run_id}/start")
@@ -82,7 +82,7 @@ async def start_run(
         return {"status": True, "message": "Stream started successfully", "data": {"run_id": str(run_id)}}
 
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 # We might want to add these endpoints:

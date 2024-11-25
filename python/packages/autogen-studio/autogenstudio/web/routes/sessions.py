@@ -54,7 +54,7 @@ async def update_session(session_id: int, user_id: str, session: Session, db=Dep
 @router.delete("/{session_id}")
 async def delete_session(session_id: int, user_id: str, db=Depends(get_db)) -> Dict:
     """Delete a session"""
-    response = db.delete(filters={"id": session_id, "user_id": user_id}, model_class=Session)
+    db.delete(filters={"id": session_id, "user_id": user_id}, model_class=Session)
     return {"status": True, "message": "Session deleted successfully"}
 
 
@@ -118,4 +118,4 @@ async def list_session_runs(session_id: int, user_id: str, db=Depends(get_db)) -
         raise  # Re-raise HTTP exceptions
     except Exception as e:
         logger.error(f"Unexpected error in list_messages: {str(e)}")
-        raise HTTPException(status_code=500, detail="Internal server error while fetching session data")
+        raise HTTPException(status_code=500, detail="Internal server error while fetching session data") from e

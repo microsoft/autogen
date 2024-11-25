@@ -4,7 +4,8 @@ from typing import Any, Dict, List, Optional, Union
 
 from loguru import logger
 
-from ..datamodel import Agent, ComponentConfigInput, ComponentTypes, LinkTypes, Model, Response, Team, Tool
+from ..datamodel.db import Agent, LinkTypes, Model, Team, Tool
+from ..datamodel.types import ComponentConfigInput, ComponentTypes, Response
 from .component_factory import ComponentFactory
 from .db_manager import DatabaseManager
 

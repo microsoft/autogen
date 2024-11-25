@@ -5,11 +5,12 @@ from sqlmodel import Session, text, select
 from typing import Generator
 
 from autogenstudio.database import DatabaseManager
-from autogenstudio.datamodel import (
-    Model, ModelConfig, Agent, AgentConfig, Tool, ToolConfig,
-    Team, TeamConfig, ModelTypes, AgentTypes, TeamTypes, ComponentType,
-    TerminationConfig, TerminationTypes, LinkTypes, ToolTypes
+from autogenstudio.datamodel.types import (
+    ModelConfig, AgentConfig, ToolConfig,
+    TeamConfig, ModelTypes, AgentTypes, TeamTypes, ComponentTypes,
+    TerminationConfig, TerminationTypes,  ToolTypes
 )
+from autogenstudio.datamodel.db import Model, Tool, Agent, Team, LinkTypes
 
 
 @pytest.fixture
@@ -44,7 +45,7 @@ def sample_model(test_user: str) -> Model:
         config=ModelConfig(
             model="gpt-4",
             model_type=ModelTypes.OPENAI,
-            component_type=ComponentType.MODEL,
+            component_type=ComponentTypes.MODEL,
             version="1.0.0"
         ).model_dump()
     )
@@ -60,7 +61,7 @@ def sample_tool(test_user: str) -> Tool:
             description="A test tool",
             content="async def test_func(x: str) -> str:\n    return f'Test {x}'",
             tool_type=ToolTypes.PYTHON_FUNCTION,
-            component_type=ComponentType.TOOL,
+            component_type=ComponentTypes.TOOL,
             version="1.0.0"
         ).model_dump()
     )
@@ -76,7 +77,7 @@ def sample_agent(test_user: str, sample_model: Model, sample_tool: Tool) -> Agen
             agent_type=AgentTypes.ASSISTANT,
             model_client=ModelConfig.model_validate(sample_model.config),
             tools=[ToolConfig.model_validate(sample_tool.config)],
-            component_type=ComponentType.AGENT,
+            component_type=ComponentTypes.AGENT,
             version="1.0.0"
         ).model_dump()
     )
@@ -92,11 +93,11 @@ def sample_team(test_user: str, sample_agent: Agent) -> Team:
             participants=[AgentConfig.model_validate(sample_agent.config)],
             termination_condition=TerminationConfig(
                 termination_type=TerminationTypes.STOP_MESSAGE,
-                component_type=ComponentType.TERMINATION,
+                component_type=ComponentTypes.TERMINATION,
                 version="1.0.0"
             ).model_dump(),
             team_type=TeamTypes.ROUND_ROBIN,
-            component_type=ComponentType.TEAM,
+            component_type=ComponentTypes.TEAM,
             version="1.0.0"
         ).model_dump()
     )
@@ -144,7 +145,7 @@ class TestDatabaseOperations:
                 config=ModelConfig(
                     model="gpt-4",
                     model_type=ModelTypes.OPENAI,
-                    component_type=ComponentType.MODEL,
+                    component_type=ComponentTypes.MODEL,
                     version="1.0.0"
                 ).model_dump()
             )
@@ -153,7 +154,7 @@ class TestDatabaseOperations:
                 config=ModelConfig(
                     model="gpt-3.5",
                     model_type=ModelTypes.OPENAI,
-                    component_type=ComponentType.MODEL,
+                    component_type=ComponentTypes.MODEL,
                     version="1.0.0"
                 ).model_dump()
             )

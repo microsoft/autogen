@@ -234,13 +234,6 @@ const RunView: React.FC<RunViewProps> = ({
                         </div>
                       ))}
 
-                      <div className="text-primary mt-2">
-                        <div className="w-4 h-4 inline-block  border-secondary rounded-bl-lg border-l-2 border-b-2"></div>{" "}
-                        <div className="inline-block ">
-                          {getStatusIcon(run.status)}
-                        </div>
-                      </div>
-
                       {/* Input Request UI */}
                       {run.status === "awaiting_input" && onInputResponse && (
                         <div className="mt-4 mr-2">
@@ -262,6 +255,12 @@ const RunView: React.FC<RunViewProps> = ({
                           />
                         </div>
                       )}
+                      <div className="text-primary mt-2">
+                        <div className="w-4 h-4 inline-block  border-secondary rounded-bl-lg border-l-2 border-b-2"></div>{" "}
+                        <div className="inline-block ">
+                          {getStatusIcon(run.status)}
+                        </div>
+                      </div>
                     </div>
 
                     {/* Agent Flow Visualization */}
