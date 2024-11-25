@@ -653,7 +653,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     empty_chunk_count += 1
                     if max_consecutive_empty_chunk_tolerance == 0:
                         raise ValueError(
-                            "max_empty_ consecutive_chunk_tolerance is set to 0, increasing it might help!"
+                            "Consecutive empty chunks found. Change max_empty_consecutive_chunk_tolerance to increase empty chunk tolerance"
                         )
                     elif empty_chunk_count >= max_consecutive_empty_chunk_tolerance:
                         raise ValueError("Exceeded the threshold of receiving consecutive empty chunks")
