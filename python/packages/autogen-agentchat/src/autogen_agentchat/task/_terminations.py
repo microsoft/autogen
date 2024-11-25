@@ -218,6 +218,8 @@ class ExternalTermination(TerminationCondition):
 
     .. code-block:: python
 
+        from autogen_agentchat.task import ExternalTermination
+
         termination = ExternalTermination()
 
         # Run the team in an asyncio task.
