@@ -30,14 +30,14 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     api_key: str
     timeout: Union[float, None]
     max_retries: int
+    model_capabilities: ModelCapabilities
+    """What functionality the model supports, determined by default from model name but is overriden if value passed."""
 
 
 # See OpenAI docs for explanation of these parameters
 class OpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False):
     organization: str
     base_url: str
-    # Not required
-    model_capabilities: ModelCapabilities
 
 
 class AzureOpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False):
@@ -47,8 +47,6 @@ class AzureOpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False)
     api_version: Required[str]
     azure_ad_token: str
     azure_ad_token_provider: AsyncAzureADTokenProvider
-    # Must be provided
-    model_capabilities: Required[ModelCapabilities]
 
 
 __all__ = ["AzureOpenAIClientConfiguration", "OpenAIClientConfiguration"]
