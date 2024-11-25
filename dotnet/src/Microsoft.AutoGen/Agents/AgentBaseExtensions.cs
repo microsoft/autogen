@@ -5,15 +5,25 @@ using System.Diagnostics;
 
 namespace Microsoft.AutoGen.Agents;
 
+/// <summary>
+/// Provides extension methods for the <see cref="AgentBase"/> class.
+/// </summary>
 public static class AgentBaseExtensions
 {
+    /// <summary>
+    /// Extracts an <see cref="Activity"/> from the given agent and metadata.
+    /// </summary>
+    /// <param name="agent">The agent from which to extract the activity.</param>
+    /// <param name="activityName">The name of the activity.</param>
+    /// <param name="metadata">The metadata containing trace information.</param>
+    /// <returns>The extracted <see cref="Activity"/> or null if extraction fails.</returns>
     public static Activity? ExtractActivity(this AgentBase agent, string activityName, IDictionary<string, string> metadata)
     {
         Activity? activity;
-        (var traceParent, var traceState) = agent.Context.GetTraceIDandState(metadata);
+        var (traceParent, traceState) = agent.Context.GetTraceIdAndState(metadata);
         if (!string.IsNullOrEmpty(traceParent))
         {
-            if (ActivityContext.TryParse(traceParent, traceState, isRemote: true, out ActivityContext parentContext))
+            if (ActivityContext.TryParse(traceParent, traceState, isRemote: true, out var parentContext))
             {
                 // traceParent is a W3CId
                 activity = AgentBase.s_source.CreateActivity(activityName, ActivityKind.Server, parentContext);
@@ -33,12 +43,9 @@ public static class AgentBaseExtensions
 
                 var baggage = agent.Context.ExtractMetadata(metadata);
 
-                if (baggage is not null)
+                foreach (var baggageItem in baggage)
                 {
-                    foreach (var baggageItem in baggage)
-                    {
-                        activity.AddBaggage(baggageItem.Key, baggageItem.Value);
-                    }
+                    activity.AddBaggage(baggageItem.Key, baggageItem.Value);
                 }
             }
         }
@@ -49,7 +56,19 @@ public static class AgentBaseExtensions
 
         return activity;
     }
-    public static async Task InvokeWithActivityAsync<TState>(this AgentBase agent, Func<TState, Task> func, TState state, Activity? activity, string methodName, CancellationToken cancellationToken = default)
+
+    /// <summary>
+    /// Invokes a function asynchronously within the context of an <see cref="Activity"/>.
+    /// </summary>
+    /// <typeparam name="TState">The type of the state parameter.</typeparam>
+    /// <param name="agent">The agent invoking the function.</param>
+    /// <param name="func">The function to invoke.</param>
+    /// <param name="state">The state parameter to pass to the function.</param>
+    /// <param name="activity">The activity within which to invoke the function.</param>
+    /// <param name="methodName">The name of the method being invoked.</param>
+    /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public static async Task InvokeWithActivityAsync<TState>(this AgentBase agent, Func<TState, CancellationToken, Task> func, TState state, Activity? activity, string methodName, CancellationToken cancellationToken = default)
     {
         if (activity is not null && activity.StartTimeUtc == default)
         {
@@ -63,7 +82,7 @@ public static class AgentBaseExtensions
 
         try
         {
-            await func(state).ConfigureAwait(false);
+            await func(state, cancellationToken).ConfigureAwait(false);
             if (activity is not null && activity.IsAllDataRequested)
             {
                 activity.SetStatus(ActivityStatusCode.Ok);
