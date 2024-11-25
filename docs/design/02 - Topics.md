@@ -6,7 +6,7 @@ This document describes the semantics and components of publishing messages and 
 
 Topics are used as the primitive to manage which agents receive a given published message. Agents subscribe to topics. There is an application defined mapping from topic to agent instance.
 
-These concepts intentionally maps to the [CloudEvents](https://cloudevents.io/) specification. This allows for easy integration with existing systems and tools.
+These concepts intentionally map to the [CloudEvents](https://cloudevents.io/) specification. This allows for easy integration with existing systems and tools.
 
 ### Non-goals
 
