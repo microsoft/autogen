@@ -147,6 +147,23 @@ class RunContext:
         return self._run_state == RunContext.RunState.UNTIL_IDLE and self._runtime.idle
 
 
+def _warn_if_none(value: Any, handler_name: str) -> None:
+    """
+    Utility function to check if the intervention handler returned None and issue a warning.
+
+    Args:
+        value: The return value to check
+        handler_name: Name of the intervention handler method for the warning message
+    """
+    if value is None:
+        warnings.warn(
+            f"Intervention handler {handler_name} returned None. This might be unintentional. "
+            "Consider returning the original message or DropMessage explicitly.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
+
 class SingleThreadedAgentRuntime(AgentRuntime):
     def __init__(
         self,
@@ -433,6 +450,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                         ):
                             try:
                                 temp_message = await handler.on_send(message, sender=sender, recipient=recipient)
+                                _warn_if_none(temp_message, "on_send")
                             except BaseException as e:
                                 future.set_exception(e)
                                 return
@@ -456,6 +474,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                         ):
                             try:
                                 temp_message = await handler.on_publish(message, sender=sender)
+                                _warn_if_none(temp_message, "on_publish")
                             except BaseException as e:
                                 # TODO: we should raise the intervention exception to the publisher.
                                 logger.error(f"Exception raised in in intervention handler: {e}", exc_info=True)
@@ -474,6 +493,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     for handler in self._intervention_handlers:
                         try:
                             temp_message = await handler.on_response(message, sender=sender, recipient=recipient)
+                            _warn_if_none(temp_message, "on_response")
                         except BaseException as e:
                             # TODO: should we raise the exception to sender of the response instead?
                             future.set_exception(e)

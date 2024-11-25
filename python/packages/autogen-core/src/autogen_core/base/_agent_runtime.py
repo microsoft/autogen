@@ -89,19 +89,6 @@ class AgentRuntime(Protocol):
             agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type. Inside the factory, use `autogen_core.base.AgentInstantiationContext` to access variables like the current runtime and agent ID.
             subscriptions (Callable[[], list[Subscription]] | list[Subscription] | None, optional): The subscriptions that the agent should be subscribed to. Defaults to None.
 
-        Example:
-            .. code-block:: python
-
-                runtime.register(
-                    "chat_agent",
-                    lambda: ChatCompletionAgent(
-                        description="A generic chat agent.",
-                        system_messages=[SystemMessage("You are a helpful assistant")],
-                        model_client=OpenAIChatCompletionClient(model="gpt-4o"),
-                        memory=BufferedChatMemory(buffer_size=10),
-                    ),
-                )
-
         """
         ...
 
@@ -117,20 +104,6 @@ class AgentRuntime(Protocol):
         Args:
             type (str): The type of agent this factory creates. It is not the same as agent class name. The `type` parameter is used to differentiate between different factory functions rather than agent classes.
             agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type. Inside the factory, use `autogen_core.base.AgentInstantiationContext` to access variables like the current runtime and agent ID.
-
-        Example:
-            .. code-block:: python
-
-                runtime.register(
-                    "chat_agent",
-                    lambda: ChatCompletionAgent(
-                        description="A generic chat agent.",
-                        system_messages=[SystemMessage("You are a helpful assistant")],
-                        model_client=OpenAIChatCompletionClient(model="gpt-4o"),
-                        memory=BufferedChatMemory(buffer_size=10),
-                    ),
-                )
-
         """
         ...
 

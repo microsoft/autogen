@@ -3,6 +3,7 @@ from ._terminations import (
     ExternalTermination,
     HandoffTermination,
     MaxMessageTermination,
+    SourceMatchTermination,
     StopMessageTermination,
     TextMentionTermination,
     TimeoutTermination,
@@ -17,5 +18,6 @@ __all__ = [
     "HandoffTermination",
     "TimeoutTermination",
     "ExternalTermination",
+    "SourceMatchTermination",
     "Console",
 ]
