@@ -76,7 +76,7 @@ class ReplayChatCompletionClient:
 
                 async for token in client.create_stream(messages):
                     print(token, end="")  # Output: "I'm happy to help with any questions you have."
-                
+
                 asyncio.run(example())
 
     Using `.reset` to reset the chat client state
@@ -102,7 +102,8 @@ class ReplayChatCompletionClient:
                 client.reset()  # Reset the client state (current index of message and token usages)
                 response = await client.create(messages)
                 print(response.content)  # Output: "Hello, how can I assist you today?" again
-            
+
+
             asyncio.run(example())
 
     """

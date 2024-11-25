@@ -137,7 +137,8 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 # Clean up resources
                 await assistant.delete_uploaded_files(cancellation_token)
                 await assistant.delete_assistant(cancellation_token)
-            
+
+
             asyncio.run(example())
 
     Args:
