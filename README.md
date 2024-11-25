@@ -10,7 +10,7 @@
 # AutoGen
 
 > [!IMPORTANT]
->
+> - (11/14/24) ⚠️ In response to a number of asks to clarify and distinguish between official AutoGen and its forks that created confusion, we issued a [clarification statement](https://github.com/microsoft/autogen/discussions/4217).
 > - (10/13/24) Interested in the standard AutoGen as a prior user? Find it at the actively-maintained *AutoGen* [0.2 branch](https://github.com/microsoft/autogen/tree/0.2) and `autogen-agentchat~=0.2` PyPi package.
 > - (10/02/24) [AutoGen 0.4](https://microsoft.github.io/autogen/dev) is a from-the-ground-up rewrite of AutoGen. Learn more about the history, goals and future at [this blog post](https://microsoft.github.io/autogen/blog). We’re excited to work with the community to gather feedback, refine, and improve the project before we officially release 0.4. This is a big change, so AutoGen 0.2 is still available, maintained, and developed in the [0.2 branch](https://github.com/microsoft/autogen/tree/0.2).
 
@@ -101,33 +101,45 @@ We look forward to your contributions!
 First install the packages:
 
 ```bash
-pip install 'autogen-agentchat==0.4.0.dev4' 'autogen-ext[docker]==0.4.0.dev4'
+pip install 'autogen-agentchat==0.4.0.dev6' 'autogen-ext[openai]==0.4.0.dev6'
 ```
 
-The following code uses code execution, you need to have [Docker installed](https://docs.docker.com/engine/install/)
-and running on your machine.
+The following code uses OpenAI's GPT-4o model and you need to provide your
+API key to run.
+To use Azure OpenAI models, follow the instruction
+[here](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/cookbook/azure-openai-with-aad-auth.html).
 
 ```python
 import asyncio
-from autogen_ext.code_executor.docker_executor import DockerCommandLineCodeExecutor
-from autogen_ext.models import OpenAIChatCompletionClient
-from autogen_agentchat.agents import CodeExecutorAgent, CodingAssistantAgent
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.task import Console, TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
-from autogen_agentchat.task import TextMentionTermination
+from autogen_ext.models import OpenAIChatCompletionClient
+
+# Define a tool
+async def get_weather(city: str) -> str:
+    return f"The weather in {city} is 73 degrees and Sunny."
 
 async def main() -> None:
-    async with DockerCommandLineCodeExecutor(work_dir="coding") as code_executor:
-        code_executor_agent = CodeExecutorAgent("code_executor", code_executor=code_executor)
-        coding_assistant_agent = CodingAssistantAgent(
-            "coding_assistant", model_client=OpenAIChatCompletionClient(model="gpt-4o", api_key="YOUR_API_KEY")
-        )
-        termination = TextMentionTermination("TERMINATE")
-        group_chat = RoundRobinGroupChat([coding_assistant_agent, code_executor_agent], termination_condition=termination)
-        stream = group_chat.run_stream(
-            task="Create a plot of NVDIA and TSLA stock returns YTD from 2024-01-01 and save it to 'nvidia_tesla_2024_ytd.png'."
-        )
-        async for message in stream:
-            print(message)
+    # Define an agent
+    weather_agent = AssistantAgent(
+        name="weather_agent",
+        model_client=OpenAIChatCompletionClient(
+            model="gpt-4o-2024-08-06",
+            # api_key="YOUR_API_KEY",
+        ),
+        tools=[get_weather],
+    )
+
+    # Define termination condition
+    termination = TextMentionTermination("TERMINATE")
+
+    # Define a team
+    agent_team = RoundRobinGroupChat([weather_agent], termination_condition=termination)
+
+    # Run the team and stream messages to the console
+    stream = agent_team.run_stream(task="What is the weather in New York?")
+    await Console(stream)
 
 asyncio.run(main())
 ```
@@ -183,13 +195,13 @@ public class HelloAgent(
         {
             Message = response
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt).ConfigureAwait(false);
+        await PublishEventAsync(evt).ConfigureAwait(false);
         var goodbye = new ConversationClosed
         {
             UserId = this.AgentId.Key,
             UserMessage = "Goodbye"
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(goodbye).ConfigureAwait(false);
+        await PublishEventAsync(goodbye).ConfigureAwait(false);
     }
     public async Task Handle(ConversationClosed item)
     {
@@ -198,7 +210,7 @@ public class HelloAgent(
         {
             Message = goodbye
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt).ConfigureAwait(false);
+        await PublishEventAsync(evt).ConfigureAwait(false);
         await Task.Delay(60000);
         await App.ShutdownAsync();
     }

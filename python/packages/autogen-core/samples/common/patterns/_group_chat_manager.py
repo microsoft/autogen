@@ -142,12 +142,12 @@ class GroupChatManager(RoutedAgent):
             # Send the message to the selected speaker to ask it to publish a response.
             await self.send_message(PublishNow(), speaker)
 
-    def save_state(self) -> Mapping[str, Any]:
+    async def save_state(self) -> Mapping[str, Any]:
         return {
             "chat_history": self._model_context.save_state(),
             "termination_word": self._termination_word,
         }
 
-    def load_state(self, state: Mapping[str, Any]) -> None:
+    async def load_state(self, state: Mapping[str, Any]) -> None:
         self._model_context.load_state(state["chat_history"])
         self._termination_word = state["termination_word"]
