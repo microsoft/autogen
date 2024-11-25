@@ -230,7 +230,7 @@ class WebSurferAgent(ConversableAgent):
         def _find_on_page_ctrl_f(
             search_string: Annotated[
                 str, "The string to search for on the page. This search string supports wildcards like '*'"
-            ]
+            ],
         ) -> str:
             find_result = self.browser.find_on_page(search_string)
             header, content = _browser_state()
@@ -344,7 +344,17 @@ class WebSurferAgent(ConversableAgent):
 
         # Clone the messages to give context
         self._assistant.chat_messages[self._user_proxy] = list()
-        history = messages[0 : len(messages) - 1]
+
+        # If the last message is a tool message it has to be included in context,
+        # otherwise openAI will throw exception that not all tool calls are followed by corresponding tool messages
+        # In a case where the last message is not a tool message, we fallback to default behavior in the library
+        # which is copying all messages except the last one
+        # Issue is described more thoroughly in PR https://github.com/microsoft/autogen/pull/4050
+        if messages[-1].get("role", "assistant") == "tool":
+            history = messages[:]
+        else:
+            history = messages[0 : len(messages) - 1]
+
         for message in history:
             self._assistant.chat_messages[self._user_proxy].append(message)
 
