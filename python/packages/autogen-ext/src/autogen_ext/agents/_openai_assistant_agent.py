@@ -108,30 +108,34 @@ class OpenAIAssistantAgent(BaseChatAgent):
             from autogen_ext.agents import OpenAIAssistantAgent
             from autogen_agentchat.messages import TextMessage
 
-            # Create an OpenAI client
-            client = AsyncClient(api_key="your-api-key", base_url="your-base-url")
+            async def example():
 
-            # Create an assistant with code interpreter
-            assistant = OpenAIAssistantAgent(
-                name="Python Helper",
-                description="Helps with Python programming",
-                client=client,
-                model="gpt-4",
-                instructions="You are a helpful Python programming assistant.",
-                tools=["code_interpreter"],
-            )
+                cancellation_token = CancellationToken()
 
-            # Upload files for the assistant to use
-            await assistant.on_upload_for_code_interpreter("data.csv", cancellation_token)
+                # Create an OpenAI client
+                client = AsyncClient(api_key="your-api-key", base_url="your-base-url")
 
-            # Get response from the assistant
-            response = await assistant.on_messages(
-                [TextMessage(source="user", content="Analyze the data in data.csv")], cancellation_token
-            )
+                # Create an assistant with code interpreter
+                assistant = OpenAIAssistantAgent(
+                    name="Python Helper",
+                    description="Helps with Python programming",
+                    client=client,
+                    model="gpt-4",
+                    instructions="You are a helpful Python programming assistant.",
+                    tools=["code_interpreter"],
+                )
 
-            # Clean up resources
-            await assistant.delete_uploaded_files(cancellation_token)
-            await assistant.delete_assistant(cancellation_token)
+                # Upload files for the assistant to use
+                await assistant.on_upload_for_code_interpreter("data.csv", cancellation_token)
+
+                # Get response from the assistant
+                _response = await assistant.on_messages(
+                    [TextMessage(source="user", content="Analyze the data in data.csv")], cancellation_token
+                )
+
+                # Clean up resources
+                await assistant.delete_uploaded_files(cancellation_token)
+                await assistant.delete_assistant(cancellation_token)
 
     Args:
         name (str): Name of the assistant
