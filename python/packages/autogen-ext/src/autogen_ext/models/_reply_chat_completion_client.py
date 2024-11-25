@@ -82,6 +82,7 @@ class ReplayChatCompletionClient:
 
         .. code-block:: python
 
+            import asyncio
             from autogen_ext.models import ReplayChatCompletionClient
             from autogen_core.components.models import UserMessage
 
