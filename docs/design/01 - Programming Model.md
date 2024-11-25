@@ -19,7 +19,7 @@ Each agent has a set of event handlers, that are bound to a specific match again
 
 ## Orchestrating Agents
 
-It is _possible_ to build a functional and scalable agent system that only reacts to external events. In many cases, however, you will want to orchestrate the agents to achieve a specific goal or follow a pre-determined workflow. In this case, you will need to build an orchestrator agent that manages the flow of events between agents.
+It is possible to build a functional and scalable agent system that only reacts to external events. In many cases, however, you will want to orchestrate the agents to achieve a specific goal or follow a pre-determined workflow. In this case, you will need to build an orchestrator agent that manages the flow of events between agents.
 
 ## Built-in Event Types
 
