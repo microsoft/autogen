@@ -64,6 +64,10 @@ Install the `autogen-agentchat` package using pip:
 pip install 'autogen-agentchat==0.4.0.dev6'
 ```
 
+```{note}
+Python 3.10 or later is required.
+```
+
 ## Install OpenAI for Model Client
 
 To use the OpenAI and Azure OpenAI models, you need to install the following
