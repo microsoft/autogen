@@ -908,7 +908,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
 
         .. code-block:: bash
 
-            pip install 'autogen-ext[openai]==0.4.0.dev6'
+            pip install 'autogen-ext[openai]==0.4.0.dev7'
 
     The following code snippet shows how to use the client with an OpenAI model:
 
@@ -917,12 +917,12 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_core.components.models import UserMessage
 
-            opneai_model_client = OpenAIChatCompletionClient(
+            openai_client = OpenAIChatCompletionClient(
                 model="gpt-4o-2024-08-06",
                 # api_key="sk-...", # Optional if you have an OPENAI_API_KEY environment variable set.
             )
 
-            result = await opneai_model_client.create([UserMessage(content="What is the capital of France?", source="user")])
+            result = await openai_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
             print(result)
 
 
@@ -931,7 +931,6 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
         .. code-block:: python
 
             from autogen_ext.models import OpenAIChatCompletionClient
-            from autogen_core.components.models import UserMessage
 
             custom_model_client = OpenAIChatCompletionClient(
                 model="custom-model-name",
@@ -989,7 +988,7 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
 
         .. code-block:: bash
 
-            pip install 'autogen-ext[openai,azure]==0.4.0.dev6'
+            pip install 'autogen-ext[openai,azure]==0.4.0.dev7'
 
     To use the client, you need to provide your deployment id, Azure Cognitive Services endpoint,
     api version, and model capabilities.

@@ -101,7 +101,7 @@ We look forward to your contributions!
 First install the packages:
 
 ```bash
-pip install 'autogen-agentchat==0.4.0.dev6' 'autogen-ext[openai]==0.4.0.dev6'
+pip install 'autogen-agentchat==0.4.0.dev7' 'autogen-ext[openai]==0.4.0.dev7'
 ```
 
 The following code uses OpenAI's GPT-4o model and you need to provide your
