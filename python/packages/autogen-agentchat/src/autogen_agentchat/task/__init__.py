@@ -3,11 +3,11 @@ from ._terminations import (
     ExternalTermination,
     HandoffTermination,
     MaxMessageTermination,
+    SourceMatchTermination,
     StopMessageTermination,
     TextMentionTermination,
     TimeoutTermination,
     TokenUsageTermination,
-    SourceMatchTermination,
 )
 
 __all__ = [
