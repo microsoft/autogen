@@ -8,9 +8,9 @@ The programming model is basically publish-subscribe. Agents subscribe to events
 
 Each event in the system is defined using the [CloudEvents Specification](https://cloudevents.io/). This allows for a common event format that can be used across different systems and languages. In CloudEvents, each event has "Context Attributes" that must include:
 
-1. _*id*_ - A unique id (eg. a UUID).
-2. _*source*_ - A URI or URN indicating the event's origin.
-3. _*type*_ - The namespace of the event - prefixed with a reverse-DNS name.
+1. *id* - A unique id (eg. a UUID).
+2. *source* - A URI or URN indicating the event's origin.
+3. *type* - The namespace of the event - prefixed with a reverse-DNS name.
    - The prefixed domain dictates the organization which defines the semantics of this event type: e.g `_com.github.pull_request.opened_` or `_com.example.object.deleted.v2_`), and optionally fields describing the data schema/content-type or extensions.
 
 ## Event Handlers
