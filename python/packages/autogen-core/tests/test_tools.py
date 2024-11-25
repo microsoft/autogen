@@ -11,6 +11,7 @@ from autogen_core.components.tools._base import ToolSchema
 from pydantic import BaseModel, Field, model_serializer
 from pydantic_core import PydanticUndefined
 
+
 class MyArgs(BaseModel):
     query: str = Field(description="The description.")
 
