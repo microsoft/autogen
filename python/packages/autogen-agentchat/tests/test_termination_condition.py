@@ -7,11 +7,11 @@ from autogen_agentchat.task import (
     ExternalTermination,
     HandoffTermination,
     MaxMessageTermination,
+    SourceMatchTermination,
     StopMessageTermination,
     TextMentionTermination,
     TimeoutTermination,
     TokenUsageTermination,
-    SourceMatchTermination,
 )
 from autogen_core.components.models import RequestUsage
 
