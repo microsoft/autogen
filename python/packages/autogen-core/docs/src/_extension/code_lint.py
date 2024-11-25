@@ -60,7 +60,7 @@ class CodeLinter(Builder):
             if code["language"] in supported_languages:
                 logger.info("Checking a code block in %s...", docname, nonl=True)
                 if "ignore" in code["classes"]:
-                    logger.info(" " + darkgreen("OK"))
+                    logger.info(" " + darkgreen("OK[ignored]"))
                     continue
 
                 # Create a temporary file to store the code block
