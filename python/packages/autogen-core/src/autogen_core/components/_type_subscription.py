@@ -14,6 +14,8 @@ class TypeSubscription(Subscription):
 
         .. code-block:: python
 
+            from autogen_core.components import TypeSubscription
+
             subscription = TypeSubscription(topic_type="t1", agent_type="a1")
 
         In this case:
