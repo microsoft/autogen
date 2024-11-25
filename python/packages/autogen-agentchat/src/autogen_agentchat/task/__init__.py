@@ -7,6 +7,7 @@ from ._terminations import (
     TextMentionTermination,
     TimeoutTermination,
     TokenUsageTermination,
+    SourceMatchTermination,
 )
 
 __all__ = [
@@ -17,5 +18,6 @@ __all__ = [
     "HandoffTermination",
     "TimeoutTermination",
     "ExternalTermination",
+    "SourceMatchTermination",
     "Console",
 ]
