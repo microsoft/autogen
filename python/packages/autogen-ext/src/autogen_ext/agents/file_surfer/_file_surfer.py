@@ -1,5 +1,4 @@
 import json
-import time
 import traceback
 from typing import List, Sequence, Tuple
 
@@ -86,13 +85,6 @@ class FileSurfer(BaseChatAgent):
 
         current_page = self._browser.viewport_current_page
         total_pages = len(self._browser.viewport_pages)
-
-        address = self._browser.address
-        for i in range(len(self._browser.history) - 2, -1, -1):  # Start from the second last
-            if self._browser.history[i][0] == address:
-                header += f"You previously visited this page {round(time.time() - self._browser.history[i][1])} seconds ago.\n"
-                break
-
         header += f"Viewport position: Showing page {current_page+1} of {total_pages}.\n"
 
         return (header, self._browser.viewport)
@@ -108,7 +100,7 @@ class FileSurfer(BaseChatAgent):
 
         context_message = UserMessage(
             source="user",
-            content=f"Your browser is currently open to the page '{self._browser.page_title}' at the address '{self._browser.address}'.",
+            content=f"Your file viewer is currently open to the file or directory '{self._browser.page_title}' with path '{self._browser.address}'.",
         )
 
         task_message = UserMessage(
@@ -146,7 +138,7 @@ class FileSurfer(BaseChatAgent):
 
                 if tool_name == "open_local_file":
                     path = arguments["path"]
-                    self._browser.open_local_file(path)
+                    self._browser.open_file(path)
                 elif tool_name == "page_up":
                     self._browser.page_up()
                 elif tool_name == "page_down":

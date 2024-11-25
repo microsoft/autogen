@@ -2,18 +2,11 @@
 import datetime
 import html
 import io
-import mimetypes
 import os
 import pathlib
 import re
 import time
-import traceback
-import uuid
-from typing import Any, Dict, List, Optional, Tuple, Union
-from urllib.parse import unquote, urljoin, urlparse
-
-import pathvalidate
-import requests
+from typing import List, Optional, Tuple, Union
 
 # TODO: Fix unfollowed import
 from markitdown import FileConversionException, MarkItDown, UnsupportedFormatException  # type: ignore
@@ -26,9 +19,7 @@ class MarkdownFileBrowser:
 
     # TODO: Fix unfollowed import
     def __init__(  # type: ignore
-        self,
-        viewport_size: Union[int, None] = 1024 * 8,
-        downloads_folder: Union[str, None] = os.getcwd(),
+        self, viewport_size: Union[int, None] = 1024 * 8
     ):
         """
         Instantiate a new RequestsMarkdownBrowser.
@@ -37,20 +28,14 @@ class MarkdownFileBrowser:
             viewport_size: Approximately how many *characters* fit in the viewport. Viewport dimensions are adjusted dynamically to avoid cutting off words (default: 8192).
             downloads_folder: Path to where downloads are saved. If None, downloads are disabled. (default: cwd)
         """
-        self.start_page = "about:blank"
         self.viewport_size = viewport_size  # Applies only to the standard uri types
-        self.downloads_folder = downloads_folder
         self.history: List[Tuple[str, float]] = list()
         self.page_title: Optional[str] = None
         self.viewport_current_page = 0
         self.viewport_pages: List[Tuple[int, int]] = list()
-        self.set_address(self.start_page)
-        self._page_content: str = ""
-
         self._markdown_converter = MarkItDown()
-        self._requests_session = requests.Session()
-        self._requests_get_kwargs: Dict[str, Any] = {}
-
+        self.set_address(os.getcwd())
+        self._page_content: str = ""
         self._find_on_page_query: Union[str, None] = None
         self._find_on_page_last_result: Union[int, None] = None  # Location of the last result
 
@@ -59,32 +44,15 @@ class MarkdownFileBrowser:
         """Return the address of the current page."""
         return self.history[-1][0]
 
-    def set_address(self, uri_or_path: str) -> None:
+    def set_address(self, path: str) -> None:
         """Sets the address of the current page.
-        This will result in the page being fetched via the underlying requests session.
+        This will result in the file being opened for reading.
 
         Arguments:
-            uri_or_path: The fully-qualified URI to fetch, or the path to fetch from the current location. If the URI protocol is `search:`, the remainder of the URI is interpreted as a search query, and a web search is performed. If the URI protocol is `file://`, the remainder of the URI is interpreted as a local absolute file path.
+            path: The fully-qualified URI to fetch, or the path to fetch from the current location. If the URI protocol is `search:`, the remainder of the URI is interpreted as a search query, and a web search is performed. If the URI protocol is `file://`, the remainder of the URI is interpreted as a local absolute file path.
         """
-        # TODO: Handle anchors
-        self.history.append((uri_or_path, time.time()))
-
-        # Handle special URIs
-        if uri_or_path == "about:blank":
-            self._set_page_content("")
-        else:
-            if (
-                not uri_or_path.startswith("http:")
-                and not uri_or_path.startswith("https:")
-                and not uri_or_path.startswith("file:")
-            ):
-                if len(self.history) > 1:
-                    prior_address = self.history[-2][0]
-                    uri_or_path = urljoin(prior_address, uri_or_path)
-                    # Update the address with the fully-qualified path
-                    self.history[-1] = (uri_or_path, self.history[-1][1])
-            self._fetch_page(uri_or_path)
-
+        self.history.append((path, time.time()))
+        self._read_file(path)
         self.viewport_current_page = 0
         self.find_on_page_query = None
         self.find_on_page_viewport = None
@@ -192,15 +160,10 @@ class MarkdownFileBrowser:
 
         return None
 
-    def visit_page(self, path_or_uri: str) -> str:
-        """Update the address, visit the page, and return the content of the viewport."""
-        self.set_address(path_or_uri)
-        return self.viewport
-
-    def open_local_file(self, local_path: str) -> str:
-        """Convert a local file path to a file:/// URI, update the address, visit the page, and return the contents of the viewport."""
-        full_path = os.path.abspath(os.path.expanduser(local_path))
-        self.set_address(pathlib.Path(full_path).as_uri())
+    def open_file(self, path: str) -> str:
+        """Open a file or directory in the file surfer."""
+        full_path = os.path.abspath(os.path.expanduser(path))
+        self.set_address(full_path)
         return self.viewport
 
     def _split_pages(self) -> None:
@@ -221,129 +184,35 @@ class MarkdownFileBrowser:
             self.viewport_pages.append((start_idx, end_idx))
             start_idx = end_idx
 
-    def _fetch_page(
+    def _read_file(
         self,
-        url: str,
-        session: Optional[requests.Session] = None,
-        requests_get_kwargs: Union[Dict[str, Any], None] = None,
+        path: str,
     ) -> None:
-        """Fetch a page using the requests library. Then convert it to Markdown, and set `page_content` (which splits the content into pages as necessary.
+        """Open a file for reading, converting it to Markdown in the process.
 
         Arguments:
-            url: The fully-qualified URL to fetch.
-            session: Used to override the session used for this request. If None, use `self._requests_session` as usual.
-            requests_get_kwargs: Extra arguments passes to `requests.Session.get`.
+            path: The path of the file or directory to open.
         """
-        download_path: str = ""
-        response: Union[requests.Response, None] = None
         try:
-            if url.startswith("file://"):
-                download_path = os.path.normcase(os.path.normpath(unquote(url[7:])))
-                if os.path.isdir(download_path):  # TODO: Fix markdown_converter types
-                    res = self._markdown_converter.convert_stream(  # type: ignore
-                        io.StringIO(self._fetch_local_dir(download_path)), file_extension=".html"
-                    )
-                    self.page_title = res.title
-                    self._set_page_content(
-                        res.text_content, split_pages=False
-                    )  # Like search results, don't split directory listings
-                else:
-                    res = self._markdown_converter.convert_local(download_path)
-                    self.page_title = res.title
-                    self._set_page_content(res.text_content)
+            if os.path.isdir(path):  # TODO: Fix markdown_converter types
+                res = self._markdown_converter.convert_stream(  # type: ignore
+                    io.StringIO(self._fetch_local_dir(path)), file_extension=".html"
+                )
+                self.page_title = res.title
+                self._set_page_content(res.text_content, split_pages=False)
             else:
-                # Send a HTTP request to the URL
-                if session is None:
-                    session = self._requests_session
-
-                _get_kwargs: Dict[str, Any] = {}  # TODO: Deal with kwargs
-                _get_kwargs.update(self._requests_get_kwargs)
-                if requests_get_kwargs is not None:
-                    _get_kwargs.update(requests_get_kwargs)
-                _get_kwargs["stream"] = True
-
-                response = session.get(url, **_get_kwargs)
-                response.raise_for_status()
-
-                # If the HTTP request was successful
-                content_type = response.headers.get("content-type", "")
-
-                # Text or HTML
-                if "text/" in content_type.lower():
-                    res = self._markdown_converter.convert_response(response)
-                    self.page_title = res.title
-                    self._set_page_content(res.text_content)
-                # A download
-                else:
-                    # Was a downloads folder configured?
-                    if self.downloads_folder is None:
-                        self.page_title = "Error 400"
-                        self._set_page_content("## Error 400\n\nClient does not support downloads")
-                        return
-
-                    assert self.downloads_folder is not None
-
-                    # Try producing a safe filename
-                    fname: str = ""
-                    try:
-                        fname = pathvalidate.sanitize_filename(os.path.basename(urlparse(url).path)).strip()
-                        download_path = os.path.abspath(os.path.join(self.downloads_folder, fname))
-
-                        suffix = 0
-                        while os.path.exists(download_path) and suffix < 1000:
-                            suffix += 1
-                            base, ext = os.path.splitext(fname)
-                            new_fname = f"{base}__{suffix}{ext}"
-                            download_path = os.path.abspath(os.path.join(self.downloads_folder, new_fname))
-
-                    except NameError:
-                        pass
-
-                    # No suitable name, so make one
-                    if fname == "":
-                        extension = mimetypes.guess_extension(content_type)
-                        if extension is None:
-                            extension = ".download"
-                        fname = str(uuid.uuid4()) + extension
-                        download_path = os.path.abspath(os.path.join(self.downloads_folder, fname))
-
-                    # Open a file for writing
-                    with open(download_path, "wb") as fh:
-                        for chunk in response.iter_content(chunk_size=512):
-                            fh.write(chunk)
-
-                    # Render it
-                    local_uri = pathlib.Path(download_path).as_uri()
-                    self.set_address(local_uri)
-
+                res = self._markdown_converter.convert_local(path)
+                self.page_title = res.title
+                self._set_page_content(res.text_content)
         except UnsupportedFormatException:
-            self.page_title = "Download complete."
-            self._set_page_content(f"# Download complete\n\nSaved file to '{download_path}'")
+            self.page_title = "UnsupportedFormatException"
+            self._set_page_content(f"# Cannot preview '{path}' as Markdown.")
         except FileConversionException:
-            self.page_title = "Download complete."
-            self._set_page_content(f"# Download complete\n\nSaved file to '{download_path}'")
+            self.page_title = "FileConversionException."
+            self._set_page_content(f"# Error converting '{path}' to Markdown.")
         except FileNotFoundError:
-            self.page_title = "Error 404"
-            self._set_page_content(f"## Error 404\n\nFile not found: {download_path}")
-        except requests.exceptions.RequestException:
-            if response is None:
-                self.page_title = "Request Exception"
-                self._set_page_content("## Unhandled Request Exception:\n\n" + traceback.format_exc())
-            else:
-                self.page_title = f"Error {response.status_code}"
-
-                # If the error was rendered in HTML we might as well render it
-                content_type = response.headers.get("content-type", "")
-                if "text/html" in content_type.lower():
-                    res = self._markdown_converter.convert(response)
-                    self.page_title = f"Error {response.status_code}"
-                    self._set_page_content(f"## Error {response.status_code}\n\n{res.text_content}")
-                else:
-                    text = ""
-                    for chunk in response.iter_content(chunk_size=512, decode_unicode=True):
-                        text += chunk
-                    self.page_title = f"Error {response.status_code}"
-                    self._set_page_content(f"## Error {response.status_code}\n\n{text}")
+            self.page_title = "FileNotFoundError"
+            self._set_page_content(f"# File not found: {path}")
 
     def _fetch_local_dir(self, local_path: str) -> str:
         """Render a local directory listing in HTML to assist with local file browsing via the "file://" protocol.
