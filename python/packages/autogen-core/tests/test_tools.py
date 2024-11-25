@@ -2,10 +2,12 @@ import inspect
 from typing import Annotated, List
 
 import pytest
+
 from autogen_core.base import CancellationToken
 from autogen_core.components._function_utils import get_typed_signature
 from autogen_core.components.tools import BaseTool, FunctionTool
 from autogen_core.components.tools._base import ToolSchema
+
 from pydantic import BaseModel, Field, model_serializer
 from pydantic_core import PydanticUndefined
 
@@ -141,7 +143,7 @@ def test_get_typed_signature() -> None:
     sig = get_typed_signature(my_function)
     assert isinstance(sig, inspect.Signature)
     assert len(sig.parameters) == 0
-    assert sig.return_annotation == str
+    assert sig.return_annotation is str
 
 
 def test_get_typed_signature_annotated() -> None:
@@ -161,7 +163,7 @@ def test_get_typed_signature_string() -> None:
     sig = get_typed_signature(my_function)
     assert isinstance(sig, inspect.Signature)
     assert len(sig.parameters) == 0
-    assert sig.return_annotation == str
+    assert sig.return_annotation is str
 
 
 def test_func_tool() -> None:
@@ -186,11 +188,11 @@ def test_func_tool_annotated_arg() -> None:
     assert issubclass(tool.args_type(), BaseModel)
     assert issubclass(tool.return_type(), str)
     assert tool.args_type().model_fields["my_arg"].description == "test description"
-    assert tool.args_type().model_fields["my_arg"].annotation == str
+    assert tool.args_type().model_fields["my_arg"].annotation is str
     assert tool.args_type().model_fields["my_arg"].is_required() is True
     assert tool.args_type().model_fields["my_arg"].default is PydanticUndefined
     assert len(tool.args_type().model_fields) == 1
-    assert tool.return_type() == str
+    assert tool.return_type() is str
     assert tool.state_type() is None
 
 
@@ -202,7 +204,7 @@ def test_func_tool_return_annotated() -> None:
     assert tool.name == "my_function"
     assert tool.description == "Function tool."
     assert issubclass(tool.args_type(), BaseModel)
-    assert tool.return_type() == str
+    assert tool.return_type() is str
     assert tool.state_type() is None
 
 
@@ -215,7 +217,7 @@ def test_func_tool_no_args() -> None:
     assert tool.description == "Function tool."
     assert issubclass(tool.args_type(), BaseModel)
     assert len(tool.args_type().model_fields) == 0
-    assert tool.return_type() == str
+    assert tool.return_type() is str
     assert tool.state_type() is None
 
 
