@@ -7,7 +7,7 @@ from sqlalchemy import ForeignKey, Integer, UniqueConstraint
 from sqlmodel import JSON, Column,  DateTime, Field, SQLModel, func, Relationship,   SQLModel
 from uuid import UUID, uuid4
 
-from .types import ToolConfig, ModelConfig, AgentConfig, TeamConfig, MessageConfig, MessageMeta
+from .types import ToolConfig, ModelConfig, AgentConfig, TeamConfig, MessageConfig, MessageMeta, TeamResult
 
 # added for python3.11 and sqlmodel 0.0.22 incompatibility
 if hasattr(SQLModel, "model_config"):
@@ -244,14 +244,11 @@ class Run(SQLModel, table=True):
     """Represents a single execution run within a session"""
     __table_args__ = {"sqlite_autoincrement": True}
 
-    # Primary key using UUID
     id: UUID = Field(
         default_factory=uuid4,
         primary_key=True,
         index=True
     )
-
-    # Timestamps using the same pattern as other models
     created_at: datetime = Field(
         default_factory=datetime.now,
         sa_column=Column(DateTime(timezone=True), server_default=func.now())
@@ -260,23 +257,24 @@ class Run(SQLModel, table=True):
         default_factory=datetime.now,
         sa_column=Column(DateTime(timezone=True), onupdate=func.now())
     )
-
-    # Foreign key to Session
     session_id: Optional[int] = Field(
         default=None,
-        sa_column=Column(
-            Integer,
-            ForeignKey("session.id", ondelete="CASCADE"),
-            nullable=False
-        )
+        sa_column=Column(Integer, ForeignKey("session.id", ondelete="CASCADE"),
+                         nullable=False)
+    )
+    status: RunStatus = Field(default=RunStatus.CREATED)
+
+    # Store the original user task
+    task: Union[MessageConfig, dict] = Field(
+        default_factory=MessageConfig,
+        sa_column=Column(JSON)
     )
 
-    # Run status and metadata
-    status: RunStatus = Field(default=RunStatus.CREATED)
+    # Store TeamResult which contains TaskResult
+    team_result: Union[TeamResult, dict] = Field(
+        default=None,
+        sa_column=Column(JSON)
+    )
+
     error_message: Optional[str] = None
-
-    # Metadata storage following pattern from Message model
-    run_meta: dict = Field(default={}, sa_column=Column(JSON))
-
-    # Version tracking like other models
     version: Optional[str] = "0.0.1"

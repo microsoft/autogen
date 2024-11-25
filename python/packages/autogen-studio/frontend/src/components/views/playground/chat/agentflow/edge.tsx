@@ -1,38 +1,21 @@
 import React from "react";
-import { Tooltip } from "antd";
 import { AgentMessageConfig } from "../../../../types/datamodel";
 import {
+  Edge,
   EdgeLabelRenderer,
   type EdgeProps,
   getSmoothStepPath,
 } from "@xyflow/react";
-import { RenderMessage } from "../rendermessage";
 
-interface EdgeTooltipContentProps {
-  messages: AgentMessageConfig[];
-}
-
-interface CustomEdgeData {
+export interface CustomEdgeData extends Record<string, unknown> {
   label?: string;
   messages: AgentMessageConfig[];
   routingType?: "primary" | "secondary";
   bidirectionalPair?: string;
+  onClick?: () => void;
 }
 
-const EdgeTooltipContent: React.FC<EdgeTooltipContentProps> = ({
-  messages,
-}) => {
-  return (
-    <div className="p-2 overflow-auto max-h-[200px] scroll max-w-[350px]">
-      <div className="text-xs mb-2">{messages.length} messages</div>
-      <div className="edge-tooltip">
-        {messages.map((message, index) => (
-          <RenderMessage key={index} message={message} />
-        ))}
-      </div>
-    </div>
-  );
-};
+export type CustomEdge = Edge<CustomEdgeData>;
 
 interface CustomEdgeProps extends Omit<EdgeProps, "data"> {
   data: CustomEdgeData;
@@ -70,17 +53,17 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
     const radius = 8;
 
     edgePath = `
-      M ${sourceX} ${targetY - verticalPadding}
-      L ${sourceX + rightOffset - radius} ${targetY - verticalPadding}
-      Q ${sourceX + rightOffset} ${targetY - verticalPadding} ${
+     M ${sourceX} ${targetY - verticalPadding}
+     L ${sourceX + rightOffset - radius} ${targetY - verticalPadding}
+     Q ${sourceX + rightOffset} ${targetY - verticalPadding} ${
       sourceX + rightOffset
     } ${targetY - verticalPadding + radius}
-      L ${sourceX + rightOffset} ${sourceY + verticalPadding - radius}
-      Q ${sourceX + rightOffset} ${sourceY + verticalPadding} ${
+     L ${sourceX + rightOffset} ${sourceY + verticalPadding - radius}
+     Q ${sourceX + rightOffset} ${sourceY + verticalPadding} ${
       sourceX + rightOffset - radius
     } ${sourceY + verticalPadding}
-      L ${sourceX} ${sourceY + verticalPadding}
-    `;
+     L ${sourceX} ${sourceY + verticalPadding}
+   `;
 
     labelX = sourceX + rightOffset + 10;
     labelY = targetY + verticalOffset / 2;
@@ -98,7 +81,7 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
     if (!data.routingType || isSelfLoop) return { x, y };
 
     // Make vertical separation more pronounced
-    const verticalOffset = data.routingType === "secondary" ? -35 : 35; // Increased from 20 to 35
+    const verticalOffset = data.routingType === "secondary" ? -35 : 35;
     const horizontalOffset = data.routingType === "secondary" ? -25 : 25;
 
     // Calculate edge angle to determine if it's more horizontal or vertical
@@ -109,7 +92,7 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
     // Always apply some vertical offset
     const basePosition = {
       x: isMoreHorizontal ? x : x + horizontalOffset,
-      y: y + (data.routingType === "secondary" ? -35 : 35), // Always apply vertical offset
+      y: y + (data.routingType === "secondary" ? -20 : 20),
     };
 
     return basePosition;
@@ -137,29 +120,23 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
               position: "absolute",
               transform: `translate(-50%, -50%) translate(${labelPosition.x}px,${labelPosition.y}px)`,
               pointerEvents: "all",
-              // Add a slight transition for smooth updates
-              transition: "transform 0.2s ease-in-out",
+              transition: "all 0.2s ease-in-out",
             }}
+            onClick={data.onClick}
           >
-            <Tooltip
-              title={
-                data.messages && data.messages.length > 0 ? (
-                  <EdgeTooltipContent messages={data.messages} />
-                ) : (
-                  data?.label
-                )
-              }
-              overlayStyle={{ maxWidth: "none" }}
+            <div
+              className="px-2 py-1 rounded bg-secondary hover:bg-tertiary text-primary  
+                       cursor-pointer transform hover:scale-110 transition-all
+                       flex items-center gap-1"
+              style={{
+                whiteSpace: "nowrap",
+              }}
             >
-              <div
-                className="px-2 py-1 rounded bg-secondary bg-opacity-50 text-primary text-sm"
-                style={{
-                  whiteSpace: "nowrap", // Prevent label from wrapping
-                }}
-              >
-                {data.label}
-              </div>
-            </Tooltip>
+              {messageCount > 0 && (
+                <span className="text-xs text-secondary">({messageCount})</span>
+              )}
+              <span className="text-sm">{data.label}</span>
+            </div>
           </div>
         </EdgeLabelRenderer>
       )}
