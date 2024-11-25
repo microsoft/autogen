@@ -105,6 +105,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
             from openai import AsyncClient
             from autogen_core.base import CancellationToken
+            import asyncio
             from autogen_ext.agents import OpenAIAssistantAgent
             from autogen_agentchat.messages import TextMessage
 
