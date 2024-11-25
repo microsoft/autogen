@@ -3,7 +3,6 @@
 
 namespace Microsoft.AutoGen.Abstractions;
 
-
 /// <summary>
 /// Interface for managing the state of an agent.
 /// </summary>
