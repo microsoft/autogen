@@ -1,9 +1,11 @@
 # api/routes/sessions.py
-from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict
-from ..deps import get_db
-from ...datamodel import Session, Message, Run
+
+from fastapi import APIRouter, Depends, HTTPException
 from loguru import logger
+
+from ...datamodel import Message, Run, Session
+from ..deps import get_db
 
 router = APIRouter()
 

@@ -2,13 +2,14 @@
 
 from datetime import datetime
 from enum import Enum
-from typing import List, Optional, Union, Tuple, Type
-from pydantic import BaseModel
-from sqlalchemy import ForeignKey, Integer, UniqueConstraint
-from sqlmodel import JSON, Column, DateTime, Field, SQLModel, func, Relationship, SQLModel
+from typing import List, Optional, Tuple, Type, Union
 from uuid import UUID, uuid4
 
-from .types import ToolConfig, ModelConfig, AgentConfig, TeamConfig, MessageConfig, MessageMeta, TeamResult
+from pydantic import BaseModel
+from sqlalchemy import ForeignKey, Integer, UniqueConstraint
+from sqlmodel import JSON, Column, DateTime, Field, Relationship, SQLModel, func
+
+from .types import AgentConfig, MessageConfig, MessageMeta, ModelConfig, TeamConfig, TeamResult, ToolConfig
 
 # added for python3.11 and sqlmodel 0.0.22 incompatibility
 if hasattr(SQLModel, "model_config"):

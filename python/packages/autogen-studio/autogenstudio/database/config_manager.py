@@ -1,9 +1,10 @@
 import logging
-from typing import Optional, Union, Dict, Any, List
 from pathlib import Path
-from loguru import logger
-from ..datamodel import Model, Team, Agent, Tool, Response, ComponentTypes, LinkTypes, ComponentConfigInput
+from typing import Any, Dict, List, Optional, Union
 
+from loguru import logger
+
+from ..datamodel import Agent, ComponentConfigInput, ComponentTypes, LinkTypes, Model, Response, Team, Tool
 from .component_factory import ComponentFactory
 from .db_manager import DatabaseManager
 
@@ -44,7 +45,7 @@ class ConfigurationManager:
             # Get component type
             component_type = self._determine_component_type(config)
             if not component_type:
-                raise ValueError(f"Unable to determine component type from config")
+                raise ValueError("Unable to determine component type from config")
 
             # Check existence if requested
             if check_exists:

@@ -1,9 +1,9 @@
 # api/routes/gallery.py
 from fastapi import APIRouter, Depends, HTTPException
-from ..deps import get_db
 
 from ...database import DatabaseManager
-from ...datamodel import Gallery, GalleryConfig, Run, Session, Response
+from ...datamodel import Gallery, GalleryConfig, Response, Run, Session
+from ..deps import get_db
 
 router = APIRouter()
 

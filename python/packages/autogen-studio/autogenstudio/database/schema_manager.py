@@ -1,17 +1,18 @@
 import os
-from pathlib import Path
 import shutil
-from typing import Optional, Tuple, List
-from loguru import logger
+from pathlib import Path
+from typing import List, Optional, Tuple
+
+import sqlmodel
 from alembic import command
+from alembic.autogenerate import compare_metadata
 from alembic.config import Config
 from alembic.runtime.migration import MigrationContext
 from alembic.script import ScriptDirectory
-from alembic.autogenerate import compare_metadata
+from alembic.util.exc import CommandError
+from loguru import logger
 from sqlalchemy import Engine, text
 from sqlmodel import SQLModel
-from alembic.util.exc import CommandError
-import sqlmodel
 
 
 class SchemaManager:

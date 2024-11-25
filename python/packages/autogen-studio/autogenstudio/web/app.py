@@ -1,19 +1,19 @@
 # api/app.py
 import os
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
 
 # import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 from loguru import logger
 
-from .routes import sessions, runs, teams, agents, models, tools, ws
-from .deps import init_managers, cleanup_managers
-from .config import settings
-from .initialization import AppInitializer
 from ..version import VERSION
+from .config import settings
+from .deps import cleanup_managers, init_managers
+from .initialization import AppInitializer
+from .routes import agents, models, runs, sessions, teams, tools, ws
 
 # Configure logging
 # logger = logging.getLogger(__name__)

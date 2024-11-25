@@ -1,9 +1,11 @@
-from typing import AsyncGenerator, Callable, Union, Optional
 import time
-from .database import ComponentFactory, Component
-from .datamodel import TeamResult, TaskResult, ComponentConfigInput
-from autogen_agentchat.messages import ChatMessage, AgentMessage
+from typing import AsyncGenerator, Callable, Optional, Union
+
+from autogen_agentchat.messages import AgentMessage, ChatMessage
 from autogen_core.base import CancellationToken
+
+from .database import Component, ComponentFactory
+from .datamodel import ComponentConfigInput, TaskResult, TeamResult
 
 
 class TeamManager:

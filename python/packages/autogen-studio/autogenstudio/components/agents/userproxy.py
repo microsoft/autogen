@@ -1,11 +1,11 @@
-from typing import Callable, List, Optional, Sequence, Union, Awaitable
+import asyncio
 from inspect import iscoroutinefunction
+from typing import Awaitable, Callable, List, Optional, Sequence, Union
 
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import ChatMessage, TextMessage
 from autogen_core.base import CancellationToken
-import asyncio
 
 
 class UserProxyAgent(BaseChatAgent):

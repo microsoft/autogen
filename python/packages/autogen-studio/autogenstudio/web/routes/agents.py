@@ -1,8 +1,10 @@
 # api/routes/agents.py
-from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict
-from ..deps import get_db
+
+from fastapi import APIRouter, Depends, HTTPException
+
 from ...datamodel import Agent, Model, Tool
+from ..deps import get_db
 
 router = APIRouter()
 

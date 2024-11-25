@@ -1,10 +1,12 @@
 # api/routes/models.py
-from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict
+
+from fastapi import APIRouter, Depends, HTTPException
 from openai import OpenAIError
-from ..deps import get_db
+
 from ...datamodel import Model
 from ...utils import test_model
+from ..deps import get_db
 
 router = APIRouter()
 

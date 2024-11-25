@@ -1,14 +1,14 @@
 # api/deps.py
-from typing import Optional
-from fastapi import Depends, HTTPException, status
 import logging
 from contextlib import contextmanager
+from typing import Optional
 
-from ..database import DatabaseManager
-from .managers.connection import WebSocketManager
+from fastapi import Depends, HTTPException, status
+
+from ..database import ConfigurationManager, DatabaseManager
 from ..teammanager import TeamManager
 from .config import settings
-from ..database import ConfigurationManager
+from .managers.connection import WebSocketManager
 
 logger = logging.getLogger(__name__)
 

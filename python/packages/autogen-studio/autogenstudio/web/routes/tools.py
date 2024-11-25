@@ -1,8 +1,10 @@
 # api/routes/tools.py
-from fastapi import APIRouter, Depends, HTTPException
 from typing import Dict
-from ..deps import get_db
+
+from fastapi import APIRouter, Depends, HTTPException
+
 from ...datamodel import Tool
+from ..deps import get_db
 
 router = APIRouter()
 

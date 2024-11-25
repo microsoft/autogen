@@ -1,13 +1,14 @@
 # api/ws.py
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends, HTTPException
+import json
+import logging
+from datetime import datetime
 from typing import Dict
 from uuid import UUID
-import logging
-import json
-from datetime import datetime
 
-from ..deps import get_websocket_manager, get_db, get_team_manager
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+
 from ...datamodel import Run, RunStatus
+from ..deps import get_db, get_team_manager, get_websocket_manager
 from ..managers import WebSocketManager
 
 router = APIRouter()

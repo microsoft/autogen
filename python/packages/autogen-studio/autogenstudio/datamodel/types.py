@@ -3,8 +3,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Union
 
-from pydantic import BaseModel
 from autogen_agentchat.base._task import TaskResult
+from pydantic import BaseModel
 
 
 class ModelTypes(str, Enum):

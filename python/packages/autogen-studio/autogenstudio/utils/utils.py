@@ -10,7 +10,6 @@ from typing import Any, Dict, List, Tuple, Union
 from dotenv import load_dotenv
 from loguru import logger
 
-
 from ..datamodel import Model
 from ..version import APP_NAME
 
