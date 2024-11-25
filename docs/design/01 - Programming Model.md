@@ -25,8 +25,8 @@ It is possible to build a functional and scalable agent system that only reacts 
 
 The AutoGen system comes with a set of built-in event types that are used to manage the system. These include:
 
-- _*System Events*_ - Events that are used to manage the system itself. These include events for starting and stopping the Agents, sending messages to all agents, and other system-level events.
-- ? insert other types here ?
+- *System Events* - Events that are used to manage the system itself. These include events for starting and stopping the Agents, sending messages to all agents, and other system-level events.
+- *Insert other types here*
 
 ## Agent Contracts
 
