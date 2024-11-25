@@ -922,7 +922,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
                 # api_key="sk-...", # Optional if you have an OPENAI_API_KEY environment variable set.
             )
 
-            result = await openai_client.create([UserMessage(content="What is the capital of France?", source="user")]) # type: ignore
+            result = await openai_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
             print(result)
 
 

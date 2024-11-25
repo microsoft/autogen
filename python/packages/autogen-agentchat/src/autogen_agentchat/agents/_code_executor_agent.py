@@ -30,6 +30,7 @@ class CodeExecutorAgent(BaseChatAgent):
             from autogen_ext.code_executors import DockerCommandLineCodeExecutor
             from autogen_core.base import CancellationToken
 
+
             async def run_code_executor_agent() -> None:
                 # Create a code executor agent that uses a Docker container to execute code.
                 code_executor = DockerCommandLineCodeExecutor(work_dir="coding")
@@ -50,6 +51,7 @@ class CodeExecutorAgent(BaseChatAgent):
 
                 # Stop the code executor.
                 await code_executor.stop()
+
 
             asyncio.run(run_code_executor_agent())
 

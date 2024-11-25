@@ -108,8 +108,8 @@ class OpenAIAssistantAgent(BaseChatAgent):
             from autogen_ext.agents import OpenAIAssistantAgent
             from autogen_agentchat.messages import TextMessage
 
-            async def example():
 
+            async def example():
                 cancellation_token = CancellationToken()
 
                 # Create an OpenAI client

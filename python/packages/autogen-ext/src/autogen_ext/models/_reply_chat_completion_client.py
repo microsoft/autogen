@@ -41,6 +41,7 @@ class ReplayChatCompletionClient:
             from autogen_ext.models import ReplayChatCompletionClient
             from autogen_core.components.models import UserMessage
 
+
             async def example():
                 chat_completions = [
                     "Hello, how can I assist you today?",
@@ -58,6 +59,7 @@ class ReplayChatCompletionClient:
 
             from autogen_ext.models import ReplayChatCompletionClient
             from autogen_core.components.models import UserMessage
+
 
             async def example():
                 chat_completions = [
@@ -80,6 +82,7 @@ class ReplayChatCompletionClient:
 
             from autogen_ext.models import ReplayChatCompletionClient
             from autogen_core.components.models import UserMessage
+
 
             async def example():
                 chat_completions = [
