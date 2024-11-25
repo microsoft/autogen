@@ -156,8 +156,12 @@ def _warn_if_none(value: Any, handler_name: str) -> None:
         handler_name: Name of the intervention handler method for the warning message
     """
     if value is None:
-
-
+        warnings.warn(
+            f"Intervention handler {handler_name} returned None. This might be unintentional. "
+            "Consider returning the original message or DropMessage explicitly.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
 
 
 class SingleThreadedAgentRuntime(AgentRuntime):
