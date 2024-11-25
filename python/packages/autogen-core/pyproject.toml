@@ -72,6 +72,7 @@ dev-dependencies = [
     "sphinx",
     "sphinxcontrib-apidoc",
     "autodoc_pydantic~=2.2",
+    "pygments",
 
     # Documentation tooling
     "sphinx-autobuild",
