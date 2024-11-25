@@ -141,6 +141,7 @@ async def test_openai_chat_completion_client() -> None:
 @pytest.mark.asyncio
 async def test_azure_openai_chat_completion_client() -> None:
     client = AzureOpenAIChatCompletionClient(
+        azure_deployment="gpt-4o-1",
         model="gpt-4o",
         api_key="api_key",
         api_version="2020-08-04",
