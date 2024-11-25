@@ -22,7 +22,7 @@ Agents are never explicitly created or destroyed. When a request is received for
 
 ## Worker protocol flow
 
-The worker protocol has three phases, following the lifetime of the worker: initiation, operation, and termination.
+The worker protocol has three phases, following the lifetime of the worker: initialization, operation, and termination.
 
 ### Initialization
 
