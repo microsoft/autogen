@@ -90,13 +90,13 @@ def _azure_openai_client_from_config(config: Mapping[str, Any]) -> AsyncAzureOpe
 
     if "azure_deployment" not in copied_config and "model" in copied_config:
         warnings.warn(
-            "Previous behavior of using the model name as the deployment name is deprecated and will be removed in 0.4",
+            "Previous behavior of using the model name as the deployment name is deprecated and will be removed in 0.4. Please specify azure_deployment",
             stacklevel=2,
         )
 
     if "azure_endpoint" not in copied_config and "base_url" in copied_config:
         warnings.warn(
-            "Previous behavior of using the base_url as the endpoint is deprecated and will be removed in 0.4",
+            "Previous behavior of using the base_url as the endpoint is deprecated and will be removed in 0.4. Please specify azure_endpoint",
             stacklevel=2,
         )
 
@@ -350,9 +350,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         model_capabilities: Optional[ModelCapabilities] = None,
     ):
         self._client = client
-        if model_capabilities is None and isinstance(client, AsyncAzureOpenAI):
-            raise ValueError("AzureOpenAIChatCompletionClient requires explicit model capabilities")
-        elif model_capabilities is None:
+        if model_capabilities is None:
             self._model_capabilities = _model_info.get_capabilities(create_args["model"])
         else:
             self._model_capabilities = model_capabilities
@@ -963,7 +961,7 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
         api_version (str): The API version to use. **Required for Azure models.**
         azure_ad_token (str): The Azure AD token to use. Provide this or `azure_ad_token_provider` for token-based authentication.
         azure_ad_token_provider (Callable[[], Awaitable[str]]): The Azure AD token provider to use. Provide this or `azure_ad_token` for token-based authentication.
-        model_capabilities (ModelCapabilities): The capabilities of the model. **Required for Azure models.**
+        model_capabilities (ModelCapabilities): The capabilities of the model if default resolved values are not correct.
         api_key (optional, str): The API key to use, use this if you are using key based authentication. It is optional if you are using Azure AD token based authentication or `AZURE_OPENAI_API_KEY` environment variable.
         timeout (optional, int): The timeout for the request in seconds.
         max_retries (optional, int): The maximum number of retries to attempt.
@@ -990,16 +988,12 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
             token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
 
             az_model_client = AzureOpenAIChatCompletionClient(
-                model="{your-azure-deployment}",
+                azure_deployment="{your-azure-deployment}",
+                model="{deployed-model, such as 'gpt-4o'}",
                 api_version="2024-06-01",
                 azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
                 azure_ad_token_provider=token_provider,  # Optional if you choose key-based authentication.
                 # api_key="sk-...", # For key-based authentication. `AZURE_OPENAI_API_KEY` environment variable can also be used instead.
-                model_capabilities={
-                    "vision": True,
-                    "function_calling": True,
-                    "json_output": True,
-                },
             )
 
     See `here <https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/managed-identity#chat-completions>`_ for how to use the Azure client directly or for more info.
@@ -1007,9 +1001,6 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
     """
 
     def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
-        if "model" not in kwargs:
-            raise ValueError("model is required for OpenAIChatCompletionClient")
-
         model_capabilities: Optional[ModelCapabilities] = None
         copied_args = dict(kwargs).copy()
         if "model_capabilities" in kwargs:
