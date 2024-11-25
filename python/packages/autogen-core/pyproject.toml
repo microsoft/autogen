@@ -154,3 +154,10 @@ ref = "docs-apidoc-all"
 
 [[tool.poe.tasks.docs-check.sequence]]
 cmd = "sphinx-build --fail-on-warning docs/src docs/build"
+
+[[tool.poe.tasks.docs-check-examples.sequence]]
+ref = "docs-apidoc-all"
+
+[[tool.poe.tasks.docs-check-examples.sequence]]
+cmd = "sphinx-build -b code_lint docs/src docs/build"
+
