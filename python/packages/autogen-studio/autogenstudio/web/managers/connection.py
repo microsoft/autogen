@@ -150,7 +150,7 @@ class WebSocketManager:
     def create_input_func(self, run_id: UUID) -> Callable:
         """Creates an input function for a specific run"""
 
-        async def input_handler(prompt: str = "") -> str:
+        async def input_handler(prompt: str = "", cancellation_token: Optional[CancellationToken] = None) -> str:
             try:
                 # Send input request to client
                 await self._send_message(

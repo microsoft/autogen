@@ -6,13 +6,12 @@ from typing import Callable, Dict, List, Literal, Optional, Union
 
 import aiofiles
 import yaml
-from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
 from autogen_agentchat.task import MaxMessageTermination, StopMessageTermination, TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
 from autogen_core.components.tools import FunctionTool
 from autogen_ext.models import OpenAIChatCompletionClient
 
-from ..components import UserProxyAgent
 from ..datamodel.types import (
     AgentConfig,
     AgentTypes,
