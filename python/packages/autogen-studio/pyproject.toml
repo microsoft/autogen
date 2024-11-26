@@ -23,7 +23,7 @@ dependencies = [
     "pydantic-settings",
     "fastapi",
     "typer",
-    "uvicorn", 
+    "uvicorn",
     "python-dotenv",
     "websockets",
     "numpy < 2.0.0",
@@ -32,9 +32,9 @@ dependencies = [
     "alembic",
     "loguru",
     "pyyaml",
-    "autogen-core==0.4.0.dev6",
-    "autogen-agentchat==0.4.0.dev6", 
-    "autogen-ext==0.4.0.dev6"
+    "autogen-core==0.4.0.dev7",
+    "autogen-agentchat==0.4.0.dev7",
+    "autogen-ext==0.4.0.dev7"
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
 
