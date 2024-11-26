@@ -1,8 +1,8 @@
 from autogen_core.components.tools import ParametersSchema, ToolSchema
 
-TOOL_OPEN_LOCAL_FILE = ToolSchema(
-    name="open_local_file",
-    description="Open a local file at a path in the text-based browser and return current viewport content.",
+TOOL_OPEN_PATH = ToolSchema(
+    name="open_path",
+    description="Open a local file or directory at a path in the text-based file browser and return current viewport content.",
     parameters=ParametersSchema(
         type="object",
         properties={

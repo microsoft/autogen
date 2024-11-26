@@ -59,6 +59,7 @@ class MarkdownFileBrowser:
                 path = os.path.abspath(os.path.join(os.path.dirname(self.path), path))
             elif os.path.isdir(self.path):
                 path = os.path.abspath(os.path.join(self.path, path))
+            # If neither a file or a directory, take it verbatim
 
         self.history.append((path, time.time()))
         self._open_path(path)

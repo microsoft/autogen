@@ -24,7 +24,7 @@ from ._markdown_file_browser import MarkdownFileBrowser
 from ._tool_definitions import (
     TOOL_FIND_NEXT,
     TOOL_FIND_ON_PAGE_CTRL_F,
-    TOOL_OPEN_LOCAL_FILE,
+    TOOL_OPEN_PATH,
     TOOL_PAGE_DOWN,
     TOOL_PAGE_UP,
 )
@@ -111,7 +111,7 @@ class FileSurfer(BaseChatAgent):
         create_result = await self._model_client.create(
             messages=history + [context_message, task_message],
             tools=[
-                TOOL_OPEN_LOCAL_FILE,
+                TOOL_OPEN_PATH,
                 TOOL_PAGE_DOWN,
                 TOOL_PAGE_UP,
                 TOOL_FIND_NEXT,
@@ -136,7 +136,7 @@ class FileSurfer(BaseChatAgent):
                     error_str = f"File surfer encountered an error decoding JSON arguments: {e}"
                     return False, error_str
 
-                if tool_name == "open_local_file":
+                if tool_name == "open_path":
                     path = arguments["path"]
                     self._browser.open_path(path)
                 elif tool_name == "page_up":
