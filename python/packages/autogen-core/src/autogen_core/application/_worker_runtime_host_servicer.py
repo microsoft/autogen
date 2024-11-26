@@ -4,17 +4,23 @@ from _collections_abc import AsyncIterator, Iterator
 from asyncio import Future, Task
 from typing import Any, Dict, Set
 
-from ..base import TopicId
+import grpc
+
+from ..base import JSON_DATA_CONTENT_TYPE, TopicId
 from ..components import TypeSubscription
 from ._helpers import SubscriptionManager
 from ._utils import GRPC_IMPORT_ERROR_STR
+from .protos import (
+    agent_worker_pb2,
+    agent_worker_pb2_grpc,
+    cloudevent_pb2,
+)
+from .telemetry import get_telemetry_grpc_metadata
 
 try:
     import grpc
 except ImportError as e:
     raise ImportError(GRPC_IMPORT_ERROR_STR) from e
-
-from .protos import agent_worker_pb2, agent_worker_pb2_grpc
 
 logger = logging.getLogger("autogen_core")
 event_logger = logging.getLogger("autogen_core.events")
@@ -129,6 +135,11 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
                 case "addSubscriptionRequest":
                     add_subscription: agent_worker_pb2.AddSubscriptionRequest = message.addSubscriptionRequest
                     task = asyncio.create_task(self._process_add_subscription_request(add_subscription, client_id))
+                    self._background_tasks.add(task)
+                    task.add_done_callback(self._raise_on_exception)
+                    task.add_done_callback(self._background_tasks.discard)
+                case "cloudEvent":
+                    task = asyncio.create_task(self._process_cloud_event(message.cloudEvent))
                     self._background_tasks.add(task)
                     task.add_done_callback(self._raise_on_exception)
                     task.add_done_callback(self._background_tasks.discard)
@@ -262,3 +273,18 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
         context: grpc.aio.ServicerContext[agent_worker_pb2.AgentId, agent_worker_pb2.SaveStateResponse],
     ) -> agent_worker_pb2.SaveStateResponse:  # type: ignore
         raise NotImplementedError("Method not implemented!")
+
+    async def _process_cloud_event(self, cloud_event: cloudevent_pb2.CloudEvent) -> None:
+        logger.info(f"Processing CloudEvent: {cloud_event}")
+
+        event = agent_worker_pb2.Event(
+            topic_type=cloud_event.type,
+            topic_source=cloud_event.source,
+            payload=agent_worker_pb2.Payload(
+                data_type=cloud_event.type,
+                data=cloud_event.proto_data.value,
+                data_content_type=JSON_DATA_CONTENT_TYPE,
+            ),
+            metadata=get_telemetry_grpc_metadata(),
+        )
+        await self._process_event(event)
