@@ -31,6 +31,13 @@ web-surfer = [
     "playwright>=1.48.0",
     "pillow>=11.0.0",
 ]
+video-surfer = [
+    "autogen-agentchat==0.4.0.dev7",
+    "openai",
+    "opencv-python>=4.5",
+    "ffmpeg-python",
+    "openai-whisper",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
@@ -43,6 +50,7 @@ dev-dependencies = []
 extend = "../../pyproject.toml"
 include = ["src/**", "tests/*.py"]
 exclude = ["src/autogen_ext/agents/web_surfer/*.js"]
+exclude = ["src/autogen_ext/agents/video_surfer/_action_space.py"]
 
 [tool.pyright]
 extends = "../../pyproject.toml"
