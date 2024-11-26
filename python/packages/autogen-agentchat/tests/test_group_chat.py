@@ -24,7 +24,7 @@ from autogen_agentchat.messages import (
     ToolCallMessage,
     ToolCallResultMessage,
 )
-from autogen_agentchat.task import MaxMessageTermination, TextMentionTermination
+from autogen_agentchat.task import Console, HandoffTermination, MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.teams import (
     RoundRobinGroupChat,
     SelectorGroupChat,
@@ -315,6 +315,14 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
             assert message == result.messages[index]
         index += 1
 
+    # Test Console.
+    tool_use_agent._model_context.clear()  # pyright: ignore
+    mock.reset()
+    index = 0
+    await team.reset()
+    result2 = await Console(team.run_stream(task="Write a program that prints 'Hello, world!'"))
+    assert result2 == result
+
 
 @pytest.mark.asyncio
 async def test_round_robin_group_chat_with_resume_and_reset() -> None:
@@ -476,6 +484,14 @@ async def test_selector_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
             assert message == result.messages[index]
         index += 1
 
+    # Test Console.
+    mock.reset()
+    agent1._count = 0  # pyright: ignore
+    index = 0
+    await team.reset()
+    result2 = await Console(team.run_stream(task="Write a program that prints 'Hello, world!'"))
+    assert result2 == result
+
 
 @pytest.mark.asyncio
 async def test_selector_group_chat_two_speakers(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -527,6 +543,14 @@ async def test_selector_group_chat_two_speakers(monkeypatch: pytest.MonkeyPatch)
         else:
             assert message == result.messages[index]
         index += 1
+
+    # Test Console.
+    mock.reset()
+    agent1._count = 0  # pyright: ignore
+    index = 0
+    await team.reset()
+    result2 = await Console(team.run_stream(task="Write a program that prints 'Hello, world!'"))
+    assert result2 == result
 
 
 @pytest.mark.asyncio
@@ -594,6 +618,13 @@ async def test_selector_group_chat_two_speakers_allow_repeated(monkeypatch: pyte
         else:
             assert message == result.messages[index]
         index += 1
+
+    # Test Console.
+    mock.reset()
+    index = 0
+    await team.reset()
+    result2 = await Console(team.run_stream(task="Write a program that prints 'Hello, world!'"))
+    assert result2 == result
 
 
 @pytest.mark.asyncio
@@ -792,6 +823,14 @@ async def test_swarm_handoff_using_tool_calls(monkeypatch: pytest.MonkeyPatch) -
             assert message == result.messages[index]
         index += 1
 
+    # Test Console
+    agent1._model_context.clear()  # pyright: ignore
+    mock.reset()
+    index = 0
+    await team.reset()
+    result2 = await Console(team.run_stream(task="task"))
+    assert result2 == result
+
 
 @pytest.mark.asyncio
 async def test_swarm_pause_and_resume() -> None:
@@ -815,3 +854,56 @@ async def test_swarm_pause_and_resume() -> None:
     result = await team.run()
     assert len(result.messages) == 1
     assert result.messages[0].content == "Transferred to second_agent."
+
+
+@pytest.mark.asyncio
+async def test_swarm_with_handoff_termination() -> None:
+    first_agent = _HandOffAgent("first_agent", description="first agent", next_agent="second_agent")
+    second_agent = _HandOffAgent("second_agent", description="second agent", next_agent="third_agent")
+    third_agent = _HandOffAgent("third_agent", description="third agent", next_agent="first_agent")
+
+    # Handoff to an existing agent.
+    termination = HandoffTermination(target="third_agent")
+    team = Swarm([second_agent, first_agent, third_agent], termination_condition=termination)
+    # Start
+    result = await team.run(task="task")
+    assert len(result.messages) == 2
+    assert result.messages[0].content == "task"
+    assert result.messages[1].content == "Transferred to third_agent."
+    # Resume existing.
+    result = await team.run()
+    assert len(result.messages) == 3
+    assert result.messages[0].content == "Transferred to first_agent."
+    assert result.messages[1].content == "Transferred to second_agent."
+    assert result.messages[2].content == "Transferred to third_agent."
+    # Resume new task.
+    result = await team.run(task="new task")
+    assert len(result.messages) == 4
+    assert result.messages[0].content == "new task"
+    assert result.messages[1].content == "Transferred to first_agent."
+    assert result.messages[2].content == "Transferred to second_agent."
+    assert result.messages[3].content == "Transferred to third_agent."
+
+    # Handoff to a non-existing agent.
+    third_agent = _HandOffAgent("third_agent", description="third agent", next_agent="non_existing_agent")
+    termination = HandoffTermination(target="non_existing_agent")
+    team = Swarm([second_agent, first_agent, third_agent], termination_condition=termination)
+    # Start
+    result = await team.run(task="task")
+    assert len(result.messages) == 3
+    assert result.messages[0].content == "task"
+    assert result.messages[1].content == "Transferred to third_agent."
+    assert result.messages[2].content == "Transferred to non_existing_agent."
+    # Attempt to resume.
+    with pytest.raises(ValueError):
+        await team.run()
+    # Attempt to resume with a new task.
+    with pytest.raises(ValueError):
+        await team.run(task="new task")
+    # Resume with a HandoffMessage
+    result = await team.run(task=HandoffMessage(content="Handoff to first_agent.", target="first_agent", source="user"))
+    assert len(result.messages) == 4
+    assert result.messages[0].content == "Handoff to first_agent."
+    assert result.messages[1].content == "Transferred to second_agent."
+    assert result.messages[2].content == "Transferred to third_agent."
+    assert result.messages[3].content == "Transferred to non_existing_agent."

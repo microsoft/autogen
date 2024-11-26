@@ -194,4 +194,7 @@ samples/apps/autogen-studio/autogenstudio/models/test/
 
 notebook/coding
 
+# dotnet artifacts
+artifacts
+
 certs/**

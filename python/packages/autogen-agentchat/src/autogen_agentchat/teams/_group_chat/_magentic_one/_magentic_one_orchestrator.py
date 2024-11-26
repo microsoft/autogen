@@ -2,7 +2,7 @@ import json
 from typing import Any, List
 
 from autogen_core.base import MessageContext
-from autogen_core.components import DefaultTopicId, Image, event
+from autogen_core.components import DefaultTopicId, Image, event, rpc
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -102,7 +102,7 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
     def _get_final_answer_prompt(self, task: str) -> str:
         return ORCHESTRATOR_FINAL_ANSWER_PROMPT.format(task=task)
 
-    @event
+    @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
         """Handle the start of a group chat by selecting a speaker to start the conversation."""
         assert message is not None and message.message is not None
@@ -145,7 +145,7 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
         self._message_thread.append(message.agent_response.chat_message)
         await self._orchestrate_step()
 
-    @event
+    @rpc
     async def handle_reset(self, message: GroupChatReset, ctx: MessageContext) -> None:
         # Reset the group chat manager.
         await self.reset()

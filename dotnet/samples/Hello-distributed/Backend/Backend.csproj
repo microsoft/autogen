@@ -17,17 +17,18 @@
     <PackageReference Include="Microsoft.Extensions.Azure" />
     <PackageReference Include="Microsoft.Extensions.Http.Resilience" />
     <PackageReference Include="Google.Protobuf" />
+    <PackageReference Include="Grpc.Net.Client" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Agents\Microsoft.AutoGen.Agents.csproj" />
+    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Extensions\MEAI\Microsoft.AutoGen.Extensions.MEAI.csproj" />
     <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Extensions\SemanticKernel\Microsoft.AutoGen.Extensions.SemanticKernel.csproj" />
-    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Extensions\ServiceDefaults\Microsoft.AutoGen.ServiceDefaults.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <Protobuf Include=".\Protos\messages.proto" Link="Protos\messages.proto" />
+    <Protobuf Include=".\Protos\messages.proto" GrpcServices="Server;Client" Link="Protos\messages.proto" />
   </ItemGroup>
 
 

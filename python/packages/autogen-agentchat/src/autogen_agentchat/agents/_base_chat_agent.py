@@ -4,7 +4,7 @@ from typing import AsyncGenerator, List, Sequence
 from autogen_core.base import CancellationToken
 
 from ..base import ChatAgent, Response, TaskResult
-from ..messages import AgentMessage, ChatMessage, MultiModalMessage, TextMessage
+from ..messages import AgentMessage, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
 
 
 class BaseChatAgent(ChatAgent, ABC):
@@ -54,7 +54,7 @@ class BaseChatAgent(ChatAgent, ABC):
     async def run(
         self,
         *,
-        task: str | TextMessage | MultiModalMessage | None = None,
+        task: str | ChatMessage | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the agent with the given task and return the result."""
@@ -62,13 +62,17 @@ class BaseChatAgent(ChatAgent, ABC):
             cancellation_token = CancellationToken()
         input_messages: List[ChatMessage] = []
         output_messages: List[AgentMessage] = []
-        if isinstance(task, str):
+        if task is None:
+            pass
+        elif isinstance(task, str):
             text_msg = TextMessage(content=task, source="user")
             input_messages.append(text_msg)
             output_messages.append(text_msg)
-        elif isinstance(task, TextMessage | MultiModalMessage):
+        elif isinstance(task, TextMessage | MultiModalMessage | StopMessage | HandoffMessage):
             input_messages.append(task)
             output_messages.append(task)
+        else:
+            raise ValueError(f"Invalid task type: {type(task)}")
         response = await self.on_messages(input_messages, cancellation_token)
         if response.inner_messages is not None:
             output_messages += response.inner_messages
@@ -78,7 +82,7 @@ class BaseChatAgent(ChatAgent, ABC):
     async def run_stream(
         self,
         *,
-        task: str | TextMessage | MultiModalMessage | None = None,
+        task: str | ChatMessage | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
         """Run the agent with the given task and return a stream of messages
@@ -87,15 +91,19 @@ class BaseChatAgent(ChatAgent, ABC):
             cancellation_token = CancellationToken()
         input_messages: List[ChatMessage] = []
         output_messages: List[AgentMessage] = []
-        if isinstance(task, str):
+        if task is None:
+            pass
+        elif isinstance(task, str):
             text_msg = TextMessage(content=task, source="user")
             input_messages.append(text_msg)
             output_messages.append(text_msg)
             yield text_msg
-        elif isinstance(task, TextMessage | MultiModalMessage):
+        elif isinstance(task, TextMessage | MultiModalMessage | StopMessage | HandoffMessage):
             input_messages.append(task)
             output_messages.append(task)
             yield task
+        else:
+            raise ValueError(f"Invalid task type: {type(task)}")
         async for message in self.on_messages_stream(input_messages, cancellation_token):
             if isinstance(message, Response):
                 yield message.chat_message

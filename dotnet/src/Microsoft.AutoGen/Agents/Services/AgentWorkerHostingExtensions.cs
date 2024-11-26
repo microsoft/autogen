@@ -41,6 +41,7 @@ public static class AgentWorkerHostingExtensions
     {
         return builder.AddAgentService(local: true, useGrpc);
     }
+
     public static WebApplication MapAgentService(this WebApplication app, bool local = false, bool useGrpc = true)
     {
         if (useGrpc) { app.MapGrpcService<GrpcGatewayService>(); }

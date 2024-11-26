@@ -28,7 +28,7 @@ var app = builder.Build();
 
 app.MapDefaultEndpoints();
 
-app.MapPost("/sessions", async ([FromBody]string message, Client client) =>
+app.MapPost("/sessions", async ([FromBody] string message, Client client) =>
 {
     var session = Guid.NewGuid().ToString();
     await client.PublishEventAsync(new NewGreetingRequested { Message = message }.ToCloudEvent(session));
@@ -37,14 +37,14 @@ app.MapPost("/sessions", async ([FromBody]string message, Client client) =>
 
 app.MapGet("/sessions/{session}", async (string session) =>
 {
-   
+
     return session;
 });
 
 app.UseRouting()
 .UseEndpoints(endpoints =>
 {
-   
+
 }); ;
 
 app.UseSwagger();

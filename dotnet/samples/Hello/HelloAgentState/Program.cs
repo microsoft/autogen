@@ -9,7 +9,7 @@ using Microsoft.AutoGen.Agents;
 var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
-}, local: true);
+}, local: false);
 
 await app.WaitForShutdownAsync();
 

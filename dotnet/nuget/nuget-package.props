@@ -7,7 +7,7 @@
     <Company>Microsoft</Company>
     <Product>AutoGen</Product>
     <Description>A programming framework for agentic AI</Description>
-    <PackageTags>AI, Artificial Intelligence, SDK</PackageTags>
+    <PackageTags>AI, Artificial Intelligence, Agents, Multiagent, SDK</PackageTags>
     <PackageId>$(AssemblyName)</PackageId>
 
     <!-- Required license, copyright, and repo information. Packages can override. -->

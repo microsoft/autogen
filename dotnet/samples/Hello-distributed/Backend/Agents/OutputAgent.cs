@@ -16,6 +16,6 @@ public class OutputAgent(
 {
     public async Task Handle(NewGreetingGenerated item)
     {
-       _logger.LogInformation($"OutputAgent with Id: {AgentId} received NewGreetingGenerated with {item.UserMessage}");
+        _logger.LogInformation($"OutputAgent with Id: {AgentId} received NewGreetingGenerated with {item.UserMessage}");
     }
 }

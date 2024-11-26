@@ -5,16 +5,14 @@ using Google.Protobuf;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.AI;
 namespace Microsoft.AutoGen.Agents;
-public abstract class InferenceAgent<T> : AgentBase where T : IMessage, new()
+public abstract class InferenceAgent<T>(
+    IAgentRuntime context,
+    EventTypes typeRegistry,
+    IChatClient client)
+    : AgentBase(context, typeRegistry)
+    where T : IMessage, new()
 {
-    protected IChatClient ChatClient { get; }
-    public InferenceAgent(
-        IAgentRuntime context,
-        EventTypes typeRegistry, IChatClient client
-        ) : base(context, typeRegistry)
-    {
-        ChatClient = client;
-    }
+    protected IChatClient ChatClient { get; } = client;
 
     private Task<ChatCompletion> CompleteAsync(
         IList<ChatMessage> chatMessages,
