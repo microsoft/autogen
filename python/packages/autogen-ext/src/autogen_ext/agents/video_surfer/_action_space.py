@@ -16,7 +16,7 @@ def extract_audio(video_path: str, audio_output_path: str) -> str:
         ffmpeg
         .input(video_path)
         .output(audio_output_path, format='mp3')
-        .run()
+        .run(quiet=True, overwrite_output=True)
     )
     return f"Audio extracted and saved to {audio_output_path}."
 
@@ -28,7 +28,7 @@ def transcribe_audio_with_timestamps(audio_path: str) -> str:
     :return: Transcription with timestamps.
     """
     model = whisper.load_model("base")
-    result = model.transcribe(audio_path, task="transcribe", language="en", verbose=True)
+    result = model.transcribe(audio_path, task="transcribe", language="en", verbose=False)
     
     segments = result['segments']
     transcription_with_timestamps = ""
