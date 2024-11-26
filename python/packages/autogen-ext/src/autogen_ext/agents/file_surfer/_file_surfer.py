@@ -78,7 +78,7 @@ class FileSurfer(BaseChatAgent):
         """
         Get the current state of the browser, including the header and content.
         """
-        header = f"Address: {self._browser.address}\n"
+        header = f"Path: {self._browser.path}\n"
 
         if self._browser.page_title is not None:
             header += f"Title: {self._browser.page_title}\n"
@@ -100,7 +100,7 @@ class FileSurfer(BaseChatAgent):
 
         context_message = UserMessage(
             source="user",
-            content=f"Your file viewer is currently open to the file or directory '{self._browser.page_title}' with path '{self._browser.address}'.",
+            content=f"Your file viewer is currently open to the file or directory '{self._browser.page_title}' with path '{self._browser.path}'.",
         )
 
         task_message = UserMessage(
@@ -138,7 +138,7 @@ class FileSurfer(BaseChatAgent):
 
                 if tool_name == "open_local_file":
                     path = arguments["path"]
-                    self._browser.open_file(path)
+                    self._browser.open_path(path)
                 elif tool_name == "page_up":
                     self._browser.page_up()
                 elif tool_name == "page_down":

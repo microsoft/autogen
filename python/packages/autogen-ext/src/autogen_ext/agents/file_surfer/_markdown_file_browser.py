@@ -1,9 +1,7 @@
 # ruff: noqa: E722
 import datetime
-import html
 import io
 import os
-import pathlib
 import re
 import time
 from typing import List, Optional, Tuple, Union
@@ -22,11 +20,10 @@ class MarkdownFileBrowser:
         self, viewport_size: Union[int, None] = 1024 * 8
     ):
         """
-        Instantiate a new RequestsMarkdownBrowser.
+        Instantiate a new MarkdownFileBrowser.
 
         Arguments:
             viewport_size: Approximately how many *characters* fit in the viewport. Viewport dimensions are adjusted dynamically to avoid cutting off words (default: 8192).
-            downloads_folder: Path to where downloads are saved. If None, downloads are disabled. (default: cwd)
         """
         self.viewport_size = viewport_size  # Applies only to the standard uri types
         self.history: List[Tuple[str, float]] = list()
@@ -34,25 +31,37 @@ class MarkdownFileBrowser:
         self.viewport_current_page = 0
         self.viewport_pages: List[Tuple[int, int]] = list()
         self._markdown_converter = MarkItDown()
-        self.set_address(os.getcwd())
+        self.set_path(os.getcwd())
         self._page_content: str = ""
         self._find_on_page_query: Union[str, None] = None
         self._find_on_page_last_result: Union[int, None] = None  # Location of the last result
 
     @property
-    def address(self) -> str:
-        """Return the address of the current page."""
-        return self.history[-1][0]
+    def path(self) -> str:
+        """Return the path of the current page."""
+        if len(self.history) == 0:
+            return os.getcwd()
+        else:
+            return self.history[-1][0]
 
-    def set_address(self, path: str) -> None:
-        """Sets the address of the current page.
+    def set_path(self, path: str) -> None:
+        """Sets the path of the current page.
         This will result in the file being opened for reading.
 
         Arguments:
-            path: The fully-qualified URI to fetch, or the path to fetch from the current location. If the URI protocol is `search:`, the remainder of the URI is interpreted as a search query, and a web search is performed. If the URI protocol is `file://`, the remainder of the URI is interpreted as a local absolute file path.
+            path: An absolute or relative path of the file or directory to open."
         """
+
+        # Handle relative paths
+        path = os.path.expanduser(path)
+        if not os.path.isabs(path):
+            if os.path.isfile(self.path):
+                path = os.path.abspath(os.path.join(os.path.dirname(self.path), path))
+            elif os.path.isdir(self.path):
+                path = os.path.abspath(os.path.join(self.path, path))
+
         self.history.append((path, time.time()))
-        self._read_file(path)
+        self._open_path(path)
         self.viewport_current_page = 0
         self.find_on_page_query = None
         self.find_on_page_viewport = None
@@ -160,10 +169,9 @@ class MarkdownFileBrowser:
 
         return None
 
-    def open_file(self, path: str) -> str:
+    def open_path(self, path: str) -> str:
         """Open a file or directory in the file surfer."""
-        full_path = os.path.abspath(os.path.expanduser(path))
-        self.set_address(full_path)
+        self.set_path(path)
         return self.viewport
 
     def _split_pages(self) -> None:
@@ -184,7 +192,7 @@ class MarkdownFileBrowser:
             self.viewport_pages.append((start_idx, end_idx))
             start_idx = end_idx
 
-    def _read_file(
+    def _open_path(
         self,
         path: str,
     ) -> None:
@@ -196,7 +204,7 @@ class MarkdownFileBrowser:
         try:
             if os.path.isdir(path):  # TODO: Fix markdown_converter types
                 res = self._markdown_converter.convert_stream(  # type: ignore
-                    io.StringIO(self._fetch_local_dir(path)), file_extension=".html"
+                    io.StringIO(self._fetch_local_dir(path)), file_extension=".txt"
                 )
                 self.page_title = res.title
                 self._set_page_content(res.text_content, split_pages=False)
@@ -224,29 +232,16 @@ class MarkdownFileBrowser:
         Returns:
             A directory listing, rendered in HTML.
         """
-        pardir = os.path.normpath(os.path.join(local_path, os.pardir))
-        pardir_uri = pathlib.Path(pardir).as_uri()
         listing = f"""
-<!DOCTYPE html>
-<html>
-  <head>
-    <title>Index of {html.escape(local_path)}</title>
-  </head>
-  <body>
-    <h1>Index of {html.escape(local_path)}</h1>
+# Index of {local_path}
 
-    <a href="{html.escape(pardir_uri, quote=True)}">.. (parent directory)</a>
-
-    <table>
-    <tr>
-       <th>Name</th><th>Size</th><th>Date modified</th>
-    </tr>
+| Name | Size | Date Modified |
+| ---- | ---- | ------------- |
+| .. (parent directory) | | |
 """
-
         for entry in os.listdir(local_path):
-            full_path = os.path.normpath(os.path.join(local_path, entry))
-            full_path_uri = pathlib.Path(full_path).as_uri()
             size = ""
+            full_path = os.path.join(local_path, entry)
             mtime = datetime.datetime.fromtimestamp(os.path.getmtime(full_path)).strftime("%Y-%m-%d %H:%M")
 
             if os.path.isdir(full_path):
@@ -254,17 +249,5 @@ class MarkdownFileBrowser:
             else:
                 size = str(os.path.getsize(full_path))
 
-            listing += (
-                "<tr>\n"
-                + f'<td><a href="{html.escape(full_path_uri, quote=True)}">{html.escape(entry)}</a></td>'
-                + f"<td>{html.escape(size)}</td>"
-                + f"<td>{html.escape(mtime)}</td>"
-                + "</tr>"
-            )
-
-        listing += """
-    </table>
-  </body>
-</html>
-"""
+            listing += f"| {entry} | {size} | {mtime} |\n"
         return listing
