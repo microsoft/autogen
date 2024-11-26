@@ -109,14 +109,11 @@ message SaveStateResponse {
 
 message Message {
     oneof message {
-        RpcRequest request = 1;
-        RpcResponse response = 2;
-        Event event = 3;
-        RegisterAgentTypeRequest registerAgentTypeRequest = 4;
-        RegisterAgentTypeResponse registerAgentTypeResponse = 5;
-        AddSubscriptionRequest addSubscriptionRequest = 6;
-        AddSubscriptionResponse addSubscriptionResponse = 7;
-        cloudevent.CloudEvent cloudEvent = 8;
+        cloudevent.CloudEvent cloudEvent = 1;
+        RegisterAgentTypeRequest registerAgentTypeRequest = 2;
+        RegisterAgentTypeResponse registerAgentTypeResponse = 3;
+        AddSubscriptionRequest addSubscriptionRequest = 4;
+        AddSubscriptionResponse addSubscriptionResponse = 5;
     }
 }
 

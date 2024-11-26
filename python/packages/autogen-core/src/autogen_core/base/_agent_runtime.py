@@ -215,11 +215,12 @@ class AgentRuntime(Protocol):
         """
         ...
 
-    async def add_subscription(self, subscription: Subscription) -> None:
+    async def add_subscription(self, subscription: Subscription, callback: Callable[[Any], None] = None) -> None:
         """Add a new subscription that the runtime should fulfill when processing published messages
 
         Args:
             subscription (Subscription): The subscription to add
+            callback (Callable[[Any], None]): a callback to be called when a message is received on this subscription
         """
         ...
 

@@ -1,13 +1,16 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
 from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Tuple, Type, TypeVar
+from uuid import uuid4
 
 from typing_extensions import Self
 
+from ..components import TypeSubscription
 from ._agent import Agent
 from ._agent_id import AgentId
 from ._agent_instantiation import AgentInstantiationContext
@@ -106,6 +109,7 @@ class BaseAgent(ABC, Agent):
     @abstractmethod
     async def on_message(self, message: Any, ctx: MessageContext) -> Any: ...
 
+    # TODO: rename to send_rpc()
     async def send_message(
         self,
         message: Any,
@@ -116,13 +120,30 @@ class BaseAgent(ABC, Agent):
         """See :py:meth:`autogen_core.base.AgentRuntime.send_message` for more information."""
         if cancellation_token is None:
             cancellation_token = CancellationToken()
+            
+        topic_id = TopicId(type=recipient.type, source=recipient.key)
+        request_id = str(uuid4())
+        # TODO: data type in the topic type string?
+        #data_type = self.runtime._serialization_registry.type_name(message)
+        topic_type = f"Microsoft.Autogen.{request_id}_{recipient.type}_rpc_response"
+        
+        future = asyncio.get_event_loop().create_future()
+        await self.runtime.add_subscription(
+            TypeSubscription(topic_type=topic_type, agent_type=recipient.type),
+            callback=lambda message: future.set_result(message)
+        )
 
-        return await self._runtime.send_message(
+        await self._runtime.send_message(
             message,
             sender=self.id,
             recipient=recipient,
             cancellation_token=cancellation_token,
         )
+        
+        ret = await future
+        # TODO: remove_subscription is currently not implemented in worker_runtime
+        # self.runtime.remove_subscription(topic_type)
+        return ret
 
     async def publish_message(
         self,

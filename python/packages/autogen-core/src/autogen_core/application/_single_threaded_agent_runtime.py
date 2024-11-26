@@ -238,6 +238,8 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         topic_id: TopicId,
         *,
         sender: AgentId | None = None,
+        # TODO: handle request_id being passed in
+        request_id: str | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> None:
         with self._tracer_helper.trace_block(
