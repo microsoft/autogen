@@ -1088,7 +1088,7 @@ class OpenAIWrapper:
 
     def _throttle_api_calls(self, idx: int) -> None:
         """Rate limit api calls."""
-        if self._rate_limiters[idx]:
+        if idx < len(self._rate_limiters) and self._rate_limiters[idx]:
             limiter = self._rate_limiters[idx]
 
             assert limiter is not None
