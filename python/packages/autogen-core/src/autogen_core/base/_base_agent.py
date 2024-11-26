@@ -172,7 +172,8 @@ class BaseAgent(ABC, Agent):
             # Additionally adds a special prefix subscription for this agent to receive direct messages
             await runtime.add_subscription(
                 TypePrefixSubscription(
-                    topic_type_prefix=agent_type.type,
+                    # The prefix MUST include ":" to avoid collisions with other agents
+                    topic_type_prefix=agent_type.type + ":",
                     agent_type=agent_type.type,
                 )
             )
