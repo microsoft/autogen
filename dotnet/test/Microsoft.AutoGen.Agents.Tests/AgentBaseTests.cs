@@ -24,6 +24,7 @@ public class AgentBaseTests(InMemoryAgentRuntimeFixture fixture)
     {
         var mockContext = new Mock<IAgentRuntime>();
         var agent = new TestAgent(mockContext.Object, new EventTypes(TypeRegistry.Empty, [], []), new Logger<AgentBase>(new LoggerFactory()));
+
         await agent.HandleObject("hello world");
         await agent.HandleObject(42);
 
@@ -56,7 +57,7 @@ public class AgentBaseTests(InMemoryAgentRuntimeFixture fixture)
     /// <summary>
     /// The test agent is a simple agent that is used for testing purposes.
     /// </summary>
-    public class TestAgent : AgentBase, IHandle<string>, IHandle<int>, IHandle<TextMessage>, IHandleConsole
+    public class TestAgent : AgentBase, IHandle<string>, IHandle<int>, IHandle<TextMessage>
     {
         public TestAgent(
             IAgentRuntime context,
