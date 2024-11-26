@@ -1,6 +1,5 @@
 import * as React from "react";
 import { message } from "antd";
-import { v4 as uuidv4 } from "uuid";
 import { getServerUrl } from "../../../utils";
 import { SessionManager } from "../../shared/session/manager";
 import { IStatus } from "../../../types/app";
@@ -503,7 +502,7 @@ export default function ChatView() {
                   {existingRuns.map((run, index) => (
                     <RunView
                       teamConfig={teamConfig}
-                      key={run.id}
+                      key={run.id + "-review-" + index}
                       run={run}
                       isFirstRun={index === 0}
                     />

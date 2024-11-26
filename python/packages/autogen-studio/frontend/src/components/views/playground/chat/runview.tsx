@@ -102,7 +102,7 @@ const RunView: React.FC<RunViewProps> = ({
         return (
           <div className="text-sm mb-2">
             <StopCircle size={20} className="inline-block mr-2 text-red-500" />
-            Task was cancelled
+            Task was stopped
           </div>
         );
       default:
