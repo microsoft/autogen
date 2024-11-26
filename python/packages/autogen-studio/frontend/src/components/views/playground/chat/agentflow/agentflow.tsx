@@ -10,7 +10,6 @@ import {
   Node,
   Edge,
   Background,
-  Controls,
   NodeTypes,
   useReactFlow,
   ReactFlowProvider,
@@ -24,16 +23,16 @@ import {
   AgentMessageConfig,
   AgentConfig,
   TeamConfig,
+  Run,
 } from "../../../../types/datamodel";
-import { ThreadState } from "../types";
-import { CustomEdge } from "./edge";
+import { CustomEdge, CustomEdgeData } from "./edge";
 import { useConfigStore } from "../../../../../hooks/store";
 import { AgentFlowToolbar } from "./toolbar";
+import { EdgeMessageModal } from "./edgemessagemodal";
 
 interface AgentFlowProps {
   teamConfig: TeamConfig;
-  messages: AgentMessageConfig[];
-  threadState: ThreadState;
+  run: Run;
 }
 
 interface MessageSequence {
@@ -51,40 +50,37 @@ interface BidirectionalPattern {
 
 const NODE_DIMENSIONS = {
   default: { width: 170, height: 100 },
-  end: { width: 120, height: 80 },
+  end: { width: 170, height: 80 },
+  task: { width: 170, height: 100 },
 };
 
 const getLayoutedElements = (
   nodes: Node[],
-  edges: Edge[],
+  edges: CustomEdge[],
   direction: "TB" | "LR"
 ) => {
   const g = new Dagre.graphlib.Graph().setDefaultEdgeLabel(() => ({}));
 
-  // Updated graph settings
   g.setGraph({
     rankdir: direction,
-    nodesep: 80,
-    ranksep: 120,
-    ranker: "tight-tree",
+    nodesep: 110,
+    ranksep: 100,
+    ranker: "network-simplex",
     marginx: 30,
     marginy: 30,
   });
 
-  // Add nodes (unchanged)
   nodes.forEach((node) => {
     const dimensions =
       node.data.type === "end" ? NODE_DIMENSIONS.end : NODE_DIMENSIONS.default;
     g.setNode(node.id, { ...node, ...dimensions });
   });
 
-  // Create a map to track bidirectional edges
   const bidirectionalPairs = new Map<
     string,
     { source: string; target: string }[]
   >();
 
-  // First pass - identify bidirectional pairs
   edges.forEach((edge) => {
     const forwardKey = `${edge.source}->${edge.target}`;
     const reverseKey = `${edge.target}->${edge.source}`;
@@ -99,33 +95,19 @@ const getLayoutedElements = (
     });
   });
 
-  // Second pass - add edges with weights
   bidirectionalPairs.forEach((pairs, pairKey) => {
     if (pairs.length === 2) {
-      // Bidirectional edge
       const [first, second] = pairs;
-      g.setEdge(first.source, first.target, {
-        weight: 2,
-        minlen: 1,
-      });
-      g.setEdge(second.source, second.target, {
-        weight: 1,
-        minlen: 1,
-      });
+      g.setEdge(first.source, first.target, { weight: 2, minlen: 1 });
+      g.setEdge(second.source, second.target, { weight: 1, minlen: 1 });
     } else {
-      // Regular edge
       const edge = pairs[0];
-      g.setEdge(edge.source, edge.target, {
-        weight: 1,
-        minlen: 1,
-      });
+      g.setEdge(edge.source, edge.target, { weight: 1, minlen: 1 });
     }
   });
 
-  // Run layout
   Dagre.layout(g);
 
-  // Position nodes
   const positionedNodes = nodes.map((node) => {
     const { x, y } = g.node(node.id);
     const dimensions =
@@ -139,7 +121,6 @@ const getLayoutedElements = (
     };
   });
 
-  // Create a map of node positions for edge calculations
   const nodePositions = new Map(
     positionedNodes.map((node) => [
       node.id,
@@ -150,7 +131,6 @@ const getLayoutedElements = (
     ])
   );
 
-  // Process edges with positions
   const positionedEdges = edges.map((edge) => {
     const sourcePos = nodePositions.get(edge.source)!;
     const targetPos = nodePositions.get(edge.target)!;
@@ -164,10 +144,7 @@ const getLayoutedElements = (
     };
   });
 
-  return {
-    nodes: positionedNodes,
-    edges: positionedEdges,
-  };
+  return { nodes: positionedNodes, edges: positionedEdges };
 };
 
 const createNode = (
@@ -175,11 +152,11 @@ const createNode = (
   type: "user" | "agent" | "end",
   agentConfig?: AgentConfig,
   isActive: boolean = false,
-  threadState?: ThreadState
+  run?: Run
 ): Node => {
-  const isStreamingOrWaiting =
-    threadState?.status === "streaming" ||
-    threadState?.status === "awaiting_input";
+  const isProcessing =
+    run?.status === "active" || run?.status === "awaiting_input";
+
   if (type === "user") {
     return {
       id,
@@ -193,7 +170,7 @@ const createNode = (
         isActive,
         status: "",
         reason: "",
-        draggable: !isStreamingOrWaiting,
+        draggable: !isProcessing,
       },
     };
   }
@@ -206,8 +183,8 @@ const createNode = (
       data: {
         type: "end",
         label: "End",
-        status: threadState?.status,
-        reason: threadState?.reason || "",
+        status: run?.status,
+        reason: run?.error_message || "",
         agentType: "",
         description: "",
         isActive: false,
@@ -215,6 +192,23 @@ const createNode = (
       },
     };
   }
+
+  // if (type === "task") {
+  //   return {
+  //     id,
+  //     type: "agentNode",
+  //     position: { x: 0, y: 0 },
+  //     data: {
+  //       type: "task",
+  //       label: "Task",
+  //       description: run?.task.content || "",
+  //       isActive: false,
+  //       status: null,
+  //       reason: null,
+  //       draggable: false,
+  //     },
+  //   };
+  // }
 
   return {
     id,
@@ -228,7 +222,7 @@ const createNode = (
       isActive,
       status: "",
       reason: "",
-      draggable: !isStreamingOrWaiting,
+      draggable: !isProcessing,
     },
   };
 };
@@ -241,23 +235,28 @@ const edgeTypes = {
   custom: CustomEdge,
 };
 
-const AgentFlow: React.FC<AgentFlowProps> = ({
-  teamConfig,
-  messages,
-  threadState,
-}) => {
+const AgentFlow: React.FC<AgentFlowProps> = ({ teamConfig, run }) => {
   const { fitView } = useReactFlow();
   const [nodes, setNodes] = useState<Node[]>([]);
-  const [edges, setEdges] = useState<Edge[]>([]);
+  const [edges, setEdges] = useState<CustomEdge[]>([]);
   const [shouldRefit, setShouldRefit] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
 
-  // Get settings from store
-  const { agentFlow: settings, setAgentFlowSettings } = useConfigStore();
+  const { agentFlow: settings } = useConfigStore();
+  const [modalOpen, setModalOpen] = useState(false);
+  const [selectedEdge, setSelectedEdge] = useState<CustomEdge | null>(null);
+
+  const handleEdgeClick = useCallback((edge: CustomEdge) => {
+    if (!edge.data?.messages) return; // Early return if no data/messages
+
+    setSelectedEdge(edge);
+    setModalOpen(true);
+  }, []);
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes((nds) => applyNodeChanges(changes, nds));
   }, []);
+
   const flowWrapper = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -265,36 +264,38 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
       const timeoutId = setTimeout(() => {
         fitView({ padding: 0.2, duration: 200 });
         setShouldRefit(false);
-      }, 100); // Increased delay slightly
+      }, 100);
 
       return () => clearTimeout(timeoutId);
     }
   }, [shouldRefit, fitView]);
 
-  // Process messages into nodes and edges
   const processMessages = useCallback(
     (messages: AgentMessageConfig[]) => {
-      if (messages.length === 0) return { nodes: [], edges: [] };
+      if (!run.task) return { nodes: [], edges: [] };
 
       const nodeMap = new Map<string, Node>();
       const transitionCounts = new Map<string, MessageSequence>();
       const bidirectionalPatterns = new Map<string, BidirectionalPattern>();
 
-      // Process first message source
-      const firstAgentConfig = teamConfig.participants.find(
-        (p) => p.name === messages[0].source
-      );
-      nodeMap.set(
-        messages[0].source,
-        createNode(
+      // Add first message node if it exists
+      if (messages.length > 0) {
+        const firstAgentConfig = teamConfig.participants.find(
+          (p) => p.name === messages[0].source
+        );
+        nodeMap.set(
           messages[0].source,
-          messages[0].source === "user" ? "user" : "agent",
-          firstAgentConfig,
-          false
-        )
-      );
+          createNode(
+            messages[0].source,
+            messages[0].source === "user" ? "user" : "agent",
+            firstAgentConfig,
+            false,
+            run
+          )
+        );
+      }
 
-      // Group messages by transitions
+      // Process message transitions
       for (let i = 0; i < messages.length - 1; i++) {
         const currentMsg = messages[i];
         const nextMsg = messages[i + 1];
@@ -319,7 +320,6 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
           transition.messages.push(currentMsg);
         }
 
-        // Ensure all nodes are in the nodeMap
         if (!nodeMap.has(nextMsg.source)) {
           const agentConfig = teamConfig.participants.find(
             (p) => p.name === nextMsg.source
@@ -330,13 +330,14 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
               nextMsg.source,
               nextMsg.source === "user" ? "user" : "agent",
               agentConfig,
-              false
+              false,
+              run
             )
           );
         }
       }
 
-      // Identify bidirectional patterns
+      // Process bidirectional patterns
       transitionCounts.forEach((transition, key) => {
         const [source, target] = key.split("->");
         const reverseKey = `${target}->${source}`;
@@ -352,10 +353,9 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
       });
 
       // Create edges with bidirectional routing
-      const newEdges: Edge[] = [];
+      const newEdges: CustomEdge[] = [];
       const processedKeys = new Set<string>();
 
-      // Helper function to create edge label based on settings
       const createEdgeLabel = (transition: MessageSequence) => {
         if (!settings.showLabels) return "";
         if (transition.totalTokens > 0) {
@@ -374,7 +374,6 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
         const bidirectionalPattern = bidirectionalPatterns.get(patternKey);
 
         if (bidirectionalPattern) {
-          // Create paired edges for bidirectional pattern
           const forwardKey = `${source}->${target}`;
           const reverseKey = `${target}->${source}`;
 
@@ -386,7 +385,7 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
             isSecondary: boolean,
             edgeId: string,
             pairedEdgeId: string
-          ) => ({
+          ): CustomEdge => ({
             id: edgeId,
             source: transition.source,
             target: transition.target,
@@ -421,7 +420,6 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
           processedKeys.add(forwardKey);
           processedKeys.add(reverseKey);
         } else {
-          // Handle regular edges (including self-loops)
           newEdges.push({
             id: `${transition.source}-${transition.target}-${key}`,
             source: transition.source,
@@ -432,7 +430,7 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
               messages: settings.showMessages ? transition.messages : [],
             },
             animated:
-              threadState?.status === "streaming" &&
+              run.status === "active" &&
               key === Array.from(transitionCounts.keys()).pop(),
             style: {
               stroke: "#2563eb",
@@ -442,25 +440,22 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
         }
       });
 
-      // Handle end node logic
-      if (threadState && messages.length > 0) {
+      // Add end node if run is complete/error/stopped
+      if (run && messages.length > 0) {
         const lastMessage = messages[messages.length - 1];
 
-        if (["complete", "error", "cancelled"].includes(threadState.status)) {
-          nodeMap.set(
-            "end",
-            createNode("end", "end", undefined, false, threadState)
-          );
+        if (["complete", "error", "stopped"].includes(run.status)) {
+          nodeMap.set("end", createNode("end", "end", undefined, false, run));
 
-          const edgeColor =
-            {
-              complete: "#2563eb",
-              cancelled: "red",
-              error: "red",
-              streaming: "#2563eb",
-              awaiting_input: "#2563eb",
-              timeout: "red",
-            }[threadState.status] || "#2563eb";
+          const edgeColor = {
+            complete: "#2563eb",
+            stopped: "red",
+            error: "red",
+            active: "#2563eb",
+            awaiting_input: "#2563eb",
+            timeout: "red",
+            created: "#2563eb",
+          }[run.status];
 
           newEdges.push({
             id: `${lastMessage.source}-end`,
@@ -481,12 +476,9 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
         }
       }
 
-      return {
-        nodes: Array.from(nodeMap.values()),
-        edges: newEdges,
-      };
+      return { nodes: Array.from(nodeMap.values()), edges: newEdges };
     },
-    [teamConfig.participants, threadState, settings]
+    [teamConfig.participants, run, settings]
   );
 
   const handleToggleFullscreen = useCallback(() => {
@@ -508,7 +500,9 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
   }, [isFullscreen, handleToggleFullscreen]);
 
   useEffect(() => {
-    const { nodes: newNodes, edges: newEdges } = processMessages(messages);
+    const { nodes: newNodes, edges: newEdges } = processMessages(
+      run.messages.map((m) => m.config)
+    );
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
       newNodes,
       newEdges,
@@ -518,17 +512,22 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
     setNodes(layoutedNodes);
     setEdges(layoutedEdges);
 
-    if (messages.length > 0) {
+    if (run.messages.length > 0) {
       setTimeout(() => {
         fitView({ padding: 0.2, duration: 200 });
       }, 50);
     }
-  }, [messages, processMessages, settings.direction, threadState, fitView]);
+  }, [run.messages, processMessages, settings.direction, run.status, fitView]);
 
-  // Define common ReactFlow props
   const reactFlowProps = {
     nodes,
-    edges,
+    edges: edges.map((edge) => ({
+      ...edge,
+      data: {
+        ...edge.data,
+        onClick: () => handleEdgeClick(edge),
+      },
+    })),
     nodeTypes,
     edgeTypes,
     defaultViewport: { x: 0, y: 0, zoom: 1 },
@@ -538,7 +537,6 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
     proOptions: { hideAttribution: true },
   };
 
-  // Define common toolbar props
   const toolbarProps = useMemo(
     () => ({
       isFullscreen,
@@ -547,16 +545,16 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
     }),
     [isFullscreen, handleToggleFullscreen, fitView]
   );
+
   return (
     <div
       ref={flowWrapper}
       className={`transition-all duration-200 ${
         isFullscreen
-          ? "fixed inset-4 z-[9999] shadow" // Modal-like styling
+          ? "fixed inset-4 z-[50] shadow"
           : "w-full h-full min-h-[300px]"
       } bg-tertiary rounded-lg`}
     >
-      {/* Backdrop when fullscreen */}
       {isFullscreen && (
         <div
           className="fixed inset-0 -z-10 bg-background/80 backdrop-blur-sm"
@@ -566,11 +564,18 @@ const AgentFlow: React.FC<AgentFlowProps> = ({
 
       <ReactFlow {...reactFlowProps}>
         {settings.showGrid && <Background />}
-        {/* <Controls /> */}
         <div className="absolute top-0 right-0 z-50">
           <AgentFlowToolbar {...toolbarProps} />
         </div>
       </ReactFlow>
+      <EdgeMessageModal
+        open={modalOpen}
+        onClose={() => {
+          setModalOpen(false);
+          setSelectedEdge(null);
+        }}
+        edge={selectedEdge}
+      />
     </div>
   );
 };

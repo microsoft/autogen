@@ -573,9 +573,10 @@ dev = [
 
 [[package]]
 name = "autogenstudio"
-version = "0.4.0.dev37"
+version = "0.4.0.dev38"
 source = { editable = "packages/autogen-studio" }
 dependencies = [
+    { name = "aiofiles" },
     { name = "alembic" },
     { name = "autogen-agentchat" },
     { name = "autogen-core" },
@@ -605,6 +606,7 @@ web = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aiofiles" },
     { name = "alembic" },
     { name = "autogen-agentchat", editable = "packages/autogen-agentchat" },
     { name = "autogen-core", editable = "packages/autogen-core" },
