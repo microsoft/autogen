@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public abstract class AgentBase : IAgentBase, IHandle
+public abstract class AgentBase : IAgentBase, IHandle, IHandle<CloudEvent>
 {
     public static readonly ActivitySource s_source = new("AutoGen.Agent");
     public AgentId AgentId => _context.AgentId;
@@ -93,7 +93,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                 {
                     var activity = this.ExtractActivity(msg.CloudEvent.Type, msg.CloudEvent.Metadata);
                     await this.InvokeWithActivityAsync(
-                        static ((AgentBase Agent, CloudEvent Item) state, CancellationToken _) => state.Agent.CallHandler(state.Item),
+                        static ((AgentBase Agent, CloudEvent Item) state, CancellationToken _) => state.Agent.HandleObject(state.Item),
                         (this, msg.CloudEvent),
                         activity,
                         msg.CloudEvent.Type, cancellationToken).ConfigureAwait(false);
@@ -242,7 +242,35 @@ public abstract class AgentBase : IAgentBase, IHandle
             item.Type, cancellationToken).ConfigureAwait(false);
     }
 
-    public Task CallHandler(CloudEvent item)
+    public Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
+
+    public virtual Task HandleObject(object item)
+    {
+        if (item is CloudEvent ce)
+        {
+            return Handle(ce);
+        }
+
+        var genericInterfaceType = typeof(IHandle<>).MakeGenericType(item.GetType());
+
+        // check that our target actually implements this interface, otherwise call the default static
+        if (genericInterfaceType.IsAssignableFrom(this.GetType()))
+        {
+            var methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle), BindingFlags.Public | BindingFlags.Instance)
+                           ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
+
+            return methodInfo.Invoke(this, [item]) as Task ?? throw new InvalidOperationException("Method did not return a Task");
+        }
+
+        // otherwise, complain
+        throw new InvalidOperationException($"No handler found for type {item.GetType().FullName}");
+    }
+    public async ValueTask PublishEventAsync(string topic, IMessage evt, CancellationToken cancellationToken = default)
+    {
+        await PublishEventAsync(evt.ToCloudEvent(topic), cancellationToken).ConfigureAwait(false);
+    }
+
+    public virtual Task Handle(CloudEvent item)
     {
         // Only send the event to the handler if the agent type is handling that type
         // foreach of the keys in the EventTypes.EventsMap[] if it contains the item.type
@@ -250,25 +278,11 @@ public abstract class AgentBase : IAgentBase, IHandle
         {
             if (EventTypes.EventsMap[key].Contains(item.Type))
             {
-                var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
-                var convertedPayload = Convert.ChangeType(payload, EventTypes.Types[item.Type]);
-                var genericInterfaceType = typeof(IHandle<>).MakeGenericType(EventTypes.Types[item.Type]);
-
-                MethodInfo methodInfo;
                 try
                 {
-                    // check that our target actually implements this interface, otherwise call the default static
-                    if (genericInterfaceType.IsAssignableFrom(this.GetType()))
-                    {
-                        methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle), BindingFlags.Public | BindingFlags.Instance)
-                                       ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
-                        return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
-                    }
-                    else
-                    {
-                        // The error here is we have registered for an event that we do not have code to listen to
-                        throw new InvalidOperationException($"No handler found for event '{item.Type}'; expecting IHandle<{item.Type}> implementation.");
-                    }
+                    var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
+                    var convertedPayload = Convert.ChangeType(payload, EventTypes.Types[item.Type]);
+                    return this.HandleObject(convertedPayload);
                 }
                 catch (Exception ex)
                 {
@@ -279,30 +293,5 @@ public abstract class AgentBase : IAgentBase, IHandle
         }
 
         return Task.CompletedTask;
-    }
-
-    public Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
-
-    //TODO: should this be async and cancellable?
-    public virtual Task HandleObject(object item)
-    {
-        // get all Handle<T> methods
-        var handleTMethods = this.GetType().GetMethods().Where(m => m.Name == "Handle" && m.GetParameters().Length == 1).ToList();
-
-        // get the one that matches the type of the item
-        var handleTMethod = handleTMethods.FirstOrDefault(m => m.GetParameters()[0].ParameterType == item.GetType());
-
-        // if we found one, invoke it
-        if (handleTMethod != null)
-        {
-            return (Task)handleTMethod.Invoke(this, [item])!;
-        }
-
-        // otherwise, complain
-        throw new InvalidOperationException($"No handler found for type {item.GetType().FullName}");
-    }
-    public async ValueTask PublishEventAsync(string topic, IMessage evt, CancellationToken cancellationToken = default)
-    {
-        await PublishEventAsync(evt.ToCloudEvent(topic), cancellationToken).ConfigureAwait(false);
     }
 }

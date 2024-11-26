@@ -11,8 +11,6 @@ public interface IAgentBase
     AgentId AgentId { get; }
     IAgentRuntime Context { get; }
 
-    // Methods
-    Task CallHandler(CloudEvent item);
     Task<RpcResponse> HandleRequest(RpcRequest request);
     void ReceiveMessage(Message message);
     Task StoreAsync(AgentState state, CancellationToken cancellationToken = default);
