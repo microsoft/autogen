@@ -43,7 +43,8 @@ async def _async_sleep_function(input: str) -> str:
 @pytest.mark.asyncio
 async def test_tool_agent() -> None:
     runtime = SingleThreadedAgentRuntime()
-    await runtime.register(
+    await ToolAgent.register(
+        runtime,
         "tool_agent",
         lambda: ToolAgent(
             description="Tool agent",
@@ -143,7 +144,8 @@ async def test_caller_loop() -> None:
     client = MockChatCompletionClient()
     tools: List[Tool] = [FunctionTool(_pass_function, name="pass", description="Pass function")]
     runtime = SingleThreadedAgentRuntime()
-    await runtime.register(
+    await ToolAgent.register(
+        runtime,
         "tool_agent",
         lambda: ToolAgent(
             description="Tool agent",
