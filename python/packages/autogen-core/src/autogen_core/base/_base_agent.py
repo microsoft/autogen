@@ -8,6 +8,8 @@ from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Tuple, Typ
 
 from typing_extensions import Self
 
+from autogen_core.components._type_prefix_subscription import TypePrefixSubscription
+
 from ._agent import Agent
 from ._agent_id import AgentId
 from ._agent_instantiation import AgentInstantiationContext
@@ -149,6 +151,7 @@ class BaseAgent(ABC, Agent):
         factory: Callable[[], Self | Awaitable[Self]],
         *,
         skip_class_subscriptions: bool = False,
+        skip_direct_message_subscription: bool = False,
     ) -> AgentType:
         agent_type = AgentType(type)
         agent_type = await runtime.register_factory(type=agent_type, agent_factory=factory, expected_class=cls)
@@ -165,6 +168,15 @@ class BaseAgent(ABC, Agent):
                     subscriptions.extend(subscriptions_list)
             for subscription in subscriptions:
                 await runtime.add_subscription(subscription)
+
+        if not skip_direct_message_subscription:
+            # Additionally adds a special prefix subscription for this agent to receive direct messages
+            await runtime.add_subscription(
+                TypePrefixSubscription(
+                    topic_type_prefix=agent_type.type,
+                    agent_type=agent_type.type,
+                )
+            )
 
         # TODO: deduplication
         for _message_type, serializer in cls._handles_types():
