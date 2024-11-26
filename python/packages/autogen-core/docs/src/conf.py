@@ -37,7 +37,8 @@ extensions = [
     "sphinx_copybutton",
     "_extension.gallery_directive",
     "myst_nb",
-    "sphinxcontrib.autodoc_pydantic"
+    "sphinxcontrib.autodoc_pydantic",
+    "_extension.code_lint",
 ]
 suppress_warnings = ["myst.header"]
 
@@ -147,6 +148,14 @@ autodoc_default_options = {
 autodoc_pydantic_model_show_config_summary = False
 
 intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
+
+code_lint_path_prefix = "reference/python"
+
+nb_mime_priority_overrides = [
+  ('code_lint', 'image/jpeg', 100),
+  ('code_lint', 'image/png', 100),
+  ('code_lint', 'text/plain', 100)
+]
 
 
 def setup_to_main(

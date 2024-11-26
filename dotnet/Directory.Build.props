@@ -3,6 +3,7 @@
   <Import Project="./eng/MetaInfo.props" />
   <Import Project="./eng/Sign.props" />
   <PropertyGroup>
+    <UseArtifactsOutput>true</UseArtifactsOutput>
     <PackageTargetFrameworks>netstandard2.0;net8.0</PackageTargetFrameworks>
     <TestTargetFrameworks>net8.0</TestTargetFrameworks>
     <LangVersion>preview</LangVersion>
@@ -20,13 +21,17 @@
     <EnableNetAnalyzers>true</EnableNetAnalyzers>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <IsTestProject>false</IsTestProject>
-
     <DebugType>embedded</DebugType>
     <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
 
   <PropertyGroup>
     <RepoRoot>$(MSBuildThisFileDirectory)</RepoRoot>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectName.StartsWith(`AutoGen`))' == 'true'">
+    <VersionPrefix>$(VersionPrefixForAutoGen0_2)</VersionPrefix>
+    <IsAutoGen0_2>true</IsAutoGen0_2>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IsTestProject)' == 'true'">

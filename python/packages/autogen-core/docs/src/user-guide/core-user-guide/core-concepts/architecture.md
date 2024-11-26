@@ -1,6 +1,6 @@
 # Agent Runtime Environments
 
-At the foundation level, the framework provides a _runtime envionment_, which facilitates
+At the foundation level, the framework provides a _runtime environment_, which facilitates
 communication between agents, manages their identities and lifecycles,
 and enforce security and privacy boundaries.
 

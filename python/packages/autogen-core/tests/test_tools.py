@@ -4,7 +4,6 @@ from typing import Annotated, List
 import pytest
 from autogen_core.base import CancellationToken
 from autogen_core.components._function_utils import get_typed_signature
-from autogen_core.components.models._openai_client import convert_tools
 from autogen_core.components.tools import BaseTool, FunctionTool
 from autogen_core.components.tools._base import ToolSchema
 from pydantic import BaseModel, Field, model_serializer
@@ -142,7 +141,7 @@ def test_get_typed_signature() -> None:
     sig = get_typed_signature(my_function)
     assert isinstance(sig, inspect.Signature)
     assert len(sig.parameters) == 0
-    assert sig.return_annotation == str
+    assert sig.return_annotation is str
 
 
 def test_get_typed_signature_annotated() -> None:
@@ -162,7 +161,7 @@ def test_get_typed_signature_string() -> None:
     sig = get_typed_signature(my_function)
     assert isinstance(sig, inspect.Signature)
     assert len(sig.parameters) == 0
-    assert sig.return_annotation == str
+    assert sig.return_annotation is str
 
 
 def test_func_tool() -> None:
@@ -187,11 +186,11 @@ def test_func_tool_annotated_arg() -> None:
     assert issubclass(tool.args_type(), BaseModel)
     assert issubclass(tool.return_type(), str)
     assert tool.args_type().model_fields["my_arg"].description == "test description"
-    assert tool.args_type().model_fields["my_arg"].annotation == str
+    assert tool.args_type().model_fields["my_arg"].annotation is str
     assert tool.args_type().model_fields["my_arg"].is_required() is True
     assert tool.args_type().model_fields["my_arg"].default is PydanticUndefined
     assert len(tool.args_type().model_fields) == 1
-    assert tool.return_type() == str
+    assert tool.return_type() is str
     assert tool.state_type() is None
 
 
@@ -203,7 +202,7 @@ def test_func_tool_return_annotated() -> None:
     assert tool.name == "my_function"
     assert tool.description == "Function tool."
     assert issubclass(tool.args_type(), BaseModel)
-    assert tool.return_type() == str
+    assert tool.return_type() is str
     assert tool.state_type() is None
 
 
@@ -216,7 +215,7 @@ def test_func_tool_no_args() -> None:
     assert tool.description == "Function tool."
     assert issubclass(tool.args_type(), BaseModel)
     assert len(tool.args_type().model_fields) == 0
-    assert tool.return_type() == str
+    assert tool.return_type() is str
     assert tool.state_type() is None
 
 
@@ -321,29 +320,6 @@ async def test_func_int_res() -> None:
     tool = FunctionTool(my_function, description="Function tool.")
     result = await tool.run_json({"arg": 5}, CancellationToken())
     assert tool.return_value_as_string(result) == "5"
-
-
-def test_convert_tools_accepts_both_func_tool_and_schema() -> None:
-    def my_function(arg: str, other: Annotated[int, "int arg"], nonrequired: int = 5) -> MyResult:
-        return MyResult(result="test")
-
-    tool = FunctionTool(my_function, description="Function tool.")
-    schema = tool.schema
-
-    converted_tool_schema = convert_tools([tool, schema])
-
-    assert len(converted_tool_schema) == 2
-    assert converted_tool_schema[0] == converted_tool_schema[1]
-
-
-def test_convert_tools_accepts_both_tool_and_schema() -> None:
-    tool = MyTool()
-    schema = tool.schema
-
-    converted_tool_schema = convert_tools([tool, schema])
-
-    assert len(converted_tool_schema) == 2
-    assert converted_tool_schema[0] == converted_tool_schema[1]
 
 
 @pytest.mark.asyncio
