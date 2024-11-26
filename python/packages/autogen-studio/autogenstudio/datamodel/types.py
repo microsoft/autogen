@@ -3,7 +3,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Literal, Optional, Union
 
-from autogen_agentchat.base._task import TaskResult
+from autogen_agentchat.base import TaskResult
 from pydantic import BaseModel
 
 
