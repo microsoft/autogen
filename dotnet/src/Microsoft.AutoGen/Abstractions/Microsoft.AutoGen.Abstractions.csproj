@@ -4,11 +4,9 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
-    <PackageId>AutoGen.Core</PackageId>
-		<PackageProjectUrl>https://github.com/microsoft/agnext</PackageProjectUrl>
-		<Authors>Microsoft</Authors>
-		<Description>AutoGenn Core Library</Description>
   </PropertyGroup>
+
+  <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
 
   <ItemGroup>
     <Protobuf Include="..\..\..\..\protos\agent_worker.proto" GrpcServices="Client;Server" Link="Protos\agent_worker.proto" />
@@ -20,8 +18,6 @@
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Grpc.Net.ClientFactory" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
-    <PackageReference Include="Microsoft.Orleans.Core.Abstractions" />
- 		<PackageReference Include="Microsoft.Orleans.Sdk" />
 	  <PackageReference Include="Microsoft.SemanticKernel" />
   </ItemGroup>
 </Project>

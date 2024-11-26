@@ -422,9 +422,24 @@ class RoutedAgent(BaseAgent):
 
     .. code-block:: python
 
+        from dataclasses import dataclass
         from autogen_core.base import MessageContext
         from autogen_core.components import RoutedAgent, event, rpc
-        # Assume Message, MessageWithContent, and Response are defined elsewhere.
+
+
+        @dataclass
+        class Message:
+            pass
+
+
+        @dataclass
+        class MessageWithContent:
+            content: str
+
+
+        @dataclass
+        class Response:
+            pass
 
 
         class MyAgent(RoutedAgent):
@@ -433,9 +448,10 @@ class RoutedAgent(BaseAgent):
 
             @event
             async def handle_event_message(self, message: Message, ctx: MessageContext) -> None:
-                self.publish_message(MessageWithContent("event handled"), ctx.topic_id)
+                assert ctx.topic_id is not None
+                await self.publish_message(MessageWithContent("event handled"), ctx.topic_id)
 
-            @rpc(match=lambda message, ctx: message.content == "special")
+            @rpc(match=lambda message, ctx: message.content == "special")  # type: ignore
             async def handle_special_rpc_message(self, message: MessageWithContent, ctx: MessageContext) -> Response:
                 return Response()
     """

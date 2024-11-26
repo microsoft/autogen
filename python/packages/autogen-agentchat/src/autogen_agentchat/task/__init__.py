@@ -1,7 +1,9 @@
 from ._console import Console
 from ._terminations import (
+    ExternalTermination,
     HandoffTermination,
     MaxMessageTermination,
+    SourceMatchTermination,
     StopMessageTermination,
     TextMentionTermination,
     TimeoutTermination,
@@ -15,5 +17,7 @@ __all__ = [
     "TokenUsageTermination",
     "HandoffTermination",
     "TimeoutTermination",
+    "ExternalTermination",
+    "SourceMatchTermination",
     "Console",
 ]
