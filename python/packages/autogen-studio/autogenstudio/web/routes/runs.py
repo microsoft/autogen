@@ -43,6 +43,7 @@ async def create_run(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
+
 # We might want to add these endpoints:
 
 
@@ -59,7 +60,6 @@ async def get_run(run_id: UUID, db=Depends(get_db)) -> Dict:
 @router.get("/{run_id}/messages")
 async def get_run_messages(run_id: UUID, db=Depends(get_db)) -> Dict:
     """Get all messages for a run"""
-    messages = db.get(Message, filters={
-                      "run_id": run_id}, order="created_at asc", return_json=False)
+    messages = db.get(Message, filters={"run_id": run_id}, order="created_at asc", return_json=False)
 
     return {"status": True, "data": messages.data}

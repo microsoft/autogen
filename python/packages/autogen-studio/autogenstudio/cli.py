@@ -48,8 +48,7 @@ def ui(
         port=port,
         workers=workers,
         reload=reload,
-        reload_excludes=["**/alembic/*", "**/alembic.ini",
-                         "**/versions/*"] if reload else None,
+        reload_excludes=["**/alembic/*", "**/alembic.ini", "**/versions/*"] if reload else None,
     )
 
 
