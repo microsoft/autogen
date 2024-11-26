@@ -13,9 +13,9 @@ class TypePrefixSubscription(Subscription):
 
         .. code-block:: python
 
-            from autogen_core.components import PrefixSubscription
+            from autogen_core.components import TypePrefixSubscription
 
-            subscription = TypeSubscription(topic_type_prefix="t1", agent_type="a1")
+            subscription = TypePrefixSubscription(topic_type_prefix="t1", agent_type="a1")
 
         In this case:
 
