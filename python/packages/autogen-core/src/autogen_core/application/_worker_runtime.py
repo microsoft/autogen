@@ -47,7 +47,7 @@ from ..base import (
 )
 from ..base._serialization import MessageSerializer, SerializationRegistry
 from ..base._type_helpers import ChannelArgumentType
-from ..components import TypeSubscription
+from ..components import TypePrefixSubscription, TypeSubscription
 from ._helpers import SubscriptionManager, get_impl
 from ._utils import GRPC_IMPORT_ERROR_STR
 from .protos import agent_worker_pb2, agent_worker_pb2_grpc
@@ -705,27 +705,44 @@ class WorkerAgentRuntime(AgentRuntime):
     async def add_subscription(self, subscription: Subscription) -> None:
         if self._host_connection is None:
             raise RuntimeError("Host connection is not set.")
-        if not isinstance(subscription, TypeSubscription):
-            raise ValueError("Only TypeSubscription is supported.")
-        # Add to local subscription manager.
-        await self._subscription_manager.add_subscription(subscription)
 
         # Create a future for the subscription response.
         future = asyncio.get_event_loop().create_future()
         request_id = await self._get_new_request_id()
+
+        match subscription:
+            case TypeSubscription(topic_type=topic_type, agent_type=agent_type):
+                message = agent_worker_pb2.Message(
+                    addSubscriptionRequest=agent_worker_pb2.AddSubscriptionRequest(
+                        request_id=request_id,
+                        subscription=agent_worker_pb2.Subscription(
+                            typeSubscription=agent_worker_pb2.TypeSubscription(
+                                topic_type=topic_type, agent_type=agent_type
+                            )
+                        ),
+                    )
+                )
+            case TypePrefixSubscription(topic_type_prefix=topic_type_prefix, agent_type=agent_type):
+                message = agent_worker_pb2.Message(
+                    addSubscriptionRequest=agent_worker_pb2.AddSubscriptionRequest(
+                        request_id=request_id,
+                        subscription=agent_worker_pb2.Subscription(
+                            typePrefixSubscription=agent_worker_pb2.TypePrefixSubscription(
+                                topic_type_prefix=topic_type_prefix, agent_type=agent_type
+                            )
+                        ),
+                    )
+                )
+            case _:
+                raise ValueError("Unsupported subscription type.")
+
+        # Add the future to the pending requests.
         self._pending_requests[request_id] = future
 
+        # Add to local subscription manager.
+        await self._subscription_manager.add_subscription(subscription)
+
         # Send the subscription to the host.
-        message = agent_worker_pb2.Message(
-            addSubscriptionRequest=agent_worker_pb2.AddSubscriptionRequest(
-                request_id=request_id,
-                subscription=agent_worker_pb2.Subscription(
-                    typeSubscription=agent_worker_pb2.TypeSubscription(
-                        topic_type=subscription.topic_type, agent_type=subscription.agent_type
-                    )
-                ),
-            )
-        )
         await self._host_connection.send(message)
 
         # Wait for the subscription response.

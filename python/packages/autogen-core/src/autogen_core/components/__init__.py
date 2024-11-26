@@ -7,6 +7,7 @@ from ._default_subscription import DefaultSubscription, default_subscription, ty
 from ._default_topic import DefaultTopicId
 from ._image import Image
 from ._routed_agent import RoutedAgent, TypeRoutedAgent, event, message_handler, rpc
+from ._type_prefix_subscription import TypePrefixSubscription
 from ._type_subscription import TypeSubscription
 from ._types import FunctionCall
 
@@ -24,4 +25,5 @@ __all__ = [
     "DefaultTopicId",
     "default_subscription",
     "type_subscription",
+    "TypePrefixSubscription",
 ]

@@ -4,7 +4,9 @@ from _collections_abc import AsyncIterator, Iterator
 from asyncio import Future, Task
 from typing import Any, Dict, Set
 
-from ..base import TopicId
+from autogen_core.components._type_prefix_subscription import TypePrefixSubscription
+
+from ..base import Subscription, TopicId
 from ..components import TypeSubscription
 from ._helpers import SubscriptionManager
 from ._utils import GRPC_IMPORT_ERROR_STR
@@ -221,33 +223,45 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
         self, add_subscription_req: agent_worker_pb2.AddSubscriptionRequest, client_id: int
     ) -> None:
         oneofcase = add_subscription_req.subscription.WhichOneof("subscription")
+        subscription: Subscription | None = None
         match oneofcase:
             case "typeSubscription":
                 type_subscription_msg: agent_worker_pb2.TypeSubscription = (
                     add_subscription_req.subscription.typeSubscription
                 )
-                type_subscription = TypeSubscription(
+                subscription = TypeSubscription(
                     topic_type=type_subscription_msg.topic_type, agent_type=type_subscription_msg.agent_type
                 )
-                try:
-                    await self._subscription_manager.add_subscription(type_subscription)
-                    subscription_ids = self._client_id_to_subscription_id_mapping.setdefault(client_id, set())
-                    subscription_ids.add(type_subscription.id)
-                    success = True
-                    error = None
-                except ValueError as e:
-                    success = False
-                    error = str(e)
-                # Send a response back to the client.
-                await self._send_queues[client_id].put(
-                    agent_worker_pb2.Message(
-                        addSubscriptionResponse=agent_worker_pb2.AddSubscriptionResponse(
-                            request_id=add_subscription_req.request_id, success=success, error=error
-                        )
-                    )
+
+            case "typePrefixSubscription":
+                type_prefix_subscription_msg: agent_worker_pb2.TypePrefixSubscription = (
+                    add_subscription_req.subscription.typePrefixSubscription
+                )
+                subscription = TypePrefixSubscription(
+                    topic_type_prefix=type_prefix_subscription_msg.topic_type_prefix,
+                    agent_type=type_prefix_subscription_msg.agent_type,
                 )
             case None:
                 logger.warning("Received empty subscription message")
+
+        if subscription is not None:
+            try:
+                await self._subscription_manager.add_subscription(subscription)
+                subscription_ids = self._client_id_to_subscription_id_mapping.setdefault(client_id, set())
+                subscription_ids.add(subscription.id)
+                success = True
+                error = None
+            except ValueError as e:
+                success = False
+                error = str(e)
+            # Send a response back to the client.
+            await self._send_queues[client_id].put(
+                agent_worker_pb2.Message(
+                    addSubscriptionResponse=agent_worker_pb2.AddSubscriptionResponse(
+                        request_id=add_subscription_req.request_id, success=success, error=error
+                    )
+                )
+            )
 
     async def GetState(  # type: ignore
         self,
