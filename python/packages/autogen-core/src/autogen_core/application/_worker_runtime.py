@@ -3,6 +3,7 @@ import inspect
 import json
 import logging
 import signal
+import uuid
 import warnings
 from asyncio import Future, Task
 from collections import defaultdict
@@ -371,11 +372,17 @@ class WorkerAgentRuntime(AgentRuntime):
         *,
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
+        message_id: str | None = None,
     ) -> None:
         if not self._running:
             raise ValueError("Runtime must be running when publishing message.")
         if self._host_connection is None:
             raise RuntimeError("Host connection is not set.")
+        if message_id is None:
+            message_id = str(uuid.uuid4())
+
+        # TODO: consume message_id
+
         message_type = self._serialization_registry.type_name(message)
         with self._trace_helper.trace_block(
             "create", topic_id, parent=None, extraAttributes={"message_type": message_type}
@@ -447,6 +454,7 @@ class WorkerAgentRuntime(AgentRuntime):
             topic_id=None,
             is_rpc=True,
             cancellation_token=CancellationToken(),
+            message_id=request.request_id,
         )
 
         # Call the receiving agent.
@@ -530,11 +538,13 @@ class WorkerAgentRuntime(AgentRuntime):
         for agent_id in recipients:
             if agent_id == sender:
                 continue
+            # TODO: consume message_id
             message_context = MessageContext(
                 sender=sender,
                 topic_id=topic_id,
                 is_rpc=False,
                 cancellation_token=CancellationToken(),
+                message_id="NOT_DEFINED_TODO_FIX",
             )
             agent = await self._get_agent(agent_id)
             with MessageHandlerContext.populate_context(agent.id):
