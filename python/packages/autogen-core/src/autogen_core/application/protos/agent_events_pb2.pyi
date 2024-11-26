@@ -11,6 +11,24 @@ import typing
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
 
 @typing.final
+class TextMessage(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TEXTMESSAGE_FIELD_NUMBER: builtins.int
+    SOURCE_FIELD_NUMBER: builtins.int
+    textMessage: builtins.str
+    source: builtins.str
+    def __init__(
+        self,
+        *,
+        textMessage: builtins.str = ...,
+        source: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["source", b"source", "textMessage", b"textMessage"]) -> None: ...
+
+global___TextMessage = TextMessage
+
+@typing.final
 class Input(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
