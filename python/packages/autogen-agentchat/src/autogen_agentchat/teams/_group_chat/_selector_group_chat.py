@@ -8,6 +8,7 @@ from ... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ...base import ChatAgent, TerminationCondition
 from ...messages import (
     AgentMessage,
+    ChatMessage,
     HandoffMessage,
     MultiModalMessage,
     StopMessage,
@@ -52,6 +53,9 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._previous_speaker: str | None = None
         self._allow_repeated_speaker = allow_repeated_speaker
         self._selector_func = selector_func
+
+    async def validate_group_state(self, message: ChatMessage | None) -> None:
+        pass
 
     async def reset(self) -> None:
         self._current_turn = 0
@@ -204,7 +208,7 @@ class SelectorGroupChat(BaseGroupChat):
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import SelectorGroupChat
-            from autogen_agentchat.task import TextMentionTermination
+            from autogen_agentchat.task import TextMentionTermination, Console
 
 
             async def main() -> None:
@@ -243,9 +247,7 @@ class SelectorGroupChat(BaseGroupChat):
                     model_client=model_client,
                     termination_condition=termination,
                 )
-                stream = team.run_stream("Book a 3-day trip to new york.")
-                async for message in stream:
-                    print(message)
+                await Console(team.run_stream(task="Book a 3-day trip to new york."))
 
 
             asyncio.run(main())
@@ -255,16 +257,18 @@ class SelectorGroupChat(BaseGroupChat):
         .. code-block:: python
 
             import asyncio
+            from typing import Sequence
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import SelectorGroupChat
-            from autogen_agentchat.task import TextMentionTermination
+            from autogen_agentchat.task import TextMentionTermination, Console
+            from autogen_agentchat.messages import AgentMessage
 
 
             async def main() -> None:
                 model_client = OpenAIChatCompletionClient(model="gpt-4o")
 
-                def check_caculation(x: int, y: int, answer: int) -> str:
+                def check_calculation(x: int, y: int, answer: int) -> str:
                     if x + y == answer:
                         return "Correct!"
                     else:
@@ -279,12 +283,12 @@ class SelectorGroupChat(BaseGroupChat):
                 agent2 = AssistantAgent(
                     "Agent2",
                     model_client,
-                    tools=[check_caculation],
+                    tools=[check_calculation],
                     description="For checking calculation",
                     system_message="Check the answer and respond with 'Correct!' or 'Incorrect!'",
                 )
 
-                def selector_func(messages):
+                def selector_func(messages: Sequence[AgentMessage]) -> str | None:
                     if len(messages) == 1 or messages[-1].content == "Incorrect!":
                         return "Agent1"
                     if messages[-1].source == "Agent1":
@@ -299,9 +303,7 @@ class SelectorGroupChat(BaseGroupChat):
                     termination_condition=termination,
                 )
 
-                stream = team.run_stream("What is 1 + 1?")
-                async for message in stream:
-                    print(message)
+                await Console(team.run_stream(task="What is 1 + 1?"))
 
 
             asyncio.run(main())

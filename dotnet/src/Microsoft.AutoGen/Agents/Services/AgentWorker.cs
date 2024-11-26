@@ -24,6 +24,8 @@ public class AgentWorker :
     private readonly CancellationTokenSource _shutdownCts;
     private readonly IServiceProvider _serviceProvider;
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes;
+    private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
+    private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
     private readonly DistributedContextPropagator _distributedContextPropagator;
     private readonly CancellationTokenSource _shutdownCancellationToken = new();
     private Task? _mailboxTask;
@@ -47,7 +49,7 @@ public class AgentWorker :
     {
         foreach (var (typeName, _) in _agentTypes)
         {
-            if (typeName == "Client") { continue; }
+            if (typeName == nameof(Client)) { continue; }
             var agent = GetOrActivateAgent(new AgentId(typeName, cloudEvent.Source));
             agent.ReceiveMessage(new Message { CloudEvent = cloudEvent });
         }
@@ -62,6 +64,10 @@ public class AgentWorker :
     public ValueTask SendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
     {
         return _mailbox.Writer.WriteAsync(new Message { Response = response }, cancellationToken);
+    }
+    public ValueTask SendMessageAsync(Message message, CancellationToken cancellationToken = default)
+    {
+        return _mailbox.Writer.WriteAsync(message, cancellationToken);
     }
     public ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
     {
@@ -92,7 +98,7 @@ public class AgentWorker :
                 if (message == null) { continue; }
                 switch (message)
                 {
-                    case Message msg:
+                    case Message msg when msg.CloudEvent != null:
 
                         var item = msg.CloudEvent;
 
@@ -101,6 +107,13 @@ public class AgentWorker :
                             var agentToInvoke = GetOrActivateAgent(new AgentId(typeName, item.Source));
                             agentToInvoke.ReceiveMessage(msg);
                         }
+                        break;
+                    case Message msg when msg.AddSubscriptionRequest != null:
+                        await AddSubscriptionRequestAsync(msg.AddSubscriptionRequest).ConfigureAwait(true);
+                        break;
+                    case Message msg when msg.AddSubscriptionResponse != null:
+                        break;
+                    case Message msg when msg.RegisterAgentTypeResponse != null:
                         break;
                     default:
                         throw new InvalidOperationException($"Unexpected message '{message}'.");
@@ -114,6 +127,23 @@ public class AgentWorker :
                 _shutdownCancellationToken.Cancel();
             }
         }
+    }
+    private async ValueTask AddSubscriptionRequestAsync(AddSubscriptionRequest subscription)
+    {
+        var topic = subscription.Subscription.TypeSubscription.TopicType;
+        var agentType = subscription.Subscription.TypeSubscription.AgentType;
+        _subscriptionsByAgentType[agentType] = subscription.Subscription;
+        _subscriptionsByTopic.GetOrAdd(topic, _ => []).Add(agentType);
+        Message response = new()
+        {
+            AddSubscriptionResponse = new()
+            {
+                RequestId = subscription.RequestId,
+                Error = "",
+                Success = true
+            }
+        };
+        await _mailbox.Writer.WriteAsync(response).ConfigureAwait(false);
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)

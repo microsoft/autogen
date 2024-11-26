@@ -10,12 +10,6 @@ class DefaultSubscription(TypeSubscription):
 
     This topic by default uses the "default" topic type and attempts to detect the agent type to use based on the instantiation context.
 
-    Example:
-
-        .. code-block:: python
-
-            await runtime.register("MyAgent", agent_factory, lambda: [DefaultSubscription()])
-
     Args:
         topic_type (str, optional): The topic type to subscribe to. Defaults to "default".
         agent_type (str, optional): The agent type to use for the subscription. Defaults to None, in which case it will attempt to detect the agent type based on the instantiation context.

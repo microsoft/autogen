@@ -3,11 +3,14 @@ import logging
 import signal
 from typing import Optional, Sequence
 
-import grpc
-
-from autogen_core.base._type_helpers import ChannelArgumentType
-
+from ..base._type_helpers import ChannelArgumentType
+from ._utils import GRPC_IMPORT_ERROR_STR
 from ._worker_runtime_host_servicer import WorkerAgentRuntimeHostServicer
+
+try:
+    import grpc
+except ImportError as e:
+    raise ImportError(GRPC_IMPORT_ERROR_STR) from e
 from .protos import agent_worker_pb2_grpc
 
 logger = logging.getLogger("autogen_core")
