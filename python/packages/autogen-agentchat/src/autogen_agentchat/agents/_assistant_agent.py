@@ -82,13 +82,13 @@ class Handoff(BaseModel):
 class AssistantAgent(BaseChatAgent):
     """An agent that provides assistance with tool use.
 
-    It responds with a StopMessage when 'terminate' is detected in the response.
-
     Args:
         name (str): The name of the agent.
         model_client (ChatCompletionClient): The model client to use for inference.
         tools (List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional): The tools to register with the agent.
-        handoffs (List[Handoff | str] | None, optional): The handoff configurations for the agent, allowing it to transfer to other agents by responding with a HandoffMessage.
+        handoffs (List[Handoff | str] | None, optional): The handoff configurations for the agent,
+            allowing it to transfer to other agents by responding with a :class:`HandoffMessage`.
+            The transfer is only executed when the team is in :class:`~autogen_agentchat.teams.Swarm`.
             If a handoff is a string, it should represent the target agent's name.
         description (str, optional): The description of the agent.
         system_message (str, optional): The system message for the model.
