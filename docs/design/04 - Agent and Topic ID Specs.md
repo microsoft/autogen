@@ -34,7 +34,7 @@ This document describes the structure, constraints, and behavior of Agent IDs an
 
 - Type: `string`
 - Description: Topic type is usually defined by application code to mark the type of messages the topic is for.
-- Constraints: UTF8 and only contain alphanumeric letters (a-z) and (0-9), or underscores (\_). A valid identifier cannot start with a number, or contain any spaces.
+- Constraints: UTF8 and only contain alphanumeric letters (a-z) and (0-9), ':', '=', or underscores (\_). A valid identifier cannot start with a number, or contain any spaces.
 - Examples:
   - `GitHub_Issues`
 
