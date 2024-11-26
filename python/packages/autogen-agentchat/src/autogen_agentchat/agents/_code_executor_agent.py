@@ -24,9 +24,11 @@ class CodeExecutorAgent(BaseChatAgent):
 
         .. code-block:: python
 
-
+            import asyncio
             from autogen_agentchat.agents import CodeExecutorAgent
+            from autogen_agentchat.messages import TextMessage
             from autogen_ext.code_executors import DockerCommandLineCodeExecutor
+            from autogen_core.base import CancellationToken
 
 
             async def run_code_executor_agent() -> None:
@@ -51,8 +53,7 @@ class CodeExecutorAgent(BaseChatAgent):
                 await code_executor.stop()
 
 
-            # Use asyncio.run(run_code_executor_agent()) when running in a script.
-            await run_code_executor_agent()
+            asyncio.run(run_code_executor_agent())
 
     """
 
