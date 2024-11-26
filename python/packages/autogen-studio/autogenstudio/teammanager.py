@@ -1,7 +1,7 @@
 import time
 from typing import AsyncGenerator, Callable, Optional, Union
 
-from autogen_agentchat.base._task import TaskResult
+from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import AgentMessage, ChatMessage
 from autogen_core.base import CancellationToken
 
