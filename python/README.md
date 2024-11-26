@@ -1,7 +1,10 @@
 # AutoGen Python packages
 
-See [`autogen-core`](./packages/autogen-core/) package for main functionality.
+[![0.4 Docs](https://img.shields.io/badge/Docs-0.4-blue)](https://microsoft.github.io/autogen/dev/)
+[![PyPi autogen-core](https://img.shields.io/badge/PyPi-autogen--core-blue?logo=pypi)](https://pypi.org/project/autogen-core/0.4.0.dev7/) [![PyPi autogen-agentchat](https://img.shields.io/badge/PyPi-autogen--agentchat-blue?logo=pypi)](https://pypi.org/project/autogen-agentchat/0.4.0.dev7/) [![PyPi autogen-ext](https://img.shields.io/badge/PyPi-autogen--ext-blue?logo=pypi)](https://pypi.org/project/autogen-ext/0.4.0.dev7/)
 
+
+This directory works as a single `uv` workspace containing all project packages. See [`packages`](./packages/) to discover all project packages.
 
 ## Development
 
