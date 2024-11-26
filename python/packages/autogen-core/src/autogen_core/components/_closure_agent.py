@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import inspect
-from typing import Any, Awaitable, Callable, List, Mapping, Protocol, Self, Sequence, TypeVar, get_type_hints
+from typing import Any, Awaitable, Callable, List, Mapping, Protocol, Sequence, TypeVar, get_type_hints
 
 from autogen_core.base._serialization import try_get_known_serializers_for_type
 from autogen_core.base._subscription_context import SubscriptionInstantiationContext
@@ -26,7 +26,7 @@ ClosureAgentType = TypeVar("ClosureAgentType", bound="ClosureAgent")
 
 
 def get_handled_types_from_closure(
-    closure: Callable[[ClosureAgentType, T, MessageContext], Awaitable[Any]],
+    closure: Callable[[ClosureAgent, T, MessageContext], Awaitable[Any]],
 ) -> Sequence[type]:
     args = inspect.getfullargspec(closure)[0]
     if len(args) != 3:
@@ -136,13 +136,13 @@ class ClosureAgent(BaseAgent, ClosureContext):
         description: str = "",
         subscriptions: Callable[[], list[Subscription] | Awaitable[list[Subscription]]] | None = None,
     ) -> AgentType:
-        def factory() -> Self:
-            return cls(description=description, closure=closure)
+        def factory() -> ClosureAgent:
+            return ClosureAgent(description=description, closure=closure)
 
         agent_type = await cls.register(
             runtime=runtime,
             type=type,
-            factory=factory,
+            factory=factory,  # type: ignore
             skip_class_subscriptions=skip_class_subscriptions,
             skip_direct_message_subscription=skip_direct_message_subscription,
         )
