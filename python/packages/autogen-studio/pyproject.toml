@@ -87,3 +87,4 @@ ignore = ["B008"]
 fmt = "ruff format"
 format.ref = "fmt"
 lint = "ruff check"
+test = "pytest -n 0"
