@@ -4,7 +4,7 @@ from _collections_abc import AsyncIterator, Iterator
 from asyncio import Future, Task
 from typing import Any, Dict, Set
 
-from autogen_core.components._type_prefix_subscription import TypePrefixSubscription
+from autogen_core.base._type_prefix_subscription import TypePrefixSubscription
 
 from ..base import Subscription, TopicId
 from ..components import TypeSubscription

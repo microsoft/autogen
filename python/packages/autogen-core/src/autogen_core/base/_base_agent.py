@@ -8,8 +8,6 @@ from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Tuple, Typ
 
 from typing_extensions import Self
 
-from autogen_core.components._type_prefix_subscription import TypePrefixSubscription
-
 from ._agent import Agent
 from ._agent_id import AgentId
 from ._agent_instantiation import AgentInstantiationContext
@@ -22,6 +20,7 @@ from ._serialization import MessageSerializer, try_get_known_serializers_for_typ
 from ._subscription import Subscription, UnboundSubscription
 from ._subscription_context import SubscriptionInstantiationContext
 from ._topic import TopicId
+from ._type_prefix_subscription import TypePrefixSubscription
 
 T = TypeVar("T", bound=Agent)
 
