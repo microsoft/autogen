@@ -190,6 +190,7 @@ jobs:
         run: |
           source ${{ github.workspace }}/python/.venv/bin/activate
           poe gen-proto
+          poe gen-test-proto
         working-directory: ./python
       - name: Check if there are uncommited changes
         id: changes
