@@ -132,38 +132,25 @@ export default function ChatView() {
     return data.data.run_id;
   };
 
-  const startRun = async (runId: string, query: string) => {
-    if (!session?.id) throw new Error("No active session");
-
-    const messageConfig: AgentMessageConfig = {
-      content: query,
-      source: "user",
-    };
-
-    const messagePayload: Message = createMessage(
-      messageConfig,
-      runId,
-      session.id
-    );
-
-    const response = await fetch(`${serverUrl}/runs/${runId}/start`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(messagePayload),
-    });
-
-    if (!response.ok) {
-      throw new Error("Failed to start run");
-    }
-
-    return await response.json();
-  };
-
   const handleWebSocketMessage = (message: WebSocketMessage) => {
     setCurrentRun((current) => {
       if (!current || !session?.id) return null;
 
+      console.log("WebSocket message:", message);
+
       switch (message.type) {
+        case "error":
+          if (inputTimeoutRef.current) {
+            clearTimeout(inputTimeoutRef.current);
+            inputTimeoutRef.current = null;
+          }
+          if (activeSocket) {
+            activeSocket.close();
+            setActiveSocket(null);
+            activeSocketRef.current = null;
+          }
+          console.log("Error: ", message.error);
+
         case "message":
           if (!message.data) return current;
 
@@ -240,8 +227,17 @@ export default function ChatView() {
 
           // Add to existing runs if complete
           if (status === "complete") {
+            if (inputTimeoutRef.current) {
+              clearTimeout(inputTimeoutRef.current);
+              inputTimeoutRef.current = null;
+            }
+            if (activeSocket) {
+              activeSocket.close();
+              setActiveSocket(null);
+              activeSocketRef.current = null;
+            }
             setExistingRuns((prev) => [...prev, updatedRun]);
-            return null; // Clear current run
+            return null;
           }
 
           return updatedRun;
@@ -250,62 +246,6 @@ export default function ChatView() {
           return current;
       }
     });
-  };
-
-  const connectWebSocket = (runId: string, query: string) => {
-    if (!session?.id) return;
-
-    // Close existing socket if any
-    activeSocket?.close();
-
-    const baseUrl = getBaseUrl(serverUrl);
-    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${wsProtocol}//${baseUrl}/api/ws/runs/${runId}`;
-
-    const socket = new WebSocket(wsUrl);
-
-    socket.onopen = async () => {
-      try {
-        activeSocketRef.current = socket;
-        setActiveSocket(socket);
-
-        // Create initial message for user query
-        const userMessage = createMessage(
-          { content: query, source: "user" },
-          runId,
-          session.id || 0
-        );
-
-        // Initialize current run
-        setCurrentRun({
-          id: runId,
-          created_at: new Date().toISOString(),
-          status: "active",
-          task: userMessage.config,
-          team_result: null,
-          messages: [],
-          error_message: undefined,
-        });
-
-        await startRun(runId, query);
-      } catch (error) {
-        handleError(error);
-      }
-    };
-
-    socket.onmessage = (event) => {
-      const message: WebSocketMessage = JSON.parse(event.data);
-      handleWebSocketMessage(message);
-    };
-
-    socket.onclose = () => {
-      activeSocketRef.current = null; // Clear ref
-      setActiveSocket(null);
-    };
-
-    socket.onerror = (error) => {
-      handleError(error);
-    };
   };
 
   const handleError = (error: any) => {
@@ -335,15 +275,26 @@ export default function ChatView() {
   };
 
   const handleInputResponse = async (response: string) => {
-    if (!activeSocket || !currentRun) return;
+    if (!activeSocketRef.current || !currentRun) return;
+
+    if (activeSocketRef.current.readyState !== WebSocket.OPEN) {
+      console.error(
+        "Socket not in OPEN state:",
+        activeSocketRef.current.readyState
+      );
+      handleError(new Error("WebSocket connection not available"));
+      return;
+    }
 
     // Clear timeout when response received
     if (inputTimeoutRef.current) {
       clearTimeout(inputTimeoutRef.current);
       inputTimeoutRef.current = null;
     }
+
     try {
-      activeSocket.send(
+      console.log("Sending input response:", response);
+      activeSocketRef.current.send(
         JSON.stringify({
           type: "input_response",
           response: response,
@@ -363,7 +314,7 @@ export default function ChatView() {
   };
 
   const handleCancel = async () => {
-    if (!activeSocket || !currentRun) return;
+    if (!activeSocketRef.current || !currentRun) return;
 
     // Clear timeout when manually cancelled
     if (inputTimeoutRef.current) {
@@ -371,7 +322,7 @@ export default function ChatView() {
       inputTimeoutRef.current = null;
     }
     try {
-      activeSocket.send(
+      activeSocketRef.current.send(
         JSON.stringify({
           type: "stop",
           reason: "Cancelled by user",
@@ -394,19 +345,111 @@ export default function ChatView() {
     setError(null);
     setLoading(true);
 
-    if (!session?.id) {
+    // Add explicit cleanup
+    if (activeSocket) {
+      activeSocket.close();
+      setActiveSocket(null);
+      activeSocketRef.current = null;
+    }
+    if (inputTimeoutRef.current) {
+      clearTimeout(inputTimeoutRef.current);
+      inputTimeoutRef.current = null;
+    }
+
+    if (!session?.id || !teamConfig) {
+      // Add teamConfig check
       setLoading(false);
       return;
     }
 
     try {
       const runId = await createRun(session.id);
-      connectWebSocket(runId, query);
+
+      // Initialize run state BEFORE websocket connection
+      setCurrentRun({
+        id: runId,
+        created_at: new Date().toISOString(),
+        status: "created", // Start with created status
+        messages: [],
+        task: {
+          content: query,
+          source: "user",
+        },
+        team_result: null,
+        error_message: undefined,
+      });
+
+      // Setup WebSocket
+      const socket = setupWebSocket(runId, query);
+      setActiveSocket(socket);
+      activeSocketRef.current = socket;
     } catch (error) {
       handleError(error);
     } finally {
       setLoading(false);
     }
+  };
+
+  const setupWebSocket = (runId: string, query: string): WebSocket => {
+    if (!session || !session.id) {
+      throw new Error("Invalid session configuration");
+    }
+    // Close existing socket if any
+    if (activeSocket?.readyState === WebSocket.OPEN) {
+      activeSocket.close();
+    }
+
+    const baseUrl = getBaseUrl(serverUrl);
+    const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${wsProtocol}//${baseUrl}/api/ws/runs/${runId}`;
+
+    const socket = new WebSocket(wsUrl);
+
+    // Initialize current run
+    setCurrentRun({
+      id: runId,
+      created_at: new Date().toISOString(),
+      status: "active",
+      task: createMessage(
+        { content: query, source: "user" },
+        runId,
+        session.id || 0
+      ).config,
+      team_result: null,
+      messages: [],
+      error_message: undefined,
+    });
+
+    socket.onopen = () => {
+      // Send start message with teamConfig
+      socket.send(
+        JSON.stringify({
+          type: "start",
+          task: query,
+          team_config: teamConfig,
+        })
+      );
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        handleWebSocketMessage(message);
+      } catch (error) {
+        console.error("WebSocket message parsing error:", error);
+      }
+    };
+
+    socket.onclose = () => {
+      activeSocketRef.current = null;
+      setActiveSocket(null);
+    };
+
+    socket.onerror = (error) => {
+      handleError(error);
+    };
+
+    return socket;
   };
 
   // Helper for WebSocket URL
@@ -439,9 +482,9 @@ export default function ChatView() {
       <div className="flex flex-col h-full">
         <div
           ref={chatContainerRef}
-          className="flex-1 overflow-y-auto scroll mt-2 relative min-h-0"
+          className="flex-1 overflow-y-auto scroll mt-2 min-h-0 relative"
         >
-          <div id="scroll-gradient" className="scroll-gradient h-8">
+          <div id="scroll-gradient" className="scroll-gradient h-8 top-0">
             {" "}
             <span className="  inline-block h-6"></span>{" "}
           </div>

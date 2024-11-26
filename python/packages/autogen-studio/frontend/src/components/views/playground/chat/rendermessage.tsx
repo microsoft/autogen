@@ -105,6 +105,7 @@ export const RenderMessage: React.FC<MessageProps> = ({
   isLast = false,
   className = "",
 }) => {
+  if (!message) return null;
   const isUser = messageUtils.isUser(message.source);
   const content = message.content;
 

@@ -19,7 +19,7 @@ def ui(
     docs: bool = True,
     appdir: str = None,
     database_uri: Optional[str] = None,
-    upgrade_database: bool = True,
+    upgrade_database: bool = False,
 ):
     """
     Run the AutoGen Studio UI.
@@ -48,7 +48,8 @@ def ui(
         port=port,
         workers=workers,
         reload=reload,
-        reload_excludes=["**/alembic/*", "**/alembic.ini", "**/versions/*"] if reload else None,
+        reload_excludes=["**/alembic/*", "**/alembic.ini",
+                         "**/versions/*"] if reload else None,
     )
 
 

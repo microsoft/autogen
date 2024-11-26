@@ -105,7 +105,7 @@ export type ThreadStatus =
   | "timeout";
 
 export interface WebSocketMessage {
-  type: "message" | "result" | "completion" | "input_request";
+  type: "message" | "result" | "completion" | "input_request" | "error";
   data?: AgentMessageConfig | TaskResult;
   status?: RunStatus;
   error?: string;

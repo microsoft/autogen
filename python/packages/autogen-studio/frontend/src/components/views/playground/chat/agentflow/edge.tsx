@@ -7,6 +7,8 @@ import {
   getSmoothStepPath,
 } from "@xyflow/react";
 
+const EDGE_OFFSET = 140;
+
 export interface CustomEdgeData extends Record<string, unknown> {
   label?: string;
   messages: AgentMessageConfig[];
@@ -46,27 +48,24 @@ export const CustomEdge: React.FC<CustomEdgeProps> = ({
   let labelX = 0;
   let labelY = 0;
 
-  if (isSelfLoop) {
-    const rightOffset = 160;
-    const verticalOffset = sourceY - targetY;
-    const verticalPadding = 6;
-    const radius = 8;
+  if (data.routingType === "secondary" || isSelfLoop) {
+    // Calculate the midpoint and offset
+    const midY = (sourceY + targetY) / 2;
+    const offset = EDGE_OFFSET;
 
+    // Create path that goes out from output, right, up, left, into input
     edgePath = `
-     M ${sourceX} ${targetY - verticalPadding}
-     L ${sourceX + rightOffset - radius} ${targetY - verticalPadding}
-     Q ${sourceX + rightOffset} ${targetY - verticalPadding} ${
-      sourceX + rightOffset
-    } ${targetY - verticalPadding + radius}
-     L ${sourceX + rightOffset} ${sourceY + verticalPadding - radius}
-     Q ${sourceX + rightOffset} ${sourceY + verticalPadding} ${
-      sourceX + rightOffset - radius
-    } ${sourceY + verticalPadding}
-     L ${sourceX} ${sourceY + verticalPadding}
-   `;
+      M ${sourceX},${sourceY}
+      L ${sourceX},${sourceY + 10}
+      L ${sourceX + offset},${sourceY + 10}
+      L ${sourceX + offset},${targetY - 10}
+      L ${targetX},${targetY - 10}
+      L ${targetX},${targetY}
+    `;
 
-    labelX = sourceX + rightOffset + 10;
-    labelY = targetY + verticalOffset / 2;
+    // Set label position
+    labelX = sourceX + offset;
+    labelY = midY;
   } else {
     [edgePath, labelX, labelY] = getSmoothStepPath({
       sourceX,

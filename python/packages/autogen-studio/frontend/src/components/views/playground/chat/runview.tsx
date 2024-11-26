@@ -168,7 +168,7 @@ const RunView: React.FC<RunViewProps> = ({
               {isActive && onCancel && (
                 <button
                   onClick={onCancel}
-                  className="px-4 py-2 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors flex items-center gap-2"
+                  className="px-4 text-sm py-2 bg-red-500 hover:bg-red-600 text-white rounded-md transition-colors flex items-center gap-2"
                 >
                   <StopCircle size={16} />
                   Cancel Run
@@ -182,7 +182,7 @@ const RunView: React.FC<RunViewProps> = ({
                 <div className="text-xs  mb-1 text-secondary -mt-2 border rounded p-2">
                   Stop reason: {run.team_result?.task_result?.stop_reason}
                 </div>
-                {run.messages[run.messages.length - 1].config?.content + ""}
+                {run.messages[run.messages.length - 1]?.config?.content + ""}
               </div>
             )}
           </div>
@@ -237,18 +237,6 @@ const RunView: React.FC<RunViewProps> = ({
                       {/* Input Request UI */}
                       {run.status === "awaiting_input" && onInputResponse && (
                         <div className="mt-4 mr-2">
-                          {/* <textarea
-                            className="w-full p-2 rounded border border-secondary bg-tertiary"
-                            placeholder="Type your response..."
-                            onKeyPress={(e) => {
-                              if (e.key === "Enter" && !e.shiftKey) {
-                                e.preventDefault();
-                                const target = e.target as HTMLTextAreaElement;
-                                onInputResponse(target.value);
-                                target.value = "";
-                              }
-                            }}
-                          /> */}
                           <InputRequestView
                             prompt="Type your response..."
                             onSubmit={onInputResponse}

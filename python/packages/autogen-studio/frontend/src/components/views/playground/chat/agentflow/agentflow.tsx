@@ -50,7 +50,7 @@ interface BidirectionalPattern {
 
 const NODE_DIMENSIONS = {
   default: { width: 170, height: 100 },
-  end: { width: 120, height: 80 },
+  end: { width: 170, height: 80 },
   task: { width: 170, height: 100 },
 };
 
@@ -63,9 +63,9 @@ const getLayoutedElements = (
 
   g.setGraph({
     rankdir: direction,
-    nodesep: 90,
+    nodesep: 110,
     ranksep: 100,
-    ranker: "tight-tree",
+    ranker: "network-simplex",
     marginx: 30,
     marginy: 30,
   });
