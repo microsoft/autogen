@@ -63,9 +63,15 @@ message TypeSubscription {
     string agent_type = 2;
 }
 
+message TypePrefixSubscription {
+    string topic_type_prefix = 1;
+    string agent_type = 2;
+}
+
 message Subscription {
     oneof subscription {
         TypeSubscription typeSubscription = 1;
+        TypePrefixSubscription typePrefixSubscription = 2;
     }
 }
 

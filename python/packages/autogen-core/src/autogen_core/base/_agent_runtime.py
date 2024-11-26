@@ -55,6 +55,7 @@ class AgentRuntime(Protocol):
         *,
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
+        message_id: str | None = None,
     ) -> None:
         """Publish a message to all agents in the given namespace, or if no namespace is provided, the namespace of the sender.
 
@@ -64,7 +65,8 @@ class AgentRuntime(Protocol):
             message (Any): The message to publish.
             topic (TopicId): The topic to publish the message to.
             sender (AgentId | None, optional): The agent which sent the message. Defaults to None.
-            cancellation_token (CancellationToken | None, optional): Token used to cancel an in progress . Defaults to None.
+            cancellation_token (CancellationToken | None, optional): Token used to cancel an in progress. Defaults to None.
+            message_id (str | None, optional): The message id. If None, a new message id will be generated. Defaults to None. This message id must be unique. and is recommended to be a UUID.
 
         Raises:
             UndeliverableException: If the message cannot be delivered.

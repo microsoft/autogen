@@ -8,7 +8,7 @@ const IndexPage = ({ data }: any) => {
   return (
     <Layout meta={data.site.siteMetadata} title="Home" link={"/"}>
       <main style={{ height: "100%" }} className=" h-full ">
-        <ChatView initMessages={[]} />
+        <ChatView />
       </main>
     </Layout>
   );

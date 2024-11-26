@@ -81,7 +81,7 @@ dev-dependencies = [
 
 [tool.ruff]
 extend = "../../pyproject.toml"
-exclude = ["build", "dist", "src/autogen_core/application/protos"]
+exclude = ["build", "dist", "src/autogen_core/application/protos", "tests/protos"]
 include = ["src/**", "samples/*.py", "docs/**/*.ipynb", "tests/**"]
 
 [tool.ruff.lint.per-file-ignores]
@@ -91,7 +91,7 @@ include = ["src/**", "samples/*.py", "docs/**/*.ipynb", "tests/**"]
 [tool.pyright]
 extends = "../../pyproject.toml"
 include = ["src", "tests", "samples"]
-exclude = ["src/autogen_core/application/protos"]
+exclude = ["src/autogen_core/application/protos", "tests/protos"]
 reportDeprecated = false
 
 [tool.pytest.ini_options]
@@ -111,7 +111,7 @@ include = "../../shared_tasks.toml"
 test = "pytest -n auto"
 mypy.default_item_type = "cmd"
 mypy.sequence = [
-    "mypy --config-file ../../pyproject.toml --exclude src/autogen_core/application/protos src tests",
+    "mypy --config-file ../../pyproject.toml --exclude src/autogen_core/application/protos --exclude tests/protos src tests",
     "nbqa mypy docs/src --config-file ../../pyproject.toml",
 ]
 
