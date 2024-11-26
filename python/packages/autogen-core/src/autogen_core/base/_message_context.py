@@ -11,3 +11,4 @@ class MessageContext:
     topic_id: TopicId | None
     is_rpc: bool
     cancellation_token: CancellationToken
+    message_id: str

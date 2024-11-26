@@ -360,7 +360,7 @@ async def test_disconnected_agent() -> None:
         )
 
         subscriptions1 = get_current_subscriptions()
-        assert len(subscriptions1) == 1
+        assert len(subscriptions1) == 2
         recipients1 = await get_subscribed_recipients()
         assert AgentId(type="worker1", key="default") in recipients1
 
@@ -388,7 +388,7 @@ async def test_disconnected_agent() -> None:
         )
 
         subscriptions3 = get_current_subscriptions()
-        assert len(subscriptions3) == 1
+        assert len(subscriptions3) == 2
         assert first_subscription_id not in [x.id for x in subscriptions3]
 
         recipients3 = await get_subscribed_recipients()
