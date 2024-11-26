@@ -33,8 +33,7 @@ class TeamManager:
 
         try:
             team = await self._create_team(team_config, input_func)
-            stream = team.run_stream(
-                task=task, cancellation_token=cancellation_token)
+            stream = team.run_stream(task=task, cancellation_token=cancellation_token)
 
             async for message in stream:
                 if cancellation_token and cancellation_token.is_cancelled():
