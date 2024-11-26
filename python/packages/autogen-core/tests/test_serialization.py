@@ -11,6 +11,7 @@ from autogen_core.base import (
 from autogen_core.base._serialization import DataclassJsonMessageSerializer, PydanticJsonMessageSerializer
 from autogen_core.components import Image
 from PIL import Image as PILImage
+from protos.serialization_test_pb2 import NestingProtoMessage, ProtoMessage
 from pydantic import BaseModel
 
 
@@ -81,6 +82,36 @@ def test_nesting_dataclass_dataclass() -> None:
     serde = SerializationRegistry()
     with pytest.raises(ValueError):
         serde.add_serializer(try_get_known_serializers_for_type(NestingDataclassMessage))
+
+
+def test_proto() -> None:
+    serde = SerializationRegistry()
+    serde.add_serializer(try_get_known_serializers_for_type(ProtoMessage))
+
+    message = ProtoMessage(message="hello")
+    name = serde.type_name(message)
+    # TODO: should be PROTO_DATA_CONTENT_TYPE
+    data = serde.serialize(message, type_name=name, data_content_type=JSON_DATA_CONTENT_TYPE)
+    assert name == "ProtoMessage"
+    # TODO: assert data == stuff
+    deserialized = serde.deserialize(data, type_name=name, data_content_type=JSON_DATA_CONTENT_TYPE)
+    assert deserialized == message
+
+
+def test_nested_proto() -> None:
+    serde = SerializationRegistry()
+    serde.add_serializer(try_get_known_serializers_for_type(NestingProtoMessage))
+
+    message = NestingProtoMessage(message="hello", nested=ProtoMessage(message="world"))
+    name = serde.type_name(message)
+
+    # TODO: should be PROTO_DATA_CONTENT_TYPE
+    data = serde.serialize(message, type_name=name, data_content_type=JSON_DATA_CONTENT_TYPE)
+
+    # TODO: assert data == stuff
+
+    deserialized = serde.deserialize(data, type_name=name, data_content_type=JSON_DATA_CONTENT_TYPE)
+    assert deserialized == message
 
 
 @dataclass

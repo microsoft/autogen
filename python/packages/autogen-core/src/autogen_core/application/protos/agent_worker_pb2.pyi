@@ -274,20 +274,42 @@ class TypeSubscription(google.protobuf.message.Message):
 global___TypeSubscription = TypeSubscription
 
 @typing.final
+class TypePrefixSubscription(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TOPIC_TYPE_PREFIX_FIELD_NUMBER: builtins.int
+    AGENT_TYPE_FIELD_NUMBER: builtins.int
+    topic_type_prefix: builtins.str
+    agent_type: builtins.str
+    def __init__(
+        self,
+        *,
+        topic_type_prefix: builtins.str = ...,
+        agent_type: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["agent_type", b"agent_type", "topic_type_prefix", b"topic_type_prefix"]) -> None: ...
+
+global___TypePrefixSubscription = TypePrefixSubscription
+
+@typing.final
 class Subscription(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     TYPESUBSCRIPTION_FIELD_NUMBER: builtins.int
+    TYPEPREFIXSUBSCRIPTION_FIELD_NUMBER: builtins.int
     @property
     def typeSubscription(self) -> global___TypeSubscription: ...
+    @property
+    def typePrefixSubscription(self) -> global___TypePrefixSubscription: ...
     def __init__(
         self,
         *,
         typeSubscription: global___TypeSubscription | None = ...,
+        typePrefixSubscription: global___TypePrefixSubscription | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["subscription", b"subscription", "typeSubscription", b"typeSubscription"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["subscription", b"subscription", "typeSubscription", b"typeSubscription"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["subscription", b"subscription"]) -> typing.Literal["typeSubscription"] | None: ...
+    def HasField(self, field_name: typing.Literal["subscription", b"subscription", "typePrefixSubscription", b"typePrefixSubscription", "typeSubscription", b"typeSubscription"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["subscription", b"subscription", "typePrefixSubscription", b"typePrefixSubscription", "typeSubscription", b"typeSubscription"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["subscription", b"subscription"]) -> typing.Literal["typeSubscription", "typePrefixSubscription"] | None: ...
 
 global___Subscription = Subscription
 
