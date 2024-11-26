@@ -265,10 +265,6 @@ public abstract class AgentBase : IAgentBase, IHandle, IHandle<CloudEvent>
         // otherwise, complain
         throw new InvalidOperationException($"No handler found for type {item.GetType().FullName}");
     }
-    public async ValueTask PublishEventAsync(string topic, IMessage evt, CancellationToken cancellationToken = default)
-    {
-        await PublishEventAsync(evt.ToCloudEvent(topic), cancellationToken).ConfigureAwait(false);
-    }
 
     public virtual Task Handle(CloudEvent item)
     {
