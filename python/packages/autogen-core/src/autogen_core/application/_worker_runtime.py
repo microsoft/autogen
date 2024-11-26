@@ -33,11 +33,8 @@ from grpc.aio import StreamStreamCall
 from opentelemetry.trace import TracerProvider
 from typing_extensions import Self, deprecated
 
-from autogen_core.base import JSON_DATA_CONTENT_TYPE
-from autogen_core.base._serialization import MessageSerializer, SerializationRegistry
-from autogen_core.base._type_helpers import ChannelArgumentType
-
 from ..base import (
+    JSON_DATA_CONTENT_TYPE,
     Agent,
     AgentId,
     AgentInstantiationContext,
@@ -51,6 +48,8 @@ from ..base import (
     SubscriptionInstantiationContext,
     TopicId,
 )
+from ..base._serialization import MessageSerializer, SerializationRegistry
+from ..base._type_helpers import ChannelArgumentType
 from ..components import TypeSubscription
 from ._helpers import SubscriptionManager, get_impl
 from .protos import (
@@ -58,7 +57,13 @@ from .protos import (
     agent_worker_pb2_grpc,
     cloudevent_pb2,
 )
+from ._utils import GRPC_IMPORT_ERROR_STR
 from .telemetry import MessageRuntimeTracingConfig, TraceHelper, get_telemetry_grpc_metadata
+
+try:
+    import grpc.aio
+except ImportError as e:
+    raise ImportError(GRPC_IMPORT_ERROR_STR) from e
 
 if TYPE_CHECKING:
     from .protos.agent_worker_pb2_grpc import AgentRpcAsyncStub
@@ -144,6 +149,8 @@ class HostConnection:
         receive_queue: asyncio.Queue[agent_worker_pb2.Message],
     ) -> None:
         stub: AgentRpcAsyncStub = agent_worker_pb2_grpc.AgentRpcStub(channel)  # type: ignore
+
+        from grpc.aio import StreamStreamCall
 
         # TODO: where do exceptions from reading the iterable go? How do we recover from those?
         recv_stream: StreamStreamCall[agent_worker_pb2.Message, agent_worker_pb2.Message] = stub.OpenChannel(  # type: ignore

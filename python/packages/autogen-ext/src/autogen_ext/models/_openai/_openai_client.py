@@ -86,10 +86,29 @@ def _azure_openai_client_from_config(config: Mapping[str, Any]) -> AsyncAzureOpe
     # Take a copy
     copied_config = dict(config).copy()
 
+    import warnings
+
+    if "azure_deployment" not in copied_config and "model" in copied_config:
+        warnings.warn(
+            "Previous behavior of using the model name as the deployment name is deprecated and will be removed in 0.4. Please specify azure_deployment",
+            stacklevel=2,
+        )
+
+    if "azure_endpoint" not in copied_config and "base_url" in copied_config:
+        warnings.warn(
+            "Previous behavior of using the base_url as the endpoint is deprecated and will be removed in 0.4. Please specify azure_endpoint",
+            stacklevel=2,
+        )
+
     # Do some fixups
     copied_config["azure_deployment"] = copied_config.get("azure_deployment", config.get("model"))
     if copied_config["azure_deployment"] is not None:
-        copied_config["azure_deployment"] = copied_config["azure_deployment"].replace(".", "")
+        if "." in copied_config["azure_deployment"]:
+            warnings.warn(
+                "Previous behavior stripping '.' from the deployment name is deprecated and will be removed in 0.4",
+                stacklevel=2,
+            )
+            copied_config["azure_deployment"] = copied_config["azure_deployment"].replace(".", "")
     copied_config["azure_endpoint"] = copied_config.get("azure_endpoint", copied_config.pop("base_url", None))
 
     # Shave down the config to just the AzureOpenAIChatCompletionClient kwargs
@@ -331,9 +350,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         model_capabilities: Optional[ModelCapabilities] = None,
     ):
         self._client = client
-        if model_capabilities is None and isinstance(client, AsyncAzureOpenAI):
-            raise ValueError("AzureOpenAIChatCompletionClient requires explicit model capabilities")
-        elif model_capabilities is None:
+        if model_capabilities is None:
             self._model_capabilities = _model_info.get_capabilities(create_args["model"])
         else:
             self._model_capabilities = model_capabilities
@@ -556,6 +573,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
+        *,
+        max_consecutive_empty_chunk_tolerance: int = 0,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         """
         Creates an AsyncGenerator that will yield a  stream of chat completions based on the provided messages and tools.
@@ -566,6 +585,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             json_output (Optional[bool], optional): If True, the output will be in JSON format. Defaults to None.
             extra_create_args (Mapping[str, Any], optional): Additional arguments for the creation process. Default to `{}`.
             cancellation_token (Optional[CancellationToken], optional): A token to cancel the operation. Defaults to None.
+            max_consecutive_empty_chunk_tolerance (int): The maximum number of consecutive empty chunks to tolerate before raising a ValueError. This seems to only be needed to set when using `AzureOpenAIChatCompletionClient`. Defaults to 0.
 
         Yields:
             AsyncGenerator[Union[str, CreateResult], None]: A generator yielding the completion results as they are produced.
@@ -636,12 +656,28 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         full_tool_calls: Dict[int, FunctionCall] = {}
         completion_tokens = 0
         logprobs: Optional[List[ChatCompletionTokenLogprob]] = None
+        empty_chunk_count = 0
+
         while True:
             try:
                 chunk_future = asyncio.ensure_future(anext(stream))
                 if cancellation_token is not None:
                     cancellation_token.link_future(chunk_future)
                 chunk = await chunk_future
+
+                # This is to address a bug in AzureOpenAIChatCompletionClient. OpenAIChatCompletionClient works fine.
+                #  https://github.com/microsoft/autogen/issues/4213
+                if len(chunk.choices) == 0:
+                    empty_chunk_count += 1
+                    if max_consecutive_empty_chunk_tolerance == 0:
+                        raise ValueError(
+                            "Consecutive empty chunks found. Change max_empty_consecutive_chunk_tolerance to increase empty chunk tolerance"
+                        )
+                    elif empty_chunk_count >= max_consecutive_empty_chunk_tolerance:
+                        raise ValueError("Exceeded the threshold of receiving consecutive empty chunks")
+                    continue
+                else:
+                    empty_chunk_count = 0
 
                 # to process usage chunk in streaming situations
                 # add    stream_options={"include_usage": True} in the initialization of OpenAIChatCompletionClient(...)
@@ -851,6 +887,64 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
 
 class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
+    """Chat completion client for OpenAI hosted models.
+
+    You can also use this client for OpenAI-compatible ChatCompletion endpoints.
+    **Using this client for non-OpenAI models is not tested or guaranteed.**
+
+    For non-OpenAI models, please first take a look at our `community extensions <https://microsoft.github.io/autogen/dev/user-guide/extensions-user-guide/index.html>`_
+    for additional model clients.
+
+    Args:
+        model (str): The model to use. **Required.**
+        api_key (str): The API key to use. **Required if 'OPENAI_API_KEY' is not found in the environment variables.**
+        timeout (optional, int): The timeout for the request in seconds.
+        max_retries (optional, int): The maximum number of retries to attempt.
+        organization_id (optional, str): The organization ID to use.
+        base_url (optional, str): The base URL to use. **Required if the model is not hosted on OpenAI.**
+        model_capabilities (optional, ModelCapabilities): The capabilities of the model. **Required if the model name is not a valid OpenAI model.**
+
+    To use this client, you must install the `openai` extension:
+
+        .. code-block:: bash
+
+            pip install 'autogen-ext[openai]==0.4.0.dev7'
+
+    The following code snippet shows how to use the client with an OpenAI model:
+
+        .. code-block:: python
+
+            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_core.components.models import UserMessage
+
+            openai_client = OpenAIChatCompletionClient(
+                model="gpt-4o-2024-08-06",
+                # api_key="sk-...", # Optional if you have an OPENAI_API_KEY environment variable set.
+            )
+
+            result = await openai_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
+            print(result)
+
+
+    To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model capabilities:
+
+        .. code-block:: python
+
+            from autogen_ext.models import OpenAIChatCompletionClient
+
+            custom_model_client = OpenAIChatCompletionClient(
+                model="custom-model-name",
+                base_url="https://custom-model.com/reset/of/the/path",
+                api_key="placeholder",
+                model_capabilities={
+                    "vision": True,
+                    "function_calling": True,
+                    "json_output": True,
+                },
+            )
+
+    """
+
     def __init__(self, **kwargs: Unpack[OpenAIClientConfiguration]):
         if "model" not in kwargs:
             raise ValueError("model is required for OpenAIChatCompletionClient")
@@ -877,10 +971,54 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
 
 
 class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
-    def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
-        if "model" not in kwargs:
-            raise ValueError("model is required for OpenAIChatCompletionClient")
+    """Chat completion client for Azure OpenAI hosted models.
 
+    Args:
+        azure_endpoint (str): The endpoint for the Azure model. **Required for Azure models.**
+        model (str): The deployment ID for the Azure model. **Required for Azure models.**
+        api_version (str): The API version to use. **Required for Azure models.**
+        azure_ad_token (str): The Azure AD token to use. Provide this or `azure_ad_token_provider` for token-based authentication.
+        azure_ad_token_provider (Callable[[], Awaitable[str]]): The Azure AD token provider to use. Provide this or `azure_ad_token` for token-based authentication.
+        model_capabilities (ModelCapabilities): The capabilities of the model if default resolved values are not correct.
+        api_key (optional, str): The API key to use, use this if you are using key based authentication. It is optional if you are using Azure AD token based authentication or `AZURE_OPENAI_API_KEY` environment variable.
+        timeout (optional, int): The timeout for the request in seconds.
+        max_retries (optional, int): The maximum number of retries to attempt.
+
+    To use this client, you must install the `azure` and `openai` extensions:
+
+        .. code-block:: bash
+
+            pip install 'autogen-ext[openai,azure]==0.4.0.dev7'
+
+    To use the client, you need to provide your deployment id, Azure Cognitive Services endpoint,
+    api version, and model capabilities.
+    For authentication, you can either provide an API key or an Azure Active Directory (AAD) token credential.
+
+    The following code snippet shows how to use AAD authentication.
+    The identity used must be assigned the `Cognitive Services OpenAI User <https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/role-based-access-control#cognitive-services-openai-user>`_ role.
+
+        .. code-block:: python
+
+            from autogen_ext.models import AzureOpenAIChatCompletionClient
+            from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+
+            # Create the token provider
+            token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
+
+            az_model_client = AzureOpenAIChatCompletionClient(
+                azure_deployment="{your-azure-deployment}",
+                model="{deployed-model, such as 'gpt-4o'}",
+                api_version="2024-06-01",
+                azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
+                azure_ad_token_provider=token_provider,  # Optional if you choose key-based authentication.
+                # api_key="sk-...", # For key-based authentication. `AZURE_OPENAI_API_KEY` environment variable can also be used instead.
+            )
+
+    See `here <https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/managed-identity#chat-completions>`_ for how to use the Azure client directly or for more info.
+
+    """
+
+    def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
         model_capabilities: Optional[ModelCapabilities] = None
         copied_args = dict(kwargs).copy()
         if "model_capabilities" in kwargs:

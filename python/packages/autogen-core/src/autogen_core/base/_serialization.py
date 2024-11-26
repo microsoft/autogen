@@ -195,7 +195,7 @@ def try_get_known_serializers_for_type(cls: type[Any]) -> list[MessageSerializer
     serializers: List[MessageSerializer[Any]] = []
     if issubclass(cls, BaseModel):
         serializers.append(PydanticJsonMessageSerializer(cls))
-    elif isinstance(cls, IsDataclass):
+    elif is_dataclass(cls):
         serializers.append(DataclassJsonMessageSerializer(cls))
     elif issubclass(cls, Message):
         serializers.append(ProtobufMessageSerializer(cls))

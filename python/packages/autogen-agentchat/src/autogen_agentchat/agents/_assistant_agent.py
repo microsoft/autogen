@@ -82,13 +82,13 @@ class Handoff(BaseModel):
 class AssistantAgent(BaseChatAgent):
     """An agent that provides assistance with tool use.
 
-    It responds with a StopMessage when 'terminate' is detected in the response.
-
     Args:
         name (str): The name of the agent.
         model_client (ChatCompletionClient): The model client to use for inference.
         tools (List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional): The tools to register with the agent.
-        handoffs (List[Handoff | str] | None, optional): The handoff configurations for the agent, allowing it to transfer to other agents by responding with a HandoffMessage.
+        handoffs (List[Handoff | str] | None, optional): The handoff configurations for the agent,
+            allowing it to transfer to other agents by responding with a :class:`HandoffMessage`.
+            The transfer is only executed when the team is in :class:`~autogen_agentchat.teams.Swarm`.
             If a handoff is a string, it should represent the target agent's name.
         description (str, optional): The description of the agent.
         system_message (str, optional): The system message for the model.
@@ -279,8 +279,9 @@ class AssistantAgent(BaseChatAgent):
                 return
 
             # Generate an inference result based on the current model context.
+            llm_messages = self._system_messages + self._model_context
             result = await self._model_client.create(
-                self._model_context, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
+                llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
             )
             self._model_context.append(AssistantMessage(content=result.content, source=self.name))
 
