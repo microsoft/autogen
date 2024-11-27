@@ -15,12 +15,38 @@ InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
 
 
 class UserProxyAgent(BaseChatAgent):
-    """An agent that can represent a human user in a chat."""
+    """An agent that can represent a human user through an input function.
+
+    This agent can be used to represent a human user in a chat system by providing a custom input function.
+
+    Args:
+        name (str): The name of the agent.
+        description (str, optional): A description of the agent.
+        input_func (Optional[Callable[[str], str]], Callable[[str, Optional[CancellationToken]], Awaitable[str]]): A function that takes a prompt and returns a user input string.
+
+    .. note::
+
+        Using :class:`UserProxyAgent` puts a running team in a temporary blocked
+        state until the user responds. So it is important to time out the user input
+        function and cancel using the :class:`~autogen_core.base.CancellationToken` if the user does not respond.
+        The input function should also handle exceptions and return a default response if needed.
+
+        For typical use cases that involve
+        slow human responses, it is recommended to use termination conditions
+        such as :class:`~autogen_agentchat.task.HandoffTermination` or :class:`~autogen_agentchat.task.SourceMatchTermination`
+        to stop the running team and return the control to the application.
+        You can run the team again with the user input. This way, the state of the team
+        can be saved and restored when the user responds.
+
+        See `Pause for User Input <https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/teams.html#pause-for-user-input>`_ for more information.
+
+    """
 
     def __init__(
         self,
         name: str,
-        description: str = "a human user",
+        *,
+        description: str = "A human user",
         input_func: Optional[InputFuncType] = None,
     ) -> None:
         """Initialize the UserProxyAgent."""
@@ -34,10 +60,12 @@ class UserProxyAgent(BaseChatAgent):
         return [TextMessage, HandoffMessage]
 
     def _get_latest_handoff(self, messages: Sequence[ChatMessage]) -> Optional[HandoffMessage]:
-        """Find the most recent HandoffMessage in the message sequence."""
-        for message in reversed(messages):
-            if isinstance(message, HandoffMessage):
-                return message
+        """Find the HandoffMessage in the message sequence that addresses this agent."""
+        if len(messages) > 0 and isinstance(messages[-1], HandoffMessage):
+            if messages[-1].target == self.name:
+                return messages[-1]
+            else:
+                raise RuntimeError(f"Handoff message target does not match agent name: {messages[-1].source}")
         return None
 
     async def _get_input(self, prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
