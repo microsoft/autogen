@@ -25,6 +25,7 @@ dependencies = [
     "opentelemetry-api~=1.27.0",
     "asyncio_atexit",
     "jsonref~=1.1.0",
+    "grpcio~=1.62.0", # TODO: update this once we have a stable version.
 ]
 
 [project.optional-dependencies]

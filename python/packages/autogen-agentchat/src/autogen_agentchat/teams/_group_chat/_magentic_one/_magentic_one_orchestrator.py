@@ -1,7 +1,7 @@
 import json
 from typing import Any, List
 
-from autogen_core.base import MessageContext
+from autogen_core.base import MessageContext, AgentId
 from autogen_core.components import DefaultTopicId, Image, event, rpc
 from autogen_core.components.models import (
     AssistantMessage,
@@ -42,6 +42,7 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
         self,
         group_topic_type: str,
         output_topic_type: str,
+        team_id: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         max_turns: int | None,
@@ -51,6 +52,7 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
         super().__init__(description="Group chat manager")
         self._group_topic_type = group_topic_type
         self._output_topic_type = output_topic_type
+        self._team_id = team_id
         if len(participant_topic_types) != len(participant_descriptions):
             raise ValueError("The number of participant topic types, agent types, and descriptions must be the same.")
         if len(set(participant_topic_types)) != len(participant_topic_types):
@@ -164,10 +166,13 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
 
     async def _reenter_inner_loop(self) -> None:
         # Reset the agents
-        await self.publish_message(
-            GroupChatReset(),
-            topic_id=DefaultTopicId(type=self._group_topic_type),
-        )
+        for participant_topic_type in self._participant_topic_types:
+            await self._runtime.send_message(
+                GroupChatReset(),
+                recipient=AgentId(type=participant_topic_type, key=self._team_id),
+            )
+        # Reset the group chat manager
+        await self.reset()
         self._message_thread.clear()
 
         # Prepare the ledger

@@ -6,6 +6,7 @@ export interface RequestUsage {
 export interface ImageContent {
   url: string;
   alt?: string;
+  data?: string;
 }
 
 export interface FunctionCall {
@@ -95,15 +96,6 @@ export interface BaseConfig {
   version?: string;
 }
 
-// WebSocket message types
-export type ThreadStatus =
-  | "streaming"
-  | "complete"
-  | "error"
-  | "cancelled"
-  | "awaiting_input"
-  | "timeout";
-
 export interface WebSocketMessage {
   type: "message" | "result" | "completion" | "input_request" | "error";
   data?: AgentMessageConfig | TaskResult;
@@ -119,7 +111,10 @@ export interface TaskResult {
 
 export type ModelTypes = "OpenAIChatCompletionClient";
 
-export type AgentTypes = "AssistantAgent" | "CodingAssistantAgent";
+export type AgentTypes =
+  | "AssistantAgent"
+  | "CodingAssistantAgent"
+  | "MultimodalWebSurfer";
 
 export type TeamTypes = "RoundRobinGroupChat" | "SelectorGroupChat";
 
@@ -195,14 +190,6 @@ export interface Run {
   team_result: TeamResult | null;
   messages: Message[]; // Change to Message[]
   error_message?: string;
-}
-
-// Separate transient state
-interface TransientRunState {
-  pendingInput?: {
-    prompt: string;
-    isPending: boolean;
-  };
 }
 
 export type RunStatus =
