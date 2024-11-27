@@ -1,3 +1,3 @@
-from ._langchain_adapter import LangChainToolAdapter
+from .langchain import LangChainToolAdapter
 
 __all__ = ["LangChainToolAdapter"]
