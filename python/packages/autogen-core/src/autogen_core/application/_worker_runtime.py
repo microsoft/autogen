@@ -28,10 +28,12 @@ from typing import (
     cast,
 )
 
+from autogen_core.application.protos import cloudevent_pb2
 from opentelemetry.trace import TracerProvider
 from typing_extensions import Self, deprecated
 
 from ..base import (
+    PROTOBUF_DATA_CONTENT_TYPE,
     JSON_DATA_CONTENT_TYPE,
     Agent,
     AgentId,
@@ -178,6 +180,7 @@ class WorkerAgentRuntime(AgentRuntime):
         host_address: str,
         tracer_provider: TracerProvider | None = None,
         extra_grpc_config: ChannelArgumentType | None = None,
+        payload_serialization_format: str = JSON_DATA_CONTENT_TYPE,
     ) -> None:
         self._host_address = host_address
         self._trace_helper = TraceHelper(tracer_provider, MessageRuntimeTracingConfig("Worker Runtime"))
@@ -197,6 +200,11 @@ class WorkerAgentRuntime(AgentRuntime):
         self._subscription_manager = SubscriptionManager()
         self._serialization_registry = SerializationRegistry()
         self._extra_grpc_config = extra_grpc_config or []
+
+        if payload_serialization_format not in {JSON_DATA_CONTENT_TYPE, PROTOBUF_DATA_CONTENT_TYPE}:
+            raise ValueError(f"Unsupported payload serialization format: {payload_serialization_format}")
+
+        self._payload_serialization_format = payload_serialization_format
 
     def start(self) -> None:
         """Start the runtime in a background task."""
@@ -381,27 +389,33 @@ class WorkerAgentRuntime(AgentRuntime):
         if message_id is None:
             message_id = str(uuid.uuid4())
 
-        # TODO: consume message_id
-
         message_type = self._serialization_registry.type_name(message)
         with self._trace_helper.trace_block(
             "create", topic_id, parent=None, extraAttributes={"message_type": message_type}
         ):
             serialized_message = self._serialization_registry.serialize(
-                message, type_name=message_type, data_content_type=JSON_DATA_CONTENT_TYPE
+                message, type_name=message_type, data_content_type=self._payload_serialization_format
             )
+
+            sender_id = sender or AgentId("unknown", "unknown")
+            attributes = {
+                "datacontenttype": cloudevent_pb2.CloudEvent.CloudEventAttributeValue(ce_string=self._payload_serialization_format),
+                "dataschema": cloudevent_pb2.CloudEvent.CloudEventAttributeValue(ce_string=message_type),
+                "agagentsendertype": cloudevent_pb2.CloudEvent.CloudEventAttributeValue(ce_string=sender_id.type),
+                "agagentsenderkey": cloudevent_pb2.CloudEvent.CloudEventAttributeValue(ce_string=sender_id.key),
+                "agmsgkind": cloudevent_pb2.CloudEvent.CloudEventAttributeValue(ce_string="publish"),
+            }
+
             telemetry_metadata = get_telemetry_grpc_metadata()
             runtime_message = agent_worker_pb2.Message(
-                event=agent_worker_pb2.Event(
-                    topic_type=topic_id.type,
-                    topic_source=topic_id.source,
-                    source=agent_worker_pb2.AgentId(type=sender.type, key=sender.key) if sender is not None else None,
-                    metadata=telemetry_metadata,
-                    payload=agent_worker_pb2.Payload(
-                        data_type=message_type,
-                        data=serialized_message,
-                        data_content_type=JSON_DATA_CONTENT_TYPE,
-                    ),
+                cloudEvent=cloudevent_pb2.CloudEvent(
+                    id=message_id,
+                    spec_version="1.0",
+                    type=topic_id.type,
+                    source=topic_id.source,
+                    attributes=attributes,
+                    # TODO: use text, or proto fields appropriately
+                    binary_data=serialized_message,
                 )
             )
 
