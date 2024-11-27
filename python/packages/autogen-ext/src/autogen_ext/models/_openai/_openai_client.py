@@ -213,6 +213,7 @@ def assistant_message_to_oai(
     if isinstance(message.content, list):
         return ChatCompletionAssistantMessageParam(
             tool_calls=[func_call_to_oai(x) for x in message.content],
+            content="",
             role="assistant",
             name=message.source,
         )

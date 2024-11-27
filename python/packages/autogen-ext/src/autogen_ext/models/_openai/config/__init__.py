@@ -49,4 +49,14 @@ class AzureOpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False)
     azure_ad_token_provider: AsyncAzureADTokenProvider
 
 
-__all__ = ["AzureOpenAIClientConfiguration", "OpenAIClientConfiguration"]
+class XAIClientConfiguration(BaseOpenAIClientConfiguration, total=False):
+    base_url: str
+    # Not required
+    model_capabilities: ModelCapabilities
+
+
+__all__ = [
+    "AzureOpenAIClientConfiguration",
+    "OpenAIClientConfiguration",
+    "XAIClientConfiguration",
+]
