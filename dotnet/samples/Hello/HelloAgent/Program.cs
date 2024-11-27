@@ -6,20 +6,12 @@ using Microsoft.AutoGen.Agents;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-// step 1: create in-memory agent runtime
-
-// step 2: register HelloAgent to that agent runtime
-
-// step 3: start the agent runtime
-
-// step 4: send a message to the agent
-
-// step 5: wait for the agent runtime to shutdown
+var local = true;
+if (Environment.GetEnvironmentVariable("AGENT_HOST") != null) { local = false; }
 var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
-}, local: true);
-//var app = await AgentsApp.StartAsync();
+}, local: local).ConfigureAwait(false);
 await app.WaitForShutdownAsync();
 
 namespace Hello

@@ -8,6 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Aspire.Hosting" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Python" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.Authentication.ApiKey" Version="8.0.1" />
     <PackageVersion Include="Aspire.Azure.AI.OpenAI" Version="8.0.1-preview.8.24267.1" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.0.0" />
@@ -24,15 +25,6 @@
     <PackageVersion Include="Azure.ResourceManager.ContainerInstance" Version="1.2.1" />
     <PackageVersion Include="Azure.Storage.Files.Shares" Version="12.21.0" />
     <PackageVersion Include="CloudNative.CloudEvents.SystemTextJson" Version="2.7.1" />
-    <PackageVersion Include="Elsa" Version="3.1.3" />
-    <PackageVersion Include="Elsa.EntityFrameworkCore" Version="3.1.3" />
-    <PackageVersion Include="Elsa.EntityFrameworkCore.Sqlite" Version="3.1.3" />
-    <PackageVersion Include="Elsa.Http" Version="3.1.3" />
-    <PackageVersion Include="Elsa.Identity" Version="3.1.3" />
-    <PackageVersion Include="Elsa.Workflows.Api" Version="3.1.3" />
-    <PackageVersion Include="Elsa.Workflows.Core" Version="3.1.3" />
-    <PackageVersion Include="Elsa.Workflows.Designer" Version="3.0.0-preview.727" />
-    <PackageVersion Include="Elsa.Workflows.Management" Version="3.1.3" />
     <PackageVersion Include="Grpc.AspNetCore" Version="2.67.0" />
     <PackageVersion Include="Grpc.Core" Version="2.46.6" />
     <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.67.0" />
