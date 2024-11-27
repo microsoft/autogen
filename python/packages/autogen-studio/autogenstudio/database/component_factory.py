@@ -10,6 +10,7 @@ from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
 from autogen_agentchat.task import MaxMessageTermination, StopMessageTermination, TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
 from autogen_core.components.tools import FunctionTool
+from autogen_ext.agents import MultimodalWebSurfer
 from autogen_ext.models import OpenAIChatCompletionClient
 
 from ..datamodel.types import (
@@ -32,7 +33,7 @@ from ..utils.utils import Version
 logger = logging.getLogger(__name__)
 
 TeamComponent = Union[RoundRobinGroupChat, SelectorGroupChat]
-AgentComponent = Union[AssistantAgent]
+AgentComponent = Union[AssistantAgent, MultimodalWebSurfer]
 ModelComponent = Union[OpenAIChatCompletionClient]
 ToolComponent = Union[FunctionTool]  # Will grow with more tool types
 TerminationComponent = Union[MaxMessageTermination, StopMessageTermination, TextMentionTermination]
@@ -280,6 +281,18 @@ class ComponentFactory:
                     tools=tools,
                     system_message=system_message,
                 )
+            elif config.agent_type == AgentTypes.MULTIMODAL_WEBSURFER:
+                return MultimodalWebSurfer(
+                    name=config.name,
+                    model_client=model_client,
+                    headless=config.headless if config.headless is not None else True,
+                    debug_dir=config.logs_dir if config.logs_dir is not None else "logs",
+                    downloads_folder=config.logs_dir if config.logs_dir is not None else "logs",
+                    to_save_screenshots=config.to_save_screenshots if config.to_save_screenshots is not None else False,
+                    use_ocr=config.use_ocr if config.use_ocr is not None else False,
+                    animate_actions=config.animate_actions if config.animate_actions is not None else False,
+                )
+
             else:
                 raise ValueError(f"Unsupported agent type: {config.agent_type}")
 
