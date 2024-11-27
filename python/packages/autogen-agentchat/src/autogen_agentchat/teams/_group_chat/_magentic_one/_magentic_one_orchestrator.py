@@ -43,7 +43,6 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
         group_topic_type: str,
         output_topic_type: str,
         team_id: str,
-        group_chat_manager_topic_type: str,
         participant_topic_types: List[str],
         participant_descriptions: List[str],
         max_turns: int | None,
@@ -54,7 +53,6 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
         self._group_topic_type = group_topic_type
         self._output_topic_type = output_topic_type
         self._team_id = team_id
-        self._group_chat_manager_topic_type = group_chat_manager_topic_type
         if len(participant_topic_types) != len(participant_descriptions):
             raise ValueError("The number of participant topic types, agent types, and descriptions must be the same.")
         if len(set(participant_topic_types)) != len(participant_topic_types):
@@ -174,10 +172,7 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
                 recipient=AgentId(type=participant_topic_type, key=self._team_id),
             )
         # Reset the group chat manager
-        await self._runtime.send_message(
-            GroupChatReset(),
-            recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
-        )
+        await self.reset()
         self._message_thread.clear()
 
         # Prepare the ledger

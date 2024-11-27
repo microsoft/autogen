@@ -48,7 +48,6 @@ class MagenticOneGroupChat(BaseGroupChat):
             group_topic_type,
             output_topic_type,
             self._team_id,
-            self._group_chat_manager_topic_type,
             participant_topic_types,
             participant_descriptions,
             max_turns,
