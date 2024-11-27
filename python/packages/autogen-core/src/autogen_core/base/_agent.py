@@ -17,15 +17,12 @@ class Agent(Protocol):
         """ID of the agent."""
         ...
 
-    async def on_message(self, message: Any, ctx: MessageContext) -> Any:
+    async def on_message(self, message: Any, ctx: MessageContext) -> None:
         """Message handler for the agent. This should only be called by the runtime, not by other agents.
 
         Args:
             message (Any): Received message. Type is one of the types in `subscriptions`.
             ctx (MessageContext): Context of the message.
-
-        Returns:
-            Any: Response to the message. Can be None.
 
         Raises:
             asyncio.CancelledError: If the message was cancelled.

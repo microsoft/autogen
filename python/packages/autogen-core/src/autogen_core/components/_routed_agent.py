@@ -19,13 +19,16 @@ from typing import (
     runtime_checkable,
 )
 
+from autogen_core.base._rpc import format_rpc_response_topic, is_rpc_request
+from autogen_core.base._topic import TopicId
+
 from ..base import BaseAgent, MessageContext, MessageSerializer, try_get_known_serializers_for_type
 from ..base._type_helpers import AnyType, get_types
 from ..base.exceptions import CantHandleException
 
 logger = logging.getLogger("autogen_core")
 
-AgentT = TypeVar("AgentT")
+AgentT = TypeVar("AgentT", bound=BaseAgent)
 ReceivesT = TypeVar("ReceivesT")
 ProducesT = TypeVar("ProducesT", covariant=True)
 
@@ -138,7 +141,7 @@ def message_handler(
         # Convert target_types to list and stash
 
         @wraps(func)
-        async def wrapper(self: AgentT, message: ReceivesT, ctx: MessageContext) -> ProducesT:
+        async def wrapper(self: AgentT, message: ReceivesT, ctx: MessageContext) -> None:
             if type(message) not in target_types:
                 if strict:
                     raise CantHandleException(f"Message type {type(message)} not in target types {target_types}")
@@ -153,7 +156,26 @@ def message_handler(
                 else:
                     logger.warning(f"Return type {type(return_value)} not in return types {return_types}")
 
-            return return_value
+            # Dont return, but publish it if you need to...
+            # Any return is treated as a response to the RPC request and is published accordingly
+
+            if return_value is not None:
+                if (requestor_type := is_rpc_request(ctx.topic_id.type)) is not None:
+                    response_topic_id = TopicId(
+                        type=format_rpc_response_topic(rpc_sender_agent_type=requestor_type, request_id=ctx.message_id),
+                        source=self.id.key,
+                    )
+
+                    await self.publish_message(
+                        message=return_value,
+                        topic_id=response_topic_id,
+                        cancellation_token=ctx.cancellation_token,
+                    )
+                else:
+                    warnings.warn(
+                        "Returning a value from a message handler that is not an RPC request. This value will be ignored.",
+                        stacklevel=2,
+                    )
 
         wrapper_handler = cast(MessageHandler[AgentT, ReceivesT, ProducesT], wrapper)
         wrapper_handler.target_types = list(target_types)
@@ -278,8 +300,8 @@ def event(
         wrapper_handler.target_types = list(target_types)
         wrapper_handler.produces_types = list(return_types)
         wrapper_handler.is_message_handler = True
-        # Wrap the match function with a check on the is_rpc flag.
-        wrapper_handler.router = lambda _message, _ctx: (not _ctx.is_rpc) and (match(_message, _ctx) if match else True)
+        # Wrap the match function with a check on the topic for rpc
+        wrapper_handler.router = lambda _message, _ctx: (is_rpc_request(_ctx.topic_id.type) is None) and (match(_message, _ctx) if match else True)
 
         return wrapper_handler
 
@@ -378,7 +400,7 @@ def rpc(
         # Convert target_types to list and stash
 
         @wraps(func)
-        async def wrapper(self: AgentT, message: ReceivesT, ctx: MessageContext) -> ProducesT:
+        async def wrapper(self: AgentT, message: ReceivesT, ctx: MessageContext) -> None:
             if type(message) not in target_types:
                 if strict:
                     raise CantHandleException(f"Message type {type(message)} not in target types {target_types}")
@@ -393,13 +415,32 @@ def rpc(
                 else:
                     logger.warning(f"Return type {type(return_value)} not in return types {return_types}")
 
-            return return_value
+            # Dont return, but publish it if you need to...
+            # Any return is treated as a response to the RPC request and is published accordingly
+
+            if return_value is not None:
+                if (requestor_type := is_rpc_request(ctx.topic_id.type)) is not None:
+                    response_topic_id = TopicId(
+                        type=format_rpc_response_topic(rpc_sender_agent_type=requestor_type, request_id=ctx.message_id),
+                        source=self.id.key,
+                    )
+
+                    await self.publish_message(
+                        message=return_value,
+                        topic_id=response_topic_id,
+                        cancellation_token=ctx.cancellation_token,
+                    )
+                else:
+                    warnings.warn(
+                        "Returning a value from a message handler that is not an RPC request. This value will be ignored.",
+                        stacklevel=2,
+                    )
 
         wrapper_handler = cast(MessageHandler[AgentT, ReceivesT, ProducesT], wrapper)
         wrapper_handler.target_types = list(target_types)
         wrapper_handler.produces_types = list(return_types)
         wrapper_handler.is_message_handler = True
-        wrapper_handler.router = lambda _message, _ctx: (_ctx.is_rpc) and (match(_message, _ctx) if match else True)
+        wrapper_handler.router = lambda _message, _ctx: (is_rpc_request(_ctx.topic_id.type) is not None) and (match(_message, _ctx) if match else True)
 
         return wrapper_handler
 
@@ -470,7 +511,7 @@ class RoutedAgent(BaseAgent):
 
         super().__init__(description)
 
-    async def on_message(self, message: Any, ctx: MessageContext) -> Any | None:
+    async def on_message_impl(self, message: Any, ctx: MessageContext):
         """Handle a message by routing it to the appropriate message handler.
         Do not override this method in subclasses. Instead, add message handlers as methods decorated with
         either the :func:`event` or :func:`rpc` decorator."""

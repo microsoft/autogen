@@ -16,6 +16,7 @@ from opentelemetry.trace import TracerProvider
 from typing_extensions import deprecated
 
 from autogen_core.base._serialization import MessageSerializer, SerializationRegistry
+from autogen_core.components.send_message_mixin import PublishBasedRpcMixin
 
 from ..base import (
     Agent,
@@ -166,7 +167,7 @@ def _warn_if_none(value: Any, handler_name: str) -> None:
         )
 
 
-class SingleThreadedAgentRuntime(AgentRuntime):
+class SingleThreadedAgentRuntime(PublishBasedRpcMixin, AgentRuntime):
     def __init__(
         self,
         *,
@@ -202,54 +203,54 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         return set(self._agent_factories.keys())
 
     # Returns the response of the message
-    async def send_message(
-        self,
-        message: Any,
-        recipient: AgentId,
-        *,
-        sender: AgentId | None = None,
-        cancellation_token: CancellationToken | None = None,
-    ) -> Any:
-        if cancellation_token is None:
-            cancellation_token = CancellationToken()
+    # async def send_message(
+    #     self,
+    #     message: Any,
+    #     recipient: AgentId,
+    #     *,
+    #     sender: AgentId | None = None,
+    #     cancellation_token: CancellationToken | None = None,
+    # ) -> Any:
+    #     if cancellation_token is None:
+    #         cancellation_token = CancellationToken()
 
-        # event_logger.info(
-        #     MessageEvent(
-        #         payload=message,
-        #         sender=sender,
-        #         receiver=recipient,
-        #         kind=MessageKind.DIRECT,
-        #         delivery_stage=DeliveryStage.SEND,
-        #     )
-        # )
+    #     # event_logger.info(
+    #     #     MessageEvent(
+    #     #         payload=message,
+    #     #         sender=sender,
+    #     #         receiver=recipient,
+    #     #         kind=MessageKind.DIRECT,
+    #     #         delivery_stage=DeliveryStage.SEND,
+    #     #     )
+    #     # )
 
-        with self._tracer_helper.trace_block(
-            "create",
-            recipient,
-            parent=None,
-            extraAttributes={"message_type": type(message).__name__},
-        ):
-            future = asyncio.get_event_loop().create_future()
-            if recipient.type not in self._known_agent_names:
-                future.set_exception(Exception("Recipient not found"))
+    #     with self._tracer_helper.trace_block(
+    #         "create",
+    #         recipient,
+    #         parent=None,
+    #         extraAttributes={"message_type": type(message).__name__},
+    #     ):
+    #         future = asyncio.get_event_loop().create_future()
+    #         if recipient.type not in self._known_agent_names:
+    #             future.set_exception(Exception("Recipient not found"))
 
-            content = message.__dict__ if hasattr(message, "__dict__") else message
-            logger.info(f"Sending message of type {type(message).__name__} to {recipient.type}: {content}")
+    #         content = message.__dict__ if hasattr(message, "__dict__") else message
+    #         logger.info(f"Sending message of type {type(message).__name__} to {recipient.type}: {content}")
 
-            self._message_queue.append(
-                SendMessageEnvelope(
-                    message=message,
-                    recipient=recipient,
-                    future=future,
-                    cancellation_token=cancellation_token,
-                    sender=sender,
-                    metadata=get_telemetry_envelope_metadata(),
-                )
-            )
+    #         self._message_queue.append(
+    #             SendMessageEnvelope(
+    #                 message=message,
+    #                 recipient=recipient,
+    #                 future=future,
+    #                 cancellation_token=cancellation_token,
+    #                 sender=sender,
+    #                 metadata=get_telemetry_envelope_metadata(),
+    #             )
+    #         )
 
-            cancellation_token.link_future(future)
+    #         cancellation_token.link_future(future)
 
-            return await future
+    #         return await future
 
     async def publish_message(
         self,
@@ -332,7 +333,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 message_context = MessageContext(
                     sender=message_envelope.sender,
                     topic_id=None,
-                    is_rpc=True,
                     cancellation_token=message_envelope.cancellation_token,
                     # Will be fixed when send API removed
                     message_id="NOT_DEFINED_TODO_FIX",
@@ -392,7 +392,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     message_context = MessageContext(
                         sender=message_envelope.sender,
                         topic_id=message_envelope.topic_id,
-                        is_rpc=False,
                         cancellation_token=message_envelope.cancellation_token,
                         message_id=message_envelope.message_id,
                     )

@@ -497,7 +497,6 @@ class WorkerAgentRuntime(AgentRuntime):
         message_context = MessageContext(
             sender=sender,
             topic_id=None,
-            is_rpc=True,
             cancellation_token=CancellationToken(),
             message_id=request.request_id,
         )

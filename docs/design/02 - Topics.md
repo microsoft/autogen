@@ -61,6 +61,6 @@ For this subscription source should map directly to agent key.
 This subscription will therefore receive all events for the following well known topics:
 
 - `{AgentType}:` - General purpose direct messages. These should be routed to the approriate message handler.
-- `{AgentType}:rpc_request` - RPC request messages. These should be routed to the approriate RPC handler.
+- `{AgentType}:rpc_request={RequesterAgentType}` - RPC request messages. These should be routed to the approriate RPC handler.
 - `{AgentType}:rpc_response={RequestId}` - RPC response messages. These should be routed back to the response future of the caller.
 - `{AgentType}:error={RequestId}` - Error message that corresponds to the given request.
