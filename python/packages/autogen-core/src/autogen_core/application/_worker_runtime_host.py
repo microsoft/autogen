@@ -4,7 +4,7 @@ import signal
 from typing import Optional, Sequence
 
 from ..base._type_helpers import ChannelArgumentType
-from ._utils import GRPC_IMPORT_ERROR_STR
+from ._constants import GRPC_IMPORT_ERROR_STR
 from ._worker_runtime_host_servicer import WorkerAgentRuntimeHostServicer
 
 try:
