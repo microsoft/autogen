@@ -47,6 +47,7 @@ class MagenticOneGroupChat(BaseGroupChat):
         return lambda: MagenticOneOrchestrator(
             group_topic_type,
             output_topic_type,
+            self._team_id,
             participant_topic_types,
             participant_descriptions,
             max_turns,
