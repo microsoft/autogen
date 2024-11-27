@@ -274,20 +274,42 @@ class TypeSubscription(google.protobuf.message.Message):
 global___TypeSubscription = TypeSubscription
 
 @typing.final
+class TypePrefixSubscription(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    TOPIC_TYPE_PREFIX_FIELD_NUMBER: builtins.int
+    AGENT_TYPE_FIELD_NUMBER: builtins.int
+    topic_type_prefix: builtins.str
+    agent_type: builtins.str
+    def __init__(
+        self,
+        *,
+        topic_type_prefix: builtins.str = ...,
+        agent_type: builtins.str = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["agent_type", b"agent_type", "topic_type_prefix", b"topic_type_prefix"]) -> None: ...
+
+global___TypePrefixSubscription = TypePrefixSubscription
+
+@typing.final
 class Subscription(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
     TYPESUBSCRIPTION_FIELD_NUMBER: builtins.int
+    TYPEPREFIXSUBSCRIPTION_FIELD_NUMBER: builtins.int
     @property
     def typeSubscription(self) -> global___TypeSubscription: ...
+    @property
+    def typePrefixSubscription(self) -> global___TypePrefixSubscription: ...
     def __init__(
         self,
         *,
         typeSubscription: global___TypeSubscription | None = ...,
+        typePrefixSubscription: global___TypePrefixSubscription | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["subscription", b"subscription", "typeSubscription", b"typeSubscription"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["subscription", b"subscription", "typeSubscription", b"typeSubscription"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["subscription", b"subscription"]) -> typing.Literal["typeSubscription"] | None: ...
+    def HasField(self, field_name: typing.Literal["subscription", b"subscription", "typePrefixSubscription", b"typePrefixSubscription", "typeSubscription", b"typeSubscription"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["subscription", b"subscription", "typePrefixSubscription", b"typePrefixSubscription", "typeSubscription", b"typeSubscription"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["subscription", b"subscription"]) -> typing.Literal["typeSubscription", "typePrefixSubscription"] | None: ...
 
 global___Subscription = Subscription
 
@@ -415,18 +437,17 @@ class Message(google.protobuf.message.Message):
 
     REQUEST_FIELD_NUMBER: builtins.int
     RESPONSE_FIELD_NUMBER: builtins.int
-    EVENT_FIELD_NUMBER: builtins.int
+    CLOUDEVENT_FIELD_NUMBER: builtins.int
     REGISTERAGENTTYPEREQUEST_FIELD_NUMBER: builtins.int
     REGISTERAGENTTYPERESPONSE_FIELD_NUMBER: builtins.int
     ADDSUBSCRIPTIONREQUEST_FIELD_NUMBER: builtins.int
     ADDSUBSCRIPTIONRESPONSE_FIELD_NUMBER: builtins.int
-    CLOUDEVENT_FIELD_NUMBER: builtins.int
     @property
     def request(self) -> global___RpcRequest: ...
     @property
     def response(self) -> global___RpcResponse: ...
     @property
-    def event(self) -> global___Event: ...
+    def cloudEvent(self) -> cloudevent_pb2.CloudEvent: ...
     @property
     def registerAgentTypeRequest(self) -> global___RegisterAgentTypeRequest: ...
     @property
@@ -435,22 +456,19 @@ class Message(google.protobuf.message.Message):
     def addSubscriptionRequest(self) -> global___AddSubscriptionRequest: ...
     @property
     def addSubscriptionResponse(self) -> global___AddSubscriptionResponse: ...
-    @property
-    def cloudEvent(self) -> cloudevent_pb2.CloudEvent: ...
     def __init__(
         self,
         *,
         request: global___RpcRequest | None = ...,
         response: global___RpcResponse | None = ...,
-        event: global___Event | None = ...,
+        cloudEvent: cloudevent_pb2.CloudEvent | None = ...,
         registerAgentTypeRequest: global___RegisterAgentTypeRequest | None = ...,
         registerAgentTypeResponse: global___RegisterAgentTypeResponse | None = ...,
         addSubscriptionRequest: global___AddSubscriptionRequest | None = ...,
         addSubscriptionResponse: global___AddSubscriptionResponse | None = ...,
-        cloudEvent: cloudevent_pb2.CloudEvent | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["addSubscriptionRequest", b"addSubscriptionRequest", "addSubscriptionResponse", b"addSubscriptionResponse", "cloudEvent", b"cloudEvent", "event", b"event", "message", b"message", "registerAgentTypeRequest", b"registerAgentTypeRequest", "registerAgentTypeResponse", b"registerAgentTypeResponse", "request", b"request", "response", b"response"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["addSubscriptionRequest", b"addSubscriptionRequest", "addSubscriptionResponse", b"addSubscriptionResponse", "cloudEvent", b"cloudEvent", "event", b"event", "message", b"message", "registerAgentTypeRequest", b"registerAgentTypeRequest", "registerAgentTypeResponse", b"registerAgentTypeResponse", "request", b"request", "response", b"response"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["message", b"message"]) -> typing.Literal["request", "response", "event", "registerAgentTypeRequest", "registerAgentTypeResponse", "addSubscriptionRequest", "addSubscriptionResponse", "cloudEvent"] | None: ...
+    def HasField(self, field_name: typing.Literal["addSubscriptionRequest", b"addSubscriptionRequest", "addSubscriptionResponse", b"addSubscriptionResponse", "cloudEvent", b"cloudEvent", "message", b"message", "registerAgentTypeRequest", b"registerAgentTypeRequest", "registerAgentTypeResponse", b"registerAgentTypeResponse", "request", b"request", "response", b"response"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["addSubscriptionRequest", b"addSubscriptionRequest", "addSubscriptionResponse", b"addSubscriptionResponse", "cloudEvent", b"cloudEvent", "message", b"message", "registerAgentTypeRequest", b"registerAgentTypeRequest", "registerAgentTypeResponse", b"registerAgentTypeResponse", "request", b"request", "response", b"response"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["message", b"message"]) -> typing.Literal["request", "response", "cloudEvent", "registerAgentTypeRequest", "registerAgentTypeResponse", "addSubscriptionRequest", "addSubscriptionResponse"] | None: ...
 
 global___Message = Message

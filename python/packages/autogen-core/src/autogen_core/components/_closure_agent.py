@@ -1,32 +1,38 @@
+from __future__ import annotations
+
 import inspect
-from typing import Any, Awaitable, Callable, List, Mapping, Sequence, TypeVar, get_type_hints
+from typing import Any, Awaitable, Callable, List, Mapping, Protocol, Sequence, TypeVar, get_type_hints
+
+from autogen_core.base._serialization import try_get_known_serializers_for_type
+from autogen_core.base._subscription_context import SubscriptionInstantiationContext
 
 from ..base import (
-    Agent,
     AgentId,
     AgentInstantiationContext,
     AgentMetadata,
     AgentRuntime,
     AgentType,
+    BaseAgent,
+    CancellationToken,
     MessageContext,
     Subscription,
-    SubscriptionInstantiationContext,
-    try_get_known_serializers_for_type,
+    TopicId,
 )
 from ..base._type_helpers import get_types
 from ..base.exceptions import CantHandleException
 
 T = TypeVar("T")
+ClosureAgentType = TypeVar("ClosureAgentType", bound="ClosureAgent")
 
 
 def get_handled_types_from_closure(
-    closure: Callable[[AgentRuntime, AgentId, T, MessageContext], Awaitable[Any]],
+    closure: Callable[[ClosureAgent, T, MessageContext], Awaitable[Any]],
 ) -> Sequence[type]:
     args = inspect.getfullargspec(closure)[0]
-    if len(args) != 4:
+    if len(args) != 3:
         raise AssertionError("Closure must have 4 arguments")
 
-    message_arg_name = args[2]
+    message_arg_name = args[1]
 
     type_hints = get_type_hints(closure)
 
@@ -47,9 +53,30 @@ def get_handled_types_from_closure(
     return target_types
 
 
-class ClosureAgent(Agent):
+class ClosureContext(Protocol):
+    @property
+    def id(self) -> AgentId: ...
+
+    async def send_message(
+        self,
+        message: Any,
+        recipient: AgentId,
+        *,
+        cancellation_token: CancellationToken | None = None,
+    ) -> Any: ...
+
+    async def publish_message(
+        self,
+        message: Any,
+        topic_id: TopicId,
+        *,
+        cancellation_token: CancellationToken | None = None,
+    ) -> None: ...
+
+
+class ClosureAgent(BaseAgent, ClosureContext):
     def __init__(
-        self, description: str, closure: Callable[[AgentRuntime, AgentId, T, MessageContext], Awaitable[Any]]
+        self, description: str, closure: Callable[[ClosureContext, T, MessageContext], Awaitable[Any]]
     ) -> None:
         try:
             runtime = AgentInstantiationContext.current_runtime()
@@ -65,6 +92,7 @@ class ClosureAgent(Agent):
         handled_types = get_handled_types_from_closure(closure)
         self._expected_types = handled_types
         self._closure = closure
+        super().__init__(description)
 
     @property
     def metadata(self) -> AgentMetadata:
@@ -88,7 +116,7 @@ class ClosureAgent(Agent):
             raise CantHandleException(
                 f"Message type {type(message)} not in target types {self._expected_types} of {self.id}"
             )
-        return await self._closure(self._runtime, self._id, message, ctx)
+        return await self._closure(self, message, ctx)
 
     async def save_state(self) -> Mapping[str, Any]:
         raise ValueError("save_state not implemented for ClosureAgent")
@@ -97,16 +125,28 @@ class ClosureAgent(Agent):
         raise ValueError("load_state not implemented for ClosureAgent")
 
     @classmethod
-    async def register(
+    async def register_closure(
         cls,
         runtime: AgentRuntime,
         type: str,
-        closure: Callable[[AgentRuntime, AgentId, T, MessageContext], Awaitable[Any]],
+        closure: Callable[[ClosureContext, T, MessageContext], Awaitable[Any]],
         *,
+        skip_class_subscriptions: bool = False,
+        skip_direct_message_subscription: bool = False,
         description: str = "",
         subscriptions: Callable[[], list[Subscription] | Awaitable[list[Subscription]]] | None = None,
     ) -> AgentType:
-        agent_type = AgentType(type)
+        def factory() -> ClosureAgent:
+            return ClosureAgent(description=description, closure=closure)
+
+        agent_type = await cls.register(
+            runtime=runtime,
+            type=type,
+            factory=factory,  # type: ignore
+            skip_class_subscriptions=skip_class_subscriptions,
+            skip_direct_message_subscription=skip_direct_message_subscription,
+        )
+
         subscriptions_list: List[Subscription] = []
         if subscriptions is not None:
             with SubscriptionInstantiationContext.populate_context(agent_type):
@@ -117,11 +157,6 @@ class ClosureAgent(Agent):
                     # just ignore mypy here
                     subscriptions_list.extend(subscriptions_list_result)  # type: ignore
 
-        agent_type = await runtime.register_factory(
-            type=agent_type,
-            agent_factory=lambda: ClosureAgent(description=description, closure=closure),
-            expected_class=cls,
-        )
         for subscription in subscriptions_list:
             await runtime.add_subscription(subscription)
 

@@ -1,4 +1,3 @@
-import asyncio
 import logging
 
 import pytest
@@ -7,16 +6,10 @@ from autogen_core.base import (
     AgentId,
     AgentInstantiationContext,
     AgentType,
-    Subscription,
-    SubscriptionInstantiationContext,
     TopicId,
     try_get_known_serializers_for_type,
 )
-from autogen_core.components import (
-    DefaultTopicId,
-    TypeSubscription,
-    type_subscription,
-)
+from autogen_core.components import DefaultTopicId, TypeSubscription, type_subscription
 from opentelemetry.sdk.trace import TracerProvider
 from test_utils import (
     CascadingAgent,
@@ -146,82 +139,9 @@ async def test_register_receives_publish_cascade() -> None:
 async def test_register_factory_explicit_name() -> None:
     runtime = SingleThreadedAgentRuntime()
 
-    await runtime.register("name", LoopbackAgent, lambda: [TypeSubscription("default", "name")])
-    runtime.start()
-    agent_id = AgentId("name", key="default")
-    topic_id = TopicId("default", "default")
-    await runtime.publish_message(MessageType(), topic_id=topic_id)
+    await LoopbackAgent.register(runtime, "name", LoopbackAgent)
+    await runtime.add_subscription(TypeSubscription("default", "name"))
 
-    await runtime.stop_when_idle()
-
-    # Agent in default namespace should have received the message
-    long_running_agent = await runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent)
-    assert long_running_agent.num_calls == 1
-
-    # Agent in other namespace should not have received the message
-    other_long_running_agent: LoopbackAgent = await runtime.try_get_underlying_agent_instance(
-        AgentId("name", key="other"), type=LoopbackAgent
-    )
-    assert other_long_running_agent.num_calls == 0
-
-
-@pytest.mark.asyncio
-async def test_register_factory_context_var_name() -> None:
-    runtime = SingleThreadedAgentRuntime()
-
-    await runtime.register(
-        "name", LoopbackAgent, lambda: [TypeSubscription("default", SubscriptionInstantiationContext.agent_type().type)]
-    )
-    runtime.start()
-    agent_id = AgentId("name", key="default")
-    topic_id = TopicId("default", "default")
-    await runtime.publish_message(MessageType(), topic_id=topic_id)
-
-    await runtime.stop_when_idle()
-
-    # Agent in default namespace should have received the message
-    long_running_agent = await runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent)
-    assert long_running_agent.num_calls == 1
-
-    # Agent in other namespace should not have received the message
-    other_long_running_agent: LoopbackAgent = await runtime.try_get_underlying_agent_instance(
-        AgentId("name", key="other"), type=LoopbackAgent
-    )
-    assert other_long_running_agent.num_calls == 0
-
-
-@pytest.mark.asyncio
-async def test_register_factory_async() -> None:
-    runtime = SingleThreadedAgentRuntime()
-
-    async def sub_factory() -> list[Subscription]:
-        await asyncio.sleep(0.1)
-        return [TypeSubscription("default", SubscriptionInstantiationContext.agent_type().type)]
-
-    await runtime.register("name", LoopbackAgent, sub_factory)
-    runtime.start()
-    agent_id = AgentId("name", key="default")
-    topic_id = TopicId("default", "default")
-    await runtime.publish_message(MessageType(), topic_id=topic_id)
-
-    await runtime.stop_when_idle()
-
-    # Agent in default namespace should have received the message
-    long_running_agent = await runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent)
-    assert long_running_agent.num_calls == 1
-
-    # Agent in other namespace should not have received the message
-    other_long_running_agent: LoopbackAgent = await runtime.try_get_underlying_agent_instance(
-        AgentId("name", key="other"), type=LoopbackAgent
-    )
-    assert other_long_running_agent.num_calls == 0
-
-
-@pytest.mark.asyncio
-async def test_register_factory_direct_list() -> None:
-    runtime = SingleThreadedAgentRuntime()
-
-    await runtime.register("name", LoopbackAgent, [TypeSubscription("default", "name")])
     runtime.start()
     agent_id = AgentId("name", key="default")
     topic_id = TopicId("default", "default")

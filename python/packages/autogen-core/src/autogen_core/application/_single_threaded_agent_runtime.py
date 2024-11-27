@@ -4,6 +4,7 @@ import asyncio
 import inspect
 import logging
 import threading
+import uuid
 import warnings
 from asyncio import CancelledError, Future, Task
 from collections.abc import Sequence
@@ -53,6 +54,7 @@ class PublishMessageEnvelope:
     sender: AgentId | None
     topic_id: TopicId
     metadata: EnvelopeMetadata | None = None
+    message_id: str
 
 
 @dataclass(kw_only=True)
@@ -256,6 +258,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         *,
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
+        message_id: str | None = None,
     ) -> None:
         with self._tracer_helper.trace_block(
             "create",
@@ -267,6 +270,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 cancellation_token = CancellationToken()
             content = message.__dict__ if hasattr(message, "__dict__") else message
             logger.info(f"Publishing message of type {type(message).__name__} to all subscribers: {content}")
+
+            if message_id is None:
+                message_id = str(uuid.uuid4())
 
             # event_logger.info(
             #     MessageEvent(
@@ -285,6 +291,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     sender=sender,
                     topic_id=topic_id,
                     metadata=get_telemetry_envelope_metadata(),
+                    message_id=message_id,
                 )
             )
 
@@ -327,6 +334,8 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     topic_id=None,
                     is_rpc=True,
                     cancellation_token=message_envelope.cancellation_token,
+                    # Will be fixed when send API removed
+                    message_id="NOT_DEFINED_TODO_FIX",
                 )
                 with MessageHandlerContext.populate_context(recipient_agent.id):
                     response = await recipient_agent.on_message(
@@ -385,6 +394,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                         topic_id=message_envelope.topic_id,
                         is_rpc=False,
                         cancellation_token=message_envelope.cancellation_token,
+                        message_id=message_envelope.message_id,
                     )
                     agent = await self._get_agent(agent_id)
 

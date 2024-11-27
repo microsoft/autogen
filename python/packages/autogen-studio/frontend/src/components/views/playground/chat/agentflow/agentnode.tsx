@@ -8,7 +8,7 @@ import {
   Bot,
   Flag,
 } from "lucide-react";
-import { ThreadStatus } from "../../../../types/datamodel";
+import { RunStatus } from "../../../../types/datamodel";
 
 export type NodeType = "agent" | "user" | "end";
 
@@ -18,7 +18,7 @@ export interface AgentNodeData {
   agentType?: string;
   description?: string;
   isActive?: boolean;
-  status?: ThreadStatus | null;
+  status?: RunStatus | null;
   reason?: string | null;
   draggable: boolean;
 }
@@ -54,7 +54,7 @@ function AgentNode({ data, isConnectable }: AgentNodeProps) {
         return <CheckCircle className="text-accent" size={24} />;
       case "error":
         return <AlertTriangle className="text-red-500" size={24} />;
-      case "cancelled":
+      case "stopped":
         return <StopCircle className="text-red-500" size={24} />;
       default:
         return null;
@@ -66,7 +66,7 @@ function AgentNode({ data, isConnectable }: AgentNodeProps) {
 
     if (data.type === "end") {
       return {
-        wrapper: `relative min-w-[120px] shadow rounded-lg overflow-hidden  ${activeStyles}`,
+        wrapper: `relative min-w-[180px] shadow rounded-lg overflow-hidden  ${activeStyles}`,
         border:
           data.status === "complete"
             ? "var(--accent)"
@@ -77,7 +77,7 @@ function AgentNode({ data, isConnectable }: AgentNodeProps) {
     }
 
     return {
-      wrapper: `min-w-[150px] rounded-lg shadow overflow-hidden ${activeStyles}`,
+      wrapper: `min-w-[180px] rounded-lg shadow overflow-hidden ${activeStyles}`,
       border: undefined,
     };
   };

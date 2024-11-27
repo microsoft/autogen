@@ -1,7 +1,6 @@
 import uuid
-from typing import TypeVar
 
-from ..base import AgentId, BaseAgent, Subscription, TopicId
+from ..base import AgentId, Subscription, TopicId
 from ..base.exceptions import CantHandleException
 
 
@@ -59,6 +58,3 @@ class TypeSubscription(Subscription):
             return False
 
         return self.id == other.id or (self.agent_type == other.agent_type and self.topic_type == other.topic_type)
-
-
-BaseAgentType = TypeVar("BaseAgentType", bound="BaseAgent")
