@@ -1,3 +1,4 @@
+import asyncio
 from abc import ABC, abstractmethod
 from typing import Any, List
 
@@ -78,7 +79,9 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
 
             # Relay the start message to the participants.
-            await self.publish_message(message, topic_id=DefaultTopicId(type=self._group_topic_type))
+            await self.publish_message(
+                message, topic_id=DefaultTopicId(type=self._group_topic_type), cancellation_token=ctx.cancellation_token
+            )
 
             # Append the user message to the message thread.
             self._message_thread.append(message.message)
@@ -95,8 +98,16 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                     await self._termination_condition.reset()
                     return
 
-        speaker_topic_type = await self.select_speaker(self._message_thread)
-        await self.publish_message(GroupChatRequestPublish(), topic_id=DefaultTopicId(type=speaker_topic_type))
+        # Select a speaker to start the conversation.
+        speaker_topic_type_future = asyncio.ensure_future(self.select_speaker(self._message_thread))
+        # Link the select speaker future to the cancellation token.
+        ctx.cancellation_token.link_future(speaker_topic_type_future)
+        speaker_topic_type = await speaker_topic_type_future
+        await self.publish_message(
+            GroupChatRequestPublish(),
+            topic_id=DefaultTopicId(type=speaker_topic_type),
+            cancellation_token=ctx.cancellation_token,
+        )
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
@@ -140,8 +151,15 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                 return
 
         # Select a speaker to continue the conversation.
-        speaker_topic_type = await self.select_speaker(self._message_thread)
-        await self.publish_message(GroupChatRequestPublish(), topic_id=DefaultTopicId(type=speaker_topic_type))
+        speaker_topic_type_future = asyncio.ensure_future(self.select_speaker(self._message_thread))
+        # Link the select speaker future to the cancellation token.
+        ctx.cancellation_token.link_future(speaker_topic_type_future)
+        speaker_topic_type = await speaker_topic_type_future
+        await self.publish_message(
+            GroupChatRequestPublish(),
+            topic_id=DefaultTopicId(type=speaker_topic_type),
+            cancellation_token=ctx.cancellation_token,
+        )
 
     @rpc
     async def handle_reset(self, message: GroupChatReset, ctx: MessageContext) -> None:
