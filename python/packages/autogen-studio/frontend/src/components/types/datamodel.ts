@@ -105,22 +105,15 @@ export type ThreadStatus =
   | "timeout";
 
 export interface WebSocketMessage {
-  type: "message" | "result" | "completion" | "input_request";
-  data?: {
-    source?: string;
-    models_usage?: RequestUsage | null;
-    content?: string;
-    task_result?: TaskResult;
-  };
-  status?: ThreadStatus;
+  type: "message" | "result" | "completion" | "input_request" | "error";
+  data?: AgentMessageConfig | TaskResult;
+  status?: RunStatus;
   error?: string;
   timestamp?: string;
 }
 
 export interface TaskResult {
   messages: AgentMessageConfig[];
-  usage: string;
-  duration: number;
   stop_reason?: string;
 }
 
@@ -187,3 +180,36 @@ export interface TeamConfig extends BaseConfig {
 export interface Team extends DBModel {
   config: TeamConfig;
 }
+
+export interface TeamResult {
+  task_result: TaskResult;
+  usage: string;
+  duration: number;
+}
+
+export interface Run {
+  id: string;
+  created_at: string;
+  status: RunStatus;
+  task: AgentMessageConfig;
+  team_result: TeamResult | null;
+  messages: Message[]; // Change to Message[]
+  error_message?: string;
+}
+
+// Separate transient state
+interface TransientRunState {
+  pendingInput?: {
+    prompt: string;
+    isPending: boolean;
+  };
+}
+
+export type RunStatus =
+  | "created"
+  | "active" // covers 'streaming'
+  | "awaiting_input"
+  | "timeout"
+  | "complete"
+  | "error"
+  | "stopped";

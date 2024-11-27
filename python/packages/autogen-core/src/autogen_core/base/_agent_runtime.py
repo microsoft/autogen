@@ -55,6 +55,7 @@ class AgentRuntime(Protocol):
         *,
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
+        message_id: str | None = None,
     ) -> None:
         """Publish a message to all agents in the given namespace, or if no namespace is provided, the namespace of the sender.
 
@@ -64,7 +65,8 @@ class AgentRuntime(Protocol):
             message (Any): The message to publish.
             topic (TopicId): The topic to publish the message to.
             sender (AgentId | None, optional): The agent which sent the message. Defaults to None.
-            cancellation_token (CancellationToken | None, optional): Token used to cancel an in progress . Defaults to None.
+            cancellation_token (CancellationToken | None, optional): Token used to cancel an in progress. Defaults to None.
+            message_id (str | None, optional): The message id. If None, a new message id will be generated. Defaults to None. This message id must be unique. and is recommended to be a UUID.
 
         Raises:
             UndeliverableException: If the message cannot be delivered.
@@ -89,19 +91,6 @@ class AgentRuntime(Protocol):
             agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type. Inside the factory, use `autogen_core.base.AgentInstantiationContext` to access variables like the current runtime and agent ID.
             subscriptions (Callable[[], list[Subscription]] | list[Subscription] | None, optional): The subscriptions that the agent should be subscribed to. Defaults to None.
 
-        Example:
-            .. code-block:: python
-
-                runtime.register(
-                    "chat_agent",
-                    lambda: ChatCompletionAgent(
-                        description="A generic chat agent.",
-                        system_messages=[SystemMessage("You are a helpful assistant")],
-                        model_client=OpenAIChatCompletionClient(model="gpt-4o"),
-                        memory=BufferedChatMemory(buffer_size=10),
-                    ),
-                )
-
         """
         ...
 
@@ -117,20 +106,6 @@ class AgentRuntime(Protocol):
         Args:
             type (str): The type of agent this factory creates. It is not the same as agent class name. The `type` parameter is used to differentiate between different factory functions rather than agent classes.
             agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type. Inside the factory, use `autogen_core.base.AgentInstantiationContext` to access variables like the current runtime and agent ID.
-
-        Example:
-            .. code-block:: python
-
-                runtime.register(
-                    "chat_agent",
-                    lambda: ChatCompletionAgent(
-                        description="A generic chat agent.",
-                        system_messages=[SystemMessage("You are a helpful assistant")],
-                        model_client=OpenAIChatCompletionClient(model="gpt-4o"),
-                        memory=BufferedChatMemory(buffer_size=10),
-                    ),
-                )
-
         """
         ...
 

@@ -1,5 +1,5 @@
 import time
-from typing import Sequence, List
+from typing import List, Sequence
 
 from ..base import TerminatedException, TerminationCondition
 from ..messages import AgentMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
@@ -217,6 +217,8 @@ class ExternalTermination(TerminationCondition):
     Example:
 
     .. code-block:: python
+
+        from autogen_agentchat.task import ExternalTermination
 
         termination = ExternalTermination()
 

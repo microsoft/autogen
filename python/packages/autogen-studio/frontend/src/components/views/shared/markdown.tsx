@@ -1,20 +1,18 @@
+import React, { ReactNode } from "react";
 import Markdown from "react-markdown";
-import React from "react";
 
 interface MarkdownViewProps {
-  children: string;
+  content: string;
   className?: string;
 }
 
 export const MarkdownView: React.FC<MarkdownViewProps> = ({
-  children,
+  content,
   className = "",
 }) => {
   return (
-    <div
-      className={`text-sm w-full prose dark:prose-invert text-primary rounded p-2 ${className}`}
-    >
-      <Markdown>{children}</Markdown>
+    <div className={`text-sm w-full text-primary rounded   ${className}`}>
+      <Markdown>{content}</Markdown>
     </div>
   );
 };

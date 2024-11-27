@@ -1,10 +1,10 @@
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Literal, Optional, Union
 
+from autogen_agentchat.base import TaskResult
 from pydantic import BaseModel
-from autogen_agentchat.base._task import TaskResult
 
 
 class ModelTypes(str, Enum):
@@ -30,9 +30,10 @@ class TerminationTypes(str, Enum):
     MAX_MESSAGES = "MaxMessageTermination"
     STOP_MESSAGE = "StopMessageTermination"
     TEXT_MENTION = "TextMentionTermination"
+    COMBINATION = "CombinationTermination"
 
 
-class ComponentType(str, Enum):
+class ComponentTypes(str, Enum):
     TEAM = "team"
     AGENT = "agent"
     MODEL = "model"
@@ -43,7 +44,7 @@ class ComponentType(str, Enum):
 class BaseConfig(BaseModel):
     model_config = {"protected_namespaces": ()}
     version: str = "1.0.0"
-    component_type: ComponentType
+    component_type: ComponentTypes
 
 
 class MessageConfig(BaseModel):
@@ -57,7 +58,7 @@ class ModelConfig(BaseConfig):
     model_type: ModelTypes
     api_key: Optional[str] = None
     base_url: Optional[str] = None
-    component_type: ComponentType = ComponentType.MODEL
+    component_type: ComponentTypes = ComponentTypes.MODEL
 
 
 class ToolConfig(BaseConfig):
@@ -65,7 +66,7 @@ class ToolConfig(BaseConfig):
     description: str
     content: str
     tool_type: ToolTypes
-    component_type: ComponentType = ComponentType.TOOL
+    component_type: ComponentTypes = ComponentTypes.TOOL
 
 
 class AgentConfig(BaseConfig):
@@ -75,7 +76,7 @@ class AgentConfig(BaseConfig):
     model_client: Optional[ModelConfig] = None
     tools: Optional[List[ToolConfig]] = None
     description: Optional[str] = None
-    component_type: ComponentType = ComponentType.AGENT
+    component_type: ComponentTypes = ComponentTypes.AGENT
     headless: Optional[bool] = None
     logs_dir: Optional[str] = None
     to_save_screenshots: Optional[bool] = None
@@ -85,9 +86,13 @@ class AgentConfig(BaseConfig):
 
 class TerminationConfig(BaseConfig):
     termination_type: TerminationTypes
+    # Fields for basic terminations
     max_messages: Optional[int] = None
     text: Optional[str] = None
-    component_type: ComponentType = ComponentType.TERMINATION
+    # Fields for combinations
+    operator: Optional[Literal["and", "or"]] = None
+    conditions: Optional[List["TerminationConfig"]] = None
+    component_type: ComponentTypes = ComponentTypes.TERMINATION
 
 
 class TeamConfig(BaseConfig):
@@ -97,7 +102,7 @@ class TeamConfig(BaseConfig):
     model_client: Optional[ModelConfig] = None
     selector_prompt: Optional[str] = None
     termination_condition: Optional[TerminationConfig] = None
-    component_type: ComponentType = ComponentType.TEAM
+    component_type: ComponentTypes = ComponentTypes.TEAM
 
 
 class TeamResult(BaseModel):
@@ -131,6 +136,7 @@ class SocketMessage(BaseModel):
     type: str
 
 
-ComponentConfig = Union[TeamConfig, AgentConfig, ModelConfig, ToolConfig, TerminationConfig]
+ComponentConfig = Union[TeamConfig, AgentConfig,
+                        ModelConfig, ToolConfig, TerminationConfig]
 
 ComponentConfigInput = Union[str, Path, dict, ComponentConfig]
