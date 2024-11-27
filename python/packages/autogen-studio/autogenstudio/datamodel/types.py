@@ -136,7 +136,6 @@ class SocketMessage(BaseModel):
     type: str
 
 
-ComponentConfig = Union[TeamConfig, AgentConfig,
-                        ModelConfig, ToolConfig, TerminationConfig]
+ComponentConfig = Union[TeamConfig, AgentConfig, ModelConfig, ToolConfig, TerminationConfig]
 
 ComponentConfigInput = Union[str, Path, dict, ComponentConfig]
