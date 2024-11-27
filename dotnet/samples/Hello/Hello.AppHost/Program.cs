@@ -8,6 +8,7 @@ var backend = builder.AddProject<Projects.Backend>("backend").WithExternalHttpEn
 builder.AddProject<Projects.HelloAgent>("client")
     .WithReference(backend)
     .WithEnvironment("AGENT_HOST", $"{backend.GetEndpoint("https").Property(EndpointProperty.Url)}")
+    .WithEnvironment("STAY_ALIVE_ON_GOODBYE", "true")
     .WaitFor(backend);
 
 using var app = builder.Build();
