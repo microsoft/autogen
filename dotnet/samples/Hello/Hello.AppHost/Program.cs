@@ -5,13 +5,13 @@ using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 var backend = builder.AddProject<Projects.Backend>("backend").WithExternalHttpEndpoints();
-var client = builder.AddProject<Projects.HelloAgent>("client")
+var client = builder.AddProject<Projects.HelloAgent>("HelloAgentsDotNET")
     .WithReference(backend)
     .WithEnvironment("AGENT_HOST", $"{backend.GetEndpoint("https").Property(EndpointProperty.Url)}")
     .WithEnvironment("STAY_ALIVE_ON_GOODBYE", "true")
     .WaitFor(backend);
 #pragma warning disable ASPIREHOSTINGPYTHON001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
-builder.AddPythonApp("hello-python", "../HelloPythonAgent", "hello_python_agent.py", "../../../../python/.venv")
+builder.AddPythonApp("HelloAgentsPython", "../HelloPythonAgent", "hello_python_agent.py", "../../../../python/.venv")
     .WithReference(backend)
     .WithEnvironment("AGENT_HOST", $"{backend.GetEndpoint("http").Property(EndpointProperty.Url)}")
     .WithEnvironment("STAY_ALIVE_ON_GOODBYE", "true")
