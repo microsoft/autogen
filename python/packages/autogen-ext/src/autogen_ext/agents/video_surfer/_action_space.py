@@ -3,6 +3,8 @@ import ffmpeg
 import cv2
 import whisper
 import openai
+import yt_dlp
+
 
 def extract_audio(video_path: str, audio_output_path: str) -> str:
     """
@@ -19,6 +21,26 @@ def extract_audio(video_path: str, audio_output_path: str) -> str:
         .run(quiet=True, overwrite_output=True)
     )
     return f"Audio extracted and saved to {audio_output_path}."
+
+def download_youtube_video(url: str, output_path: str) -> str:
+    """
+    Downloads a YouTube video and saves it locally.
+
+    :param url: URL of the YouTube video.
+    :param output_path: Path to save the downloaded video.
+    :return: Confirmation message with the path to the saved video file.
+    """
+    ydl_opts = {
+        'outtmpl': output_path,
+        'format': 'best'
+    }
+    
+    try:
+        with yt_dlp.YoutubeDL(ydl_opts) as ydl:
+            ydl.download([url])
+        return f"Video downloaded and saved to {output_path}"
+    except Exception as e:
+        return f"An error occurred: {e}"
 
 def transcribe_audio_with_timestamps(audio_path: str) -> str:
     """

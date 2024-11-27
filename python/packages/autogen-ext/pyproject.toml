@@ -38,6 +38,7 @@ video-surfer = [
     "opencv-python>=4.5",
     "ffmpeg-python",
     "openai-whisper",
+    "yt-dlp",
 ]
 
 [tool.hatch.build.targets.wheel]
