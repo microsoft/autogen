@@ -7,7 +7,8 @@ resolution-markers = [
     "python_full_version < '3.11'",
     "python_full_version == '3.11.*'",
     "python_full_version >= '3.12' and python_full_version < '3.12.4'",
-    "python_full_version >= '3.12.4'",
+    "python_full_version < '3.13'",
+    "python_full_version >= '3.13'",
 ]
 
 [manifest]
@@ -346,6 +347,7 @@ source = { editable = "packages/autogen-core" }
 dependencies = [
     { name = "aiohttp" },
     { name = "asyncio-atexit" },
+    { name = "grpcio" },
     { name = "jsonref" },
     { name = "openai" },
     { name = "opentelemetry-api" },
@@ -407,13 +409,14 @@ dev = [
 requires-dist = [
     { name = "aiohttp" },
     { name = "asyncio-atexit" },
+    { name = "grpcio", specifier = "~=1.62.0" },
     { name = "grpcio", marker = "extra == 'grpc'", specifier = "~=1.62.0" },
     { name = "jsonref", specifier = "~=1.1.0" },
     { name = "openai", specifier = ">=1.3" },
     { name = "opentelemetry-api", specifier = "~=1.27.0" },
     { name = "pillow" },
     { name = "protobuf", specifier = "~=4.25.1" },
-    { name = "pydantic", specifier = ">=2.0.0,<3.0.0" },
+    { name = "pydantic", specifier = "<3.0.0,>=2.0.0" },
     { name = "tiktoken" },
     { name = "typing-extensions" },
 ]
@@ -562,7 +565,7 @@ requires-dist = [
     { name = "pdfminer-six" },
     { name = "playwright" },
     { name = "puremagic" },
-    { name = "pydantic", specifier = ">=2.0.0,<3.0.0" },
+    { name = "pydantic", specifier = "<3.0.0,>=2.0.0" },
     { name = "pydub" },
     { name = "python-pptx" },
     { name = "requests" },
@@ -3313,7 +3316,7 @@ name = "psycopg"
 version = "3.2.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "typing-extensions" },
+    { name = "typing-extensions", marker = "python_full_version < '3.13'" },
     { name = "tzdata", marker = "sys_platform == 'win32'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/d1/ad/7ce016ae63e231575df0498d2395d15f005f05e32d3a2d439038e1bd0851/psycopg-3.2.3.tar.gz", hash = "sha256:a5764f67c27bec8bfac85764d23c534af2c27b893550377e37ce59c12aac47a2", size = 155550 }
@@ -4327,7 +4330,7 @@ name = "sqlalchemy"
 version = "2.0.36"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "greenlet", marker = "platform_machine == 'AMD64' or platform_machine == 'WIN32' or platform_machine == 'aarch64' or platform_machine == 'amd64' or platform_machine == 'ppc64le' or platform_machine == 'win32' or platform_machine == 'x86_64'" },
+    { name = "greenlet", marker = "(python_full_version < '3.13' and platform_machine == 'AMD64') or (python_full_version < '3.13' and platform_machine == 'WIN32') or (python_full_version < '3.13' and platform_machine == 'aarch64') or (python_full_version < '3.13' and platform_machine == 'amd64') or (python_full_version < '3.13' and platform_machine == 'ppc64le') or (python_full_version < '3.13' and platform_machine == 'win32') or (python_full_version < '3.13' and platform_machine == 'x86_64')" },
     { name = "typing-extensions" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/50/65/9cbc9c4c3287bed2499e05033e207473504dc4df999ce49385fb1f8b058a/sqlalchemy-2.0.36.tar.gz", hash = "sha256:7f2767680b6d2398aea7082e45a774b2b0767b5c8d8ffb9c8b683088ea9b29c5", size = 9574485 }
