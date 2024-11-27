@@ -32,8 +32,8 @@ from _semantic_router_components import (
     WorkerAgentMessage,
 )
 from autogen_core.application import WorkerAgentRuntime
-from autogen_core.base import AgentId, AgentRuntime, MessageContext
-from autogen_core.components import ClosureAgent, DefaultSubscription, DefaultTopicId
+from autogen_core.base import MessageContext
+from autogen_core.components import ClosureAgent, ClosureContext, DefaultSubscription, DefaultTopicId
 
 
 class MockIntentClassifier(IntentClassifierBase):
@@ -60,12 +60,12 @@ class MockAgentRegistry(AgentRegistryBase):
 
 
 async def output_result(
-    _runtime: AgentRuntime, id: AgentId, message: WorkerAgentMessage | FinalResult, ctx: MessageContext
+    closure_ctx: ClosureContext, message: WorkerAgentMessage | FinalResult, ctx: MessageContext
 ) -> None:
     if isinstance(message, WorkerAgentMessage):
         print(f"{message.source} Agent: {message.content}")
         new_message = input("User response: ")
-        await _runtime.publish_message(
+        await closure_ctx.publish_message(
             UserProxyMessage(content=new_message, source="user"),
             topic_id=DefaultTopicId(type=message.source, source="user"),
         )
@@ -73,7 +73,7 @@ async def output_result(
         print(f"{message.source} Agent: {message.content}")
         print("Conversation ended")
         new_message = input("Enter a new conversation start: ")
-        await _runtime.publish_message(
+        await closure_ctx.publish_message(
             UserProxyMessage(content=new_message, source="user"), topic_id=DefaultTopicId(type="default", source="user")
         )
 
@@ -95,7 +95,7 @@ async def run_workers():
     await agent_runtime.add_subscription(DefaultSubscription(topic_type="user_proxy", agent_type="user_proxy"))
 
     # A closure agent surfaces the final result to external systems (e.g. an API) so that the system can interact with the user
-    await ClosureAgent.register(
+    await ClosureAgent.register_closure(
         agent_runtime,
         "closure_agent",
         output_result,

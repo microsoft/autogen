@@ -15,7 +15,7 @@ def ui(
     host: str = "127.0.0.1",
     port: int = 8081,
     workers: int = 1,
-    reload: Annotated[bool, typer.Option("--reload")] = True,
+    reload: Annotated[bool, typer.Option("--reload")] = False,
     docs: bool = True,
     appdir: str = None,
     database_uri: Optional[str] = None,
@@ -48,11 +48,7 @@ def ui(
         port=port,
         workers=workers,
         reload=reload,
-        reload_excludes=[
-            "**/alembic/*",
-            "**/alembic.ini",
-            "**/versions/*"
-        ] if reload else None
+        reload_excludes=["**/alembic/*", "**/alembic.ini", "**/versions/*"] if reload else None,
     )
 
 

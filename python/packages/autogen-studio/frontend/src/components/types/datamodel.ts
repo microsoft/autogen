@@ -6,6 +6,7 @@ export interface RequestUsage {
 export interface ImageContent {
   url: string;
   alt?: string;
+  data?: string;
 }
 
 export interface FunctionCall {
@@ -95,38 +96,25 @@ export interface BaseConfig {
   version?: string;
 }
 
-// WebSocket message types
-export type ThreadStatus =
-  | "streaming"
-  | "complete"
-  | "error"
-  | "cancelled"
-  | "awaiting_input"
-  | "timeout";
-
 export interface WebSocketMessage {
-  type: "message" | "result" | "completion" | "input_request";
-  data?: {
-    source?: string;
-    models_usage?: RequestUsage | null;
-    content?: string;
-    task_result?: TaskResult;
-  };
-  status?: ThreadStatus;
+  type: "message" | "result" | "completion" | "input_request" | "error";
+  data?: AgentMessageConfig | TaskResult;
+  status?: RunStatus;
   error?: string;
   timestamp?: string;
 }
 
 export interface TaskResult {
   messages: AgentMessageConfig[];
-  usage: string;
-  duration: number;
   stop_reason?: string;
 }
 
 export type ModelTypes = "OpenAIChatCompletionClient";
 
-export type AgentTypes = "AssistantAgent" | "CodingAssistantAgent";
+export type AgentTypes =
+  | "AssistantAgent"
+  | "CodingAssistantAgent"
+  | "MultimodalWebSurfer";
 
 export type TeamTypes = "RoundRobinGroupChat" | "SelectorGroupChat";
 
@@ -187,3 +175,28 @@ export interface TeamConfig extends BaseConfig {
 export interface Team extends DBModel {
   config: TeamConfig;
 }
+
+export interface TeamResult {
+  task_result: TaskResult;
+  usage: string;
+  duration: number;
+}
+
+export interface Run {
+  id: string;
+  created_at: string;
+  status: RunStatus;
+  task: AgentMessageConfig;
+  team_result: TeamResult | null;
+  messages: Message[]; // Change to Message[]
+  error_message?: string;
+}
+
+export type RunStatus =
+  | "created"
+  | "active" // covers 'streaming'
+  | "awaiting_input"
+  | "timeout"
+  | "complete"
+  | "error"
+  | "stopped";

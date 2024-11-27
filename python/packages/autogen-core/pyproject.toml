@@ -25,6 +25,7 @@ dependencies = [
     "opentelemetry-api~=1.27.0",
     "asyncio_atexit",
     "jsonref~=1.1.0",
+    "grpcio~=1.62.0", # TODO: update this once we have a stable version.
 ]
 
 [project.optional-dependencies]
@@ -92,7 +93,7 @@ include = ["src/**", "samples/*.py", "docs/**/*.ipynb", "tests/**"]
 extends = "../../pyproject.toml"
 include = ["src", "tests", "samples"]
 exclude = ["src/autogen_core/application/protos", "tests/protos"]
-reportDeprecated = false
+reportDeprecated = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"
