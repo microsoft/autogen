@@ -15,8 +15,8 @@ from ._cancellation_token import CancellationToken
 from ._message_context import MessageContext
 from ._message_handler_context import MessageHandlerContext
 from ._serialization import (
-    PROTOBUF_DATA_CONTENT_TYPE,
     JSON_DATA_CONTENT_TYPE,
+    PROTOBUF_DATA_CONTENT_TYPE,
     MessageSerializer,
     SerializationRegistry,
     UnknownPayload,
