@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 
-namespace Microsoft.AutoGen.Abstractions;
+namespace Microsoft.AutoGen.Core;
 
 public interface IAgentRuntime
 {

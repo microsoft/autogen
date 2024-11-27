@@ -2,10 +2,10 @@
 // AgentRuntime.cs
 
 using System.Diagnostics;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Client;
 
 internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger<AgentBase> logger, DistributedContextPropagator distributedContextPropagator) : IAgentRuntime
 {

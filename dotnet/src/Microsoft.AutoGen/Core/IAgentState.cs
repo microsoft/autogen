@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IAgentState.cs
 
-namespace Microsoft.AutoGen.Abstractions;
+namespace Microsoft.AutoGen.Core;
 
 /// <summary>
 /// Interface for managing the state of an agent.

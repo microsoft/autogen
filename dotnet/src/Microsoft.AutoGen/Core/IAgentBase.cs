@@ -3,7 +3,7 @@
 
 using Google.Protobuf;
 
-namespace Microsoft.AutoGen.Abstractions;
+namespace Microsoft.AutoGen.Core;
 
 public interface IAgentBase
 {

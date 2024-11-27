@@ -6,12 +6,12 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Client;
 
 public static class HostBuilderExtensions
 {
@@ -63,7 +63,7 @@ public static class HostBuilderExtensions
                                     .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase)) && !type.IsAbstract)
                                     .Select(t => (t, t.GetInterfaces()
                                                   .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
-                                                  .Select(i => (GetMessageDescriptor(i.GetGenericArguments().First())?.FullName ?? "")).ToHashSet()))
+                                                  .Select(i => GetMessageDescriptor(i.GetGenericArguments().First())?.FullName ?? "").ToHashSet()))
                                     .ToDictionary(item => item.t, item => item.Item2);
             // if the assembly contains any interfaces of type IHandler, then add all the methods of the interface to the eventsMap
             var handlersMap = AppDomain.CurrentDomain.GetAssemblies()
@@ -71,7 +71,7 @@ public static class HostBuilderExtensions
                                     .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase)) && !type.IsAbstract)
                                     .Select(t => (t, t.GetMethods()
                                                   .Where(m => m.Name == "Handle")
-                                                  .Select(m => (GetMessageDescriptor(m.GetParameters().First().ParameterType)?.FullName ?? "")).ToHashSet()))
+                                                  .Select(m => GetMessageDescriptor(m.GetParameters().First().ParameterType)?.FullName ?? "").ToHashSet()))
                                     .ToDictionary(item => item.t, item => item.Item2);
             // get interfaces implemented by the agent and get the methods of the interface if they are named Handle
             var ifaceHandlersMap = AppDomain.CurrentDomain.GetAssemblies()
@@ -80,7 +80,7 @@ public static class HostBuilderExtensions
                                     .Select(t => t.GetInterfaces()
                                                   .Select(i => (t, i, i.GetMethods()
                                                   .Where(m => m.Name == "Handle")
-                                                    .Select(m => (GetMessageDescriptor(m.GetParameters().First().ParameterType)?.FullName ?? ""))
+                                                    .Select(m => GetMessageDescriptor(m.GetParameters().First().ParameterType)?.FullName ?? "")
                                                     //to dictionary of type t and paramter type of the method
                                                     .ToDictionary(m => m, m => m).Keys.ToHashSet())).ToList());
             // for each item in ifaceHandlersMap, add the handlers to eventsMap with item as the key 

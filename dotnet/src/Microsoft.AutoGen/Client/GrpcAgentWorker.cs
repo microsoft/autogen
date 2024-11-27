@@ -6,12 +6,12 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Threading.Channels;
 using Grpc.Core;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Client;
 
 public sealed class GrpcAgentWorker(
     AgentRpc.AgentRpcClient client,
@@ -102,7 +102,7 @@ public sealed class GrpcAgentWorker(
 
                             foreach (var (typeName, _) in _agentTypes)
                             {
-                                var agent = GetOrActivateAgent(new AgentId(typeName, item.Source));
+                                var agent = GetOrActivateAgent(new AgentId{ Type = typeName, Key = item.Source });
                                 agent.ReceiveMessage(message);
                             }
 

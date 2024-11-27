@@ -4,12 +4,12 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Threading.Channels;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Client;
 
 public class AgentWorker :
      IHostedService,
@@ -50,7 +50,7 @@ public class AgentWorker :
         foreach (var (typeName, _) in _agentTypes)
         {
             if (typeName == nameof(Client)) { continue; }
-            var agent = GetOrActivateAgent(new AgentId(typeName, cloudEvent.Source));
+            var agent = GetOrActivateAgent(new AgentId { Type = typeName, Key = cloudEvent.Source });
             agent.ReceiveMessage(new Message { CloudEvent = cloudEvent });
         }
     }
@@ -104,7 +104,7 @@ public class AgentWorker :
 
                         foreach (var (typeName, _) in _agentTypes)
                         {
-                            var agentToInvoke = GetOrActivateAgent(new AgentId(typeName, item.Source));
+                            var agentToInvoke = GetOrActivateAgent(new AgentId { Type = typeName, Key = item.Source });
                             agentToInvoke.ReceiveMessage(msg);
                         }
                         break;

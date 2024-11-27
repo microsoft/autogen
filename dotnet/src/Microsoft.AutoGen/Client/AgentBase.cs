@@ -7,10 +7,10 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 using Google.Protobuf;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Client;
 
 public abstract class AgentBase : IAgentBase, IHandle
 {
@@ -34,7 +34,7 @@ public abstract class AgentBase : IAgentBase, IHandle
     {
         _runtime = runtime;
         runtime.AgentInstance = this;
-        this.EventTypes = eventTypes;
+        EventTypes = eventTypes;
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();
         var subscriptionRequest = new AddSubscriptionRequest
         {
@@ -43,8 +43,8 @@ public abstract class AgentBase : IAgentBase, IHandle
             {
                 TypeSubscription = new TypeSubscription
                 {
-                    AgentType = this.AgentId.Type,
-                    TopicType = this.AgentId.Type + "/" + this.AgentId.Key
+                    AgentType = AgentId.Type,
+                    TopicType = AgentId.Type + "/" + AgentId.Key
                 }
             }
         };
@@ -106,7 +106,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                 {
                     var activity = this.ExtractActivity(msg.CloudEvent.Type, msg.CloudEvent.Metadata);
                     await this.InvokeWithActivityAsync(
-                        static ((AgentBase Agent, CloudEvent Item) state, CancellationToken _) => state.Agent.CallHandler(state.Item),
+                        static (state, item) => state.Item1.CallHandler(state.CloudEvent),
                         (this, msg.CloudEvent),
                         activity,
                         msg.CloudEvent.Type, cancellationToken).ConfigureAwait(false);
@@ -116,7 +116,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                 {
                     var activity = this.ExtractActivity(msg.Request.Method, msg.Request.Metadata);
                     await this.InvokeWithActivityAsync(
-                        static ((AgentBase Agent, RpcRequest Request) state, CancellationToken ct) => state.Agent.OnRequestCoreAsync(state.Request, ct),
+                        static (state, ct) => state.Item1.OnRequestCoreAsync(state.Request, ct),
                         (this, msg.Request),
                         activity,
                         msg.Request.Method, cancellationToken).ConfigureAwait(false);
@@ -139,7 +139,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                     TypeSubscription = new TypeSubscription
                     {
                         TopicType = topic,
-                        AgentType = this.AgentId.Key
+                        AgentType = AgentId.Key
                     }
                 }
             }
@@ -210,7 +210,7 @@ public abstract class AgentBase : IAgentBase, IHandle
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
         _runtime.Update(request, activity);
         await this.InvokeWithActivityAsync(
-            static async ((AgentBase Agent, RpcRequest Request, TaskCompletionSource<RpcResponse>) state, CancellationToken ct) =>
+            static async (state, ct) =>
             {
                 var (self, request, completion) = state;
 
@@ -219,7 +219,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                     self._pendingRequests[request.RequestId] = completion;
                 }
 
-                await state.Agent._runtime.SendRequestAsync(state.Agent, state.Request).ConfigureAwait(false);
+                await state.Item1._runtime.SendRequestAsync(state.Item1, state.request).ConfigureAwait(false);
 
                 await completion.Task.ConfigureAwait(false);
             },
@@ -233,7 +233,7 @@ public abstract class AgentBase : IAgentBase, IHandle
 
     public async ValueTask PublishMessageAsync<T>(T message, string? source = null, CancellationToken token = default) where T : IMessage
     {
-        var src = string.IsNullOrWhiteSpace(source) ? this.AgentId.Key : source;
+        var src = string.IsNullOrWhiteSpace(source) ? AgentId.Key : source;
         var evt = message.ToCloudEvent(src);
         await PublishEventAsync(evt, token).ConfigureAwait(false);
     }
@@ -246,9 +246,9 @@ public abstract class AgentBase : IAgentBase, IHandle
         // TODO: fix activity
         _runtime.Update(item, activity);
         await this.InvokeWithActivityAsync(
-            static async ((AgentBase Agent, CloudEvent Event) state, CancellationToken ct) =>
+            static async (state, ct) =>
             {
-                await state.Agent._runtime.PublishEventAsync(state.Event).ConfigureAwait(false);
+                await state.Item1._runtime.PublishEventAsync(state.item).ConfigureAwait(false);
             },
             (this, item),
             activity,
@@ -271,7 +271,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                 try
                 {
                     // check that our target actually implements this interface, otherwise call the default static
-                    if (genericInterfaceType.IsAssignableFrom(this.GetType()))
+                    if (genericInterfaceType.IsAssignableFrom(GetType()))
                     {
                         methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle), BindingFlags.Public | BindingFlags.Instance)
                                        ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
@@ -300,7 +300,7 @@ public abstract class AgentBase : IAgentBase, IHandle
     public virtual Task HandleObject(object item)
     {
         // get all Handle<T> methods
-        var handleTMethods = this.GetType().GetMethods().Where(m => m.Name == "Handle" && m.GetParameters().Length == 1).ToList();
+        var handleTMethods = GetType().GetMethods().Where(m => m.Name == "Handle" && m.GetParameters().Length == 1).ToList();
 
         // get the one that matches the type of the item
         var handleTMethod = handleTMethods.FirstOrDefault(m => m.GetParameters()[0].ParameterType == item.GetType());

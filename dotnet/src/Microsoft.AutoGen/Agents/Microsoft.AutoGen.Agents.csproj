@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
 		<TargetFramework>net8.0</TargetFramework>
@@ -10,7 +10,6 @@
 
 
 	<ItemGroup>
-		<ProjectReference Include="..\Abstractions\Microsoft.AutoGen.Abstractions.csproj" />
 		<ProjectReference Include="..\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj" />
 	</ItemGroup>
 

@@ -3,11 +3,11 @@
 
 using Grpc.Core;
 using Grpc.Net.Client.Configuration;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Client;
 
 public static class GrpcAgentWorkerHostBuilderExtensions
 {

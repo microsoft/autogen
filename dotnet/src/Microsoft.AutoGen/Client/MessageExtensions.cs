@@ -3,8 +3,9 @@
 
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
+using Microsoft.AutoGen.Core;
 
-namespace Microsoft.AutoGen.Abstractions;
+namespace Microsoft.AutoGen.Client;
 
 public static class MessageExtensions
 {
