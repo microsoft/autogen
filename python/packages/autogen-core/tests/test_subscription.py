@@ -27,7 +27,7 @@ def test_type_subscription_map() -> None:
 async def test_non_default_default_subscription() -> None:
     runtime = SingleThreadedAgentRuntime()
 
-    await runtime.register("MyAgent", LoopbackAgent)
+    await LoopbackAgent.register(runtime, "MyAgent", LoopbackAgent, skip_class_subscriptions=True)
     runtime.start()
     await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
     await runtime.stop_when_idle()

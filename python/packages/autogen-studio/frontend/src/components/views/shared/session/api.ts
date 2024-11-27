@@ -1,4 +1,4 @@
-import { Session } from "../../../types/datamodel";
+import { Session, SessionRuns } from "../../../types/datamodel";
 import { getServerUrl } from "../../../utils";
 
 export class SessionAPI {
@@ -81,6 +81,23 @@ export class SessionAPI {
     if (!data.status)
       throw new Error(data.message || "Failed to update session");
     return data.data;
+  }
+
+  // session runs with messages
+  async getSessionRuns(
+    sessionId: number,
+    userId: string
+  ): Promise<SessionRuns> {
+    const response = await fetch(
+      `${this.getBaseUrl()}/sessions/${sessionId}/runs?user_id=${userId}`,
+      {
+        headers: this.getHeaders(),
+      }
+    );
+    const data = await response.json();
+    if (!data.status)
+      throw new Error(data.message || "Failed to fetch session runs");
+    return data.data; // Returns { runs: RunMessage[] }
   }
 
   async deleteSession(sessionId: number, userId: string): Promise<void> {

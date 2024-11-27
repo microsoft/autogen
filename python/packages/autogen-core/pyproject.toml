@@ -92,7 +92,7 @@ include = ["src/**", "samples/*.py", "docs/**/*.ipynb", "tests/**"]
 extends = "../../pyproject.toml"
 include = ["src", "tests", "samples"]
 exclude = ["src/autogen_core/application/protos", "tests/protos"]
-reportDeprecated = false
+reportDeprecated = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"

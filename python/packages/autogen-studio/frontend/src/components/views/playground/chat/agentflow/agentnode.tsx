@@ -66,7 +66,7 @@ function AgentNode({ data, isConnectable }: AgentNodeProps) {
 
     if (data.type === "end") {
       return {
-        wrapper: `relative min-w-[120px] shadow rounded-lg overflow-hidden  ${activeStyles}`,
+        wrapper: `relative min-w-[180px] shadow rounded-lg overflow-hidden  ${activeStyles}`,
         border:
           data.status === "complete"
             ? "var(--accent)"
@@ -77,7 +77,7 @@ function AgentNode({ data, isConnectable }: AgentNodeProps) {
     }
 
     return {
-      wrapper: `min-w-[150px] rounded-lg shadow overflow-hidden ${activeStyles}`,
+      wrapper: `min-w-[180px] rounded-lg shadow overflow-hidden ${activeStyles}`,
       border: undefined,
     };
   };

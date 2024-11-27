@@ -58,9 +58,9 @@ const RenderToolCall: React.FC<{ content: FunctionCall[] }> = ({ content }) => (
     {content.map((call) => (
       <div key={call.id} className="border rounded p-2">
         <div className="font-medium">Function: {call.name}</div>
-        <pre className="text-sm mt-1 bg-secondary p-2 rounded">
+        <div className="text-sm mt-1 bg-secondary p-2 rounded">
           {JSON.stringify(JSON.parse(call.arguments), null, 2)}
-        </pre>
+        </div>
       </div>
     ))}
   </div>
@@ -90,9 +90,9 @@ const RenderToolResult: React.FC<{ content: FunctionExecutionResult[] }> = ({
 }) => (
   <div className="space-y-2">
     {content.map((result) => (
-      <div key={result.call_id} className="  rounded p-2">
+      <div key={result.call_id} className="  rounded p-2 ">
         <div className="font-medium">Result ID: {result.call_id}</div>
-        <pre className="text-sm mt-1 bg-secondary p-2 border rounded">
+        <pre className="text-sm mt-1 bg-secondary p-2 border rounded scroll overflow-x-scroll">
           {result.content}
         </pre>
       </div>
@@ -105,6 +105,7 @@ export const RenderMessage: React.FC<MessageProps> = ({
   isLast = false,
   className = "",
 }) => {
+  if (!message) return null;
   const isUser = messageUtils.isUser(message.source);
   const content = message.content;
 
