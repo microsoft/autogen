@@ -23,7 +23,8 @@ dependencies = [
     "pydantic-settings",
     "fastapi",
     "typer",
-    "uvicorn",
+    "uvicorn", 
+    "aiofiles",
     "python-dotenv",
     "websockets",
     "numpy < 2.0.0",
@@ -69,3 +70,21 @@ filterwarnings = [
 
 [project.scripts]
 autogenstudio = "autogenstudio.cli:run"
+
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+exclude = ["build", "dist"]
+include = [
+    "autogenstudio/**"
+]
+
+[tool.ruff.lint] 
+ignore = ["B008"] 
+
+
+[tool.poe.tasks]
+fmt = "ruff format"
+format.ref = "fmt"
+lint = "ruff check"
+test = "pytest -n 0"
