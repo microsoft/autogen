@@ -50,9 +50,9 @@ class ACADynamicSessionsCodeExecutor(CodeExecutor):
 
         This class requires the :code:`azure` extra for the :code:`autogen-ext` package:
 
-        ```bash
-        pip install 'autogen-ext[azure]==0.4.0.dev7'
-        ```
+        .. code-block:: bash
+
+            pip install 'autogen-ext[azure]==0.4.0.dev7'
 
 
     **This will execute LLM generated code on an Azure dynamic code container.**
