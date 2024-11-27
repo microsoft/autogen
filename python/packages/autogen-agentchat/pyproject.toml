@@ -29,6 +29,7 @@ include = ["src/**", "tests/*.py"]
 [tool.pyright]
 extends = "../../pyproject.toml"
 include = ["src", "tests"]
+reportDeprecated = true
 
 [tool.pytest.ini_options]
 minversion = "6.0"
