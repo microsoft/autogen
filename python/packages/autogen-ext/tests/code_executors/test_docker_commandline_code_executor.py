@@ -10,7 +10,7 @@ import pytest_asyncio
 from aiofiles import open
 from autogen_core.base import CancellationToken
 from autogen_core.components.code_executor import CodeBlock
-from autogen_ext.code_executors import DockerCommandLineCodeExecutor
+from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 
 
 def docker_tests_enabled() -> bool:
