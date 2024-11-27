@@ -17,7 +17,7 @@ agnext_logger = logging.getLogger("autogen_core")
 
 async def main() -> None:
     load_dotenv()
-    agentHost = os.getenv("AGENT_HOST") or "localhost:53072"
+    agentHost = os.getenv("AGENT_HOST") or "burger:53072"
     agnext_logger.info("0")
     agnext_logger.info(agentHost)
     runtime = WorkerAgentRuntime(host_address=agentHost)
