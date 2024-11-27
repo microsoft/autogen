@@ -5,8 +5,9 @@ from typing import Any, Callable, Dict, Optional, Union
 from uuid import UUID
 
 from autogen_agentchat.base._task import TaskResult
-from autogen_agentchat.messages import AgentMessage, ChatMessage, TextMessage
+from autogen_agentchat.messages import AgentMessage, ChatMessage, MultiModalMessage, TextMessage
 from autogen_core.base import CancellationToken
+from autogen_core.components import Image as AGImage
 from fastapi import WebSocket, WebSocketDisconnect
 
 from ...database import DatabaseManager
@@ -285,8 +286,19 @@ class WebSocketManager:
             Optional[dict]: Formatted message or None if formatting fails
         """
         try:
-            if isinstance(message, (AgentMessage, ChatMessage)):
+            if isinstance(message, MultiModalMessage):
+                message_dump = message.model_dump()
+                message_dump["content"] = [
+                    message_dump["content"][0],
+                    {
+                        "url": f"data:image/png;base64,{message_dump['content'][1]['data']}",
+                        "alt": "WebSurfer Screenshot",
+                    },
+                ]
+                return {"type": "message", "data": message_dump}
+            elif isinstance(message, (AgentMessage, ChatMessage)):
                 return {"type": "message", "data": message.model_dump()}
+
             elif isinstance(message, TeamResult):
                 return {
                     "type": "result",

@@ -16,6 +16,7 @@ from ._message_context import MessageContext
 from ._message_handler_context import MessageHandlerContext
 from ._serialization import (
     JSON_DATA_CONTENT_TYPE,
+    PROTOBUF_DATA_CONTENT_TYPE,
     MessageSerializer,
     SerializationRegistry,
     UnknownPayload,
@@ -43,6 +44,7 @@ __all__ = [
     "SubscriptionInstantiationContext",
     "MessageHandlerContext",
     "JSON_DATA_CONTENT_TYPE",
+    "PROTOBUF_DATA_CONTENT_TYPE",
     "MessageSerializer",
     "try_get_known_serializers_for_type",
     "UnknownPayload",
