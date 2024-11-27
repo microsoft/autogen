@@ -2,12 +2,14 @@ import asyncio
 import logging
 import os
 import sys
-thisdir=os.path.dirname(os.path.abspath(__file__))
+
+thisdir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(thisdir, "..", ".."))
 
 from autogen_core.application import WorkerAgentRuntime
 from protos.agent_events_pb2 import NewMessageReceived
-#from protos.agents_events_pb2 import NewMessageReceived
+
+# from protos.agents_events_pb2 import NewMessageReceived
 from autogen_core.base import AgentId, try_get_known_serializers_for_type
 from autogen_core.components import DefaultSubscription, DefaultTopicId
 
