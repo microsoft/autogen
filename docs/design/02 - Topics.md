@@ -51,3 +51,16 @@ Agents are able to handle certain types of messages. This is an internal detail 
 
 > [!NOTE]
 > This might be revisited based on scaling and performance considerations.
+
+## Well known topic types
+
+Agents should subscribe via a prefix subscription to the `{AgentType}:` topic as a direct message channel for the agent type.
+
+For this subscription source should map directly to agent key.
+
+This subscription will therefore receive all events for the following well known topics:
+
+- `{AgentType}:` - General purpose direct messages. These should be routed to the approriate message handler.
+- `{AgentType}:rpc_request` - RPC request messages. These should be routed to the approriate RPC handler.
+- `{AgentType}:rpc_response={RequestId}` - RPC response messages. These should be routed back to the response future of the caller.
+- `{AgentType}:error={RequestId}` - Error message that corresponds to the given request.
