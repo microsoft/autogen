@@ -1,11 +1,77 @@
-import React from "react";
-import { User, Bot } from "lucide-react";
+import React, { useState, memo } from "react";
+import { User, Bot, Maximize2, Minimize2 } from "lucide-react";
 import {
   AgentMessageConfig,
   FunctionCall,
   FunctionExecutionResult,
   ImageContent,
 } from "../../../types/datamodel";
+import { ClickableImage, TruncatableText } from "../../shared/atoms";
+
+const TEXT_THRESHOLD = 400;
+const JSON_THRESHOLD = 800;
+
+// Helper function to get image source from either format
+const getImageSource = (item: ImageContent): string => {
+  if (item.url) {
+    return item.url;
+  }
+  if (item.data) {
+    // Assume PNG if no type specified - we can enhance this later if needed
+    return `data:image/png;base64,${item.data}`;
+  }
+  // Fallback placeholder if neither url nor data is present
+  return "/api/placeholder/400/320";
+};
+
+const RenderMultiModal: React.FC<{ content: (string | ImageContent)[] }> = ({
+  content,
+}) => (
+  <div className="space-y-2">
+    {content.map((item, index) =>
+      typeof item === "string" ? (
+        <TruncatableText key={index} content={item} className="break-all" />
+      ) : (
+        <ClickableImage
+          key={index}
+          src={getImageSource(item)}
+          alt={item.alt || "Image"}
+          className="w-full h-auto rounded border border-secondary"
+        />
+      )
+    )}
+  </div>
+);
+const RenderToolCall: React.FC<{ content: FunctionCall[] }> = ({ content }) => (
+  <div className="space-y-2">
+    {content.map((call) => (
+      <div key={call.id} className="border rounded p-2">
+        <div className="font-medium">Function: {call.name}</div>
+        <TruncatableText
+          content={JSON.stringify(JSON.parse(call.arguments), null, 2)}
+          isJson={true}
+          className="text-sm mt-1 bg-secondary p-2 rounded"
+        />
+      </div>
+    ))}
+  </div>
+);
+
+const RenderToolResult: React.FC<{ content: FunctionExecutionResult[] }> = ({
+  content,
+}) => (
+  <div className="space-y-2">
+    {content.map((result) => (
+      <div key={result.call_id} className="rounded p-2">
+        <div className="font-medium">Result ID: {result.call_id}</div>
+        <TruncatableText
+          content={result.content}
+          className="text-sm mt-1 bg-secondary p-2 border rounded scroll overflow-x-scroll"
+        />
+      </div>
+    ))}
+  </div>
+);
 
 export const messageUtils = {
   isToolCallContent(content: unknown): content is FunctionCall[] {
@@ -25,7 +91,9 @@ export const messageUtils = {
     return content.every(
       (item) =>
         typeof item === "string" ||
-        (typeof item === "object" && item !== null && "url" in item)
+        (typeof item === "object" &&
+          item !== null &&
+          ("url" in item || "data" in item))
     );
   },
 
@@ -52,53 +120,6 @@ interface MessageProps {
   isLast?: boolean;
   className?: string;
 }
-
-const RenderToolCall: React.FC<{ content: FunctionCall[] }> = ({ content }) => (
-  <div className="space-y-2">
-    {content.map((call) => (
-      <div key={call.id} className="border rounded p-2">
-        <div className="font-medium">Function: {call.name}</div>
-        <div className="text-sm mt-1 bg-secondary p-2 rounded">
-          {JSON.stringify(JSON.parse(call.arguments), null, 2)}
-        </div>
-      </div>
-    ))}
-  </div>
-);
-
-const RenderMultiModal: React.FC<{ content: (string | ImageContent)[] }> = ({
-  content,
-}) => (
-  <div className="space-y-2">
-    {content.map((item, index) =>
-      typeof item === "string" ? (
-        <p key={index}>{item}</p>
-      ) : (
-        <img
-          key={index}
-          src={item.url}
-          alt={item.alt || ""}
-          className="max-w-full h-auto"
-        />
-      )
-    )}
-  </div>
-);
-
-const RenderToolResult: React.FC<{ content: FunctionExecutionResult[] }> = ({
-  content,
-}) => (
-  <div className="space-y-2">
-    {content.map((result) => (
-      <div key={result.call_id} className="  rounded p-2 ">
-        <div className="font-medium">Result ID: {result.call_id}</div>
-        <pre className="text-sm mt-1 bg-secondary p-2 border rounded scroll overflow-x-scroll">
-          {result.content}
-        </pre>
-      </div>
-    ))}
-  </div>
-);
 
 export const RenderMessage: React.FC<MessageProps> = ({
   message,
@@ -143,7 +164,10 @@ export const RenderMessage: React.FC<MessageProps> = ({
             ) : messageUtils.isFunctionExecutionResult(content) ? (
               <RenderToolResult content={content} />
             ) : (
-              <div className="whitespace-pre-wrap">{content}</div>
+              <TruncatableText
+                content={String(content)}
+                className="break-all"
+              />
             )}
           </div>
 
