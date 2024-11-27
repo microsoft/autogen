@@ -1,43 +1,45 @@
-import os
-from pathlib import Path
-from typing import Callable, List, Literal, Union, Optional, Dict, Any, Type
-from datetime import datetime
 import json
-from autogen_agentchat.task import MaxMessageTermination, TextMentionTermination, StopMessageTermination
-import yaml
 import logging
-from packaging import version
+from datetime import datetime
+from pathlib import Path
+from typing import Callable, Dict, List, Literal, Optional, Union
 
-from ..datamodel import (
-    TeamConfig, AgentConfig, ModelConfig, ToolConfig,
-    TeamTypes, AgentTypes, ModelTypes, ToolTypes,
-    ComponentType, ComponentConfig, ComponentConfigInput, TerminationConfig, TerminationTypes, Response
-)
-from ..components import UserProxyAgent
-from autogen_agentchat.agents import AssistantAgent
+import aiofiles
+import yaml
+from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
+from autogen_agentchat.task import MaxMessageTermination, StopMessageTermination, TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
-from autogen_ext.models import OpenAIChatCompletionClient
 from autogen_core.components.tools import FunctionTool
+from autogen_ext.models import OpenAIChatCompletionClient
+
+from ..datamodel.types import (
+    AgentConfig,
+    AgentTypes,
+    ComponentConfig,
+    ComponentConfigInput,
+    ComponentTypes,
+    ModelConfig,
+    ModelTypes,
+    TeamConfig,
+    TeamTypes,
+    TerminationConfig,
+    TerminationTypes,
+    ToolConfig,
+    ToolTypes,
+)
+from ..utils.utils import Version
 
 logger = logging.getLogger(__name__)
 
-# Type definitions for supported components
 TeamComponent = Union[RoundRobinGroupChat, SelectorGroupChat]
-AgentComponent = Union[AssistantAgent]  # Will grow with more agent types
-# Will grow with more model types
+AgentComponent = Union[AssistantAgent]
 ModelComponent = Union[OpenAIChatCompletionClient]
 ToolComponent = Union[FunctionTool]  # Will grow with more tool types
-TerminationComponent = Union[MaxMessageTermination,
-                             StopMessageTermination, TextMentionTermination]
+TerminationComponent = Union[MaxMessageTermination, StopMessageTermination, TextMentionTermination]
 
-# Config type definitions
+Component = Union[TeamComponent, AgentComponent, ModelComponent, ToolComponent, TerminationComponent]
 
-Component = Union[TeamComponent, AgentComponent, ModelComponent, ToolComponent]
-
-
-ReturnType = Literal['object', 'dict', 'config']
-Component = Union[RoundRobinGroupChat, SelectorGroupChat,
-                  AssistantAgent, OpenAIChatCompletionClient, FunctionTool]
+ReturnType = Literal["object", "dict", "config"]
 
 DEFAULT_SELECTOR_PROMPT = """You are in a role play game. The following roles are available:
 {roles}.
@@ -48,18 +50,18 @@ Read the following conversation. Then select the next role from {participants} t
 Read the above conversation. Then select the next role from {participants} to play. Only return the role.
 """
 
-CONFIG_RETURN_TYPES = Literal['object', 'dict', 'config']
+CONFIG_RETURN_TYPES = Literal["object", "dict", "config"]
 
 
 class ComponentFactory:
     """Creates and manages agent components with versioned configuration loading"""
 
     SUPPORTED_VERSIONS = {
-        ComponentType.TEAM: ["1.0.0"],
-        ComponentType.AGENT: ["1.0.0"],
-        ComponentType.MODEL: ["1.0.0"],
-        ComponentType.TOOL: ["1.0.0"],
-        ComponentType.TERMINATION: ["1.0.0"]
+        ComponentTypes.TEAM: ["1.0.0"],
+        ComponentTypes.AGENT: ["1.0.0"],
+        ComponentTypes.MODEL: ["1.0.0"],
+        ComponentTypes.TOOL: ["1.0.0"],
+        ComponentTypes.TERMINATION: ["1.0.0"],
     }
 
     def __init__(self):
@@ -68,10 +70,7 @@ class ComponentFactory:
         self._last_cache_clear = datetime.now()
 
     async def load(
-        self,
-        component: ComponentConfigInput,
-        input_func: Optional[Callable] = None,
-        return_type: ReturnType = 'object'
+        self, component: ComponentConfigInput, input_func: Optional[Callable] = None, return_type: ReturnType = "object"
     ) -> Union[Component, dict, ComponentConfig]:
         """
         Universal loader for any component type
@@ -103,24 +102,23 @@ class ComponentFactory:
                 )
 
             # Return early if dict or config requested
-            if return_type == 'dict':
+            if return_type == "dict":
                 return config.model_dump()
-            elif return_type == 'config':
+            elif return_type == "config":
                 return config
 
             # Otherwise create and return component instance
             handlers = {
-                ComponentType.TEAM: lambda c: self.load_team(c, input_func),
-                ComponentType.AGENT: lambda c: self.load_agent(c, input_func),
-                ComponentType.MODEL: self.load_model,
-                ComponentType.TOOL: self.load_tool,
-                ComponentType.TERMINATION: self.load_termination
+                ComponentTypes.TEAM: lambda c: self.load_team(c, input_func),
+                ComponentTypes.AGENT: lambda c: self.load_agent(c, input_func),
+                ComponentTypes.MODEL: self.load_model,
+                ComponentTypes.TOOL: self.load_tool,
+                ComponentTypes.TERMINATION: self.load_termination,
             }
 
             handler = handlers.get(config.component_type)
             if not handler:
-                raise ValueError(
-                    f"Unknown component type: {config.component_type}")
+                raise ValueError(f"Unknown component type: {config.component_type}")
 
             return await handler(config)
 
@@ -128,7 +126,9 @@ class ComponentFactory:
             logger.error(f"Failed to load component: {str(e)}")
             raise
 
-    async def load_directory(self, directory: Union[str, Path], return_type: ReturnType = 'object') -> List[Union[Component, dict, ComponentConfig]]:
+    async def load_directory(
+        self, directory: Union[str, Path], return_type: ReturnType = "object"
+    ) -> List[Union[Component, dict, ComponentConfig]]:
         """
         Import all component configurations from a directory.
         """
@@ -137,13 +137,12 @@ class ComponentFactory:
             directory = Path(directory)
             # Using Path.iterdir() instead of os.listdir
             for path in list(directory.glob("*")):
-                if path.suffix.lower().endswith(('.json', '.yaml', '.yml')):
+                if path.suffix.lower().endswith((".json", ".yaml", ".yml")):
                     try:
                         component = await self.load(path, return_type=return_type)
                         components.append(component)
                     except Exception as e:
-                        logger.info(
-                            f"Failed to load component: {str(e)}, {path}")
+                        logger.info(f"Failed to load component: {str(e)}, {path}")
 
             return components
         except Exception as e:
@@ -156,14 +155,14 @@ class ComponentFactory:
             raise ValueError("component_type is required in configuration")
 
         config_types = {
-            ComponentType.TEAM: TeamConfig,
-            ComponentType.AGENT: AgentConfig,
-            ComponentType.MODEL: ModelConfig,
-            ComponentType.TOOL: ToolConfig,
-            ComponentType.TERMINATION: TerminationConfig  # Add mapping for termination
+            ComponentTypes.TEAM: TeamConfig,
+            ComponentTypes.AGENT: AgentConfig,
+            ComponentTypes.MODEL: ModelConfig,
+            ComponentTypes.TOOL: ToolConfig,
+            ComponentTypes.TERMINATION: TerminationConfig,  # Add mapping for termination
         }
 
-        component_type = ComponentType(config_dict["component_type"])
+        component_type = ComponentTypes(config_dict["component_type"])
         config_class = config_types.get(component_type)
 
         if not config_class:
@@ -174,28 +173,44 @@ class ComponentFactory:
     async def load_termination(self, config: TerminationConfig) -> TerminationComponent:
         """Create termination condition instance from configuration."""
         try:
-            if config.termination_type == TerminationTypes.MAX_MESSAGES:
+            if config.termination_type == TerminationTypes.COMBINATION:
+                if not config.conditions or len(config.conditions) < 2:
+                    raise ValueError("Combination termination requires at least 2 conditions")
+                if not config.operator:
+                    raise ValueError("Combination termination requires an operator (and/or)")
+
+                # Load first two conditions
+                conditions = [await self.load_termination(cond) for cond in config.conditions[:2]]
+                result = conditions[0] & conditions[1] if config.operator == "and" else conditions[0] | conditions[1]
+
+                # Process remaining conditions if any
+                for condition in config.conditions[2:]:
+                    next_condition = await self.load_termination(condition)
+                    result = result & next_condition if config.operator == "and" else result | next_condition
+
+                return result
+
+            elif config.termination_type == TerminationTypes.MAX_MESSAGES:
+                if config.max_messages is None:
+                    raise ValueError("max_messages parameter required for MaxMessageTermination")
                 return MaxMessageTermination(max_messages=config.max_messages)
+
             elif config.termination_type == TerminationTypes.STOP_MESSAGE:
                 return StopMessageTermination()
+
             elif config.termination_type == TerminationTypes.TEXT_MENTION:
                 if not config.text:
-                    raise ValueError(
-                        "text parameter required for TextMentionTermination")
+                    raise ValueError("text parameter required for TextMentionTermination")
                 return TextMentionTermination(text=config.text)
+
             else:
-                raise ValueError(
-                    f"Unsupported termination type: {config.termination_type}")
+                raise ValueError(f"Unsupported termination type: {config.termination_type}")
+
         except Exception as e:
             logger.error(f"Failed to create termination condition: {str(e)}")
-            raise ValueError(
-                f"Termination condition creation failed: {str(e)}")
+            raise ValueError(f"Termination condition creation failed: {str(e)}") from e
 
-    async def load_team(
-        self,
-        config: TeamConfig,
-        input_func: Optional[Callable] = None
-    ) -> TeamComponent:
+    async def load_team(self, config: TeamConfig, input_func: Optional[Callable] = None) -> TeamComponent:
         """Create team instance from configuration."""
         try:
             # Load participants (agents) with input_func
@@ -216,33 +231,25 @@ class ComponentFactory:
 
             # Create team based on type
             if config.team_type == TeamTypes.ROUND_ROBIN:
-                return RoundRobinGroupChat(
-                    participants=participants,
-                    termination_condition=termination
-                )
+                return RoundRobinGroupChat(participants=participants, termination_condition=termination)
             elif config.team_type == TeamTypes.SELECTOR:
                 if not model_client:
-                    raise ValueError(
-                        "SelectorGroupChat requires a model_client")
+                    raise ValueError("SelectorGroupChat requires a model_client")
                 selector_prompt = config.selector_prompt if config.selector_prompt else DEFAULT_SELECTOR_PROMPT
                 return SelectorGroupChat(
                     participants=participants,
                     model_client=model_client,
                     termination_condition=termination,
-                    selector_prompt=selector_prompt
+                    selector_prompt=selector_prompt,
                 )
             else:
                 raise ValueError(f"Unsupported team type: {config.team_type}")
 
         except Exception as e:
             logger.error(f"Failed to create team {config.name}: {str(e)}")
-            raise ValueError(f"Team creation failed: {str(e)}")
+            raise ValueError(f"Team creation failed: {str(e)}") from e
 
-    async def load_agent(
-        self,
-        config: AgentConfig,
-        input_func: Optional[Callable] = None
-    ) -> AgentComponent:
+    async def load_agent(self, config: AgentConfig, input_func: Optional[Callable] = None) -> AgentComponent:
         """Create agent instance from configuration."""
         try:
             # Load model client if specified
@@ -263,7 +270,7 @@ class ComponentFactory:
                 return UserProxyAgent(
                     name=config.name,
                     description=config.description or "A human user",
-                    input_func=input_func  # Pass through to UserProxyAgent
+                    input_func=input_func,  # Pass through to UserProxyAgent
                 )
             elif config.agent_type == AgentTypes.ASSISTANT:
                 return AssistantAgent(
@@ -271,15 +278,14 @@ class ComponentFactory:
                     description=config.description or "A helpful assistant",
                     model_client=model_client,
                     tools=tools,
-                    system_message=system_message
+                    system_message=system_message,
                 )
             else:
-                raise ValueError(
-                    f"Unsupported agent type: {config.agent_type}")
+                raise ValueError(f"Unsupported agent type: {config.agent_type}")
 
         except Exception as e:
             logger.error(f"Failed to create agent {config.name}: {str(e)}")
-            raise ValueError(f"Agent creation failed: {str(e)}")
+            raise ValueError(f"Agent creation failed: {str(e)}") from e
 
     async def load_model(self, config: ModelConfig) -> ModelComponent:
         """Create model instance from configuration."""
@@ -291,20 +297,15 @@ class ComponentFactory:
                 return self._model_cache[cache_key]
 
             if config.model_type == ModelTypes.OPENAI:
-                model = OpenAIChatCompletionClient(
-                    model=config.model,
-                    api_key=config.api_key,
-                    base_url=config.base_url
-                )
+                model = OpenAIChatCompletionClient(model=config.model, api_key=config.api_key, base_url=config.base_url)
                 self._model_cache[cache_key] = model
                 return model
             else:
-                raise ValueError(
-                    f"Unsupported model type: {config.model_type}")
+                raise ValueError(f"Unsupported model type: {config.model_type}")
 
         except Exception as e:
             logger.error(f"Failed to create model {config.model}: {str(e)}")
-            raise ValueError(f"Model creation failed: {str(e)}")
+            raise ValueError(f"Model creation failed: {str(e)}") from e
 
     async def load_tool(self, config: ToolConfig) -> ToolComponent:
         """Create tool instance from configuration."""
@@ -321,9 +322,7 @@ class ComponentFactory:
 
             if config.tool_type == ToolTypes.PYTHON_FUNCTION:
                 tool = FunctionTool(
-                    name=config.name,
-                    description=config.description,
-                    func=self._func_from_string(config.content)
+                    name=config.name, description=config.description, func=self._func_from_string(config.content)
                 )
                 self._tool_cache[cache_key] = tool
                 return tool
@@ -334,7 +333,6 @@ class ComponentFactory:
             logger.error(f"Failed to create tool '{config.name}': {str(e)}")
             raise
 
-    # Helper methods remain largely the same
     async def _load_from_file(self, path: Union[str, Path]) -> dict:
         """Load configuration from JSON or YAML file."""
         path = Path(path)
@@ -342,15 +340,16 @@ class ComponentFactory:
             raise FileNotFoundError(f"Config file not found: {path}")
 
         try:
-            with open(path) as f:
-                if path.suffix == '.json':
-                    return json.load(f)
-                elif path.suffix in ('.yml', '.yaml'):
-                    return yaml.safe_load(f)
+            async with aiofiles.open(path) as f:
+                content = await f.read()
+                if path.suffix == ".json":
+                    return json.loads(content)
+                elif path.suffix in (".yml", ".yaml"):
+                    return yaml.safe_load(content)
                 else:
                     raise ValueError(f"Unsupported file format: {path.suffix}")
         except Exception as e:
-            raise ValueError(f"Failed to load file {path}: {str(e)}")
+            raise ValueError(f"Failed to load file {path}: {str(e)}") from e
 
     def _func_from_string(self, content: str) -> callable:
         """Convert function string to callable."""
@@ -362,24 +361,25 @@ class ComponentFactory:
                     return item
             raise ValueError("No function found in provided code")
         except Exception as e:
-            raise ValueError(f"Failed to create function: {str(e)}")
+            raise ValueError(f"Failed to create function: {str(e)}") from e
 
-    def _is_version_supported(self, component_type: ComponentType, ver: str) -> bool:
+    def _is_version_supported(self, component_type: ComponentTypes, ver: str) -> bool:
         """Check if version is supported for component type."""
         try:
-            v = version.parse(ver)
-            return ver in self.SUPPORTED_VERSIONS[component_type]
-        except version.InvalidVersion:
+            version = Version(ver)
+            supported = [Version(v) for v in self.SUPPORTED_VERSIONS[component_type]]
+            return any(version == v for v in supported)
+        except ValueError:
             return False
 
     async def cleanup(self) -> None:
         """Cleanup resources and clear caches."""
         for model in self._model_cache.values():
-            if hasattr(model, 'cleanup'):
+            if hasattr(model, "cleanup"):
                 await model.cleanup()
 
         for tool in self._tool_cache.values():
-            if hasattr(tool, 'cleanup'):
+            if hasattr(tool, "cleanup"):
                 await tool.cleanup()
 
         self._model_cache.clear()
