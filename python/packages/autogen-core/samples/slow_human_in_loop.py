@@ -33,7 +33,13 @@ from typing import Any, Mapping, Optional
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, CancellationToken, MessageContext
 from autogen_core.base.intervention import DefaultInterventionHandler
-from autogen_core.components import DefaultSubscription, DefaultTopicId, FunctionCall, RoutedAgent, message_handler
+from autogen_core.components import (
+    DefaultTopicId,
+    FunctionCall,
+    RoutedAgent,
+    message_handler,
+    type_subscription,
+)
 from autogen_core.components.model_context import BufferedChatCompletionContext
 from autogen_core.components.models import (
     AssistantMessage,
@@ -81,6 +87,7 @@ class MockPersistence:
 state_persister = MockPersistence()
 
 
+@type_subscription("scheduling_assistant_conversation")
 class SlowUserProxyAgent(RoutedAgent):
     def __init__(
         self,
@@ -132,6 +139,7 @@ class ScheduleMeetingTool(BaseTool[ScheduleMeetingInput, ScheduleMeetingOutput])
         return ScheduleMeetingOutput()
 
 
+@type_subscription("scheduling_assistant_conversation")
 class SchedulingAssistantAgent(RoutedAgent):
     def __init__(
         self,
@@ -256,16 +264,13 @@ async def main(latest_user_input: Optional[str] = None) -> None | str:
     needs_user_input_handler = NeedsUserInputHandler()
     runtime = SingleThreadedAgentRuntime(intervention_handlers=[needs_user_input_handler, termination_handler])
 
-    await runtime.register(
-        "User",
-        lambda: SlowUserProxyAgent("User", "I am a user"),
-        subscriptions=lambda: [DefaultSubscription("scheduling_assistant_conversation")],
-    )
+    await SlowUserProxyAgent.register(runtime, "User", lambda: SlowUserProxyAgent("User", "I am a user"))
 
     initial_schedule_assistant_message = AssistantTextMessage(
         content="Hi! How can I help you? I can help schedule meetings", source="User"
     )
-    await runtime.register(
+    await SchedulingAssistantAgent.register(
+        runtime,
         "SchedulingAssistant",
         lambda: SchedulingAssistantAgent(
             "SchedulingAssistant",
@@ -273,7 +278,6 @@ async def main(latest_user_input: Optional[str] = None) -> None | str:
             model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
             initial_message=initial_schedule_assistant_message,
         ),
-        subscriptions=lambda: [DefaultSubscription("scheduling_assistant_conversation")],
     )
 
     if latest_user_input is not None:
