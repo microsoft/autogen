@@ -14,6 +14,7 @@ from autogen_core.base import (
     MessageContext,
 )
 from autogen_core.components import ClosureAgent, TypeSubscription
+from autogen_core.components._closure_agent import ClosureContext
 
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
@@ -139,8 +140,7 @@ class BaseGroupChat(Team, ABC):
         )
 
         async def collect_output_messages(
-            _runtime: AgentRuntime,
-            id: AgentId,
+            _runtime: ClosureContext,
             message: GroupChatStart | GroupChatMessage | GroupChatTermination,
             ctx: MessageContext,
         ) -> None:
@@ -150,7 +150,7 @@ class BaseGroupChat(Team, ABC):
                 return
             await self._output_message_queue.put(message.message)
 
-        await ClosureAgent.register(
+        await ClosureAgent.register_closure(
             runtime,
             type=self._collector_agent_type,
             closure=collect_output_messages,

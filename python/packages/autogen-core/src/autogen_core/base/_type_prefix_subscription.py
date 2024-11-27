@@ -1,7 +1,9 @@
 import uuid
 
-from ..base import AgentId, Subscription, TopicId
-from ..base.exceptions import CantHandleException
+from ._agent_id import AgentId
+from ._subscription import Subscription
+from ._topic import TopicId
+from .exceptions import CantHandleException
 
 
 class TypePrefixSubscription(Subscription):
