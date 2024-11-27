@@ -288,12 +288,17 @@ class BaseGroupChat(Team, ABC):
             await self._runtime.send_message(
                 GroupChatStart(message=first_chat_message),
                 recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+                cancellation_token=cancellation_token,
             )
             # Collect the output messages in order.
             output_messages: List[AgentMessage] = []
             # Yield the messsages until the queue is empty.
             while True:
-                message = await self._output_message_queue.get()
+                message_future = asyncio.ensure_future(self._output_message_queue.get())
+                if cancellation_token is not None:
+                    cancellation_token.link_future(message_future)
+                # Wait for the next message, this will raise an exception if the task is cancelled.
+                message = await message_future
                 if message is None:
                     break
                 yield message
