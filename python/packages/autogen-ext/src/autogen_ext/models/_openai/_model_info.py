@@ -5,6 +5,8 @@ from autogen_core.components.models import ModelCapabilities
 # Based on: https://platform.openai.com/docs/models/continuous-model-upgrades
 # This is a moving target, so correctness is checked by the model value returned by openai against expected values at runtime``
 _MODEL_POINTERS = {
+    "o1-preview": "o1-preview-2024-09-12",
+    "o1-mini": "o1-mini-2024-09-12",
     "gpt-4o": "gpt-4o-2024-08-06",
     "gpt-4o-mini": "gpt-4o-mini-2024-07-18",
     "gpt-4-turbo": "gpt-4-turbo-2024-04-09",
@@ -16,6 +18,16 @@ _MODEL_POINTERS = {
 }
 
 _MODEL_CAPABILITIES: Dict[str, ModelCapabilities] = {
+    "o1-preview-2024-09-12": {
+        "vision": False,
+        "function_calling": False,
+        "json_output": False,
+    },
+    "o1-mini-2024-09-12": {
+        "vision": False,
+        "function_calling": False,
+        "json_output": False,
+    },
     "gpt-4o-2024-08-06": {
         "vision": True,
         "function_calling": True,
@@ -89,6 +101,8 @@ _MODEL_CAPABILITIES: Dict[str, ModelCapabilities] = {
 }
 
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
+    "o1-preview-2024-09-12": 128000,
+    "o1-mini-2024-09-12": 128000,
     "gpt-4o-2024-08-06": 128000,
     "gpt-4o-2024-05-13": 128000,
     "gpt-4o-mini-2024-07-18": 128000,
