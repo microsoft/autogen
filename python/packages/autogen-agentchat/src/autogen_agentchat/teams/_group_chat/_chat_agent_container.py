@@ -71,6 +71,7 @@ class ChatAgentContainer(SequentialRoutedAgent):
         await self.publish_message(
             GroupChatAgentResponse(agent_response=response),
             topic_id=DefaultTopicId(type=self._parent_topic_type),
+            cancellation_token=ctx.cancellation_token,
         )
 
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:

@@ -8,7 +8,11 @@ from autogen_core.base import (
     SerializationRegistry,
     try_get_known_serializers_for_type,
 )
-from autogen_core.base._serialization import DataclassJsonMessageSerializer, PydanticJsonMessageSerializer
+from autogen_core.base._serialization import (
+    PROTOBUF_DATA_CONTENT_TYPE,
+    DataclassJsonMessageSerializer,
+    PydanticJsonMessageSerializer,
+)
 from autogen_core.components import Image
 from PIL import Image as PILImage
 from protos.serialization_test_pb2 import NestingProtoMessage, ProtoMessage
@@ -90,12 +94,10 @@ def test_proto() -> None:
 
     message = ProtoMessage(message="hello")
     name = serde.type_name(message)
-    # TODO: should be PROTO_DATA_CONTENT_TYPE
-    data = serde.serialize(message, type_name=name, data_content_type=JSON_DATA_CONTENT_TYPE)
+    data = serde.serialize(message, type_name=name, data_content_type=PROTOBUF_DATA_CONTENT_TYPE)
     assert name == "ProtoMessage"
-    # TODO: assert data == stuff
-    deserialized = serde.deserialize(data, type_name=name, data_content_type=JSON_DATA_CONTENT_TYPE)
-    assert deserialized == message
+    deserialized = serde.deserialize(data, type_name=name, data_content_type=PROTOBUF_DATA_CONTENT_TYPE)
+    assert deserialized.message == message.message
 
 
 def test_nested_proto() -> None:
@@ -104,14 +106,10 @@ def test_nested_proto() -> None:
 
     message = NestingProtoMessage(message="hello", nested=ProtoMessage(message="world"))
     name = serde.type_name(message)
-
-    # TODO: should be PROTO_DATA_CONTENT_TYPE
-    data = serde.serialize(message, type_name=name, data_content_type=JSON_DATA_CONTENT_TYPE)
-
-    # TODO: assert data == stuff
-
-    deserialized = serde.deserialize(data, type_name=name, data_content_type=JSON_DATA_CONTENT_TYPE)
-    assert deserialized == message
+    data = serde.serialize(message, type_name=name, data_content_type=PROTOBUF_DATA_CONTENT_TYPE)
+    deserialized = serde.deserialize(data, type_name=name, data_content_type=PROTOBUF_DATA_CONTENT_TYPE)
+    assert deserialized.message == message.message
+    assert deserialized.nested.message == message.nested.message
 
 
 @dataclass
