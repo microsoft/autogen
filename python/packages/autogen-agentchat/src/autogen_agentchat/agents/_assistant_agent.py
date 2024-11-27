@@ -23,6 +23,7 @@ from ..messages import (
     AgentMessage,
     ChatMessage,
     HandoffMessage,
+    MultiModalMessage,
     TextMessage,
     ToolCallMessage,
     ToolCallResultMessage,
@@ -113,7 +114,10 @@ class AssistantAgent(BaseChatAgent):
 
 
             async def main() -> None:
-                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+                model_client = OpenAIChatCompletionClient(
+                    model="gpt-4o",
+                    # api_key = "your_openai_api_key"
+                )
                 agent = AssistantAgent(name="assistant", model_client=model_client)
 
                 response = await agent.on_messages(
@@ -144,7 +148,10 @@ class AssistantAgent(BaseChatAgent):
 
 
             async def main() -> None:
-                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+                model_client = OpenAIChatCompletionClient(
+                    model="gpt-4o",
+                    # api_key = "your_openai_api_key"
+                )
                 agent = AssistantAgent(name="assistant", model_client=model_client, tools=[get_current_time])
 
                 await Console(
@@ -156,6 +163,39 @@ class AssistantAgent(BaseChatAgent):
 
             asyncio.run(main())
 
+
+        The following example shows how to use `o1-mini` model with the assistant agent.
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_core.base import CancellationToken
+            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.messages import TextMessage
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(
+                    model="o1-mini",
+                    # api_key = "your_openai_api_key"
+                )
+                # The system message is not supported by the o1 series model.
+                agent = AssistantAgent(name="assistant", model_client=model_client, system_message=None)
+
+                response = await agent.on_messages(
+                    [TextMessage(content="What is the capital of France?", source="user")], CancellationToken()
+                )
+                print(response)
+
+
+            asyncio.run(main())
+
+        .. note::
+
+            The `o1-preview` and `o1-mini` models do not support system message and function calling.
+            So the `system_message` should be set to `None` and the `tools` and `handoffs` should not be set.
+            See `o1 beta limitations <https://platform.openai.com/docs/guides/reasoning#beta-limitations>`_ for more details.
     """
 
     def __init__(
@@ -166,13 +206,19 @@ class AssistantAgent(BaseChatAgent):
         tools: List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
         handoffs: List[Handoff | str] | None = None,
         description: str = "An agent that provides assistance with ability to use tools.",
-        system_message: str = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
+        system_message: str
+        | None = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client
-        self._system_messages = [SystemMessage(content=system_message)]
+        if system_message is None:
+            self._system_messages = []
+        else:
+            self._system_messages = [SystemMessage(content=system_message)]
         self._tools: List[Tool] = []
         if tools is not None:
+            if model_client.capabilities["function_calling"] is False:
+                raise ValueError("The model does not support function calling.")
             for tool in tools:
                 if isinstance(tool, Tool):
                     self._tools.append(tool)
@@ -192,6 +238,8 @@ class AssistantAgent(BaseChatAgent):
         self._handoff_tools: List[Tool] = []
         self._handoffs: Dict[str, Handoff] = {}
         if handoffs is not None:
+            if model_client.capabilities["function_calling"] is False:
+                raise ValueError("The model does not support function calling, which is needed for handoffs.")
             for handoff in handoffs:
                 if isinstance(handoff, str):
                     handoff = Handoff(target=handoff)
@@ -229,6 +277,8 @@ class AssistantAgent(BaseChatAgent):
     ) -> AsyncGenerator[AgentMessage | Response, None]:
         # Add messages to the model context.
         for msg in messages:
+            if isinstance(msg, MultiModalMessage) and self._model_client.capabilities["vision"] is False:
+                raise ValueError("The model does not support vision.")
             self._model_context.append(UserMessage(content=msg.content, source=msg.source))
 
         # Inner messages.
