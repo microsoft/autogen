@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package helloWorld;
 
-option csharp_namespace = "Backend";
+option csharp_namespace = "Api";
 
 message NewGreetingRequested {
       string message = 1;

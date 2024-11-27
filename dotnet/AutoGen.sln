@@ -132,13 +132,13 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Extension
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Agents.Tests", "test\Microsoft.AutoGen.Agents.Tests\Microsoft.AutoGen.Agents.Tests.csproj", "{394FDAF8-74F9-4977-94A5-3371737EB774}"
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Hello-distributed", "Hello-distributed", "{80A6C47B-0567-49F6-843A-667B96FA4BB4}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "HelloDistributed", "HelloDistributed", "{80A6C47B-0567-49F6-843A-667B96FA4BB4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppHost", "samples\Hello-distributed\AppHost\AppHost.csproj", "{10C07AB6-45FE-4183-A6C6-D0656DB0F4BF}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backend", "samples\Hello-distributed\Backend\Backend.csproj", "{55D4813C-FD74-4957-8950-174EF6765A57}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.AgentHost", "src\Microsoft.AutoGen\AgentHost\Microsoft.AutoGen.AgentHost.csproj", "{FEA16F7A-9CFB-475D-9B96-0F498D5415E2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Api", "samples\Hello-distributed\Api\Api.csproj", "{286A2449-E9D3-75B7-2CA8-25C9291E75EE}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -354,14 +354,14 @@ Global
 		{10C07AB6-45FE-4183-A6C6-D0656DB0F4BF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{10C07AB6-45FE-4183-A6C6-D0656DB0F4BF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{10C07AB6-45FE-4183-A6C6-D0656DB0F4BF}.Release|Any CPU.Build.0 = Release|Any CPU
-		{55D4813C-FD74-4957-8950-174EF6765A57}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{55D4813C-FD74-4957-8950-174EF6765A57}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{55D4813C-FD74-4957-8950-174EF6765A57}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{55D4813C-FD74-4957-8950-174EF6765A57}.Release|Any CPU.Build.0 = Release|Any CPU
 		{FEA16F7A-9CFB-475D-9B96-0F498D5415E2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{FEA16F7A-9CFB-475D-9B96-0F498D5415E2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FEA16F7A-9CFB-475D-9B96-0F498D5415E2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FEA16F7A-9CFB-475D-9B96-0F498D5415E2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{286A2449-E9D3-75B7-2CA8-25C9291E75EE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{286A2449-E9D3-75B7-2CA8-25C9291E75EE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{286A2449-E9D3-75B7-2CA8-25C9291E75EE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{286A2449-E9D3-75B7-2CA8-25C9291E75EE}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -424,8 +424,8 @@ Global
 		{394FDAF8-74F9-4977-94A5-3371737EB774} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 		{80A6C47B-0567-49F6-843A-667B96FA4BB4} = {686480D7-8FEC-4ED3-9C5D-CEBE1057A7ED}
 		{10C07AB6-45FE-4183-A6C6-D0656DB0F4BF} = {80A6C47B-0567-49F6-843A-667B96FA4BB4}
-		{55D4813C-FD74-4957-8950-174EF6765A57} = {80A6C47B-0567-49F6-843A-667B96FA4BB4}
 		{FEA16F7A-9CFB-475D-9B96-0F498D5415E2} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
+		{286A2449-E9D3-75B7-2CA8-25C9291E75EE} = {80A6C47B-0567-49F6-843A-667B96FA4BB4}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93384647-528D-46C8-922C-8DB36A382F0B}

@@ -4,7 +4,7 @@
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
 
-namespace Backend.Agents;
+namespace Api.Agents;
 
 [TopicSubscription("HelloAgents")]
 public class HelloAgent(
