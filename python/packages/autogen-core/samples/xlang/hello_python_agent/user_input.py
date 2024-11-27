@@ -2,7 +2,7 @@ import asyncio
 import logging
 from typing import Union
 
-from autogen_core.application.protos.agent_events_pb2 import ConversationClosed, Input, NewMessageReceived, Output
+from protos.agent_events_pb2 import ConversationClosed, Input, NewMessageReceived, Output
 from autogen_core.base import MessageContext
 from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler
 
