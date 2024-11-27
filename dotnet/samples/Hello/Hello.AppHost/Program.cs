@@ -5,7 +5,7 @@ using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
 var backend = builder.AddProject<Projects.Backend>("backend").WithExternalHttpEndpoints();
-builder.AddProject<Projects.HelloAgent>("client")
+var client = builder.AddProject<Projects.HelloAgent>("client")
     .WithReference(backend)
     .WithEnvironment("AGENT_HOST", $"{backend.GetEndpoint("https").Property(EndpointProperty.Url)}")
     .WithEnvironment("STAY_ALIVE_ON_GOODBYE", "true")
@@ -17,7 +17,8 @@ builder.AddPythonApp("hello-python", "../HelloPythonAgent", "hello_python_agent.
     .WithEnvironment("STAY_ALIVE_ON_GOODBYE", "true")
     .WithEnvironment("GRPC_DNS_RESOLVER", "native")
     .WithOtlpExporter()
-    .WaitFor(backend);
+    .WaitFor(backend)
+    .WaitFor(client);
 #pragma warning restore ASPIREHOSTINGPYTHON001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 using var app = builder.Build();
 await app.StartAsync();
