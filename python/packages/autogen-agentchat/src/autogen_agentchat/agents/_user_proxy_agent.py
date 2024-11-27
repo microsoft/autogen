@@ -34,10 +34,12 @@ class UserProxyAgent(BaseChatAgent):
         return [TextMessage, HandoffMessage]
 
     def _get_latest_handoff(self, messages: Sequence[ChatMessage]) -> Optional[HandoffMessage]:
-        """Find the most recent HandoffMessage in the message sequence."""
-        for message in reversed(messages):
-            if isinstance(message, HandoffMessage):
-                return message
+        """Find the HandoffMessage in the message sequence that addresses this agent."""
+        if len(messages) > 0 and isinstance(messages[-1], HandoffMessage):
+            if messages[-1].target == self.name:
+                return messages[-1]
+            else:
+                raise RuntimeError(f"Handoff message target does not match agent name: {messages[-1].source}")
         return None
 
     async def _get_input(self, prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
