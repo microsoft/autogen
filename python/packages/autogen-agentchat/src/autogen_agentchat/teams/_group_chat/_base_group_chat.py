@@ -170,6 +170,13 @@ class BaseGroupChat(Team, ABC):
         :meth:`run_stream` to run the team and then returns the final result.
         Once the team is stopped, the termination condition is reset.
 
+        Args:
+            task (str | ChatMessage | None): The task to run the team with.
+            cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
+                Setting the cancellation token potentially put the team in an inconsistent state,
+                and it may not reset the termination condition.
+                To gracefully stop the team, use :class:`~autogen_agentchat.task.ExternalTermination` instead.
+
         Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
 
 
@@ -199,6 +206,47 @@ class BaseGroupChat(Team, ABC):
 
 
             asyncio.run(main())
+
+
+        Example using the :class:`~autogen_core.base.CancellationToken` to cancel the task:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_core.base import CancellationToken
+            from autogen_ext.models import OpenAIChatCompletionClient
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+                agent1 = AssistantAgent("Assistant1", model_client=model_client)
+                agent2 = AssistantAgent("Assistant2", model_client=model_client)
+                termination = MaxMessageTermination(3)
+                team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
+
+                cancellation_token = CancellationToken()
+
+                # Create a task to run the team in the background.
+                run_task = asyncio.create_task(
+                    team.run(
+                        task="Count from 1 to 10, respond one at a time.",
+                        cancellation_token=cancellation_token,
+                    )
+                )
+
+                # Wait for 1 second and then cancel the task.
+                await asyncio.sleep(1)
+                cancellation_token.cancel()
+
+                # This will raise a cancellation error.
+                await run_task
+
+
+            asyncio.run(main())
         """
         result: TaskResult | None = None
         async for message in self.run_stream(
@@ -220,6 +268,13 @@ class BaseGroupChat(Team, ABC):
         """Run the team and produces a stream of messages and the final result
         of the type :class:`TaskResult` as the last item in the stream. Once the
         team is stopped, the termination condition is reset.
+
+        Args:
+            task (str | ChatMessage | None): The task to run the team with.
+            cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
+                Setting the cancellation token potentially put the team in an inconsistent state,
+                and it may not reset the termination condition.
+                To gracefully stop the team, use :class:`~autogen_agentchat.task.ExternalTermination` instead.
 
         Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
 
@@ -251,7 +306,52 @@ class BaseGroupChat(Team, ABC):
 
 
             asyncio.run(main())
+
+
+        Example using the :class:`~autogen_core.base.CancellationToken` to cancel the task:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.task import MaxMessageTermination, Console
+            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_core.base import CancellationToken
+            from autogen_ext.models import OpenAIChatCompletionClient
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+                agent1 = AssistantAgent("Assistant1", model_client=model_client)
+                agent2 = AssistantAgent("Assistant2", model_client=model_client)
+                termination = MaxMessageTermination(3)
+                team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
+
+                cancellation_token = CancellationToken()
+
+                # Create a task to run the team in the background.
+                run_task = asyncio.create_task(
+                    Console(
+                        team.run_stream(
+                            task="Count from 1 to 10, respond one at a time.",
+                            cancellation_token=cancellation_token,
+                        )
+                    )
+                )
+
+                # Wait for 1 second and then cancel the task.
+                await asyncio.sleep(1)
+                cancellation_token.cancel()
+
+                # This will raise a cancellation error.
+                await run_task
+
+
+            asyncio.run(main())
+
         """
+
         # Create the first chat message if the task is a string or a chat message.
         first_chat_message: ChatMessage | None = None
         if task is None:
@@ -288,12 +388,17 @@ class BaseGroupChat(Team, ABC):
             await self._runtime.send_message(
                 GroupChatStart(message=first_chat_message),
                 recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+                cancellation_token=cancellation_token,
             )
             # Collect the output messages in order.
             output_messages: List[AgentMessage] = []
             # Yield the messsages until the queue is empty.
             while True:
-                message = await self._output_message_queue.get()
+                message_future = asyncio.ensure_future(self._output_message_queue.get())
+                if cancellation_token is not None:
+                    cancellation_token.link_future(message_future)
+                # Wait for the next message, this will raise an exception if the task is cancelled.
+                message = await message_future
                 if message is None:
                     break
                 yield message
