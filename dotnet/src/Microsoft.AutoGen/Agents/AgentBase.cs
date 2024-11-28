@@ -36,19 +36,6 @@ public abstract class AgentBase : IAgentBase, IHandle
         runtime.AgentInstance = this;
         this.EventTypes = eventTypes;
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();
-        var subscriptionRequest = new AddSubscriptionRequest
-        {
-            RequestId = Guid.NewGuid().ToString(),
-            Subscription = new Subscription
-            {
-                TypeSubscription = new TypeSubscription
-                {
-                    AgentType = this.AgentId.Type,
-                    TopicType = this.AgentId.Type + "/" + this.AgentId.Key
-                }
-            }
-        };
-        _runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).AsTask().Wait();
         Completion = Start();
     }
     internal Task Completion { get; }
@@ -124,6 +111,15 @@ public abstract class AgentBase : IAgentBase, IHandle
                 break;
             case Message.MessageOneofCase.Response:
                 OnResponseCore(msg.Response);
+                break;
+            case Message.MessageOneofCase.RegisterAgentTypeResponse:
+                _logger.LogInformation($"Got {msg.MessageCase} with payload {msg.RegisterAgentTypeResponse}");
+                break;
+            case Message.MessageOneofCase.AddSubscriptionResponse:
+                _logger.LogInformation($"Got {msg.MessageCase} with payload {msg.AddSubscriptionResponse}");
+                break;
+            default:
+                _logger.LogInformation($"Got {msg.MessageCase}");
                 break;
         }
     }

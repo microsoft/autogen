@@ -13,12 +13,12 @@ namespace Microsoft.AutoGen.Agents;
 
 public static class OrleansRuntimeHostingExtenions
 {
-    public static WebApplicationBuilder AddOrleans(this WebApplicationBuilder builder, bool local = false)
+    public static IHostApplicationBuilder AddOrleans(this WebApplicationBuilder builder, bool local = false)
     {
-        return builder.AddOrleans(local);
+        return builder.AddOrleansImpl(local);
     }
 
-    public static IHostApplicationBuilder AddOrleans(this IHostApplicationBuilder builder, bool local = false)
+    private static IHostApplicationBuilder AddOrleansImpl(this IHostApplicationBuilder builder, bool local = false)
     {
         builder.Services.AddSerializer(serializer => serializer.AddProtobufSerializer());
         builder.Services.AddSingleton<IRegistryGrain, RegistryGrain>();

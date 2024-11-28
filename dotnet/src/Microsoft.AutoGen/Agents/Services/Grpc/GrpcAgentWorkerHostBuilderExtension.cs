@@ -11,7 +11,7 @@ namespace Microsoft.AutoGen.Agents;
 
 public static class GrpcAgentWorkerHostBuilderExtensions
 {
-    private const string _defaultAgentServiceAddress = "https://localhost:53071";
+    private const string _defaultAgentServiceAddress = "https://localhost:5001";
     public static IHostApplicationBuilder AddGrpcAgentWorker(this IHostApplicationBuilder builder, string? agentServiceAddress = null)
     {
         builder.Services.AddGrpcClient<AgentRpc.AgentRpcClient>(options =>

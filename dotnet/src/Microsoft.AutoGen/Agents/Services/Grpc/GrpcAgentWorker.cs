@@ -5,6 +5,8 @@ using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
 using System.Threading.Channels;
+using Google.Protobuf;
+using Google.Protobuf.Reflection;
 using Grpc.Core;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
@@ -212,7 +214,7 @@ public sealed class GrpcAgentWorker(
         {
             var events = agentType.GetInterfaces()
             .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
-            .Select(i => i.GetGenericArguments().First().Name);
+            .Select(i => GetDescriptorName(i.GetGenericArguments().First()));
             //var state = agentType.BaseType?.GetGenericArguments().First();
             var topicTypes = agentType.GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
 
@@ -224,10 +226,24 @@ public sealed class GrpcAgentWorker(
                     RequestId = Guid.NewGuid().ToString(),
                     //TopicTypes = { topicTypes },
                     //StateType = state?.Name,
-                    //Events = { events }
+                    Events = { events }
                 }
             }, cancellationToken).ConfigureAwait(false);
         }
+    }
+
+    public static string GetDescriptorName(Type messageType)
+    {
+        if (typeof(IMessage).IsAssignableFrom(messageType))
+        {
+            var descriptorProperty = messageType.GetProperty("Descriptor", BindingFlags.Public | BindingFlags.Static);
+            if (descriptorProperty != null)
+            {
+                var descriptor = descriptorProperty.GetValue(null) as MessageDescriptor;
+                return descriptor?.FullName??messageType.Name;
+            }
+        }
+        return messageType.Name;
     }
 
     // new is intentional
