@@ -1,4 +1,4 @@
-import base64 
+import base64
 import ffmpeg
 import cv2
 import whisper
@@ -13,13 +13,9 @@ def extract_audio(video_path: str, audio_output_path: str) -> str:
     :param audio_output_path: Path to save the extracted audio file.
     :return: Confirmation message with the path to the saved audio file.
     """
-    (
-        ffmpeg
-        .input(video_path)
-        .output(audio_output_path, format='mp3')
-        .run(quiet=True, overwrite_output=True)
-    )
+    (ffmpeg.input(video_path).output(audio_output_path, format="mp3").run(quiet=True, overwrite_output=True))
     return f"Audio extracted and saved to {audio_output_path}."
+
 
 def transcribe_audio_with_timestamps(audio_path: str) -> str:
     """
@@ -30,17 +26,18 @@ def transcribe_audio_with_timestamps(audio_path: str) -> str:
     """
     model = whisper.load_model("base")
     result = model.transcribe(audio_path, task="transcribe", language="en", verbose=False)
-    
-    segments = result['segments']
+
+    segments = result["segments"]
     transcription_with_timestamps = ""
-    
+
     for segment in segments:
-        start = segment['start']
-        end = segment['end']
-        text = segment['text']
+        start = segment["start"]
+        end = segment["end"]
+        text = segment["text"]
         transcription_with_timestamps += f"[{start:.2f} - {end:.2f}] {text}\n"
-    
+
     return transcription_with_timestamps
+
 
 def get_video_length(video_path: str) -> str:
     """
@@ -58,6 +55,7 @@ def get_video_length(video_path: str) -> str:
     cap.release()
 
     return f"The video is {duration:.2f} seconds long."
+
 
 def save_screenshot(video_path: str, timestamp: float, output_path: str) -> None:
     """
@@ -80,6 +78,7 @@ def save_screenshot(video_path: str, timestamp: float, output_path: str) -> None
         print(f"Failed to capture frame at {timestamp:.2f}s")
     cap.release()
 
+
 def openai_transcribe_video_screenshot(video_path: str, timestamp: float) -> str:
     """
     Transcribes the content of a video screenshot captured at the specified timestamp using OpenAI API.
@@ -91,7 +90,7 @@ def openai_transcribe_video_screenshot(video_path: str, timestamp: float) -> str
     screenshots = get_screenshot_at(video_path, [timestamp])
     if not screenshots:
         return "Failed to capture screenshot."
-    
+
     _, frame = screenshots[0]
     # Convert the frame to base64 encoding
     _, buffer = cv2.imencode(".jpg", frame)
@@ -103,24 +102,25 @@ def openai_transcribe_video_screenshot(video_path: str, timestamp: float) -> str
         model="gpt-4o-mini",
         messages=[
             {
-            "role": "user",
-            "content": [
-                {
-                "type": "text",
-                "text": "Following is a screenshot from the video at {} seconds. Describe what you see here.".format(timestamp),
-                },
-                {
-                "type": "image_url",
-                "image_url": {
-                    "url":  f"data:image/jpeg;base64,{frame_base64}"
-                },
-                },
-            ],
+                "role": "user",
+                "content": [
+                    {
+                        "type": "text",
+                        "text": "Following is a screenshot from the video at {} seconds. Describe what you see here.".format(
+                            timestamp
+                        ),
+                    },
+                    {
+                        "type": "image_url",
+                        "image_url": {"url": f"data:image/jpeg;base64,{frame_base64}"},
+                    },
+                ],
             }
         ],
     )
 
     return str(response.choices[0].message.content)
+
 
 def get_screenshot_at(video_path: str, timestamps: list) -> list:
     """

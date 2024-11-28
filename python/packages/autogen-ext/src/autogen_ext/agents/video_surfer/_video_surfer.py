@@ -4,7 +4,14 @@ from autogen_core.components.models import ChatCompletionClient
 from autogen_agentchat.agents import AssistantAgent
 from typing import List, Callable, Any, Awaitable
 
-from ._action_space import extract_audio, get_video_length, transcribe_audio_with_timestamps, get_screenshot_at, save_screenshot, openai_transcribe_video_screenshot
+from ._action_space import (
+    extract_audio,
+    get_video_length,
+    transcribe_audio_with_timestamps,
+    get_screenshot_at,
+    save_screenshot,
+    openai_transcribe_video_screenshot,
+)
 
 
 class VideoSurferAgent(AssistantAgent):
@@ -14,7 +21,7 @@ class VideoSurferAgent(AssistantAgent):
     This agent utilizes various tools to extract information from the video, such as its length, screenshots at specific timestamps, and audio transcriptions. It processes these elements to provide detailed answers to user queries.
 
     Available tools:
-    
+
     - :func:`~autogen_ext.agents.video_surfer._action_space.extract_audio`
     - :func:`~autogen_ext.agents.video_surfer._action_space.get_video_length`
     - :func:`~autogen_ext.agents.video_surfer._action_space.transcribe_audio_with_timestamps`
@@ -25,9 +32,9 @@ class VideoSurferAgent(AssistantAgent):
     Example usage:
 
         The following example demonstrates how to create an video surfing agent with
-        a model client and generate a response to a simple query about a local video 
+        a model client and generate a response to a simple query about a local video
         called video.mp4.
-    
+
         .. code-block:: python
 
 
@@ -84,11 +91,11 @@ class VideoSurferAgent(AssistantAgent):
                     name="VideoSurferAgent",
                     model_client=model_client
                     )
-                
+
                 web_surfer_agent = UserProxyAgent(
                     name="User"
                 )
-                
+
                 # Define a team
                 agent_team = MagenticOneGroupChat([web_surfer_agent, video_agent], model_client=model_client,)
 
@@ -98,6 +105,7 @@ class VideoSurferAgent(AssistantAgent):
 
             asyncio.run(main())
     """
+
     def __init__(
         self,
         name: str,
@@ -105,8 +113,7 @@ class VideoSurferAgent(AssistantAgent):
         *,
         tools: List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
         description: str = "An agent that can answer questions about a local video.",
-        system_message: str
-        | None = """
+        system_message: str | None = """
 You are a helpful agent that is an expert at answering questions from a video.
     
 When asked to answer a question about a video, you should:
@@ -115,7 +122,7 @@ When asked to answer a question about a video, you should:
 3. Optionally use screenshots from those timestamps
 4. Provide a detailed answer to the question.
 Reply with TERMINATE when the task has been completed.
-"""
+""",
     ):
         """
         Initialize the VideoSurferAgent.
@@ -123,7 +130,7 @@ Reply with TERMINATE when the task has been completed.
         Args:
             name (str): The name of the agent.
             model_client (ChatCompletionClient): The model client used for generating responses.
-            tools (List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional): 
+            tools (List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional):
                 A list of tools or functions the agent can use. If not provided, defaults to all video tools from the action space.
             description (str, optional): A brief description of the agent. Defaults to "An agent that can answer questions about a local video.".
             system_message (str | None, optional): The system message guiding the agent's behavior. Defaults to a predefined message.
@@ -131,7 +138,8 @@ Reply with TERMINATE when the task has been completed.
         super().__init__(
             name=name,
             model_client=model_client,
-            tools=tools or [
+            tools=tools
+            or [
                 get_video_length,
                 get_screenshot_at,
                 save_screenshot,
