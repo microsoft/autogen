@@ -5,6 +5,7 @@ from autogen_core.base import CancellationToken
 
 from ..base import ChatAgent, Response, TaskResult
 from ..messages import AgentMessage, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
+from ..state import BaseState
 
 
 class BaseChatAgent(ChatAgent, ABC):
@@ -13,7 +14,8 @@ class BaseChatAgent(ChatAgent, ABC):
     def __init__(self, name: str, description: str) -> None:
         self._name = name
         if self._name.isidentifier() is False:
-            raise ValueError("The agent name must be a valid Python identifier.")
+            raise ValueError(
+                "The agent name must be a valid Python identifier.")
         self._description = description
 
     @property
@@ -116,4 +118,14 @@ class BaseChatAgent(ChatAgent, ABC):
     @abstractmethod
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Resets the agent to its initialization state."""
+        ...
+
+    @abstractmethod
+    async def save_state(self) -> BaseState:
+        """Save agent state for later restoration"""
+        ...
+
+    @abstractmethod
+    async def load_state(self, state: BaseState) -> None:
+        """Restore agent from saved state"""
         ...
