@@ -1,3 +1,6 @@
+from typing import Any
+
+import numpy as np
 import base64
 import ffmpeg
 import cv2
@@ -92,9 +95,10 @@ def openai_transcribe_video_screenshot(video_path: str, timestamp: float) -> str
         return "Failed to capture screenshot."
 
     _, frame = screenshots[0]
-    # Convert the frame to base64 encoding
+    # Convert the frame to bytes and then to base64 encoding
     _, buffer = cv2.imencode(".jpg", frame)
-    frame_base64 = base64.b64encode(buffer).decode("utf-8")
+    frame_bytes = buffer.tobytes()
+    frame_base64 = base64.b64encode(frame_bytes).decode("utf-8")
 
     client = openai.Client()
 
@@ -122,7 +126,7 @@ def openai_transcribe_video_screenshot(video_path: str, timestamp: float) -> str
     return str(response.choices[0].message.content)
 
 
-def get_screenshot_at(video_path: str, timestamps: list) -> list:
+def get_screenshot_at(video_path: str, timestamps: list[float]) -> list[tuple[float, np.ndarray[Any, Any]]]:
     """
     Captures screenshots at the specified timestamps and returns them as Python objects.
 
@@ -131,7 +135,7 @@ def get_screenshot_at(video_path: str, timestamps: list) -> list:
     :return: List of tuples containing timestamp and the corresponding frame (image).
              Each frame is a NumPy array (height x width x channels).
     """
-    screenshots = []
+    screenshots: list[tuple[float, np.ndarray[Any, Any]]] = []
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
