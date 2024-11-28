@@ -77,7 +77,6 @@ class VideoSurferAgent(AssistantAgent):
             from autogen_agentchat.agents import UserProxyAgent
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_ext.agents.video_surfer import VideoSurferAgent
-            from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 
             async def main() -> None:
                 \"\"\"
