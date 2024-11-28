@@ -62,4 +62,5 @@ installation
 quickstart
 tutorial/index
 examples/index
+assignments/index
 ```
