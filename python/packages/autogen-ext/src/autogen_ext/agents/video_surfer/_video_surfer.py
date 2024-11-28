@@ -1,16 +1,16 @@
-from autogen_core.components.tools import Tool
-from autogen_core.components.models import ChatCompletionClient
+from typing import Any, Awaitable, Callable, List
 
 from autogen_agentchat.agents import AssistantAgent
-from typing import List, Callable, Any, Awaitable
+from autogen_core.components.models import ChatCompletionClient
+from autogen_core.components.tools import Tool
 
 from ._action_space import (
     extract_audio,
-    get_video_length,
-    transcribe_audio_with_timestamps,
     get_screenshot_at,
-    save_screenshot,
+    get_video_length,
     openai_transcribe_video_screenshot,
+    save_screenshot,
+    transcribe_audio_with_timestamps,
 )
 
 
@@ -115,7 +115,6 @@ class VideoSurferAgent(AssistantAgent):
         description: str = "An agent that can answer questions about a local video.",
         system_message: str | None = """
 You are a helpful agent that is an expert at answering questions from a video.
-    
 When asked to answer a question about a video, you should:
 1. Check if that video is available locally.
 2. Use the transcription to find which part of the video the question is referring to.

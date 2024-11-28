@@ -1,12 +1,14 @@
+import base64
+import logging
 from typing import Any
 
-import numpy as np
-import base64
-import ffmpeg
 import cv2
-import whisper
+import ffmpeg
+import numpy as np
 import openai
+import whisper
 
+logging.basicConfig(level=logging.INFO)
 
 def extract_audio(video_path: str, audio_output_path: str) -> str:
     """
@@ -78,7 +80,7 @@ def save_screenshot(video_path: str, timestamp: float, output_path: str) -> None
     if ret:
         cv2.imwrite(output_path, frame)
     else:
-        print(f"Failed to capture frame at {timestamp:.2f}s")
+        logging.error(f"Failed to capture frame at {timestamp:.2f}s")
     cap.release()
 
 
@@ -154,9 +156,9 @@ def get_screenshot_at(video_path: str, timestamps: list[float]) -> list[tuple[fl
                 # Append the timestamp and frame to the list
                 screenshots.append((timestamp, frame))
             else:
-                print(f"Failed to capture frame at {timestamp:.2f}s")
+                logging.error(f"Failed to capture frame at {timestamp:.2f}s")
         else:
-            print(f"Timestamp {timestamp} is out of range.")
+            logging.warning(f"Timestamp {timestamp} is out of range.")
 
     cap.release()
     return screenshots
