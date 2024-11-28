@@ -10,6 +10,7 @@ import whisper
 
 logging.basicConfig(level=logging.INFO)
 
+
 def extract_audio(video_path: str, audio_output_path: str) -> str:
     """
     Extracts audio from a video file and saves it as an MP3 file.
