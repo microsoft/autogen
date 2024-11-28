@@ -10,7 +10,7 @@ from autogen_core.application import WorkerAgentRuntime
 from protos.agent_events_pb2 import NewMessageReceived
 
 # from protos.agents_events_pb2 import NewMessageReceived
-from autogen_core.base import AgentId, try_get_known_serializers_for_type
+from autogen_core.base import AgentId, try_get_known_serializers_for_type, PROTOBUF_DATA_CONTENT_TYPE
 from autogen_core.components import DefaultSubscription, DefaultTopicId
 
 # Add the local package directory to sys.path
@@ -31,7 +31,7 @@ async def main() -> None:
         agentHost = agentHost[8:]
     agnext_logger.info("0")
     agnext_logger.info(agentHost)
-    runtime = WorkerAgentRuntime(host_address=agentHost)
+    runtime = WorkerAgentRuntime(host_address=agentHost, payload_serialization_format=PROTOBUF_DATA_CONTENT_TYPE)
 
     agnext_logger.info("1")
     runtime.start()
