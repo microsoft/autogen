@@ -32,13 +32,11 @@ web-surfer = [
     "pillow>=11.0.0",
 ]
 video-surfer = [
-    "grpcio",
     "autogen-agentchat==0.4.0.dev7",
     "openai",
     "opencv-python>=4.5",
     "ffmpeg-python",
     "openai-whisper",
-    "yt-dlp",
 ]
 
 [tool.hatch.build.targets.wheel]
