@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ContainerRepository>autogen-host</ContainerRepository>
+    <ContainerFamily>alpine</ContainerFamily>
+    <EnableSdkContainerSupport>true</EnableSdkContainerSupport>
+    <!--orleans doesn't have strong name package-->
+    <NoWarn>$(NoWarn);CS8002</NoWarn>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <ContainerEnvironmentVariable Include="ASPNETCORE_HTTP_PORTS" Value="5001" />
+    <ContainerPort Include="5001" Type="tcp" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\DistributedRuntime\Microsoft.AutoGen.DistributedRuntime.csproj" />
+    <ProjectReference Include="..\..\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj" />
+  </ItemGroup>
+
+
+</Project>

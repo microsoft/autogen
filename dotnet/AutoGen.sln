@@ -142,6 +142,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DevTeam.ServiceDefaults", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Autogen.Tests.Shared", "test\Microsoft.Autogen.Tests.Shared\Microsoft.Autogen.Tests.Shared.csproj", "{B0DD1ED1-9EB6-4BF8-8CA8-8E1316A11423}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Autogen.AgentHost", "src\Microsoft.AutoGen\AgentHost\Microsoft.Autogen.AgentHost\Microsoft.Autogen.AgentHost.csproj", "{BDAC766C-7BAF-4890-AC4D-6569D063A208}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -372,6 +374,10 @@ Global
 		{B0DD1ED1-9EB6-4BF8-8CA8-8E1316A11423}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B0DD1ED1-9EB6-4BF8-8CA8-8E1316A11423}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B0DD1ED1-9EB6-4BF8-8CA8-8E1316A11423}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BDAC766C-7BAF-4890-AC4D-6569D063A208}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BDAC766C-7BAF-4890-AC4D-6569D063A208}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BDAC766C-7BAF-4890-AC4D-6569D063A208}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BDAC766C-7BAF-4890-AC4D-6569D063A208}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -437,6 +443,7 @@ Global
 		{F8726BFF-8D62-BFAB-D000-BFAA8B55649B} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{E55D9022-21A9-DE0A-A739-A0D02D46BA69} = {05B9C173-6441-4DCA-9AC4-E897EF75F331}
 		{B0DD1ED1-9EB6-4BF8-8CA8-8E1316A11423} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
+		{BDAC766C-7BAF-4890-AC4D-6569D063A208} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93384647-528D-46C8-922C-8DB36A382F0B}
