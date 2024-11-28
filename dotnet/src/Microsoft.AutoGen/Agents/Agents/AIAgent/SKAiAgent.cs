@@ -4,11 +4,13 @@
 using System.Globalization;
 using System.Text;
 using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Client;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Memory;
 
 namespace Microsoft.AutoGen.Agents;
+// TODO: Move to samples
 public abstract class SKAiAgent<T> : AgentBase where T : class, new()
 {
     protected AgentState<T> _state;

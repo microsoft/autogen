@@ -3,7 +3,7 @@
 
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
-using Microsoft.AutoGen.Core;
+using Microsoft.AutoGen.Abstractions;
 
 namespace Microsoft.AutoGen.Client;
 

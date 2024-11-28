@@ -2,6 +2,7 @@
 // IOAgent.cs
 
 using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Client;
 
 namespace Microsoft.AutoGen.Agents;
 
@@ -11,24 +12,24 @@ public abstract class IOAgent : AgentBase
     protected IOAgent(IAgentRuntime context, EventTypes eventTypes) : base(context, eventTypes)
     {
     }
-    public virtual async Task Handle(Input item)
-    {
+    //public virtual async Task Handle(Input item)
+    //{
 
-        var evt = new InputProcessed
-        {
-            Route = _route
-        };
-        await PublishMessageAsync(evt);
-    }
+    //    var evt = new InputProcessed
+    //    {
+    //        Route = _route
+    //    };
+    //    await PublishMessageAsync(evt);
+    //}
 
-    public virtual async Task Handle(Output item)
-    {
-        var evt = new OutputWritten
-        {
-            Route = _route
-        };
-        await PublishMessageAsync(evt);
-    }
+    //public virtual async Task Handle(Output item)
+    //{
+    //    var evt = new OutputWritten
+    //    {
+    //        Route = _route
+    //    };
+    //    await PublishMessageAsync(evt);
+    //}
 
     public abstract Task ProcessInput(string message);
     public abstract Task ProcessOutput(string message);

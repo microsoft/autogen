@@ -5,10 +5,12 @@ using System.Collections.Concurrent;
 using FluentAssertions;
 using Google.Protobuf.Reflection;
 using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Tests.Events;
 using Xunit;
 using static Microsoft.AutoGen.Agents.Tests.AgentBaseTests;
 
@@ -23,7 +25,7 @@ public class AgentBaseTests(InMemoryAgentRuntimeFixture fixture)
     public async Task ItInvokeRightHandlerTestAsync()
     {
         var mockContext = new Mock<IAgentRuntime>();
-        mockContext.SetupGet(x => x.AgentId).Returns(new AgentId("test", "test"));
+        mockContext.SetupGet(x => x.AgentId).Returns(new AgentId{ Type = "test", Key = "test" });
         // mock SendMessageAsync
         mockContext.Setup(x => x.SendMessageAsync(It.IsAny<Message>(), It.IsAny<CancellationToken>()))
             .Returns(new ValueTask());
@@ -40,7 +42,7 @@ public class AgentBaseTests(InMemoryAgentRuntimeFixture fixture)
     [Fact]
     public async Task ItDelegateMessageToTestAgentAsync()
     {
-        var client = _fixture.AppHost.Services.GetRequiredService<Client>();
+        var client = _fixture.AppHost.Services.GetRequiredService<AgentClient>();
 
         await client.PublishMessageAsync(new TextMessage()
         {
@@ -102,12 +104,12 @@ public sealed class InMemoryAgentRuntimeFixture : IDisposable
 {
     public InMemoryAgentRuntimeFixture()
     {
-        var builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder();
+        var builder = Host.CreateApplicationBuilder();
 
         // step 1: create in-memory agent runtime
         // step 2: register TestAgent to that agent runtime
         builder
-            .AddAgentService(local: true, useGrpc: false)
+            //.AddAgentService(local: true, useGrpc: false)
             .AddAgentWorker(local: true)
             .AddAgent<TestAgent>(nameof(TestAgent));
 

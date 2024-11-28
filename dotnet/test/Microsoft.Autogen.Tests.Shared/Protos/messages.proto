@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-package samples;
+package tests;
 
-option csharp_namespace = "Hello.Events";
+option csharp_namespace = "Tests.Events";
 message TextMessage {
     string textMessage = 1;
     string source = 2;

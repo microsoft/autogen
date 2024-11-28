@@ -1,8 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Program.cs
 
+using Hello.Events;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
+using Microsoft.AutoGen.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -15,26 +18,30 @@ using Microsoft.Extensions.Hosting;
 // step 4: send a message to the agent
 
 // step 5: wait for the agent runtime to shutdown
-var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
-{
-    Message = "World"
-}, local: true);
-//var app = await AgentsApp.StartAsync();
+// TODO: replace with Client
+var builder = WebApplication.CreateBuilder();
+//var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
+//{
+//    Message = "World"
+//}, local: true);
+////var app = await AgentsApp.StartAsync();
+var app = builder.Build();
 await app.WaitForShutdownAsync();
 
-namespace Hello
+namespace HelloAgent
 {
+
     [TopicSubscription("HelloAgents")]
     public class HelloAgent(
-        IAgentRuntime context, IHostApplicationLifetime hostApplicationLifetime,
-        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
-            context,
-            typeRegistry),
-            ISayHello,
-            IHandleConsole,
-            IHandle<NewMessageReceived>,
-            IHandle<ConversationClosed>,
-            IHandle<Shutdown>
+    IAgentRuntime context, IHostApplicationLifetime hostApplicationLifetime,
+    [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
+        context,
+        typeRegistry),
+        ISayHello,
+        IHandleConsole,
+        IHandle<NewMessageReceived>,
+        IHandle<ConversationClosed>,
+        IHandle<Shutdown>
     {
         public async Task Handle(NewMessageReceived item)
         {
@@ -43,7 +50,7 @@ namespace Hello
             await PublishMessageAsync(evt).ConfigureAwait(false);
             var goodbye = new ConversationClosed
             {
-                UserId = this.AgentId.Key,
+                UserId = AgentId.Key,
                 UserMessage = "Goodbye"
             };
             await PublishMessageAsync(goodbye).ConfigureAwait(false);

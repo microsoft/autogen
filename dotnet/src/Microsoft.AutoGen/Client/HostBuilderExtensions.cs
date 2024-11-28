@@ -6,7 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
-using Microsoft.AutoGen.Core;
+using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -113,7 +113,7 @@ public static class HostBuilderExtensions
             }
             return new EventTypes(typeRegistry, types, eventsMap);
         });
-        builder.Services.AddSingleton<Client>();
+        builder.Services.AddSingleton<AgentClient>();
         builder.Services.AddSingleton(new AgentApplicationBuilder(builder));
 
         return builder;
@@ -153,7 +153,7 @@ public sealed class AgentTypes(Dictionary<string, Type> types)
                                 .SelectMany(assembly => assembly.GetTypes())
                                 .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase))
                                     && !type.IsAbstract
-                                    && !type.Name.Equals(nameof(Client)))
+                                    && !type.Name.Equals(nameof(AgentClient)))
                                 .ToDictionary(type => type.Name, type => type);
 
         return new AgentTypes(agents);

@@ -2,17 +2,18 @@
 // WebAPIAgent.cs
 
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
+//using Microsoft.AspNetCore.Http;
 using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Client;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
 public abstract class WebAPIAgent : IOAgent,
-        IUseWebAPI,
-        IHandle<Input>,
-        IHandle<Output>
+        IUseWebAPI//,
+        //IHandle<Input>,
+        //IHandle<Output>
 {
     private readonly string _url = "/agents/webio";
 
@@ -28,52 +29,52 @@ public abstract class WebAPIAgent : IOAgent,
         var builder = WebApplication.CreateBuilder();
         var app = builder.Build();
 
-        app.MapPost(_url, async (HttpContext httpContext) =>
-        {
-            var input = await httpContext.Request.ReadFromJsonAsync<Input>();
-            if (input != null)
-            {
-                await Handle(input);
-                await httpContext.Response.WriteAsync("Input processed");
-            }
-            else
-            {
-                httpContext.Response.StatusCode = 400;
-                await httpContext.Response.WriteAsync("Invalid input");
-            }
-        });
+        //app.MapPost(_url, async (HttpContext httpContext) =>
+        //{
+        //    var input = await httpContext.Request.ReadFromJsonAsync<Input>();
+        //    if (input != null)
+        //    {
+        //        await Handle(input);
+        //        await httpContext.Response.WriteAsync("Input processed");
+        //    }
+        //    else
+        //    {
+        //        httpContext.Response.StatusCode = 400;
+        //        await httpContext.Response.WriteAsync("Invalid input");
+        //    }
+        //});
 
-        app.MapGet(_url, async (HttpContext httpContext) =>
-        {
-            var output = new Output(); // Replace with actual output retrieval logic
-            await Handle(output);
-            await httpContext.Response.WriteAsJsonAsync(output);
-        });
+        //app.MapGet(_url, async (HttpContext httpContext) =>
+        //{
+        //    var output = new Output(); // Replace with actual output retrieval logic
+        //    await Handle(output);
+        //    await httpContext.Response.WriteAsJsonAsync(output);
+        //});
 
         app.Run();
     }
 
-    public override async Task Handle(Input item)
-    {
-        // Process the input (this is a placeholder, replace with actual processing logic)
-        await ProcessInput(item.Message);
+    //public override async Task Handle(Input item)
+    //{
+    //    // Process the input (this is a placeholder, replace with actual processing logic)
+    //    await ProcessInput(item.Message);
 
-        var evt = new InputProcessed
-        {
-            Route = _route
-        };
-        await PublishMessageAsync(evt);
-    }
+    //    var evt = new InputProcessed
+    //    {
+    //        Route = _route
+    //    };
+    //    await PublishMessageAsync(evt);
+    //}
 
-    public override async Task Handle(Output item)
-    {
-        // Assuming item has a property `Content` that we want to return in the response
-        var evt = new OutputWritten
-        {
-            Route = _route
-        };
-        await PublishMessageAsync(evt);
-    }
+    //public override async Task Handle(Output item)
+    //{
+    //    // Assuming item has a property `Content` that we want to return in the response
+    //    var evt = new OutputWritten
+    //    {
+    //        Route = _route
+    //    };
+    //    await PublishMessageAsync(evt);
+    //}
 
     public override Task<string> ProcessInput(string message)
     {

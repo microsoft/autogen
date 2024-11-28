@@ -5,7 +5,7 @@ using System.Threading.Channels;
 using Grpc.Core;
 using Microsoft.AutoGen.Abstractions;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.DistributedRuntime;
 
 internal sealed class GrpcWorkerConnection : IAsyncDisposable, IConnection
 {

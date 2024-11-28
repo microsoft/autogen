@@ -4,7 +4,7 @@
 using Grpc.Core;
 using Microsoft.AutoGen.Abstractions;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.DistributedRuntime;
 
 // gRPC service which handles communication between the agent worker and the cluster.
 internal sealed class GrpcGatewayService : AgentRpc.AgentRpcBase
@@ -12,7 +12,7 @@ internal sealed class GrpcGatewayService : AgentRpc.AgentRpcBase
     private readonly GrpcGateway Gateway;
     public GrpcGatewayService(GrpcGateway gateway)
     {
-        Gateway = (GrpcGateway)gateway;
+        Gateway = gateway;
     }
     public override async Task OpenChannel(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {

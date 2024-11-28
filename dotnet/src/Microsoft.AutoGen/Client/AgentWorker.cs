@@ -4,7 +4,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Threading.Channels;
-using Microsoft.AutoGen.Core;
+using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -49,7 +49,7 @@ public class AgentWorker :
     {
         foreach (var (typeName, _) in _agentTypes)
         {
-            if (typeName == nameof(Client)) { continue; }
+            if (typeName == nameof(AgentClient)) { continue; }
             var agent = GetOrActivateAgent(new AgentId { Type = typeName, Key = cloudEvent.Source });
             agent.ReceiveMessage(new Message { CloudEvent = cloudEvent });
         }

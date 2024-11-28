@@ -7,7 +7,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 using Google.Protobuf;
-using Microsoft.AutoGen.Core;
+using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Client;

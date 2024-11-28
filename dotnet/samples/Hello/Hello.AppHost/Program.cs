@@ -4,6 +4,7 @@
 using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
+// TODO: replace with container once merged
 var backend = builder.AddProject<Projects.Backend>("backend").WithExternalHttpEndpoints();
 builder.AddProject<Projects.HelloAgent>("client")
     .WithReference(backend)

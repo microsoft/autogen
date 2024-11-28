@@ -68,6 +68,7 @@
     </PackageVersion>
     <PackageVersion Include="Microsoft.Orleans.Core.Abstractions" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Orleans.Persistence.Cosmos" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.Memory" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Orleans.Reminders" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Orleans.Reminders.Cosmos" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Orleans.Runtime" Version="9.0.1" />
@@ -115,6 +116,7 @@
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageVersion Include="System.Text.Json" Version="9.0.0" />
     <PackageVersion Include="xunit" Version="2.9.2" />
+    <PackageVersion Include="xunit.extensibility.core" Version="2.9.2" />
     <PackageVersion Include="xunit.runner.console" Version="2.9.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageVersion Include="Moq" Version="4.20.72" />

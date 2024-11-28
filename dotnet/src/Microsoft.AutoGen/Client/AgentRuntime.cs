@@ -2,7 +2,7 @@
 // AgentRuntime.cs
 
 using System.Diagnostics;
-using Microsoft.AutoGen.Core;
+using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Client;

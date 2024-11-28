@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Program.cs
 
-using Hello;
+using Hello.Events;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
+using Microsoft.AutoGen.Client;
 
 // send a message to the agent
 var builder = WebApplication.CreateBuilder();
@@ -17,18 +18,19 @@ if (Environment.GetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING") == null
 }
 builder.Configuration["ConectionStrings:HelloAIAgents"] = Environment.GetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING");
 builder.AddChatCompletionService("HelloAIAgents");
-var agentTypes = new AgentTypes(new Dictionary<string, Type>
-{
-    { "HelloAIAgents", typeof(HelloAIAgent) }
-});
-var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
-{
-    Message = "World"
-}, builder, agentTypes, local: true);
-
+//var agentTypes = new AgentTypes(new Dictionary<string, Type>
+//{
+//    { "HelloAIAgents", typeof(HelloAIAgent) }
+//});
+// TODO: replace with Client
+//var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
+//{
+//    Message = "World"
+//}, builder, agentTypes, local: true);
+var app = builder.Build();
 await app.WaitForShutdownAsync();
 
-namespace Hello
+namespace HelloAIAgents
 {
     [TopicSubscription("HelloAgents")]
     public class HelloAgent(
@@ -51,7 +53,7 @@ namespace Hello
             await PublishMessageAsync(evt).ConfigureAwait(false);
             var goodbye = new ConversationClosed
             {
-                UserId = this.AgentId.Key,
+                UserId = AgentId.Key,
                 UserMessage = "Goodbye"
             };
             await PublishMessageAsync(goodbye).ConfigureAwait(false);

@@ -132,11 +132,15 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Agents.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Hello.Shared", "samples\Hello\Hello.Shared\Hello.Shared.csproj", "{F16058BE-1BE9-79AE-119E-A220BC6AADED}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Core", "src\Microsoft.AutoGen\Core\Microsoft.AutoGen.Core.csproj", "{1222A7E7-F9C7-D89F-4953-EE063A7FDE49}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Abstractions", "src\Microsoft.AutoGen\Core\Microsoft.AutoGen.Abstractions.csproj", "{1222A7E7-F9C7-D89F-4953-EE063A7FDE49}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Client", "src\Microsoft.AutoGen\Client\Microsoft.AutoGen.Client.csproj", "{03E150AA-3B93-B2AA-3141-1AE4A3481115}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.DistributedRuntime", "src\Microsoft.AutoGen\DistributedRuntime\Microsoft.AutoGen.DistributedRuntime.csproj", "{F8726BFF-8D62-BFAB-D000-BFAA8B55649B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DevTeam.ServiceDefaults", "samples\dev-team\DevTeam.ServiceDefaults\DevTeam.ServiceDefaults.csproj", "{E55D9022-21A9-DE0A-A739-A0D02D46BA69}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Autogen.Tests.Shared", "test\Microsoft.Autogen.Tests.Shared\Microsoft.Autogen.Tests.Shared.csproj", "{B0DD1ED1-9EB6-4BF8-8CA8-8E1316A11423}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -360,6 +364,14 @@ Global
 		{F8726BFF-8D62-BFAB-D000-BFAA8B55649B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F8726BFF-8D62-BFAB-D000-BFAA8B55649B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F8726BFF-8D62-BFAB-D000-BFAA8B55649B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E55D9022-21A9-DE0A-A739-A0D02D46BA69}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E55D9022-21A9-DE0A-A739-A0D02D46BA69}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E55D9022-21A9-DE0A-A739-A0D02D46BA69}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E55D9022-21A9-DE0A-A739-A0D02D46BA69}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B0DD1ED1-9EB6-4BF8-8CA8-8E1316A11423}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B0DD1ED1-9EB6-4BF8-8CA8-8E1316A11423}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B0DD1ED1-9EB6-4BF8-8CA8-8E1316A11423}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B0DD1ED1-9EB6-4BF8-8CA8-8E1316A11423}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -423,6 +435,8 @@ Global
 		{1222A7E7-F9C7-D89F-4953-EE063A7FDE49} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{03E150AA-3B93-B2AA-3141-1AE4A3481115} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{F8726BFF-8D62-BFAB-D000-BFAA8B55649B} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
+		{E55D9022-21A9-DE0A-A739-A0D02D46BA69} = {05B9C173-6441-4DCA-9AC4-E897EF75F331}
+		{B0DD1ED1-9EB6-4BF8-8CA8-8E1316A11423} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93384647-528D-46C8-922C-8DB36A382F0B}

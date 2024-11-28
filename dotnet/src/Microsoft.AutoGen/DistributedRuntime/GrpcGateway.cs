@@ -7,7 +7,7 @@ using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.DistributedRuntime;
 
 public sealed class GrpcGateway : BackgroundService, IGateway
 {
@@ -45,7 +45,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         foreach (var (_, connection) in _supportedAgentTypes)
         {
 
-            tasks.Add(this.SendMessageAsync((IConnection)connection[0], evt, default));
+            tasks.Add(SendMessageAsync(connection[0], evt, default));
         }
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
@@ -259,7 +259,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     }
     public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request, CancellationToken cancellationToken = default)
     {
-        (string Type, string Key) agentId = (request.Target.Type, request.Target.Key);
+        var agentId = (request.Target.Type, request.Target.Key);
         if (!_agentDirectory.TryGetValue(agentId, out var connection) || connection.Completion.IsCompleted)
         {
             // Activate the agent on a compatible worker process.
@@ -287,11 +287,11 @@ public sealed class GrpcGateway : BackgroundService, IGateway
 
     async ValueTask<RpcResponse> IGateway.InvokeRequest(RpcRequest request)
     {
-        return await this.InvokeRequest(request).ConfigureAwait(false);
+        return await InvokeRequest(request).ConfigureAwait(false);
     }
 
     Task IGateway.SendMessageAsync(IConnection connection, CloudEvent cloudEvent)
     {
-        return this.SendMessageAsync(connection, cloudEvent);
+        return SendMessageAsync(connection, cloudEvent);
     }
 }

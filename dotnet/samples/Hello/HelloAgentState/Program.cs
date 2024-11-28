@@ -2,30 +2,35 @@
 // Program.cs
 
 using System.Text.Json;
+using Hello.Events;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
+using Microsoft.AutoGen.Client;
 
 // send a message to the agent
-var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
-{
-    Message = "World"
-}, local: false);
-
+// TODO: replace with Client
+var builder = WebApplication.CreateBuilder();
+//var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
+//{
+//    Message = "World"
+//}, local: false);
+var app = builder.Build();
 await app.WaitForShutdownAsync();
 
-namespace Hello
+namespace HelloAgentState
 {
+
     [TopicSubscription("HelloAgents")]
     public class HelloAgent(
-        IAgentRuntime context,
-        IHostApplicationLifetime hostApplicationLifetime,
-        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
-            context,
-            typeRegistry),
-            IHandleConsole,
-            IHandle<NewMessageReceived>,
-            IHandle<ConversationClosed>,
-            IHandle<Shutdown>
+    IAgentRuntime context,
+    IHostApplicationLifetime hostApplicationLifetime,
+    [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
+        context,
+        typeRegistry),
+        IHandleConsole,
+        IHandle<NewMessageReceived>,
+        IHandle<ConversationClosed>,
+        IHandle<Shutdown>
     {
         private AgentState? State { get; set; }
         public async Task Handle(NewMessageReceived item)
@@ -36,29 +41,29 @@ namespace Hello
                 Message = response
             };
             Dictionary<string, string> state = new()
-            {
-                { "data", "We said hello to " + item.Message },
-                { "workflow", "Active" }
-            };
+        {
+            { "data", "We said hello to " + item.Message },
+            { "workflow", "Active" }
+        };
             await StoreAsync(new AgentState
             {
-                AgentId = this.AgentId,
+                AgentId = AgentId,
                 TextData = JsonSerializer.Serialize(state)
             }).ConfigureAwait(false);
             await PublishMessageAsync(evt).ConfigureAwait(false);
             var goodbye = new ConversationClosed
             {
-                UserId = this.AgentId.Key,
+                UserId = AgentId.Key,
                 UserMessage = "Goodbye"
             };
             await PublishMessageAsync(goodbye).ConfigureAwait(false);
             // send the shutdown message
-            await PublishMessageAsync(new Shutdown { Message = this.AgentId.Key }).ConfigureAwait(false);
+            await PublishMessageAsync(new Shutdown { Message = AgentId.Key }).ConfigureAwait(false);
 
         }
         public async Task Handle(ConversationClosed item)
         {
-            State = await ReadAsync<AgentState>(this.AgentId).ConfigureAwait(false);
+            State = await ReadAsync<AgentState>(AgentId).ConfigureAwait(false);
             var state = JsonSerializer.Deserialize<Dictionary<string, string>>(State.TextData) ?? new Dictionary<string, string> { { "data", "No state data found" } };
             var goodbye = $"\nState: {state}\n*********************  {item.UserId} said {item.UserMessage}  ************************";
             var evt = new Output
@@ -69,7 +74,7 @@ namespace Hello
             state["workflow"] = "Complete";
             await StoreAsync(new AgentState
             {
-                AgentId = this.AgentId,
+                AgentId = AgentId,
                 TextData = JsonSerializer.Serialize(state)
             }).ConfigureAwait(false);
         }
@@ -79,7 +84,7 @@ namespace Hello
             // make sure the workflow is finished
             while (workflow != "Complete")
             {
-                State = await ReadAsync<AgentState>(this.AgentId).ConfigureAwait(true);
+                State = await ReadAsync<AgentState>(AgentId).ConfigureAwait(true);
                 var state = JsonSerializer.Deserialize<Dictionary<string, string>>(State?.TextData ?? "{}") ?? new Dictionary<string, string>();
                 workflow = state["workflow"];
                 await Task.Delay(1000).ConfigureAwait(true);

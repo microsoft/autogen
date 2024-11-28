@@ -7,7 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.DistributedRuntime;
 
 public static class AgentWorkerHostingExtensions
 {
@@ -21,7 +21,7 @@ public static class AgentWorkerHostingExtensions
         {
             builder.Services.AddGrpc();
             builder.Services.AddSingleton<GrpcGateway>();
-            builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<GrpcGateway>());
+            builder.Services.AddSingleton(sp => (IHostedService)sp.GetRequiredService<GrpcGateway>());
         }
 
         return builder;
