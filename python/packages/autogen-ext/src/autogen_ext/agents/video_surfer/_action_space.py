@@ -1,14 +1,11 @@
 import base64
-import logging
-from typing import Any
+from typing import Any, Dict, List, Tuple
 
 import cv2
 import ffmpeg
 import numpy as np
 import openai
 import whisper
-
-logging.basicConfig(level=logging.INFO)
 
 
 def extract_audio(video_path: str, audio_output_path: str) -> str:
@@ -19,7 +16,7 @@ def extract_audio(video_path: str, audio_output_path: str) -> str:
     :param audio_output_path: Path to save the extracted audio file.
     :return: Confirmation message with the path to the saved audio file.
     """
-    (ffmpeg.input(video_path).output(audio_output_path, format="mp3").run(quiet=True, overwrite_output=True))
+    (ffmpeg.input(video_path).output(audio_output_path, format="mp3").run(quiet=True, overwrite_output=True))  # type: ignore
     return f"Audio extracted and saved to {audio_output_path}."
 
 
@@ -30,16 +27,16 @@ def transcribe_audio_with_timestamps(audio_path: str) -> str:
     :param audio_path: Path to the audio file.
     :return: Transcription with timestamps.
     """
-    model = whisper.load_model("base")
-    result = model.transcribe(audio_path, task="transcribe", language="en", verbose=False)
+    model = whisper.load_model("base")  # type: ignore
+    result: Dict[str, Any] = model.transcribe(audio_path, task="transcribe", language="en", verbose=False)  # type: ignore
 
-    segments = result["segments"]
+    segments: List[Dict[str, Any]] = result["segments"]
     transcription_with_timestamps = ""
 
     for segment in segments:
-        start = segment["start"]
-        end = segment["end"]
-        text = segment["text"]
+        start: float = segment["start"]
+        end: float = segment["end"]
+        text: str = segment["text"]
         transcription_with_timestamps += f"[{start:.2f} - {end:.2f}] {text}\n"
 
     return transcription_with_timestamps
@@ -81,7 +78,7 @@ def save_screenshot(video_path: str, timestamp: float, output_path: str) -> None
     if ret:
         cv2.imwrite(output_path, frame)
     else:
-        logging.error(f"Failed to capture frame at {timestamp:.2f}s")
+        raise IOError(f"Failed to capture frame at {timestamp:.2f}s")
     cap.release()
 
 
@@ -129,7 +126,7 @@ def openai_transcribe_video_screenshot(video_path: str, timestamp: float) -> str
     return str(response.choices[0].message.content)
 
 
-def get_screenshot_at(video_path: str, timestamps: list[float]) -> list[tuple[float, np.ndarray[Any, Any]]]:
+def get_screenshot_at(video_path: str, timestamps: List[float]) -> List[Tuple[float, np.ndarray[Any, Any]]]:
     """
     Captures screenshots at the specified timestamps and returns them as Python objects.
 
@@ -138,7 +135,7 @@ def get_screenshot_at(video_path: str, timestamps: list[float]) -> list[tuple[fl
     :return: List of tuples containing timestamp and the corresponding frame (image).
              Each frame is a NumPy array (height x width x channels).
     """
-    screenshots: list[tuple[float, np.ndarray[Any, Any]]] = []
+    screenshots: List[Tuple[float, np.ndarray[Any, Any]]] = []
 
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -157,9 +154,9 @@ def get_screenshot_at(video_path: str, timestamps: list[float]) -> list[tuple[fl
                 # Append the timestamp and frame to the list
                 screenshots.append((timestamp, frame))
             else:
-                logging.error(f"Failed to capture frame at {timestamp:.2f}s")
+                raise IOError(f"Failed to capture frame at {timestamp:.2f}s")
         else:
-            logging.warning(f"Timestamp {timestamp} is out of range.")
+            raise ValueError(f"Timestamp {timestamp:.2f}s is out of range [0s, {duration:.2f}s]")
 
     cap.release()
     return screenshots
