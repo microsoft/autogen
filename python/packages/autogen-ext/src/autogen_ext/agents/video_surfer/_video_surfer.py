@@ -13,6 +13,15 @@ class VideoSurferAgent(AssistantAgent):
 
     This agent utilizes various tools to extract information from the video, such as its length, screenshots at specific timestamps, and audio transcriptions. It processes these elements to provide detailed answers to user queries.
 
+    Available tools:
+    
+    - :func:`~autogen_ext.agents.video_surfer._action_space.extract_audio`
+    - :func:`~autogen_ext.agents.video_surfer._action_space.get_video_length`
+    - :func:`~autogen_ext.agents.video_surfer._action_space.transcribe_audio_with_timestamps`
+    - :func:`~autogen_ext.agents.video_surfer._action_space.get_screenshot_at`
+    - :func:`~autogen_ext.agents.video_surfer._action_space.save_screenshot`
+    - :func:`~autogen_ext.agents.video_surfer._action_space.openai_transcribe_video_screenshot`
+
     Example usage:
 
         The following example demonstrates how to create an video surfing agent with
@@ -108,6 +117,17 @@ When asked to answer a question about a video, you should:
 Reply with TERMINATE when the task has been completed.
 """
     ):
+        """
+        Initialize the VideoSurferAgent.
+
+        Args:
+            name (str): The name of the agent.
+            model_client (ChatCompletionClient): The model client used for generating responses.
+            tools (List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional): 
+                A list of tools or functions the agent can use. If not provided, defaults to all video tools from the action space.
+            description (str, optional): A brief description of the agent. Defaults to "An agent that can answer questions about a local video.".
+            system_message (str | None, optional): The system message guiding the agent's behavior. Defaults to a predefined message.
+        """
         super().__init__(
             name=name,
             model_client=model_client,
