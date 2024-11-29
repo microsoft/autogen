@@ -15,9 +15,5 @@
     </Description>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
-  </ItemGroup>
-
 
 </Project>

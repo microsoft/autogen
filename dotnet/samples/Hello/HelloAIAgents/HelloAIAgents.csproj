@@ -12,7 +12,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Agents\Microsoft.AutoGen.Agents.csproj" />
-    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Extensions\MEAI\Microsoft.AutoGen.Extensions.MEAI.csproj" />
     <ProjectReference Include="..\Hello.Shared\Hello.Shared.csproj" />
   </ItemGroup>
 </Project>

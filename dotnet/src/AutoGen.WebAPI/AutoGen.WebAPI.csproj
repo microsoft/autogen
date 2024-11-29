@@ -20,8 +20,4 @@
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
-
-  <ItemGroup>
-    <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
-  </ItemGroup>
 </Project>

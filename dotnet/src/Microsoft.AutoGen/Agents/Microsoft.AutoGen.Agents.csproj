@@ -17,7 +17,7 @@
 	</ItemGroup>
 
 	<ItemGroup>
-	  <ProjectReference Include="..\Client\Microsoft.AutoGen.Client.csproj" />
+	  <ProjectReference Include="..\Client\Microsoft.AutoGen.Core.csproj" />
 	</ItemGroup>
 
 </Project>

@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
     <PropertyGroup>
       <TargetFrameworks>$(TestTargetFrameworks)</TargetFrameworks>
@@ -10,9 +10,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\src\AutoGen.Anthropic\AutoGen.Anthropic.csproj" />
       <ProjectReference Include="..\AutoGen.Tests\AutoGen.Tests.csproj" />
-      <ProjectReference Include="..\..\src\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>
 
     <ItemGroup>

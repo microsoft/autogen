@@ -18,7 +18,6 @@
   <ItemGroup>
     <TrimmerRootAssembly Include="AutoGen.Core" />
     <TrimmerRootAssembly Update="@(TrimmerRootAssembly)" Path="$(RepoRoot)\src\%(Identity)\%(Identity).csproj" />
-    <ProjectReference Include="@(TrimmerRootAssembly->'%(Path)')" />
   </ItemGroup>
 
 </Project>

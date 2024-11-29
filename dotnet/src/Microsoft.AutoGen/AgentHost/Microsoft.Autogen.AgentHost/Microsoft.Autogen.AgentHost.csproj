@@ -18,8 +18,7 @@
 
 
   <ItemGroup>
-    <ProjectReference Include="..\..\DistributedRuntime\Microsoft.AutoGen.DistributedRuntime.csproj" />
-    <ProjectReference Include="..\..\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj" />
+    <ProjectReference Include="..\..\DistributedRuntime\Microsoft.AutoGen.Runtime.Grpc.csproj" />
   </ItemGroup>
 
 

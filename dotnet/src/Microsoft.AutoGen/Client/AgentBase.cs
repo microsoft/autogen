@@ -35,20 +35,7 @@ public abstract class AgentBase : IAgentBase, IHandle
         _runtime = runtime;
         runtime.AgentInstance = this;
         EventTypes = eventTypes;
-        _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();
-        var subscriptionRequest = new AddSubscriptionRequest
-        {
-            RequestId = Guid.NewGuid().ToString(),
-            Subscription = new Subscription
-            {
-                TypeSubscription = new TypeSubscription
-                {
-                    AgentType = AgentId.Type,
-                    TopicType = AgentId.Type + "/" + AgentId.Key
-                }
-            }
-        };
-        _runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).AsTask().Wait();
+        _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();        
         Completion = Start();
     }
     internal Task Completion { get; }

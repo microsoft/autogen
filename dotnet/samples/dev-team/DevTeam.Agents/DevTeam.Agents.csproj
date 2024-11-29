@@ -7,8 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Client\Microsoft.AutoGen.Client.csproj" />
-    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Extensions\SemanticKernel\Microsoft.AutoGen.Extensions.SemanticKernel.csproj" />
+    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Client\Microsoft.AutoGen.Core.csproj" />
     <ProjectReference Include="..\DevTeam.ServiceDefaults\DevTeam.ServiceDefaults.csproj" />
     <ProjectReference Include="..\DevTeam.Shared\DevTeam.Shared.csproj" />
   </ItemGroup>
