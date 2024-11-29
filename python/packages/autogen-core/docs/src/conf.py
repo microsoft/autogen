@@ -88,6 +88,7 @@ html_theme_options = {
 
     "header_links_before_dropdown": 4,
     "navbar_align": "left",
+    "show_nav_level": 3,
     "check_switcher": False,
     # "navbar_start": ["navbar-logo", "version-switcher"],
     # "switcher": {
