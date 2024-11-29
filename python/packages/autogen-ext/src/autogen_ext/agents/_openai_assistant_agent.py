@@ -41,6 +41,7 @@ _has_openai_dependencies: bool = True
 try:
     import aiofiles
     from openai import NOT_GIVEN
+    from openai.resources.beta.threads import AsyncMessages, AsyncRuns, AsyncThreads
     from openai.types.beta.code_interpreter_tool_param import CodeInterpreterToolParam
     from openai.types.beta.file_search_tool_param import FileSearchToolParam
     from openai.types.beta.function_tool_param import FunctionToolParam
