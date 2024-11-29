@@ -4,7 +4,7 @@
 using System.Globalization;
 using DevTeam.Shared;
 using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Client;
+using Microsoft.AutoGen.Core;
 using Octokit.Webhooks;
 using Octokit.Webhooks.Events;
 using Octokit.Webhooks.Events.IssueComment;

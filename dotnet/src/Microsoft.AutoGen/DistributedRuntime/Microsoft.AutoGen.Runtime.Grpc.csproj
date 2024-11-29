@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Core\Microsoft.AutoGen.Abstractions.csproj" />
+    <ProjectReference Include="..\Core\Microsoft.AutoGen.Contracts.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -2,14 +2,14 @@
 // Program.cs
 
 using DevTeam.Agents;
-using Microsoft.AutoGen.Client;
-using Microsoft.AutoGen.Extensions.SemanticKernel;
+using Microsoft.AutoGen.Core;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.ConfigureSemanticKernel();
+// TODO: Configure MS.AI.Ext in the app side
+//builder.ConfigureSemanticKernel();
 
 builder.AddAgentWorker(builder.Configuration["AGENT_HOST"]!)
     .AddAgent<Dev>(nameof(Dev))

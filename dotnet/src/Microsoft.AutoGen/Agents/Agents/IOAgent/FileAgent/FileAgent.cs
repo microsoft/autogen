@@ -2,7 +2,7 @@
 // FileAgent.cs
 
 using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Client;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection;
 //using Microsoft.Extensions.Logging;
 

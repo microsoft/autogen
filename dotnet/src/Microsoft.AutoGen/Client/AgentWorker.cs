@@ -9,18 +9,19 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Client;
+namespace Microsoft.AutoGen.Core;
 
-public class AgentWorker :
-     IHostedService,
-     IAgentWorker
+/// <summary>
+/// Represents a worker that manages agents and handles messages.
+/// </summary>
+public class AgentWorker : IHostedService, IAgentWorker
 {
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
-    private readonly ConcurrentDictionary<(string Type, string Key), IAgentBase> _agents = new();
+    private readonly ConcurrentDictionary<(string Type, string Key), AgentBase> _agents = new();
     private readonly ILogger<AgentWorker> _logger;
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
-    private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingClientRequests = new();
+    private readonly ConcurrentDictionary<string, (AgentBase Agent, string OriginalRequestId)> _pendingClientRequests = new();
     private readonly CancellationTokenSource _shutdownCts;
     private readonly IServiceProvider _serviceProvider;
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes;
@@ -31,12 +32,20 @@ public class AgentWorker :
     private Task? _mailboxTask;
     private readonly object _channelLock = new();
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="AgentWorker"/> class.
+    /// </summary>
+    /// <param name="hostApplicationLifetime">The application lifetime.</param>
+    /// <param name="serviceProvider">The service provider.</param>
+    /// <param name="configuredAgentTypes">The configured agent types.</param>
+    /// <param name="logger">The logger.</param>
+    /// <param name="distributedContextPropagator">The distributed context propagator.</param>
     public AgentWorker(
-    IHostApplicationLifetime hostApplicationLifetime,
-    IServiceProvider serviceProvider,
-    [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
-    ILogger<GrpcAgentWorker> logger,
-    DistributedContextPropagator distributedContextPropagator)
+        IHostApplicationLifetime hostApplicationLifetime,
+        IServiceProvider serviceProvider,
+        [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
+        ILogger<AgentWorker> logger,
+        DistributedContextPropagator distributedContextPropagator)
     {
         _logger = logger;
         _serviceProvider = serviceProvider;
@@ -44,38 +53,48 @@ public class AgentWorker :
         _distributedContextPropagator = distributedContextPropagator;
         _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
     }
-    // this is the in-memory version - we just pass the message directly to the agent(s) that handle this type of event
+
+    /// <inheritdoc />
     public async ValueTask PublishEventAsync(CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
         foreach (var (typeName, _) in _agentTypes)
         {
-            if (typeName == nameof(AgentClient)) { continue; }
+            if (typeName == nameof(Client)) { continue; }
             var agent = GetOrActivateAgent(new AgentId { Type = typeName, Key = cloudEvent.Source });
             agent.ReceiveMessage(new Message { CloudEvent = cloudEvent });
         }
     }
-    public async ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
+
+    /// <inheritdoc />
+    public async ValueTask SendRequestAsync(AgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         var requestId = Guid.NewGuid().ToString();
         _pendingClientRequests[requestId] = (agent, request.RequestId);
         request.RequestId = requestId;
         await _mailbox.Writer.WriteAsync(request, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <inheritdoc />
     public ValueTask SendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
     {
         return _mailbox.Writer.WriteAsync(new Message { Response = response }, cancellationToken);
     }
+
+    /// <inheritdoc />
     public ValueTask SendMessageAsync(Message message, CancellationToken cancellationToken = default)
     {
         return _mailbox.Writer.WriteAsync(message, cancellationToken);
     }
+
+    /// <inheritdoc />
     public ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
     {
         var agentId = value.AgentId ?? throw new InvalidOperationException("AgentId is required when saving AgentState.");
-        // add or update _agentStates with the new state
         var response = _agentStates.AddOrUpdate(agentId.ToString(), value, (key, oldValue) => value);
         return ValueTask.CompletedTask;
     }
+
+    /// <inheritdoc />
     public ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
     {
         _agentStates.TryGetValue(agentId.ToString(), out var state);
@@ -88,6 +107,10 @@ public class AgentWorker :
             throw new KeyNotFoundException($"Failed to read AgentState for {agentId}.");
         }
     }
+
+    /// <summary>
+    /// Runs the message pump.
+    /// </summary>
     public async Task RunMessagePump()
     {
         await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
@@ -99,9 +122,7 @@ public class AgentWorker :
                 switch (message)
                 {
                     case Message msg when msg.CloudEvent != null:
-
                         var item = msg.CloudEvent;
-
                         foreach (var (typeName, _) in _agentTypes)
                         {
                             var agentToInvoke = GetOrActivateAgent(new AgentId { Type = typeName, Key = item.Source });
@@ -128,6 +149,11 @@ public class AgentWorker :
             }
         }
     }
+
+    /// <summary>
+    /// Adds a subscription request.
+    /// </summary>
+    /// <param name="subscription">The subscription request to add.</param>
     private async ValueTask AddSubscriptionRequestAsync(AddSubscriptionRequest subscription)
     {
         var topic = subscription.Subscription.TypeSubscription.TopicType;
@@ -146,6 +172,7 @@ public class AgentWorker :
         await _mailbox.Writer.WriteAsync(response).ConfigureAwait(false);
     }
 
+    /// <inheritdoc />
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         StartCore();
@@ -176,6 +203,8 @@ public class AgentWorker :
             }
         }
     }
+
+    /// <inheritdoc />
     public async Task StopAsync(CancellationToken cancellationToken)
     {
         _shutdownCts.Cancel();
@@ -190,7 +219,13 @@ public class AgentWorker :
         {
         }
     }
-    private IAgentBase GetOrActivateAgent(AgentId agentId)
+
+    /// <summary>
+    /// Gets or activates an agent.
+    /// </summary>
+    /// <param name="agentId">The agent ID.</param>
+    /// <returns>The activated agent.</returns>
+    private AgentBase GetOrActivateAgent(AgentId agentId)
     {
         if (!_agents.TryGetValue((agentId.Type, agentId.Key), out var agent))
         {

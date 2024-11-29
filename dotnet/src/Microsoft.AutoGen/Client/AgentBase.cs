@@ -10,9 +10,9 @@ using Google.Protobuf;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Client;
+namespace Microsoft.AutoGen.Core;
 
-public abstract class AgentBase : IAgentBase, IHandle
+public abstract class AgentBase
 {
     public static readonly ActivitySource s_source = new("AutoGen.Agent");
     public AgentId AgentId => _runtime.AgentId;
@@ -20,22 +20,22 @@ public abstract class AgentBase : IAgentBase, IHandle
     private readonly Dictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = [];
 
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
-    private readonly IAgentRuntime _runtime;
+    private readonly AgentRuntime _runtime;
     public string Route { get; set; } = "base";
 
     protected internal ILogger<AgentBase> _logger;
-    public IAgentRuntime Context => _runtime;
+    public AgentRuntime Context => _runtime;
     protected readonly EventTypes EventTypes;
 
     protected AgentBase(
-        IAgentRuntime runtime,
+        AgentRuntime runtime,
         EventTypes eventTypes,
         ILogger<AgentBase>? logger = null)
     {
         _runtime = runtime;
         runtime.AgentInstance = this;
         EventTypes = eventTypes;
-        _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();        
+        _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();
         Completion = Start();
     }
     internal Task Completion { get; }
@@ -246,35 +246,34 @@ public abstract class AgentBase : IAgentBase, IHandle
     {
         // Only send the event to the handler if the agent type is handling that type
         // foreach of the keys in the EventTypes.EventsMap[] if it contains the item.type
-        foreach (var key in EventTypes.EventsMap.Keys)
+        if (EventTypes.CheckIfTypeHandles(GetType(), item.Type) &&
+                 item.Source == AgentId.Key)
         {
-            if (EventTypes.EventsMap[key].Contains(item.Type))
-            {
-                var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
-                var convertedPayload = Convert.ChangeType(payload, EventTypes.Types[item.Type]);
-                var genericInterfaceType = typeof(IHandle<>).MakeGenericType(EventTypes.Types[item.Type]);
+            var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
+            var eventType = EventTypes.GetEventTypeByName(item.Type) ?? throw new InvalidOperationException($"Type not found on event type {item.Type}");
+            var convertedPayload = Convert.ChangeType(payload, eventType);
+            var genericInterfaceType = typeof(IHandle<>).MakeGenericType(eventType);
 
-                MethodInfo methodInfo;
-                try
+            MethodInfo methodInfo;
+            try
+            {
+                // check that our target actually implements this interface, otherwise call the default static
+                if (genericInterfaceType.IsAssignableFrom(GetType()))
                 {
-                    // check that our target actually implements this interface, otherwise call the default static
-                    if (genericInterfaceType.IsAssignableFrom(GetType()))
-                    {
-                        methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle), BindingFlags.Public | BindingFlags.Instance)
-                                       ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
-                        return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
-                    }
-                    else
-                    {
-                        // The error here is we have registered for an event that we do not have code to listen to
-                        throw new InvalidOperationException($"No handler found for event '{item.Type}'; expecting IHandle<{item.Type}> implementation.");
-                    }
+                    methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle), BindingFlags.Public | BindingFlags.Instance)
+                                   ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
+                    return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogError(ex, $"Error invoking method {nameof(IHandle<object>.Handle)}");
-                    throw; // TODO: ?
+                    // The error here is we have registered for an event that we do not have code to listen to
+                    throw new InvalidOperationException($"No handler found for event '{item.Type}'; expecting IHandle<{item.Type}> implementation.");
                 }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error invoking method {nameof(IHandle<object>.Handle)}");
+                throw; // TODO: ?
             }
         }
 

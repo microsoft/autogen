@@ -4,7 +4,7 @@
 using Hello.Events;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
-using Microsoft.AutoGen.Client;
+using Microsoft.AutoGen.Core;
 
 // send a message to the agent
 var builder = WebApplication.CreateBuilder();

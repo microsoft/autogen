@@ -6,12 +6,11 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
-using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
-namespace Microsoft.AutoGen.Client;
+namespace Microsoft.AutoGen.Core;
 
 public static class HostBuilderExtensions
 {
@@ -39,13 +38,13 @@ public static class HostBuilderExtensions
         // if !local, then add the gRPC client
         if (!local)
         {
-            builder.AddGrpcAgentWorker(agentServiceAddress);
+           // builder.AddGrpcAgentWorker(agentServiceAddress);
         }
         else
         {
             builder.Services.AddSingleton<IAgentWorker, AgentWorker>();
         }
-        builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<IAgentWorker>());
+        builder.Services.AddSingleton(sp => (IHostedService)sp.GetRequiredService<IAgentWorker>());
         builder.Services.AddKeyedSingleton("EventTypes", (sp, key) =>
         {
             var interfaceType = typeof(IMessage);
@@ -113,8 +112,7 @@ public static class HostBuilderExtensions
             }
             return new EventTypes(typeRegistry, types, eventsMap);
         });
-        builder.Services.AddSingleton<AgentClient>();
-        builder.Services.AddSingleton(new AgentApplicationBuilder(builder));
+        builder.Services.AddSingleton<Client>();
 
         return builder;
     }
@@ -142,42 +140,6 @@ public sealed class ReflectionHelper
             type = type.BaseType;
         }
         return false;
-    }
-}
-public sealed class AgentTypes(Dictionary<string, Type> types)
-{
-    public Dictionary<string, Type> Types { get; } = types;
-    public static AgentTypes? GetAgentTypesFromAssembly()
-    {
-        var agents = AppDomain.CurrentDomain.GetAssemblies()
-                                .SelectMany(assembly => assembly.GetTypes())
-                                .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase))
-                                    && !type.IsAbstract
-                                    && !type.Name.Equals(nameof(AgentClient)))
-                                .ToDictionary(type => type.Name, type => type);
-
-        return new AgentTypes(agents);
-    }
-}
-public sealed class EventTypes(TypeRegistry typeRegistry, Dictionary<string, Type> types, Dictionary<Type, HashSet<string>> eventsMap)
-{
-    public TypeRegistry TypeRegistry { get; } = typeRegistry;
-    public Dictionary<string, Type> Types { get; } = types;
-    public Dictionary<Type, HashSet<string>> EventsMap { get; } = eventsMap;
-}
-
-public sealed class AgentApplicationBuilder(IHostApplicationBuilder builder)
-{
-    public AgentApplicationBuilder AddAgent<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TAgent>(string typeName) where TAgent : AgentBase
-    {
-        builder.Services.AddKeyedSingleton("AgentTypes", (sp, key) => Tuple.Create(typeName, typeof(TAgent)));
-        return this;
-    }
-    public AgentApplicationBuilder AddAgent(string typeName, Type agentType)
-    {
-        builder.Services.AddKeyedSingleton("AgentTypes", (sp, key) => Tuple.Create(typeName, agentType));
-        return this;
     }
 }
 

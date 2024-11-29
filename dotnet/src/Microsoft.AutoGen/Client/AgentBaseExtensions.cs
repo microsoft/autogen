@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 
-namespace Microsoft.AutoGen.Client;
+namespace Microsoft.AutoGen.Core;
 
 /// <summary>
 /// Provides extension methods for the <see cref="AgentBase"/> class.

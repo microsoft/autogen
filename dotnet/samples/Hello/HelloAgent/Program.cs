@@ -5,7 +5,7 @@ using Hello.Events;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
-using Microsoft.AutoGen.Client;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 

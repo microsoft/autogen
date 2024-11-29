@@ -2,7 +2,7 @@
 // ConsoleAgent.cs
 
 using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Client;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.AutoGen.Agents;

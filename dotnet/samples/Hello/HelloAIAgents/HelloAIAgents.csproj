@@ -11,7 +11,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Agents\Microsoft.AutoGen.Agents.csproj" />
     <ProjectReference Include="..\Hello.Shared\Hello.Shared.csproj" />
   </ItemGroup>
 </Project>

@@ -2,7 +2,7 @@
 // IOAgent.cs
 
 using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Client;
+using Microsoft.AutoGen.Core;
 
 namespace Microsoft.AutoGen.Agents;
 

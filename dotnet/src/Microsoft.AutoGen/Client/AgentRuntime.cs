@@ -5,16 +5,44 @@ using System.Diagnostics;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Client;
+namespace Microsoft.AutoGen.Core;
 
-internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger<AgentBase> logger, DistributedContextPropagator distributedContextPropagator) : IAgentRuntime
+/// <summary>
+/// Represents the runtime environment for an agent.
+/// </summary>
+/// <param name="agentId">The unique identifier of the agent.</param>
+/// <param name="worker">The worker responsible for agent operations.</param>
+/// <param name="logger">The logger instance for logging.</param>
+/// <param name="distributedContextPropagator">The context propagator for distributed tracing.</param>
+public sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger<AgentBase> logger, DistributedContextPropagator distributedContextPropagator)
 {
     private readonly IAgentWorker worker = worker;
 
+    /// <summary>
+    /// Gets the unique identifier of the agent.
+    /// </summary>
     public AgentId AgentId { get; } = agentId;
+
+    /// <summary>
+    /// Gets the logger instance for logging.
+    /// </summary>
     public ILogger<AgentBase> Logger { get; } = logger;
-    public IAgentBase? AgentInstance { get; set; }
+
+    /// <summary>
+    /// Gets or sets the instance of the agent.
+    /// </summary>
+    public AgentBase? AgentInstance { get; internal set; }
+
+    /// <summary>
+    /// Gets the context propagator for distributed tracing.
+    /// </summary>
     private DistributedContextPropagator DistributedContextPropagator { get; } = distributedContextPropagator;
+
+    /// <summary>
+    /// Extracts the trace ID and state from the given metadata.
+    /// </summary>
+    /// <param name="metadata">The metadata containing trace information.</param>
+    /// <returns>A tuple containing the trace ID and state.</returns>
     public (string?, string?) GetTraceIdAndState(IDictionary<string, string> metadata)
     {
         DistributedContextPropagator.ExtractTraceIdAndState(metadata,
@@ -28,40 +56,101 @@ internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger
             out var traceState);
         return (traceParent, traceState);
     }
+
+    /// <summary>
+    /// Updates the request metadata with the current activity context.
+    /// </summary>
+    /// <param name="request">The request to update.</param>
+    /// <param name="activity">The current activity context.</param>
     public void Update(RpcRequest request, Activity? activity = null)
     {
         DistributedContextPropagator.Inject(activity, request.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
     }
+
+    /// <summary>
+    /// Updates the cloud event metadata with the current activity context.
+    /// </summary>
+    /// <param name="cloudEvent">The cloud event to update.</param>
+    /// <param name="activity">The current activity context.</param>
     public void Update(CloudEvent cloudEvent, Activity? activity = null)
     {
         DistributedContextPropagator.Inject(activity, cloudEvent.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
     }
+
+    /// <summary>
+    /// Sends a response asynchronously.
+    /// </summary>
+    /// <param name="request">The request associated with the response.</param>
+    /// <param name="response">The response to send.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async ValueTask SendResponseAsync(RpcRequest request, RpcResponse response, CancellationToken cancellationToken = default)
     {
         response.RequestId = request.RequestId;
         await worker.SendResponseAsync(response, cancellationToken).ConfigureAwait(false);
     }
-    public async ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
+
+    /// <summary>
+    /// Sends a request asynchronously.
+    /// </summary>
+    /// <param name="agent">The agent sending the request.</param>
+    /// <param name="request">The request to send.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    public async ValueTask SendRequestAsync(AgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         await worker.SendRequestAsync(agent, request, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Sends a message asynchronously.
+    /// </summary>
+    /// <param name="message">The message to send.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async ValueTask SendMessageAsync(Message message, CancellationToken cancellationToken = default)
     {
         await worker.SendMessageAsync(message, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Publishes a cloud event asynchronously.
+    /// </summary>
+    /// <param name="event">The cloud event to publish.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async ValueTask PublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default)
     {
         await worker.PublishEventAsync(@event, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Stores the agent state asynchronously.
+    /// </summary>
+    /// <param name="value">The agent state to store.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public async ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
     {
         await worker.StoreAsync(value, cancellationToken).ConfigureAwait(false);
     }
+
+    /// <summary>
+    /// Reads the agent state asynchronously.
+    /// </summary>
+    /// <param name="agentId">The ID of the agent whose state is to be read.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that represents the asynchronous operation, containing the agent state.</returns>
     public ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
     {
         return worker.ReadAsync(agentId, cancellationToken);
     }
 
+    /// <summary>
+    /// Extracts metadata from the given metadata dictionary.
+    /// </summary>
+    /// <param name="metadata">The metadata dictionary to extract from.</param>
+    /// <returns>A dictionary containing the extracted metadata.</returns>
     public IDictionary<string, string> ExtractMetadata(IDictionary<string, string> metadata)
     {
         var baggage = DistributedContextPropagator.ExtractBaggage(metadata, static (object? carrier, string fieldName, out string? fieldValue, out IEnumerable<string>? fieldValues) =>

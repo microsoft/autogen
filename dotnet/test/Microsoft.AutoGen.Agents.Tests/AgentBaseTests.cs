@@ -5,7 +5,7 @@ using System.Collections.Concurrent;
 using FluentAssertions;
 using Google.Protobuf.Reflection;
 using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Client;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -42,7 +42,7 @@ public class AgentBaseTests(InMemoryAgentRuntimeFixture fixture)
     [Fact]
     public async Task ItDelegateMessageToTestAgentAsync()
     {
-        var client = _fixture.AppHost.Services.GetRequiredService<AgentClient>();
+        var client = _fixture.AppHost.Services.GetRequiredService<Client>();
 
         await client.PublishMessageAsync(new TextMessage()
         {

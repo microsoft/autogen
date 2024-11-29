@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Client;
+namespace Microsoft.AutoGen.Core;
 
 public sealed class GrpcAgentWorker(
     AgentRpc.AgentRpcClient client,
@@ -20,13 +20,12 @@ public sealed class GrpcAgentWorker(
     [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
     ILogger<GrpcAgentWorker> logger,
     DistributedContextPropagator distributedContextPropagator) :
-    AgentWorker(hostApplicationLifetime,
-    serviceProvider, configuredAgentTypes, logger, distributedContextPropagator), IHostedService, IDisposable, IAgentWorker
+    IHostedService, IDisposable, IAgentWorker
 {
     private readonly object _channelLock = new();
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
-    private readonly ConcurrentDictionary<(string Type, string Key), IAgentBase> _agents = new();
-    private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingRequests = new();
+    private readonly ConcurrentDictionary<(string Type, string Key), AgentBase> _agents = new();
+    private readonly ConcurrentDictionary<string, (AgentBase Agent, string OriginalRequestId)> _pendingRequests = new();
     private readonly Channel<(Message Message, TaskCompletionSource WriteCompletionSource)> _outboundMessagesChannel = Channel.CreateBounded<(Message, TaskCompletionSource)>(new BoundedChannelOptions(1024)
     {
         AllowSynchronousContinuations = true,
@@ -102,7 +101,7 @@ public sealed class GrpcAgentWorker(
 
                             foreach (var (typeName, _) in _agentTypes)
                             {
-                                var agent = GetOrActivateAgent(new AgentId{ Type = typeName, Key = item.Source });
+                                var agent = GetOrActivateAgent(new AgentId { Type = typeName, Key = item.Source });
                                 agent.ReceiveMessage(message);
                             }
 
@@ -187,7 +186,7 @@ public sealed class GrpcAgentWorker(
             item.WriteCompletionSource.TrySetCanceled();
         }
     }
-    private IAgentBase GetOrActivateAgent(AgentId agentId)
+    private AgentBase GetOrActivateAgent(AgentId agentId)
     {
         if (!_agents.TryGetValue((agentId.Type, agentId.Key), out var agent))
         {
@@ -230,26 +229,25 @@ public sealed class GrpcAgentWorker(
         }
     }
 
-    // new is intentional
-    public new async ValueTask SendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
+    public async ValueTask SendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
     {
         await WriteChannelAsync(new Message { Response = response }, cancellationToken).ConfigureAwait(false);
     }
-    // new is intentional
-    public new async ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
+
+    public async ValueTask SendRequestAsync(AgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         var requestId = Guid.NewGuid().ToString();
         _pendingRequests[requestId] = (agent, request.RequestId);
         request.RequestId = requestId;
         await WriteChannelAsync(new Message { Request = request }, cancellationToken).ConfigureAwait(false);
     }
-    // new is intentional
-    public new async ValueTask SendMessageAsync(Message message, CancellationToken cancellationToken = default)
+
+    public async ValueTask SendMessageAsync(Message message, CancellationToken cancellationToken = default)
     {
         await WriteChannelAsync(message, cancellationToken).ConfigureAwait(false);
     }
-    // new is intentional
-    public new async ValueTask PublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default)
+
+    public async ValueTask PublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default)
     {
         await WriteChannelAsync(new Message { CloudEvent = @event }, cancellationToken).ConfigureAwait(false);
     }
@@ -293,7 +291,7 @@ public sealed class GrpcAgentWorker(
         return _channel;
     }
 
-    public new async Task StartAsync(CancellationToken cancellationToken)
+    public async Task StartAsync(CancellationToken cancellationToken)
     {
         _channel = GetChannel();
         StartCore();
@@ -330,7 +328,7 @@ public sealed class GrpcAgentWorker(
         }
     }
 
-    public new async Task StopAsync(CancellationToken cancellationToken)
+    public async Task StopAsync(CancellationToken cancellationToken)
     {
         _shutdownCts.Cancel();
 
@@ -350,8 +348,8 @@ public sealed class GrpcAgentWorker(
             _channel?.Dispose();
         }
     }
-    // new intentional
-    public new async ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
+
+    public async ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
     {
         var agentId = value.AgentId ?? throw new InvalidOperationException("AgentId is required when saving AgentState.");
         var response = _client.SaveState(value, null, null, cancellationToken);
@@ -360,8 +358,8 @@ public sealed class GrpcAgentWorker(
             throw new InvalidOperationException($"Error saving AgentState for AgentId {agentId}.");
         }
     }
-    // new intentional
-    public new async ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
+
+    public async ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
     {
         var response = await _client.GetStateAsync(agentId).ConfigureAwait(true);
         //        if (response.Success && response.AgentState.AgentId is not null) - why is success always false?

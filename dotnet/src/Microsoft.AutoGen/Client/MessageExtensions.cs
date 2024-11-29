@@ -5,10 +5,20 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AutoGen.Abstractions;
 
-namespace Microsoft.AutoGen.Client;
+namespace Microsoft.AutoGen.Core;
 
+/// <summary>
+/// Provides extension methods for converting messages to and from various formats.
+/// </summary>
 public static class MessageExtensions
 {
+    /// <summary>
+    /// Converts a message to a CloudEvent.
+    /// </summary>
+    /// <typeparam name="T">The type of the message.</typeparam>
+    /// <param name="message">The message to convert.</param>
+    /// <param name="source">The source of the event.</param>
+    /// <returns>A CloudEvent representing the message.</returns>
     public static CloudEvent ToCloudEvent<T>(this T message, string source) where T : IMessage
     {
         return new CloudEvent
@@ -17,13 +27,28 @@ public static class MessageExtensions
             Type = message.Descriptor.FullName,
             Source = source,
             Id = Guid.NewGuid().ToString()
-
         };
     }
+
+    /// <summary>
+    /// Converts a CloudEvent back to a message.
+    /// </summary>
+    /// <typeparam name="T">The type of the message.</typeparam>
+    /// <param name="cloudEvent">The CloudEvent to convert.</param>
+    /// <returns>The message represented by the CloudEvent.</returns>
     public static T FromCloudEvent<T>(this CloudEvent cloudEvent) where T : IMessage, new()
     {
         return cloudEvent.ProtoData.Unpack<T>();
     }
+
+    /// <summary>
+    /// Converts a state to an AgentState.
+    /// </summary>
+    /// <typeparam name="T">The type of the state.</typeparam>
+    /// <param name="state">The state to convert.</param>
+    /// <param name="agentId">The ID of the agent.</param>
+    /// <param name="eTag">The ETag of the state.</param>
+    /// <returns>An AgentState representing the state.</returns>
     public static AgentState ToAgentState<T>(this T state, AgentId agentId, string eTag) where T : IMessage
     {
         return new AgentState
@@ -34,6 +59,12 @@ public static class MessageExtensions
         };
     }
 
+    /// <summary>
+    /// Converts an AgentState back to a state.
+    /// </summary>
+    /// <typeparam name="T">The type of the state.</typeparam>
+    /// <param name="state">The AgentState to convert.</param>
+    /// <returns>The state represented by the AgentState.</returns>
     public static T FromAgentState<T>(this AgentState state) where T : IMessage, new()
     {
         if (state.HasTextData == true)
