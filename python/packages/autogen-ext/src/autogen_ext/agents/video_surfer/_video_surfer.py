@@ -4,7 +4,7 @@ from autogen_agentchat.agents import AssistantAgent
 from autogen_core.components.models import ChatCompletionClient
 from autogen_core.components.tools import Tool
 
-from ._action_space import (
+from .tools import (
     extract_audio,
     get_screenshot_at,
     get_video_length,
@@ -22,12 +22,12 @@ class VideoSurferAgent(AssistantAgent):
 
     Available tools:
 
-    - :func:`~autogen_ext.agents.video_surfer._action_space.extract_audio`
-    - :func:`~autogen_ext.agents.video_surfer._action_space.get_video_length`
-    - :func:`~autogen_ext.agents.video_surfer._action_space.transcribe_audio_with_timestamps`
-    - :func:`~autogen_ext.agents.video_surfer._action_space.get_screenshot_at`
-    - :func:`~autogen_ext.agents.video_surfer._action_space.save_screenshot`
-    - :func:`~autogen_ext.agents.video_surfer._action_space.openai_transcribe_video_screenshot`
+    - :func:`~autogen_ext.agents.video_surfer.tools.extract_audio`
+    - :func:`~autogen_ext.agents.video_surfer.tools.get_video_length`
+    - :func:`~autogen_ext.agents.video_surfer.tools.transcribe_audio_with_timestamps`
+    - :func:`~autogen_ext.agents.video_surfer.tools.get_screenshot_at`
+    - :func:`~autogen_ext.agents.video_surfer.tools.save_screenshot`
+    - :func:`~autogen_ext.agents.video_surfer.tools.openai_transcribe_video_screenshot`
 
     Example usage:
 
