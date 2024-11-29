@@ -57,14 +57,3 @@ if __name__=="__main__":
     ## 设置代理
     runtime = SingleThreadedAgentRuntime()
 
-    cathy = await Assistant.register(
-        runtime,
-        "cathy",
-        lambda: Assistant(name="Cathy", model_client=get_model_client()),
-    )
-
-    joe = await Assistant.register(
-        runtime,
-        "joe",
-        lambda: Assistant(name="Joe", model_client=get_model_client()),
-    )

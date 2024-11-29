@@ -22,13 +22,13 @@ from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.llms.azure_openai import AzureOpenAI
 from llama_index.llms.openai import OpenAI
 from llama_index.tools.wikipedia import WikipediaToolSpec
+from llama_index.llms.ollama import Ollama
 
-from llama_index.llms.openai_like import OpenAILike
 from llama_index.core.tools import FunctionTool
 from autogen_agentchat.agents import CodingAssistantAgent
 from autogen_ext.models import OpenAIChatCompletionClient
 
-llm = OpenAILike(model="qwen2", api_base="http://127.0.0.1:4000/v1", api_key="fake")
+llm = Ollama(model="qwen2.5:14b-instruct-q4_K_M", api_key="fake")
 
 response = llm.complete("Hello World!")
 print(str(response))
@@ -120,7 +120,6 @@ async def newRuntime():
         ),
     )
 
-    CodingAssistantAgent.register()
     planner_agent = CodingAssistantAgent(
     "planner_agent",
     model_client=get_model_client(),
