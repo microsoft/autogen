@@ -81,6 +81,8 @@ html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 
+add_module_names = False
+
 html_logo = "_static/images/logo/logo.svg"
 html_favicon = "_static/images/logo/favicon-512x512.png"
 
