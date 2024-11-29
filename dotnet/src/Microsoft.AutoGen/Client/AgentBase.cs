@@ -236,7 +236,7 @@ public abstract class AgentBase
         await this.InvokeWithActivityAsync(
             static async (state, ct) =>
             {
-                await state.Item1._context.PublishEventAsync(state.item).ConfigureAwait(false);
+                await state.Item1._context.PublishEventAsync(state.item, cancellationToken : ct).ConfigureAwait(false);
             },
             (this, item),
             activity,
@@ -255,25 +255,24 @@ public abstract class AgentBase
             var convertedPayload = Convert.ChangeType(payload, eventType);
             var genericInterfaceType = typeof(IHandle<>).MakeGenericType(eventType);
 
-            MethodInfo methodInfo;
+            MethodInfo? methodInfo = null;
             try
             {
                 // check that our target actually implements this interface, otherwise call the default static
-                if (genericInterfaceType.IsAssignableFrom(GetType()))
+                if (genericInterfaceType.IsInstanceOfType(this))
                 {
-                    methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle), BindingFlags.Public | BindingFlags.Instance)
+                    methodInfo = genericInterfaceType.GetMethod("Handle", BindingFlags.Public | BindingFlags.Instance)
                                    ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
                     return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
                 }
-                else
-                {
-                    // The error here is we have registered for an event that we do not have code to listen to
-                    throw new InvalidOperationException($"No handler found for event '{item.Type}'; expecting IHandle<{item.Type}> implementation.");
-                }
+
+                // The error here is we have registered for an event that we do not have code to listen to
+                throw new InvalidOperationException($"No handler found for event '{item.Type}'; expecting IHandle<{item.Type}> implementation.");
+                
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, $"Error invoking method {nameof(IHandle<object>.Handle)}");
+                _logger.LogError(ex, $"Error invoking method {methodInfo?.Name ?? "Handle"}");
                 throw; // TODO: ?
             }
         }
