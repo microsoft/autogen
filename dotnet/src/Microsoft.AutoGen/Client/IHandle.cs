@@ -16,5 +16,5 @@ public interface IHandle<in T> where T : IMessage
     /// </summary>
     /// <param name="item">The item to be handled.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    Task Handle(T item);
+    Task Handle(T item, CancellationToken cancellationToken);
 }

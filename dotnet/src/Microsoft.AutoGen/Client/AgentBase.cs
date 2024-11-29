@@ -94,7 +94,7 @@ public abstract class AgentBase
                 {
                     var activity = this.ExtractActivity(msg.CloudEvent.Type, msg.CloudEvent.Metadata);
                     await this.InvokeWithActivityAsync(
-                        static (state, item) => state.Item1.CallHandler(state.CloudEvent),
+                        static (state, ct) => state.Item1.CallHandler(state.CloudEvent, ct),
                         (this, msg.CloudEvent),
                         activity,
                         msg.CloudEvent.Type, cancellationToken).ConfigureAwait(false);
@@ -243,7 +243,7 @@ public abstract class AgentBase
             item.Type, cancellationToken).ConfigureAwait(false);
     }
 
-    public Task CallHandler(CloudEvent item)
+    public Task CallHandler(CloudEvent item, CancellationToken cancellationToken)
     {
         // Only send the event to the handler if the agent type is handling that type
         // foreach of the keys in the EventTypes.EventsMap[] if it contains the item.type
@@ -263,7 +263,7 @@ public abstract class AgentBase
                 {
                     methodInfo = genericInterfaceType.GetMethod("Handle", BindingFlags.Public | BindingFlags.Instance)
                                    ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
-                    return methodInfo.Invoke(this, [convertedPayload]) as Task ?? Task.CompletedTask;
+                    return methodInfo.Invoke(this, [convertedPayload, cancellationToken]) as Task ?? Task.CompletedTask;
                 }
 
                 // The error here is we have registered for an event that we do not have code to listen to
