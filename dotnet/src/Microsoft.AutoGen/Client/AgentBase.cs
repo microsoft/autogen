@@ -263,7 +263,7 @@ public abstract class AgentBase
                 {
                     methodInfo = genericInterfaceType.GetMethod("Handle", BindingFlags.Public | BindingFlags.Instance)
                                    ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
-                    return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
+                    return methodInfo.Invoke(this, [convertedPayload]) as Task ?? Task.CompletedTask;
                 }
 
                 // The error here is we have registered for an event that we do not have code to listen to
