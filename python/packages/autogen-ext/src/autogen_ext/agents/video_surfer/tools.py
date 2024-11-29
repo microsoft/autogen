@@ -4,8 +4,12 @@ from typing import Any, Dict, List, Tuple
 import cv2
 import ffmpeg
 import numpy as np
-import openai
 import whisper
+from autogen_core.components import Image as AGImage
+from autogen_core.components.models import (
+    ChatCompletionClient,
+    UserMessage,
+)
 
 
 def extract_audio(video_path: str, audio_output_path: str) -> str:
@@ -66,7 +70,7 @@ def save_screenshot(video_path: str, timestamp: float, output_path: str) -> None
 
     :param video_path: Path to the video file.
     :param timestamp: Timestamp in seconds.
-    :param output_path: Path to save the screenshot.
+    :param output_path: Path to save the screenshot. The file format is determined by the extension in the path.
     """
     cap = cv2.VideoCapture(video_path)
     if not cap.isOpened():
@@ -82,12 +86,13 @@ def save_screenshot(video_path: str, timestamp: float, output_path: str) -> None
     cap.release()
 
 
-def openai_transcribe_video_screenshot(video_path: str, timestamp: float) -> str:
+async def transcribe_video_screenshot(video_path: str, timestamp: float, model_client: ChatCompletionClient) -> str:
     """
     Transcribes the content of a video screenshot captured at the specified timestamp using OpenAI API.
 
     :param video_path: Path to the video file.
     :param timestamp: Timestamp in seconds.
+    :param model_client: ChatCompletionClient instance.
     :return: Description of the screenshot content.
     """
     screenshots = get_screenshot_at(video_path, [timestamp])
@@ -99,31 +104,20 @@ def openai_transcribe_video_screenshot(video_path: str, timestamp: float) -> str
     _, buffer = cv2.imencode(".jpg", frame)
     frame_bytes = buffer.tobytes()
     frame_base64 = base64.b64encode(frame_bytes).decode("utf-8")
+    screenshot_uri = f"data:image/jpeg;base64,{frame_base64}"
 
-    client = openai.Client()
+    messages = [
+        UserMessage(
+            content=[
+                "Following is a screenshot from the video at {} seconds. Describe what you see here.",
+                AGImage.from_uri(screenshot_uri),
+            ],
+            source="tool",
+        )
+    ]
 
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=[
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": "Following is a screenshot from the video at {} seconds. Describe what you see here.".format(
-                            timestamp
-                        ),
-                    },
-                    {
-                        "type": "image_url",
-                        "image_url": {"url": f"data:image/jpeg;base64,{frame_base64}"},
-                    },
-                ],
-            }
-        ],
-    )
-
-    return str(response.choices[0].message.content)
+    result = await model_client.create(messages=messages)
+    return str(result.content)
 
 
 def get_screenshot_at(video_path: str, timestamps: List[float]) -> List[Tuple[float, np.ndarray[Any, Any]]]:
