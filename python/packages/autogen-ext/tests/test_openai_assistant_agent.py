@@ -7,6 +7,7 @@ from autogen_agentchat.messages import TextMessage
 from autogen_core.base import CancellationToken
 from autogen_core.components.tools._base import BaseTool, Tool
 from autogen_ext.agents import OpenAIAssistantAgent
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from openai import AsyncAzureOpenAI
 from pydantic import BaseModel
 
@@ -62,11 +63,22 @@ def client() -> AsyncAzureOpenAI:
     api_version = os.getenv("AZURE_OPENAI_API_VERSION", "2024-08-01-preview")
     api_key = os.getenv("AZURE_OPENAI_API_KEY")
 
-    if not all([azure_endpoint, api_key]):
-        pytest.skip("Azure OpenAI credentials not found in environment variables")
+    if not azure_endpoint:
+        pytest.skip("Azure OpenAI endpoint not found in environment variables")
 
-    assert azure_endpoint is not None
-    assert api_key is not None
+    # Try Azure CLI credentials if API key not provided
+    if not api_key:
+        try:
+            token_provider = get_bearer_token_provider(
+                DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+            )
+            return AsyncAzureOpenAI(
+                azure_endpoint=azure_endpoint, api_version=api_version, azure_ad_token_provider=token_provider
+            )
+        except Exception:
+            pytest.skip("Failed to get Azure CLI credentials and no API key provided")
+
+    # Fall back to API key auth if provided
     return AsyncAzureOpenAI(azure_endpoint=azure_endpoint, api_version=api_version, api_key=api_key)
 
 
@@ -136,5 +148,43 @@ async def test_quiz_creation(agent: OpenAIAssistantAgent, cancellation_token: Ca
     assert len(response.chat_message.content) > 0
     assert isinstance(response.inner_messages, list)
     assert any(tool_msg.content for tool_msg in response.inner_messages if hasattr(tool_msg, "content"))
+
+    await agent.delete_assistant(cancellation_token)
+
+
+@pytest.mark.asyncio
+async def test_on_reset_behavior(client: AsyncAzureOpenAI, cancellation_token: CancellationToken) -> None:
+    # Create thread with initial message
+    thread = await client.beta.threads.create()
+    await client.beta.threads.messages.create(
+        thread_id=thread.id,
+        content="Hi, my name is John and I'm a software engineer. Use this information to help me.",
+        role="user",
+    )
+
+    # Create agent with existing thread
+    agent = OpenAIAssistantAgent(
+        name="assistant",
+        instructions="Help the user with their task.",
+        model="gpt-4o-mini",
+        description="OpenAI Assistant Agent",
+        client=client,
+        thread_id=thread.id,
+    )
+
+    # Test before reset
+    message1 = TextMessage(source="user", content="What is my name?")
+    response1 = await agent.on_messages([message1], cancellation_token)
+    assert isinstance(response1.chat_message.content, str)
+    assert "john" in response1.chat_message.content.lower()
+
+    # Reset agent state
+    await agent.on_reset(cancellation_token)
+
+    # Test after reset
+    message2 = TextMessage(source="user", content="What is my name?")
+    response2 = await agent.on_messages([message2], cancellation_token)
+    assert isinstance(response2.chat_message.content, str)
+    assert "john" in response2.chat_message.content.lower()
 
     await agent.delete_assistant(cancellation_token)
