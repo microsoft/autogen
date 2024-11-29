@@ -207,7 +207,7 @@ public abstract class AgentBase
                     self._pendingRequests[request.RequestId] = completion;
                 }
 
-                await state.Item1._context.SendRequestAsync(state.Item1, state.request).ConfigureAwait(false);
+                await state.Item1._context.SendRequestAsync(state.Item1, state.request, ct).ConfigureAwait(false);
 
                 await completion.Task.ConfigureAwait(false);
             },
