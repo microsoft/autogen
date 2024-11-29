@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentRuntime.cs
+// RuntimeContext.cs
 
 using System.Diagnostics;
 using Microsoft.AutoGen.Abstractions;
@@ -14,7 +14,7 @@ namespace Microsoft.AutoGen.Core;
 /// <param name="worker">The worker responsible for agent operations.</param>
 /// <param name="logger">The logger instance for logging.</param>
 /// <param name="distributedContextPropagator">The context propagator for distributed tracing.</param>
-public sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger<AgentBase> logger, DistributedContextPropagator distributedContextPropagator)
+public sealed class RuntimeContext(AgentId agentId, IAgentWorker worker, ILogger<AgentBase> logger, DistributedContextPropagator distributedContextPropagator)
 {
     private readonly IAgentWorker worker = worker;
 

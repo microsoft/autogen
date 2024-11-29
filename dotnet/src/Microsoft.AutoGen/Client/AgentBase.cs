@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentBase.cs
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
@@ -15,25 +16,25 @@ namespace Microsoft.AutoGen.Core;
 public abstract class AgentBase
 {
     public static readonly ActivitySource s_source = new("AutoGen.Agent");
-    public AgentId AgentId => _runtime.AgentId;
+    public AgentId AgentId => _context.AgentId;
     private readonly object _lock = new();
-    private readonly Dictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = [];
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = [];
 
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
-    private readonly AgentRuntime _runtime;
+    private readonly RuntimeContext _context;
+    public RuntimeContext Context => _context;
     public string Route { get; set; } = "base";
 
     protected internal ILogger<AgentBase> _logger;
-    public AgentRuntime Context => _runtime;
     protected readonly EventTypes EventTypes;
 
     protected AgentBase(
-        AgentRuntime runtime,
+        RuntimeContext context,
         EventTypes eventTypes,
         ILogger<AgentBase>? logger = null)
     {
-        _runtime = runtime;
-        runtime.AgentInstance = this;
+        _context = context;
+        context.AgentInstance = this;
         EventTypes = eventTypes;
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();
         Completion = Start();
@@ -131,18 +132,18 @@ public abstract class AgentBase
                 }
             }
         };
-        _runtime.SendMessageAsync(message).AsTask().Wait();
+        _context.SendMessageAsync(message).AsTask().Wait();
 
         return new List<string> { topic };
     }
     public async Task StoreAsync(AgentState state, CancellationToken cancellationToken = default)
     {
-        await _runtime.StoreAsync(state, cancellationToken).ConfigureAwait(false);
+        await _context.StoreAsync(state, cancellationToken).ConfigureAwait(false);
         return;
     }
     public async Task<T> ReadAsync<T>(AgentId agentId, CancellationToken cancellationToken = default) where T : IMessage, new()
     {
-        var agentstate = await _runtime.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
+        var agentstate = await _context.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
         return agentstate.FromAgentState<T>();
     }
     private void OnResponseCore(RpcResponse response)
@@ -171,7 +172,7 @@ public abstract class AgentBase
         {
             response = new RpcResponse { Error = ex.Message };
         }
-        await _runtime.SendResponseAsync(request, response, cancellationToken).ConfigureAwait(false);
+        await _context.SendResponseAsync(request, response, cancellationToken).ConfigureAwait(false);
     }
 
     protected async Task<RpcResponse> RequestAsync(AgentId target, string method, Dictionary<string, string> parameters)
@@ -195,7 +196,7 @@ public abstract class AgentBase
         activity?.SetTag("peer.service", target.ToString());
 
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _runtime.Update(request, activity);
+        _context.Update(request, activity);
         await this.InvokeWithActivityAsync(
             static async (state, ct) =>
             {
@@ -206,7 +207,7 @@ public abstract class AgentBase
                     self._pendingRequests[request.RequestId] = completion;
                 }
 
-                await state.Item1._runtime.SendRequestAsync(state.Item1, state.request).ConfigureAwait(false);
+                await state.Item1._context.SendRequestAsync(state.Item1, state.request).ConfigureAwait(false);
 
                 await completion.Task.ConfigureAwait(false);
             },
@@ -231,11 +232,11 @@ public abstract class AgentBase
         activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
 
         // TODO: fix activity
-        _runtime.Update(item, activity);
+        _context.Update(item, activity);
         await this.InvokeWithActivityAsync(
             static async (state, ct) =>
             {
-                await state.Item1._runtime.PublishEventAsync(state.item).ConfigureAwait(false);
+                await state.Item1._context.PublishEventAsync(state.item).ConfigureAwait(false);
             },
             (this, item),
             activity,

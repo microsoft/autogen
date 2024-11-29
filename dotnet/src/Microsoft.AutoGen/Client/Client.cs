@@ -17,6 +17,6 @@ namespace Microsoft.AutoGen.Core;
 /// <param name="logger">The logger instance for logging client activities.</param>
 public sealed class Client(IAgentWorker runtime, DistributedContextPropagator distributedContextPropagator,
     [FromKeyedServices("EventTypes")] EventTypes eventTypes, ILogger<Client> logger)
-    : AgentBase(new AgentRuntime(new AgentId { Type = "client", Key = Guid.NewGuid().ToString() }, runtime, logger, distributedContextPropagator), eventTypes)
+    : AgentBase(new RuntimeContext(new AgentId { Type = "client", Key = Guid.NewGuid().ToString() }, runtime, logger, distributedContextPropagator), eventTypes)
 {
 }
