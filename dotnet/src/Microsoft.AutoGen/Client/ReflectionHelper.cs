@@ -10,7 +10,7 @@ namespace Microsoft.AutoGen.Core;
 /// <summary>
 /// Provides helper methods for reflection operations.
 /// </summary>
-internal static class ReflectionHelper
+public static class ReflectionHelper
 {
     /// <summary>
     /// Determines whether the specified type is a subclass of the specified generic base type.
@@ -40,7 +40,7 @@ internal static class ReflectionHelper
     /// </summary>
     /// <param name="assemblies">The assemblies to scan for agent metadata.</param>
     /// <returns>An <see cref="EventTypes"/> object containing the agent metadata.</returns>
-    internal static EventTypes GetAgentsMetadata(params Assembly[] assemblies)
+    public static EventTypes GetAgentsMetadata(params Assembly[] assemblies)
     {
         var interfaceType = typeof(IMessage);
         var pairs = assemblies
