@@ -18,6 +18,7 @@ class MagenticOneGroupChat(BaseGroupChat):
         participants: List[ChatAgent],
         model_client: ChatCompletionClient,
         *,
+        termination_condition: TerminationCondition | None = None,
         max_turns: int | None = 20,
         max_stalls: int = 3,
     ):
@@ -52,4 +53,5 @@ class MagenticOneGroupChat(BaseGroupChat):
             max_turns,
             self._model_client,
             self._max_stalls,
+            termination_condition
         )

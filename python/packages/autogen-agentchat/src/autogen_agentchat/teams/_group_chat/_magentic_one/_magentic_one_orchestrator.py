@@ -10,12 +10,13 @@ from autogen_core.components.models import (
     UserMessage,
 )
 
-from ....base import Response
+from ....base import Response, TerminationCondition
 from ....messages import (
     AgentMessage,
     MultiModalMessage,
     StopMessage,
     TextMessage,
+    ChatMessage
 )
 from .._events import (
     GroupChatAgentResponse,
@@ -25,7 +26,7 @@ from .._events import (
     GroupChatStart,
     GroupChatTermination,
 )
-from .._sequential_routed_agent import SequentialRoutedAgent
+from .._base_group_chat_manager import BaseGroupChatManager
 from ._prompts import (
     ORCHESTRATOR_FINAL_ANSWER_PROMPT,
     ORCHESTRATOR_PROGRESS_LEDGER_PROMPT,
@@ -37,7 +38,7 @@ from ._prompts import (
 )
 
 
-class MagenticOneOrchestrator(SequentialRoutedAgent):
+class MagenticOneOrchestrator(BaseGroupChatManager):
     def __init__(
         self,
         group_topic_type: str,
@@ -47,33 +48,26 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
         max_turns: int | None,
         model_client: ChatCompletionClient,
         max_stalls: int,
+        termination_condition: TerminationCondition | None,
     ):
-        super().__init__(description="Group chat manager")
-        self._group_topic_type = group_topic_type
-        self._output_topic_type = output_topic_type
-        if len(participant_topic_types) != len(participant_descriptions):
-            raise ValueError("The number of participant topic types, agent types, and descriptions must be the same.")
-        if len(set(participant_topic_types)) != len(participant_topic_types):
-            raise ValueError("The participant topic types must be unique.")
-        if group_topic_type in participant_topic_types:
-            raise ValueError("The group topic type must not be in the participant topic types.")
-        self._participant_topic_types = participant_topic_types
-        self._participant_descriptions = participant_descriptions
-        self._message_thread: List[AgentMessage] = []
-
-        self._name: str = "orchestrator"
-        self._model_client: ChatCompletionClient = model_client
-        self._max_turns: int | None = max_turns
-        self._max_stalls: int = max_stalls
-        self._max_json_retries: int = 10
-
-        self._task: str = ""
-        self._facts: str = ""
-        self._plan: str = ""
-        self._n_rounds: int = 0
-        self._n_stalls: int = 0
-
-        self._team_description: str = "\n".join(
+        super().__init__(
+            group_topic_type,
+            output_topic_type,
+            participant_topic_types,
+            participant_descriptions,
+            termination_condition,
+            max_turns,
+        )
+        self._model_client = model_client
+        self._max_stalls = max_stalls
+        self._name = "MagenticOneOrchestrator"
+        self._max_json_retries = 10
+        self._task = ""
+        self._facts = ""
+        self._plan = ""
+        self._n_rounds = 0
+        self._n_stalls = 0
+        self._team_description = "\n".join(
             [
                 f"{topic_type}: {description}".strip()
                 for topic_type, description in zip(
@@ -152,6 +146,9 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
         # Reset the group chat manager.
         await self.reset()
 
+    async def validate_group_state(self, message: ChatMessage | None) -> None:
+        pass
+
     async def select_speaker(self, thread: List[AgentMessage]) -> str:
         """Select a speaker from the participants and return the
         topic type of the selected speaker."""
@@ -159,7 +156,14 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
 
     async def reset(self) -> None:
         """Reset the group chat manager."""
-        pass
+        self._message_thread.clear()
+        if self._termination_condition is not None:
+            await self._termination_condition.reset()
+        self._n_rounds = 0
+        self._n_stalls = 0
+        self._task = ""
+        self._facts = ""
+        self._plan = ""
 
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
         raise ValueError(f"Unhandled message in group chat manager: {type(message)}")
@@ -172,8 +176,7 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
                 recipient=AgentId(type=participant_topic_type, key=self.id.key),
                 cancellation_token=cancellation_token,
             )
-        # Reset the group chat manager
-        await self.reset()
+        # Reset partially the group chat manager
         self._message_thread.clear()
 
         # Prepare the ledger
@@ -286,12 +289,16 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
         for participant_topic_type in self._participant_topic_types:
             if participant_topic_type == next_speaker:
                 await self.publish_message(
-                    GroupChatRequestPublish(), topic_id=DefaultTopicId(type=next_speaker), cancellation_token=cancellation_token
+                    GroupChatRequestPublish(),
+                    topic_id=DefaultTopicId(type=next_speaker),
+                    cancellation_token=cancellation_token,
                 )
                 valid_next_speaker = True
                 break
         if not valid_next_speaker:
-            raise ValueError(f"Invalid next speaker: {next_speaker} from the ledger, participants are: {self._participant_topic_types}")
+            raise ValueError(
+                f"Invalid next speaker: {next_speaker} from the ledger, participants are: {self._participant_topic_types}"
+            )
 
     async def _update_task_ledger(self, cancellation_token: CancellationToken) -> None:
         context = self._thread_to_context()
