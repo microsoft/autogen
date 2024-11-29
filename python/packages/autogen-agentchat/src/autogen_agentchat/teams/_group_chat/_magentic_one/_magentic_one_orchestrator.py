@@ -1,5 +1,5 @@
 import json
-from typing import Any, List
+from typing import Any, List, Dict
 
 from autogen_core.base import AgentId, CancellationToken, MessageContext
 from autogen_core.components import DefaultTopicId, Image, event, rpc
@@ -65,6 +65,7 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
         self._model_client: ChatCompletionClient = model_client
         self._max_turns: int | None = max_turns
         self._max_stalls: int = max_stalls
+        self._max_json_retries: int = 10
 
         self._task: str = ""
         self._facts: str = ""
@@ -135,6 +136,7 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
 
         assert isinstance(response.content, str)
         self._plan = response.content
+        # TODO: add inner message for facts or plan
 
         # Kick things off
         self._n_stalls = 0
@@ -212,12 +214,35 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
             self._task, self._team_description, self._participant_topic_types
         )
         context.append(UserMessage(content=progress_ledger_prompt, source=self._name))
-
-        response = await self._model_client.create(context, json_output=True)
-
-        assert isinstance(response.content, str)
-        progress_ledger = json.loads(response.content)
-
+        progress_ledger: Dict[str, Any] = {}
+        assert self._max_json_retries > 0
+        key_error: bool = False
+        for _ in range(self._max_json_retries):
+            response = await self._model_client.create(context, json_output=True)
+            ledger_str = response.content
+            try:
+                assert isinstance(ledger_str, str)
+                progress_ledger = json.loads(ledger_str)
+                required_keys = [
+                    "is_request_satisfied",
+                    "is_progress_being_made",
+                    "is_in_loop",
+                    "instruction_or_question",
+                    "next_speaker",
+                ]
+                key_error = False
+                for key in required_keys:
+                    if key not in progress_ledger or "answer" not in progress_ledger[key]:
+                        key_error = True
+                        break
+                if not key_error:
+                    break
+                # TODO: add logging THAT WE ARE RETRYING
+            except json.JSONDecodeError:
+                continue
+        if key_error:
+            raise ValueError("Failed to parse ledger information after multiple retries.")
+        # TODO: add logging of the ledger
         # Check for task completion
         if progress_ledger["is_request_satisfied"]["answer"]:
             await self._prepare_final_answer(progress_ledger["is_request_satisfied"]["reason"], cancellation_token)
@@ -233,11 +258,12 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
 
         # Too much stalling
         if self._n_stalls >= self._max_stalls:
+            # TODO: add logging
             await self._update_task_ledger(cancellation_token)
             await self._reenter_inner_loop(cancellation_token)
             return
 
-        # Broadcst the next step
+        # Broadcast the next step
         message = TextMessage(content=progress_ledger["instruction_or_question"]["answer"], source=self._name)
         self._message_thread.append(message)  # My copy
 
@@ -255,10 +281,17 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
         )
 
         # Request that the step be completed
+        valid_next_speaker: bool = False
         next_speaker = progress_ledger["next_speaker"]["answer"]
-        await self.publish_message(
-            GroupChatRequestPublish(), topic_id=DefaultTopicId(type=next_speaker), cancellation_token=cancellation_token
-        )
+        for participant_topic_type in self._participant_topic_types:
+            if participant_topic_type == next_speaker:
+                await self.publish_message(
+                    GroupChatRequestPublish(), topic_id=DefaultTopicId(type=next_speaker), cancellation_token=cancellation_token
+                )
+                valid_next_speaker = True
+                break
+        if not valid_next_speaker:
+            raise ValueError(f"Invalid next speaker: {next_speaker} from the ledger, participants are: {self._participant_topic_types}")
 
     async def _update_task_ledger(self, cancellation_token: CancellationToken) -> None:
         context = self._thread_to_context()
