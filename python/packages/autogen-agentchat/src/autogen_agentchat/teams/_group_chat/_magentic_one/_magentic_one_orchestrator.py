@@ -1,7 +1,7 @@
 import json
 from typing import Any, List
 
-from autogen_core.base import MessageContext
+from autogen_core.base import AgentId, CancellationToken, MessageContext
 from autogen_core.components import DefaultTopicId, Image, event, rpc
 from autogen_core.components.models import (
     AssistantMessage,
@@ -120,7 +120,7 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
         planning_conversation.append(
             UserMessage(content=self._get_task_ledger_facts_prompt(self._task), source=self._name)
         )
-        response = await self._model_client.create(planning_conversation)
+        response = await self._model_client.create(planning_conversation, cancellation_token=ctx.cancellation_token)
 
         assert isinstance(response.content, str)
         self._facts = response.content
@@ -131,19 +131,19 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
         planning_conversation.append(
             UserMessage(content=self._get_task_ledger_plan_prompt(self._team_description), source=self._name)
         )
-        response = await self._model_client.create(planning_conversation)
+        response = await self._model_client.create(planning_conversation, cancellation_token=ctx.cancellation_token)
 
         assert isinstance(response.content, str)
         self._plan = response.content
 
         # Kick things off
         self._n_stalls = 0
-        await self._reenter_inner_loop()
+        await self._reenter_inner_loop(ctx.cancellation_token)
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
         self._message_thread.append(message.agent_response.chat_message)
-        await self._orchestrate_step()
+        await self._orchestrate_step(ctx.cancellation_token)
 
     @rpc
     async def handle_reset(self, message: GroupChatReset, ctx: MessageContext) -> None:
@@ -162,12 +162,16 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
         raise ValueError(f"Unhandled message in group chat manager: {type(message)}")
 
-    async def _reenter_inner_loop(self) -> None:
+    async def _reenter_inner_loop(self, cancellation_token: CancellationToken) -> None:
         # Reset the agents
-        await self.publish_message(
-            GroupChatReset(),
-            topic_id=DefaultTopicId(type=self._group_topic_type),
-        )
+        for participant_topic_type in self._participant_topic_types:
+            await self._runtime.send_message(
+                GroupChatReset(),
+                recipient=AgentId(type=participant_topic_type, key=self.id.key),
+                cancellation_token=cancellation_token,
+            )
+        # Reset the group chat manager
+        await self.reset()
         self._message_thread.clear()
 
         # Prepare the ledger
@@ -192,12 +196,12 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
         )
 
         # Restart the inner loop
-        await self._orchestrate_step()
+        await self._orchestrate_step(cancellation_token=cancellation_token)
 
-    async def _orchestrate_step(self) -> None:
+    async def _orchestrate_step(self, cancellation_token: CancellationToken) -> None:
         # Check if we reached the maximum number of rounds
         if self._max_turns is not None and self._n_rounds > self._max_turns:
-            await self._prepare_final_answer("Max rounds reached.")
+            await self._prepare_final_answer("Max rounds reached.", cancellation_token)
             return
         self._n_rounds += 1
 
@@ -216,7 +220,7 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
 
         # Check for task completion
         if progress_ledger["is_request_satisfied"]["answer"]:
-            await self._prepare_final_answer(progress_ledger["is_request_satisfied"]["reason"])
+            await self._prepare_final_answer(progress_ledger["is_request_satisfied"]["reason"], cancellation_token)
             return
 
         # Check for stalling
@@ -229,8 +233,8 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
 
         # Too much stalling
         if self._n_stalls >= self._max_stalls:
-            await self._update_task_ledger()
-            await self._reenter_inner_loop()
+            await self._update_task_ledger(cancellation_token)
+            await self._reenter_inner_loop(cancellation_token)
             return
 
         # Broadcst the next step
@@ -247,20 +251,23 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
         await self.publish_message(  # Broadcast
             GroupChatAgentResponse(agent_response=Response(chat_message=message)),
             topic_id=DefaultTopicId(type=self._group_topic_type),
+            cancellation_token=cancellation_token,
         )
 
         # Request that the step be completed
         next_speaker = progress_ledger["next_speaker"]["answer"]
-        await self.publish_message(GroupChatRequestPublish(), topic_id=DefaultTopicId(type=next_speaker))
+        await self.publish_message(
+            GroupChatRequestPublish(), topic_id=DefaultTopicId(type=next_speaker), cancellation_token=cancellation_token
+        )
 
-    async def _update_task_ledger(self) -> None:
+    async def _update_task_ledger(self, cancellation_token: CancellationToken) -> None:
         context = self._thread_to_context()
 
         # Update the facts
         update_facts_prompt = self._get_task_ledger_facts_update_prompt(self._task, self._facts)
         context.append(UserMessage(content=update_facts_prompt, source=self._name))
 
-        response = await self._model_client.create(context)
+        response = await self._model_client.create(context, cancellation_token=cancellation_token)
 
         assert isinstance(response.content, str)
         self._facts = response.content
@@ -270,19 +277,19 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
         update_plan_prompt = self._get_task_ledger_plan_update_prompt(self._team_description)
         context.append(UserMessage(content=update_plan_prompt, source=self._name))
 
-        response = await self._model_client.create(context)
+        response = await self._model_client.create(context, cancellation_token=cancellation_token)
 
         assert isinstance(response.content, str)
         self._plan = response.content
 
-    async def _prepare_final_answer(self, reason: str) -> None:
+    async def _prepare_final_answer(self, reason: str, cancellation_token: CancellationToken) -> None:
         context = self._thread_to_context()
 
         # Get the final answer
         final_answer_prompt = self._get_final_answer_prompt(self._task)
         context.append(UserMessage(content=final_answer_prompt, source=self._name))
 
-        response = await self._model_client.create(context)
+        response = await self._model_client.create(context, cancellation_token=cancellation_token)
         assert isinstance(response.content, str)
         message = TextMessage(content=response.content, source=self._name)
 
@@ -298,6 +305,7 @@ class MagenticOneOrchestrator(SequentialRoutedAgent):
         await self.publish_message(
             GroupChatAgentResponse(agent_response=Response(chat_message=message)),
             topic_id=DefaultTopicId(type=self._group_topic_type),
+            cancellation_token=cancellation_token,
         )
 
         # Signal termination

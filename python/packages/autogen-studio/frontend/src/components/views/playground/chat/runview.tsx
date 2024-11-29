@@ -11,9 +11,9 @@ import {
 import { Run, Message, TeamConfig } from "../../../types/datamodel";
 import AgentFlow from "./agentflow/agentflow";
 import { RenderMessage } from "./rendermessage";
-import LoadingDots from "../../shared/atoms";
 import InputRequestView from "./inputrequest";
 import { Tooltip } from "antd";
+import { LoadingDots } from "../../shared/atoms";
 
 interface RunViewProps {
   run: Run;
