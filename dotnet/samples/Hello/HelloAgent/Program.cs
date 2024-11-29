@@ -3,8 +3,6 @@
 
 using Hello.Events;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Agents;
 using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -33,17 +31,15 @@ namespace HelloAgent
 
     [TopicSubscription("HelloAgents")]
     public class HelloAgent(
-    IAgentRuntime context, IHostApplicationLifetime hostApplicationLifetime,
+    RuntimeContext context, IHostApplicationLifetime hostApplicationLifetime,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
         context,
         typeRegistry),
-        ISayHello,
-        IHandleConsole,
         IHandle<NewMessageReceived>,
         IHandle<ConversationClosed>,
         IHandle<Shutdown>
     {
-        public async Task Handle(NewMessageReceived item)
+        public async Task Handle(NewMessageReceived item, CancellationToken cancellationToken = default)
         {
             var response = await SayHello(item.Message).ConfigureAwait(false);
             var evt = new Output { Message = response };
@@ -55,7 +51,7 @@ namespace HelloAgent
             };
             await PublishMessageAsync(goodbye).ConfigureAwait(false);
         }
-        public async Task Handle(ConversationClosed item)
+        public async Task Handle(ConversationClosed item, CancellationToken cancellationToken = default)
         {
             var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
             var evt = new Output { Message = goodbye };
@@ -63,7 +59,7 @@ namespace HelloAgent
             await PublishMessageAsync(new Shutdown()).ConfigureAwait(false);
         }
 
-        public async Task Handle(Shutdown item)
+        public async Task Handle(Shutdown item, CancellationToken cancellationToken = default)
         {
             Console.WriteLine("Shutting down...");
             hostApplicationLifetime.StopApplication();

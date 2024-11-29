@@ -20,9 +20,10 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly IGateway _reference;
     // The agents supported by each worker process.
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
-    public readonly ConcurrentDictionary<IConnection, IConnection> _workers = new();
+    internal readonly ConcurrentDictionary<GrpcWorkerConnection, GrpcWorkerConnection> _workers = new();
     private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
     private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
+    private readonly ConcurrentDictionary<string, HashSet<string>> _agentsToEventsMap = new();
 
     // The mapping from agent id to worker process.
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
@@ -40,20 +41,20 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     }
     public async ValueTask BroadcastEvent(CloudEvent evt)
     {
-        // TODO: filter the workers that receive the event
-        var tasks = new List<Task>(_workers.Count);
-        foreach (var (_, connection) in _supportedAgentTypes)
+        var tasks = new List<Task>();
+        foreach (var (key, connection) in _supportedAgentTypes)
         {
-
-            tasks.Add(SendMessageAsync(connection[0], evt, default));
+            if (_agentsToEventsMap.TryGetValue(key, out var events) && events.Contains(evt.Type))
+            {
+                tasks.Add(SendMessageAsync(connection[0], evt, default));
+            }
         }
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
     //intetionally not static so can be called by some methods implemented in base class
-    public async Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
+    internal async Task SendMessageAsync(GrpcWorkerConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
-        var queue = (GrpcWorkerConnection)connection;
-        await queue.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);
+        await connection.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);
     }
     private void DispatchResponse(GrpcWorkerConnection connection, RpcResponse response)
     {
@@ -142,6 +143,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         connection.AddSupportedType(msg.Type);
         _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
+        _agentsToEventsMap.TryAdd(msg.Type, new HashSet<string>(msg.Events));
 
         await _gatewayRegistry.RegisterAgentType(msg.Type, _reference).ConfigureAwait(true);
         Message response = new()
@@ -288,10 +290,5 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     async ValueTask<RpcResponse> IGateway.InvokeRequest(RpcRequest request)
     {
         return await InvokeRequest(request).ConfigureAwait(false);
-    }
-
-    Task IGateway.SendMessageAsync(IConnection connection, CloudEvent cloudEvent)
-    {
-        return SendMessageAsync(connection, cloudEvent);
     }
 }

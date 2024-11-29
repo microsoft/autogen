@@ -18,6 +18,11 @@
 
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+
+
+  <ItemGroup>
     <ProjectReference Include="..\..\DistributedRuntime\Microsoft.AutoGen.Runtime.Grpc.csproj" />
   </ItemGroup>
 

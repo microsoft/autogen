@@ -9,7 +9,7 @@ using Microsoft.Extensions.AI;
 namespace HelloAIAgents;
 [TopicSubscription("HelloAgents")]
 public class HelloAIAgent(
-    IAgentRuntime context,
+    RuntimeContext context,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
     IHostApplicationLifetime hostApplicationLifetime,
     IChatClient client) : HelloAgent(
@@ -19,7 +19,7 @@ public class HelloAIAgent(
         IHandle<NewMessageReceived>
 {
     // This Handle supercedes the one in the base class
-    public new async Task Handle(NewMessageReceived item)
+    public async Task Handle(NewMessageReceived item)
     {
         var prompt = "Please write a limerick greeting someone with the name " + item.Message;
         var response = await client.CompleteAsync(prompt);

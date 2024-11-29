@@ -11,5 +11,4 @@ public interface IGateway : IGrainObserver
     ValueTask BroadcastEvent(CloudEvent evt);
     ValueTask StoreAsync(AgentState value);
     ValueTask<AgentState> ReadAsync(AgentId agentId);
-    Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent);
 }

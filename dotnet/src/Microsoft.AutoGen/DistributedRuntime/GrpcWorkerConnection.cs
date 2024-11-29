@@ -7,7 +7,7 @@ using Microsoft.AutoGen.Abstractions;
 
 namespace Microsoft.AutoGen.DistributedRuntime;
 
-internal sealed class GrpcWorkerConnection : IAsyncDisposable, IConnection
+internal sealed class GrpcWorkerConnection : IAsyncDisposable
 {
     private static long s_nextConnectionId;
     private readonly Task _readTask;

@@ -10,12 +10,7 @@ namespace Microsoft.AutoGen.DistributedRuntime;
 
 public static class OrleansRuntimeHostingExtenions
 {
-    public static WebApplicationBuilder AddOrleans(this WebApplicationBuilder builder, bool local = false)
-    {
-        return builder.AddOrleans(local);
-    }
-
-    public static IHostApplicationBuilder AddOrleans(this IHostApplicationBuilder builder, bool local = false)
+    public static WebApplicationBuilder AddOrleans(this WebApplicationBuilder builder, bool inMemory = false)
     {
         builder.Services.AddSerializer(serializer => serializer.AddProtobufSerializer());
         builder.Services.AddSingleton<IRegistryGrain, RegistryGrain>();

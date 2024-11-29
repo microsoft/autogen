@@ -5,16 +5,12 @@ using System.Text.Json;
 using DevTeam;
 using DevTeam.Backend;
 using DevTeam.Shared;
-using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Agents;
 using Microsoft.AutoGen.Core;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Memory;
 
 namespace Microsoft.AI.DevTeam;
 
-public class Hubber(IAgentRuntime context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, IManageGithub ghService)
-    : SKAiAgent<object>(context, memory, kernel, typeRegistry),
+public class Hubber(RuntimeContext context, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, IManageGithub ghService)
+    : AgentBase(context,typeRegistry),
     IHandle<NewAsk>,
     IHandle<ReadmeGenerated>,
     IHandle<DevPlanGenerated>,
@@ -22,7 +18,7 @@ public class Hubber(IAgentRuntime context, Kernel kernel, ISemanticTextMemory me
     IHandle<ReadmeStored>,
     IHandle<CodeGenerated>
 {
-    public async Task Handle(NewAsk item)
+    public async Task Handle(NewAsk item, CancellationToken cancellationToken = default)
     {
         var pmIssue = await CreateIssue(item.Org, item.Repo, item.Ask, "PM.Readme", item.IssueNumber);
         var devLeadIssue = await CreateIssue(item.Org, item.Repo, item.Ask, "DevLead.Plan", item.IssueNumber);
@@ -31,25 +27,25 @@ public class Hubber(IAgentRuntime context, Kernel kernel, ISemanticTextMemory me
         await CreateBranch(item.Org, item.Repo, $"sk-{item.IssueNumber}");
     }
 
-    public async Task Handle(ReadmeGenerated item)
+    public async Task Handle(ReadmeGenerated item, CancellationToken cancellationToken = default)
     {
         var contents = string.IsNullOrEmpty(item.Readme) ? "Sorry, I got tired, can you try again please? " : item.Readme;
         await PostComment(item.Org, item.Repo, item.IssueNumber, contents);
     }
 
-    public async Task Handle(DevPlanGenerated item)
+    public async Task Handle(DevPlanGenerated item, CancellationToken cancellationToken = default)
     {
         var contents = string.IsNullOrEmpty(item.Plan) ? "Sorry, I got tired, can you try again please? " : item.Plan;
         await PostComment(item.Org, item.Repo, item.IssueNumber, contents);
     }
 
-    public async Task Handle(CodeGenerated item)
+    public async Task Handle(CodeGenerated item, CancellationToken cancellationToken = default)
     {
         var contents = string.IsNullOrEmpty(item.Code) ? "Sorry, I got tired, can you try again please? " : item.Code;
         await PostComment(item.Org, item.Repo, item.IssueNumber, contents);
     }
 
-    public async Task Handle(DevPlanCreated item)
+    public async Task Handle(DevPlanCreated item, CancellationToken cancellationToken = default)
     {
         var plan = JsonSerializer.Deserialize<DevLeadPlan>(item.Plan);
         var prompts = plan!.Steps.SelectMany(s => s.Subtasks!.Select(st => st.Prompt));
@@ -63,7 +59,7 @@ public class Hubber(IAgentRuntime context, Kernel kernel, ISemanticTextMemory me
         }
     }
 
-    public async Task Handle(ReadmeStored item)
+    public async Task Handle(ReadmeStored item, CancellationToken cancellationToken = default   )
     {
         var branch = $"sk-{item.ParentNumber}";
         await CommitToBranch(item.Org, item.Repo, item.ParentNumber, item.IssueNumber, "output", branch);

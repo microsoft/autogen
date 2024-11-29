@@ -8,6 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\src\Microsoft.AutoGen\Client\Microsoft.AutoGen.Core.csproj" />
+    <ProjectReference Include="..\..\src\Microsoft.AutoGen\Core\Microsoft.AutoGen.Contracts.csproj" />
     <ProjectReference Include="..\Microsoft.Autogen.Tests.Shared\Microsoft.Autogen.Tests.Shared.csproj" />
     <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>

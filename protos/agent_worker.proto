@@ -50,6 +50,7 @@ message Event {
 message RegisterAgentTypeRequest {
     string request_id = 1;
     string type = 2;
+    repeated string events = 3;
 }
 
 message RegisterAgentTypeResponse {

@@ -211,7 +211,7 @@ public sealed class GrpcAgentWorker(
         {
             var events = agentType.GetInterfaces()
             .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
-            .Select(i => i.GetGenericArguments().First().Name);
+            .Select(i => ReflectionHelper.GetMessageDescriptor(i.GetGenericArguments().First())?.FullName);
             //var state = agentType.BaseType?.GetGenericArguments().First();
             var topicTypes = agentType.GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
 
@@ -223,7 +223,7 @@ public sealed class GrpcAgentWorker(
                     RequestId = Guid.NewGuid().ToString(),
                     //TopicTypes = { topicTypes },
                     //StateType = state?.Name,
-                    //Events = { events }
+                    Events = { events }
                 }
             }, cancellationToken).ConfigureAwait(false);
         }

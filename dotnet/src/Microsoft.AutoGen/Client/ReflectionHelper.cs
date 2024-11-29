@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// HostBuilderExtensions.cs
+// ReflectionHelper.cs
 
 using Google.Protobuf.Reflection;
 using Google.Protobuf;
@@ -68,7 +68,7 @@ public static class ReflectionHelper
     /// </summary>
     /// <param name="type">The type to get the message descriptor for.</param>
     /// <returns>The message descriptor if found; otherwise, <c>null</c>.</returns>
-    private static MessageDescriptor? GetMessageDescriptor(Type type)
+    public static MessageDescriptor? GetMessageDescriptor(Type type)
     {
         var property = type.GetProperty("Descriptor", BindingFlags.Static | BindingFlags.Public);
         return property?.GetValue(null) as MessageDescriptor;

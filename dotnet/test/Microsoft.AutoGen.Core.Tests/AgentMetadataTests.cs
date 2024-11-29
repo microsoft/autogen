@@ -28,7 +28,7 @@ public class TestAgent : AgentBase, IHandle<GoodBye>
     {
     }
 
-    public Task Handle(GoodBye item)
+    public Task Handle(GoodBye item, CancellationToken cancellationToken)
     {
         throw new NotImplementedException();
     }

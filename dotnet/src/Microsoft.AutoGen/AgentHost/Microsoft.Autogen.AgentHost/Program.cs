@@ -3,16 +3,13 @@
 
 using Microsoft.AutoGen.DistributedRuntime;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.AddServiceDefaults();
-builder.AddLocalAgentService();
+builder.AddAgentService(inMemoryOrleans: true, useGrpc: true);
 
 var app = builder.Build();
 
-app.MapDefaultEndpoints();
 app.MapAgentService();
 
 app.Run();

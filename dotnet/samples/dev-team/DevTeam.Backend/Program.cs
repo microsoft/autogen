@@ -5,23 +5,22 @@ using Azure.Identity;
 using DevTeam.Backend;
 using DevTeam.Options;
 using Microsoft.AI.DevTeam;
-using Microsoft.AutoGen.Core;
-using Microsoft.AutoGen.Extensions.SemanticKernel;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Options;
+using Microsoft.AutoGen.Core;
 using Octokit.Webhooks;
 using Octokit.Webhooks.AspNetCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.ConfigureSemanticKernel();
 
 builder.Services.AddHttpClient();
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 
-builder.AddAgentWorker(builder.Configuration["AGENT_HOST"]!)
+builder.AddGrpcAgentWorker(builder.Configuration["AGENT_HOST"]!)
+    .AddAgentHost()
     .AddAgent<AzureGenie>(nameof(AzureGenie))
     //.AddAgent<Sandbox>(nameof(Sandbox))
     .AddAgent<Hubber>(nameof(Hubber));

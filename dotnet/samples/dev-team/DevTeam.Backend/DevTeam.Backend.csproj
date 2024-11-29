@@ -10,9 +10,6 @@
     <PackageReference Include="Azure.AI.OpenAI" />
     <PackageReference Include="Octokit.Webhooks.AspNetCore" />
     <PackageReference Include="Octokit" />
-    <PackageReference Include="Microsoft.SemanticKernel" />
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Qdrant" />
-    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
     <PackageReference Include="Microsoft.Extensions.Azure" />
@@ -25,6 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Microsoft.AutoGen.Core.Grpc\Microsoft.AutoGen.Core.Grpc.csproj" />
     <ProjectReference Include="..\DevTeam.ServiceDefaults\DevTeam.ServiceDefaults.csproj" />
     <ProjectReference Include="..\DevTeam.Shared\DevTeam.Shared.csproj" />
   </ItemGroup>

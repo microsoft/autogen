@@ -4,7 +4,6 @@
 using System.Text.Json;
 using Hello.Events;
 using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Agents;
 using Microsoft.AutoGen.Core;
 
 // send a message to the agent
@@ -22,18 +21,17 @@ namespace HelloAgentState
 
     [TopicSubscription("HelloAgents")]
     public class HelloAgent(
-    IAgentRuntime context,
+    RuntimeContext context,
     IHostApplicationLifetime hostApplicationLifetime,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
         context,
         typeRegistry),
-        IHandleConsole,
         IHandle<NewMessageReceived>,
         IHandle<ConversationClosed>,
         IHandle<Shutdown>
     {
         private AgentState? State { get; set; }
-        public async Task Handle(NewMessageReceived item)
+        public async Task Handle(NewMessageReceived item, CancellationToken cancellationToken = default)
         {
             var response = await SayHello(item.Message).ConfigureAwait(false);
             var evt = new Output
@@ -61,7 +59,7 @@ namespace HelloAgentState
             await PublishMessageAsync(new Shutdown { Message = AgentId.Key }).ConfigureAwait(false);
 
         }
-        public async Task Handle(ConversationClosed item)
+        public async Task Handle(ConversationClosed item, CancellationToken cancellationToken = default)
         {
             State = await ReadAsync<AgentState>(AgentId).ConfigureAwait(false);
             var state = JsonSerializer.Deserialize<Dictionary<string, string>>(State.TextData) ?? new Dictionary<string, string> { { "data", "No state data found" } };
@@ -78,7 +76,7 @@ namespace HelloAgentState
                 TextData = JsonSerializer.Serialize(state)
             }).ConfigureAwait(false);
         }
-        public async Task Handle(Shutdown item)
+        public async Task Handle(Shutdown item, CancellationToken cancellationToken = default)
         {
             string? workflow = null;
             // make sure the workflow is finished

@@ -5,10 +5,10 @@ using Microsoft.AutoGen.Abstractions;
 
 namespace Microsoft.AutoGen.DistributedRuntime;
 
-internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore")] IPersistentState<AgentState> state) : Grain, IAgentState
+internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore")] IPersistentState<AgentState> state) : Grain
 {
     /// <inheritdoc />
-    public async ValueTask<string> WriteStateAsync(AgentState newState, string eTag, CancellationToken cancellationToken = default)
+    public async ValueTask<string> WriteStateAsync(AgentState newState, string eTag/*, CancellationToken cancellationToken = default*/)
     {
         // etags for optimistic concurrency control
         // if the Etag is null, its a new state
@@ -29,7 +29,7 @@ internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore
     }
 
     /// <inheritdoc />
-    public ValueTask<AgentState> ReadStateAsync(CancellationToken cancellationToken = default)
+    public ValueTask<AgentState> ReadStateAsync(/*CancellationToken cancellationToken = default*/)
     {
         return ValueTask.FromResult(state.State);
     }

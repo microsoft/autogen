@@ -2,21 +2,17 @@
 // Developer.cs
 
 using DevTeam.Shared;
-using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Agents;
 using Microsoft.AutoGen.Core;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Memory;
 
 namespace DevTeam.Agents;
 
 [TopicSubscription("devteam")]
-public class Dev(IAgentRuntime context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<Dev> logger)
-    : SKAiAgent<DeveloperState>(context, memory, kernel, typeRegistry), IDevelopApps,
+public class Dev(RuntimeContext context, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<Dev> logger)
+    : AiAgent<DeveloperState>(context, typeRegistry, logger), IDevelopApps,
     IHandle<CodeGenerationRequested>,
     IHandle<CodeChainClosed>
 {
-    public async Task Handle(CodeGenerationRequested item)
+    public async Task Handle(CodeGenerationRequested item, CancellationToken cancellationToken = default)
     {
         var code = await GenerateCode(item.Ask);
         var evt = new CodeGenerated
@@ -29,7 +25,7 @@ public class Dev(IAgentRuntime context, Kernel kernel, ISemanticTextMemory memor
         await PublishMessageAsync(evt);
     }
 
-    public async Task Handle(CodeChainClosed item)
+    public async Task Handle(CodeChainClosed item, CancellationToken cancellationToken = default)
     {
         //TODO: Get code from state
         var lastCode = ""; // _state.State.History.Last().Message
@@ -44,10 +40,10 @@ public class Dev(IAgentRuntime context, Kernel kernel, ISemanticTextMemory memor
     {
         try
         {
-            var context = new KernelArguments { ["input"] = AppendChatHistory(ask) };
-            var instruction = "Consider the following architectural guidelines:!waf!";
-            var enhancedContext = await AddKnowledge(instruction, "waf", context);
-            return await CallFunction(DeveloperSkills.Implement, enhancedContext);
+            //var context = new KernelArguments { ["input"] = AppendChatHistory(ask) };
+            //var instruction = "Consider the following architectural guidelines:!waf!";
+            //var enhancedContext = await AddKnowledge(instruction, "waf");
+            return await CallFunction(DeveloperSkills.Implement);
         }
         catch (Exception ex)
         {
@@ -55,6 +51,8 @@ public class Dev(IAgentRuntime context, Kernel kernel, ISemanticTextMemory memor
             return "";
         }
     }
+
+   
 }
 
 public interface IDevelopApps

@@ -12,6 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Client\Microsoft.AutoGen.Core.csproj" />
     <ProjectReference Include="..\Hello.Shared\Hello.Shared.csproj" />
   </ItemGroup>
 </Project>

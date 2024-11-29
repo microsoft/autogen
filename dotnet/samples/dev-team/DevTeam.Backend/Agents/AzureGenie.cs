@@ -3,20 +3,15 @@
 
 using DevTeam.Backend;
 using DevTeam.Shared;
-using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Agents;
 using Microsoft.AutoGen.Core;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Memory;
 namespace Microsoft.AI.DevTeam;
 
-public class AzureGenie(IAgentRuntime context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, IManageAzure azureService)
-    : SKAiAgent<object>(context, memory, kernel, typeRegistry),
+public class AzureGenie(RuntimeContext context, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, IManageAzure azureService)
+    : AgentBase(context, typeRegistry),
     IHandle<ReadmeCreated>,
     IHandle<CodeCreated>
-
 {
-    public async Task Handle(ReadmeCreated item)
+    public async Task Handle(ReadmeCreated item, CancellationToken cancellationToken = default)
     {
         // TODO: Not sure we need to store the files if we use ACA Sessions
         //                //var data = item.ToData();
@@ -31,7 +26,7 @@ public class AzureGenie(IAgentRuntime context, Kernel kernel, ISemanticTextMemor
         await Task.CompletedTask;
     }
 
-    public async Task Handle(CodeCreated item)
+    public async Task Handle(CodeCreated item, CancellationToken cancellationToken = default)
     {
         // TODO: Not sure we need to store the files if we use ACA Sessions
         //                //var data = item.ToData();

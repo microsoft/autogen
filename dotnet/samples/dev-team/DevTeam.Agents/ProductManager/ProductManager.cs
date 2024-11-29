@@ -2,21 +2,17 @@
 // ProductManager.cs
 
 using DevTeam.Shared;
-using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Agents;
 using Microsoft.AutoGen.Core;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Memory;
 
 namespace DevTeam.Agents;
 
 [TopicSubscription("devteam")]
-public class ProductManager(IAgentRuntime context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<ProductManager> logger)
-    : SKAiAgent<ProductManagerState>(context, memory, kernel, typeRegistry), IManageProducts,
+public class ProductManager(RuntimeContext context, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<ProductManager> logger)
+    : AiAgent<ProductManagerState>(context, typeRegistry, logger), IManageProducts,
     IHandle<ReadmeChainClosed>,
     IHandle<ReadmeRequested>
 {
-    public async Task Handle(ReadmeChainClosed item)
+    public async Task Handle(ReadmeChainClosed item, CancellationToken cancellationToken = default)
     {
         // TODO: Get readme from state
         var lastReadme = ""; // _state.State.History.Last().Message
@@ -27,7 +23,7 @@ public class ProductManager(IAgentRuntime context, Kernel kernel, ISemanticTextM
         await PublishMessageAsync(evt);
     }
 
-    public async Task Handle(ReadmeRequested item)
+    public async Task Handle(ReadmeRequested item, CancellationToken cancellationToken = default)
     {
         var readme = await CreateReadme(item.Ask);
         var evt = new ReadmeGenerated
@@ -44,10 +40,10 @@ public class ProductManager(IAgentRuntime context, Kernel kernel, ISemanticTextM
     {
         try
         {
-            var context = new KernelArguments { ["input"] = AppendChatHistory(ask) };
-            var instruction = "Consider the following architectural guidelines:!waf!";
-            var enhancedContext = await AddKnowledge(instruction, "waf", context);
-            return await CallFunction(PMSkills.Readme, enhancedContext);
+            //var context = new KernelArguments { ["input"] = AppendChatHistory(ask) };
+            //var instruction = "Consider the following architectural guidelines:!waf!";
+            //var enhancedContext = await AddKnowledge(instruction, "waf", context);
+            return await CallFunction(PMSkills.Readme);
         }
         catch (Exception ex)
         {
