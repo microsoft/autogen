@@ -1,4 +1,4 @@
-from typing import Any, Awaitable, Callable, List
+from typing import Any, Awaitable, Callable, List, Optional
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_core.components.models import ChatCompletionClient
@@ -105,22 +105,26 @@ class VideoSurferAgent(AssistantAgent):
             asyncio.run(main())
     """
 
+    DEFAULT_DESCRIPTION = "An agent that can answer questions about a local video."
+
+    DEFAULT_SYSTEM_MESSAGE = """
+    You are a helpful agent that is an expert at answering questions from a video.
+    When asked to answer a question about a video, you should:
+    1. Check if that video is available locally.
+    2. Use the transcription to find which part of the video the question is referring to.
+    3. Optionally use screenshots from those timestamps
+    4. Provide a detailed answer to the question.
+    Reply with TERMINATE when the task has been completed.
+    """
+
     def __init__(
         self,
         name: str,
         model_client: ChatCompletionClient,
         *,
         tools: List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
-        description: str = "An agent that can answer questions about a local video.",
-        system_message: str | None = """
-You are a helpful agent that is an expert at answering questions from a video.
-When asked to answer a question about a video, you should:
-1. Check if that video is available locally.
-2. Use the transcription to find which part of the video the question is referring to.
-3. Optionally use screenshots from those timestamps
-4. Provide a detailed answer to the question.
-Reply with TERMINATE when the task has been completed.
-""",
+        description: Optional[str] = None,
+        system_message: Optional[str] = None,
     ):
         """
         Initialize the VideoSurferAgent.
@@ -145,6 +149,6 @@ Reply with TERMINATE when the task has been completed.
                 extract_audio,
                 transcribe_audio_with_timestamps,
             ],
-            description=description,
-            system_message=system_message,
+            description=description or self.DEFAULT_DESCRIPTION,
+            system_message=system_message or self.DEFAULT_SYSTEM_MESSAGE,
         )
