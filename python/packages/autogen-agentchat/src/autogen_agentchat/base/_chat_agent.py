@@ -1,9 +1,11 @@
+from abc import abstractmethod
 from dataclasses import dataclass
 from typing import AsyncGenerator, List, Protocol, Sequence, runtime_checkable
 
 from autogen_core.base import CancellationToken
 
 from ..messages import AgentMessage, ChatMessage
+from ..state import BaseState
 from ._task import TaskRunner
 
 
@@ -53,4 +55,14 @@ class ChatAgent(TaskRunner, Protocol):
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Resets the agent to its initialization state."""
+        ...
+
+    @abstractmethod
+    async def save_state(self) -> BaseState:
+        """Save agent state for later restoration"""
+        ...
+
+    @abstractmethod
+    async def load_state(self, state: BaseState) -> None:
+        """Restore agent from saved state"""
         ...

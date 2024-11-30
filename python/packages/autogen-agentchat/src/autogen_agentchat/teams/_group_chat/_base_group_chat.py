@@ -19,6 +19,7 @@ from autogen_core.components._closure_agent import ClosureContext
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
 from ...messages import AgentMessage, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
+from ...state import BaseGroupChatManagerState, BaseTeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import GroupChatMessage, GroupChatReset, GroupChatStart, GroupChatTermination
 from ._sequential_routed_agent import SequentialRoutedAgent
@@ -386,3 +387,37 @@ class BaseGroupChat(Team, ABC):
 
             # Indicate that the team is no longer running.
             self._is_running = False
+
+    async def save_state(self) -> BaseTeamState:
+        """Save the current state of the group chat team."""
+        agent_states = {agent.name: await agent.save_state() for agent in self._participants}
+        termination_state = await self._termination_condition.save_state() if self._termination_condition else None
+
+        return BaseTeamState(
+            agent_names=[p.name for p in self._participants],
+            termination_state=termination_state,
+            agent_states=agent_states,
+            manager_state=BaseGroupChatManagerState(),  # Subclasses should override this
+        )
+
+    async def load_state(self, state: BaseTeamState) -> None:
+        """Load the state of the group chat team."""
+        if set(state.agent_names) != set(p.name for p in self._participants):
+            expected = set(p.name for p in self._participants)
+            received = set(state.agent_names)
+            extra = received - expected
+            missing = expected - received
+
+            msg = "Agent list mismatch:\n"
+            if extra:
+                msg += f"Extra agents in state: {extra}\n"
+            if missing:
+                msg += f"Missing agents in state: {missing}"
+            raise ValueError(msg)
+
+        for agent in self._participants:
+            await agent.load_state(state.agent_states[agent.name])
+
+        if state.termination_state and self._termination_condition:
+            await self._termination_condition.load_state(state.termination_state)
+        # Subclasses may load manager state here

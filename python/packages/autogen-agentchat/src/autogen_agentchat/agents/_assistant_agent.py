@@ -60,12 +60,10 @@ class Handoff(BaseModel):
         else:
             name = values["name"]
             if not isinstance(name, str):
-                raise ValueError(
-                    f"Handoff name must be a string: {values['name']}")
+                raise ValueError(f"Handoff name must be a string: {values['name']}")
             # Check if name is a valid identifier.
             if not name.isidentifier():
-                raise ValueError(
-                    f"Handoff name must be a valid identifier: {values['name']}")
+                raise ValueError(f"Handoff name must be a valid identifier: {values['name']}")
         if values.get("message") is None:
             values["message"] = (
                 f"Transferred to {values['target']}, adopting the role of {values['target']} immediately."
@@ -166,8 +164,7 @@ class AssistantAgent(BaseChatAgent):
         name: str,
         model_client: ChatCompletionClient,
         *,
-        tools: List[Tool | Callable[..., Any] |
-                    Callable[..., Awaitable[Any]]] | None = None,
+        tools: List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
         handoffs: List[Handoff | str] | None = None,
         description: str = "An agent that provides assistance with ability to use tools.",
         system_message: str = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
@@ -185,8 +182,7 @@ class AssistantAgent(BaseChatAgent):
                         description = tool.__doc__
                     else:
                         description = ""
-                    self._tools.append(FunctionTool(
-                        tool, description=description))
+                    self._tools.append(FunctionTool(tool, description=description))
                 else:
                     raise ValueError(f"Unsupported tool type: {type(tool)}")
         # Check if tool names are unique.
@@ -204,13 +200,11 @@ class AssistantAgent(BaseChatAgent):
                     self._handoff_tools.append(handoff.handoff_tool)
                     self._handoffs[handoff.name] = handoff
                 else:
-                    raise ValueError(
-                        f"Unsupported handoff type: {type(handoff)}")
+                    raise ValueError(f"Unsupported handoff type: {type(handoff)}")
         # Check if handoff tool names are unique.
         handoff_tool_names = [tool.name for tool in self._handoff_tools]
         if len(handoff_tool_names) != len(set(handoff_tool_names)):
-            raise ValueError(
-                f"Handoff names must be unique: {handoff_tool_names}")
+            raise ValueError(f"Handoff names must be unique: {handoff_tool_names}")
         # Check if handoff tool names not in tool names.
         if any(name in tool_names for name in handoff_tool_names):
             raise ValueError(
@@ -229,16 +223,14 @@ class AssistantAgent(BaseChatAgent):
         async for message in self.on_messages_stream(messages, cancellation_token):
             if isinstance(message, Response):
                 return message
-        raise AssertionError(
-            "The stream should have returned the final result.")
+        raise AssertionError("The stream should have returned the final result.")
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[AgentMessage | Response, None]:
         # Add messages to the model context.
         for msg in messages:
-            self._model_context.append(UserMessage(
-                content=msg.content, source=msg.source))
+            self._model_context.append(UserMessage(content=msg.content, source=msg.source))
 
         # Inner messages.
         inner_messages: List[AgentMessage] = []
@@ -250,13 +242,11 @@ class AssistantAgent(BaseChatAgent):
         )
 
         # Add the response to the model context.
-        self._model_context.append(AssistantMessage(
-            content=result.content, source=self.name))
+        self._model_context.append(AssistantMessage(content=result.content, source=self.name))
 
         # Run tool calls until the model produces a string response.
         while isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content):
-            tool_call_msg = ToolCallMessage(
-                content=result.content, source=self.name, models_usage=result.usage)
+            tool_call_msg = ToolCallMessage(content=result.content, source=self.name, models_usage=result.usage)
             event_logger.debug(tool_call_msg)
             # Add the tool call message to the output.
             inner_messages.append(tool_call_msg)
@@ -266,11 +256,9 @@ class AssistantAgent(BaseChatAgent):
             results = await asyncio.gather(
                 *[self._execute_tool_call(call, cancellation_token) for call in result.content]
             )
-            tool_call_result_msg = ToolCallResultMessage(
-                content=results, source=self.name)
+            tool_call_result_msg = ToolCallResultMessage(content=results, source=self.name)
             event_logger.debug(tool_call_result_msg)
-            self._model_context.append(
-                FunctionExecutionResultMessage(content=results))
+            self._model_context.append(FunctionExecutionResultMessage(content=results))
             inner_messages.append(tool_call_result_msg)
             yield tool_call_result_msg
 
@@ -281,8 +269,7 @@ class AssistantAgent(BaseChatAgent):
                     handoffs.append(self._handoffs[call.name])
             if len(handoffs) > 0:
                 if len(handoffs) > 1:
-                    raise ValueError(
-                        f"Multiple handoffs detected: {[handoff.name for handoff in handoffs]}")
+                    raise ValueError(f"Multiple handoffs detected: {[handoff.name for handoff in handoffs]}")
                 # Return the output messages to signal the handoff.
                 yield Response(
                     chat_message=HandoffMessage(
@@ -297,13 +284,11 @@ class AssistantAgent(BaseChatAgent):
             result = await self._model_client.create(
                 llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
             )
-            self._model_context.append(AssistantMessage(
-                content=result.content, source=self.name))
+            self._model_context.append(AssistantMessage(content=result.content, source=self.name))
 
         assert isinstance(result.content, str)
         yield Response(
-            chat_message=TextMessage(
-                content=result.content, source=self.name, models_usage=result.usage),
+            chat_message=TextMessage(content=result.content, source=self.name, models_usage=result.usage),
             inner_messages=inner_messages,
         )
 
@@ -314,11 +299,9 @@ class AssistantAgent(BaseChatAgent):
         try:
             if not self._tools + self._handoff_tools:
                 raise ValueError("No tools are available.")
-            tool = next((t for t in self._tools +
-                        self._handoff_tools if t.name == tool_call.name), None)
+            tool = next((t for t in self._tools + self._handoff_tools if t.name == tool_call.name), None)
             if tool is None:
-                raise ValueError(
-                    f"The tool '{tool_call.name}' is not available.")
+                raise ValueError(f"The tool '{tool_call.name}' is not available.")
             arguments = json.loads(tool_call.arguments)
             result = await tool.run_json(arguments, cancellation_token)
             result_as_str = tool.return_value_as_string(result)
@@ -332,23 +315,17 @@ class AssistantAgent(BaseChatAgent):
 
     async def save_state(self) -> AssistantAgentState:
         """Save the current state of the assistant agent"""
-        return AssistantAgentState(
-            state_type="AssistantAgent",
-            model_context=self._model_context.copy()
-        )
+
+        return AssistantAgentState(state_type="AssistantAgent", model_context=self._model_context.copy())
 
     async def load_state(self, state: BaseState) -> None:
-        """Load a previously saved state"""
+        """Load the state of the assistant agent"""
+
         if not isinstance(state, AssistantAgentState):
-            raise ValueError(
-                f"Expected AssistantAgentState, got {type(state)}")
+            raise ValueError(f"Expected AssistantAgentState, got {type(state)}")
 
         if state.state_type != "AssistantAgent":
-            raise ValueError(
-                f"Cannot load {state.state_type} state into AssistantAgent")
+            raise ValueError(f"Cannot load {state.state_type} state into AssistantAgent")
 
-        # Clear existing state first
         self._model_context.clear()
-
-        # Restore state
         self._model_context.extend(state.model_context)

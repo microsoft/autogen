@@ -3,6 +3,7 @@ from abc import ABC, abstractmethod
 from typing import List, Sequence
 
 from ..messages import AgentMessage, StopMessage
+from ..state._termination_states import AndTerminationState, BaseTerminationState, OrTerminationState
 
 
 class TerminatedException(BaseException): ...
@@ -78,6 +79,16 @@ class TerminationCondition(ABC):
         """Combine two termination conditions with an OR operation."""
         return _OrTerminationCondition(self, other)
 
+    @abstractmethod
+    async def save_state(self) -> BaseTerminationState:
+        """Save termination condition state"""
+        pass
+
+    @abstractmethod
+    async def load_state(self, state: BaseTerminationState) -> None:
+        """Load termination condition state"""
+        pass
+
 
 class _AndTerminationCondition(TerminationCondition):
     def __init__(self, *conditions: TerminationCondition) -> None:
@@ -111,6 +122,30 @@ class _AndTerminationCondition(TerminationCondition):
             await condition.reset()
         self._stop_messages.clear()
 
+    async def save_state(self) -> BaseTerminationState:
+        condition_states: List[BaseTerminationState] = []
+        for condition in self._conditions:
+            state = await condition.save_state()
+            condition_states.append(state)
+
+        return AndTerminationState(
+            terminated=self.terminated,
+            condition_states=condition_states,
+            stop_messages=[msg.content for msg in self._stop_messages],
+        )
+
+    async def load_state(self, state: BaseTerminationState) -> None:
+        if not isinstance(state, AndTerminationState):
+            raise ValueError(f"Expected AndTerminationState, got {type(state)}")
+
+        if len(state.condition_states) != len(self._conditions):
+            raise ValueError("Mismatched number of conditions")
+
+        for condition, cond_state in zip(self._conditions, state.condition_states, strict=False):
+            await condition.load_state(cond_state)
+
+        self._stop_messages = [StopMessage(content=msg, source="restored") for msg in state.stop_messages]
+
 
 class _OrTerminationCondition(TerminationCondition):
     def __init__(self, *conditions: TerminationCondition) -> None:
@@ -133,3 +168,21 @@ class _OrTerminationCondition(TerminationCondition):
     async def reset(self) -> None:
         for condition in self._conditions:
             await condition.reset()
+
+    async def save_state(self) -> BaseTerminationState:
+        condition_states: List[BaseTerminationState] = []
+        for condition in self._conditions:
+            state = await condition.save_state()
+            condition_states.append(state)
+
+        return OrTerminationState(terminated=self.terminated, condition_states=condition_states)
+
+    async def load_state(self, state: BaseTerminationState) -> None:
+        if not isinstance(state, OrTerminationState):
+            raise ValueError(f"Expected OrTerminationState, got {type(state)}")
+
+        if len(state.condition_states) != len(self._conditions):
+            raise ValueError("Mismatched number of conditions")
+
+        for condition, cond_state in zip(self._conditions, state.condition_states, strict=False):
+            await condition.load_state(cond_state)

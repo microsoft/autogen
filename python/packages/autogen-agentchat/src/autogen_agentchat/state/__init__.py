@@ -1,31 +1,30 @@
 """State management for agents, teams and termination conditions."""
 
-from ._base import BaseState
 from ._agent_states import AssistantAgentState
-from ._team_states import (
-    BaseTeamState,
-    RoundRobinGroupChatState,
-    SelectorGroupChatState,
-    SwarmGroupChatState
-)
+from ._base import BaseState
+from ._team_states import BaseGroupChatManagerState, BaseTeamState
 from ._termination_states import (
-    StopMessageTerminationState,
-    MaxMessageTerminationState,
-    TextMentionTerminationState,
-    TokenUsageTerminationState,
-    HandoffTerminationState,
-    TimeoutTerminationState,
+    AndTerminationState,
+    BaseTerminationState,
     ExternalTerminationState,
-    SourceMatchTerminationState
+    HandoffTerminationState,
+    MaxMessageTerminationState,
+    OrTerminationState,
+    SourceMatchTerminationState,
+    StopMessageTerminationState,
+    TextMentionTerminationState,
+    TimeoutTerminationState,
+    TokenUsageTerminationState,
 )
 
 __all__ = [
     "BaseState",
+    "BaseTerminationState",
+    "AndTerminationState",
+    "OrTerminationState",
     "AssistantAgentState",
     "BaseTeamState",
-    "RoundRobinGroupChatState",
-    "SelectorGroupChatState",
-    "SwarmGroupChatState",
+    "BaseGroupChatManagerState",
     "StopMessageTerminationState",
     "MaxMessageTerminationState",
     "TextMentionTerminationState",
@@ -33,5 +32,5 @@ __all__ = [
     "HandoffTerminationState",
     "TimeoutTerminationState",
     "ExternalTerminationState",
-    "SourceMatchTerminationState"
+    "SourceMatchTerminationState",
 ]

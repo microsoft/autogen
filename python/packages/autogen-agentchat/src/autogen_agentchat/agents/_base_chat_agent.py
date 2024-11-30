@@ -120,12 +120,12 @@ class BaseChatAgent(ChatAgent, ABC):
         """Resets the agent to its initialization state."""
         ...
 
-    @abstractmethod
     async def save_state(self) -> BaseState:
-        """Save agent state for later restoration"""
-        ...
+        """Save agent state for later restoration. Default implementation for stateless agents."""
+        return BaseState()
 
-    @abstractmethod
     async def load_state(self, state: BaseState) -> None:
-        """Restore agent from saved state"""
-        ...
+        """Restore agent from saved state. Default implementation for stateless agents."""
+        if state.state_type != "BaseState":
+            raise ValueError(
+                f"Cannot load {state.state_type} state into stateless agent")
