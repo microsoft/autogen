@@ -43,15 +43,13 @@ def chat_completions() -> List[ChatCompletion]:
                 Choice(
                     finish_reason="stop",
                     index=0,
-                    message=ChatCompletionMessage(
-                        content="Test response 1", role="assistant"),
+                    message=ChatCompletionMessage(content="Test response 1", role="assistant"),
                 )
             ],
             created=0,
             model="gpt-4o-2024-08-06",
             object="chat.completion",
-            usage=CompletionUsage(
-                prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
         ),
         ChatCompletion(
             id="id2",
@@ -59,15 +57,13 @@ def chat_completions() -> List[ChatCompletion]:
                 Choice(
                     finish_reason="stop",
                     index=0,
-                    message=ChatCompletionMessage(
-                        content="Test response 2", role="assistant"),
+                    message=ChatCompletionMessage(content="Test response 2", role="assistant"),
                 )
             ],
             created=0,
             model="gpt-4o-2024-08-06",
             object="chat.completion",
-            usage=CompletionUsage(
-                prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
         ),
     ]
 
@@ -147,14 +143,10 @@ async def test_team_state_validation(mock_chat_completion: None) -> None:
     """Test validation when loading team state with mismatched agents"""
     # Create agents with mocked client
     agent1 = AssistantAgent(
-        name="agent1",
-        model_client=OpenAIChatCompletionClient(
-            model="gpt-4o-2024-08-06", api_key="")
+        name="agent1", model_client=OpenAIChatCompletionClient(model="gpt-4o-2024-08-06", api_key="")
     )
     agent2 = AssistantAgent(
-        name="agent2",
-        model_client=OpenAIChatCompletionClient(
-            model="gpt-4o-2024-08-06", api_key="")
+        name="agent2", model_client=OpenAIChatCompletionClient(model="gpt-4o-2024-08-06", api_key="")
     )
 
     # Create and run initial team
@@ -175,12 +167,9 @@ async def test_team_state_validation(mock_chat_completion: None) -> None:
 async def test_team_state_mocked(mock_chat_completion: None) -> None:
     # Create team with mocked agent
     assistant = AssistantAgent(
-        name="assistant",
-        model_client=OpenAIChatCompletionClient(
-            model="gpt-4o-2024-08-06", api_key="")
+        name="assistant", model_client=OpenAIChatCompletionClient(model="gpt-4o-2024-08-06", api_key="")
     )
-    team = RoundRobinGroupChat(
-        [assistant], termination_condition=MaxMessageTermination(max_messages=2))
+    team = RoundRobinGroupChat([assistant], termination_condition=MaxMessageTermination(max_messages=2))
 
     # Save state
     team_state = await team.save_state()
@@ -191,8 +180,7 @@ async def test_team_state_mocked(mock_chat_completion: None) -> None:
     assert isinstance(team_state.manager_state, BaseGroupChatManagerState)
 
     # Create new team and load state
-    team2 = RoundRobinGroupChat(
-        [assistant], termination_condition=MaxMessageTermination(max_messages=2))
+    team2 = RoundRobinGroupChat([assistant], termination_condition=MaxMessageTermination(max_messages=2))
     await team2.load_state(team_state)
 
     # verify that team2 does indeed have the same state as team
