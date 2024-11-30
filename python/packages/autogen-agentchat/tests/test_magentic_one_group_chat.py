@@ -171,6 +171,8 @@ async def test_magentic_one_group_chat_with_stalls() -> None:
     )
     result = await team.run(task="Write a program that prints 'Hello, world!'")
     assert len(result.messages) == 6
+    assert isinstance(result.messages[1].content, str)
     assert result.messages[1].content.startswith("\nWe are working to address the following user request:")
+    assert isinstance(result.messages[4].content, str)
     assert result.messages[4].content.startswith("\nWe are working to address the following user request:")
     assert result.stop_reason is not None and result.stop_reason == "test"

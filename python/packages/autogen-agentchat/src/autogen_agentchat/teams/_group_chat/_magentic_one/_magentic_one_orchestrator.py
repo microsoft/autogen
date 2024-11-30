@@ -101,7 +101,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         trace_logger.debug(log_message)
 
     @rpc
-    async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
+    async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:  # type: ignore
         """Handle the start of a task."""
 
         # Check if the conversation has already terminated.
@@ -151,7 +151,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         await self._reenter_outer_loop(ctx.cancellation_token)
 
     @event
-    async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
+    async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:  # type: ignore
         self._message_thread.append(message.agent_response.chat_message)
         delta: List[AgentMessage] = []
         if message.agent_response.inner_messages is not None:
@@ -170,11 +170,6 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 await self._termination_condition.reset()
                 return
         await self._orchestrate_step(ctx.cancellation_token)
-
-    @rpc
-    async def handle_reset(self, message: GroupChatReset, ctx: MessageContext) -> None:
-        # Reset the group chat manager.
-        await self.reset()
 
     async def validate_group_state(self, message: ChatMessage | None) -> None:
         pass
