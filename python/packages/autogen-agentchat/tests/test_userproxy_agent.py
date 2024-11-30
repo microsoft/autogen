@@ -65,6 +65,23 @@ async def test_handoff_handling() -> None:
     assert response.chat_message.source == "test_user"
     assert response.chat_message.target == "assistant"
 
+    # The latest message if is a handoff message, it must be addressed to this agent.
+    messages = [
+        TextMessage(content="Initial message", source="assistant"),
+        HandoffMessage(content="Handing off to user for confirmation", source="assistant", target="other_agent"),
+    ]
+    with pytest.raises(RuntimeError):
+        await agent.on_messages(messages, CancellationToken())
+
+    # No handoff message if the latest message is not a handoff message addressed to this agent.
+    messages = [
+        TextMessage(content="Initial message", source="assistant"),
+        HandoffMessage(content="Handing off to other agent", source="assistant", target="other_agent"),
+        TextMessage(content="Another message", source="other_agent"),
+    ]
+    response = await agent.on_messages(messages, CancellationToken())
+    assert isinstance(response.chat_message, TextMessage)
+
 
 @pytest.mark.asyncio
 async def test_cancellation() -> None:

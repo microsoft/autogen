@@ -233,3 +233,27 @@ async def test_multi_modal_task(monkeypatch: pytest.MonkeyPatch) -> None:
     img_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
     result = await agent.run(task=MultiModalMessage(source="user", content=["Test", Image.from_base64(img_base64)]))
     assert len(result.messages) == 2
+
+
+@pytest.mark.asyncio
+async def test_invalid_model_capabilities() -> None:
+    model = "random-model"
+    model_client = OpenAIChatCompletionClient(
+        model=model, api_key="", model_capabilities={"vision": False, "function_calling": False, "json_output": False}
+    )
+
+    with pytest.raises(ValueError):
+        agent = AssistantAgent(
+            name="assistant",
+            model_client=model_client,
+            tools=[_pass_function, _fail_function, FunctionTool(_echo_function, description="Echo")],
+        )
+
+    with pytest.raises(ValueError):
+        agent = AssistantAgent(name="assistant", model_client=model_client, handoffs=["agent2"])
+
+    with pytest.raises(ValueError):
+        agent = AssistantAgent(name="assistant", model_client=model_client)
+        # Generate a random base64 image.
+        img_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
+        await agent.run(task=MultiModalMessage(source="user", content=["Test", Image.from_base64(img_base64)]))
