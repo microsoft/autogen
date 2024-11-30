@@ -25,7 +25,7 @@ class MagenticOneGroupChat(BaseGroupChat):
         super().__init__(
             participants,
             group_chat_manager_class=MagenticOneOrchestrator,
-            termination_condition=None,
+            termination_condition=termination_condition,
             max_turns=max_turns,
         )
 
@@ -44,7 +44,6 @@ class MagenticOneGroupChat(BaseGroupChat):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
     ) -> Callable[[], MagenticOneOrchestrator]:
-        # TODO: Do something about the termination conditions
         return lambda: MagenticOneOrchestrator(
             group_topic_type,
             output_topic_type,

@@ -91,9 +91,15 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
     def _get_final_answer_prompt(self, task: str) -> str:
         return ORCHESTRATOR_FINAL_ANSWER_PROMPT.format(task=task)
 
+    async def _log_message(self, log_message: str) -> None:
+        await self.publish_message(
+            GroupChatMessage(message=TextMessage(content=log_message, source=self._name + "(Logging)")),
+            topic_id=DefaultTopicId(type=self._output_topic_type),
+        )
+
     @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
-        """Handle the start of a group chat by selecting a speaker to start the conversation."""
+        """Handle the start of a task."""
 
         # Check if the conversation has already terminated.
         if self._termination_condition is not None and self._termination_condition.terminated:
@@ -110,7 +116,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         # Log the start message.
         await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
-
+        # Outer Loop for first time
         # Create the initial task ledger
         #################################
         self._task = self._content_to_str(message.message.content)
@@ -136,11 +142,10 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         assert isinstance(response.content, str)
         self._plan = response.content
-        # TODO: add inner message for facts or plan
 
         # Kick things off
         self._n_stalls = 0
-        await self._reenter_inner_loop(ctx.cancellation_token)
+        await self._reenter_outer_loop(ctx.cancellation_token)
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
@@ -172,8 +177,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         pass
 
     async def select_speaker(self, thread: List[AgentMessage]) -> str:
-        """Select a speaker from the participants and return the
-        topic type of the selected speaker."""
+        """Not used in this orchestrator, we select next speaker in _orchestrate_step."""
         return ""
 
     async def reset(self) -> None:
@@ -187,7 +191,8 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         self._facts = ""
         self._plan = ""
 
-    async def _reenter_inner_loop(self, cancellation_token: CancellationToken) -> None:
+    async def _reenter_outer_loop(self, cancellation_token: CancellationToken) -> None:
+        """Re-enter Outer loop of the orchestrator after creating task ledger."""
         # Reset the agents
         for participant_topic_type in self._participant_topic_types:
             await self._runtime.send_message(
@@ -223,6 +228,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         await self._orchestrate_step(cancellation_token=cancellation_token)
 
     async def _orchestrate_step(self, cancellation_token: CancellationToken) -> None:
+        """Implements the inner loop of the orchestrator and selects next speaker."""
         # Check if we reached the maximum number of rounds
         if self._max_turns is not None and self._n_rounds > self._max_turns:
             await self._prepare_final_answer("Max rounds reached.", cancellation_token)
@@ -259,14 +265,14 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                         break
                 if not key_error:
                     break
-                # TODO: add logging THAT WE ARE RETRYING
+                await self._log_message(f"Failed to parse ledger information, retrying: {ledger_str}")
             except json.JSONDecodeError:
                 continue
         if key_error:
             raise ValueError("Failed to parse ledger information after multiple retries.")
-        # TODO: add logging of the ledger
         # Check for task completion
         if progress_ledger["is_request_satisfied"]["answer"]:
+            await self._log_message("Task completed, preparing final answer...")
             await self._prepare_final_answer(progress_ledger["is_request_satisfied"]["reason"], cancellation_token)
             return
 
@@ -280,9 +286,9 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         # Too much stalling
         if self._n_stalls >= self._max_stalls:
-            # TODO: add logging
+            await self._log_message("Stall count exceeded, re-planning with the outer loop...")
             await self._update_task_ledger(cancellation_token)
-            await self._reenter_inner_loop(cancellation_token)
+            await self._reenter_outer_loop(cancellation_token)
             return
 
         # Broadcast the next step
@@ -290,8 +296,9 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         self._message_thread.append(message)  # My copy
 
         # Log it
+        message_log = TextMessage(content=f"[Sending Message to: {progress_ledger['next_speaker']["answer"]}]\n{message.content}", source=self._name)
         await self.publish_message(
-            GroupChatMessage(message=message),
+            GroupChatMessage(message=message_log),
             topic_id=DefaultTopicId(type=self._output_topic_type),
         )
 
@@ -320,6 +327,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             )
 
     async def _update_task_ledger(self, cancellation_token: CancellationToken) -> None:
+        """Update the task ledger (outer loop) with the latest facts and plan."""
         context = self._thread_to_context()
 
         # Update the facts
@@ -342,6 +350,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         self._plan = response.content
 
     async def _prepare_final_answer(self, reason: str, cancellation_token: CancellationToken) -> None:
+        """Prepare the final answer for the task."""
         context = self._thread_to_context()
 
         # Get the final answer
@@ -376,6 +385,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             await self._termination_condition.reset()
 
     def _thread_to_context(self) -> List[LLMMessage]:
+        """Convert the message thread to a context for the model."""
         context: List[LLMMessage] = []
         for m in self._message_thread:
             if m.source == self._name:
@@ -387,6 +397,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         return context
 
     def _content_to_str(self, content: str | List[str | Image]) -> str:
+        """Convert the content to a string."""
         if isinstance(content, str):
             return content
         else:
