@@ -11,13 +11,7 @@ from autogen_core.components.models import (
 )
 
 from ....base import Response, TerminationCondition
-from ....messages import (
-    AgentMessage,
-    MultiModalMessage,
-    StopMessage,
-    TextMessage,
-    ChatMessage
-)
+from ....messages import AgentMessage, MultiModalMessage, StopMessage, TextMessage, ChatMessage
 from .._events import (
     GroupChatAgentResponse,
     GroupChatMessage,
@@ -100,7 +94,19 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
     @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
         """Handle the start of a group chat by selecting a speaker to start the conversation."""
+
+        # Check if the conversation has already terminated.
+        if self._termination_condition is not None and self._termination_condition.terminated:
+            early_stop_message = StopMessage(content="The group chat has already terminated.", source=self._name)
+            await self.publish_message(
+                GroupChatTermination(message=early_stop_message), topic_id=DefaultTopicId(type=self._output_topic_type)
+            )
+            # Stop the group chat.
+            return
         assert message is not None and message.message is not None
+
+        # Validate the group state given the start message.
+        await self.validate_group_state(message.message)
 
         # Log the start message.
         await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
@@ -139,6 +145,22 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
         self._message_thread.append(message.agent_response.chat_message)
+        delta: List[AgentMessage] = []
+        if message.agent_response.inner_messages is not None:
+            for inner_message in message.agent_response.inner_messages:
+                self._message_thread.append(inner_message)
+                delta.append(inner_message)
+        delta.append(message.agent_response.chat_message)
+
+        if self._termination_condition is not None:
+            stop_message = await self._termination_condition(delta)
+            if stop_message is not None:
+                await self.publish_message(
+                    GroupChatTermination(message=stop_message), topic_id=DefaultTopicId(type=self._output_topic_type)
+                )
+                # Stop the group chat and reset the termination conditions and turn count.
+                await self._termination_condition.reset()
+                return
         await self._orchestrate_step(ctx.cancellation_token)
 
     @rpc
@@ -164,9 +186,6 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         self._task = ""
         self._facts = ""
         self._plan = ""
-
-    async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
-        raise ValueError(f"Unhandled message in group chat manager: {type(message)}")
 
     async def _reenter_inner_loop(self, cancellation_token: CancellationToken) -> None:
         # Reset the agents
@@ -353,6 +372,8 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             GroupChatTermination(message=StopMessage(content=reason, source=self._name)),
             topic_id=DefaultTopicId(type=self._output_topic_type),
         )
+        if self._termination_condition is not None:
+            await self._termination_condition.reset()
 
     def _thread_to_context(self) -> List[LLMMessage]:
         context: List[LLMMessage] = []

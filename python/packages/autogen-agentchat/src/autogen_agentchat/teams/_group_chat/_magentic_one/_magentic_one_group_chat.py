@@ -53,5 +53,5 @@ class MagenticOneGroupChat(BaseGroupChat):
             max_turns,
             self._model_client,
             self._max_stalls,
-            termination_condition
+            termination_condition,
         )
