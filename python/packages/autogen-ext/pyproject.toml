@@ -33,7 +33,6 @@ web-surfer = [
 ]
 video-surfer = [
     "autogen-agentchat==0.4.0.dev8",
-    "openai",
     "opencv-python>=4.5",
     "ffmpeg-python",
     "openai-whisper",

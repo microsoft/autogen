@@ -8,9 +8,9 @@ from .tools import (
     extract_audio,
     get_screenshot_at,
     get_video_length,
-    openai_transcribe_video_screenshot,
     save_screenshot,
     transcribe_audio_with_timestamps,
+    transcribe_video_screenshot,
 )
 
 
@@ -27,7 +27,7 @@ class VideoSurferAgent(AssistantAgent):
     - :func:`~autogen_ext.agents.video_surfer.tools.transcribe_audio_with_timestamps`
     - :func:`~autogen_ext.agents.video_surfer.tools.get_screenshot_at`
     - :func:`~autogen_ext.agents.video_surfer.tools.save_screenshot`
-    - :func:`~autogen_ext.agents.video_surfer.tools.openai_transcribe_video_screenshot`
+    - :func:`~autogen_ext.agents.video_surfer.tools.transcribe_video_screenshot`
 
     Example usage:
 
@@ -145,10 +145,23 @@ class VideoSurferAgent(AssistantAgent):
                 get_video_length,
                 get_screenshot_at,
                 save_screenshot,
-                openai_transcribe_video_screenshot,
+                self.vs_transribe_video_screenshot,
                 extract_audio,
                 transcribe_audio_with_timestamps,
             ],
             description=description or self.DEFAULT_DESCRIPTION,
             system_message=system_message or self.DEFAULT_SYSTEM_MESSAGE,
         )
+
+    async def vs_transribe_video_screenshot(self, video_path: str, timestamp: float) -> str:
+        """
+        Transcribes the video screenshot at a specific timestamp.
+
+        Args:
+            video_path (str): Path to the video file.
+            timestamp (float): Timestamp to take the screenshot.
+
+        Returns:
+            str: Transcription of the video screenshot.
+        """
+        return await transcribe_video_screenshot(video_path, timestamp, self._model_client)
