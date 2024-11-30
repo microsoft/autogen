@@ -31,8 +31,8 @@ public class AgentBaseTests(InMemoryAgentRuntimeFixture fixture)
             .Returns(new ValueTask());
         var agent = new TestAgent(mockContext.Object, new EventTypes(TypeRegistry.Empty, [], []), new Logger<AgentBase>(new LoggerFactory()));
 
-        await agent.HandleObject("hello world");
-        await agent.HandleObject(42);
+        await agent.HandleObjectAsync("hello world", CancellationToken.None);
+        await agent.HandleObjectAsync(42, CancellationToken.None);
 
         agent.ReceivedItems.Should().HaveCount(2);
         agent.ReceivedItems[0].Should().Be("hello world");

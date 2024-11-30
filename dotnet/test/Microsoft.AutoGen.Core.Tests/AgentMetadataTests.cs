@@ -3,7 +3,6 @@
 
 using FluentAssertions;
 using FluentAssertions.Execution;
-using Microsoft.Extensions.Logging;
 using Tests.Events;
 using Xunit;
 
@@ -19,17 +18,5 @@ public class AgentMetadataTests
         using var _=new AssertionScope();
         eventTypes.Should().NotBeNull();
         eventTypes.CheckIfTypeHandles(typeof(TestAgent), GoodBye.Descriptor.FullName).Should().BeTrue();
-    }
-}
-
-public class TestAgent : AgentBase, IHandle<GoodBye>
-{
-    public TestAgent(RuntimeContext context, EventTypes eventTypes, ILogger<AgentBase>? logger = null) : base(context, eventTypes, logger)
-    {
-    }
-
-    public Task Handle(GoodBye item, CancellationToken cancellationToken)
-    {
-        throw new NotImplementedException();
     }
 }
