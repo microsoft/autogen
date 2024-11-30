@@ -14,8 +14,7 @@ class BaseChatAgent(ChatAgent, ABC):
     def __init__(self, name: str, description: str) -> None:
         self._name = name
         if self._name.isidentifier() is False:
-            raise ValueError(
-                "The agent name must be a valid Python identifier.")
+            raise ValueError("The agent name must be a valid Python identifier.")
         self._description = description
 
     @property
@@ -127,5 +126,4 @@ class BaseChatAgent(ChatAgent, ABC):
     async def load_state(self, state: BaseState) -> None:
         """Restore agent from saved state. Default implementation for stateless agents."""
         if state.state_type != "BaseState":
-            raise ValueError(
-                f"Cannot load {state.state_type} state into stateless agent")
+            raise ValueError(f"Cannot load {state.state_type} state into stateless agent")

@@ -65,4 +65,5 @@ selector-group-chat
 swarm
 termination
 custom-agents
+state
 ```

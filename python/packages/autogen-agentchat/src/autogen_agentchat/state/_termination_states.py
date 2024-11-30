@@ -91,8 +91,7 @@ class AndTerminationState(BaseTerminationState):
     """State for AND combinations of termination conditions"""
 
     condition_states: List[BaseTerminationState] = field(default_factory=list)
-    stop_messages: List[str] = field(
-        default_factory=list)  # Serialized stop messages
+    stop_messages: List[str] = field(default_factory=list)  # Serialized stop messages
     state_type: str = field(default="AndTerminationState")
 
 

@@ -10,5 +10,4 @@ class BaseState:
 
     def __post_init__(self) -> None:
         if not self.state_type.isidentifier():
-            raise ValueError(
-                f"state_type must be a valid identifier: {self.state_type}")
+            raise ValueError(f"state_type must be a valid identifier: {self.state_type}")

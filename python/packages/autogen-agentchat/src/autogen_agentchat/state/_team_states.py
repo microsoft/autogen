@@ -22,6 +22,25 @@ class BaseGroupChatManagerState(BaseState):
 
 
 @dataclass(kw_only=True)
+class BaseTeamState(BaseState):
+    """Base state for all team types.
+
+    Attributes:
+        agent_names: List of agent names in the team
+        termination_state: State of the termination condition
+        agent_states: Dictionary mapping agent names to their states
+        manager_state: State of the group chat manager
+        state_type: Type identifier for this state class
+    """
+
+    agent_names: List[str] = field(default_factory=list)
+    termination_state: Optional[BaseTerminationState] = field(default=None)
+    agent_states: Dict[str, BaseState] = field(default_factory=dict)
+    manager_state: BaseGroupChatManagerState = field(default_factory=BaseGroupChatManagerState)
+    state_type: str = field(default="BaseTeamState")
+
+
+@dataclass(kw_only=True)
 class RoundRobinManagerState(BaseGroupChatManagerState):
     """State for round robin group chat manager.
 
@@ -58,22 +77,3 @@ class SwarmManagerState(BaseGroupChatManagerState):
 
     current_speaker: str = field(default="")
     state_type: str = field(default="SwarmManagerState")
-
-
-@dataclass(kw_only=True)
-class BaseTeamState(BaseState):
-    """Base state for all team types.
-
-    Attributes:
-        agent_names: List of agent names in the team
-        termination_state: State of the termination condition
-        agent_states: Dictionary mapping agent names to their states
-        manager_state: State of the group chat manager
-        state_type: Type identifier for this state class
-    """
-
-    agent_names: List[str] = field(default_factory=list)
-    termination_state: Optional[BaseTerminationState] = field(default=None)
-    agent_states: Dict[str, BaseState] = field(default_factory=dict)
-    manager_state: BaseGroupChatManagerState = field(default_factory=BaseGroupChatManagerState)
-    state_type: str = field(default="BaseTeamState")
