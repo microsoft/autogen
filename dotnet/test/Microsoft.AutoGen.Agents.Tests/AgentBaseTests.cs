@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using FluentAssertions;
 using Google.Protobuf.Reflection;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection;
@@ -63,7 +64,7 @@ public class AgentBaseTests(InMemoryAgentRuntimeFixture fixture)
     /// <summary>
     /// The test agent is a simple agent that is used for testing purposes.
     /// </summary>
-    public class TestAgent : AgentBase, IHandle<string>, IHandle<int>, IHandle<TextMessage>
+    public class TestAgent : AgentBase, IHandle<TextMessage>
     {
         public TestAgent(
             RuntimeContext context,
@@ -72,19 +73,7 @@ public class AgentBaseTests(InMemoryAgentRuntimeFixture fixture)
         {
         }
 
-        public Task Handle(string item)
-        {
-            ReceivedItems.Add(item);
-            return Task.CompletedTask;
-        }
-
-        public Task Handle(int item)
-        {
-            ReceivedItems.Add(item);
-            return Task.CompletedTask;
-        }
-
-        public Task Handle(TextMessage item)
+        public Task Handle(TextMessage item, CancellationToken cancellationToken = default)
         {
             ReceivedMessages[item.Source] = item.TextMessage_;
             return Task.CompletedTask;
@@ -104,13 +93,14 @@ public sealed class InMemoryAgentRuntimeFixture : IDisposable
 {
     public InMemoryAgentRuntimeFixture()
     {
-        var builder = Host.CreateApplicationBuilder();
+        var builder = WebApplication.CreateSlimBuilder(new WebApplicationOptions { });
 
         // step 1: create in-memory agent runtime
         // step 2: register TestAgent to that agent runtime
         builder
             //.AddAgentService(local: true, useGrpc: false)
-            .AddAgentWorker(local: true)
+            .AddInMemoryWorker()
+            .AddAgentHost()
             .AddAgent<TestAgent>(nameof(TestAgent));
 
         AppHost = builder.Build();

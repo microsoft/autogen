@@ -383,7 +383,6 @@ public abstract class AgentBase
     /// <returns>A task representing the asynchronous operation, containing the RPC response.</returns>
     public Task<RpcResponse> HandleRequestAsync(RpcRequest request, CancellationToken cancellationToken = default) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
 
-
     /// <summary>
     /// Handles an object asynchronously by invoking the appropriate handler method based on the object's type.
     /// </summary>

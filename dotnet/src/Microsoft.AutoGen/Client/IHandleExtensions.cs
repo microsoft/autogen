@@ -5,7 +5,6 @@ using System.Reflection;
 
 namespace Microsoft.AutoGen.Core;
 
-
 /// <summary>
 /// Provides extension methods for types implementing the IHandle interface.
 /// </summary>
