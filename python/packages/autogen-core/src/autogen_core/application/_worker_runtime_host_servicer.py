@@ -2,21 +2,21 @@ import asyncio
 import logging
 from _collections_abc import AsyncIterator, Iterator
 from asyncio import Future, Task
-from typing import Any, Dict, Set
+from typing import Any, Dict, Set, cast
 
 from autogen_core.base._type_prefix_subscription import TypePrefixSubscription
 
 from ..base import Subscription, TopicId
 from ..components import TypeSubscription
+from ._constants import GRPC_IMPORT_ERROR_STR
 from ._helpers import SubscriptionManager
-from ._utils import GRPC_IMPORT_ERROR_STR
 
 try:
     import grpc
 except ImportError as e:
     raise ImportError(GRPC_IMPORT_ERROR_STR) from e
 
-from .protos import agent_worker_pb2, agent_worker_pb2_grpc
+from .protos import agent_worker_pb2, agent_worker_pb2_grpc, cloudevent_pb2
 
 logger = logging.getLogger("autogen_core")
 event_logger = logging.getLogger("autogen_core.events")
@@ -84,7 +84,7 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
             for agent_type in agent_types:
                 logger.info(f"Removing agent type {agent_type} from agent type to client id mapping")
                 del self._agent_type_to_client_id[agent_type]
-            for sub_id in self._client_id_to_subscription_id_mapping.get(client_id, []):
+            for sub_id in self._client_id_to_subscription_id_mapping.get(client_id, set()):
                 logger.info(f"Client id {client_id} disconnected. Removing corresponding subscription with id {id}")
                 await self._subscription_manager.remove_subscription(sub_id)
         logger.info(f"Client {client_id} disconnected successfully")
@@ -114,8 +114,9 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
                     self._background_tasks.add(task)
                     task.add_done_callback(self._raise_on_exception)
                     task.add_done_callback(self._background_tasks.discard)
-                case "event":
-                    event: agent_worker_pb2.Event = message.event
+                case "cloudEvent":
+                    # The proto typing doesnt resolve this one
+                    event = cast(cloudevent_pb2.CloudEvent, message.cloudEvent)  # type: ignore
                     task = asyncio.create_task(self._process_event(event))
                     self._background_tasks.add(task)
                     task.add_done_callback(self._raise_on_exception)
@@ -138,8 +139,6 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
                     logger.warning(f"Received unexpected message type: {oneofcase}")
                 case None:
                     logger.warning("Received empty message")
-                case other:
-                    logger.error(f"Received unexpected message: {other}")
 
     async def _process_request(self, request: agent_worker_pb2.RpcRequest, client_id: int) -> None:
         # Deliver the message to a client given the target agent type.
@@ -178,8 +177,8 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
         future = self._pending_responses[client_id].pop(response.request_id)
         future.set_result(response)
 
-    async def _process_event(self, event: agent_worker_pb2.Event) -> None:
-        topic_id = TopicId(type=event.topic_type, source=event.topic_source)
+    async def _process_event(self, event: cloudevent_pb2.CloudEvent) -> None:
+        topic_id = TopicId(type=event.type, source=event.source)
         recipients = await self._subscription_manager.get_subscribed_recipients(topic_id)
         # Get the client ids of the recipients.
         async with self._agent_type_to_client_id_lock:
@@ -192,7 +191,7 @@ class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
                     logger.error(f"Agent {recipient.type} and its client not found for topic {topic_id}.")
         # Deliver the event to clients.
         for client_id in client_ids:
-            await self._send_queues[client_id].put(agent_worker_pb2.Message(event=event))
+            await self._send_queues[client_id].put(agent_worker_pb2.Message(cloudEvent=event))
 
     async def _process_register_agent_type_request(
         self, register_agent_type_req: agent_worker_pb2.RegisterAgentTypeRequest, client_id: int

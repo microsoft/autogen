@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-core"
-version = "0.4.0.dev7"
+version = "0.4.0.dev8"
 license = {file = "LICENSE-CODE"}
 description = "Foundational interfaces and agent runtime implementation for AutoGen"
 readme = "README.md"
@@ -25,6 +25,7 @@ dependencies = [
     "opentelemetry-api~=1.27.0",
     "asyncio_atexit",
     "jsonref~=1.1.0",
+    "grpcio~=1.62.0", # TODO: update this once we have a stable version.
 ]
 
 [project.optional-dependencies]

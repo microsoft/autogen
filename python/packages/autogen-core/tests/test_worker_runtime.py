@@ -1,22 +1,28 @@
 import asyncio
 import logging
 import os
-from typing import List
+from typing import Any, List
 
 import pytest
 from autogen_core.application import WorkerAgentRuntime, WorkerAgentRuntimeHost
 from autogen_core.base import (
+    PROTOBUF_DATA_CONTENT_TYPE,
     AgentId,
     AgentType,
+    MessageContext,
+    Subscription,
     TopicId,
     try_get_known_serializers_for_type,
 )
-from autogen_core.base._subscription import Subscription
 from autogen_core.components import (
     DefaultTopicId,
+    RoutedAgent,
     TypeSubscription,
+    default_subscription,
+    event,
     type_subscription,
 )
+from protos.serialization_test_pb2 import ProtoMessage
 from test_utils import (
     CascadingAgent,
     CascadingMessageType,
@@ -399,6 +405,62 @@ async def test_disconnected_agent() -> None:
     finally:
         await worker1.stop()
         await worker1_2.stop()
+
+
+@default_subscription
+class ProtoReceivingAgent(RoutedAgent):
+    def __init__(self) -> None:
+        super().__init__("A loop back agent.")
+        self.num_calls = 0
+        self.received_messages: list[Any] = []
+
+    @event
+    async def on_new_message(self, message: ProtoMessage, ctx: MessageContext) -> None:
+        self.num_calls += 1
+        self.received_messages.append(message)
+
+
+@pytest.mark.asyncio
+async def test_proto_payloads() -> None:
+    host_address = "localhost:50057"
+    host = WorkerAgentRuntimeHost(address=host_address)
+    host.start()
+    receiver_runtime = WorkerAgentRuntime(
+        host_address=host_address, payload_serialization_format=PROTOBUF_DATA_CONTENT_TYPE
+    )
+    receiver_runtime.start()
+    publisher_runtime = WorkerAgentRuntime(
+        host_address=host_address, payload_serialization_format=PROTOBUF_DATA_CONTENT_TYPE
+    )
+    publisher_runtime.add_message_serializer(try_get_known_serializers_for_type(ProtoMessage))
+    publisher_runtime.start()
+
+    await ProtoReceivingAgent.register(receiver_runtime, "name", ProtoReceivingAgent)
+
+    await publisher_runtime.publish_message(ProtoMessage(message="Hello!"), topic_id=DefaultTopicId())
+
+    await asyncio.sleep(2)
+
+    # Agent in default namespace should have received the message
+    long_running_agent = await receiver_runtime.try_get_underlying_agent_instance(
+        AgentId("name", "default"), type=ProtoReceivingAgent
+    )
+    assert long_running_agent.num_calls == 1
+    assert long_running_agent.received_messages[0].message == "Hello!"
+
+    # Agent in other namespace should not have received the message
+    other_long_running_agent = await receiver_runtime.try_get_underlying_agent_instance(
+        AgentId("name", key="other"), type=ProtoReceivingAgent
+    )
+    assert other_long_running_agent.num_calls == 0
+    assert len(other_long_running_agent.received_messages) == 0
+
+    await receiver_runtime.stop()
+    await publisher_runtime.stop()
+    await host.stop()
+
+
+# TODO add tests for failure to deserialize
 
 
 @pytest.mark.asyncio

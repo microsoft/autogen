@@ -2,6 +2,7 @@ import json
 from dataclasses import asdict, dataclass, fields
 from typing import Any, ClassVar, Dict, List, Protocol, Sequence, TypeVar, cast, get_args, get_origin, runtime_checkable
 
+from google.protobuf import any_pb2
 from google.protobuf.message import Message
 from pydantic import BaseModel
 
@@ -149,29 +150,35 @@ class PydanticJsonMessageSerializer(MessageSerializer[PydanticT]):
 ProtobufT = TypeVar("ProtobufT", bound=Message)
 
 
+# This class serializes to and from a google.protobuf.Any message that has been serialized to a string
 class ProtobufMessageSerializer(MessageSerializer[ProtobufT]):
     def __init__(self, cls: type[ProtobufT]) -> None:
         self.cls = cls
 
     @property
     def data_content_type(self) -> str:
-        # TODO: This should be PROTOBUF_DATA_CONTENT_TYPE. There are currently
-        #       a couple of hard coded places where the system assumes the
-        #       content is JSON_DATA_CONTENT_TYPE which will need to be fixed
-        #       first.
-        return JSON_DATA_CONTENT_TYPE
+        return PROTOBUF_DATA_CONTENT_TYPE
 
     @property
     def type_name(self) -> str:
         return _type_name(self.cls)
 
     def deserialize(self, payload: bytes) -> ProtobufT:
-        ret = self.cls()
-        ret.ParseFromString(payload)
-        return ret
+        # Parse payload into a proto any
+        any_proto = any_pb2.Any()
+        any_proto.ParseFromString(payload)
+
+        destination_message = self.cls()
+
+        if not any_proto.Unpack(destination_message):  # type: ignore
+            raise ValueError(f"Failed to unpack payload into {self.cls}")
+
+        return destination_message
 
     def serialize(self, message: ProtobufT) -> bytes:
-        return message.SerializeToString()
+        any_proto = any_pb2.Any()
+        any_proto.Pack(message)  # type: ignore
+        return any_proto.SerializeToString()
 
 
 @dataclass
