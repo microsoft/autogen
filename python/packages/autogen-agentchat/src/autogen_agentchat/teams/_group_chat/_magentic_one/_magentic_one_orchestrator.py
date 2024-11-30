@@ -1,5 +1,7 @@
 import json
+import logging
 from typing import Any, List, Dict
+from .... import TRACE_LOGGER_NAME
 
 from autogen_core.base import AgentId, CancellationToken, MessageContext
 from autogen_core.components import DefaultTopicId, Image, event, rpc
@@ -31,8 +33,12 @@ from ._prompts import (
     ORCHESTRATOR_TASK_LEDGER_PLAN_UPDATE_PROMPT,
 )
 
+trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
+
 
 class MagenticOneOrchestrator(BaseGroupChatManager):
+    """The MagenticOneOrchestrator manages a group chat with ledger based orchestration."""
+
     def __init__(
         self,
         group_topic_type: str,
@@ -92,10 +98,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         return ORCHESTRATOR_FINAL_ANSWER_PROMPT.format(task=task)
 
     async def _log_message(self, log_message: str) -> None:
-        await self.publish_message(
-            GroupChatMessage(message=TextMessage(content=log_message, source=self._name + "(Logging)")),
-            topic_id=DefaultTopicId(type=self._output_topic_type),
-        )
+        trace_logger.debug(log_message)
 
     @rpc
     async def handle_start(self, message: GroupChatStart, ctx: MessageContext) -> None:
@@ -260,7 +263,11 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 ]
                 key_error = False
                 for key in required_keys:
-                    if key not in progress_ledger or "answer" not in progress_ledger[key]:
+                    if (
+                        key not in progress_ledger
+                        or "answer" not in progress_ledger[key]
+                        or "reason" not in progress_ledger[key]
+                    ):
                         key_error = True
                         break
                 if not key_error:
@@ -270,6 +277,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 continue
         if key_error:
             raise ValueError("Failed to parse ledger information after multiple retries.")
+        await self._log_message(f"Progress Ledger: {progress_ledger}")
         # Check for task completion
         if progress_ledger["is_request_satisfied"]["answer"]:
             await self._log_message("Task completed, preparing final answer...")
@@ -296,9 +304,9 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         self._message_thread.append(message)  # My copy
 
         # Log it
-        message_log = TextMessage(content=f"[Sending Message to: {progress_ledger['next_speaker']["answer"]}]\n{message.content}", source=self._name)
+        await self._log_message(f"Next Speaker: {progress_ledger['next_speaker']['answer']}")
         await self.publish_message(
-            GroupChatMessage(message=message_log),
+            GroupChatMessage(message=message),
             topic_id=DefaultTopicId(type=self._output_topic_type),
         )
 
