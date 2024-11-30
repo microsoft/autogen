@@ -19,6 +19,66 @@ from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from openai.types.completion_usage import CompletionUsage
 
 
+class _MockChatCompletion:
+    def __init__(self, chat_completions: List[ChatCompletion]) -> None:
+        self._saved_chat_completions = chat_completions
+        self._curr_index = 0
+
+    async def mock_create(
+        self, *args: Any, **kwargs: Any
+    ) -> ChatCompletion | AsyncGenerator[ChatCompletionChunk, None]:
+        await asyncio.sleep(0.1)
+        completion = self._saved_chat_completions[self._curr_index]
+        self._curr_index += 1
+        return completion
+
+
+@pytest.fixture
+def chat_completions() -> List[ChatCompletion]:
+    """Fixture providing mock chat completions"""
+    return [
+        ChatCompletion(
+            id="id1",
+            choices=[
+                Choice(
+                    finish_reason="stop",
+                    index=0,
+                    message=ChatCompletionMessage(
+                        content="Test response 1", role="assistant"),
+                )
+            ],
+            created=0,
+            model="gpt-4o-2024-08-06",
+            object="chat.completion",
+            usage=CompletionUsage(
+                prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        ),
+        ChatCompletion(
+            id="id2",
+            choices=[
+                Choice(
+                    finish_reason="stop",
+                    index=0,
+                    message=ChatCompletionMessage(
+                        content="Test response 2", role="assistant"),
+                )
+            ],
+            created=0,
+            model="gpt-4o-2024-08-06",
+            object="chat.completion",
+            usage=CompletionUsage(
+                prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        ),
+    ]
+
+
+@pytest.fixture
+def mock_chat_completion(monkeypatch: pytest.MonkeyPatch, chat_completions: List[ChatCompletion]) -> None:
+    """Fixture that sets up the mock completion"""
+    mock = _MockChatCompletion(chat_completions)
+    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
+
+
 @pytest.mark.asyncio
 async def test_max_message_termination_state() -> None:
     """Test saving and loading state for MaxMessageTermination"""
@@ -83,12 +143,24 @@ async def test_text_mention_termination_state() -> None:
 
 
 @pytest.mark.asyncio
-async def test_team_state_validation() -> None:
+async def test_team_state_validation(mock_chat_completion: None) -> None:
     """Test validation when loading team state with mismatched agents"""
-    agent1 = AssistantAgent(name="agent1", model_client=OpenAIChatCompletionClient(model="gpt-4o-2024-08-06"))
-    agent2 = AssistantAgent(name="agent2", model_client=OpenAIChatCompletionClient(model="gpt-4o-2024-08-06"))
+    # Create agents with mocked client
+    agent1 = AssistantAgent(
+        name="agent1",
+        model_client=OpenAIChatCompletionClient(
+            model="gpt-4o-2024-08-06", api_key="")
+    )
+    agent2 = AssistantAgent(
+        name="agent2",
+        model_client=OpenAIChatCompletionClient(
+            model="gpt-4o-2024-08-06", api_key="")
+    )
 
+    # Create and run initial team
     team = RoundRobinGroupChat([agent1], termination_condition=None)
+
+    # Save the state
     state = await team.save_state()
 
     # Try loading into team with different agents
@@ -99,61 +171,16 @@ async def test_team_state_validation() -> None:
     assert "missing" in str(exc.value).lower()
 
 
-class _MockChatCompletion:
-    def __init__(self, chat_completions: List[ChatCompletion]) -> None:
-        self._saved_chat_completions = chat_completions
-        self._curr_index = 0
-
-    async def mock_create(
-        self, *args: Any, **kwargs: Any
-    ) -> ChatCompletion | AsyncGenerator[ChatCompletionChunk, None]:
-        await asyncio.sleep(0.1)
-        completion = self._saved_chat_completions[self._curr_index]
-        self._curr_index += 1
-        return completion
-
-
 @pytest.mark.asyncio
-async def test_team_state_mocked(monkeypatch: pytest.MonkeyPatch) -> None:
-    # Setup mock responses
-    chat_completions = [
-        ChatCompletion(
-            id="id1",
-            choices=[
-                Choice(
-                    finish_reason="stop",
-                    index=0,
-                    message=ChatCompletionMessage(content="Line 1\nLine 2\nLine 3", role="assistant"),
-                )
-            ],
-            created=0,
-            model="gpt-4o-2024-08-06",
-            object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
-        ),
-        ChatCompletion(
-            id="id2",
-            choices=[
-                Choice(
-                    finish_reason="stop",
-                    index=0,
-                    message=ChatCompletionMessage(content="The last line was Line 3", role="assistant"),
-                )
-            ],
-            created=0,
-            model="gpt-4o-2024-08-06",
-            object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
-        ),
-    ]
-    mock = _MockChatCompletion(chat_completions)
-    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
-
+async def test_team_state_mocked(mock_chat_completion: None) -> None:
     # Create team with mocked agent
     assistant = AssistantAgent(
-        name="assistant", model_client=OpenAIChatCompletionClient(model="gpt-4o-2024-08-06", api_key="")
+        name="assistant",
+        model_client=OpenAIChatCompletionClient(
+            model="gpt-4o-2024-08-06", api_key="")
     )
-    team = RoundRobinGroupChat([assistant], termination_condition=MaxMessageTermination(max_messages=2))
+    team = RoundRobinGroupChat(
+        [assistant], termination_condition=MaxMessageTermination(max_messages=2))
 
     # Save state
     team_state = await team.save_state()
@@ -164,11 +191,10 @@ async def test_team_state_mocked(monkeypatch: pytest.MonkeyPatch) -> None:
     assert isinstance(team_state.manager_state, BaseGroupChatManagerState)
 
     # Create new team and load state
-    team2 = RoundRobinGroupChat([assistant], termination_condition=MaxMessageTermination(max_messages=2))
+    team2 = RoundRobinGroupChat(
+        [assistant], termination_condition=MaxMessageTermination(max_messages=2))
     await team2.load_state(team_state)
 
-    # Continue conversation with second mocked response
-    result2 = await team2.run(task="What was the last line?")
-
-    # Verify continuity using mocked responses
-    assert "Line 3" in result2.messages[-1].content
+    # verify that team2 does indeed have the same state as team
+    team2_state = await team2.save_state()
+    assert team_state == team2_state

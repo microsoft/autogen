@@ -9,11 +9,6 @@ from ._termination_states import BaseTerminationState
 @dataclass(kw_only=True)
 class BaseGroupChatManagerState(BaseState):
     """Base state for all group chat managers.
-
-    Attributes:
-        message_thread: List of messages in the conversation
-        current_turn: Current turn number in the conversation
-        state_type: Type identifier for this state class
     """
 
     message_thread: List[AgentMessage] = field(default_factory=list)
@@ -23,30 +18,20 @@ class BaseGroupChatManagerState(BaseState):
 
 @dataclass(kw_only=True)
 class BaseTeamState(BaseState):
-    """Base state for all team types.
-
-    Attributes:
-        agent_names: List of agent names in the team
-        termination_state: State of the termination condition
-        agent_states: Dictionary mapping agent names to their states
-        manager_state: State of the group chat manager
-        state_type: Type identifier for this state class
+    """Base state for all team types. 
     """
 
     agent_names: List[str] = field(default_factory=list)
     termination_state: Optional[BaseTerminationState] = field(default=None)
     agent_states: Dict[str, BaseState] = field(default_factory=dict)
-    manager_state: BaseGroupChatManagerState = field(default_factory=BaseGroupChatManagerState)
+    manager_state: BaseGroupChatManagerState = field(
+        default_factory=BaseGroupChatManagerState)
     state_type: str = field(default="BaseTeamState")
 
 
 @dataclass(kw_only=True)
 class RoundRobinManagerState(BaseGroupChatManagerState):
-    """State for round robin group chat manager.
-
-    Attributes:
-        next_speaker_index: Index of the next speaker in rotation
-        state_type: Type identifier for this state class
+    """State for round robin group chat manager. 
     """
 
     next_speaker_index: int = field(default=0)
@@ -55,11 +40,7 @@ class RoundRobinManagerState(BaseGroupChatManagerState):
 
 @dataclass(kw_only=True)
 class SelectorManagerState(BaseGroupChatManagerState):
-    """State for selector group chat manager.
-
-    Attributes:
-        previous_speaker: Name of the previous speaker
-        state_type: Type identifier for this state class
+    """State for selector group chat manager. 
     """
 
     previous_speaker: Optional[str] = field(default=None)
@@ -68,11 +49,7 @@ class SelectorManagerState(BaseGroupChatManagerState):
 
 @dataclass(kw_only=True)
 class SwarmManagerState(BaseGroupChatManagerState):
-    """State for swarm group chat manager.
-
-    Attributes:
-        current_speaker: Name of the current speaker
-        state_type: Type identifier for this state class
+    """State for swarm group chat manager. 
     """
 
     current_speaker: str = field(default="")
