@@ -2,6 +2,10 @@
   font-size: 0.8rem;
 }
 
+html {
+  --pst-font-size-base: 0.8rem;
+}
+
 html[data-theme="light"] {
   --pst-color-primary: hsl(222.2 47.4% 11.2%);
   --pst-color-secondary: #007bff;
