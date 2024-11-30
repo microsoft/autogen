@@ -2,6 +2,7 @@
 // AgentBaseTests.cs
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using FluentAssertions;
 using Google.Protobuf.Reflection;
 using Microsoft.AspNetCore.Builder;
@@ -25,19 +26,16 @@ public class AgentBaseTests(InMemoryAgentRuntimeFixture fixture)
     [Fact]
     public async Task ItInvokeRightHandlerTestAsync()
     {
-        var mockContext = new Mock<RuntimeContext>();
-        mockContext.SetupGet(x => x.AgentId).Returns(new AgentId{ Type = "test", Key = "test" });
-        // mock SendMessageAsync
-        mockContext.Setup(x => x.SendMessageAsync(It.IsAny<Message>(), It.IsAny<CancellationToken>()))
-            .Returns(new ValueTask());
-        var agent = new TestAgent(mockContext.Object, new EventTypes(TypeRegistry.Empty, [], []), new Logger<AgentBase>(new LoggerFactory()));
+        var agentWorker = _fixture.AppHost.Services.GetRequiredService<IAgentWorker>();
+        var dctx = Mock.Of<DistributedContextPropagator>();
+        var logger = Mock.Of<ILogger<AgentBase>>();
+        var context = new RuntimeContext(new AgentId { Type = "test", Key = "test" }, agentWorker, logger, dctx);
+        var agent = new TestAgent(context, new EventTypes(TypeRegistry.Empty, [], []));
+        await agent.Handle(new TextMessage { Source = "test", TextMessage_ = "Wow" }, CancellationToken.None);
 
-        await agent.HandleObjectAsync("hello world", CancellationToken.None);
-        await agent.HandleObjectAsync(42, CancellationToken.None);
+        TestAgent.ReceivedMessages.Count.Should().Be(1);
+        TestAgent.ReceivedMessages["test"].Should().Be("Wow");
 
-        agent.ReceivedItems.Should().HaveCount(2);
-        agent.ReceivedItems[0].Should().Be("hello world");
-        agent.ReceivedItems[1].Should().Be(42);
     }
 
     [Fact]
@@ -98,7 +96,6 @@ public sealed class InMemoryAgentRuntimeFixture : IDisposable
         // step 1: create in-memory agent runtime
         // step 2: register TestAgent to that agent runtime
         builder
-            //.AddAgentService(local: true, useGrpc: false)
             .AddInMemoryWorker()
             .AddAgentHost()
             .AddAgent<TestAgent>(nameof(TestAgent));
