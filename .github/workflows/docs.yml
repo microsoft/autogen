@@ -40,6 +40,7 @@ jobs:
             { ref: "v0.4.0.dev5", dest-dir: "0.4.0.dev5" },
             { ref: "v0.4.0.dev6", dest-dir: "0.4.0.dev6" },
             { ref: "v0.4.0.dev7", dest-dir: "0.4.0.dev7" },
+            { ref: "v0.4.0.dev8", dest-dir: "0.4.0.dev8" },
           ]
     steps:
       - name: Checkout
