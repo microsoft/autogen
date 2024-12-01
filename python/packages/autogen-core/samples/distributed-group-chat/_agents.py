@@ -1,6 +1,6 @@
 import asyncio
 import random
-from typing import AsyncGenerator, Awaitable, Callable, List
+from typing import AsyncGenerator, Awaitable, Callable, List, Union
 from uuid import uuid4
 
 from _types import GroupChatMessage, MessageChunk, RequestToSpeak, UIAgentConfig
@@ -175,7 +175,7 @@ async def publish_message_stream_to_ui(
     runtime: RoutedAgent | WorkerAgentRuntime,
     source: str,
     ui_config: UIAgentConfig,
-    stream_output: AsyncGenerator,
+    stream_output: AsyncGenerator[Union[str, CreateResult], None],
 ) -> None:
     """Publishes a stream of messages to the UI."""
     message_id = str(uuid4())
@@ -201,7 +201,7 @@ async def publish_message_stream_to_ui_and_backend(
     source: str,
     ui_config: UIAgentConfig,
     group_chat_topic_type: str,
-    stream_output: AsyncGenerator,
+    stream_output: AsyncGenerator[Union[str, CreateResult], None],
 ) -> None | CreateResult:
     """Publishes a stream of messages to both the UI and backend."""
     message_id = str(uuid4())
