@@ -5,7 +5,18 @@ from autogen_core.base import CancellationToken
 from autogen_core.components import Image
 from pydantic import BaseModel, ConfigDict, Field
 
-from .state import BaseState
+
+class BaseMemoryConfig(BaseModel):
+    """Base configuration for memory implementations."""
+
+    k: int = Field(default=5, description="Number of results to return")
+    score_threshold: float | None = Field(default=None, description="Minimum relevance score")
+    context_format: str = Field(
+        default="Context {i}: {content} (score: {score:.2f})\n Use this information to address relevant tasks.",
+        description="Format string for memory results in prompt",
+    )
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MemoryEntry(BaseModel):
@@ -38,40 +49,32 @@ class MemoryQueryResult(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class BaseMemoryState(BaseState):
-    """State for memory implementations."""
-
-    state_type: str
-    """Type identifier for the memory implementation."""
-
-    entries: List[MemoryEntry]
-    """List of memory entries."""
-
-
 @runtime_checkable
 class Memory(Protocol):
     """Protocol defining the interface for memory implementations."""
 
     @property
-    def name(self) -> str:
+    def name(self) -> str | None:
         """The name of this memory implementation."""
+        ...
+
+    @property
+    def config(self) -> BaseMemoryConfig:
+        """The configuration for this memory implementation."""
         ...
 
     async def query(
         self,
         query: Union[str, Image, List[Union[str, Image]]],
-        *,
-        k: int = 5,
-        score_threshold: float | None = None,
-        **kwargs: Any
+        cancellation_token: CancellationToken | None = None,
+        **kwargs: Any,
     ) -> List[MemoryQueryResult]:
         """
         Query the memory store and return relevant entries.
 
         Args:
             query: Text, image or multimodal query
-            k: Maximum number of results to return
-            score_threshold: Minimum relevance score threshold
+            cancellation_token: Optional token to cancel operation
             **kwargs: Additional implementation-specific parameters
 
         Returns:
@@ -79,17 +82,13 @@ class Memory(Protocol):
         """
         ...
 
-    async def add(
-        self,
-        entry: MemoryEntry,
-        cancellation_token: CancellationToken | None = None
-    ) -> None:
+    async def add(self, entry: MemoryEntry, cancellation_token: CancellationToken | None = None) -> None:
         """
         Add a new entry to memory.
 
         Args:
             entry: The memory entry to add
-            cancellation_token: Optional token to cancel the operation
+            cancellation_token: Optional token to cancel operation
         """
         ...
 
@@ -97,44 +96,6 @@ class Memory(Protocol):
         """Clear all entries from memory."""
         ...
 
-    async def save_state(self) -> BaseMemoryState:
-        """Save memory state for persistence."""
+    async def cleanup(self) -> None:
+        """Clean up any resources used by the memory implementation."""
         ...
-
-    async def load_state(self, state: BaseState) -> None:
-        """Load memory state from saved state."""
-        ...
-
-
-class BaseMemory:
-    """Base class providing common functionality for memory implementations."""
-
-    def __init__(self, name: str) -> None:
-        self._name = name
-        self._entries: List[MemoryEntry] = []
-
-    @property
-    def name(self) -> str:
-        return self._name
-
-    async def clear(self) -> None:
-        """Clear all entries from memory."""
-        self._entries = []
-
-    async def save_state(self) -> BaseMemoryState:
-        """Save memory state."""
-        return BaseMemoryState(
-            state_type=self.__class__.__name__,
-            entries=self._entries.copy()
-        )
-
-    async def load_state(self, state: BaseState) -> None:
-        """Load memory state."""
-        if not isinstance(state, BaseMemoryState):
-            raise ValueError(f"Expected BaseMemoryState, got {type(state)}")
-
-        if state.state_type != self.__class__.__name__:
-            raise ValueError(
-                f"Cannot load {state.state_type} state into {self.__class__.__name__}")
-
-        self._entries = state.entries.copy()
