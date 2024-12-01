@@ -9,7 +9,7 @@ This example runs a gRPC server using [WorkerAgentRuntimeHost](../../src/autogen
 ### Setup Python Environment
 
 1. Create a virtual environment as instructed in [README](../../../../../../../../README.md).
-2. Run `uv pip install chainlit` in the same virtual environment
+2. Run `uv pip install pydantic==2.10.1 chainlit` in the same virtual environment. We have to pin the pydantic version due to [this issue](https://github.com/Chainlit/chainlit/issues/1544)
 
 ### General Configuration
 
@@ -111,4 +111,3 @@ graph TD;
 ## TODO:
 
 - [ ] Properly handle chat restarts. It complains about group chat manager being already registered
-- [ ] Add streaming to the UI like [this example](https://docs.chainlit.io/advanced-features/streaming) when [this bug](https://github.com/microsoft/autogen/issues/4213) is resolved

@@ -160,6 +160,7 @@ class ReplayChatCompletionClient:
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
+        max_consecutive_empty_chunk_tolerance: int = 0,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         """Return the next completion as a stream."""
         if self._current_index >= len(self.chat_completions):

@@ -1,5 +1,9 @@
 #!/bin/bash
 # # Start a new tmux session named 'distributed_group_chat'
+# These line are to supress https://stackoverflow.com/questions/78780089
+export GRPC_VERBOSITY=ERROR
+export GLOG_minloglevel=2
+
 tmux new-session -d -s distributed_group_chat
 
 # # Split the terminal into 2 vertical panes
