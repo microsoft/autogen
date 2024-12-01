@@ -15,9 +15,6 @@ from typing import Any, Awaitable, Callable, Dict, List, Mapping, ParamSpec, Set
 from opentelemetry.trace import TracerProvider
 from typing_extensions import deprecated
 
-from ..base._serialization import MessageSerializer, SerializationRegistry
-from ..components._publish_based_rpc import PublishBasedRpcMixin
-
 from ..base import (
     Agent,
     AgentId,
@@ -32,8 +29,9 @@ from ..base import (
     SubscriptionInstantiationContext,
     TopicId,
 )
-
+from ..base._serialization import MessageSerializer, SerializationRegistry
 from ..base.intervention import DropMessage, InterventionHandler
+from ..components._publish_based_rpc import PublishBasedRpcMixin
 from ._helpers import SubscriptionManager, get_impl
 from .telemetry import EnvelopeMetadata, MessageRuntimeTracingConfig, TraceHelper, get_telemetry_envelope_metadata
 

@@ -28,7 +28,6 @@ from typing import (
     cast,
 )
 
-
 from google.protobuf import any_pb2
 from opentelemetry.trace import TracerProvider
 from typing_extensions import Self, deprecated

@@ -301,7 +301,9 @@ def event(
         wrapper_handler.produces_types = list(return_types)
         wrapper_handler.is_message_handler = True
         # Wrap the match function with a check on the topic for rpc
-        wrapper_handler.router = lambda _message, _ctx: (is_rpc_request(_ctx.topic_id.type) is None) and (match(_message, _ctx) if match else True)
+        wrapper_handler.router = lambda _message, _ctx: (is_rpc_request(_ctx.topic_id.type) is None) and (
+            match(_message, _ctx) if match else True
+        )
 
         return wrapper_handler
 
@@ -440,7 +442,9 @@ def rpc(
         wrapper_handler.target_types = list(target_types)
         wrapper_handler.produces_types = list(return_types)
         wrapper_handler.is_message_handler = True
-        wrapper_handler.router = lambda _message, _ctx: (is_rpc_request(_ctx.topic_id.type) is not None) and (match(_message, _ctx) if match else True)
+        wrapper_handler.router = lambda _message, _ctx: (is_rpc_request(_ctx.topic_id.type) is not None) and (
+            match(_message, _ctx) if match else True
+        )
 
         return wrapper_handler
 

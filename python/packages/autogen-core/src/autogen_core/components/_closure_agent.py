@@ -76,7 +76,11 @@ class ClosureContext(Protocol):
 
 class ClosureAgent(BaseAgent, ClosureContext):
     def __init__(
-        self, description: str, closure: Callable[[ClosureContext, T, MessageContext], Awaitable[Any]], *, forward_unbound_rpc_responses_to_handler: bool = False
+        self,
+        description: str,
+        closure: Callable[[ClosureContext, T, MessageContext], Awaitable[Any]],
+        *,
+        forward_unbound_rpc_responses_to_handler: bool = False,
     ) -> None:
         try:
             runtime = AgentInstantiationContext.current_runtime()
@@ -137,7 +141,11 @@ class ClosureAgent(BaseAgent, ClosureContext):
         subscriptions: Callable[[], list[Subscription] | Awaitable[list[Subscription]]] | None = None,
     ) -> AgentType:
         def factory() -> ClosureAgent:
-            return ClosureAgent(description=description, closure=closure, forward_unbound_rpc_responses_to_handler=forward_unbound_rpc_responses_to_handler)
+            return ClosureAgent(
+                description=description,
+                closure=closure,
+                forward_unbound_rpc_responses_to_handler=forward_unbound_rpc_responses_to_handler,
+            )
 
         agent_type = await cls.register(
             runtime=runtime,

@@ -57,6 +57,7 @@ def handles(
 
     return decorator
 
+
 class BaseAgent(ABC, Agent):
     internal_unbound_subscriptions_list: ClassVar[List[UnboundSubscription]] = []
     internal_extra_handles_types: ClassVar[List[Tuple[Type[Any], List[MessageSerializer[Any]]]]] = []
@@ -132,7 +133,10 @@ class BaseAgent(ABC, Agent):
             elif self._forward_unbound_rpc_responses_to_handler:
                 await self.on_message_impl(message, ctx)
             else:
-                warnings.warn(f"Received RPC response for unknown request {request_id}. To forward unbound rpc responses to the handler, set forward_unbound_rpc_responses_to_handler=True", stacklevel=2)
+                warnings.warn(
+                    f"Received RPC response for unknown request {request_id}. To forward unbound rpc responses to the handler, set forward_unbound_rpc_responses_to_handler=True",
+                    stacklevel=2,
+                )
             return None
 
         await self.on_message_impl(message, ctx)
@@ -148,7 +152,10 @@ class BaseAgent(ABC, Agent):
         if cancellation_token is None:
             cancellation_token = CancellationToken()
 
-        recipient_topic = TopicId(type=format_rpc_request_topic(rpc_recipient_agent_type=recipient.type, rpc_sender_agent_type=self.id.type), source=recipient.key)
+        recipient_topic = TopicId(
+            type=format_rpc_request_topic(rpc_recipient_agent_type=recipient.type, rpc_sender_agent_type=self.id.type),
+            source=recipient.key,
+        )
         request_id = str(uuid.uuid4())
 
         future = Future[Any]()
