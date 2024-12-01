@@ -37,7 +37,8 @@ extensions = [
     "sphinx_copybutton",
     "_extension.gallery_directive",
     "myst_nb",
-    "sphinxcontrib.autodoc_pydantic"
+    "sphinxcontrib.autodoc_pydantic",
+    "_extension.code_lint",
 ]
 suppress_warnings = ["myst.header"]
 
@@ -80,6 +81,8 @@ html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 
+add_module_names = False
+
 html_logo = "_static/images/logo/logo.svg"
 html_favicon = "_static/images/logo/favicon-512x512.png"
 
@@ -87,6 +90,7 @@ html_theme_options = {
 
     "header_links_before_dropdown": 4,
     "navbar_align": "left",
+    "show_nav_level": 4,
     "check_switcher": False,
     # "navbar_start": ["navbar-logo", "version-switcher"],
     # "switcher": {
@@ -147,6 +151,14 @@ autodoc_default_options = {
 autodoc_pydantic_model_show_config_summary = False
 
 intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
+
+code_lint_path_prefix = "reference/python"
+
+nb_mime_priority_overrides = [
+  ('code_lint', 'image/jpeg', 100),
+  ('code_lint', 'image/png', 100),
+  ('code_lint', 'text/plain', 100)
+]
 
 
 def setup_to_main(

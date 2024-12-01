@@ -67,25 +67,31 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
 
             import venv
             from pathlib import Path
+            import asyncio
 
             from autogen_core.base import CancellationToken
             from autogen_core.components.code_executor import CodeBlock, LocalCommandLineCodeExecutor
 
-            work_dir = Path("coding")
-            work_dir.mkdir(exist_ok=True)
 
-            venv_dir = work_dir / ".venv"
-            venv_builder = venv.EnvBuilder(with_pip=True)
-            venv_builder.create(venv_dir)
-            venv_context = venv_builder.ensure_directories(venv_dir)
+            async def example():
+                work_dir = Path("coding")
+                work_dir.mkdir(exist_ok=True)
 
-            local_executor = LocalCommandLineCodeExecutor(work_dir=work_dir, virtual_env_context=venv_context)
-            await local_executor.execute_code_blocks(
-                code_blocks=[
-                    CodeBlock(language="bash", code="pip install matplotlib"),
-                ],
-                cancellation_token=CancellationToken(),
-            )
+                venv_dir = work_dir / ".venv"
+                venv_builder = venv.EnvBuilder(with_pip=True)
+                venv_builder.create(venv_dir)
+                venv_context = venv_builder.ensure_directories(venv_dir)
+
+                local_executor = LocalCommandLineCodeExecutor(work_dir=work_dir, virtual_env_context=venv_context)
+                await local_executor.execute_code_blocks(
+                    code_blocks=[
+                        CodeBlock(language="bash", code="pip install matplotlib"),
+                    ],
+                    cancellation_token=CancellationToken(),
+                )
+
+
+            asyncio.run(example())
 
     """
 

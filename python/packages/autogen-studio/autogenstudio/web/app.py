@@ -1,18 +1,19 @@
 # api/app.py
 import os
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+
 # import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 from loguru import logger
 
-from .routes import sessions, runs, teams, agents, models, tools, ws
-from .deps import init_managers, cleanup_managers
-from .config import settings
-from .initialization import AppInitializer
 from ..version import VERSION
+from .config import settings
+from .deps import cleanup_managers, init_managers
+from .initialization import AppInitializer
+from .routes import agents, models, runs, sessions, teams, tools, ws
 
 # Configure logging
 # logger = logging.getLogger(__name__)
@@ -53,6 +54,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("Application shutdown complete")
     except Exception as e:
         logger.error(f"Error during shutdown: {str(e)}")
+
 
 # Create FastAPI application
 app = FastAPI(lifespan=lifespan, debug=True)
@@ -143,6 +145,7 @@ async def get_version():
         "data": {"version": VERSION},
     }
 
+
 # Health check endpoint
 
 
@@ -153,6 +156,7 @@ async def health_check():
         "status": True,
         "message": "Service is healthy",
     }
+
 
 # Mount static file directories
 app.mount("/api", api)
@@ -172,7 +176,7 @@ async def internal_error_handler(request, exc):
     return {
         "status": False,
         "message": "Internal server error",
-        "detail": str(exc) if settings.API_DOCS else "Internal server error"
+        "detail": str(exc) if settings.API_DOCS else "Internal server error",
     }
 
 

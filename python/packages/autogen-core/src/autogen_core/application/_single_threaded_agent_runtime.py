@@ -4,6 +4,7 @@ import asyncio
 import inspect
 import logging
 import threading
+import uuid
 import warnings
 from asyncio import CancelledError, Future, Task
 from collections.abc import Sequence
@@ -53,6 +54,7 @@ class PublishMessageEnvelope:
     sender: AgentId | None
     topic_id: TopicId
     metadata: EnvelopeMetadata | None = None
+    message_id: str
 
 
 @dataclass(kw_only=True)
@@ -147,6 +149,23 @@ class RunContext:
         return self._run_state == RunContext.RunState.UNTIL_IDLE and self._runtime.idle
 
 
+def _warn_if_none(value: Any, handler_name: str) -> None:
+    """
+    Utility function to check if the intervention handler returned None and issue a warning.
+
+    Args:
+        value: The return value to check
+        handler_name: Name of the intervention handler method for the warning message
+    """
+    if value is None:
+        warnings.warn(
+            f"Intervention handler {handler_name} returned None. This might be unintentional. "
+            "Consider returning the original message or DropMessage explicitly.",
+            RuntimeWarning,
+            stacklevel=2,
+        )
+
+
 class SingleThreadedAgentRuntime(AgentRuntime):
     def __init__(
         self,
@@ -239,6 +258,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         *,
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
+        message_id: str | None = None,
     ) -> None:
         with self._tracer_helper.trace_block(
             "create",
@@ -250,6 +270,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 cancellation_token = CancellationToken()
             content = message.__dict__ if hasattr(message, "__dict__") else message
             logger.info(f"Publishing message of type {type(message).__name__} to all subscribers: {content}")
+
+            if message_id is None:
+                message_id = str(uuid.uuid4())
 
             # event_logger.info(
             #     MessageEvent(
@@ -268,6 +291,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     sender=sender,
                     topic_id=topic_id,
                     metadata=get_telemetry_envelope_metadata(),
+                    message_id=message_id,
                 )
             )
 
@@ -310,6 +334,8 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     topic_id=None,
                     is_rpc=True,
                     cancellation_token=message_envelope.cancellation_token,
+                    # Will be fixed when send API removed
+                    message_id="NOT_DEFINED_TODO_FIX",
                 )
                 with MessageHandlerContext.populate_context(recipient_agent.id):
                     response = await recipient_agent.on_message(
@@ -368,6 +394,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                         topic_id=message_envelope.topic_id,
                         is_rpc=False,
                         cancellation_token=message_envelope.cancellation_token,
+                        message_id=message_envelope.message_id,
                     )
                     agent = await self._get_agent(agent_id)
 
@@ -433,6 +460,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                         ):
                             try:
                                 temp_message = await handler.on_send(message, sender=sender, recipient=recipient)
+                                _warn_if_none(temp_message, "on_send")
                             except BaseException as e:
                                 future.set_exception(e)
                                 return
@@ -456,6 +484,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                         ):
                             try:
                                 temp_message = await handler.on_publish(message, sender=sender)
+                                _warn_if_none(temp_message, "on_publish")
                             except BaseException as e:
                                 # TODO: we should raise the intervention exception to the publisher.
                                 logger.error(f"Exception raised in in intervention handler: {e}", exc_info=True)
@@ -474,6 +503,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     for handler in self._intervention_handlers:
                         try:
                             temp_message = await handler.on_response(message, sender=sender, recipient=recipient)
+                            _warn_if_none(temp_message, "on_response")
                         except BaseException as e:
                             # TODO: should we raise the exception to sender of the response instead?
                             future.set_exception(e)

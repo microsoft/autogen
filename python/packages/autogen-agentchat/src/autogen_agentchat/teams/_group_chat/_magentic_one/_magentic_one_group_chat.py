@@ -13,18 +13,62 @@ event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class MagenticOneGroupChat(BaseGroupChat):
+    """A team that runs a group chat with participants managed by the MagenticOneOrchestrator.
+
+    The orchestrator handles the conversation flow, ensuring that the task is completed
+    efficiently by managing the participants' interactions.
+
+    Args:
+        participants (List[ChatAgent]): The participants in the group chat.
+        model_client (ChatCompletionClient): The model client used for generating responses.
+        termination_condition (TerminationCondition, optional): The termination condition for the group chat. Defaults to None.
+            Without a termination condition, the group chat will run based on the orchestrator logic or until the maximum number of turns is reached.
+        max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to 20.
+        max_stalls (int, optional): The maximum number of stalls allowed before re-planning. Defaults to 3.
+
+    Raises:
+        ValueError: In orchestration logic if progress ledger does not have required keys or if next speaker is not valid.
+
+    Examples:
+
+    MagenticOneGroupChat with one assistant agent:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.teams import MagenticOneGroupChat
+            from autogen_agentchat.task import Console
+
+
+            async def main() -> None:
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+                assistant = AssistantAgent(
+                    "Assistant",
+                    model_client=model_client,
+                )
+                team = MagenticOneGroupChat([assistant], model_client=model_client)
+                await Console(team.run_stream(task="Provide a different proof to Fermat last theorem"))
+
+
+            asyncio.run(main())
+    """
+
     def __init__(
         self,
         participants: List[ChatAgent],
         model_client: ChatCompletionClient,
         *,
+        termination_condition: TerminationCondition | None = None,
         max_turns: int | None = 20,
         max_stalls: int = 3,
     ):
         super().__init__(
             participants,
             group_chat_manager_class=MagenticOneOrchestrator,
-            termination_condition=None,
+            termination_condition=termination_condition,
             max_turns=max_turns,
         )
 
@@ -43,7 +87,6 @@ class MagenticOneGroupChat(BaseGroupChat):
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
     ) -> Callable[[], MagenticOneOrchestrator]:
-        # TODO: Do something about the termination conditions
         return lambda: MagenticOneOrchestrator(
             group_topic_type,
             output_topic_type,
@@ -52,4 +95,5 @@ class MagenticOneGroupChat(BaseGroupChat):
             max_turns,
             self._model_client,
             self._max_stalls,
+            termination_condition,
         )

@@ -3,6 +3,7 @@ import inspect
 import json
 import logging
 import signal
+import uuid
 import warnings
 from asyncio import Future, Task
 from collections import defaultdict
@@ -27,16 +28,15 @@ from typing import (
     cast,
 )
 
-import grpc
-from grpc.aio import StreamStreamCall
+from google.protobuf import any_pb2
 from opentelemetry.trace import TracerProvider
 from typing_extensions import Self, deprecated
 
-from autogen_core.base import JSON_DATA_CONTENT_TYPE
-from autogen_core.base._serialization import MessageSerializer, SerializationRegistry
-from autogen_core.base._type_helpers import ChannelArgumentType
+from autogen_core.application.protos import cloudevent_pb2
 
 from ..base import (
+    JSON_DATA_CONTENT_TYPE,
+    PROTOBUF_DATA_CONTENT_TYPE,
     Agent,
     AgentId,
     AgentInstantiationContext,
@@ -50,10 +50,19 @@ from ..base import (
     SubscriptionInstantiationContext,
     TopicId,
 )
-from ..components import TypeSubscription
+from ..base._serialization import MessageSerializer, SerializationRegistry
+from ..base._type_helpers import ChannelArgumentType
+from ..components import TypePrefixSubscription, TypeSubscription
+from . import _constants
+from ._constants import GRPC_IMPORT_ERROR_STR
 from ._helpers import SubscriptionManager, get_impl
 from .protos import agent_worker_pb2, agent_worker_pb2_grpc
 from .telemetry import MessageRuntimeTracingConfig, TraceHelper, get_telemetry_grpc_metadata
+
+try:
+    import grpc.aio
+except ImportError as e:
+    raise ImportError(GRPC_IMPORT_ERROR_STR) from e
 
 if TYPE_CHECKING:
     from .protos.agent_worker_pb2_grpc import AgentRpcAsyncStub
@@ -140,6 +149,8 @@ class HostConnection:
     ) -> None:
         stub: AgentRpcAsyncStub = agent_worker_pb2_grpc.AgentRpcStub(channel)  # type: ignore
 
+        from grpc.aio import StreamStreamCall
+
         # TODO: where do exceptions from reading the iterable go? How do we recover from those?
         recv_stream: StreamStreamCall[agent_worker_pb2.Message, agent_worker_pb2.Message] = stub.OpenChannel(  # type: ignore
             QueueAsyncIterable(send_queue)
@@ -172,6 +183,7 @@ class WorkerAgentRuntime(AgentRuntime):
         host_address: str,
         tracer_provider: TracerProvider | None = None,
         extra_grpc_config: ChannelArgumentType | None = None,
+        payload_serialization_format: str = JSON_DATA_CONTENT_TYPE,
     ) -> None:
         self._host_address = host_address
         self._trace_helper = TraceHelper(tracer_provider, MessageRuntimeTracingConfig("Worker Runtime"))
@@ -191,6 +203,11 @@ class WorkerAgentRuntime(AgentRuntime):
         self._subscription_manager = SubscriptionManager()
         self._serialization_registry = SerializationRegistry()
         self._extra_grpc_config = extra_grpc_config or []
+
+        if payload_serialization_format not in {JSON_DATA_CONTENT_TYPE, PROTOBUF_DATA_CONTENT_TYPE}:
+            raise ValueError(f"Unsupported payload serialization format: {payload_serialization_format}")
+
+        self._payload_serialization_format = payload_serialization_format
 
     def start(self) -> None:
         """Start the runtime in a background task."""
@@ -230,8 +247,10 @@ class WorkerAgentRuntime(AgentRuntime):
                         self._background_tasks.add(task)
                         task.add_done_callback(self._raise_on_exception)
                         task.add_done_callback(self._background_tasks.discard)
-                    case "event":
-                        task = asyncio.create_task(self._process_event(message.event))
+                    case "cloudEvent":
+                        # The proto typing doesnt resolve this one
+                        cloud_event = cast(cloudevent_pb2.CloudEvent, message.cloudEvent)  # type: ignore
+                        task = asyncio.create_task(self._process_event(cloud_event))
                         self._background_tasks.add(task)
                         task.add_done_callback(self._raise_on_exception)
                         task.add_done_callback(self._background_tasks.discard)
@@ -251,8 +270,6 @@ class WorkerAgentRuntime(AgentRuntime):
                         task.add_done_callback(self._background_tasks.discard)
                     case None:
                         logger.warning("No message")
-                    case other:
-                        logger.error(f"Unknown message type: {other}")
             except Exception as e:
                 logger.error("Error in read loop", exc_info=e)
 
@@ -366,33 +383,73 @@ class WorkerAgentRuntime(AgentRuntime):
         *,
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
+        message_id: str | None = None,
     ) -> None:
         if not self._running:
             raise ValueError("Runtime must be running when publishing message.")
         if self._host_connection is None:
             raise RuntimeError("Host connection is not set.")
+        if message_id is None:
+            message_id = str(uuid.uuid4())
+
         message_type = self._serialization_registry.type_name(message)
         with self._trace_helper.trace_block(
             "create", topic_id, parent=None, extraAttributes={"message_type": message_type}
         ):
             serialized_message = self._serialization_registry.serialize(
-                message, type_name=message_type, data_content_type=JSON_DATA_CONTENT_TYPE
-            )
-            telemetry_metadata = get_telemetry_grpc_metadata()
-            runtime_message = agent_worker_pb2.Message(
-                event=agent_worker_pb2.Event(
-                    topic_type=topic_id.type,
-                    topic_source=topic_id.source,
-                    source=agent_worker_pb2.AgentId(type=sender.type, key=sender.key) if sender is not None else None,
-                    metadata=telemetry_metadata,
-                    payload=agent_worker_pb2.Payload(
-                        data_type=message_type,
-                        data=serialized_message,
-                        data_content_type=JSON_DATA_CONTENT_TYPE,
-                    ),
-                )
+                message, type_name=message_type, data_content_type=self._payload_serialization_format
             )
 
+            sender_id = sender or AgentId("unknown", "unknown")
+            attributes = {
+                _constants.DATA_CONTENT_TYPE_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
+                    ce_string=self._payload_serialization_format
+                ),
+                _constants.DATA_SCHEMA_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(ce_string=message_type),
+                _constants.AGENT_SENDER_TYPE_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
+                    ce_string=sender_id.type
+                ),
+                _constants.AGENT_SENDER_KEY_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
+                    ce_string=sender_id.key
+                ),
+                _constants.MESSAGE_KIND_ATTR: cloudevent_pb2.CloudEvent.CloudEventAttributeValue(
+                    ce_string=_constants.MESSAGE_KIND_VALUE_PUBLISH
+                ),
+            }
+
+            # If sending JSON we fill text_data with the serialized message
+            # If sending Protobuf we fill proto_data with the serialized message
+            # TODO: add an encoding field for serializer
+
+            if self._payload_serialization_format == JSON_DATA_CONTENT_TYPE:
+                runtime_message = agent_worker_pb2.Message(
+                    cloudEvent=cloudevent_pb2.CloudEvent(
+                        id=message_id,
+                        spec_version="1.0",
+                        type=topic_id.type,
+                        source=topic_id.source,
+                        attributes=attributes,
+                        # TODO: use text, or proto fields appropriately
+                        binary_data=serialized_message,
+                    )
+                )
+            else:
+                # We need to unpack the serialized proto back into an Any
+                # TODO: find a way to prevent the roundtrip serialization
+                any_proto = any_pb2.Any()
+                any_proto.ParseFromString(serialized_message)
+                runtime_message = agent_worker_pb2.Message(
+                    cloudEvent=cloudevent_pb2.CloudEvent(
+                        id=message_id,
+                        spec_version="1.0",
+                        type=topic_id.type,
+                        source=topic_id.source,
+                        attributes=attributes,
+                        proto_data=any_proto,
+                    )
+                )
+
+            telemetry_metadata = get_telemetry_grpc_metadata()
             task = asyncio.create_task(self._send_message(runtime_message, "publish", topic_id, telemetry_metadata))
             self._background_tasks.add(task)
             task.add_done_callback(self._raise_on_exception)
@@ -442,6 +499,7 @@ class WorkerAgentRuntime(AgentRuntime):
             topic_id=None,
             is_rpc=True,
             cancellation_token=CancellationToken(),
+            message_id=request.request_id,
         )
 
         # Call the receiving agent.
@@ -510,16 +568,47 @@ class WorkerAgentRuntime(AgentRuntime):
             else:
                 future.set_result(result)
 
-    async def _process_event(self, event: agent_worker_pb2.Event) -> None:
-        message = self._serialization_registry.deserialize(
-            event.payload.data, type_name=event.payload.data_type, data_content_type=event.payload.data_content_type
-        )
+    async def _process_event(self, event: cloudevent_pb2.CloudEvent) -> None:
+        event_attributes = event.attributes
         sender: AgentId | None = None
-        if event.HasField("source"):
-            sender = AgentId(event.source.type, event.source.key)
-        topic_id = TopicId(event.topic_type, event.topic_source)
+        if (
+            _constants.AGENT_SENDER_TYPE_ATTR in event_attributes
+            and _constants.AGENT_SENDER_KEY_ATTR in event_attributes
+        ):
+            sender = AgentId(
+                event_attributes[_constants.AGENT_SENDER_TYPE_ATTR].ce_string,
+                event_attributes[_constants.AGENT_SENDER_KEY_ATTR].ce_string,
+            )
+        topic_id = TopicId(event.type, event.source)
         # Get the recipients for the topic.
         recipients = await self._subscription_manager.get_subscribed_recipients(topic_id)
+
+        message_content_type = event_attributes[_constants.DATA_CONTENT_TYPE_ATTR].ce_string
+        message_type = event_attributes[_constants.DATA_SCHEMA_ATTR].ce_string
+
+        if message_content_type == JSON_DATA_CONTENT_TYPE:
+            message = self._serialization_registry.deserialize(
+                event.binary_data, type_name=message_type, data_content_type=message_content_type
+            )
+        elif message_content_type == PROTOBUF_DATA_CONTENT_TYPE:
+            # TODO: find a way to prevent the roundtrip serialization
+            proto_binary_data = event.proto_data.SerializeToString()
+            message = self._serialization_registry.deserialize(
+                proto_binary_data, type_name=message_type, data_content_type=message_content_type
+            )
+        else:
+            raise ValueError(f"Unsupported message content type: {message_content_type}")
+
+        # TODO: dont read these values in the runtime
+        topic_type_suffix = topic_id.type.split(":", maxsplit=1)[1] if ":" in topic_id.type else ""
+        is_rpc = topic_type_suffix == _constants.MESSAGE_KIND_VALUE_RPC_REQUEST
+        is_marked_rpc_type = (
+            _constants.MESSAGE_KIND_ATTR in event_attributes
+            and event_attributes[_constants.MESSAGE_KIND_ATTR].ce_string == _constants.MESSAGE_KIND_VALUE_RPC_REQUEST
+        )
+        if is_rpc and not is_marked_rpc_type:
+            warnings.warn("Received RPC request with topic type suffix but not marked as RPC request.", stacklevel=2)
+
         # Send the message to each recipient.
         responses: List[Awaitable[Any]] = []
         for agent_id in recipients:
@@ -528,8 +617,9 @@ class WorkerAgentRuntime(AgentRuntime):
             message_context = MessageContext(
                 sender=sender,
                 topic_id=topic_id,
-                is_rpc=False,
+                is_rpc=is_rpc,
                 cancellation_token=CancellationToken(),
+                message_id=event.id,
             )
             agent = await self._get_agent(agent_id)
             with MessageHandlerContext.populate_context(agent.id):
@@ -539,7 +629,7 @@ class WorkerAgentRuntime(AgentRuntime):
                         "process",
                         agent.id,
                         parent=event.metadata,
-                        extraAttributes={"message_type": event.payload.data_type},
+                        extraAttributes={"message_type": message_type},
                     ):
                         await agent.on_message(message, ctx=message_context)
 
@@ -700,27 +790,44 @@ class WorkerAgentRuntime(AgentRuntime):
     async def add_subscription(self, subscription: Subscription) -> None:
         if self._host_connection is None:
             raise RuntimeError("Host connection is not set.")
-        if not isinstance(subscription, TypeSubscription):
-            raise ValueError("Only TypeSubscription is supported.")
-        # Add to local subscription manager.
-        await self._subscription_manager.add_subscription(subscription)
 
         # Create a future for the subscription response.
         future = asyncio.get_event_loop().create_future()
         request_id = await self._get_new_request_id()
+
+        match subscription:
+            case TypeSubscription(topic_type=topic_type, agent_type=agent_type):
+                message = agent_worker_pb2.Message(
+                    addSubscriptionRequest=agent_worker_pb2.AddSubscriptionRequest(
+                        request_id=request_id,
+                        subscription=agent_worker_pb2.Subscription(
+                            typeSubscription=agent_worker_pb2.TypeSubscription(
+                                topic_type=topic_type, agent_type=agent_type
+                            )
+                        ),
+                    )
+                )
+            case TypePrefixSubscription(topic_type_prefix=topic_type_prefix, agent_type=agent_type):
+                message = agent_worker_pb2.Message(
+                    addSubscriptionRequest=agent_worker_pb2.AddSubscriptionRequest(
+                        request_id=request_id,
+                        subscription=agent_worker_pb2.Subscription(
+                            typePrefixSubscription=agent_worker_pb2.TypePrefixSubscription(
+                                topic_type_prefix=topic_type_prefix, agent_type=agent_type
+                            )
+                        ),
+                    )
+                )
+            case _:
+                raise ValueError("Unsupported subscription type.")
+
+        # Add the future to the pending requests.
         self._pending_requests[request_id] = future
 
+        # Add to local subscription manager.
+        await self._subscription_manager.add_subscription(subscription)
+
         # Send the subscription to the host.
-        message = agent_worker_pb2.Message(
-            addSubscriptionRequest=agent_worker_pb2.AddSubscriptionRequest(
-                request_id=request_id,
-                subscription=agent_worker_pb2.Subscription(
-                    typeSubscription=agent_worker_pb2.TypeSubscription(
-                        topic_type=subscription.topic_type, agent_type=subscription.agent_type
-                    )
-                ),
-            )
-        )
         await self._host_connection.send(message)
 
         # Wait for the subscription response.

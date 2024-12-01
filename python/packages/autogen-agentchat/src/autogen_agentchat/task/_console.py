@@ -27,16 +27,18 @@ async def Console(
     no_inline_images: bool = False,
 ) -> T:
     """
-    Consume the stream from :meth:`~autogen_agentchat.base.Team.run_stream`
-    or :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream`
-    print the messages to the console and return the last processed TaskResult or Response.
+    Consumes the message stream from :meth:`~autogen_agentchat.base.TaskRunner.run_stream`
+    or :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream` and renders the messages to the console.
+    Returns the last processed TaskResult or Response.
 
     Args:
-        stream (AsyncGenerator[AgentMessage | TaskResult, None] | AsyncGenerator[AgentMessage | Response, None]): Stream to render
+        stream (AsyncGenerator[AgentMessage | TaskResult, None] | AsyncGenerator[AgentMessage | Response, None]): Message stream to render.
+            This can be from :meth:`~autogen_agentchat.base.TaskRunner.run_stream` or :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream`.
         no_inline_images (bool, optional): If terminal is iTerm2 will render images inline. Use this to disable this behavior. Defaults to False.
 
     Returns:
-        last_processed: The last processed TaskResult or Response.
+        last_processed: A :class:`~autogen_agentchat.base.TaskResult` if the stream is from :meth:`~autogen_agentchat.base.TaskRunner.run_stream`
+            or a :class:`~autogen_agentchat.base.Response` if the stream is from :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream`.
     """
     render_image_iterm = _is_running_in_iterm() and _is_output_a_tty() and not no_inline_images
     start_time = time.time()

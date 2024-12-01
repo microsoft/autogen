@@ -69,18 +69,25 @@ class _EchoAgent(BaseChatAgent):
     def __init__(self, name: str, description: str) -> None:
         super().__init__(name, description)
         self._last_message: str | None = None
+        self._total_messages = 0
 
     @property
     def produced_message_types(self) -> List[type[ChatMessage]]:
         return [TextMessage]
 
+    @property
+    def total_messages(self) -> int:
+        return self._total_messages
+
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         if len(messages) > 0:
             assert isinstance(messages[0], TextMessage)
             self._last_message = messages[0].content
+            self._total_messages += 1
             return Response(chat_message=TextMessage(content=messages[0].content, source=self.name))
         else:
             assert self._last_message is not None
+            self._total_messages += 1
             return Response(chat_message=TextMessage(content=self._last_message, source=self.name))
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
@@ -358,7 +365,7 @@ async def test_round_robin_group_chat_with_resume_and_reset() -> None:
 
 
 @pytest.mark.asyncio
-async def test_round_group_chat_max_turn() -> None:
+async def test_round_robin_group_chat_max_turn() -> None:
     agent_1 = _EchoAgent("agent_1", description="echo agent 1")
     agent_2 = _EchoAgent("agent_2", description="echo agent 2")
     agent_3 = _EchoAgent("agent_3", description="echo agent 3")
@@ -389,6 +396,35 @@ async def test_round_group_chat_max_turn() -> None:
     assert result.messages[2].source == "agent_2"
     assert result.messages[3].source == "agent_3"
     assert result.stop_reason is not None
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_cancellation() -> None:
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+    agent_2 = _EchoAgent("agent_2", description="echo agent 2")
+    agent_3 = _EchoAgent("agent_3", description="echo agent 3")
+    agent_4 = _EchoAgent("agent_4", description="echo agent 4")
+    # Set max_turns to a large number to avoid stopping due to max_turns before cancellation.
+    team = RoundRobinGroupChat(participants=[agent_1, agent_2, agent_3, agent_4], max_turns=1000)
+    cancellation_token = CancellationToken()
+    run_task = asyncio.create_task(
+        team.run(
+            task="Write a program that prints 'Hello, world!'",
+            cancellation_token=cancellation_token,
+        )
+    )
+    await asyncio.sleep(0.1)
+    # Cancel the task.
+    cancellation_token.cancel()
+    with pytest.raises(asyncio.CancelledError):
+        await run_task
+
+    # Total messages produced so far.
+    total_messages = agent_1.total_messages + agent_2.total_messages + agent_3.total_messages + agent_4.total_messages
+
+    # Still can run again and finish the task.
+    result = await team.run()
+    assert len(result.messages) + total_messages == 1000
 
 
 @pytest.mark.asyncio

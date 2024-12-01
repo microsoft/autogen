@@ -2,7 +2,8 @@
 The :mod:`autogen_core.components` module provides building blocks for creating single agents
 """
 
-from ._closure_agent import ClosureAgent
+from ..base._type_prefix_subscription import TypePrefixSubscription
+from ._closure_agent import ClosureAgent, ClosureContext
 from ._default_subscription import DefaultSubscription, default_subscription, type_subscription
 from ._default_topic import DefaultTopicId
 from ._image import Image
@@ -15,6 +16,7 @@ __all__ = [
     "RoutedAgent",
     "TypeRoutedAgent",
     "ClosureAgent",
+    "ClosureContext",
     "message_handler",
     "event",
     "rpc",
@@ -24,4 +26,5 @@ __all__ = [
     "DefaultTopicId",
     "default_subscription",
     "type_subscription",
+    "TypePrefixSubscription",
 ]

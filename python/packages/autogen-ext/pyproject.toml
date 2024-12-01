@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-ext"
-version = "0.4.0.dev6"
+version = "0.4.0.dev8"
 license = {file = "LICENSE-CODE"}
 description = "AutoGen extensions library"
 readme = "README.md"
@@ -15,7 +15,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "autogen-core==0.4.0.dev6",
+    "autogen-core==0.4.0.dev8",
 ]
 
 
@@ -30,6 +30,12 @@ openai = ["openai>=1.3"]
 web-surfer = [
     "playwright>=1.48.0",
     "pillow>=11.0.0",
+]
+video-surfer = [
+    "autogen-agentchat==0.4.0.dev8",
+    "opencv-python>=4.5",
+    "ffmpeg-python",
+    "openai-whisper",
 ]
 
 [tool.hatch.build.targets.wheel]

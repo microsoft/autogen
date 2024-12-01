@@ -63,9 +63,15 @@ message TypeSubscription {
     string agent_type = 2;
 }
 
+message TypePrefixSubscription {
+    string topic_type_prefix = 1;
+    string agent_type = 2;
+}
+
 message Subscription {
     oneof subscription {
         TypeSubscription typeSubscription = 1;
+        TypePrefixSubscription typePrefixSubscription = 2;
     }
 }
 
@@ -111,12 +117,11 @@ message Message {
     oneof message {
         RpcRequest request = 1;
         RpcResponse response = 2;
-        Event event = 3;
+        cloudevent.CloudEvent cloudEvent = 3;
         RegisterAgentTypeRequest registerAgentTypeRequest = 4;
         RegisterAgentTypeResponse registerAgentTypeResponse = 5;
         AddSubscriptionRequest addSubscriptionRequest = 6;
         AddSubscriptionResponse addSubscriptionResponse = 7;
-        cloudevent.CloudEvent cloudEvent = 8;
     }
 }
 
