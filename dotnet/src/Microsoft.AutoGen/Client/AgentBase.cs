@@ -188,7 +188,7 @@ public abstract class AgentBase
         };
         _context.SendMessageAsync(message).AsTask().Wait();
 
-        return new List<string> { topic };
+        return [topic];
     }
 
     /// <summary>
@@ -352,19 +352,16 @@ public abstract class AgentBase
             var convertedPayload = Convert.ChangeType(payload, eventType);
             var genericInterfaceType = typeof(IHandle<>).MakeGenericType(eventType);
 
-            MethodInfo? methodInfo = null;
+            _handlersByMessageType.TryGetValue(eventType, out var methodInfo);
+            if (methodInfo is null)
+            {
+                throw new InvalidOperationException($"No handler found for event '{item.Type}'; expecting IHandle<{item.Type}> implementation.");
+            }
+
             try
             {
                 // check that our target actually implements this interface, otherwise call the default static
-                if (genericInterfaceType.IsInstanceOfType(this))
-                {
-                    methodInfo = genericInterfaceType.GetMethod("Handle", BindingFlags.Public | BindingFlags.Instance)
-                                   ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
-                    return methodInfo.Invoke(this, new object[] { convertedPayload, cancellationToken }) as Task ?? Task.CompletedTask;
-                }
-
-                // The error here is we have registered for an event that we do not have code to listen to
-                throw new InvalidOperationException($"No handler found for event '{item.Type}'; expecting IHandle<{item.Type}> implementation.");
+                return methodInfo.Invoke(this, new object[] { convertedPayload, cancellationToken }) as Task ?? Task.CompletedTask;
 
             }
             catch (Exception ex)
