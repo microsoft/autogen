@@ -15,8 +15,8 @@ from typing import Any, Awaitable, Callable, Dict, List, Mapping, ParamSpec, Set
 from opentelemetry.trace import TracerProvider
 from typing_extensions import deprecated
 
-from autogen_core.base._serialization import MessageSerializer, SerializationRegistry
-from autogen_core.components.send_message_mixin import PublishBasedRpcMixin
+from ..base._serialization import MessageSerializer, SerializationRegistry
+from ..components._publish_based_rpc import PublishBasedRpcMixin
 
 from ..base import (
     Agent,
