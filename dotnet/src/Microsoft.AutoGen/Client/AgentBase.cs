@@ -46,6 +46,7 @@ public abstract class AgentBase
 
     protected internal ILogger<AgentBase> _logger;
     protected readonly EventTypes EventTypes;
+    private readonly ConcurrentDictionary<Type, MethodInfo> _handlersByMessageType;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AgentBase"/> class.
@@ -62,7 +63,8 @@ public abstract class AgentBase
         context.AgentInstance = this;
         EventTypes = eventTypes;
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();
-        
+        // get all Handle<T> methods
+        _handlersByMessageType = new(GetType().GetHandlersLookupTable());
         Completion = Start();
     }
 
@@ -234,7 +236,7 @@ public abstract class AgentBase
 
         try
         {
-            response = await HandleRequestAsync(request).ConfigureAwait(false);
+            response = await HandleRequestAsync(request, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -392,10 +394,9 @@ public abstract class AgentBase
     /// <exception cref="InvalidOperationException">Thrown when no handler is found for the object's type.</exception>
     public virtual Task HandleObjectAsync(object item, CancellationToken cancellationToken)
     {
-        // get all Handle<T> methods
-        var lookup = GetType().GetHandlersLookupTable();
 
-        if (lookup.TryGetValue(item.GetType(), out var method))
+
+        if (_handlersByMessageType.TryGetValue(item.GetType(), out var method))
         {
             if (method is null)
             {
