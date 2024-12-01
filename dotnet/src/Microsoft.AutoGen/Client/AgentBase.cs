@@ -46,6 +46,7 @@ public abstract class AgentBase
 
     protected internal ILogger<AgentBase> _logger;
     protected readonly EventTypes EventTypes;
+    private readonly ConcurrentDictionary<Type, MethodInfo> _handlersByMessageType;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="AgentBase"/> class.
@@ -62,7 +63,8 @@ public abstract class AgentBase
         context.AgentInstance = this;
         EventTypes = eventTypes;
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();
-        
+        // get all Handle<T> methods
+        _handlersByMessageType = new(GetType().GetHandlersLookupTable());
         Completion = Start();
     }
 
@@ -186,7 +188,7 @@ public abstract class AgentBase
         };
         _context.SendMessageAsync(message).AsTask().Wait();
 
-        return new List<string> { topic };
+        return [topic];
     }
 
     /// <summary>
@@ -234,7 +236,7 @@ public abstract class AgentBase
 
         try
         {
-            response = await HandleRequestAsync(request).ConfigureAwait(false);
+            response = await HandleRequestAsync(request, cancellationToken).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
@@ -342,27 +344,24 @@ public abstract class AgentBase
     {
         // Only send the event to the handler if the agent type is handling that type
         // foreach of the keys in the EventTypes.EventsMap[] if it contains the item.type
+
         if (EventTypes.CheckIfTypeHandles(GetType(), item.Type) &&
                  item.Source == AgentId.Key)
         {
             var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
             var eventType = EventTypes.GetEventTypeByName(item.Type) ?? throw new InvalidOperationException($"Type not found on event type {item.Type}");
             var convertedPayload = Convert.ChangeType(payload, eventType);
-            var genericInterfaceType = typeof(IHandle<>).MakeGenericType(eventType);
 
-            MethodInfo? methodInfo = null;
+            _handlersByMessageType.TryGetValue(eventType, out var methodInfo);
+            if (methodInfo is null)
+            {
+                throw new InvalidOperationException($"No handler found for event '{item.Type}'; expecting IHandle<{item.Type}> implementation.");
+            }
+
             try
             {
                 // check that our target actually implements this interface, otherwise call the default static
-                if (genericInterfaceType.IsInstanceOfType(this))
-                {
-                    methodInfo = genericInterfaceType.GetMethod("Handle", BindingFlags.Public | BindingFlags.Instance)
-                                   ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
-                    return methodInfo.Invoke(this, new object[] { convertedPayload, cancellationToken }) as Task ?? Task.CompletedTask;
-                }
-
-                // The error here is we have registered for an event that we do not have code to listen to
-                throw new InvalidOperationException($"No handler found for event '{item.Type}'; expecting IHandle<{item.Type}> implementation.");
+                return methodInfo.Invoke(this, new object[] { convertedPayload, cancellationToken }) as Task ?? Task.CompletedTask;
 
             }
             catch (Exception ex)
@@ -392,10 +391,9 @@ public abstract class AgentBase
     /// <exception cref="InvalidOperationException">Thrown when no handler is found for the object's type.</exception>
     public virtual Task HandleObjectAsync(object item, CancellationToken cancellationToken)
     {
-        // get all Handle<T> methods
-        var lookup = GetType().GetHandlersLookupTable();
 
-        if (lookup.TryGetValue(item.GetType(), out var method))
+
+        if (_handlersByMessageType.TryGetValue(item.GetType(), out var method))
         {
             if (method is null)
             {
