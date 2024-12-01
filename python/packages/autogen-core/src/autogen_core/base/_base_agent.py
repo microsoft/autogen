@@ -128,13 +128,14 @@ class BaseAgent(ABC, Agent):
         if ctx.topic_id is not None and (request_id := is_rpc_response(ctx.topic_id.type)) is not None:
             if request_id in self._pending_rpc_requests:
                 self._pending_rpc_requests[request_id].set_result(message)
+                del self._pending_rpc_requests[request_id]
             elif self._forward_unbound_rpc_responses_to_handler:
                 await self.on_message_impl(message, ctx)
             else:
                 warnings.warn(f"Received RPC response for unknown request {request_id}. To forward unbound rpc responses to the handler, set forward_unbound_rpc_responses_to_handler=True", stacklevel=2)
             return None
 
-        return await self.on_message_impl(message, ctx)
+        await self.on_message_impl(message, ctx)
 
     async def send_message(
         self,
