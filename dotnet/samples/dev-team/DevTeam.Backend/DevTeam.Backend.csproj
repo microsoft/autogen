@@ -1,8 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk.Web">
-
-  <ItemGroup>
-    <ProjectReference Include="../../../src/Microsoft.AutoGen/Agents/Microsoft.AutoGen.Agents.csproj" />
-  </ItemGroup>
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
 
   <PropertyGroup>
         <TargetFramework>net8.0</TargetFramework>
@@ -14,9 +10,6 @@
     <PackageReference Include="Azure.AI.OpenAI" />
     <PackageReference Include="Octokit.Webhooks.AspNetCore" />
     <PackageReference Include="Octokit" />
-    <PackageReference Include="Microsoft.SemanticKernel" />
-    <PackageReference Include="Microsoft.SemanticKernel.Connectors.Qdrant" />
-    <PackageReference Include="Microsoft.SemanticKernel.Plugins.Memory" />
     <PackageReference Include="Microsoft.ApplicationInsights.AspNetCore" />
     <PackageReference Include="Swashbuckle.AspNetCore" />
     <PackageReference Include="Microsoft.Extensions.Azure" />
@@ -29,9 +22,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj" />
+    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Microsoft.AutoGen.Core.Grpc\Microsoft.AutoGen.Core.Grpc.csproj" />
+    <ProjectReference Include="..\DevTeam.ServiceDefaults\DevTeam.ServiceDefaults.csproj" />
     <ProjectReference Include="..\DevTeam.Shared\DevTeam.Shared.csproj" />
-    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Extensions\SemanticKernel\Microsoft.AutoGen.Extensions.SemanticKernel.csproj" />
   </ItemGroup>
 
 </Project>

@@ -8,8 +8,4 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\..\src\AutoGen.Core\AutoGen.Core.csproj" />
-  </ItemGroup>
-
 </Project>

@@ -22,8 +22,4 @@
     <PackageReference Include="Microsoft.SemanticKernel.Connectors.AzureOpenAI" />
   </ItemGroup>
 
-  <ItemGroup>
-    <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
-  </ItemGroup>
-
 </Project>

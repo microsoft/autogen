@@ -8,9 +8,9 @@
     <NoWarn>$(NoWarn);CS8002</NoWarn> 
   </PropertyGroup>
 
-   <ItemGroup>
-    <ProjectReference Include="../../../src/Microsoft.AutoGen/Agents/Microsoft.AutoGen.Agents.csproj" />
-    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj" />
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\DistributedRuntime\Microsoft.AutoGen.DistributedRuntime.csproj" />
+    <ProjectReference Include="..\DevTeam.ServiceDefaults\DevTeam.ServiceDefaults.csproj" />
   </ItemGroup>
 
 </Project>
