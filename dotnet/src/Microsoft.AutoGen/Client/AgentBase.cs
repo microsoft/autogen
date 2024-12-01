@@ -344,13 +344,13 @@ public abstract class AgentBase
     {
         // Only send the event to the handler if the agent type is handling that type
         // foreach of the keys in the EventTypes.EventsMap[] if it contains the item.type
+
         if (EventTypes.CheckIfTypeHandles(GetType(), item.Type) &&
                  item.Source == AgentId.Key)
         {
             var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
             var eventType = EventTypes.GetEventTypeByName(item.Type) ?? throw new InvalidOperationException($"Type not found on event type {item.Type}");
             var convertedPayload = Convert.ChangeType(payload, eventType);
-            var genericInterfaceType = typeof(IHandle<>).MakeGenericType(eventType);
 
             _handlersByMessageType.TryGetValue(eventType, out var methodInfo);
             if (methodInfo is null)
