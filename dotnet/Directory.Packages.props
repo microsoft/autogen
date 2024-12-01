@@ -4,6 +4,12 @@
     <MicrosoftSemanticKernelVersion>1.22.0</MicrosoftSemanticKernelVersion>
     <MicrosoftSemanticKernelExperimentalVersion>1.22.0-alpha</MicrosoftSemanticKernelExperimentalVersion>
     <MicrosoftExtensionsAIVersion>9.0.0-preview.9.24525.1</MicrosoftExtensionsAIVersion>
+    <MicrosoftExtensionConfiguration>9.0.0</MicrosoftExtensionConfiguration>
+    <MicrosoftExtensionDependencyInjection>9.0.0</MicrosoftExtensionDependencyInjection>
+    <MicrosoftExtensionLogging>9.0.0</MicrosoftExtensionLogging>
+    <MicrosoftOrleans>9.0.1</MicrosoftOrleans>
+    <OpenTelemetryInstrumentation>1.9.0</OpenTelemetryInstrumentation>
+    <MicrosoftDotNetInteractive>1.0.0-beta.24229.4</MicrosoftDotNetInteractive>
     <NuGetAuditMode>direct</NuGetAuditMode>
   </PropertyGroup>
   <ItemGroup>
@@ -41,33 +47,33 @@
     <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="$(MicrosoftExtensionsAIVersion)" />
     <PackageVersion Include="Microsoft.Extensions.Azure" Version="1.8.0" />
     <PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="8.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="9.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.FileExtensions" Version="9.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="9.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="9.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="9.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="$(MicrosoftExtensionConfiguration)" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.FileExtensions" Version="$(MicrosoftExtensionConfiguration)" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="$(MicrosoftExtensionConfiguration)" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.UserSecrets" Version="$(MicrosoftExtensionConfiguration)" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="$(MicrosoftExtensionDependencyInjection)" />
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="$(MicrosoftExtensionDependencyInjection)" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="9.0.0" />
-    <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="$(MicrosoftExtensionLogging)" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="$(MicrosoftExtensionLogging)" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="9.0.0" />
-    <PackageVersion Include="Microsoft.Orleans.Clustering.Cosmos" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.CodeGenerator" Version="9.0.1">
+    <PackageVersion Include="Microsoft.Orleans.Clustering.Cosmos" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.CodeGenerator" Version="$(MicrosoftOrleans)">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageVersion>
-    <PackageVersion Include="Microsoft.Orleans.Core.Abstractions" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Persistence.Cosmos" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Reminders" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Reminders.Cosmos" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Runtime" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Serialization" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Serialization.Protobuf" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Server" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Streaming" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.Orleans.Streaming.EventHubs" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.Orleans.Core.Abstractions" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.Cosmos" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Reminders" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Reminders.Cosmos" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Runtime" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Sdk" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Serialization" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Serialization.Protobuf" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Server" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Streaming" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Streaming.EventHubs" Version="$(MicrosoftOrleans)" />
     <PackageVersion Include="Microsoft.SemanticKernel" Version="1.29.0" />
     <PackageVersion Include="Microsoft.SemanticKernel.Agents.Core" Version="$(MicrosoftSemanticKernelExperimentalVersion)" />
     <PackageVersion Include="Microsoft.SemanticKernel.Connectors.AzureOpenAI" Version="1.29.0" />
@@ -79,9 +85,9 @@
     <PackageVersion Include="Octokit.Webhooks.AspNetCore" Version="2.4.1" />
     <PackageVersion Include="OpenTelemetry.Exporter.OpenTelemetryProtocol" Version="1.10.0" />
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.10.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="1.9.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.9.0" />
-    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.9.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.AspNetCore" Version="$(OpenTelemetryInstrumentation)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="$(OpenTelemetryInstrumentation)" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="$(OpenTelemetryInstrumentation)" />
     <PackageVersion Include="OrleansDashboard" Version="8.2.0" />
     <PackageVersion Include="PdfPig" Version="0.1.10-alpha-20241121-7db34" />
     <PackageVersion Include="Swashbuckle.AspNetCore" Version="7.1.0" />
@@ -92,9 +98,9 @@
     <PackageVersion Include="System.IO.Packaging" Version="9.0.0" />
     <PackageVersion Include="System.Memory.Data" Version="9.0.0" />
     <PackageVersion Include="JsonSchema.Net.Generation" Version="4.5.1" />
-    <PackageVersion Include="Microsoft.DotNet.Interactive" Version="1.0.0-beta.24229.4" />
-    <PackageVersion Include="Microsoft.DotNet.Interactive.Jupyter" Version="1.0.0-beta.24229.4" />
-    <PackageVersion Include="Microsoft.DotNet.Interactive.PackageManagement" Version="1.0.0-beta.24229.4" />
+    <PackageVersion Include="Microsoft.DotNet.Interactive" Version="$(MicrosoftDotNetInteractive)" />
+    <PackageVersion Include="Microsoft.DotNet.Interactive.Jupyter" Version="$(MicrosoftDotNetInteractive)" />
+    <PackageVersion Include="Microsoft.DotNet.Interactive.PackageManagement" Version="$(MicrosoftDotNetInteractive)" />
     <PackageVersion Include="Google.Cloud.AIPlatform.V1" Version="3.11.0" />
     <PackageVersion Include="OpenAI" Version="2.1.0-beta.2" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.8.0" />
