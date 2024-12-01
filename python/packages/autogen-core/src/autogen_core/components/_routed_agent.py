@@ -515,7 +515,7 @@ class RoutedAgent(BaseAgent):
 
         super().__init__(description)
 
-    async def on_message_impl(self, message: Any, ctx: MessageContext):
+    async def on_message_impl(self, message: Any, ctx: MessageContext) -> None:
         """Handle a message by routing it to the appropriate message handler.
         Do not override this method in subclasses. Instead, add message handlers as methods decorated with
         either the :func:`event` or :func:`rpc` decorator."""
@@ -526,8 +526,8 @@ class RoutedAgent(BaseAgent):
             # Call the first handler whose router returns True and then return the result.
             for h in handlers:
                 if h.router(message, ctx):
-                    return await h(self, message, ctx)
-        return await self.on_unhandled_message(message, ctx)  # type: ignore
+                    await h(self, message, ctx)
+        await self.on_unhandled_message(message, ctx)
 
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
         """Called when a message is received that does not have a matching message handler.

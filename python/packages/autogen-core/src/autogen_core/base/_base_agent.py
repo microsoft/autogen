@@ -126,7 +126,7 @@ class BaseAgent(ABC, Agent):
     @final
     async def on_message(self, message: Any, ctx: MessageContext) -> None:
         # Intercept RPC responses
-        if ctx.topic_id is not None and (request_id := is_rpc_response(ctx.topic_id.type)) is not None:
+        if (request_id := is_rpc_response(ctx.topic_id.type)) is not None:
             if request_id in self._pending_rpc_requests:
                 self._pending_rpc_requests[request_id].set_result(message)
                 del self._pending_rpc_requests[request_id]

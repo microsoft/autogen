@@ -5,6 +5,7 @@ from typing import Callable, cast
 import pytest
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, MessageContext, TopicId
+from autogen_core.base._rpc import is_rpc_request
 from autogen_core.components import RoutedAgent, TypeSubscription, event, message_handler, rpc
 from test_utils import LoopbackAgent
 
@@ -23,12 +24,12 @@ class CounterAgent(RoutedAgent):
         self.num_calls_rpc = 0
         self.num_calls_broadcast = 0
 
-    @message_handler(match=lambda _, ctx: ctx.is_rpc)
+    @message_handler(match=lambda _, ctx: is_rpc_request(ctx.topic_id.type) is not None)
     async def on_rpc_message(self, message: MessageType, ctx: MessageContext) -> MessageType:
         self.num_calls_rpc += 1
         return message
 
-    @message_handler(match=lambda _, ctx: not ctx.is_rpc)
+    @message_handler(match=lambda _, ctx: is_rpc_request(ctx.topic_id.type) is None)
     async def on_broadcast_message(self, message: MessageType, ctx: MessageContext) -> None:
         self.num_calls_broadcast += 1
 
