@@ -1,5 +1,7 @@
 # Modified from: https://github.com/kai687/sphinxawesome-codelinter
 
+from pathlib import Path
+import sys
 import tempfile
 from typing import AbstractSet, Any, Iterable
 
@@ -17,6 +19,9 @@ logger = logging.getLogger(__name__)
 
 __version__ = "0.1.0"
 
+this_file_dir = Path(__file__).parent
+# repo_root / python / pyproject.toml
+mypy_config_file = this_file_dir / ".." / ".." / ".." / ".."/ ".."/ "pyproject.toml"
 
 class CodeLinter(Builder):
     """Iterate over all ``literal_block`` nodes.
@@ -68,14 +73,15 @@ class CodeLinter(Builder):
                     temp_file.write(code.astext().encode())
                     temp_file.flush()
 
-                    # Run pyright on the temporary file using subprocess.run
+                    # Run mypy on the temporary file using subprocess.run
                     import subprocess
 
-                    result = subprocess.run(["pyright", temp_file.name], capture_output=True, text=True)
+                    mypy_command = [sys.executable, "-m", "mypy", "--config-file", mypy_config_file, "--disable-error-code=top-level-await", temp_file.name]
+                    result = subprocess.run(mypy_command, capture_output=True, text=True)
                     if result.returncode != 0:
                         logger.info(" " + darkred("FAIL"))
                         highlighted_code = highlight(code.astext(), PythonLexer(), TerminalFormatter())  # type: ignore
-                        output = f"{faint('========================================================')}\n{red('Error')}: Pyright found issues in {teal(docname)}:\n{faint('--------------------------------------------------------')}\n{highlighted_code}\n{faint('--------------------------------------------------------')}\n\n{teal('pyright output:')}\n{red(result.stdout)}{faint('========================================================')}\n"
+                        output = f"{faint('========================================================')}\n{red('Error')}: mypy found issues in {teal(docname)}:\n{faint('--------------------------------------------------------')}\n{highlighted_code}\n{faint('--------------------------------------------------------')}\n\n{teal('mypy output:')}\n{red(result.stdout)}{faint('========================================================')}\n"
                         logger.info(output)
                         self._had_errors = True
                     else:
