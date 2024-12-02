@@ -48,6 +48,53 @@ class UserProxyAgent(BaseChatAgent):
 
         See `Pause for User Input <https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/teams.html#pause-for-user-input>`_ for more information.
 
+    Example:
+        Simple usage case::
+
+            import asyncio
+            from autogen_agentchat.agents import UserProxyAgent
+
+            agent = UserProxyAgent("user_proxy")
+            response = await asyncio.create_task(
+                agent.on_messages(
+                    [TextMessage(content="What is your name? ", source="user")],
+                    cancellation_token=token,
+                )
+            )
+            print(f"Your name is {response.chat_message.content}")
+
+    Example:
+        Cancellable usage case::
+
+            import asyncio
+            from autogen_agentchat.agents import UserProxyAgent
+
+
+            async def timeout(delay):
+                await asyncio.sleep(delay)
+
+
+            def cancellation_callback(task):
+                token.cancel()
+
+
+            token = CancellationToken()
+            agent = UserProxyAgent("user_proxy")
+            try:
+                timeout_task = asyncio.create_task(timeout(3))
+                timeout_task.add_done_callback(cancellation_callback)
+                agent_task = asyncio.create_task(
+                    agent.on_messages(
+                        [TextMessage(content="What is your name? ", source="user")],
+                        cancellation_token=token,
+                    )
+                )
+                response = await agent_task
+                print(f"Your name is {response.chat_message.content}")
+            except Exception as e:
+                print(f"Exception: {e}")
+            except BaseException as e:
+                print(f"BaseException: {e}")
     """
 
     def __init__(
