@@ -14,6 +14,7 @@ SyncInputFunc = Callable[[str], str]
 AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
 InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
 
+
 # TODO: ainput doesn't seem to play nicely with jupyter.
 #       No input window appears in this case.
 async def cancellable_input(prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
@@ -21,6 +22,7 @@ async def cancellable_input(prompt: str, cancellation_token: Optional[Cancellati
     if cancellation_token is not None:
         cancellation_token.link_future(task)
     return str(await task)
+
 
 class UserProxyAgent(BaseChatAgent):
     """An agent that can represent a human user through an input function.
