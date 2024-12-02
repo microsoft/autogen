@@ -5,7 +5,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-namespace Microsoft.AutoGen.Extensions.Anthropic.Converters;
+namespace AutoGen.Anthropic.Converters;
 
 internal sealed class JsonPropertyNameEnumConverter<T> : JsonConverter<T> where T : struct, Enum
 {

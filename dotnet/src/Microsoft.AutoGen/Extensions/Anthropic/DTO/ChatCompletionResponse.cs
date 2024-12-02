@@ -3,7 +3,7 @@
 
 using System.Text.Json.Serialization;
 
-namespace Microsoft.AutoGen.Extensions.Anthropic.DTO;
+namespace AutoGen.Anthropic.DTO;
 
 public class ChatCompletionResponse
 {

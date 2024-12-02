@@ -8,6 +8,8 @@ using AutoGen.Core;
 using AutoGen.Tests;
 using FluentAssertions;
 
+using Microsoft.AutoGen.Extensions.Anthropic.Tests;
+
 namespace AutoGen.Anthropic.Tests;
 
 public class AnthropicClientAgentTest

@@ -1,11 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AnthropicChatCompletionClient.cs
 
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
-using Microsoft.AutoGen.Extensions.Anthropic.DTO;
+using AutoGen.Anthropic.DTO;
 using Microsoft.Extensions.AI;
 using MEAI = Microsoft.Extensions.AI;
+using DTO = AutoGen.Anthropic.DTO;
+
+using AutoGen.Anthropic;
+
+#if NET8_0_OR_GREATER
+using System.Diagnostics.CodeAnalysis;
+#endif
 
 namespace Microsoft.AutoGen.Extensions.Anthropic;
 
@@ -26,7 +32,11 @@ public sealed class AnthropicChatCompletionClient : IChatClient, IDisposable
     {
     }
 
-    public AnthropicChatCompletionClient([NotNull] AnthropicClient client, string modelId)
+    public AnthropicChatCompletionClient(
+#if NET8_0_OR_GREATER // TODO: Should this be lower?
+        [NotNull]
+#endif
+    AnthropicClient client, string modelId)
     {
         if (client == null)
         {
@@ -54,7 +64,7 @@ public sealed class AnthropicChatCompletionClient : IChatClient, IDisposable
             if (message.Contents.Count != 1 || message.Text == null)
             {
                 throw new Exception($"Invalid SystemMessage: May only contain a single Text AIContent. Actual: {
-                    String.Join(',', from contentObject in message.Contents select contentObject.GetType())
+                    String.Join(",", from contentObject in message.Contents select contentObject.GetType())
                 }");
             }
 
@@ -128,7 +138,7 @@ public sealed class AnthropicChatCompletionClient : IChatClient, IDisposable
         };
     }
 
-    private class ChatCompletionAccumulator
+    private sealed class ChatCompletionAccumulator
     {
         public string? CompletionId { get; set; }
         public string? ModelId { get; set; }

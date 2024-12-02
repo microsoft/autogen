@@ -2,9 +2,9 @@
 // ToolChoice.cs
 
 using System.Text.Json.Serialization;
-using Microsoft.AutoGen.Extensions.Anthropic.Converters;
+using AutoGen.Anthropic.Converters;
 
-namespace Microsoft.AutoGen.Extensions.Anthropic.DTO;
+namespace AutoGen.Anthropic.DTO;
 
 [JsonConverter(typeof(JsonPropertyNameEnumConverter<ToolChoiceType>))]
 public enum ToolChoiceType

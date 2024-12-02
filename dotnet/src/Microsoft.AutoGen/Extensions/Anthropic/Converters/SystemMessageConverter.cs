@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoGen.Anthropic.DTO;
 
-namespace Microsoft.AutoGen.Extensions.Anthropic.Converters;
+namespace AutoGen.Anthropic.Converters;
 
 public class SystemMessageConverter : JsonConverter<object>
 {

@@ -4,9 +4,9 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using Microsoft.AutoGen.Extensions.Anthropic.Converters;
+using AutoGen.Anthropic.Converters;
 
-namespace Microsoft.AutoGen.Extensions.Anthropic.DTO;
+namespace AutoGen.Anthropic.DTO;
 
 public static class AIContentExtensions
 {

@@ -3,7 +3,7 @@
 
 using AutoGen.Anthropic.DTO;
 
-namespace AutoGen.Anthropic.Tests;
+namespace Microsoft.AutoGen.Extensions.Anthropic.Tests;
 
 public static class AnthropicTestUtils
 {

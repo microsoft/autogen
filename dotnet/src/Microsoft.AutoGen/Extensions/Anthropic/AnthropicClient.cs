@@ -7,10 +7,10 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 
-using Microsoft.AutoGen.Extensions.Anthropic.Converters;
-using Microsoft.AutoGen.Extensions.Anthropic.DTO;
+using AutoGen.Anthropic.Converters;
+using AutoGen.Anthropic.DTO;
 
-namespace Microsoft.AutoGen.Extensions.Anthropic;
+namespace AutoGen.Anthropic;
 
 public sealed class AnthropicClient : IDisposable
 {

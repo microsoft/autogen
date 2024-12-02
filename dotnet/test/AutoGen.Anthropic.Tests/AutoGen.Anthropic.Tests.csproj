@@ -11,6 +11,7 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\src\AutoGen.Anthropic\AutoGen.Anthropic.csproj" />
+      <ProjectReference Include="..\..\src\Microsoft.AutoGen\Extensions\Anthropic\Microsoft.AutoGen.Extensions.Anthropic.csproj" />
       <ProjectReference Include="..\AutoGen.Tests\AutoGen.Tests.csproj" />
       <ProjectReference Include="..\..\src\AutoGen.SourceGenerator\AutoGen.SourceGenerator.csproj" OutputItemType="Analyzer" ReferenceOutputAssembly="false" />
     </ItemGroup>

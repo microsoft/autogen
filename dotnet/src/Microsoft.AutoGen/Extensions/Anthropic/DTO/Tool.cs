@@ -4,7 +4,7 @@
 using System.Text.Json.Serialization;
 using Microsoft.Extensions.AI;
 
-namespace Microsoft.AutoGen.Extensions.Anthropic.DTO;
+namespace AutoGen.Anthropic.DTO;
 
 public class Tool
 {
@@ -19,8 +19,6 @@ public class Tool
 
     [JsonPropertyName("cache_control")]
     public CacheControl? CacheControl { get; set; }
-
-
 
     // Implicit conversion operator from M.E.AI.AITool to Tool
     public static implicit operator Tool(Microsoft.Extensions.AI.AIFunction tool)

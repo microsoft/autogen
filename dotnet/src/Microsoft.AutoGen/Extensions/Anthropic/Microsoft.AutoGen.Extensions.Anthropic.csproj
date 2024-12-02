@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFrameworks>$(PackageTargetFrameworks)</TargetFrameworks>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
@@ -17,7 +17,7 @@
 
   <ItemGroup>
     <!-- TODO: Change to RepoRoot-based path -->
-		<ProjectReference Include="..\..\Abstractions\Microsoft.AutoGen.Abstractions.csproj" />
+		<!--<ProjectReference Include="..\..\Abstractions\Microsoft.AutoGen.Abstractions.csproj" />-->
 	</ItemGroup>
 
 	<ItemGroup>

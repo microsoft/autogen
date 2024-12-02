@@ -3,9 +3,9 @@
 
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Microsoft.AutoGen.Extensions.Anthropic.DTO;
+using AutoGen.Anthropic.DTO;
 
-namespace Microsoft.AutoGen.Extensions.Anthropic.Converters;
+namespace AutoGen.Anthropic.Converters;
 
 public sealed class ContentBaseConverter : JsonConverter<ContentBase>
 {
