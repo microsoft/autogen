@@ -6,8 +6,8 @@ using Tests.Events;
 
 namespace Microsoft.AutoGen.Core.Tests;
 
-public class TestAgent(RuntimeContext context, EventTypes eventTypes, ILogger<AgentBase>? logger = null)
-    : AgentBase(context, eventTypes, logger), IHandle<GoodBye>
+public class TestAgent(EventTypes eventTypes, ILogger<Agent>? logger = null)
+    : Agent(eventTypes, logger), IHandle<GoodBye>
 {
     public Task Handle(GoodBye item, CancellationToken cancellationToken)
     {

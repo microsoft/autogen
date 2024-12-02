@@ -21,10 +21,8 @@ namespace HelloAgentState
 
     [TopicSubscription("HelloAgents")]
     public class HelloAgent(
-    RuntimeContext context,
     IHostApplicationLifetime hostApplicationLifetime,
-    [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
-        context,
+    [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : Agent(
         typeRegistry),
         IHandle<NewMessageReceived>,
         IHandle<ConversationClosed>,
@@ -48,15 +46,15 @@ namespace HelloAgentState
                 AgentId = AgentId,
                 TextData = JsonSerializer.Serialize(state)
             }).ConfigureAwait(false);
-            await PublishMessageAsync(evt).ConfigureAwait(false);
+            await PublishEventAsync(evt).ConfigureAwait(false);
             var goodbye = new ConversationClosed
             {
                 UserId = AgentId.Key,
                 UserMessage = "Goodbye"
             };
-            await PublishMessageAsync(goodbye).ConfigureAwait(false);
+            await PublishEventAsync(goodbye).ConfigureAwait(false);
             // send the shutdown message
-            await PublishMessageAsync(new Shutdown { Message = AgentId.Key }).ConfigureAwait(false);
+            await PublishEventAsync(new Shutdown { Message = AgentId.Key }).ConfigureAwait(false);
 
         }
         public async Task Handle(ConversationClosed item, CancellationToken cancellationToken = default)
@@ -68,7 +66,7 @@ namespace HelloAgentState
             {
                 Message = goodbye
             };
-            await PublishMessageAsync(evt).ConfigureAwait(true);
+            await PublishEventAsync(evt).ConfigureAwait(true);
             state["workflow"] = "Complete";
             await StoreAsync(new AgentState
             {

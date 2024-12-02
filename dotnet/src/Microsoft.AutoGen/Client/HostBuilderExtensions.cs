@@ -22,7 +22,7 @@ public static class HostBuilderExtensions
     /// <param name="typeName">The name of the agent type.</param>
     /// <returns>The updated host application builder.</returns>
     public static IHostApplicationBuilder AddAgent<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TAgent>(this IHostApplicationBuilder builder, string typeName) where TAgent : AgentBase
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TAgent>(this IHostApplicationBuilder builder, string typeName) where TAgent : Agent
     {
         builder.Services.AddKeyedSingleton("AgentTypes", (sp, key) => Tuple.Create(typeName, typeof(TAgent)));
 

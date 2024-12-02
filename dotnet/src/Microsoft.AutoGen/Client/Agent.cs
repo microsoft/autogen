@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentBase.cs
+// Agent.cs
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -16,7 +16,7 @@ namespace Microsoft.AutoGen.Core;
 /// <summary>
 /// Represents the base class for an agent in the AutoGen system.
 /// </summary>
-public abstract class AgentBase
+public abstract class Agent : IDisposable
 {
     /// <summary>
     /// The activity source for tracing.
@@ -26,53 +26,39 @@ public abstract class AgentBase
     /// <summary>
     /// Gets the unique identifier of the agent.
     /// </summary>
-    public AgentId AgentId => _context.AgentId;
+    public AgentId AgentId => Context!.AgentId;
 
-    private readonly object _lock = new();
     private readonly ConcurrentDictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = new();
 
-    private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
-    private readonly RuntimeContext _context;
-
+    private readonly Channel<Message> _channel = Channel.CreateUnbounded<Message>();
+ 
     /// <summary>
     /// Gets the runtime context of the agent.
     /// </summary>
-    public RuntimeContext Context => _context;
-
-    /// <summary>
-    /// Gets or sets the route of the agent.
-    /// </summary>
-    public string Route { get; set; } = "base";
-
-    protected internal ILogger<AgentBase> _logger;
-    protected readonly EventTypes EventTypes;
-    private readonly ConcurrentDictionary<Type, MethodInfo> _handlersByMessageType;
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AgentBase"/> class.
-    /// </summary>
-    /// <param name="context">The runtime context of the agent.</param>
-    /// <param name="eventTypes">The event types associated with the agent.</param>
-    /// <param name="logger">The logger instance for logging.</param>
-    protected AgentBase(
-        RuntimeContext context,
-        EventTypes eventTypes,
-        ILogger<AgentBase>? logger = null)
-    {
-        _context = context;
-        context.AgentInstance = this;
-        EventTypes = eventTypes;
-        _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();
-        // get all Handle<T> methods
-        _handlersByMessageType = new(GetType().GetHandlersLookupTable());
-        Completion = Start();
-    }
+    public RuntimeContext? Context { get; private set; }
 
     /// <summary>
     /// Gets the task representing the completion of the agent's operations.
     /// </summary>
-    internal Task Completion { get; }
+    internal Task? Completion { get; private set; }
 
+    protected internal ILogger<Agent> _logger;
+    protected readonly EventTypes EventTypes;
+    private readonly ConcurrentDictionary<Type, MethodInfo> _handlersByMessageType;
+    private readonly CancellationTokenSource _agentCancelationSource = new();
+
+   
+    protected Agent(
+        EventTypes eventTypes,
+        ILogger<Agent>? logger = null)
+    {
+        EventTypes = eventTypes;
+        _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<Agent>();
+        // get all Handle<T> methods
+        _handlersByMessageType = new(GetType().GetHandlersLookupTable());
+    }
+
+  
     /// <summary>
     /// Starts the message pump for the agent.
     /// </summary>
@@ -103,23 +89,16 @@ public abstract class AgentBase
     /// Receives a message and writes it to the mailbox.
     /// </summary>
     /// <param name="message">The message to receive.</param>
-    public void ReceiveMessage(Message message) => _mailbox.Writer.TryWrite(message);
+    public void ReceiveMessage(Message message) => _channel.Writer.TryWrite(message);
 
     private async Task RunMessagePump()
     {
         await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
-        await foreach (var message in _mailbox.Reader.ReadAllAsync())
+        await foreach (var message in _channel.Reader.ReadAllAsync(_agentCancelationSource.Token))
         {
             try
             {
-                switch (message)
-                {
-                    case Message msg:
-                        await HandleRpcMessage(msg, new CancellationToken()).ConfigureAwait(false);
-                        break;
-                    default:
-                        throw new InvalidOperationException($"Unexpected message '{message}'.");
-                }
+                await HandleRpcMessage(message, _agentCancelationSource.Token).ConfigureAwait(false);
             }
             catch (Exception ex)
             {
@@ -142,7 +121,7 @@ public abstract class AgentBase
                 {
                     var activity = this.ExtractActivity(msg.CloudEvent.Type, msg.CloudEvent.Metadata);
                     await this.InvokeWithActivityAsync(
-                        static (state, ct) => state.Item1.CallHandler(state.CloudEvent, ct),
+                        static (state, ct) => state.Item1.HandleAsync(state.CloudEvent, ct),
                         (this, msg.CloudEvent),
                         activity,
                         msg.CloudEvent.Type, cancellationToken).ConfigureAwait(false);
@@ -165,33 +144,6 @@ public abstract class AgentBase
     }
 
     /// <summary>
-    /// Subscribes to a topic.
-    /// </summary>
-    /// <param name="topic">The topic to subscribe to.</param>
-    /// <returns>A list of subscribed topics.</returns>
-    public List<string> Subscribe(string topic)
-    {
-        Message message = new()
-        {
-            AddSubscriptionRequest = new()
-            {
-                RequestId = Guid.NewGuid().ToString(),
-                Subscription = new Subscription
-                {
-                    TypeSubscription = new TypeSubscription
-                    {
-                        TopicType = topic,
-                        AgentType = AgentId.Key
-                    }
-                }
-            }
-        };
-        _context.SendMessageAsync(message).AsTask().Wait();
-
-        return [topic];
-    }
-
-    /// <summary>
     /// Stores the agent state asynchronously.
     /// </summary>
     /// <param name="state">The agent state to store.</param>
@@ -199,7 +151,7 @@ public abstract class AgentBase
     /// <returns>A task representing the asynchronous operation.</returns>
     public async Task StoreAsync(AgentState state, CancellationToken cancellationToken = default)
     {
-        await _context.StoreAsync(state, cancellationToken).ConfigureAwait(false);
+        await Context!.StoreAsync(state, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -211,20 +163,16 @@ public abstract class AgentBase
     /// <returns>A task representing the asynchronous operation, containing the agent state.</returns>
     public async Task<T> ReadAsync<T>(AgentId agentId, CancellationToken cancellationToken = default) where T : IMessage, new()
     {
-        var agentState = await _context.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
+        var agentState = await Context!.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
         return agentState.FromAgentState<T>();
     }
 
     private void OnResponseCore(RpcResponse response)
     {
         var requestId = response.RequestId;
-        TaskCompletionSource<RpcResponse>? completion;
-        lock (_lock)
+        if (!_pendingRequests.Remove(requestId, out var completion))
         {
-            if (!_pendingRequests.Remove(requestId, out completion))
-            {
-                throw new InvalidOperationException($"Unknown request id '{requestId}'.");
-            }
+            throw new InvalidOperationException($"Unknown request id '{requestId}'.");
         }
 
         completion.SetResult(response);
@@ -242,7 +190,7 @@ public abstract class AgentBase
         {
             response = new RpcResponse { Error = ex.Message };
         }
-        await _context.SendResponseAsync(request, response, cancellationToken).ConfigureAwait(false);
+        await Context!.SendResponseAsync(request, response, cancellationToken).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -273,18 +221,15 @@ public abstract class AgentBase
         activity?.SetTag("peer.service", target.ToString());
 
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _context.Update(request, activity);
+        Context!.Update(request, activity);
         await this.InvokeWithActivityAsync(
             static async (state, ct) =>
             {
                 var (self, request, completion) = state;
 
-                lock (self._lock)
-                {
-                    self._pendingRequests[request.RequestId] = completion;
-                }
+                self._pendingRequests.AddOrUpdate(request.RequestId, _ => completion, (_, __) => completion);
 
-                await state.Item1._context.SendRequestAsync(state.Item1, state.request, ct).ConfigureAwait(false);
+                await state.Item1.Context!.SendRequestAsync(state.Item1, state.request, ct).ConfigureAwait(false);
 
                 await completion.Task.ConfigureAwait(false);
             },
@@ -300,14 +245,14 @@ public abstract class AgentBase
     /// Publishes a message asynchronously.
     /// </summary>
     /// <typeparam name="T">The type of the message.</typeparam>
-    /// <param name="message">The message to publish.</param>
+    /// <param name="event">The message to publish.</param>
     /// <param name="source">The source of the message.</param>
     /// <param name="token">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async ValueTask PublishMessageAsync<T>(T message, string? source = null, CancellationToken token = default) where T : IMessage
+    public async ValueTask PublishEventAsync<T>(T @event, string? source = null, CancellationToken token = default) where T : IMessage
     {
         var src = string.IsNullOrWhiteSpace(source) ? AgentId.Key : source;
-        var evt = message.ToCloudEvent(src);
+        var evt = @event.ToCloudEvent(src);
         await PublishEventAsync(evt, token).ConfigureAwait(false);
     }
 
@@ -323,11 +268,11 @@ public abstract class AgentBase
         activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
 
         // TODO: fix activity
-        _context.Update(item, activity);
+        Context!.Update(item, activity);
         await this.InvokeWithActivityAsync(
             static async (state, ct) =>
             {
-                await state.Item1._context.PublishEventAsync(state.item, cancellationToken: ct).ConfigureAwait(false);
+                await state.Item1.Context!.PublishEventAsync(state.item, cancellationToken: ct).ConfigureAwait(false);
             },
             (this, item),
             activity,
@@ -340,7 +285,7 @@ public abstract class AgentBase
     /// <param name="item">The cloud event to handle.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public Task CallHandler(CloudEvent item, CancellationToken cancellationToken)
+    public Task HandleAsync(CloudEvent item, CancellationToken cancellationToken)
     {
         // Only send the event to the handler if the agent type is handling that type
         // foreach of the keys in the EventTypes.EventsMap[] if it contains the item.type
@@ -381,39 +326,16 @@ public abstract class AgentBase
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation, containing the RPC response.</returns>
     public Task<RpcResponse> HandleRequestAsync(RpcRequest request, CancellationToken cancellationToken = default) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
-
-    /// <summary>
-    /// Handles an object asynchronously by invoking the appropriate handler method based on the object's type.
-    /// </summary>
-    /// <param name="item">The object to handle.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <exception cref="InvalidOperationException">Thrown when no handler is found for the object's type.</exception>
-    public virtual Task HandleObjectAsync(object item, CancellationToken cancellationToken)
+    
+    public void Dispose()
     {
-
-
-        if (_handlersByMessageType.TryGetValue(item.GetType(), out var method))
-        {
-            if (method is null)
-            {
-                throw new InvalidOperationException($"No handler found for type {item.GetType().FullName}");
-            }
-            return (Task)method.Invoke(this, [item, cancellationToken])!;
-        }
-
-        throw new InvalidOperationException($"No handler found for type {item.GetType().FullName}");
+        _agentCancelationSource.Dispose();
     }
 
-    /// <summary>
-    /// Publishes a cloud event asynchronously.
-    /// </summary>
-    /// <param name="topic">The topic of the event.</param>
-    /// <param name="evt">The event to publish.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    public async ValueTask PublishEventAsync(string topic, IMessage evt, CancellationToken cancellationToken = default)
+    public static void Initialize(RuntimeContext context, Agent agent)
     {
-        await PublishEventAsync(evt.ToCloudEvent(topic), cancellationToken).ConfigureAwait(false);
+        agent.Context = context;
+        agent.Context.AgentInstance = agent;
+        agent.Completion = agent.Start();
     }
 }

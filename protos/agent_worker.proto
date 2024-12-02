@@ -121,10 +121,6 @@ message Message {
         RpcRequest request = 1;
         RpcResponse response = 2;
         cloudevent.CloudEvent cloudEvent = 3;
-        RegisterAgentTypeRequest registerAgentTypeRequest = 4;
-        RegisterAgentTypeResponse registerAgentTypeResponse = 5;
-        AddSubscriptionRequest addSubscriptionRequest = 6;
-        AddSubscriptionResponse addSubscriptionResponse = 7;
     }
 }
 

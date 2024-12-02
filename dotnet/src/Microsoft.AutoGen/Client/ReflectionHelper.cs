@@ -54,7 +54,7 @@ public static class ReflectionHelper
 
         var eventsMap = assemblies
                                 .SelectMany(assembly => assembly.GetTypes())
-                                .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase)) && !type.IsAbstract)
+                                .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(Agent)) && !type.IsAbstract)
                                 .Select(t => (t, t.GetInterfaces()
                                               .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
                                               .Select(i => GetMessageDescriptor(i.GetGenericArguments().First())?.FullName ?? "").ToHashSet()))

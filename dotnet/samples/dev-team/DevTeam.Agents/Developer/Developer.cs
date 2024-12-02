@@ -7,8 +7,8 @@ using Microsoft.AutoGen.Core;
 namespace DevTeam.Agents;
 
 [TopicSubscription("devteam")]
-public class Dev(RuntimeContext context, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<Dev> logger)
-    : AiAgent<DeveloperState>(context, typeRegistry, logger), IDevelopApps,
+public class Dev([FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<Dev> logger)
+    : AiAgent<DeveloperState>(typeRegistry, logger), IDevelopApps,
     IHandle<CodeGenerationRequested>,
     IHandle<CodeChainClosed>
 {
@@ -22,7 +22,7 @@ public class Dev(RuntimeContext context, [FromKeyedServices("EventTypes")] Event
             IssueNumber = item.IssueNumber,
             Code = code
         };
-        await PublishMessageAsync(evt);
+        await PublishEventAsync(evt);
     }
 
     public async Task Handle(CodeChainClosed item, CancellationToken cancellationToken = default)
@@ -33,7 +33,7 @@ public class Dev(RuntimeContext context, [FromKeyedServices("EventTypes")] Event
         {
             Code = lastCode
         };
-        await PublishMessageAsync(evt);
+        await PublishEventAsync(evt);
     }
 
     public async Task<string> GenerateCode(string ask)

@@ -17,16 +17,14 @@ namespace Microsoft.AutoGen.Core;
 public class AgentWorker : IHostedService, IAgentWorker
 {
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
-    private readonly ConcurrentDictionary<(string Type, string Key), AgentBase> _agents = new();
+    private readonly ConcurrentDictionary<(string Type, string Key), Agent> _agents = new();
     private readonly ILogger<AgentWorker> _logger;
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
-    private readonly ConcurrentDictionary<string, (AgentBase Agent, string OriginalRequestId)> _pendingClientRequests = new();
+    private readonly ConcurrentDictionary<string, (Agent Agent, string OriginalRequestId)> _pendingClientRequests = new();
     private readonly CancellationTokenSource _shutdownCts;
     private readonly IServiceProvider _serviceProvider;
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes;
-    private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
-    private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
     private readonly DistributedContextPropagator _distributedContextPropagator;
     private readonly CancellationTokenSource _shutdownCancellationToken = new();
     private Task? _mailboxTask;
@@ -66,7 +64,7 @@ public class AgentWorker : IHostedService, IAgentWorker
     }
 
     /// <inheritdoc />
-    public async ValueTask SendRequestAsync(AgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask SendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         var requestId = Guid.NewGuid().ToString();
         _pendingClientRequests[requestId] = (agent, request.RequestId);
@@ -129,13 +127,6 @@ public class AgentWorker : IHostedService, IAgentWorker
                             agentToInvoke.ReceiveMessage(msg);
                         }
                         break;
-                    case Message msg when msg.AddSubscriptionRequest != null:
-                        await AddSubscriptionRequestAsync(msg.AddSubscriptionRequest).ConfigureAwait(true);
-                        break;
-                    case Message msg when msg.AddSubscriptionResponse != null:
-                        break;
-                    case Message msg when msg.RegisterAgentTypeResponse != null:
-                        break;
                     default:
                         throw new InvalidOperationException($"Unexpected message '{message}'.");
                 }
@@ -148,28 +139,6 @@ public class AgentWorker : IHostedService, IAgentWorker
                 _shutdownCancellationToken.Cancel();
             }
         }
-    }
-
-    /// <summary>
-    /// Adds a subscription request.
-    /// </summary>
-    /// <param name="subscription">The subscription request to add.</param>
-    private async ValueTask AddSubscriptionRequestAsync(AddSubscriptionRequest subscription)
-    {
-        var topic = subscription.Subscription.TypeSubscription.TopicType;
-        var agentType = subscription.Subscription.TypeSubscription.AgentType;
-        _subscriptionsByAgentType[agentType] = subscription.Subscription;
-        _subscriptionsByTopic.GetOrAdd(topic, _ => []).Add(agentType);
-        Message response = new()
-        {
-            AddSubscriptionResponse = new()
-            {
-                RequestId = subscription.RequestId,
-                Error = "",
-                Success = true
-            }
-        };
-        await _mailbox.Writer.WriteAsync(response).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -225,14 +194,15 @@ public class AgentWorker : IHostedService, IAgentWorker
     /// </summary>
     /// <param name="agentId">The agent ID.</param>
     /// <returns>The activated agent.</returns>
-    private AgentBase GetOrActivateAgent(AgentId agentId)
+    private Agent GetOrActivateAgent(AgentId agentId)
     {
         if (!_agents.TryGetValue((agentId.Type, agentId.Key), out var agent))
         {
             if (_agentTypes.TryGetValue(agentId.Type, out var agentType))
             {
-                var context = new RuntimeContext(agentId, this, _serviceProvider.GetRequiredService<ILogger<AgentBase>>(), _distributedContextPropagator);
-                agent = (AgentBase)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, context);
+                var context = new RuntimeContext(agentId, this, _serviceProvider.GetRequiredService<ILogger<Agent>>(), _distributedContextPropagator);
+                agent = (Agent)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, context);
+                Agent.Initialize(context, agent);
                 _agents.TryAdd((agentId.Type, agentId.Key), agent);
             }
             else

@@ -6,8 +6,8 @@ using DevTeam.Shared;
 using Microsoft.AutoGen.Core;
 namespace Microsoft.AI.DevTeam;
 
-public class AzureGenie(RuntimeContext context, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, IManageAzure azureService)
-    : AgentBase(context, typeRegistry),
+public class AzureGenie([FromKeyedServices("EventTypes")] EventTypes typeRegistry, IManageAzure azureService)
+    : Agent(typeRegistry),
     IHandle<ReadmeCreated>,
     IHandle<CodeCreated>
 {

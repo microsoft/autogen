@@ -24,8 +24,8 @@ public sealed class GrpcAgentWorker(
 {
     private readonly object _channelLock = new();
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
-    private readonly ConcurrentDictionary<(string Type, string Key), AgentBase> _agents = new();
-    private readonly ConcurrentDictionary<string, (AgentBase Agent, string OriginalRequestId)> _pendingRequests = new();
+    private readonly ConcurrentDictionary<(string Type, string Key), Agent> _agents = new();
+    private readonly ConcurrentDictionary<string, (Agent Agent, string OriginalRequestId)> _pendingRequests = new();
     private readonly Channel<(Message Message, TaskCompletionSource WriteCompletionSource)> _outboundMessagesChannel = Channel.CreateBounded<(Message, TaskCompletionSource)>(new BoundedChannelOptions(1024)
     {
         AllowSynchronousContinuations = true,
@@ -75,20 +75,6 @@ public sealed class GrpcAgentWorker(
 
                             message.Response.RequestId = request.OriginalRequestId;
                             request.Agent.ReceiveMessage(message);
-                            break;
-
-                        case Message.MessageOneofCase.RegisterAgentTypeResponse:
-                            if (!message.RegisterAgentTypeResponse.Success)
-                            {
-                                throw new InvalidOperationException($"Failed to register agent: '{message.RegisterAgentTypeResponse.Error}'.");
-                            }
-                            break;
-
-                        case Message.MessageOneofCase.AddSubscriptionResponse:
-                            if (!message.AddSubscriptionResponse.Success)
-                            {
-                                throw new InvalidOperationException($"Failed to add subscription: '{message.AddSubscriptionResponse.Error}'.");
-                            }
                             break;
 
                         case Message.MessageOneofCase.CloudEvent:
@@ -186,14 +172,14 @@ public sealed class GrpcAgentWorker(
             item.WriteCompletionSource.TrySetCanceled();
         }
     }
-    private AgentBase GetOrActivateAgent(AgentId agentId)
+    private Agent GetOrActivateAgent(AgentId agentId)
     {
         if (!_agents.TryGetValue((agentId.Type, agentId.Key), out var agent))
         {
             if (_agentTypes.TryGetValue(agentId.Type, out var agentType))
             {
-                var context = new RuntimeContext(agentId, this, _serviceProvider.GetRequiredService<ILogger<AgentBase>>(), _distributedContextPropagator);
-                agent = (AgentBase)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, context);
+                var context = new RuntimeContext(agentId, this, _serviceProvider.GetRequiredService<ILogger<Agent>>(), _distributedContextPropagator);
+                agent = (Agent)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, context);
                 _agents.TryAdd((agentId.Type, agentId.Key), agent);
             }
             else
@@ -215,17 +201,19 @@ public sealed class GrpcAgentWorker(
             //var state = agentType.BaseType?.GetGenericArguments().First();
             var topicTypes = agentType.GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
 
-            await WriteChannelAsync(new Message
-            {
-                RegisterAgentTypeRequest = new RegisterAgentTypeRequest
-                {
-                    Type = type,
-                    RequestId = Guid.NewGuid().ToString(),
-                    //TopicTypes = { topicTypes },
-                    //StateType = state?.Name,
-                    Events = { events }
-                }
-            }, cancellationToken).ConfigureAwait(false);
+            // TODO: Reimplement registration as RPC call
+            _logger.LogInformation($"{cancellationToken.ToString}"); // TODO: remove this
+            //await WriteChannelAsync(new Message
+            //{
+            //    RegisterAgentTypeRequest = new RegisterAgentTypeRequest
+            //    {
+            //        Type = type,
+            //        RequestId = Guid.NewGuid().ToString(),
+            //        //TopicTypes = { topicTypes },
+            //        //StateType = state?.Name,
+            //        Events = { events }
+            //    }
+            //}, cancellationToken).ConfigureAwait(false);
         }
     }
 
@@ -234,7 +222,7 @@ public sealed class GrpcAgentWorker(
         await WriteChannelAsync(new Message { Response = response }, cancellationToken).ConfigureAwait(false);
     }
 
-    public async ValueTask SendRequestAsync(AgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask SendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         var requestId = Guid.NewGuid().ToString();
         _pendingRequests[requestId] = (agent, request.RequestId);

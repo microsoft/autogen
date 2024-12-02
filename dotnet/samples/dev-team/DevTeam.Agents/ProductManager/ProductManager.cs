@@ -7,8 +7,8 @@ using Microsoft.AutoGen.Core;
 namespace DevTeam.Agents;
 
 [TopicSubscription("devteam")]
-public class ProductManager(RuntimeContext context, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<ProductManager> logger)
-    : AiAgent<ProductManagerState>(context, typeRegistry, logger), IManageProducts,
+public class ProductManager([FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<ProductManager> logger)
+    : AiAgent<ProductManagerState>(typeRegistry, logger), IManageProducts,
     IHandle<ReadmeChainClosed>,
     IHandle<ReadmeRequested>
 {
@@ -20,7 +20,7 @@ public class ProductManager(RuntimeContext context, [FromKeyedServices("EventTyp
         {
             Readme = lastReadme
         };
-        await PublishMessageAsync(evt);
+        await PublishEventAsync(evt);
     }
 
     public async Task Handle(ReadmeRequested item, CancellationToken cancellationToken = default)
@@ -33,7 +33,7 @@ public class ProductManager(RuntimeContext context, [FromKeyedServices("EventTyp
             Repo = item.Repo,
             IssueNumber = item.IssueNumber
         };
-        await PublishMessageAsync(evt);
+        await PublishEventAsync(evt);
     }
 
     public async Task<string> CreateReadme(string ask)

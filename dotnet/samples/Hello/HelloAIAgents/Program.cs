@@ -33,10 +33,8 @@ namespace HelloAIAgents
 {
     [TopicSubscription("HelloAgents")]
     public class HelloAgent(
-        RuntimeContext context,
         [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
-        IHostApplicationLifetime hostApplicationLifetime) : AgentBase(
-            context,
+        IHostApplicationLifetime hostApplicationLifetime) : Agent(
             typeRegistry),
             ISayHello,
             IHandle<NewMessageReceived>,
@@ -49,13 +47,13 @@ namespace HelloAIAgents
             {
                 Message = response
             };
-            await PublishMessageAsync(evt).ConfigureAwait(false);
+            await PublishEventAsync(evt).ConfigureAwait(false);
             var goodbye = new ConversationClosed
             {
                 UserId = AgentId.Key,
                 UserMessage = "Goodbye"
             };
-            await PublishMessageAsync(goodbye).ConfigureAwait(false);
+            await PublishEventAsync(goodbye).ConfigureAwait(false);
         }
         public async Task Handle(ConversationClosed item, CancellationToken cancellationToken = default)
         {
@@ -64,7 +62,7 @@ namespace HelloAIAgents
             {
                 Message = goodbye
             };
-            await PublishMessageAsync(evt).ConfigureAwait(false);
+            await PublishEventAsync(evt).ConfigureAwait(false);
             //sleep30 seconds
             await Task.Delay(30000).ConfigureAwait(false);
             hostApplicationLifetime.StopApplication();

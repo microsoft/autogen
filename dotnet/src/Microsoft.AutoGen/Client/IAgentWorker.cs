@@ -25,7 +25,7 @@ public interface IAgentWorker
     /// <param name="request">The request to send.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    ValueTask SendRequestAsync(AgentBase agent, RpcRequest request, CancellationToken cancellationToken = default);
+    ValueTask SendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Sends a response asynchronously.

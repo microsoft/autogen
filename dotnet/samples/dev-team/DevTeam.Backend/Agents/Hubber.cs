@@ -9,8 +9,8 @@ using Microsoft.AutoGen.Core;
 
 namespace Microsoft.AI.DevTeam;
 
-public class Hubber(RuntimeContext context, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, IManageGithub ghService)
-    : AgentBase(context,typeRegistry),
+public class Hubber([FromKeyedServices("EventTypes")] EventTypes typeRegistry, IManageGithub ghService)
+    : Agent(typeRegistry),
     IHandle<NewAsk>,
     IHandle<ReadmeGenerated>,
     IHandle<DevPlanGenerated>,

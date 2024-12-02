@@ -14,7 +14,7 @@ namespace Microsoft.AutoGen.Core;
 /// <param name="worker">The worker responsible for agent operations.</param>
 /// <param name="logger">The logger instance for logging.</param>
 /// <param name="distributedContextPropagator">The context propagator for distributed tracing.</param>
-public sealed class RuntimeContext(AgentId agentId, IAgentWorker worker, ILogger<AgentBase> logger, DistributedContextPropagator distributedContextPropagator)
+public sealed class RuntimeContext(AgentId agentId, IAgentWorker worker, ILogger<Agent> logger, DistributedContextPropagator distributedContextPropagator)
 {
     private readonly IAgentWorker worker = worker;
 
@@ -26,12 +26,12 @@ public sealed class RuntimeContext(AgentId agentId, IAgentWorker worker, ILogger
     /// <summary>
     /// Gets the logger instance for logging.
     /// </summary>
-    public ILogger<AgentBase> Logger { get; } = logger;
+    public ILogger<Agent> Logger { get; } = logger;
 
     /// <summary>
     /// Gets or sets the instance of the agent.
     /// </summary>
-    public AgentBase? AgentInstance { get; internal set; }
+    public Agent? AgentInstance { get; internal set; }
 
     /// <summary>
     /// Gets the context propagator for distributed tracing.
@@ -97,7 +97,7 @@ public sealed class RuntimeContext(AgentId agentId, IAgentWorker worker, ILogger
     /// <param name="request">The request to send.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public async ValueTask SendRequestAsync(AgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask SendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         await worker.SendRequestAsync(agent, request, cancellationToken).ConfigureAwait(false);
     }

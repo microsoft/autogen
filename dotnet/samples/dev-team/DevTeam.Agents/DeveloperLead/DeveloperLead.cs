@@ -7,8 +7,8 @@ using Microsoft.AutoGen.Core;
 namespace DevTeam.Agents;
 
 [TopicSubscription("devteam")]
-public class DeveloperLead(RuntimeContext context, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<DeveloperLead> logger)
-    : AiAgent<DeveloperLeadState>(context,typeRegistry, logger), ILeadDevelopers,
+public class DeveloperLead([FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<DeveloperLead> logger)
+    : AiAgent<DeveloperLeadState>(typeRegistry, logger), ILeadDevelopers,
     IHandle<DevPlanRequested>,
     IHandle<DevPlanChainClosed>
 {
@@ -22,7 +22,7 @@ public class DeveloperLead(RuntimeContext context, [FromKeyedServices("EventType
             IssueNumber = item.IssueNumber,
             Plan = plan
         };
-        await PublishMessageAsync(evt);
+        await PublishEventAsync(evt);
     }
 
     public async Task Handle(DevPlanChainClosed item, CancellationToken cancellationToken = default)
@@ -33,7 +33,7 @@ public class DeveloperLead(RuntimeContext context, [FromKeyedServices("EventType
         {
             Plan = lastPlan
         };
-        await PublishMessageAsync(evt);
+        await PublishEventAsync(evt);
     }
     public async Task<string> CreatePlan(string ask)
     {

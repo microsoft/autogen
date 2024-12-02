@@ -5,9 +5,9 @@ using Microsoft.AutoGen.Core;
 
 namespace DevTeam.Agents;
 
-public class AiAgent<T> : AgentBase
+public class AiAgent<T> : Agent
 {
-    public AiAgent(RuntimeContext context, EventTypes eventTypes, ILogger<AiAgent<T>> logger) : base(context, eventTypes, logger)
+    public AiAgent(EventTypes eventTypes, ILogger<AiAgent<T>> logger) : base(eventTypes, logger)
     {
     }
 

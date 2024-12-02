@@ -9,11 +9,9 @@ using Microsoft.Extensions.AI;
 namespace HelloAIAgents;
 [TopicSubscription("HelloAgents")]
 public class HelloAIAgent(
-    RuntimeContext context,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
     IHostApplicationLifetime hostApplicationLifetime,
     IChatClient client) : HelloAgent(
-        context,
         typeRegistry,
         hostApplicationLifetime),
         IHandle<NewMessageReceived>
@@ -24,9 +22,9 @@ public class HelloAIAgent(
         var prompt = "Please write a limerick greeting someone with the name " + item.Message;
         var response = await client.CompleteAsync(prompt);
         var evt = new Output { Message = response.Message.Text };
-        await PublishMessageAsync(evt).ConfigureAwait(false);
+        await PublishEventAsync(evt).ConfigureAwait(false);
 
         var goodbye = new ConversationClosed { UserId = AgentId.Key, UserMessage = "Goodbye" };
-        await PublishMessageAsync(goodbye).ConfigureAwait(false);
+        await PublishEventAsync(goodbye).ConfigureAwait(false);
     }
 }

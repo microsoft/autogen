@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentBaseExtensions.cs
+// AgentExtensions.cs
 
 using System.Diagnostics;
 
 namespace Microsoft.AutoGen.Core;
 
 /// <summary>
-/// Provides extension methods for the <see cref="AgentBase"/> class.
+/// Provides extension methods for the <see cref="Agent"/> class.
 /// </summary>
-public static class AgentBaseExtensions
+public static class AgentExtensions
 {
     /// <summary>
     /// Extracts an <see cref="Activity"/> from the given agent and metadata.
@@ -17,21 +17,21 @@ public static class AgentBaseExtensions
     /// <param name="activityName">The name of the activity.</param>
     /// <param name="metadata">The metadata containing trace information.</param>
     /// <returns>The extracted <see cref="Activity"/> or null if extraction fails.</returns>
-    public static Activity? ExtractActivity(this AgentBase agent, string activityName, IDictionary<string, string> metadata)
+    public static Activity? ExtractActivity(this Agent agent, string activityName, IDictionary<string, string> metadata)
     {
         Activity? activity;
-        var (traceParent, traceState) = agent.Context.GetTraceIdAndState(metadata);
+        var (traceParent, traceState) = agent.Context!.GetTraceIdAndState(metadata);
         if (!string.IsNullOrEmpty(traceParent))
         {
             if (ActivityContext.TryParse(traceParent, traceState, isRemote: true, out var parentContext))
             {
                 // traceParent is a W3CId
-                activity = AgentBase.s_source.CreateActivity(activityName, ActivityKind.Server, parentContext);
+                activity = Agent.s_source.CreateActivity(activityName, ActivityKind.Server, parentContext);
             }
             else
             {
                 // Most likely, traceParent uses ActivityIdFormat.Hierarchical
-                activity = AgentBase.s_source.CreateActivity(activityName, ActivityKind.Server, traceParent);
+                activity = Agent.s_source.CreateActivity(activityName, ActivityKind.Server, traceParent);
             }
 
             if (activity is not null)
@@ -51,7 +51,7 @@ public static class AgentBaseExtensions
         }
         else
         {
-            activity = AgentBase.s_source.CreateActivity(activityName, ActivityKind.Server);
+            activity = Agent.s_source.CreateActivity(activityName, ActivityKind.Server);
         }
 
         return activity;
@@ -68,7 +68,7 @@ public static class AgentBaseExtensions
     /// <param name="methodName">The name of the method being invoked.</param>
     /// <param name="cancellationToken">A token to monitor for cancellation requests.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public static async Task InvokeWithActivityAsync<TState>(this AgentBase agent, Func<TState, CancellationToken, Task> func, TState state, Activity? activity, string methodName, CancellationToken cancellationToken = default)
+    public static async Task InvokeWithActivityAsync<TState>(this Agent agent, Func<TState, CancellationToken, Task> func, TState state, Activity? activity, string methodName, CancellationToken cancellationToken = default)
     {
         if (activity is not null && activity.StartTimeUtc == default)
         {

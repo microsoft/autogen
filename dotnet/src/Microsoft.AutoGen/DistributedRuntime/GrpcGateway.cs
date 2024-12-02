@@ -16,13 +16,10 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly IClusterClient _clusterClient;
     private readonly ConcurrentDictionary<string, AgentState> _agentState = new();
     private readonly IRegistryGrain _gatewayRegistry;
-    private readonly ISubscriptionsGrain _subscriptions;
     private readonly IGateway _reference;
     // The agents supported by each worker process.
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
     internal readonly ConcurrentDictionary<GrpcWorkerConnection, GrpcWorkerConnection> _workers = new();
-    private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
-    private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
     private readonly ConcurrentDictionary<string, HashSet<string>> _agentsToEventsMap = new();
 
     // The mapping from agent id to worker process.
@@ -37,7 +34,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         _clusterClient = clusterClient;
         _reference = clusterClient.CreateObjectReference<IGateway>(this);
         _gatewayRegistry = clusterClient.GetGrain<IRegistryGrain>(0);
-        _subscriptions = clusterClient.GetGrain<ISubscriptionsGrain>(0);
     }
     public async ValueTask BroadcastEvent(CloudEvent evt)
     {
@@ -104,12 +100,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             case Message.MessageOneofCase.CloudEvent:
                 await DispatchEventAsync(message.CloudEvent);
                 break;
-            case Message.MessageOneofCase.RegisterAgentTypeRequest:
-                await RegisterAgentTypeAsync(connection, message.RegisterAgentTypeRequest);
-                break;
-            case Message.MessageOneofCase.AddSubscriptionRequest:
-                await AddSubscriptionAsync(connection, message.AddSubscriptionRequest);
-                break;
             default:
                 // if it wasn't recognized return bad request
                 await RespondBadRequestAsync(connection, $"Unknown message type for message '{message}'.");
@@ -120,25 +110,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         throw new RpcException(new Status(StatusCode.InvalidArgument, error));
     }
-    private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, AddSubscriptionRequest request)
-    {
-        var topic = request.Subscription.TypeSubscription.TopicType;
-        var agentType = request.Subscription.TypeSubscription.AgentType;
-        _subscriptionsByAgentType[agentType] = request.Subscription;
-        _subscriptionsByTopic.GetOrAdd(topic, _ => []).Add(agentType);
-        await _subscriptions.Subscribe(topic, agentType);
-        //var response = new AddSubscriptionResponse { RequestId = request.RequestId, Error = "", Success = true };
-        Message response = new()
-        {
-            AddSubscriptionResponse = new()
-            {
-                RequestId = request.RequestId,
-                Error = "",
-                Success = true
-            }
-        };
-        await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
-    }
+
     private async ValueTask RegisterAgentTypeAsync(GrpcWorkerConnection connection, RegisterAgentTypeRequest msg)
     {
         connection.AddSupportedType(msg.Type);
@@ -146,32 +118,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         _agentsToEventsMap.TryAdd(msg.Type, new HashSet<string>(msg.Events));
 
         await _gatewayRegistry.RegisterAgentType(msg.Type, _reference).ConfigureAwait(true);
-        Message response = new()
-        {
-            RegisterAgentTypeResponse = new()
-            {
-                RequestId = msg.RequestId,
-                Error = "",
-                Success = true
-            }
-        };
-        // add a default subscription for the agent type
-        //TODO: we should consider having constraints on the namespace or at least migrate all our examples to use well typed namesspaces like com.microsoft.autogen/hello/HelloAgents etc
-        var subscriptionRequest = new AddSubscriptionRequest
-        {
-            RequestId = Guid.NewGuid().ToString(),
-            Subscription = new Subscription
-            {
-                TypeSubscription = new TypeSubscription
-                {
-                    AgentType = msg.Type,
-                    TopicType = msg.Type
-                }
-            }
-        };
-        await AddSubscriptionAsync(connection, subscriptionRequest).ConfigureAwait(true);
-
-        await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
     }
     private async ValueTask DispatchEventAsync(CloudEvent evt)
     {
