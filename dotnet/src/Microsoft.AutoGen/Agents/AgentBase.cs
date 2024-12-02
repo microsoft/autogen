@@ -43,35 +43,42 @@ public abstract class AgentBase : IAgentBase, IHandle
 
     private async ValueTask AddImplicitSubscriptionsAsync()
     {
-        var subscriptionRequest = new AddSubscriptionRequest
+        var topicTypes = new List<string>
         {
-            RequestId = Guid.NewGuid().ToString(),
-            Subscription = new Subscription
-            {
-                TypeSubscription = new TypeSubscription
-                {
-                    AgentType = this.AgentId.Type,
-                    TopicType = this.AgentId.Type + ":" + this.AgentId.Key
-                }
-            }
+            this.AgentId.Type + ":" + this.AgentId.Key,
+            this.AgentId.Type
         };
-        // explicitly wait for this to complete
-        await _runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).ConfigureAwait(true);
 
-        var subscriptionRequest2 = new AddSubscriptionRequest
+        foreach (var topicType in topicTypes)
         {
-            RequestId = Guid.NewGuid().ToString(),
-            Subscription = new Subscription
+            var subscriptionRequest = new AddSubscriptionRequest
             {
-                TypeSubscription = new TypeSubscription
+                RequestId = Guid.NewGuid().ToString(),
+                Subscription = new Subscription
                 {
-                    AgentType = this.AgentId.Type,
-                    TopicType = this.AgentId.Type
+                    TypeSubscription = new TypeSubscription
+                    {
+                        AgentType = this.AgentId.Type,
+                        TopicType = topicType
+                    }
                 }
+            };
+            // explicitly wait for this to complete
+            await _runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).ConfigureAwait(true);
+        }
+
+        // using reflection, find all methods that Handle<T> and subscribe to the topic T
+        var handleMethods = this.GetType().GetMethods().Where(m => m.Name == "Handle").ToList();
+        foreach (var method in handleMethods)
+        {
+            var eventType = method.GetParameters()[0].ParameterType;
+            var topic = EventTypes.EventsMap.FirstOrDefault(x => x.Value.Contains(eventType.Name)).Key;
+            if (topic != null)
+            {
+                Subscribe(nameof(topic));
             }
-        };
-        // explicitly wait for this to complete
-        await _runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest2 }).ConfigureAwait(true);
+        }
+
     }
     internal Task Start()
     {

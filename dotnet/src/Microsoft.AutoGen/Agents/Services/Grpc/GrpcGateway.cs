@@ -40,7 +40,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     }
     public async ValueTask BroadcastEvent(CloudEvent evt)
     {
-        // TODO: filter the workers that receive the event
         var tasks = new List<Task>(_workers.Count);
         foreach (var (_, connection) in _supportedAgentTypes)
         {
@@ -157,11 +156,32 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     }
     private async ValueTask DispatchEventAsync(CloudEvent evt)
     {
-        await BroadcastEvent(evt).ConfigureAwait(false);
-        /*
-        var topic = _clusterClient.GetStreamProvider("agents").GetStream<Event>(StreamId.Create(evt.Namespace, evt.Type));
-        await topic.OnNextAsync(evt.ToEvent());
-        */
+        // get the event type and then send to all agents that are subscribed to that event type
+        var eventType = evt.Type;
+        // ensure that we get agentTypes as an async enumerable list - try to get the value of agentTypes by topic and then cast it to an async enumerable list
+        if (_subscriptionsByTopic.TryGetValue(eventType, out var agentTypes))
+        {
+            foreach (var agentType in agentTypes)
+            {
+                if (_supportedAgentTypes.TryGetValue(agentType, out var connections))
+                {
+                    foreach (var connection in connections)
+                    {
+                        await SendMessageAsync(connection, evt).ConfigureAwait(false);
+                    }
+                }
+                else
+                {
+                    // log that no connection found for the agent type
+                    _logger.LogWarning("No connection found for agent type {agentType} while delivering event {EventType}.", agentType, eventType);
+                }
+            }
+        }
+        else
+        {
+            // log that no agent types were found
+            _logger.LogWarning("No agent types found for event type {EventType}.", eventType);
+        }
     }
     private async ValueTask DispatchRequestAsync(GrpcWorkerConnection connection, RpcRequest request)
     {
