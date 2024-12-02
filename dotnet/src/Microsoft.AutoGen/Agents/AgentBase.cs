@@ -36,6 +36,13 @@ public abstract class AgentBase : IAgentBase, IHandle
         runtime.AgentInstance = this;
         this.EventTypes = eventTypes;
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();
+        addImplicitSubscriptionsAsync().AsTask().Wait();
+        Completion = Start();
+    }
+    internal Task Completion { get; }
+
+    private async ValueTask addImplicitSubscriptionsAsync()
+    {
         var subscriptionRequest = new AddSubscriptionRequest
         {
             RequestId = Guid.NewGuid().ToString(),
@@ -48,11 +55,22 @@ public abstract class AgentBase : IAgentBase, IHandle
                 }
             }
         };
-        _runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).AsTask().Wait();
-        Completion = Start();
-    }
-    internal Task Completion { get; }
+        await _runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).ConfigureAwait(true);
 
+        var subscriptionRequest2 = new AddSubscriptionRequest
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            Subscription = new Subscription
+            {
+                TypeSubscription = new TypeSubscription
+                {
+                    AgentType = this.AgentId.Type,
+                    TopicType = this.AgentId.Type
+                }
+            }
+        };
+        await _runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest2 }).ConfigureAwait(true);
+    }
     internal Task Start()
     {
         var didSuppress = false;
