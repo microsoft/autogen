@@ -2,7 +2,7 @@ import asyncio
 from inspect import iscoroutinefunction
 from typing import Awaitable, Callable, List, Optional, Sequence, Union, cast
 
-from aioconsole import ainput
+from aioconsole import ainput  # type: ignore
 from autogen_core.base import CancellationToken
 
 from ..base import Response
@@ -18,10 +18,10 @@ InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
 # TODO: ainput doesn't seem to play nicely with jupyter.
 #       No input window appears in this case.
 async def cancellable_input(prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
-    task = asyncio.create_task(ainput(prompt))
+    task = asyncio.create_task(ainput(prompt))  # type: ignore
     if cancellation_token is not None:
-        cancellation_token.link_future(task)
-    return str(await task)
+        cancellation_token.link_future(task)  # type: ignore
+    return await task  # type: ignore
 
 
 class UserProxyAgent(BaseChatAgent):
