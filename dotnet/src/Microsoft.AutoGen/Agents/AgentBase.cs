@@ -55,6 +55,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                 }
             }
         };
+        // explicitly wait for this to complete
         await _runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).ConfigureAwait(true);
 
         var subscriptionRequest2 = new AddSubscriptionRequest
@@ -69,6 +70,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                 }
             }
         };
+        // explicitly wait for this to complete
         await _runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest2 }).ConfigureAwait(true);
     }
     internal Task Start()
