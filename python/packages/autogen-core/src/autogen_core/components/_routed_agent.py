@@ -443,7 +443,7 @@ class RoutedAgent(BaseAgent):
 
 
         class MyAgent(RoutedAgent):
-            def __init__(self):
+            def __init__(self) -> None:
                 super().__init__("MyAgent")
 
             @event

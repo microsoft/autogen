@@ -58,19 +58,20 @@ class ReplayChatCompletionClient:
             from autogen_ext.models import ReplayChatCompletionClient
             from autogen_core.components.models import UserMessage
 
-            chat_completions = [
-                "Hello, how can I assist you today?",
-                "I'm happy to help with any questions you have.",
-                "Is there anything else I can assist you with?",
-            ]
-            client = ReplayChatCompletionClient(chat_completions)
-            messages = [UserMessage(content="What can you do?", source="user")]
+            async def example() -> None:
+                chat_completions = [
+                    "Hello, how can I assist you today?",
+                    "I'm happy to help with any questions you have.",
+                    "Is there anything else I can assist you with?",
+                ]
+                client = ReplayChatCompletionClient(chat_completions)
+                messages = [UserMessage(content="What can you do?", source="user")]
 
-            async for token in client.create_stream(messages):
-                print(token, end="")  # Output: "Hello, how can I assist you today?"
+                async for token in client.create_stream(messages):
+                    print(token, end="")  # Output: "Hello, how can I assist you today?"
 
-            async for token in client.create_stream(messages):
-                print(token, end="")  # Output: "I'm happy to help with any questions you have."
+                async for token in client.create_stream(messages):
+                    print(token, end="")  # Output: "I'm happy to help with any questions you have."
 
 
 
