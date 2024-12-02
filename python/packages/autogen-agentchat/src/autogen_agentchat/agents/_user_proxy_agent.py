@@ -14,6 +14,7 @@ SyncInputFunc = Callable[[str], str]
 AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
 InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
 
+
 # TODO: ainput doesn't seem to play nicely with jupyter.
 #       No input window appears in this case.
 async def cancellable_input(prompt: str, cancellation_token: Optional[CancellationToken]) -> Awaitable[str]:
