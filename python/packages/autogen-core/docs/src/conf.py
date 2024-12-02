@@ -81,6 +81,8 @@ html_theme = "pydata_sphinx_theme"
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
 
+add_module_names = False
+
 html_logo = "_static/images/logo/logo.svg"
 html_favicon = "_static/images/logo/favicon-512x512.png"
 
@@ -88,6 +90,7 @@ html_theme_options = {
 
     "header_links_before_dropdown": 4,
     "navbar_align": "left",
+    "show_nav_level": 4,
     "check_switcher": False,
     # "navbar_start": ["navbar-logo", "version-switcher"],
     # "switcher": {

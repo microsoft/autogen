@@ -18,6 +18,7 @@ class ToolTypes(str, Enum):
 class AgentTypes(str, Enum):
     ASSISTANT = "AssistantAgent"
     USERPROXY = "UserProxyAgent"
+    MULTIMODAL_WEBSURFER = "MultimodalWebSurfer"
 
 
 class TeamTypes(str, Enum):
@@ -76,6 +77,11 @@ class AgentConfig(BaseConfig):
     tools: Optional[List[ToolConfig]] = None
     description: Optional[str] = None
     component_type: ComponentTypes = ComponentTypes.AGENT
+    headless: Optional[bool] = None
+    logs_dir: Optional[str] = None
+    to_save_screenshots: Optional[bool] = None
+    use_ocr: Optional[bool] = None
+    animate_actions: Optional[bool] = None
 
 
 class TerminationConfig(BaseConfig):
