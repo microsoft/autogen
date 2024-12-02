@@ -1,6 +1,7 @@
 import asyncio
+from aioconsole import ainput
 from inspect import iscoroutinefunction
-from typing import Awaitable, Callable, List, Optional, Sequence, Union, cast
+from typing import Awaitable, Callable, Coroutine, List, Optional, Sequence, Union, cast
 
 from autogen_core.base import CancellationToken
 
@@ -13,6 +14,11 @@ SyncInputFunc = Callable[[str], str]
 AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
 InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
 
+# TODO: ainput doesn't seem to play nicely with jupyter.
+async def cancellable_input(prompt: str, cancellation_token: Optional[CancellationToken]) -> Awaitable[str]:
+    task = asyncio.create_task(ainput(prompt))
+    cancellation_token.link_future(task)
+    return await task
 
 class UserProxyAgent(BaseChatAgent):
     """An agent that can represent a human user through an input function.
@@ -51,7 +57,7 @@ class UserProxyAgent(BaseChatAgent):
     ) -> None:
         """Initialize the UserProxyAgent."""
         super().__init__(name=name, description=description)
-        self.input_func = input_func or input
+        self.input_func = input_func or cancellable_input
         self._is_async = iscoroutinefunction(self.input_func)
 
     @property
