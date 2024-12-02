@@ -1,4 +1,6 @@
 import json
+import requests
+from github import Github
 
 EXAMPLE = {
     "thought": "**Insights:**\nYour insights on what should be the next interesting agent.\n**Overall Idea:**\nyour reasoning and the overall concept behind the agent design.\n**Implementation:**\ndescribe the implementation step by step.",
@@ -6,33 +8,59 @@ EXAMPLE = {
     "code": """def forward(self, taskInfo):
     # Your code here
     return answer
-"""
+""",
 }
 
-# COT = {
-#     "thought": "By encouraging the LLM to think step by step rather than directly outputting an answer, chain-of-thought reasoning enables complex problem-solving through intermediate steps. This practice improves the model's ability to handle tasks that require deeper reasoning and provides insight into its decision-making process.",
-#     "name": "Chain-of-Thought",
-#     "code": """def forward(self, taskInfo):
-#     # Instruction for the Chain-of-Thought (CoT) approach
-#     # It is an important practice that allows the LLM to think step by step before solving the task.
-#     cot_instruction = "Please think step by step and then solve the task."
 
-#     # Instantiate a new LLM agent specifically for CoT
-#     # To allow LLM thinking before answering, we need to set an additional output field 'thinking'.
-#     cot_agent = LLMAgentBase(['thinking', 'answer'], 'Chain-of-Thought Agent')
+def read_github_file(url):
+    response = requests.get(url)
+    if response.status_code == 200:
+        return response.text
+    else:
+        return None
 
-#     # Prepare the inputs for the CoT agent
-#     # The input should be a list of Info, and the first one is often the taskInfo
-#     cot_agent_inputs = [taskInfo]
 
-#     # Get the response from the CoT agent
-#     thinking, answer = cot_agent(cot_agent_inputs, cot_instruction)
+def print_repo_contents(repo, path="", indent=""):
+    contents = repo.get_contents(path)
+    documentation = []
+    for content_file in contents:
+        if content_file.type == "dir":
+            documentation.extend(
+                print_repo_contents(repo, content_file.path, indent + "│   ")
+            )
+        else:
+            if content_file.download_url.endswith(
+                ".md"
+            ) or content_file.download_url.endswith(".ipynb"):
+                print(f"Reading file from {content_file.download_url}")
+                f = read_github_file(content_file.download_url)
+                documentation.append(
+                    "Title: " + content_file.name + "\nContents:\n" + f
+                )
+    return documentation
 
-#     # Return only the final answer
-#     return answer
-# """
-# }
 
+# TODO: pip install pygithub
+def get_autogen_documentation():
+    repo_name = "microsoft/autogen"
+    directory_name = "python/packages/autogen-core/docs/src/user-guide/core-user-guide"
+    g = Github()
+
+    subdirectories = ["core-concepts", "framework"]
+    documentation = []
+    for subdir in subdirectories:
+        try:
+            repo = g.get_repo(repo_name)
+            documentation.extend(
+                print_repo_contents(repo, directory_name + "/" + subdir)
+            )
+        except Exception as e:
+            print(f"Error: {e}")
+    print(f"Found {len(documentation)} pages of documentation")
+    return documentation
+
+
+DOCUMENTATION = "\n".join(get_autogen_documentation())
 
 COT = {
     "thought": "By encouraging the LLM to think step by step rather than directly outputting an answer, chain-of-thought reasoning enables complex problem-solving through intermediate steps. This practice improves the model's ability to handle tasks that require deeper reasoning and provides insight into its decision-making process.",
@@ -150,7 +178,7 @@ COT = {
         return (await queue.get()).result
 
     return asyncio.run(main())
-"""
+""",
 }
 
 COT_SC = {
@@ -310,7 +338,7 @@ COT_SC = {
         return result.result
 
     return asyncio.run(main())
-"""
+""",
 }
 
 Reflexion = {
@@ -604,13 +632,13 @@ Reflexion = {
         return (await queue.get()).answer
     
     return asyncio.run(main())
-'''
+''',
 }
 
 LLM_debate = {
     "thought": "By letting different LLMs debate with each other, we can leverage their diverse perspectives to find better solutions for tasks.",
     "name": "LLM Debate",
-    "code": '''def forward(self, task, model_client_kwargs):
+    "code": """def forward(self, task, model_client_kwargs):
     import asyncio
     import json
     import logging
@@ -860,17 +888,17 @@ LLM_debate = {
         await runtime.stop_when_idle()
 
         # Return the answer from the queue
-        res = (await queue.get()).content
-        print(f"res {res}")
-        return res
+        return (await queue.get()).content
 
     return asyncio.run(main())
-'''
+""",
 }
 
-Take_a_step_back = {"thought": "Let LLM first think about the principles involved in solving this task which could be helpful. By understanding the underlying principles, the model can better reason through the problem and provide a more accurate solution.",
-                    "name": "Step-back Abstraction",
-                    "code": """def forward(self, taskInfo):
+# TODO(yeandy): Take a Step Back currently not used as a seed in the archive. Refactor using the AutoGen API
+Take_a_step_back = {
+    "thought": "Let LLM first think about the principles involved in solving this task which could be helpful. By understanding the underlying principles, the model can better reason through the problem and provide a more accurate solution.",
+    "name": "Step-back Abstraction",
+    "code": """def forward(self, taskInfo):
         # Instruction for understanding the principles involved in the task
         principle_instruction = "What are the physics, chemistry or biology principles and concepts involved in solving this task? First think step by step. Then list all involved principles and explain them."
         
@@ -887,12 +915,14 @@ Take_a_step_back = {"thought": "Let LLM first think about the principles involve
         # Use the principles to solve the task
         thinking, answer = cot_agent([taskInfo, thinking, principle], cot_instruction)
         return answer
-"""
-                    }
+""",
+}
 
-QD = {"thought": "Similar to Quality-Diversity methods, let LLM generate multiple diverse interesting solutions could help. By encouraging the model to explore different reasoning paths, we can increase the chances of finding the best solution.",
-      "name": "Quality-Diversity",
-      "code": """def forward(self, taskInfo):
+# TODO(yeandy): QD currently not used as a seed in the archive. Refactor using the AutoGen API
+QD = {
+    "thought": "Similar to Quality-Diversity methods, let LLM generate multiple diverse interesting solutions could help. By encouraging the model to explore different reasoning paths, we can increase the chances of finding the best solution.",
+    "name": "Quality-Diversity",
+    "code": """def forward(self, taskInfo):
     # Instruction for initial reasoning
     cot_initial_instruction = "Please think step by step and then solve the task."
 
@@ -925,12 +955,14 @@ QD = {"thought": "Similar to Quality-Diversity methods, let LLM generate multipl
     # Make the final decision based on all generated answers
     thinking, answer = final_decision_agent([taskInfo] + possible_answers, final_decision_instruction)
     return answer
-"""
-      }
+""",
+}
 
-Role_Assignment = {"thought": "Similar to Auto-GPT and expert prompting, we can use dynamic control flow in the design to let the agent decide what expert we should use.",
-                   "name": "Dynamic Assignment of Roles",
-                   "code": """def forward(self, taskInfo):
+# TODO(yeandy): Role Assignment currently not used as a seed in the archive. Refactor using the AutoGen API
+Role_Assignment = {
+    "thought": "Similar to Auto-GPT and expert prompting, we can use dynamic control flow in the design to let the agent decide what expert we should use.",
+    "name": "Dynamic Assignment of Roles",
+    "code": """def forward(self, taskInfo):
         # Instruction for step-by-step reasoning
         cot_instruction = "Please think step by step and then solve the task."
         expert_agents = [LLMAgentBase(['thinking', 'answer'], 'Expert Agent', role=role) for role in ['Reading Comprehension Specialist', 'Logical Reasoning Strategist', 'Multidisciplinary Knowledge Integrator', 'Helpful Assistant']]
@@ -953,16 +985,11 @@ Role_Assignment = {"thought": "Similar to Auto-GPT and expert prompting, we can 
 
         thinking, answer = expert_agents[expert_id]([taskInfo], cot_instruction)
         return answer
-"""
-                   }
+""",
+}
 
-system_prompt = lambda formatted_documentation: f"""You are a helpful assistant. You have an expert understanding of the AutoGen framework, and how to use the Python API. The API documentation are as follows: 
 
-{formatted_documentation}
-
-This is the end of the documentation.
-
-Make sure to return in a WELL-FORMED JSON object. Do not add any code blocks around the JSON object."""
+system_prompt = """You are a helpful assistant. Make sure to return in a WELL-FORMED JSON object. Do not add any code blocks around the JSON object."""
 
 base = """# Overview
 You are an expert machine learning researcher testing various agentic systems. Your objective is to design building blocks such as prompts and control flows within these systems to solve complex tasks. Your aim is to design an optimal agent performing well on the Reading Comprehension Benchmark Requiring Discrete Reasoning Over Paragraphs (DROP), which assesses the ability to perform discrete reasoning and comprehend detailed information across multiple paragraphs.
@@ -1007,9 +1034,9 @@ Here is the archive of the discovered architectures:
 The fitness value is the median and 95% Bootstrap Confidence Interval of the correct rate on a validation question set. Your GOAL is to maximize the "fitness".
 
 # Output Instruction and Example:
-The first key should be ("thought"), and it should capture your thought process for designing the next function. In the "thought" section, first reason about what should be the next interesting agent to try, then describe your reasoning and the overall concept behind the agent design, and finally detail the implementation steps.
+The first key should be ("thought"), and it should capture your thought process for designing the next function. In the "thought" section, first reason about what should be the next interesting agent to try, then describe your reasoning and the overall concept behind the agent design, and finally detail the implementation steps. Make sure to talk about the agent(s) that are supposted to start and end the system.
 The second key ("name") corresponds to the name of your next agent architecture. 
-Finally, the last key ("code") corresponds to the exact “forward()” function in Python code that you would like to try. You must write a COMPLETE CODE in "code": Your code will be part of the entire project, so please implement complete, reliable, reusable code snippets.
+The last key ("code") corresponds to the exact “forward()” function in Python code that you would like to try. You must write a COMPLETE CODE in "code": Your code will be part of the entire project, so please implement complete, reliable, reusable code snippets.
 
 Here is an example of the output format for the next agent architecture:
 
@@ -1213,6 +1240,31 @@ await ClosureAgent.register(runtime, "final_collection", collect_final_result, s
 ```
 
 8. This is WRONG: ```
+async def main():
+    queue = asyncio.Queue[FinalDecision]()
+
+    async def output_result(_runtime, _id, message, _ctx):
+        await queue.put(message)
+
+    # Closure Agent for collecting results
+    result_topic = TopicId("result", "output_result")
+    await runtime.add_subscription(TypeSubscription("result", "output_result"))
+    await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])
+```
+The function `output_result` that the `ClosureAgent` must follow the following signature: ```
+async def main():
+    async def output_result(_runtime: AgentRuntime, id: AgentId, message: Answer, ctx: MessageContext) -> None:
+        await queue.put(message)
+
+    # Closure Agent for collecting results
+    result_topic = TopicId("result", "output_result")
+    await runtime.add_subscription(TypeSubscription("result", "output_result"))
+    await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])
+```
+where the type of `message` can be whatever dataclass is used by the agent publishing the final message. In this case, it is the `Answer` dataclass.
+Additionally, the ClosureAgent MUST subscribe to a `result_topic` called `TopicId("result", "output_result")` using this line `await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])`. And the agent that publishes the final answer MUST publish to the `topic_id=TopicId("result", self.id.type)`.
+
+9. This is WRONG: ```
 await runtime.publish_message(Task(content='What is the highest mountain in the world?'), topic_id=TypeSubscription("initial_task", "worker_agent").topic_id())
 ```
 The `topic_id` needs to be a `TopicId` with or `DefaultTopicId` object. For example: ```
@@ -1225,14 +1277,14 @@ or ```
 await runtime.publish_message(Task(content='What is the highest mountain in the world?'), topic_id=DefaultTopicId())
 ```
 
-8. This is WRONG: ```
+10. This is WRONG: ```
 await OrchestratorAgent.register(runtime, "orchestrator")
 ```
 You will encounter this error "TypeError: BaseAgent.register() missing 1 required positional argument: 'factory'". The correct solution is: ```
 await OrchestratorAgent.register(runtime, "orchestrator", lambda: OrchestratorAgent())
 ```
 
-9 This is WRONG: ```
+11. This is WRONG: ```
 class OrchestratorAgent(RoutedAgent):
     pass
     
@@ -1271,7 +1323,7 @@ async def main():
 ```
 Now, you can publish directly to a specific topic through the runtime.
 
-10. This is WRONG: ```
+12. This is WRONG: ```
 class OrchestratorAgent(RoutedAgent):
     pass
     
@@ -1299,7 +1351,7 @@ async def main():
     )
 ```
 
-11. This is WRONG: ```
+13. This is WRONG: ```
 await runtime.publish_message(DiverseThoughtTask(task='Who is the most creative composer?'), AgentId("consensus_agent", "default"))
 ```
 The `publish_message` should publish to a topic. Use `TopicId` or `DefaultTopicId`. For example: ```
@@ -1326,7 +1378,7 @@ model_client = AzureOpenAIChatCompletionClient(
     },
 )
 ```
-Creating the model client using the model_client_kwargs dictionary.
+Creating the model client using the model_client_kwargs dictionary. Do not modify this part.
 
 2. This is CORRECT: ```
     async def main():
@@ -1358,7 +1410,47 @@ Creating the model client using the model_client_kwargs dictionary.
     return asyncio.run(main())
 ```
 This is the format for the `main` function. Make sure that when creating a `ClosureAgent`, you have created `queue` from which you can call `return (await queue.get()).answer` at the very end of the `main` function. The datatype of the Queue should be the final message that the agent system publishes to indicate that the system is terminating. 
-The `result_topic` should have a unique `topic_type`, which can be called "result".
+The `result_topic` should have a unique `topic_type`, which should be called "result". The agent that publishes the final message MUST publish to the same topic_id
+
+3. This is CORRECT: ```
+@default_subscription
+class Coordinator(RoutedAgent):
+
+    @message_handler
+    async def handle_response(self, message: SolverResponse, ctx: MessageContext) -> None:
+        self._buffer[message.reasoning_type] = message
+        if len(self._buffer) >= self._num_solvers:
+            selected_answer = self.decide_based_on_type(self._buffer, message.reasoning_type)
+            await self.publish_message(Answer(content=selected_answer), topic_id=TopicId('result', self.id.type))
+
+async def main():
+    queue = asyncio.Queue[Answer]()
+
+    async def output_result(_runtime: AgentRuntime, id: AgentId, message: Answer, ctx: MessageContext) -> None:
+        await queue.put(message)
+
+    runtime = SingleThreadedAgentRuntime()
+
+    await DeductiveSolver.register(runtime, "deductive_solver", lambda: DeductiveSolver(model_client))
+    await InductiveSolver.register(runtime, "inductive_solver", lambda: InductiveSolver(model_client))
+    await AbductiveSolver.register(runtime, "abductive_solver", lambda: AbductiveSolver(model_client))
+    await Coordinator.register(runtime, "coordinator", lambda: Coordinator(num_solvers=3))
+
+    result_topic = TypeSubscription(topic_type="result", agent_type="output_result")
+    await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])
+
+    runtime.start()
+    await runtime.publish_message(Question(content=task, reasoning_type='general'), DefaultTopicId())
+
+    await runtime.stop_when_idle()
+
+    return (await queue.get()).content
+```
+The `Coordinator` agent is publishing the final message. It publishes to the topic_id object `TopicId('result', self.id.type)`, where the `type` is `result`, and the `source` is `self.id.type`. This matches the result topic `TypeSubscription(topic_type="result", agent_type="output_result")`, which the `ClosureAgent` subscribes to. Importantly, the `topic_type="result"` matches the topic type "result" used in `publish_message` by the Coordinator agent.
+In other words, the ClosureAgent MUST subscribe to a `result_topic` called `TopicId("result", "output_result")` using this line `await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])`. And the agent that publishes the final answer MUST publish to the `topic_id=TopicId("result", self.id.type)`.
+
+## Documentation
+[DOCUMENTATION]
 
 # Your task
 You are deeply familiar with prompting techniques and the agent works from the literature. Your goal is to maximize the specified performance metrics by proposing interestingly new agents.
@@ -1366,9 +1458,9 @@ Observe the discovered agents carefully and think about what insights, lessons, 
 Be creative when thinking about the next interesting agent to try. You are encouraged to draw inspiration from related agent papers or academic papers from other research areas.
 Use the knowledge from the archive and inspiration from academic literature to propose the next interesting agentic system design.
 THINK OUTSIDE THE BOX.
-"""
 
-# Documentation: https://github.com/microsoft/autogen/tree/main/python/packages/autogen-core/docs/src/user-guide/core-user-guide
+Make sure to return in a WELL-FORMED JSON object. Key and values of all entries must be enclosed in double quotes " or \"\"\", and not single quotes '. Additionally, any multiline string in the JSON object should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. The JSON object itself may also be multiline, and should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. Finally, do not add any code blocks around the JSON object.
+"""
 
 
 Reflexion_prompt_1 = f""""[EXAMPLE]Carefully review the proposed new architecture and reflect on the following points:
@@ -1379,7 +1471,7 @@ Reflexion_prompt_1 = f""""[EXAMPLE]Carefully review the proposed new architectur
 - Decide whether the current architecture is innovative.
 - USE CRITICAL THINKING!
 
-2. **Implementation Mistakes**: Identify any mistakes you may have made in the implementation. Review the code carefully, debug any issues you find, and provide a corrected version. REMEMBER checking "## WRONG Implementation examples" in the prompt.
+2. **Implementation Mistakes**: Identify any mistakes you may have made in the implementation. Review the code carefully, debug any issues you find, and provide a corrected version. REMEMBER checking "## Documentation" in the prompt.
 
 3. **Improvement**: Based on the proposed architecture, suggest improvements in the detailed implementation that could increase its performance or effectiveness. In this step, focus on refining and optimizing the existing implementation without altering the overall design framework, except if you want to propose a different architecture if the current is not interesting.
 - Observe carefully about whether the implementation is actually doing what it is supposed to do.
@@ -1390,27 +1482,46 @@ And then, you need to improve or revise the implementation, or implement the new
 
 Your response should be organized as follows:
 
-"reflection": Provide your thoughts on the interestingness of the architecture, identify any mistakes in the implementation, and suggest improvements.
+"reflection": Provide your thoughts on the interestingness of the architecture, identify any mistakes in the implementation, and suggest improvements. Make sure to note which agent should publish the last message.
 
 "thought": Revise your previous proposal or propose a new architecture if necessary, using the same format as the example response.
 
 "name": Provide a name for the revised or new architecture. (Don't put words like "new" or "improved" in the name.)
 
 "code": Provide the corrected code or an improved implementation. Make sure you actually implement your fix and improvement in this code.
+
+Make sure to return in a WELL-FORMED JSON object. Key and values of all entries must be enclosed in double quotes " or \"\"\", and not single quotes '. Additionally, any multiline string in the JSON object should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. The JSON object itself may also be multiline, and should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. Finally, do not add any code blocks around the JSON object.
 """
 
 Reflexion_prompt_2 = """Using the tips in "## WRONG Implementation examples" section, revise the code further.
 Your response should be organized as follows:
 Put your new reflection thinking in "reflection". Repeat the previous "thought" and "name", and update the corrected version of the code in "code".
+
+Make sure to return in a WELL-FORMED JSON object. Key and values of all entries must be enclosed in double quotes " or \"\"\", and not single quotes '. Additionally, any multiline string in the JSON object should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. The JSON object itself may also be multiline, and should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. Finally, do not add any code blocks around the JSON object.
+"""
+
+Reflexion_prompt_3 = """Using the tips in "## CORRECT Implementation examples" section, revise the code further.
+Your response should be organized as follows:
+Put your new reflection thinking in "reflection". Repeat the previous "thought" and "name", and update the corrected version of the code in "code".
+
+Make sure to return in a WELL-FORMED JSON object. Key and values of all entries must be enclosed in double quotes " or \"\"\", and not single quotes '. Additionally, any multiline string in the JSON object should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. The JSON object itself may also be multiline, and should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. Finally, do not add any code blocks around the JSON object.
+"""
+
+Reflexion_prompt_4 = """Using the official API documentation in "## Documentation" section, revise the code further.
+Your response should be organized as follows:
+Put your new reflection thinking in "reflection". Repeat the previous "thought" and "name", and update the corrected version of the code in "code".
+
+Make sure to return in a WELL-FORMED JSON object. Key and values of all entries must be enclosed in double quotes " or \"\"\", and not single quotes '. Additionally, any multiline string in the JSON object should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. The JSON object itself may also be multiline, and should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. Finally, do not add any code blocks around the JSON object.
 """
 
 
 def get_init_archive():
-    # return [COT]#, COT_SC, Reflexion, LLM_debate, Take_a_step_back, QD, Role_Assignment]
-    # return [COT_SC]#, COT_SC, Reflexion, LLM_debate, Take_a_step_back, QD, Role_Assignment]
-    # return [Reflexion]#, COT_SC, Reflexion, LLM_debate, Take_a_step_back, QD, Role_Assignment]
-    # return [COT, COT_SC, Reflexion] # LLM_debate, Take_a_step_back, QD, Role_Assignment]
-    return [LLM_debate]
+    return [
+        COT,
+        COT_SC,
+        Reflexion,
+        LLM_debate,
+    ]  # TODO: Take_a_step_back, QD, Role_Assignment
 
 
 def get_prompt(current_archive, adaptive=False):
@@ -1418,11 +1529,17 @@ def get_prompt(current_archive, adaptive=False):
     archive_str = f"[{archive_str}]"
     prompt = base.replace("[ARCHIVE]", archive_str)
     prompt = prompt.replace("[EXAMPLE]", json.dumps(EXAMPLE))
-
+    prompt = prompt.replace("[DOCUMENTATION]", json.dumps(DOCUMENTATION))
     return system_prompt, prompt
 
 
 def get_reflexion_prompt(prev_example):
-    prev_example_str = "Here is the previous agent you tried:\n" + json.dumps(prev_example) + "\n\n"
-    r1 = Reflexion_prompt_1.replace("[EXAMPLE]", prev_example_str) if prev_example else Reflexion_prompt_1.replace("[EXAMPLE]", "")
-    return r1, Reflexion_prompt_2
+    prev_example_str = (
+        "Here is the previous agent you tried:\n" + json.dumps(prev_example) + "\n\n"
+    )
+    r1 = (
+        Reflexion_prompt_1.replace("[EXAMPLE]", prev_example_str)
+        if prev_example
+        else Reflexion_prompt_1.replace("[EXAMPLE]", "")
+    )
+    return r1, Reflexion_prompt_2, Reflexion_prompt_3, Reflexion_prompt_4
