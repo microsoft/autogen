@@ -36,12 +36,12 @@ public abstract class AgentBase : IAgentBase, IHandle
         runtime.AgentInstance = this;
         this.EventTypes = eventTypes;
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();
-        addImplicitSubscriptionsAsync().AsTask().Wait();
+        AddImplicitSubscriptionsAsync().AsTask().Wait();
         Completion = Start();
     }
     internal Task Completion { get; }
 
-    private async ValueTask addImplicitSubscriptionsAsync()
+    private async ValueTask AddImplicitSubscriptionsAsync()
     {
         var subscriptionRequest = new AddSubscriptionRequest
         {
