@@ -149,6 +149,7 @@ autodoc_default_options = {
 }
 
 autodoc_pydantic_model_show_config_summary = False
+python_use_unqualified_type_names = True
 
 intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 
