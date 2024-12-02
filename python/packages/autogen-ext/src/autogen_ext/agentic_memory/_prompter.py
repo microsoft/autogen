@@ -93,7 +93,7 @@ class Prompter:
         self._chat_history = []
 
     async def learn_from_failure(self, task_description, memory_section, final_response, expected_answer,
-                                 work_history, final_format_instructions):
+                                 work_history, final_format_instructions, insights):
         # Try to create an insight to help avoid this failure in the future.
 
         sys_message = """- You are a patient and thorough teacher.
@@ -138,6 +138,11 @@ class Prompter:
             details="to state the misconception")
 
         user_message = ["Please express your key insights in the form of short, general advice that will be given to the students. Just one or two sentences, or they won't bother to read it."]
+        # if len(insights) > 0:
+        #     memory_section = "\n## The following insights and advice were given to the students previously, but they didn't help. So do not repeat any of the following:\n"
+        #     for insight in insights:
+        #         memory_section += ('- ' + insight + '\n')
+        #     user_message.append(memory_section)
 
         insight, page = await self.call_model(
             system_message=sys_message,

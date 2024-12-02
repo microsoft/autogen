@@ -21,8 +21,57 @@ from autogen_ext.agentic_memory import AgenticMemory, PageLog
 
 
 USE_AGENTIC_MEMORY = 1  # 1 = Assign task to AgenticMemory instead of directly to the completion agent
-CREATE_NEW_MEMORIES = 1  # 1 = Let AgenticMemory try to create new memories
-RESET_MEMORY = 1  # 1 = Reset the memory before starting each task
+
+PATH_TO_ARCHIVE_DIR = "~/agentic_memory_archive"
+
+
+def define_tasks_with_answers():
+    tasks_with_answers = []
+
+    # Task index 0
+    tasks_with_answers.append({
+        "task": """You ask 100 people: 'How many of you are liars?' They all answer: 'At least one of us is not a liar.' But you know that at least one of the 100 is a liar. How many of them are liars? 
+
+The final line of your response must contain nothing but the answer as a number.""",
+        "expected_answer": "100"})
+
+    # Task index 1
+    tasks_with_answers.append({
+        "task": """You are Van Helsing, a renowned vampire hunter. A Count of Moldova, La\u021bcu IV, son of  Costea, has tasked you with investigating the village of \u0218irnea in neighboring Wallachia. The Count's advisors have reported that a vampire was spotted crossing the border near the village, and would like you to investigate it.
+
+You travel to the village of \u0218irnea, and you begin your investigation. One night, just before dawn, you catch a glimpse of a man in a long black cape with red lining leaping from roof-top to roof-top with superhuman agility. It's a vampire! You try to chase the creature back to its home, but the creature is too fast. However, because of the remoteness of the village, you know with absolute certainty that the vampire must be a resident of the village. You decide that your best course of action will be to visit all 100 residents of the town during the day. You know something about vampires and humans that will make your investigation possible; humans always tell the truth, but vampires always lie.
+
+In the afternoon, you go from house to house, speaking with all 100 residents of \u0218irnea. You ask everyone the same question: \"How many vampires are living in \u0218irnea\". Everyone in the village gives the same response, \"At least one of us is a human.\"\n\nHow many residents of \u0218irnea have been turned into vampires?
+
+The final line of your response must contain nothing but the answer as a number.""",
+        "expected_answer": "100"})
+
+    # Task index 2
+    tasks_with_answers.append({
+        "task": """Three guards stand at a door. You need to determine how many of them are truthful, and you already know that one of them is not. You ask each one 'How many guards here tell the truth?' Each one says 'One or more of us always tells the truth'. How many of the guards tell the truth?
+
+The final line of your response must contain nothing but the answer as a number.""",
+        "expected_answer": "3"})
+
+    return tasks_with_answers
+
+
+def create_client():
+    # Create an OpenAI client
+    model_name = "gpt-4o-2024-05-13"
+    temp = 0.1
+    max_tokens = 4096
+    client = OpenAIChatCompletionClient(
+        model=model_name,
+        api_key="",
+        temperature=temp,
+        max_tokens=max_tokens,
+        presence_penalty=0.0,
+        frequency_penalty=0.0,
+        top_p=1.0,
+        max_retries=65535,
+    )
+    return client
 
 
 async def assign_task_to_magentic_one(task, model_client, page_log) -> Tuple[str, str]:
@@ -66,12 +115,17 @@ async def assign_task_to_magentic_one(task, model_client, page_log) -> Tuple[str
     final_response = final_message_lines[-1]
 
     page_log.finish_page(page)
-
     return final_response, work_history
 
 
 async def assign_task_to_client(task, client, page_log):
-    # The client is a ChatCompletionClient. Pass the task to it, and return the response.
+    page = page_log.begin_page(
+        summary="assign_task_to_client",
+        details='',
+        method_call="assign_task_to_client")
+
+    page.add_lines(task)
+
     system_message = SystemMessage(content="""You are a helpful and thoughtful assistant.
 In responding to every user message, you follow the same multi-step process given here:
 1. Explain your understanding of the user message in detail, covering all the important points.
@@ -97,61 +151,90 @@ In responding to every user message, you follow the same multi-step process give
     # The final line contains the answer. Extract it.
     answer = response_lines[-1]
 
+    page_log.finish_page(page)
     return answer, response.content
 
 
-async def task_assignment_callback(task, client, page_log) -> str:
-    page = page_log.begin_page(
-        summary="task_assignment_callback",
-        details='',
-        method_call="task_assignment_callback")
+async def train(task_with_answer, max_train_trials, max_test_trials, task_assignment_callback, reset_memory,
+                client, page_log) -> None:
+    memory = AgenticMemory(reset=reset_memory, client=client, page_log=page_log, path_to_archive_dir=PATH_TO_ARCHIVE_DIR)
+    await memory.train_on_task(
+        task=task_with_answer["task"],
+        expected_answer=task_with_answer["expected_answer"],
+        task_assignment_callback=task_assignment_callback,
+        final_format_instructions="",
+        max_train_trials=max_train_trials,
+        max_test_trials=max_test_trials)
 
-    # Send the task to an agent, team or client.
-    # response, work_history = await assign_task_to_client(task.strip(), client, page_log)
-    response, work_history = await assign_task_to_magentic_one(task.strip(), client, page_log)
 
-    page.update_details("  " + response)
-    page_log.finish_page(page)
-    return response, work_history
+async def test(task_with_answer, num_trials, task_assignment_callback, reset_memory,
+               client, page_log) -> Tuple[str, int, int]:
+    memory = AgenticMemory(reset=reset_memory, client=client, page_log=page_log, path_to_archive_dir=PATH_TO_ARCHIVE_DIR)
+    response, num_successes, num_trials = await memory.test_on_task(
+        task=task_with_answer["task"],
+        expected_answer=task_with_answer["expected_answer"],
+        task_assignment_callback=task_assignment_callback,
+        num_trials=num_trials)
+    return response, num_successes, num_trials
+
+
+async def train_and_test(task_index, max_train_trials, max_test_trials, task_assignment_callback, page_log):
+    tasklist = define_tasks_with_answers()
+    task_with_answer = tasklist[task_index]
+
+    num_loops = 10
+    total_num_successes = 0
+    total_num_trials = 0
+    for i in range(num_loops):
+        await train(
+            task_with_answer=task_with_answer,
+            max_train_trials=max_train_trials,
+            max_test_trials=max_test_trials,
+            task_assignment_callback=task_assignment_callback,
+            reset_memory=True,
+            client=create_client(),
+            page_log=page_log)
+        last_response, num_successes, num_trials = await test(
+            task_with_answer=task_with_answer,
+            num_trials=max_test_trials,
+            task_assignment_callback=task_assignment_callback,
+            reset_memory=False,
+            client=create_client(),
+            page_log=page_log)
+        print("SUCCESS RATE:  {}%\n".format(round((num_successes / num_trials) * 100)))
+        total_num_successes += num_successes
+        total_num_trials += num_trials
+    return total_num_successes, total_num_trials
+
+
+async def test_on_task_with_memory(task_index, task_assignment_callback, page_log, num_trials, reset_memory):
+    last_response, num_successes, num_trials = await test(
+        task_with_answer=define_tasks_with_answers()[task_index],
+        num_trials=num_trials,
+        task_assignment_callback=task_assignment_callback,
+        reset_memory=reset_memory,
+        client=create_client(),
+        page_log=page_log)
+    print("SUCCESS RATE:  {}%\n".format(round((num_successes / num_trials) * 100)))
 
 
 async def main() -> None:
-    # Select the task
-    task = """You ask 100 people: 'How many of you are liars?' They all answer: 'At least one of us is not a liar.' But you know that at least one of the 100 is a liar. How many of them are liars? The final line of your response must contain nothing but the answer as a number."""
-    expected_answer = "100"
-
-    # Create the OpenAI client
-    model_name = "gpt-4o-2024-05-13"
-    temp = 0.1
-    max_tokens = 4096
-    client = OpenAIChatCompletionClient(
-        model=model_name,
-        api_key="",
-        temperature=temp,
-        max_tokens=max_tokens,
-        presence_penalty=0.0,
-        frequency_penalty=0.0,
-        top_p=1.0,
-        max_retries=65535,
-    )
-
-    # Create the PageLog.
-    page_log = PageLog("~/pagelogs/", "m1")
+    # Create the PageLog. (This is optional)
+    page_log = PageLog("~/pagelogs/", "code_sample")
     page = page_log.begin_page(
         summary="main",
         details='',
         method_call="main")
-    page_log.append_entry_line(f"Using  {model_name} on OAI, temp={temp}, max_tokens={max_tokens}")
 
-    if USE_AGENTIC_MEMORY:
-        memory = AgenticMemory(reset=RESET_MEMORY, client=client, page_log=page_log, path_to_archive_dir="~/agentic_memory_archive")
-        prepared_response = await memory.assign_task(
-            task, expected_answer, CREATE_NEW_MEMORIES, task_assignment_callback, final_format_instructions="")
-    else:
-        prepared_response, _ = await task_assignment_callback(task, client, page_log)
+    task_index = 1
+    task_assignment_callback = assign_task_to_magentic_one  # assign_task_to_client or assign_task_to_magentic_one
 
-    print("FINAL RESPONSE AFTER LEARNING:  ", prepared_response)
-    page.add_lines(prepared_response)
+    # await test_on_task_with_memory(task_index, task_assignment_callback, page_log, num_trials=3, reset_memory=True)
+
+    num_successes, num_trials = await train_and_test(task_index, 10, 3, task_assignment_callback, page_log)
+    success_rate = round((num_successes / num_trials) * 100)
+    page.add_lines("\nOverall success rate:  {}%\n".format(success_rate), flush=True)
+
     page_log.flush(final=True)  # Finalize the page log
     page_log.finish_page(page)
 
