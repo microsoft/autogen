@@ -16,7 +16,7 @@ await app.WaitForShutdownAsync();
 
 namespace Hello
 {
-    [TopicSubscription("HelloAgents")]
+    [TopicSubscription("agents")]
     public class HelloAgent(
         IAgentRuntime context, IHostApplicationLifetime hostApplicationLifetime,
         [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(

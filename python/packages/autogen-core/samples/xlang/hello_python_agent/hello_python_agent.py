@@ -47,7 +47,7 @@ async def main() -> None:
 
     await runtime.publish_message(
         message=message,
-        topic_id=DefaultTopicId("agents.NewMessageReceived"),
+        topic_id=DefaultTopicId("agents.NewMessageReceived","HelloAgents/python"),
         sender=AgentId("HelloAgents", "python"),
     )
     await runtime.stop_when_signal()

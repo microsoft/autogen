@@ -118,10 +118,23 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         throw new RpcException(new Status(StatusCode.InvalidArgument, error));
     }
+
+    // agentype:rpc_request={requesting_agent_id}
+    // {genttype}:rpc_response={request_id}
     private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, AddSubscriptionRequest request)
     {
-        var topic = request.Subscription.TypeSubscription.TopicType;
-        var agentType = request.Subscription.TypeSubscription.AgentType;
+        var topic = "";
+        var agentType="";
+        if(request.Subscription.TypePrefixSubscription is not null)
+        {
+            topic = request.Subscription.TypePrefixSubscription.TopicTypePrefix;
+            agentType = request.Subscription.TypePrefixSubscription.AgentType;
+        }
+        else if(request.Subscription.TypeSubscription is not null)
+        {
+            topic = request.Subscription.TypeSubscription.TopicType;
+            agentType = request.Subscription.TypeSubscription.AgentType;
+        }
         _subscriptionsByAgentType[agentType] = request.Subscription;
         _subscriptionsByTopic.GetOrAdd(topic, _ => []).Add(agentType);
         await _subscriptions.Subscribe(topic, agentType);
@@ -161,27 +174,41 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         // ensure that we get agentTypes as an async enumerable list - try to get the value of agentTypes by topic and then cast it to an async enumerable list
         if (_subscriptionsByTopic.TryGetValue(eventType, out var agentTypes))
         {
-            foreach (var agentType in agentTypes)
-            {
-                if (_supportedAgentTypes.TryGetValue(agentType, out var connections))
+            await DispatchEventToAgentsAsync(agentTypes, evt);
+        }
+        // instead of an exact match, we can also check for a prefix match where key starts with the eventType
+        else if (_subscriptionsByTopic.Keys.Any(key => key.StartsWith(eventType)))  
+        {
+            _subscriptionsByTopic.Where(
+                kvp => kvp.Key.StartsWith(eventType))
+                .SelectMany(kvp => kvp.Value)
+                .Distinct()
+                .ToList()
+                .ForEach(async agentType =>
                 {
-                    foreach (var connection in connections)
-                    {
-                        await SendMessageAsync(connection, evt).ConfigureAwait(false);
-                    }
-                }
-                else
-                {
-                    // log that no connection found for the agent type
-                    _logger.LogWarning("No connection found for agent type {agentType} while delivering event {EventType}.", agentType, eventType);
-                }
-            }
+                    await DispatchEventToAgentsAsync(new List<string> { agentType }, evt).ConfigureAwait(false);
+                });
         }
         else
         {
             // log that no agent types were found
             _logger.LogWarning("No agent types found for event type {EventType}.", eventType);
         }
+    }
+    private async ValueTask DispatchEventToAgentsAsync(IEnumerable<string> agentTypes, CloudEvent evt)
+    {
+        var tasks = new List<Task>(agentTypes.Count());
+        foreach (var agentType in agentTypes)
+        {
+            if (_supportedAgentTypes.TryGetValue(agentType, out var connections))
+            {
+                foreach (var connection in connections)
+                {
+                    tasks.Add(this.SendMessageAsync(connection, evt));
+                }
+            }
+        }
+        await Task.WhenAll(tasks).ConfigureAwait(false);
     }
     private async ValueTask DispatchRequestAsync(GrpcWorkerConnection connection, RpcRequest request)
     {
