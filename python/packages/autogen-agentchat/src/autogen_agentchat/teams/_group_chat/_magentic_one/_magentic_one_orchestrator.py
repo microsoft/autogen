@@ -48,6 +48,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         max_turns: int | None,
         model_client: ChatCompletionClient,
         max_stalls: int,
+        final_answer_prompt: str,
         termination_condition: TerminationCondition | None,
     ):
         super().__init__(
@@ -60,6 +61,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         )
         self._model_client = model_client
         self._max_stalls = max_stalls
+        self._final_answer_prompt = final_answer_prompt
         self._name = "MagenticOneOrchestrator"
         self._max_json_retries = 10
         self._task = ""
@@ -95,7 +97,10 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         return ORCHESTRATOR_TASK_LEDGER_PLAN_UPDATE_PROMPT.format(team=team)
 
     def _get_final_answer_prompt(self, task: str) -> str:
-        return ORCHESTRATOR_FINAL_ANSWER_PROMPT.format(task=task)
+        if self._final_answer_prompt == ORCHESTRATOR_FINAL_ANSWER_PROMPT:
+            return ORCHESTRATOR_FINAL_ANSWER_PROMPT.format(task=task)
+        else:
+            return self._final_answer_prompt
 
     async def _log_message(self, log_message: str) -> None:
         trace_logger.debug(log_message)
