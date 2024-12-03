@@ -100,7 +100,7 @@ class Swarm(BaseGroupChat):
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import Swarm
-            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.conditions import MaxMessageTermination
 
 
             async def main() -> None:
@@ -127,7 +127,7 @@ class Swarm(BaseGroupChat):
             asyncio.run(main())
 
 
-    Using the :class:`~autogen_agentchat.task.HandoffTermination` for human-in-the-loop handoff:
+    Using the :class:`~autogen_agentchat.conditions.HandoffTermination` for human-in-the-loop handoff:
 
         .. code-block:: python
 
@@ -135,7 +135,8 @@ class Swarm(BaseGroupChat):
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import Swarm
-            from autogen_agentchat.task import HandoffTermination, Console, MaxMessageTermination
+            from autogen_agentchat.conditions import HandoffTermination, MaxMessageTermination
+            from autogen_agentchat.ui import Console
             from autogen_agentchat.messages import HandoffMessage
 
 
