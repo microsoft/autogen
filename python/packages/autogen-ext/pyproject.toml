@@ -29,6 +29,11 @@ web-surfer = [
     "playwright>=1.48.0",
     "pillow>=11.0.0",
 ]
+magentic-one = [
+    "markitdown>=0.0.1a2",
+    "playwright>=1.48.0",
+    "pillow>=11.0.0",
+]
 video-surfer = [
     "autogen-agentchat==0.4.0.dev8",
     "opencv-python>=4.5",
