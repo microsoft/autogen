@@ -200,7 +200,7 @@ public abstract class Agent : IDisposable
     /// <param name="method">The method to call.</param>
     /// <param name="parameters">The parameters for the method.</param>
     /// <returns>A task representing the asynchronous operation, containing the RPC response.</returns>
-    protected async Task<RpcResponse> RequestAsync(AgentId target, string method, Dictionary<string, string> parameters)
+    public async Task<RpcResponse> RequestAsync(AgentId target, string method, Dictionary<string, string> parameters)
     {
         var requestId = Guid.NewGuid().ToString();
         var request = new RpcRequest

@@ -1,16 +1,29 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // TestAgent.cs
 
+using System.Collections.Concurrent;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Tests.Events;
 
 namespace Microsoft.AutoGen.Core.Tests;
 
-public class TestAgent(EventTypes eventTypes, ILogger<Agent>? logger = null)
-    : Agent(eventTypes, logger), IHandle<GoodBye>
+public class TestAgent([FromKeyedServices("EventTypes")] EventTypes eventTypes, ILogger<Agent>? logger = null)
+    : Agent(eventTypes, logger)
+    , IHandle<GoodBye>
+    , IHandle<TextMessage>
 {
     public Task Handle(GoodBye item, CancellationToken cancellationToken)
     {
-        throw new NotImplementedException();
+        _logger.LogInformation($"Received GoodBye message {item.Message}");
+        return Task.CompletedTask;
     }
+
+    public Task Handle(TextMessage item, CancellationToken cancellationToken = default)
+    {
+        ReceivedMessages[item.Source] = item.Message;
+        return Task.CompletedTask;
+    }
+
+    public static ConcurrentDictionary<string, object> ReceivedMessages { get; private set; } = new();
 }

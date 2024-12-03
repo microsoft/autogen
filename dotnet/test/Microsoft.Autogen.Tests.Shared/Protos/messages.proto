@@ -4,7 +4,7 @@ package tests;
 
 option csharp_namespace = "Tests.Events";
 message TextMessage {
-    string textMessage = 1;
+    string message = 1;
     string source = 2;
 }
 message Input {
