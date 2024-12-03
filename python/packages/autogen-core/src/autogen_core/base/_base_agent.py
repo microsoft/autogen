@@ -4,7 +4,7 @@ import inspect
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Tuple, Type, TypeVar
+from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Tuple, Type, TypeVar, final
 
 from typing_extensions import Self
 
@@ -108,8 +108,12 @@ class BaseAgent(ABC, Agent):
     def runtime(self) -> AgentRuntime:
         return self._runtime
 
+    @final
+    async def on_message(self, message: Any, ctx: MessageContext) -> Any:
+        return await self.on_message_impl(message, ctx)
+
     @abstractmethod
-    async def on_message(self, message: Any, ctx: MessageContext) -> Any: ...
+    async def on_message_impl(self, message: Any, ctx: MessageContext) -> Any: ...
 
     async def send_message(
         self,
