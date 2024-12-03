@@ -12,9 +12,9 @@ from autogen_core.components import DefaultSubscription, DefaultTopicId, TypeSub
 # Add the local package directory to sys.path
 thisdir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(thisdir, "..", ".."))
-from dotenv import load_dotenv
-from protos.agent_events_pb2 import NewMessageReceived, Output  # type: ignore
-from user_input import UserProxy
+from dotenv import load_dotenv  # type: ignore # noqa: E402
+from protos.agent_events_pb2 import NewMessageReceived, Output  # type: ignore # noqa: E402
+from user_input import UserProxy  # type: ignore # noqa: E402
 
 agnext_logger = logging.getLogger("autogen_core")
 
