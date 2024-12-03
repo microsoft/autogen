@@ -23,7 +23,7 @@ class TerminationCondition(ABC):
         .. code-block:: python
 
             import asyncio
-            from autogen_agentchat.task import MaxMessageTermination, TextMentionTermination
+            from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
 
 
             async def main() -> None:
