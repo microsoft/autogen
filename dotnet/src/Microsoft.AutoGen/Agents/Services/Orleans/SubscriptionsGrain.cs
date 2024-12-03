@@ -15,7 +15,7 @@ internal sealed class SubscriptionsGrain([PersistentState("state", "PubSubStore"
         }
         return new ValueTask<Dictionary<string, List<string>>>(_subscriptions);
     }
-    public ValueTask Subscribe(string agentType, string topic)
+    public async ValueTask SubscribeAsync(string agentType, string topic)
     {
         if (!_subscriptions.TryGetValue(topic, out var subscriptions))
         {
@@ -27,11 +27,9 @@ internal sealed class SubscriptionsGrain([PersistentState("state", "PubSubStore"
         }
         _subscriptions[topic] = subscriptions;
         state.State.Subscriptions = _subscriptions;
-        state.WriteStateAsync();
-
-        return ValueTask.CompletedTask;
+        await state.WriteStateAsync().ConfigureAwait(false);
     }
-    public ValueTask Unsubscribe(string agentType, string topic)
+    public async ValueTask UnsubscribeAsync(string agentType, string topic)
     {
         if (!_subscriptions.TryGetValue(topic, out var subscriptions))
         {
@@ -43,8 +41,7 @@ internal sealed class SubscriptionsGrain([PersistentState("state", "PubSubStore"
         }
         _subscriptions[topic] = subscriptions;
         state.State.Subscriptions = _subscriptions;
-        state.WriteStateAsync();
-        return ValueTask.CompletedTask;
+        await state.WriteStateAsync();
     }
 }
 public sealed class SubscriptionsState
