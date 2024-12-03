@@ -26,6 +26,7 @@ class MagenticOneGroupChat(BaseGroupChat):
             Without a termination condition, the group chat will run based on the orchestrator logic or until the maximum number of turns is reached.
         max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to 20.
         max_stalls (int, optional): The maximum number of stalls allowed before re-planning. Defaults to 3.
+        final_answer_prompt (str, optional): The LLM prompt used to generate the final answer or response from the team's transcript. A default (sensible for GPT-4o class models) is provided.
 
     Raises:
         ValueError: In orchestration logic if progress ledger does not have required keys or if next speaker is not valid.
