@@ -3,19 +3,16 @@ import logging
 import os
 import sys
 
-thisdir = os.path.dirname(os.path.abspath(__file__))
-sys.path.append(os.path.join(thisdir, "..", ".."))
-
 from autogen_core.application import WorkerAgentRuntime
-from protos.agent_events_pb2 import NewMessageReceived
 
 # from protos.agents_events_pb2 import NewMessageReceived
-from autogen_core.base import AgentId, try_get_known_serializers_for_type, PROTOBUF_DATA_CONTENT_TYPE
+from autogen_core.base import PROTOBUF_DATA_CONTENT_TYPE, AgentId, try_get_known_serializers_for_type
 from autogen_core.components import DefaultSubscription, DefaultTopicId
 
 # Add the local package directory to sys.path
 # sys.path.append(os.path.abspath('../../../../python/packages/autogen-core'))
 from dotenv import load_dotenv
+from protos.agent_events_pb2 import NewMessageReceived
 from user_input import UserProxy
 
 agnext_logger = logging.getLogger("autogen_core")
@@ -47,7 +44,7 @@ async def main() -> None:
 
     await runtime.publish_message(
         message=message,
-        topic_id=DefaultTopicId("agents.NewMessageReceived","HelloAgents/python"),
+        topic_id=DefaultTopicId("agents.NewMessageReceived", "HelloAgents/python"),
         sender=AgentId("HelloAgents", "python"),
     )
     await runtime.stop_when_signal()
