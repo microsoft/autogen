@@ -82,7 +82,7 @@ dev-dependencies = [
 
 [tool.ruff]
 extend = "../../pyproject.toml"
-exclude = ["build", "dist", "src/autogen_core/application/protos", "tests/protos"]
+exclude = ["build", "dist", "src/autogen_core/application/protos", "tests/protos", "samples/protos"]
 include = ["src/**", "samples/*.py", "docs/**/*.ipynb", "tests/**"]
 
 [tool.ruff.lint.per-file-ignores]
