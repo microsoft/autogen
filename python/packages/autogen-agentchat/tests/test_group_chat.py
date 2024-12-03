@@ -12,7 +12,6 @@ from autogen_agentchat.agents import (
     CodeExecutorAgent,
 )
 from autogen_agentchat.base import Handoff, Response, TaskResult
-from autogen_agentchat.logging import FileLogHandler
 from autogen_agentchat.messages import (
     AgentMessage,
     ChatMessage,
@@ -41,6 +40,7 @@ from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall, Function
 from openai.types.completion_usage import CompletionUsage
+from utils import FileLogHandler
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 logger.setLevel(logging.DEBUG)
