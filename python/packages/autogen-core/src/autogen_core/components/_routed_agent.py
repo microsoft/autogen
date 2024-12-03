@@ -470,7 +470,7 @@ class RoutedAgent(BaseAgent):
 
         super().__init__(description)
 
-    async def on_message(self, message: Any, ctx: MessageContext) -> Any | None:
+    async def on_message_impl(self, message: Any, ctx: MessageContext) -> Any | None:
         """Handle a message by routing it to the appropriate message handler.
         Do not override this method in subclasses. Instead, add message handlers as methods decorated with
         either the :func:`event` or :func:`rpc` decorator."""
