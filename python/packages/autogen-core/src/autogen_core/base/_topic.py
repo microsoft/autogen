@@ -26,7 +26,7 @@ class TopicId:
 
     def __post_init__(self) -> None:
         if is_valid_topic_type(self.type) is False:
-            raise ValueError(f"Invalid topic type: {self.type}")
+            raise ValueError(f"Invalid topic type: {self.type}. Must match the pattern: ^[\\w\\-\\.\\:\\=]+\\Z")
 
     def __str__(self) -> str:
         return f"{self.type}/{self.source}"
