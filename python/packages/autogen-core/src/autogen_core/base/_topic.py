@@ -24,7 +24,7 @@ class TopicId:
     Learn more here: https://github.com/cloudevents/spec/blob/main/cloudevents/spec.md#source-1
     """
 
-    def __post_init__(self):
+    def __post_init__(self) -> None:
         if is_valid_topic_type(self.type) is False:
             raise ValueError(f"Invalid topic type: {self.type}")
 
