@@ -31,7 +31,6 @@ resolution-markers = [
     "python_full_version >= '3.12.4' and platform_machine == 'aarch64' and platform_system == 'Linux'",
     "(python_full_version >= '3.12' and python_full_version < '3.12.4' and platform_machine != 'aarch64' and platform_system != 'Darwin') or (python_full_version >= '3.12' and python_full_version < '3.12.4' and platform_system != 'Darwin' and platform_system != 'Linux')",
     "(python_full_version >= '3.12.4' and platform_machine != 'aarch64' and platform_system != 'Darwin') or (python_full_version >= '3.12.4' and platform_system != 'Darwin' and platform_system != 'Linux')",
-    "python_version < '0'",
 ]
 
 [manifest]
@@ -487,22 +486,14 @@ azure = [
     { name = "azure-core" },
     { name = "azure-identity" },
 ]
-azure-code-executor = [
-    { name = "azure-core" },
-]
 docker = [
-    { name = "docker" },
-]
-docker-code-executor = [
     { name = "docker" },
 ]
 langchain = [
     { name = "langchain-core" },
 ]
-langchain-tools = [
-    { name = "langchain-core" },
-]
 openai = [
+    { name = "aiofiles" },
     { name = "openai" },
 ]
 video-surfer = [
@@ -518,16 +509,14 @@ web-surfer = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aiofiles", marker = "extra == 'openai'" },
     { name = "autogen-agentchat", marker = "extra == 'video-surfer'", editable = "packages/autogen-agentchat" },
     { name = "autogen-core", editable = "packages/autogen-core" },
     { name = "azure-core", marker = "extra == 'azure'" },
-    { name = "azure-core", marker = "extra == 'azure-code-executor'" },
     { name = "azure-identity", marker = "extra == 'azure'" },
     { name = "docker", marker = "extra == 'docker'", specifier = "~=7.0" },
-    { name = "docker", marker = "extra == 'docker-code-executor'", specifier = "~=7.0" },
     { name = "ffmpeg-python", marker = "extra == 'video-surfer'" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = "~=0.3.3" },
-    { name = "langchain-core", marker = "extra == 'langchain-tools'", specifier = "~=0.3.3" },
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.3" },
     { name = "openai-whisper", marker = "extra == 'video-surfer'" },
     { name = "opencv-python", marker = "extra == 'video-surfer'", specifier = ">=4.5" },
