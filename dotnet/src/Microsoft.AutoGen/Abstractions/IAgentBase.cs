@@ -2,7 +2,6 @@
 // IAgentBase.cs
 
 using Google.Protobuf;
-using CloudNative.CloudEvents.V1;
 
 namespace Microsoft.AutoGen.Abstractions;
 

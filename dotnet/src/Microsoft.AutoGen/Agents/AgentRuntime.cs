@@ -3,10 +3,10 @@
 
 using System.Diagnostics;
 using Microsoft.AutoGen.Abstractions;
+using static Microsoft.AutoGen.Abstractions.CloudEvent.Types;
 using Microsoft.Extensions.Logging;
-using CloudNative.CloudEvents.V1;
+
 using Google.Protobuf.Collections;
-using static CloudNative.CloudEvents.V1.CloudEvent.Types;
 
 namespace Microsoft.AutoGen.Agents;
 

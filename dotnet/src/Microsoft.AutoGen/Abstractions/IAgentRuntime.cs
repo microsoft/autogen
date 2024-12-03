@@ -2,7 +2,6 @@
 // IAgentRuntime.cs
 
 using System.Diagnostics;
-using CloudNative.CloudEvents.V1;
 
 namespace Microsoft.AutoGen.Abstractions;
 

@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IAgentWorker.cs
-using CloudNative.CloudEvents.V1;
-
 namespace Microsoft.AutoGen.Abstractions;
 
 public interface IAgentWorker

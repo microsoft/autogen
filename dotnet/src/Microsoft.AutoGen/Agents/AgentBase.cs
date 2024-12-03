@@ -9,7 +9,6 @@ using System.Threading.Channels;
 using Google.Protobuf;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Logging;
-using CloudNative.CloudEvents.V1;
 
 namespace Microsoft.AutoGen.Agents;
 

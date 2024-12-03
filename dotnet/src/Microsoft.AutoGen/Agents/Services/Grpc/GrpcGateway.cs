@@ -6,7 +6,6 @@ using Grpc.Core;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using CloudNative.CloudEvents.V1;
 
 namespace Microsoft.AutoGen.Agents;
 

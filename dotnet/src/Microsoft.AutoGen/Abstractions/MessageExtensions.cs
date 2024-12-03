@@ -3,7 +3,6 @@
 
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
-using CloudNative.CloudEvents.V1;
 
 namespace Microsoft.AutoGen.Abstractions;
 
