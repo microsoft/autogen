@@ -164,7 +164,7 @@ class BaseGroupChat(Team, ABC):
     async def run(
         self,
         *,
-        task: str | ChatMessage | None = None,
+        task: str | ChatMessage | list[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the team and return the result. The base implementation uses
@@ -172,7 +172,7 @@ class BaseGroupChat(Team, ABC):
         Once the team is stopped, the termination condition is reset.
 
         Args:
-            task (str | ChatMessage | None): The task to run the team with.
+            task (str | ChatMessage | list[ChatMessage] | None): The task to run the team with. Can be a string, a single message, or a list of messages.
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
@@ -263,7 +263,7 @@ class BaseGroupChat(Team, ABC):
     async def run_stream(
         self,
         *,
-        task: str | ChatMessage | None = None,
+        task: str | ChatMessage | list[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
@@ -271,7 +271,7 @@ class BaseGroupChat(Team, ABC):
         team is stopped, the termination condition is reset.
 
         Args:
-            task (str | ChatMessage | None): The task to run the team with.
+            task (str | ChatMessage | list[ChatMessage] | None): The task to run the team with. Can be a string, a single message, or a list of messages.
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
@@ -360,8 +360,17 @@ class BaseGroupChat(Team, ABC):
             pass
         elif isinstance(task, str):
             first_chat_message = TextMessage(content=task, source="user")
-        elif isinstance(task, TextMessage | MultiModalMessage | StopMessage | HandoffMessage):
+        elif isinstance(task, (TextMessage, MultiModalMessage, StopMessage, HandoffMessage)):
             first_chat_message = task
+        elif isinstance(task, list):
+            if not task:
+                raise ValueError("Task list cannot be empty")
+            if not all(isinstance(msg, (TextMessage, MultiModalMessage, StopMessage, HandoffMessage)) for msg in task):
+                raise ValueError("All messages in task list must be valid ChatMessage types")
+            first_chat_message = task[0]
+            # Queue remaining messages for processing
+            for msg in task[1:]:
+                await self._output_message_queue.put(msg)
         else:
             raise ValueError(f"Invalid task type: {type(task)}")
 
