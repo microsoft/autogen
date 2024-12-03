@@ -21,12 +21,13 @@ message CloudEvent {
   // Optional & Extension Attributes
   map<string, CloudEventAttributeValue> attributes = 5;
   map<string, string> metadata = 6;
+  string datacontenttype = 7; // MIME type
 
   // -- CloudEvent Data (Bytes, Text, or Proto)
   oneof  data {
-    bytes binary_data = 7;
-    string text_data = 8;
-    google.protobuf.Any proto_data = 9;
+    bytes binary_data = 8;
+    string text_data = 9;
+    google.protobuf.Any proto_data = 10;
   }
 
   /**

@@ -18,7 +18,6 @@ builder.AddPythonApp("HelloAgentsPython", "../../../../python/packages/autogen-c
     .WithEnvironment("STAY_ALIVE_ON_GOODBYE", "true")
     .WithEnvironment("GRPC_DNS_RESOLVER", "native")
     .WithOtlpExporter()
-    .WaitFor(backend)
     .WaitFor(client);
 #pragma warning restore ASPIREHOSTINGPYTHON001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 using var app = builder.Build();

@@ -13,7 +13,7 @@ from autogen_core.components import DefaultSubscription, DefaultTopicId, TypeSub
 thisdir = os.path.dirname(os.path.abspath(__file__))
 sys.path.append(os.path.join(thisdir, "..", ".."))
 from dotenv import load_dotenv
-from protos.agent_events_pb2 import NewMessageReceived # type: ignore
+from protos.agent_events_pb2 import NewMessageReceived, Output # type: ignore
 from user_input import UserProxy
 
 agnext_logger = logging.getLogger("autogen_core")
@@ -39,14 +39,23 @@ async def main() -> None:
 
     await UserProxy.register(runtime, "HelloAgents", lambda: UserProxy())
     await runtime.add_subscription(DefaultSubscription(agent_type="HelloAgents"))
-    await runtime.add_subscription(TypeSubscription(topic_id=DefaultTopicId("agents.NewMessageReceived", "HelloAgents/python")))
+    await runtime.add_subscription(TypeSubscription(topic_type="agents.NewMessageReceived", agent_type="HelloAgents"))
+    await runtime.add_subscription(TypeSubscription(topic_type="agents.ConversationClosed", agent_type="HelloAgents"))
+    await runtime.add_subscription(TypeSubscription(topic_type="agents.Output", agent_type="HelloAgents"))
     agnext_logger.info("3")
 
-    message = NewMessageReceived(message="Hello from Python!")
+    new_message = NewMessageReceived(message="from Python!")
+    output_message = Output(message="^v^v^v---Wild Hello from Python!---^v^v^v")
+    
+    await runtime.publish_message(
+        message=new_message,
+        topic_id=DefaultTopicId("agents.NewMessageReceived", "HelloAgents/python"),
+        sender=AgentId("HelloAgents", "python"),
+    )
 
     await runtime.publish_message(
-        message=message,
-        topic_id=DefaultTopicId("agents.NewMessageReceived", "HelloAgents/python"),
+        message=output_message,
+        topic_id=DefaultTopicId("agents.Output", "HelloAgents/python"),
         sender=AgentId("HelloAgents", "python"),
     )
     await runtime.stop_when_signal()
