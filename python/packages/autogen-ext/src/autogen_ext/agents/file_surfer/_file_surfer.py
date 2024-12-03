@@ -31,6 +31,8 @@ from ._tool_definitions import (
 
 
 class FileSurfer(BaseChatAgent):
+    """An agent, used by MagenticOne, that acts as a local file previewer. FileSurfer can open and read a variety of common file types, and can navigate the local file hierarchy."""
+
     DEFAULT_DESCRIPTION = "An agent that can handle local files."
 
     DEFAULT_SYSTEM_MESSAGES = [
@@ -45,6 +47,14 @@ class FileSurfer(BaseChatAgent):
         model_client: ChatCompletionClient,
         description: str = DEFAULT_DESCRIPTION,
     ) -> None:
+        """
+        Initialize the FileSurfer.
+
+        Args:
+            name (str): The agent's name
+            model_client (ChatCompletionClient): The model to use (must be tool-use enabled)
+            description (str): The agent's description used by the team. Defaults to DEFAULT_DESCRIPTION
+        """
         super().__init__(name, description)
         self._model_client = model_client
         self._chat_history: List[LLMMessage] = []
@@ -123,6 +133,7 @@ class FileSurfer(BaseChatAgent):
         response = create_result.content
 
         if isinstance(response, str):
+            # Answer directly.
             return False, response
 
         elif isinstance(response, list) and all(isinstance(item, FunctionCall) for item in response):
