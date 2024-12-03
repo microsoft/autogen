@@ -17,7 +17,6 @@ public static class MessageExtensions
             Type = message.Descriptor.FullName,
             Source = source,
             Id = Guid.NewGuid().ToString(),
-            Datacontenttype = PROTO_DATA_CONTENT_TYPE,
             Attributes = { { "datacontenttype", new CloudEvent.Types.CloudEventAttributeValue { CeString = PROTO_DATA_CONTENT_TYPE } } }
         };
     }
