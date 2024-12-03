@@ -17,6 +17,7 @@ import "google/protobuf/timestamp.proto";
 
 option csharp_namespace = "Microsoft.AutoGen.Abstractions";
 
+
 message CloudEvent {
 
   // -- CloudEvent Context Attributes
@@ -38,9 +39,9 @@ message CloudEvent {
   }
 
   /**
-  * The CloudEvent specification defines
-  * seven attribute value types...
-  */
+   * The CloudEvent specification defines
+   * seven attribute value types...
+   */
 
   message CloudEventAttributeValue {
 
