@@ -175,7 +175,7 @@ class BaseGroupChat(Team, ABC):
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
-                To gracefully stop the team, use :class:`~autogen_agentchat.task.ExternalTermination` instead.
+                To gracefully stop the team, use :class:`~autogen_agentchat.conditions.ExternalTermination` instead.
 
         Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
 
@@ -184,7 +184,7 @@ class BaseGroupChat(Team, ABC):
 
             import asyncio
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.conditions import MaxMessageTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_ext.models import OpenAIChatCompletionClient
 
@@ -214,7 +214,7 @@ class BaseGroupChat(Team, ABC):
 
             import asyncio
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.conditions import MaxMessageTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_core.base import CancellationToken
             from autogen_ext.models import OpenAIChatCompletionClient
@@ -274,7 +274,7 @@ class BaseGroupChat(Team, ABC):
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
-                To gracefully stop the team, use :class:`~autogen_agentchat.task.ExternalTermination` instead.
+                To gracefully stop the team, use :class:`~autogen_agentchat.conditions.ExternalTermination` instead.
 
         Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
 
@@ -282,7 +282,7 @@ class BaseGroupChat(Team, ABC):
 
             import asyncio
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.conditions import MaxMessageTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_ext.models import OpenAIChatCompletionClient
 
@@ -314,7 +314,8 @@ class BaseGroupChat(Team, ABC):
 
             import asyncio
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.task import MaxMessageTermination, Console
+            from autogen_agentchat.conditions import MaxMessageTermination
+            from autogen_agentchat.ui import Console
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_core.base import CancellationToken
             from autogen_ext.models import OpenAIChatCompletionClient
@@ -432,7 +433,7 @@ class BaseGroupChat(Team, ABC):
 
             import asyncio
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.conditions import MaxMessageTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_ext.models import OpenAIChatCompletionClient
 

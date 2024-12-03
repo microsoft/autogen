@@ -115,7 +115,8 @@ To use Azure OpenAI models, follow the instruction
 ```python
 import asyncio
 from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.task import Console, TextMentionTermination
+from autogen_agentchat.ui import Console
+from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_ext.models import OpenAIChatCompletionClient
 

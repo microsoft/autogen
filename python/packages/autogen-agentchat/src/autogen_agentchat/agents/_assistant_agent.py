@@ -106,7 +106,7 @@ class AssistantAgent(BaseChatAgent):
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.messages import TextMessage
-            from autogen_agentchat.task import Console
+            from autogen_agentchat.ui import Console
             from autogen_core.base import CancellationToken
 
 

@@ -12,6 +12,7 @@ from autogen_agentchat.agents import (
     CodeExecutorAgent,
 )
 from autogen_agentchat.base import Handoff, Response, TaskResult
+from autogen_agentchat.conditions import HandoffTermination, MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.messages import (
     AgentMessage,
     ChatMessage,
@@ -22,12 +23,12 @@ from autogen_agentchat.messages import (
     ToolCallMessage,
     ToolCallResultMessage,
 )
-from autogen_agentchat.task import Console, HandoffTermination, MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.teams import (
     RoundRobinGroupChat,
     SelectorGroupChat,
     Swarm,
 )
+from autogen_agentchat.ui import Console
 from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall
 from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
