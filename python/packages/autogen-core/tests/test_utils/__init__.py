@@ -57,5 +57,5 @@ class NoopAgent(BaseAgent):
     def __init__(self) -> None:
         super().__init__("A no op agent")
 
-    async def on_message(self, message: Any, ctx: MessageContext) -> Any:
+    async def on_message_impl(self, message: Any, ctx: MessageContext) -> Any:
         raise NotImplementedError

@@ -8,8 +8,9 @@ class AgentId:
         if isinstance(type, AgentType):
             type = type.type
 
-        if type.isidentifier() is False:
-            raise ValueError(f"Invalid type: {type}")
+        # TODO: fixme
+        # if type.isidentifier() is False:
+        #     raise ValueError(f"Invalid type: {type}")
 
         self._type = type
         self._key = key

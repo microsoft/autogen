@@ -29,13 +29,11 @@ class AgentProxy:
         self,
         message: Any,
         *,
-        sender: AgentId,
         cancellation_token: CancellationToken | None = None,
     ) -> Any:
         return await self._runtime.send_message(
             message,
             recipient=self._agent,
-            sender=sender,
             cancellation_token=cancellation_token,
         )
 

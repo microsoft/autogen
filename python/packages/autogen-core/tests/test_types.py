@@ -5,7 +5,7 @@ from typing import Any, List, Optional, Union
 from autogen_core.base import MessageContext
 from autogen_core.base._serialization import has_nested_base_model
 from autogen_core.base._type_helpers import AnyType, get_types
-from autogen_core.components._routed_agent import message_handler
+from autogen_core.components._routed_agent import RoutedAgent, message_handler
 from pydantic import BaseModel
 
 
@@ -21,7 +21,7 @@ def test_get_types() -> None:
 
 
 def test_handler() -> None:
-    class HandlerClass:
+    class HandlerClass(RoutedAgent):
         @message_handler()
         async def handler(self, message: int, ctx: MessageContext) -> Any:
             return None
@@ -37,7 +37,7 @@ def test_handler() -> None:
     assert HandlerClass.handler2.produces_types == [NoneType]
 
 
-class HandlerClass:
+class HandlerClass(RoutedAgent):
     @message_handler()
     async def handler(self, message: int, ctx: MessageContext) -> Any:
         return None
