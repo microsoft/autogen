@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IGateway.cs
 using Microsoft.AutoGen.Abstractions;
+using CloudNative.CloudEvents.V1;
 
 namespace Microsoft.AutoGen.Agents;
 

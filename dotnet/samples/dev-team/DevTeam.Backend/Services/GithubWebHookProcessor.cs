@@ -10,6 +10,7 @@ using Octokit.Webhooks.Events;
 using Octokit.Webhooks.Events.IssueComment;
 using Octokit.Webhooks.Events.Issues;
 using Octokit.Webhooks.Models;
+using CloudNative.CloudEvents.V1;
 
 namespace DevTeam.Backend;
 

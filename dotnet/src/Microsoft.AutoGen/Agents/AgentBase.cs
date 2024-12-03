@@ -9,6 +9,7 @@ using System.Threading.Channels;
 using Google.Protobuf;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Logging;
+using CloudNative.CloudEvents.V1;
 
 namespace Microsoft.AutoGen.Agents;
 
@@ -104,7 +105,7 @@ public abstract class AgentBase : IAgentBase, IHandle
         {
             case Message.MessageOneofCase.CloudEvent:
                 {
-                    var activity = this.ExtractActivity(msg.CloudEvent.Type, msg.CloudEvent.Metadata);
+                    var activity = this.ExtractActivity(msg.CloudEvent.Type, msg.CloudEvent.Attributes);
                     await this.InvokeWithActivityAsync(
                         static ((AgentBase Agent, CloudEvent Item) state, CancellationToken _) => state.Agent.CallHandler(state.Item),
                         (this, msg.CloudEvent),
