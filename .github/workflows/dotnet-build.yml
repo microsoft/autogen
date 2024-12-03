@@ -37,19 +37,15 @@ jobs:
           filters: |
             dotnet:
               - "dotnet/**"
+              - "protos/**"
             workflows:
               - ".github/workflows/**"
-            protos:
-              - "protos/**"
       - name: dotnet has changes
         run: echo "dotnet has changes"
         if: steps.filter.outputs.dotnet == 'true'
       - name: workflows has changes
         run: echo "workflows has changes"
         if: steps.filter.outputs.workflows == 'true'
-      - name: protos has changes
-        run: echo "protos has changes"
-        if: steps.filter.outputs.protos == 'true'
   build:
     name: Dotnet Build
     needs: paths-filter
