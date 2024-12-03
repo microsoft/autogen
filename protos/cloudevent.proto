@@ -1,12 +1,26 @@
+// https://github.com/cloudevents/spec/blob/main/cloudevents/formats/cloudevents.proto
+
+/**
+ * CloudEvent Protobuf Format
+ *
+ * - Required context attributes are explicitly represented.
+ * - Optional and Extension context attributes are carried in a map structure.
+ * - Data may be represented as binary, text, or protobuf messages.
+ */
+
 syntax = "proto3";
 
-package cloudevent;
+package io.cloudevents.v1;
 
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
-option csharp_namespace = "Microsoft.AutoGen.Abstractions";
-
+option csharp_namespace = "CloudNative.CloudEvents.V1";
+option go_package = "cloudevents.io/genproto/v1";
+option java_package = "io.cloudevents.v1.proto";
+option java_multiple_files = true;
+option php_namespace = "Io\\CloudEvents\\V1\\Proto";
+option ruby_package = "Io::CloudEvents::V1::Proto";
 
 message CloudEvent {
 
@@ -20,19 +34,18 @@ message CloudEvent {
 
   // Optional & Extension Attributes
   map<string, CloudEventAttributeValue> attributes = 5;
-  map<string, string> metadata = 6;
 
   // -- CloudEvent Data (Bytes, Text, or Proto)
   oneof  data {
-    bytes binary_data = 7;
-    string text_data = 8;
-    google.protobuf.Any proto_data = 9;
+    bytes binary_data = 6;
+    string text_data = 7;
+    google.protobuf.Any proto_data = 8;
   }
 
   /**
-   * The CloudEvent specification defines
-   * seven attribute value types...
-   */
+  * The CloudEvent specification defines
+  * seven attribute value types...
+  */
 
   message CloudEventAttributeValue {
 
@@ -46,4 +59,13 @@ message CloudEvent {
       google.protobuf.Timestamp ce_timestamp = 7;
     }
   }
+}
+
+/**
+* CloudEvent Protobuf Batch Format
+*
+*/
+
+message CloudEventBatch {
+  repeated CloudEvent events = 1;
 }

@@ -16,24 +16,22 @@ from google.protobuf import any_pb2 as google_dot_protobuf_dot_any__pb2
 from google.protobuf import timestamp_pb2 as google_dot_protobuf_dot_timestamp__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10\x63loudevent.proto\x12\ncloudevent\x1a\x19google/protobuf/any.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8b\x05\n\nCloudEvent\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06source\x18\x02 \x01(\t\x12\x14\n\x0cspec_version\x18\x03 \x01(\t\x12\x0c\n\x04type\x18\x04 \x01(\t\x12:\n\nattributes\x18\x05 \x03(\x0b\x32&.cloudevent.CloudEvent.AttributesEntry\x12\x36\n\x08metadata\x18\x06 \x03(\x0b\x32$.cloudevent.CloudEvent.MetadataEntry\x12\x15\n\x0b\x62inary_data\x18\x07 \x01(\x0cH\x00\x12\x13\n\ttext_data\x18\x08 \x01(\tH\x00\x12*\n\nproto_data\x18\t \x01(\x0b\x32\x14.google.protobuf.AnyH\x00\x1a\x62\n\x0f\x41ttributesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12>\n\x05value\x18\x02 \x01(\x0b\x32/.cloudevent.CloudEvent.CloudEventAttributeValue:\x02\x38\x01\x1a/\n\rMetadataEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x1a\xd3\x01\n\x18\x43loudEventAttributeValue\x12\x14\n\nce_boolean\x18\x01 \x01(\x08H\x00\x12\x14\n\nce_integer\x18\x02 \x01(\x05H\x00\x12\x13\n\tce_string\x18\x03 \x01(\tH\x00\x12\x12\n\x08\x63\x65_bytes\x18\x04 \x01(\x0cH\x00\x12\x10\n\x06\x63\x65_uri\x18\x05 \x01(\tH\x00\x12\x14\n\nce_uri_ref\x18\x06 \x01(\tH\x00\x12\x32\n\x0c\x63\x65_timestamp\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x00\x42\x06\n\x04\x61ttrB\x06\n\x04\x64\x61taB!\xaa\x02\x1eMicrosoft.AutoGen.Abstractionsb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x10\x63loudevent.proto\x12\x11io.cloudevents.v1\x1a\x19google/protobuf/any.proto\x1a\x1fgoogle/protobuf/timestamp.proto\"\xb0\x04\n\nCloudEvent\x12\n\n\x02id\x18\x01 \x01(\t\x12\x0e\n\x06source\x18\x02 \x01(\t\x12\x14\n\x0cspec_version\x18\x03 \x01(\t\x12\x0c\n\x04type\x18\x04 \x01(\t\x12\x41\n\nattributes\x18\x05 \x03(\x0b\x32-.io.cloudevents.v1.CloudEvent.AttributesEntry\x12\x15\n\x0b\x62inary_data\x18\x06 \x01(\x0cH\x00\x12\x13\n\ttext_data\x18\x07 \x01(\tH\x00\x12*\n\nproto_data\x18\x08 \x01(\x0b\x32\x14.google.protobuf.AnyH\x00\x1ai\n\x0f\x41ttributesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x45\n\x05value\x18\x02 \x01(\x0b\x32\x36.io.cloudevents.v1.CloudEvent.CloudEventAttributeValue:\x02\x38\x01\x1a\xd3\x01\n\x18\x43loudEventAttributeValue\x12\x14\n\nce_boolean\x18\x01 \x01(\x08H\x00\x12\x14\n\nce_integer\x18\x02 \x01(\x05H\x00\x12\x13\n\tce_string\x18\x03 \x01(\tH\x00\x12\x12\n\x08\x63\x65_bytes\x18\x04 \x01(\x0cH\x00\x12\x10\n\x06\x63\x65_uri\x18\x05 \x01(\tH\x00\x12\x14\n\nce_uri_ref\x18\x06 \x01(\tH\x00\x12\x32\n\x0c\x63\x65_timestamp\x18\x07 \x01(\x0b\x32\x1a.google.protobuf.TimestampH\x00\x42\x06\n\x04\x61ttrB\x06\n\x04\x64\x61ta\"@\n\x0f\x43loudEventBatch\x12-\n\x06\x65vents\x18\x01 \x03(\x0b\x32\x1d.io.cloudevents.v1.CloudEventB\x8b\x01\n\x17io.cloudevents.v1.protoP\x01Z\x1a\x63loudevents.io/genproto/v1\xaa\x02\x1a\x43loudNative.CloudEvents.V1\xca\x02\x17Io\\CloudEvents\\V1\\Proto\xea\x02\x1aIo::CloudEvents::V1::Protob\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
 _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'cloudevent_pb2', _globals)
 if _descriptor._USE_C_DESCRIPTORS == False:
   _globals['DESCRIPTOR']._options = None
-  _globals['DESCRIPTOR']._serialized_options = b'\252\002\036Microsoft.AutoGen.Abstractions'
+  _globals['DESCRIPTOR']._serialized_options = b'\n\027io.cloudevents.v1.protoP\001Z\032cloudevents.io/genproto/v1\252\002\032CloudNative.CloudEvents.V1\312\002\027Io\\CloudEvents\\V1\\Proto\352\002\032Io::CloudEvents::V1::Proto'
   _globals['_CLOUDEVENT_ATTRIBUTESENTRY']._options = None
   _globals['_CLOUDEVENT_ATTRIBUTESENTRY']._serialized_options = b'8\001'
-  _globals['_CLOUDEVENT_METADATAENTRY']._options = None
-  _globals['_CLOUDEVENT_METADATAENTRY']._serialized_options = b'8\001'
-  _globals['_CLOUDEVENT']._serialized_start=93
-  _globals['_CLOUDEVENT']._serialized_end=744
-  _globals['_CLOUDEVENT_ATTRIBUTESENTRY']._serialized_start=375
-  _globals['_CLOUDEVENT_ATTRIBUTESENTRY']._serialized_end=473
-  _globals['_CLOUDEVENT_METADATAENTRY']._serialized_start=475
-  _globals['_CLOUDEVENT_METADATAENTRY']._serialized_end=522
-  _globals['_CLOUDEVENT_CLOUDEVENTATTRIBUTEVALUE']._serialized_start=525
-  _globals['_CLOUDEVENT_CLOUDEVENTATTRIBUTEVALUE']._serialized_end=736
+  _globals['_CLOUDEVENT']._serialized_start=100
+  _globals['_CLOUDEVENT']._serialized_end=660
+  _globals['_CLOUDEVENT_ATTRIBUTESENTRY']._serialized_start=333
+  _globals['_CLOUDEVENT_ATTRIBUTESENTRY']._serialized_end=438
+  _globals['_CLOUDEVENT_CLOUDEVENTATTRIBUTEVALUE']._serialized_start=441
+  _globals['_CLOUDEVENT_CLOUDEVENTATTRIBUTEVALUE']._serialized_end=652
+  _globals['_CLOUDEVENTBATCH']._serialized_start=662
+  _globals['_CLOUDEVENTBATCH']._serialized_end=726
 # @@protoc_insertion_point(module_scope)
