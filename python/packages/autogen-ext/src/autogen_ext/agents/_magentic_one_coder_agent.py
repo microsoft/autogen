@@ -1,10 +1,9 @@
+from autogen_agentchat.agents import AssistantAgent
 from autogen_core.components.models import (
     ChatCompletionClient,
 )
 
-from autogen_agentchat.agents import AssistantAgent
-
-MAGENTIC_ONE_CODER_DESCRIPTION = "A helpful and general-purpose AI assistant that has strong language skills, Python skills, and Linux command line skills." 
+MAGENTIC_ONE_CODER_DESCRIPTION = "A helpful and general-purpose AI assistant that has strong language skills, Python skills, and Linux command line skills."
 
 MAGENTIC_ONE_CODER_SYSTEM_MESSAGE = """You are a helpful AI assistant.
 Solve tasks using your coding and language skills.
@@ -18,8 +17,9 @@ If the result indicates there is an error, fix the error and output the code aga
 When you find an answer, verify the answer carefully. Include verifiable evidence in your response if possible.
 Reply "TERMINATE" in the end when everything is done."""
 
+
 class MagenticOneCoderAgent(AssistantAgent):
-    """An agent, used by MagenticOne that provides coding assistance using an LLM model client. 
+    """An agent, used by MagenticOne that provides coding assistance using an LLM model client.
 
     The prompts and description are sealed, to replicate the original MagenticOne configuration. See AssistantAgent if you wish to modify these values.
     """
@@ -29,4 +29,9 @@ class MagenticOneCoderAgent(AssistantAgent):
         name: str,
         model_client: ChatCompletionClient,
     ):
-        super().__init__(name, model_client, description=MAGENTIC_ONE_CODER_DESCRIPTION, system_message=MAGENTIC_ONE_CODER_SYSTEM_MESSAGE)
+        super().__init__(
+            name,
+            model_client,
+            description=MAGENTIC_ONE_CODER_DESCRIPTION,
+            system_message=MAGENTIC_ONE_CODER_SYSTEM_MESSAGE,
+        )
