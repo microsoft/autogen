@@ -71,7 +71,8 @@ class RoundRobinGroupChat(BaseGroupChat):
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_agentchat.task import TextMentionTermination, Console
+            from autogen_agentchat.conditions import TextMentionTermination
+            from autogen_agentchat.ui import Console
 
 
             async def main() -> None:
@@ -100,7 +101,8 @@ class RoundRobinGroupChat(BaseGroupChat):
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_agentchat.task import TextMentionTermination, Console
+            from autogen_agentchat.conditions import TextMentionTermination
+            from autogen_agentchat.ui import Console
 
 
             async def main() -> None:
