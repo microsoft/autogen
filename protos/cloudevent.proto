@@ -21,7 +21,6 @@ message CloudEvent {
   // Optional & Extension Attributes
   map<string, CloudEventAttributeValue> attributes = 5;
   map<string, string> metadata = 6;
-
   // -- CloudEvent Data (Bytes, Text, or Proto)
   oneof  data {
     bytes binary_data = 7;

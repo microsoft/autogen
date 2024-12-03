@@ -201,20 +201,61 @@ public sealed class GrpcAgentWorker(
             //var state = agentType.BaseType?.GetGenericArguments().First();
             var topicTypes = agentType.GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
 
-            // TODO: Reimplement registration as RPC call
-            _logger.LogInformation($"{cancellationToken.ToString}"); // TODO: remove this
-            var response = await _client.RegisterAgentAsync(new RegisterAgentTypeRequest
+            //TODO: do something with the response (like retry on error)
+            await WriteChannelAsync(new Message
             {
-                Type = type,
-                RequestId = Guid.NewGuid().ToString(),
-                //TopicTypes = { topicTypes },
-                //StateType = state?.Name,
-                Events = { events }
-            }, null, null, cancellationToken);
+                RegisterAgentTypeRequest = new RegisterAgentTypeRequest
+                {
+                    Type = type,
+                    RequestId = Guid.NewGuid().ToString(),
+                    //TopicTypes = { topicTypes },
+                    //StateType = state?.Name,
+                    //Events = { events }
+                }
+            }, cancellationToken).ConfigureAwait(false);
+
+            foreach (var topic in topicTypes)
+            {
+                var subscriptionRequest = new Message
+                {
+                    AddSubscriptionRequest = new AddSubscriptionRequest
+                    {
+                        RequestId = Guid.NewGuid().ToString(),
+                        Subscription = new Subscription
+                        {
+                            TypeSubscription = new TypeSubscription
+                            {
+                                AgentType = type,
+                                TopicType = topic
+                            }
+                        }
+                    }
+                };
+                await WriteChannelAsync(subscriptionRequest, cancellationToken).ConfigureAwait(true);
+                foreach (var e in events)
+                {
+                    subscriptionRequest = new Message
+                    {
+                        AddSubscriptionRequest = new AddSubscriptionRequest
+                        {
+                            RequestId = Guid.NewGuid().ToString(),
+                            Subscription = new Subscription
+                            {
+                                TypeSubscription = new TypeSubscription
+                                {
+                                    AgentType = type,
+                                    TopicType = topic + "." + e
+                                }
+                            }
+                        }
+                    };
+                    await WriteChannelAsync(subscriptionRequest, cancellationToken).ConfigureAwait(true);
+                }
+            }
         }
     }
-
-    public async ValueTask SendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
+    // new is intentional
+    public new async ValueTask SendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
     {
         await WriteChannelAsync(new Message { Response = response }, cancellationToken).ConfigureAwait(false);
     }

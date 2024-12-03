@@ -41,8 +41,11 @@ namespace HelloAgent
         {
             var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
             var evt = new Output { Message = goodbye };
-            await PublishEventAsync(evt).ConfigureAwait(true);
-            await PublishEventAsync(new Shutdown()).ConfigureAwait(false);
+            await PublishMessageAsync(evt).ConfigureAwait(true);
+            if (Environment.GetEnvironmentVariable("STAY_ALIVE_ON_GOODBYE") != "true")
+            {
+                await PublishMessageAsync(new Shutdown()).ConfigureAwait(false);
+            }
         }
 
         public async Task Handle(Shutdown item, CancellationToken cancellationToken = default)

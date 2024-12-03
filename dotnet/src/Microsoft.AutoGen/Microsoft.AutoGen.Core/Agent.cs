@@ -56,9 +56,50 @@ public abstract class Agent : IDisposable
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<Agent>();
         // get all Handle<T> methods
         _handlersByMessageType = new(GetType().GetHandlersLookupTable());
+            AddImplicitSubscriptionsAsync().AsTask().Wait();
+        Completion = Start();
     }
+    internal Task Completion { get; }
 
-  
+    private async ValueTask AddImplicitSubscriptionsAsync()
+    {
+        var topicTypes = new List<string>
+        {
+            this.AgentId.Type + ":" + this.AgentId.Key,
+            this.AgentId.Type
+        };
+
+        foreach (var topicType in topicTypes)
+        {
+            var subscriptionRequest = new AddSubscriptionRequest
+            {
+                RequestId = Guid.NewGuid().ToString(),
+                Subscription = new Subscription
+                {
+                    TypeSubscription = new TypeSubscription
+                    {
+                        AgentType = this.AgentId.Type,
+                        TopicType = topicType
+                    }
+                }
+            };
+            // explicitly wait for this to complete
+            await _runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).ConfigureAwait(true);
+        }
+
+        // using reflection, find all methods that Handle<T> and subscribe to the topic T
+        var handleMethods = this.GetType().GetMethods().Where(m => m.Name == "Handle").ToList();
+        foreach (var method in handleMethods)
+        {
+            var eventType = method.GetParameters()[0].ParameterType;
+            var topic = EventTypes.EventsMap.FirstOrDefault(x => x.Value.Contains(eventType.Name)).Key;
+            if (topic != null)
+            {
+                Subscribe(nameof(topic));
+            }
+        }
+
+    }
     /// <summary>
     /// Starts the message pump for the agent.
     /// </summary>

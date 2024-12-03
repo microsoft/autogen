@@ -14,6 +14,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageVersion Include="Aspire.Hosting" Version="9.0.0" />
+    <PackageVersion Include="Aspire.Hosting.Python" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.Authentication.ApiKey" Version="8.0.1" />
     <PackageVersion Include="Aspire.Azure.AI.OpenAI" Version="8.0.1-preview.8.24267.1" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.0.0" />
