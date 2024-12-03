@@ -39,7 +39,8 @@ class VideoSurferAgent(AssistantAgent):
 
 
             import asyncio
-            from autogen_agentchat.task import Console, TextMentionTermination
+            from autogen_agentchat.ui import Console
+            from autogen_agentchat.conditions import TextMentionTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_ext.agents.video_surfer import VideoSurferAgent
@@ -72,7 +73,7 @@ class VideoSurferAgent(AssistantAgent):
 
             import asyncio
 
-            from autogen_agentchat.task import Console
+            from autogen_agentchat.ui import Console
             from autogen_agentchat.teams import MagenticOneGroupChat
             from autogen_agentchat.agents import UserProxyAgent
             from autogen_ext.models import OpenAIChatCompletionClient
