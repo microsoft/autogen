@@ -7,6 +7,7 @@ from .... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ....base import ChatAgent, TerminationCondition
 from .._base_group_chat import BaseGroupChat
 from ._magentic_one_orchestrator import MagenticOneOrchestrator
+from ._prompts import ORCHESTRATOR_FINAL_ANSWER_PROMPT
 
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -64,6 +65,7 @@ class MagenticOneGroupChat(BaseGroupChat):
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = 20,
         max_stalls: int = 3,
+        final_answer_prompt: str = ORCHESTRATOR_FINAL_ANSWER_PROMPT,
     ):
         super().__init__(
             participants,
@@ -77,6 +79,7 @@ class MagenticOneGroupChat(BaseGroupChat):
             raise ValueError("At least one participant is required for MagenticOneGroupChat.")
         self._model_client = model_client
         self._max_stalls = max_stalls
+        self._final_answer_prompt = final_answer_prompt
 
     def _create_group_chat_manager_factory(
         self,
@@ -95,5 +98,6 @@ class MagenticOneGroupChat(BaseGroupChat):
             max_turns,
             self._model_client,
             self._max_stalls,
+            self._final_answer_prompt,
             termination_condition,
         )
