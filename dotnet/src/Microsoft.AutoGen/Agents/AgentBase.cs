@@ -36,6 +36,7 @@ public abstract class AgentBase : IAgentBase, IHandle
         runtime.AgentInstance = this;
         this.EventTypes = eventTypes;
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();
+        // TODO: Remove from constructor
         var subscriptionRequest = new AddSubscriptionRequest
         {
             RequestId = Guid.NewGuid().ToString(),
@@ -124,6 +125,15 @@ public abstract class AgentBase : IAgentBase, IHandle
                 break;
             case Message.MessageOneofCase.Response:
                 OnResponseCore(msg.Response);
+                break;
+            case Message.MessageOneofCase.RegisterAgentTypeResponse:
+                _logger.LogInformation($"Got {msg.MessageCase} with payload {msg.RegisterAgentTypeResponse}"); // TODO: Refactor registration to be part of the AgentRpc service
+                break;
+            case Message.MessageOneofCase.AddSubscriptionResponse:
+                _logger.LogInformation($"Got {msg.MessageCase} with payload {msg.AddSubscriptionResponse}");// TODO: Refactor add subscription to be part of the AgentRpc service
+                break;
+            default:
+                _logger.LogInformation($"Got {msg.MessageCase}");
                 break;
         }
     }
@@ -258,36 +268,34 @@ public abstract class AgentBase : IAgentBase, IHandle
     public Task CallHandler(CloudEvent item)
     {
         // Only send the event to the handler if the agent type is handling that type
-        // foreach of the keys in the EventTypes.EventsMap[] if it contains the item.type
-        foreach (var key in EventTypes.EventsMap.Keys)
+        // and belongs to the same AgentId
+        if (EventTypes.EventsMap[GetType()].Contains(item.Type) &&
+                item.Source == AgentId.Key)
         {
-            if (EventTypes.EventsMap[key].Contains(item.Type))
-            {
-                var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
-                var convertedPayload = Convert.ChangeType(payload, EventTypes.Types[item.Type]);
-                var genericInterfaceType = typeof(IHandle<>).MakeGenericType(EventTypes.Types[item.Type]);
+            var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
+            var convertedPayload = Convert.ChangeType(payload, EventTypes.Types[item.Type]);
+            var genericInterfaceType = typeof(IHandle<>).MakeGenericType(EventTypes.Types[item.Type]);
 
-                MethodInfo methodInfo;
-                try
+            MethodInfo methodInfo;
+            try
+            {
+                // check that our target actually implements this interface, otherwise call the default static
+                if (genericInterfaceType.IsAssignableFrom(this.GetType()))
                 {
-                    // check that our target actually implements this interface, otherwise call the default static
-                    if (genericInterfaceType.IsAssignableFrom(this.GetType()))
-                    {
-                        methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle), BindingFlags.Public | BindingFlags.Instance)
-                                       ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
-                        return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
-                    }
-                    else
-                    {
-                        // The error here is we have registered for an event that we do not have code to listen to
-                        throw new InvalidOperationException($"No handler found for event '{item.Type}'; expecting IHandle<{item.Type}> implementation.");
-                    }
+                    methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle), BindingFlags.Public | BindingFlags.Instance)
+                                   ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
+                    return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogError(ex, $"Error invoking method {nameof(IHandle<object>.Handle)}");
-                    throw; // TODO: ?
+                    // The error here is we have registered for an event that we do not have code to listen to
+                    throw new InvalidOperationException($"No handler found for event '{item.Type}'; expecting IHandle<{item.Type}> implementation.");
                 }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error invoking method {nameof(IHandle<object>.Handle)}");
+                throw; // TODO: ?
             }
         }
 

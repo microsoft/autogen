@@ -23,6 +23,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     public readonly ConcurrentDictionary<IConnection, IConnection> _workers = new();
     private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
     private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
+    private readonly ConcurrentDictionary<string, HashSet<string>> _agentsToEventsMap = new();
 
     // The mapping from agent id to worker process.
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
@@ -40,12 +41,13 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     }
     public async ValueTask BroadcastEvent(CloudEvent evt)
     {
-        // TODO: filter the workers that receive the event
         var tasks = new List<Task>(_workers.Count);
-        foreach (var (_, connection) in _supportedAgentTypes)
+        foreach (var (key, connection) in _supportedAgentTypes)
         {
-
-            tasks.Add(this.SendMessageAsync((IConnection)connection[0], evt, default));
+            if (_agentsToEventsMap.TryGetValue(key, out var events) && events.Contains(evt.Type))
+            {
+                tasks.Add(SendMessageAsync(connection[0], evt, default));
+            }
         }
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
@@ -142,6 +144,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         connection.AddSupportedType(msg.Type);
         _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
+        _agentsToEventsMap.TryAdd(msg.Type, new HashSet<string>(msg.Events));
 
         await _gatewayRegistry.RegisterAgentType(msg.Type, _reference).ConfigureAwait(true);
         Message response = new()

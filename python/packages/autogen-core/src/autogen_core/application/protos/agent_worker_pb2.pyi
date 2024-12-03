@@ -220,15 +220,19 @@ class RegisterAgentTypeRequest(google.protobuf.message.Message):
 
     REQUEST_ID_FIELD_NUMBER: builtins.int
     TYPE_FIELD_NUMBER: builtins.int
+    EVENTS_FIELD_NUMBER: builtins.int
     request_id: builtins.str
     type: builtins.str
+    @property
+    def events(self) -> google.protobuf.internal.containers.RepeatedScalarFieldContainer[builtins.str]: ...
     def __init__(
         self,
         *,
         request_id: builtins.str = ...,
         type: builtins.str = ...,
+        events: collections.abc.Iterable[builtins.str] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["request_id", b"request_id", "type", b"type"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["events", b"events", "request_id", b"request_id", "type", b"type"]) -> None: ...
 
 global___RegisterAgentTypeRequest = RegisterAgentTypeRequest
 
