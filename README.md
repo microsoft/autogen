@@ -104,7 +104,7 @@ We look forward to your contributions!
 First install the packages:
 
 ```bash
-pip install autogen-agentchat==0.4.0.dev8 autogen-ext[openai]==0.4.0.dev8
+pip install "autogen-agentchat==0.4.0.dev8" "autogen-ext[openai]==0.4.0.dev8"
 ```
 
 The following code uses OpenAI's GPT-4o model and you need to provide your
@@ -294,7 +294,7 @@ changes to your code, and are willing to try it out, then yes.
 AutoGen 0.2 can be installed with:
 
 ```sh
-pip install autogen-agentchat~=0.2
+pip install "autogen-agentchat~=0.2"
 ```
 
 ### Will AutoGen Studio be supported in 0.4?
