@@ -20,7 +20,7 @@ agnext_logger = logging.getLogger("autogen_core")
 async def main() -> None:
     load_dotenv()
     agentHost = os.getenv("AGENT_HOST") or "localhost:53072"
-    # stupid grpc python bug - can only use the hostname, not prefix - if hostname has a prefix we have to remove it:
+    # grpc python bug - can only use the hostname, not prefix - if hostname has a prefix we have to remove it:
     if agentHost.startswith("http://"):
         agentHost = agentHost[7:]
     if agentHost.startswith("https://"):

@@ -22,16 +22,16 @@ class UserProxy(RoutedAgent):
 
     @message_handler
     async def handle_user_chat_input(self, message: input_types, ctx: MessageContext) -> None:
-        agnext_logger = logging.getLogger("autogen_core")
+        logger = logging.getLogger("autogen_core")
 
         if isinstance(message, Input):
             response = await self.ainput("User input ('exit' to quit): ")
             response = response.strip()
-            agnext_logger.info(response)
+            logger.info(response)
 
             await self.publish_message(NewMessageReceived(message=response), topic_id=DefaultTopicId())
         elif isinstance(message, Output):
-            agnext_logger.info(message.message)
+            logger.info(message.message)
         else:
             pass
 
