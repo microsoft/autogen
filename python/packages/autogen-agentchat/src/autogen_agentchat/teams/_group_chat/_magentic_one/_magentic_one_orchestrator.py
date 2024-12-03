@@ -1,7 +1,6 @@
 import json
 import logging
-from typing import Any, List, Dict
-from .... import TRACE_LOGGER_NAME
+from typing import Any, Dict, List
 
 from autogen_core.base import AgentId, CancellationToken, MessageContext
 from autogen_core.components import DefaultTopicId, Image, event, rpc
@@ -12,8 +11,10 @@ from autogen_core.components.models import (
     UserMessage,
 )
 
+from .... import TRACE_LOGGER_NAME
 from ....base import Response, TerminationCondition
-from ....messages import AgentMessage, MultiModalMessage, StopMessage, TextMessage, ChatMessage
+from ....messages import AgentMessage, ChatMessage, MultiModalMessage, StopMessage, TextMessage
+from .._base_group_chat_manager import BaseGroupChatManager
 from .._events import (
     GroupChatAgentResponse,
     GroupChatMessage,
@@ -22,7 +23,6 @@ from .._events import (
     GroupChatStart,
     GroupChatTermination,
 )
-from .._base_group_chat_manager import BaseGroupChatManager
 from ._prompts import (
     ORCHESTRATOR_FINAL_ANSWER_PROMPT,
     ORCHESTRATOR_PROGRESS_LEDGER_PROMPT,
