@@ -74,7 +74,105 @@ async def test_magentic_one_group_chat_cancellation() -> None:
             cancellation_token=cancellation_token,
         )
     )
+
     # Cancel the task.
     cancellation_token.cancel()
     with pytest.raises(asyncio.CancelledError):
         await run_task
+
+
+@pytest.mark.asyncio
+async def test_magentic_one_group_chat_basic() -> None:
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+    agent_2 = _EchoAgent("agent_2", description="echo agent 2")
+    agent_3 = _EchoAgent("agent_3", description="echo agent 3")
+    agent_4 = _EchoAgent("agent_4", description="echo agent 4")
+
+    model_client = ReplayChatCompletionClient(
+        chat_completions=[
+            "No facts",
+            "No plan",
+            json.dumps(
+                {
+                    "is_request_satisfied": {"answer": False, "reason": "test"},
+                    "is_progress_being_made": {"answer": True, "reason": "test"},
+                    "is_in_loop": {"answer": False, "reason": "test"},
+                    "instruction_or_question": {"answer": "Continue task", "reason": "test"},
+                    "next_speaker": {"answer": "agent_1", "reason": "test"},
+                }
+            ),
+            json.dumps(
+                {
+                    "is_request_satisfied": {"answer": True, "reason": "Because"},
+                    "is_progress_being_made": {"answer": True, "reason": "test"},
+                    "is_in_loop": {"answer": False, "reason": "test"},
+                    "instruction_or_question": {"answer": "Task completed", "reason": "Because"},
+                    "next_speaker": {"answer": "agent_1", "reason": "test"},
+                }
+            ),
+            "print('Hello, world!')",
+        ],
+    )
+
+    team = MagenticOneGroupChat(participants=[agent_1, agent_2, agent_3, agent_4], model_client=model_client)
+    result = await team.run(task="Write a program that prints 'Hello, world!'")
+    assert len(result.messages) == 5
+    assert result.messages[2].content == "Continue task"
+    assert result.messages[4].content == "print('Hello, world!')"
+    assert result.stop_reason is not None and result.stop_reason == "Because"
+
+
+@pytest.mark.asyncio
+async def test_magentic_one_group_chat_with_stalls() -> None:
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+    agent_2 = _EchoAgent("agent_2", description="echo agent 2")
+    agent_3 = _EchoAgent("agent_3", description="echo agent 3")
+    agent_4 = _EchoAgent("agent_4", description="echo agent 4")
+
+    model_client = ReplayChatCompletionClient(
+        chat_completions=[
+            "No facts",
+            "No plan",
+            json.dumps(
+                {
+                    "is_request_satisfied": {"answer": False, "reason": "test"},
+                    "is_progress_being_made": {"answer": False, "reason": "test"},
+                    "is_in_loop": {"answer": True, "reason": "test"},
+                    "instruction_or_question": {"answer": "Stalling", "reason": "test"},
+                    "next_speaker": {"answer": "agent_1", "reason": "test"},
+                }
+            ),
+            json.dumps(
+                {
+                    "is_request_satisfied": {"answer": False, "reason": "test"},
+                    "is_progress_being_made": {"answer": False, "reason": "test"},
+                    "is_in_loop": {"answer": True, "reason": "test"},
+                    "instruction_or_question": {"answer": "Stalling again", "reason": "test"},
+                    "next_speaker": {"answer": "agent_2", "reason": "test"},
+                }
+            ),
+            "No facts2",
+            "No plan2",
+            json.dumps(
+                {
+                    "is_request_satisfied": {"answer": True, "reason": "test"},
+                    "is_progress_being_made": {"answer": True, "reason": "test"},
+                    "is_in_loop": {"answer": False, "reason": "test"},
+                    "instruction_or_question": {"answer": "Task completed", "reason": "test"},
+                    "next_speaker": {"answer": "agent_3", "reason": "test"},
+                }
+            ),
+            "print('Hello, world!')",
+        ],
+    )
+
+    team = MagenticOneGroupChat(
+        participants=[agent_1, agent_2, agent_3, agent_4], model_client=model_client, max_stalls=2
+    )
+    result = await team.run(task="Write a program that prints 'Hello, world!'")
+    assert len(result.messages) == 6
+    assert isinstance(result.messages[1].content, str)
+    assert result.messages[1].content.startswith("\nWe are working to address the following user request:")
+    assert isinstance(result.messages[4].content, str)
+    assert result.messages[4].content.startswith("\nWe are working to address the following user request:")
+    assert result.stop_reason is not None and result.stop_reason == "test"

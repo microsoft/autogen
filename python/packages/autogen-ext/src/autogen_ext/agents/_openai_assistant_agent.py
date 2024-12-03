@@ -3,6 +3,7 @@ import json
 import logging
 import os
 from typing import (
+    TYPE_CHECKING,
     Any,
     AsyncGenerator,
     Awaitable,
@@ -13,11 +14,11 @@ from typing import (
     Literal,
     Optional,
     Sequence,
+    Set,
     Union,
     cast,
 )
 
-import aiofiles
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
@@ -35,27 +36,47 @@ from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall
 from autogen_core.components.models._types import FunctionExecutionResult
 from autogen_core.components.tools import FunctionTool, Tool
-from openai import NOT_GIVEN, AsyncClient, NotGiven
-from openai.pagination import AsyncCursorPage
-from openai.resources.beta.threads import AsyncMessages, AsyncRuns, AsyncThreads
-from openai.types import FileObject
-from openai.types.beta import thread_update_params
-from openai.types.beta.assistant import Assistant
-from openai.types.beta.assistant_response_format_option_param import AssistantResponseFormatOptionParam
-from openai.types.beta.assistant_tool_param import AssistantToolParam
-from openai.types.beta.code_interpreter_tool_param import CodeInterpreterToolParam
-from openai.types.beta.file_search_tool_param import FileSearchToolParam
-from openai.types.beta.function_tool_param import FunctionToolParam
-from openai.types.beta.thread import Thread, ToolResources, ToolResourcesCodeInterpreter
-from openai.types.beta.threads import Message, MessageDeleted, Run
-from openai.types.beta.vector_store import VectorStore
-from openai.types.shared_params.function_definition import FunctionDefinition
+
+_has_openai_dependencies: bool = True
+try:
+    import aiofiles
+    from openai import NOT_GIVEN
+    from openai.resources.beta.threads import AsyncMessages, AsyncRuns, AsyncThreads
+    from openai.types.beta.code_interpreter_tool_param import CodeInterpreterToolParam
+    from openai.types.beta.file_search_tool_param import FileSearchToolParam
+    from openai.types.beta.function_tool_param import FunctionToolParam
+    from openai.types.shared_params.function_definition import FunctionDefinition
+except ImportError:
+    _has_openai_dependencies = False
+
+if TYPE_CHECKING:
+    import aiofiles
+    from openai import NOT_GIVEN, AsyncClient, NotGiven
+    from openai.pagination import AsyncCursorPage
+    from openai.resources.beta.threads import AsyncMessages, AsyncRuns, AsyncThreads
+    from openai.types import FileObject
+    from openai.types.beta import thread_update_params
+    from openai.types.beta.assistant import Assistant
+    from openai.types.beta.assistant_response_format_option_param import AssistantResponseFormatOptionParam
+    from openai.types.beta.assistant_tool_param import AssistantToolParam
+    from openai.types.beta.code_interpreter_tool_param import CodeInterpreterToolParam
+    from openai.types.beta.file_search_tool_param import FileSearchToolParam
+    from openai.types.beta.function_tool_param import FunctionToolParam
+    from openai.types.beta.thread import Thread, ToolResources, ToolResourcesCodeInterpreter
+    from openai.types.beta.threads import Message, MessageDeleted, Run
+    from openai.types.beta.vector_store import VectorStore
+    from openai.types.shared_params.function_definition import FunctionDefinition
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
-def _convert_tool_to_function_param(tool: Tool) -> FunctionToolParam:
+def _convert_tool_to_function_param(tool: Tool) -> "FunctionToolParam":
     """Convert an autogen Tool to an OpenAI Assistant function tool parameter."""
+    if not _has_openai_dependencies:
+        raise RuntimeError(
+            "Missing dependecies for OpenAIAssistantAgent. Please ensure the autogen-ext package was installed with the 'openai' extra."
+        )
+
     schema = tool.schema
     parameters: Dict[str, object] = {}
     if "parameters" in schema:
@@ -160,7 +181,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         self,
         name: str,
         description: str,
-        client: AsyncClient,
+        client: "AsyncClient",
         model: str,
         instructions: str,
         tools: Optional[
@@ -174,18 +195,23 @@ class OpenAIAssistantAgent(BaseChatAgent):
         assistant_id: Optional[str] = None,
         thread_id: Optional[str] = None,
         metadata: Optional[object] = None,
-        response_format: Optional[AssistantResponseFormatOptionParam] = None,
+        response_format: Optional["AssistantResponseFormatOptionParam"] = None,
         temperature: Optional[float] = None,
-        tool_resources: Optional[ToolResources] = None,
+        tool_resources: Optional["ToolResources"] = None,
         top_p: Optional[float] = None,
     ) -> None:
+        if not _has_openai_dependencies:
+            raise RuntimeError(
+                "Missing dependecies for OpenAIAssistantAgent. Please ensure the autogen-ext package was installed with the 'openai' extra."
+            )
+
         super().__init__(name, description)
         if tools is None:
             tools = []
 
         # Store original tools and converted tools separately
         self._original_tools: List[Tool] = []
-        converted_tools: List[AssistantToolParam] = []
+        converted_tools: List["AssistantToolParam"] = []
         for tool in tools:
             if isinstance(tool, str):
                 if tool == "code_interpreter":
@@ -207,8 +233,8 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 raise ValueError(f"Unsupported tool type: {type(tool)}")
 
         self._client = client
-        self._assistant: Optional[Assistant] = None
-        self._thread: Optional[Thread] = None
+        self._assistant: Optional["Assistant"] = None
+        self._thread: Optional["Thread"] = None
         self._init_thread_id = thread_id
         self._model = model
         self._instructions = instructions
@@ -221,6 +247,10 @@ class OpenAIAssistantAgent(BaseChatAgent):
         self._top_p = top_p
         self._vector_store_id: Optional[str] = None
         self._uploaded_file_ids: List[str] = []
+
+        # Variables to track initial state
+        self._initial_message_ids: Set[str] = set()
+        self._initial_state_retrieved: bool = False
 
     async def _ensure_initialized(self) -> None:
         """Ensure assistant and thread are created."""
@@ -245,6 +275,27 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 self._thread = await self._client.beta.threads.retrieve(thread_id=self._init_thread_id)
             else:
                 self._thread = await self._client.beta.threads.create()
+
+        # Retrieve initial state only once
+        if not self._initial_state_retrieved:
+            await self._retrieve_initial_state()
+            self._initial_state_retrieved = True
+
+    async def _retrieve_initial_state(self) -> None:
+        """Retrieve and store the initial state of messages and runs."""
+        # Retrieve all initial message IDs
+        initial_message_ids: Set[str] = set()
+        after: str | NotGiven = NOT_GIVEN
+        while True:
+            msgs: AsyncCursorPage[Message] = await self._client.beta.threads.messages.list(
+                self._thread_id, after=after, order="asc", limit=100
+            )
+            for msg in msgs.data:
+                initial_message_ids.add(msg.id)
+            if not msgs.has_next_page():
+                break
+            after = msgs.data[-1].id
+        self._initial_message_ids = initial_message_ids
 
     @property
     def produced_message_types(self) -> List[type[ChatMessage]]:
@@ -291,6 +342,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         """Handle incoming messages and return a response."""
+
         async for message in self.on_messages_stream(messages, cancellation_token):
             if isinstance(message, Response):
                 return message
@@ -421,22 +473,27 @@ class OpenAIAssistantAgent(BaseChatAgent):
         )
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
-        """Handle reset command by deleting all messages in the thread."""
+        """Handle reset command by deleting new messages and runs since initialization."""
+        await self._ensure_initialized()
+
         # Retrieve all message IDs in the thread
-        all_msgs: List[str] = []
+        new_message_ids: List[str] = []
         after: str | NotGiven = NOT_GIVEN
         while True:
             msgs: AsyncCursorPage[Message] = await cancellation_token.link_future(
-                asyncio.ensure_future(self._client.beta.threads.messages.list(self._thread_id, after=after))
+                asyncio.ensure_future(
+                    self._client.beta.threads.messages.list(self._thread_id, after=after, order="asc", limit=100)
+                )
             )
             for msg in msgs.data:
-                all_msgs.append(msg.id)
-                after = msg.id
+                if msg.id not in self._initial_message_ids:
+                    new_message_ids.append(msg.id)
             if not msgs.has_next_page():
                 break
+            after = msgs.data[-1].id
 
-        # Delete all messages
-        for msg_id in all_msgs:
+        # Delete new messages
+        for msg_id in new_message_ids:
             status: MessageDeleted = await cancellation_token.link_future(
                 asyncio.ensure_future(
                     self._client.beta.threads.messages.delete(message_id=msg_id, thread_id=self._thread_id)
