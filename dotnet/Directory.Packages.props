@@ -15,15 +15,15 @@
   <ItemGroup>
     <PackageVersion Include="Aspire.Hosting" Version="9.0.0" />
     <PackageVersion Include="AspNetCore.Authentication.ApiKey" Version="8.0.1" />
-    <PackageVersion Include="Aspire.Azure.AI.OpenAI" Version="8.0.1-preview.8.24267.1" />
+    <PackageVersion Include="Aspire.Azure.AI.OpenAI" Version="9.0.0-preview.5.24551.3" />
     <PackageVersion Include="Aspire.Hosting.AppHost" Version="9.0.0" />
     <PackageVersion Include="Aspire.Hosting.Azure.ApplicationInsights" Version="9.0.0" />
     <PackageVersion Include="Aspire.Hosting.Azure.CognitiveServices" Version="9.0.0" />
-    <PackageVersion Include="Aspire.Hosting.NodeJs" Version="8.2.0" />
+    <PackageVersion Include="Aspire.Hosting.NodeJs" Version="9.0.0" />
     <PackageVersion Include="Aspire.Hosting.Orleans" Version="9.0.0" />
     <PackageVersion Include="Aspire.Hosting.Qdrant" Version="9.0.0" />
-    <PackageVersion Include="Aspire.Hosting.Redis" Version="8.2.0" />
-    <PackageVersion Include="Azure.AI.OpenAI" Version="2.1.0-beta.2" />
+    <PackageVersion Include="Aspire.Hosting.Redis" Version="9.0.0" />
+    <PackageVersion Include="Azure.AI.OpenAI" Version=" 2.1.0-beta.2" />
     <PackageVersion Include="Azure.AI.Inference" Version="1.0.0-beta.1" />
     <PackageVersion Include="Azure.Data.Tables" Version="12.9.1" />
     <PackageVersion Include="Azure.Identity" Version="1.13.1" />
@@ -34,7 +34,7 @@
     <PackageVersion Include="Grpc.Core" Version="2.46.6" />
     <PackageVersion Include="Grpc.Net.ClientFactory" Version="2.67.0" />
     <PackageVersion Include="Grpc.Tools" Version="2.67.0" />
-    <PackageVersion Include="Grpc.Net.Client" Version="2.65.0" />
+    <PackageVersion Include="Grpc.Net.Client" Version="2.67.0" />
     <PackageVersion Include="Google.Protobuf" Version="3.28.3" />
     <PackageVersion Include="Microsoft.AspNetCore.App" Version="8.0.4" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.8" />

@@ -1,0 +1,15 @@
+syntax = "proto3";
+
+package helloWorld;
+
+option csharp_namespace = "Api";
+
+message NewGreetingRequested {
+      string message = 1;
+}
+
+message NewGreetingGenerated {
+  string user_id = 1;
+  string user_message = 2;
+}
+    

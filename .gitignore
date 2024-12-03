@@ -196,3 +196,5 @@ notebook/coding
 
 # dotnet artifacts
 artifacts
+
+certs/**

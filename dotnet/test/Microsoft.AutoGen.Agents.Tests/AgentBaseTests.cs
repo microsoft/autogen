@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using FluentAssertions;
 using Google.Protobuf.Reflection;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -27,7 +28,7 @@ public class AgentBaseTests(InMemoryAgentRuntimeFixture fixture)
         // mock SendMessageAsync
         mockContext.Setup(x => x.SendMessageAsync(It.IsAny<Message>(), It.IsAny<CancellationToken>()))
             .Returns(new ValueTask());
-        var agent = new TestAgent(mockContext.Object, new EventTypes(TypeRegistry.Empty, [], []), new Logger<AgentBase>(new LoggerFactory()));
+        var agent = new TestAgent(mockContext.Object, new EventTypes(TypeRegistry.Empty, [], [], []), new Logger<AgentBase>(new LoggerFactory()));
 
         await agent.HandleObject("hello world");
         await agent.HandleObject(42);
@@ -102,7 +103,7 @@ public sealed class InMemoryAgentRuntimeFixture : IDisposable
 {
     public InMemoryAgentRuntimeFixture()
     {
-        var builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder();
+        var builder = WebApplication.CreateBuilder();
 
         // step 1: create in-memory agent runtime
         // step 2: register TestAgent to that agent runtime

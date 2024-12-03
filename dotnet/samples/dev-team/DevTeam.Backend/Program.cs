@@ -15,7 +15,7 @@ using Octokit.Webhooks.AspNetCore;
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.ConfigureSemanticKernel();
+builder.ConfigureSemanticKernel(useVectorDb:true);
 
 builder.Services.AddHttpClient();
 builder.Services.AddControllers();

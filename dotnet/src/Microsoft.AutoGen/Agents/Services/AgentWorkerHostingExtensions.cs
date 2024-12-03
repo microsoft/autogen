@@ -3,6 +3,8 @@
 
 using System.Diagnostics;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -11,9 +13,17 @@ namespace Microsoft.AutoGen.Agents;
 
 public static class AgentWorkerHostingExtensions
 {
-    public static IHostApplicationBuilder AddAgentService(this IHostApplicationBuilder builder, bool local = false, bool useGrpc = true)
+    public static WebApplicationBuilder AddAgentService(this WebApplicationBuilder builder, bool local = false, bool useGrpc = true)
     {
-        builder.AddOrleans(local);
+            builder.WebHost.ConfigureKestrel(serverOptions =>
+                        {
+                            serverOptions.ListenAnyIP(5001, listenOptions =>
+                            {
+                                listenOptions.Protocols = HttpProtocols.Http2;
+                                listenOptions.UseHttps();
+                            });
+                        });
+            builder.AddOrleans(local);
 
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
 
@@ -21,13 +31,13 @@ public static class AgentWorkerHostingExtensions
         {
             builder.Services.AddGrpc();
             builder.Services.AddSingleton<GrpcGateway>();
-            builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<GrpcGateway>());
+            builder.Services.AddSingleton<IHostedService>(sp => sp.GetRequiredService<GrpcGateway>());
         }
 
         return builder;
     }
 
-    public static IHostApplicationBuilder AddLocalAgentService(this IHostApplicationBuilder builder, bool useGrpc = true)
+    public static WebApplicationBuilder AddLocalAgentService(this WebApplicationBuilder builder, bool useGrpc = true)
     {
         return builder.AddAgentService(local: true, useGrpc);
     }
