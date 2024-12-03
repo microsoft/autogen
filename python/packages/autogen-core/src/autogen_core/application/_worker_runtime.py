@@ -733,7 +733,7 @@ class WorkerAgentRuntime(AgentRuntime):
 
     async def _process_register_agent_type_response(self, response: agent_worker_pb2.RegisterAgentTypeResponse) -> None:
         future = self._pending_requests.pop(response.request_id)
-        if response.HasField("error"):
+        if response.HasField("error") and response.error != "":
             future.set_exception(RuntimeError(response.error))
         else:
             future.set_result(None)
@@ -835,7 +835,7 @@ class WorkerAgentRuntime(AgentRuntime):
 
     async def _process_add_subscription_response(self, response: agent_worker_pb2.AddSubscriptionResponse) -> None:
         future = self._pending_requests.pop(response.request_id)
-        if response.HasField("error"):
+        if response.HasField("error") and response.error != "":
             future.set_exception(RuntimeError(response.error))
         else:
             future.set_result(None)
