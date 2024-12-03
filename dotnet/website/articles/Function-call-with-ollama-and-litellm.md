@@ -18,7 +18,7 @@ ollama pull dolphincoder:latest
 
 You can install LiteLLM by following the instructions on the [LiteLLM website](https://docs.litellm.ai/docs/).
 ```bash
-pip install 'litellm[proxy]'
+pip install "litellm[proxy]"
 ```
 
 Then, start the proxy server by running the following command:
