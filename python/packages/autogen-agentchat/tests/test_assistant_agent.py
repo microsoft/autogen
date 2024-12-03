@@ -5,8 +5,8 @@ from typing import Any, AsyncGenerator, List
 
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
-from autogen_agentchat.agents import AssistantAgent, Handoff
-from autogen_agentchat.base import TaskResult
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.base import Handoff, TaskResult
 from autogen_agentchat.logging import FileLogHandler
 from autogen_agentchat.messages import (
     HandoffMessage,
