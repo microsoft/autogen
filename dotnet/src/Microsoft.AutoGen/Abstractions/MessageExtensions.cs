@@ -8,6 +8,7 @@ namespace Microsoft.AutoGen.Abstractions;
 
 public static class MessageExtensions
 {
+    private const string PROTO_DATA_CONTENT_TYPE = "application/x-protobuf";
     public static CloudEvent ToCloudEvent<T>(this T message, string source) where T : IMessage
     {
         return new CloudEvent
@@ -15,8 +16,8 @@ public static class MessageExtensions
             ProtoData = Any.Pack(message),
             Type = message.Descriptor.FullName,
             Source = source,
-            Id = Guid.NewGuid().ToString()
-
+            Id = Guid.NewGuid().ToString(),
+            Attributes = { { "datacontenttype", new CloudEvent.Types.CloudEventAttributeValue { CeString = PROTO_DATA_CONTENT_TYPE } } }
         };
     }
     public static T FromCloudEvent<T>(this CloudEvent cloudEvent) where T : IMessage, new()

@@ -181,7 +181,7 @@ var app = await App.PublishMessageAsync("HelloAgents", new NewMessageReceived
 await App.RuntimeApp!.WaitForShutdownAsync();
 await app.WaitForShutdownAsync();
 
-[TopicSubscription("HelloAgents")]
+[TopicSubscription("agents")]
 public class HelloAgent(
     IAgentContext context,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : ConsoleAgent(
