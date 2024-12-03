@@ -8,8 +8,12 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\Microsoft.AutoGen\Microsoft.AutoGen.Core\Microsoft.AutoGen.Core.csproj" />
+    <ProjectReference Include="..\..\src\Microsoft.AutoGen\Microsoft.AutoGen.Runtime.Grpc\Microsoft.AutoGen.Runtime.Grpc.csproj" />
     <ProjectReference Include="..\Microsoft.Autogen.Tests.Shared\Microsoft.Autogen.Tests.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
   </ItemGroup>
 
 </Project>

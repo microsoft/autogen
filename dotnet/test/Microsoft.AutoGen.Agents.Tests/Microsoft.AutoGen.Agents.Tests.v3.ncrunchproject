@@ -1,7 +1,0 @@
-﻿<ProjectConfiguration>
-  <Settings>
-    <CustomBuildProperties>
-      <Value>TestTargetFrameworks = net8.0</Value>
-    </CustomBuildProperties>
-  </Settings>
-</ProjectConfiguration>

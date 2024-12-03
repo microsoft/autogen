@@ -7,7 +7,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Core\Microsoft.AutoGen.Contracts.csproj" />
+    <ProjectReference Include="..\Microsoft.AutoGen.Contracts\Microsoft.AutoGen.Contracts.csproj" />
   </ItemGroup>
+
 
 </Project>
