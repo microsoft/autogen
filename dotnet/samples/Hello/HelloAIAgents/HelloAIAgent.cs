@@ -6,7 +6,7 @@ using Microsoft.AutoGen.Agents;
 using Microsoft.Extensions.AI;
 
 namespace Hello;
-[TopicSubscription("HelloAgents")]
+[TopicSubscription("agents")]
 public class HelloAIAgent(
     IAgentRuntime context,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry,

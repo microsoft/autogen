@@ -10,7 +10,7 @@ class StatefulAgent(BaseAgent):
         super().__init__("A stateful agent")
         self.state = 0
 
-    async def on_message(self, message: Any, ctx: MessageContext) -> None:
+    async def on_message_impl(self, message: Any, ctx: MessageContext) -> None:
         raise NotImplementedError
 
     async def save_state(self) -> Mapping[str, Any]:
