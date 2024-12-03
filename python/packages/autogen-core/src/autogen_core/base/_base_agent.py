@@ -29,6 +29,8 @@ BaseAgentType = TypeVar("BaseAgentType", bound="BaseAgent")
 
 # Decorator for adding an unbound subscription to an agent
 def subscription_factory(subscription: UnboundSubscription) -> Callable[[Type[BaseAgentType]], Type[BaseAgentType]]:
+    """:meta private:"""
+
     def decorator(cls: Type[BaseAgentType]) -> Type[BaseAgentType]:
         cls.internal_unbound_subscriptions_list.append(subscription)
         return cls
@@ -56,7 +58,9 @@ def handles(
 
 class BaseAgent(ABC, Agent):
     internal_unbound_subscriptions_list: ClassVar[List[UnboundSubscription]] = []
+    """:meta private:"""
     internal_extra_handles_types: ClassVar[List[Tuple[Type[Any], List[MessageSerializer[Any]]]]] = []
+    """:meta private:"""
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
