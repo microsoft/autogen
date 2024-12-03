@@ -507,6 +507,11 @@ file-surfer = [
 langchain = [
     { name = "langchain-core" },
 ]
+magentic-one = [
+    { name = "markitdown" },
+    { name = "pillow" },
+    { name = "playwright" },
+]
 openai = [
     { name = "aiofiles" },
     { name = "openai" },
@@ -533,10 +538,13 @@ requires-dist = [
     { name = "ffmpeg-python", marker = "extra == 'video-surfer'" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = "~=0.3.3" },
     { name = "markitdown", marker = "extra == 'file-surfer'", specifier = ">=0.0.1a2" },
+    { name = "markitdown", marker = "extra == 'magentic-one'", specifier = ">=0.0.1a2" },
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.3" },
     { name = "openai-whisper", marker = "extra == 'video-surfer'" },
     { name = "opencv-python", marker = "extra == 'video-surfer'", specifier = ">=4.5" },
+    { name = "pillow", marker = "extra == 'magentic-one'", specifier = ">=11.0.0" },
     { name = "pillow", marker = "extra == 'web-surfer'", specifier = ">=11.0.0" },
+    { name = "playwright", marker = "extra == 'magentic-one'", specifier = ">=1.48.0" },
     { name = "playwright", marker = "extra == 'web-surfer'", specifier = ">=1.48.0" },
 ]
 
