@@ -124,13 +124,13 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, AddSubscriptionRequest request)
     {
         var topic = "";
-        var agentType="";
-        if(request.Subscription.TypePrefixSubscription is not null)
+        var agentType = "";
+        if (request.Subscription.TypePrefixSubscription is not null)
         {
             topic = request.Subscription.TypePrefixSubscription.TopicTypePrefix;
             agentType = request.Subscription.TypePrefixSubscription.AgentType;
         }
-        else if(request.Subscription.TypeSubscription is not null)
+        else if (request.Subscription.TypeSubscription is not null)
         {
             topic = request.Subscription.TypeSubscription.TopicType;
             agentType = request.Subscription.TypeSubscription.AgentType;
@@ -177,7 +177,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             await DispatchEventToAgentsAsync(agentTypes, evt);
         }
         // instead of an exact match, we can also check for a prefix match where key starts with the eventType
-        else if (_subscriptionsByTopic.Keys.Any(key => key.StartsWith(eventType)))  
+        else if (_subscriptionsByTopic.Keys.Any(key => key.StartsWith(eventType)))
         {
             _subscriptionsByTopic.Where(
                 kvp => kvp.Key.StartsWith(eventType))
