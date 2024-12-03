@@ -15,12 +15,7 @@ package io.cloudevents.v1;
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
 
-option csharp_namespace = "CloudNative.CloudEvents.V1";
-option go_package = "cloudevents.io/genproto/v1";
-option java_package = "io.cloudevents.v1.proto";
-option java_multiple_files = true;
-option php_namespace = "Io\\CloudEvents\\V1\\Proto";
-option ruby_package = "Io::CloudEvents::V1::Proto";
+option csharp_namespace = "Microsoft.AutoGen.Abstractions";
 
 message CloudEvent {
 
