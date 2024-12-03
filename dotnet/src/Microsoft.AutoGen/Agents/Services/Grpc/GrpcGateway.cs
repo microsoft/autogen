@@ -40,7 +40,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     }
     public async ValueTask BroadcastEvent(CloudEvent evt)
     {
-        // TODO: filter the workers that receive the event
         var tasks = new List<Task>(_workers.Count);
         foreach (var (_, connection) in _supportedAgentTypes)
         {
@@ -119,10 +118,23 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         throw new RpcException(new Status(StatusCode.InvalidArgument, error));
     }
+
+    // agentype:rpc_request={requesting_agent_id}
+    // {genttype}:rpc_response={request_id}
     private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, AddSubscriptionRequest request)
     {
-        var topic = request.Subscription.TypeSubscription.TopicType;
-        var agentType = request.Subscription.TypeSubscription.AgentType;
+        var topic = "";
+        var agentType = "";
+        if (request.Subscription.TypePrefixSubscription is not null)
+        {
+            topic = request.Subscription.TypePrefixSubscription.TopicTypePrefix;
+            agentType = request.Subscription.TypePrefixSubscription.AgentType;
+        }
+        else if (request.Subscription.TypeSubscription is not null)
+        {
+            topic = request.Subscription.TypeSubscription.TopicType;
+            agentType = request.Subscription.TypeSubscription.AgentType;
+        }
         _subscriptionsByAgentType[agentType] = request.Subscription;
         _subscriptionsByTopic.GetOrAdd(topic, _ => []).Add(agentType);
         await _subscriptions.Subscribe(topic, agentType);
@@ -153,31 +165,50 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                 Success = true
             }
         };
-        // add a default subscription for the agent type
-        //TODO: we should consider having constraints on the namespace or at least migrate all our examples to use well typed namesspaces like com.microsoft.autogen/hello/HelloAgents etc
-        var subscriptionRequest = new AddSubscriptionRequest
-        {
-            RequestId = Guid.NewGuid().ToString(),
-            Subscription = new Subscription
-            {
-                TypeSubscription = new TypeSubscription
-                {
-                    AgentType = msg.Type,
-                    TopicType = msg.Type
-                }
-            }
-        };
-        await AddSubscriptionAsync(connection, subscriptionRequest).ConfigureAwait(true);
-
         await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
     }
     private async ValueTask DispatchEventAsync(CloudEvent evt)
     {
-        await BroadcastEvent(evt).ConfigureAwait(false);
-        /*
-        var topic = _clusterClient.GetStreamProvider("agents").GetStream<Event>(StreamId.Create(evt.Namespace, evt.Type));
-        await topic.OnNextAsync(evt.ToEvent());
-        */
+        // get the event type and then send to all agents that are subscribed to that event type
+        var eventType = evt.Type;
+        // ensure that we get agentTypes as an async enumerable list - try to get the value of agentTypes by topic and then cast it to an async enumerable list
+        if (_subscriptionsByTopic.TryGetValue(eventType, out var agentTypes))
+        {
+            await DispatchEventToAgentsAsync(agentTypes, evt);
+        }
+        // instead of an exact match, we can also check for a prefix match where key starts with the eventType
+        else if (_subscriptionsByTopic.Keys.Any(key => key.StartsWith(eventType)))
+        {
+            _subscriptionsByTopic.Where(
+                kvp => kvp.Key.StartsWith(eventType))
+                .SelectMany(kvp => kvp.Value)
+                .Distinct()
+                .ToList()
+                .ForEach(async agentType =>
+                {
+                    await DispatchEventToAgentsAsync(new List<string> { agentType }, evt).ConfigureAwait(false);
+                });
+        }
+        else
+        {
+            // log that no agent types were found
+            _logger.LogWarning("No agent types found for event type {EventType}.", eventType);
+        }
+    }
+    private async ValueTask DispatchEventToAgentsAsync(IEnumerable<string> agentTypes, CloudEvent evt)
+    {
+        var tasks = new List<Task>(agentTypes.Count());
+        foreach (var agentType in agentTypes)
+        {
+            if (_supportedAgentTypes.TryGetValue(agentType, out var connections))
+            {
+                foreach (var connection in connections)
+                {
+                    tasks.Add(this.SendMessageAsync(connection, evt));
+                }
+            }
+        }
+        await Task.WhenAll(tasks).ConfigureAwait(false);
     }
     private async ValueTask DispatchRequestAsync(GrpcWorkerConnection connection, RpcRequest request)
     {
