@@ -4,7 +4,7 @@ import inspect
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Sequence
-from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Tuple, Type, TypeVar
+from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Tuple, Type, TypeVar, final
 
 from typing_extensions import Self
 
@@ -29,6 +29,8 @@ BaseAgentType = TypeVar("BaseAgentType", bound="BaseAgent")
 
 # Decorator for adding an unbound subscription to an agent
 def subscription_factory(subscription: UnboundSubscription) -> Callable[[Type[BaseAgentType]], Type[BaseAgentType]]:
+    """:meta private:"""
+
     def decorator(cls: Type[BaseAgentType]) -> Type[BaseAgentType]:
         cls.internal_unbound_subscriptions_list.append(subscription)
         return cls
@@ -56,7 +58,9 @@ def handles(
 
 class BaseAgent(ABC, Agent):
     internal_unbound_subscriptions_list: ClassVar[List[UnboundSubscription]] = []
+    """:meta private:"""
     internal_extra_handles_types: ClassVar[List[Tuple[Type[Any], List[MessageSerializer[Any]]]]] = []
+    """:meta private:"""
 
     def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
@@ -104,8 +108,12 @@ class BaseAgent(ABC, Agent):
     def runtime(self) -> AgentRuntime:
         return self._runtime
 
+    @final
+    async def on_message(self, message: Any, ctx: MessageContext) -> Any:
+        return await self.on_message_impl(message, ctx)
+
     @abstractmethod
-    async def on_message(self, message: Any, ctx: MessageContext) -> Any: ...
+    async def on_message_impl(self, message: Any, ctx: MessageContext) -> Any: ...
 
     async def send_message(
         self,

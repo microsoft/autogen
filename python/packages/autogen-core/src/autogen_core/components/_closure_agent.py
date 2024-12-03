@@ -111,7 +111,7 @@ class ClosureAgent(BaseAgent, ClosureContext):
     def runtime(self) -> AgentRuntime:
         return self._runtime
 
-    async def on_message(self, message: Any, ctx: MessageContext) -> Any:
+    async def on_message_impl(self, message: Any, ctx: MessageContext) -> Any:
         if type(message) not in self._expected_types:
             raise CantHandleException(
                 f"Message type {type(message)} not in target types {self._expected_types} of {self.id}"

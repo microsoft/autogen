@@ -97,6 +97,7 @@ class CloudEvent(google.protobuf.message.Message):
     TYPE_FIELD_NUMBER: builtins.int
     ATTRIBUTES_FIELD_NUMBER: builtins.int
     METADATA_FIELD_NUMBER: builtins.int
+    DATACONTENTTYPE_FIELD_NUMBER: builtins.int
     BINARY_DATA_FIELD_NUMBER: builtins.int
     TEXT_DATA_FIELD_NUMBER: builtins.int
     PROTO_DATA_FIELD_NUMBER: builtins.int
@@ -109,6 +110,8 @@ class CloudEvent(google.protobuf.message.Message):
     """URI-reference"""
     spec_version: builtins.str
     type: builtins.str
+    datacontenttype: builtins.str
+    """MIME type"""
     binary_data: builtins.bytes
     text_data: builtins.str
     @property
@@ -128,12 +131,13 @@ class CloudEvent(google.protobuf.message.Message):
         type: builtins.str = ...,
         attributes: collections.abc.Mapping[builtins.str, global___CloudEvent.CloudEventAttributeValue] | None = ...,
         metadata: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
+        datacontenttype: builtins.str = ...,
         binary_data: builtins.bytes = ...,
         text_data: builtins.str = ...,
         proto_data: google.protobuf.any_pb2.Any | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["binary_data", b"binary_data", "data", b"data", "proto_data", b"proto_data", "text_data", b"text_data"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["attributes", b"attributes", "binary_data", b"binary_data", "data", b"data", "id", b"id", "metadata", b"metadata", "proto_data", b"proto_data", "source", b"source", "spec_version", b"spec_version", "text_data", b"text_data", "type", b"type"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["attributes", b"attributes", "binary_data", b"binary_data", "data", b"data", "datacontenttype", b"datacontenttype", "id", b"id", "metadata", b"metadata", "proto_data", b"proto_data", "source", b"source", "spec_version", b"spec_version", "text_data", b"text_data", "type", b"type"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["data", b"data"]) -> typing.Literal["binary_data", "text_data", "proto_data"] | None: ...
 
 global___CloudEvent = CloudEvent

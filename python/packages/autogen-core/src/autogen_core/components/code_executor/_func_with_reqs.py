@@ -161,6 +161,7 @@ def with_requirements(
 def build_python_functions_file(
     funcs: Sequence[Union[FunctionWithRequirements[Any, P], Callable[..., Any], FunctionWithRequirementsStr]],
 ) -> str:
+    """:meta private:"""
     # First collect all global imports
     global_imports: Set[Import] = set()
     for func in funcs:
