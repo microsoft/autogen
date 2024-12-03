@@ -3,7 +3,7 @@
 
 using Microsoft.AutoGen.Abstractions;
 
-namespace Microsoft.AutoGen.DistributedRuntime;
+namespace Microsoft.AutoGen.Runtime.Grpc;
 
 internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore")] IPersistentState<AgentState> state) : Grain
 {

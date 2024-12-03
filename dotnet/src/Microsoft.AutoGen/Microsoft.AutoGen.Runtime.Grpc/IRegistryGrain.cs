@@ -3,7 +3,7 @@
 
 using Microsoft.AutoGen.Abstractions;
 
-namespace Microsoft.AutoGen.DistributedRuntime;
+namespace Microsoft.AutoGen.Runtime.Grpc;
 
 public interface IRegistryGrain : IGrainWithIntegerKey
 {

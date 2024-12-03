@@ -6,7 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Orleans.Serialization;
 
-namespace Microsoft.AutoGen.DistributedRuntime;
+namespace Microsoft.AutoGen.Runtime.Grpc;
 
 public static class OrleansRuntimeHostingExtenions
 {
@@ -21,12 +21,12 @@ public static class OrleansRuntimeHostingExtenions
         {
             // Development mode or local mode uses in-memory storage and streams
 
-                siloBuilder.UseLocalhostClustering()
-                       .AddMemoryStreams("StreamProvider")
-                       .AddMemoryGrainStorage("PubSubStore")
-                       .AddMemoryGrainStorage("AgentStateStore");
+            siloBuilder.UseLocalhostClustering()
+                   .AddMemoryStreams("StreamProvider")
+                   .AddMemoryGrainStorage("PubSubStore")
+                   .AddMemoryGrainStorage("AgentStateStore");
 
-                siloBuilder.UseInMemoryReminderService();
+            siloBuilder.UseInMemoryReminderService();
             //TODO: Add pass through config for state and streams
         });
 
