@@ -123,23 +123,3 @@ class CloudEvent(google.protobuf.message.Message):
     def WhichOneof(self, oneof_group: typing.Literal["data", b"data"]) -> typing.Literal["binary_data", "text_data", "proto_data"] | None: ...
 
 global___CloudEvent = CloudEvent
-
-@typing.final
-class CloudEventBatch(google.protobuf.message.Message):
-    """*
-    CloudEvent Protobuf Batch Format
-    """
-
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
-
-    EVENTS_FIELD_NUMBER: builtins.int
-    @property
-    def events(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___CloudEvent]: ...
-    def __init__(
-        self,
-        *,
-        events: collections.abc.Iterable[global___CloudEvent] | None = ...,
-    ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["events", b"events"]) -> None: ...
-
-global___CloudEventBatch = CloudEventBatch

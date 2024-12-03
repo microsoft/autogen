@@ -1,6 +1,12 @@
+import re
+
 from typing_extensions import Self
 
 from ._agent_type import AgentType
+
+
+def is_valid_agent_type(value: str) -> bool:
+    return bool(re.match(r"^[\w\-\.]+\Z", value))
 
 
 class AgentId:
@@ -8,8 +14,8 @@ class AgentId:
         if isinstance(type, AgentType):
             type = type.type
 
-        if type.isidentifier() is False:
-            raise ValueError(f"Invalid type: {type}")
+        if not is_valid_agent_type(type):
+            raise ValueError(rf"Invalid agent type: {type}. Allowed values MUST match the regex: `^[\w\-\.]+\Z`")
 
         self._type = type
         self._key = key
