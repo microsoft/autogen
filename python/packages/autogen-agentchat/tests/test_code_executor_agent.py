@@ -1,10 +1,7 @@
-import asyncio
-from typing import Optional, Sequence
-
 import pytest
 from autogen_agentchat.agents import CodeExecutorAgent
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import ChatMessage, HandoffMessage, TextMessage
+from autogen_agentchat.messages import TextMessage
 from autogen_core import CancellationToken
 from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
 
@@ -15,17 +12,22 @@ async def test_basic_code_execution() -> None:
 
     agent = CodeExecutorAgent(name="code_executor", code_executor=LocalCommandLineCodeExecutor())
 
-    messages = [TextMessage(content="""
+    messages = [
+        TextMessage(
+            content="""
 ```python
 import math
 
 number = 42
 square_root = math.sqrt(number)
-print("%0.3f" % (square_root,)) 
+print("%0.3f" % (square_root,))
 ```
-""".strip(), source="assistant")]
+""".strip(),
+            source="assistant",
+        )
+    ]
     response = await agent.on_messages(messages, CancellationToken())
-    
+
     assert isinstance(response, Response)
     assert isinstance(response.chat_message, TextMessage)
     assert response.chat_message.content.strip() == "6.481"
@@ -38,17 +40,22 @@ async def test_code_execution_error() -> None:
 
     agent = CodeExecutorAgent(name="code_executor", code_executor=LocalCommandLineCodeExecutor())
 
-    messages = [TextMessage(content="""
+    messages = [
+        TextMessage(
+            content="""
 ```python
 import math
 
 number = -1.0
 square_root = math.sqrt(number)
-print("%0.3f" % (square_root,)) 
+print("%0.3f" % (square_root,))
 ```
-""".strip(), source="assistant")]
+""".strip(),
+            source="assistant",
+        )
+    ]
     response = await agent.on_messages(messages, CancellationToken())
-    
+
     assert isinstance(response, Response)
     assert isinstance(response.chat_message, TextMessage)
     assert "The script ran, then exited with an error (Unix exit code: 1)" in response.chat_message.content
@@ -61,19 +68,27 @@ async def test_code_execution_no_output() -> None:
 
     agent = CodeExecutorAgent(name="code_executor", code_executor=LocalCommandLineCodeExecutor())
 
-    messages = [TextMessage(content="""
+    messages = [
+        TextMessage(
+            content="""
 ```python
 import math
 
 number = 42
 square_root = math.sqrt(number)
 ```
-""".strip(), source="assistant")]
+""".strip(),
+            source="assistant",
+        )
+    ]
     response = await agent.on_messages(messages, CancellationToken())
-    
+
     assert isinstance(response, Response)
     assert isinstance(response.chat_message, TextMessage)
-    assert "The script ran but produced no output to console. The Unix exit code was: 0. If you were expecting output, consider revising the script to ensure content is printed to stdout." in response.chat_message.content
+    assert (
+        "The script ran but produced no output to console. The Unix exit code was: 0. If you were expecting output, consider revising the script to ensure content is printed to stdout."
+        in response.chat_message.content
+    )
 
 
 @pytest.mark.asyncio
@@ -82,17 +97,25 @@ async def test_code_execution_no_block() -> None:
 
     agent = CodeExecutorAgent(name="code_executor", code_executor=LocalCommandLineCodeExecutor())
 
-    messages = [TextMessage(content="""
+    messages = [
+        TextMessage(
+            content="""
 import math
 
 number = 42
 square_root = math.sqrt(number)
-""".strip(), source="assistant")]
+""".strip(),
+            source="assistant",
+        )
+    ]
     response = await agent.on_messages(messages, CancellationToken())
-    
+
     assert isinstance(response, Response)
     assert isinstance(response.chat_message, TextMessage)
-    assert "No code blocks found in the thread. Please provide at least one markdown-encoded code block" in response.chat_message.content
+    assert (
+        "No code blocks found in the thread. Please provide at least one markdown-encoded code block"
+        in response.chat_message.content
+    )
 
 
 @pytest.mark.asyncio
@@ -101,13 +124,15 @@ async def test_code_execution_multiple_blocks() -> None:
 
     agent = CodeExecutorAgent(name="code_executor", code_executor=LocalCommandLineCodeExecutor())
 
-    messages = [TextMessage(content="""
+    messages = [
+        TextMessage(
+            content="""
 ```python
 import math
 
 number = 42
 square_root = math.sqrt(number)
-print("%0.3f" % (square_root,)) 
+print("%0.3f" % (square_root,))
 ```
 
 And also:
@@ -122,14 +147,17 @@ And this should result in an error:
 ```python
 import math
 
-number = -1.0 
+number = -1.0
 square_root = math.sqrt(number)
-print("%0.3f" % (square_root,)) 
+print("%0.3f" % (square_root,))
 ```
 
-""".strip(), source="assistant")]
+""".strip(),
+            source="assistant",
+        )
+    ]
     response = await agent.on_messages(messages, CancellationToken())
-    
+
     assert isinstance(response, Response)
     assert isinstance(response.chat_message, TextMessage)
     assert "6.481" in response.chat_message.content
