@@ -475,7 +475,7 @@ export default function ChatView() {
         <div className="flex-1">
           <SessionManager />
         </div>
-        <TeamManager />
+        {/* <TeamManager /> */}
       </div>
 
       <div className="flex flex-col h-full">

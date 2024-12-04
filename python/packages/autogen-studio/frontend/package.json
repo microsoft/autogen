@@ -18,6 +18,7 @@
   },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.4",
+    "@dnd-kit/core": "^6.2.0",
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.0.18",
     "@mdx-js/react": "^3.1.0",

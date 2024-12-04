@@ -2,7 +2,7 @@ import React from "react";
 import { Link } from "gatsby";
 import { useConfigStore } from "../hooks/store";
 import { Tooltip } from "antd";
-import { Settings, MessagesSquare } from "lucide-react";
+import { Settings, MessagesSquare, Blocks } from "lucide-react";
 import Icon from "./icons";
 
 interface INavItem {
@@ -22,6 +22,12 @@ const navigation: INavItem[] = [
     href: "/",
     icon: MessagesSquare,
     breadcrumbs: [{ name: "Playground", href: "/", current: true }],
+  },
+  {
+    name: "Build",
+    href: "/build",
+    icon: Blocks,
+    breadcrumbs: [{ name: "Build", href: "/build", current: true }],
   },
 ];
 
@@ -51,9 +57,9 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
   const showFull = isMobile || isExpanded;
 
   const handleNavClick = (item: INavItem) => {
-    if (!isExpanded) {
-      setSidebarState({ isExpanded: true });
-    }
+    // if (!isExpanded) {
+    //   setSidebarState({ isExpanded: true });
+    // }
     setHeader({
       title: item.name,
       breadcrumbs: item.breadcrumbs,

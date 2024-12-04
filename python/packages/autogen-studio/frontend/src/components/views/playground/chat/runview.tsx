@@ -7,13 +7,15 @@ import {
   AlertTriangle,
   TriangleAlertIcon,
   GroupIcon,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { Run, Message, TeamConfig } from "../../../types/datamodel";
 import AgentFlow from "./agentflow/agentflow";
 import { RenderMessage } from "./rendermessage";
 import InputRequestView from "./inputrequest";
 import { Tooltip } from "antd";
-import { LoadingDots } from "../../shared/atoms";
+import { LoadingDots, TruncatableText } from "../../shared/atoms";
 
 interface RunViewProps {
   run: Run;
@@ -178,11 +180,19 @@ const RunView: React.FC<RunViewProps> = ({
 
             {/* Final Response */}
             {run.status !== "awaiting_input" && run.status !== "active" && (
-              <div className="text-sm">
-                <div className="text-xs  mb-1 text-secondary -mt-2 border rounded p-2">
+              <div className="text-sm break-all">
+                <div className="text-xs bg-tertiary mb-1 text-secondary -mt-2 border rounded p-2">
                   Stop reason: {run.team_result?.task_result?.stop_reason}
                 </div>
-                {run.messages[run.messages.length - 1]?.config?.content + ""}
+
+                <TruncatableText
+                  key={"_" + run.id}
+                  textThreshold={700}
+                  content={
+                    run.messages[run.messages.length - 1]?.config?.content + ""
+                  }
+                  className="break-all"
+                />
               </div>
             )}
           </div>
@@ -197,11 +207,28 @@ const RunView: React.FC<RunViewProps> = ({
                       onClick={() => setIsExpanded(!isExpanded)}
                       className="flex items-center gap-1 text-sm text-secondary hover:text-primary transition-colors"
                     >
-                      <MessageSquare size={16} />
-                      <span className="text-accent">
-                        {isExpanded ? "Hide" : "Show"}
+                      <MessageSquare size={16} /> Agent discussion [
+                      <span className="text-accent text-xs">
+                        {isExpanded ? (
+                          <span>
+                            <ChevronUp
+                              size={16}
+                              className="inline-block mr-1"
+                            />
+                            Hide
+                          </span>
+                        ) : (
+                          <span>
+                            {" "}
+                            <ChevronDown
+                              size={16}
+                              className="inline-block mr-1"
+                            />{" "}
+                            Show more
+                          </span>
+                        )}
                       </span>{" "}
-                      agent discussion
+                      ]
                     </button>
                   </div>
 

@@ -10,6 +10,9 @@
   --color-border-primary: #f7fafc;
   --color-border-secondary: #e2e8f045;
   --color-border-accent: #464feb;
+  --color-ring-accent: #464feb;
+  --color-ring-primary: #f7fafc;
+  --color-ring-secondary: #e2e8f0;
 }
 
 .light {
@@ -24,6 +27,10 @@
   --color-border-primary: #2d3748c1;
   --color-border-secondary: #edf2f7;
   --color-border-accent: #464feb;
+  --color-ring-accent: #464feb;
+  --color-ring-primary: #f7fafc;
+  --color-ring-secondary: #e2e8f0;
+  
 }
 
 @tailwind base;

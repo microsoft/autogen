@@ -6,6 +6,7 @@ import { teamAPI } from "./api";
 import { TeamList } from "./list";
 import { TeamEditor } from "./editor";
 import type { Team } from "../../../types/datamodel";
+import { TeamBuilder } from "./builder.tsx/builder";
 
 export const TeamManager: React.FC = () => {
   // UI State
@@ -130,7 +131,7 @@ export const TeamManager: React.FC = () => {
   );
 
   return (
-    <>
+    <div className=" h-full flex flex-col">
       <div className="bg-secondary rounded p-2">
         <div className="text-xs pb-2">
           Teams <span className="px-1 text-accent">{teams.length} </span>
@@ -146,7 +147,15 @@ export const TeamManager: React.FC = () => {
           setEditingTeam(undefined);
         }}
       />
-    </>
+      {currentTeam && (
+        <TeamBuilder
+          team={currentTeam}
+          onChange={(updatedTeam) => {
+            console.log("Team updated", updatedTeam);
+          }}
+        />
+      )}
+    </div>
   );
 };
 

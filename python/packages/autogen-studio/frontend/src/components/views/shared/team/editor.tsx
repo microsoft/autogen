@@ -5,42 +5,7 @@ import { TeamEditorProps } from "./types";
 import type { FormProps } from "antd";
 import type { Team, TeamConfig } from "../../../types/datamodel";
 import { MonacoEditor } from "../monaco";
-
-const defaultTeamConfig: TeamConfig = {
-  version: "1.0.0",
-  component_type: "team",
-  name: "weather_team",
-  participants: [
-    {
-      component_type: "agent",
-      name: "writing_agent",
-      agent_type: "AssistantAgent",
-      system_message:
-        "You are a helpful assistant. Solve tasks carefully. When done respond with TERMINATE",
-      model_client: {
-        component_type: "model",
-        model: "gpt-4o-2024-08-06",
-        model_type: "OpenAIChatCompletionClient",
-      },
-      tools: [
-        {
-          component_type: "tool",
-          name: "get_weather",
-          description: "Get the weather for a city",
-          content:
-            'async def get_weather(city: str) -> str:\n    return f"The weather in {city} is 73 degrees and Sunny."',
-          tool_type: "PythonFunction",
-        },
-      ],
-    },
-  ],
-  team_type: "RoundRobinGroupChat",
-  termination_condition: {
-    component_type: "termination",
-    termination_type: "MaxMessageTermination",
-    max_messages: 10,
-  },
-};
+import { defaultTeamConfig } from "./types";
 
 type FieldType = {
   config: string;
@@ -149,7 +114,7 @@ export const TeamEditor: React.FC<TeamEditorProps> = ({
       onCancel={onCancel}
       footer={null}
       className="text-primary"
-      width={800}
+      width={"calc(80% - 2rem)"}
       forceRender
     >
       <div>
@@ -172,7 +137,7 @@ export const TeamEditor: React.FC<TeamEditorProps> = ({
             "SelectorGroupChat"), participants (array)
           </div>
 
-          <div className="h-[500px] mb-4">
+          <div className="h-[500px] mb-4 grid grid-cols-2 gap-4">
             <MonacoEditor
               value={editorValue}
               onChange={handleEditorChange}
@@ -180,6 +145,17 @@ export const TeamEditor: React.FC<TeamEditorProps> = ({
               language="json"
               minimap={false}
             />
+
+            {/* <div>
+              {isOpen && (
+                <TeamBuilder
+                  team={team || { config: defaultTeamConfig }}
+                  onChange={(updatedTeam) => {
+                    console.log("Team updated", updatedTeam);
+                  }}
+                />
+              )}
+            </div> */}
           </div>
 
           {jsonError && (
