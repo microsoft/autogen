@@ -20,6 +20,7 @@ group chat for task decomposition, and reflection for robustness.
 ```{toctree}
 :maxdepth: 1
 
+concurrent-agents
 group-chat
 handoffs
 mixture-of-agents
