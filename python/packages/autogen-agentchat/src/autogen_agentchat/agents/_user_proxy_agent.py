@@ -3,7 +3,7 @@ from inspect import iscoroutinefunction
 from typing import Awaitable, Callable, List, Optional, Sequence, Union, cast
 
 from aioconsole import ainput  # type: ignore
-from autogen_core.base import CancellationToken
+from autogen_core import CancellationToken
 
 from ..base import Response
 from ..messages import ChatMessage, HandoffMessage, TextMessage
@@ -21,7 +21,7 @@ async def cancellable_input(prompt: str, cancellation_token: Optional[Cancellati
     task = asyncio.create_task(ainput(prompt))  # type: ignore
     if cancellation_token is not None:
         cancellation_token.link_future(task)  # type: ignore
-    return await task  # type: ignore
+    return str(await task)
 
 
 class UserProxyAgent(BaseChatAgent):
@@ -54,25 +54,33 @@ class UserProxyAgent(BaseChatAgent):
         Simple usage case::
 
             import asyncio
+            from autogen_core import CancellationToken
             from autogen_agentchat.agents import UserProxyAgent
+            from autogen_agentchat.messages import TextMessage
 
-            agent = UserProxyAgent("user_proxy")
-            response = await asyncio.create_task(
-                agent.on_messages(
-                    [TextMessage(content="What is your name? ", source="user")],
-                    cancellation_token=token,
+            async def simple_user_agent():
+                agent = UserProxyAgent("user_proxy")
+                response = await asyncio.create_task(
+                    agent.on_messages(
+                        [TextMessage(content="What is your name? ", source="user")],
+                        cancellation_token=CancellationToken(),
+                    )
                 )
-            )
-            print(f"Your name is {response.chat_message.content}")
+                print(f"Your name is {response.chat_message.content}")
 
     Example:
         Cancellable usage case::
 
             import asyncio
             from typing import Any
+            from autogen_core import CancellationToken
             from autogen_agentchat.agents import UserProxyAgent
+            from autogen_agentchat.messages import TextMessage
 
 
+            token = CancellationToken()
+            agent = UserProxyAgent("user_proxy")
+            
             async def timeout(delay: float):
                 await asyncio.sleep(delay)
 
@@ -80,24 +88,22 @@ class UserProxyAgent(BaseChatAgent):
             def cancellation_callback(task: asyncio.Task[Any]):
                 token.cancel()
 
-
-            token = CancellationToken()
-            agent = UserProxyAgent("user_proxy")
-            try:
-                timeout_task = asyncio.create_task(timeout(3))
-                timeout_task.add_done_callback(cancellation_callback)
-                agent_task = asyncio.create_task(
-                    agent.on_messages(
-                        [TextMessage(content="What is your name? ", source="user")],
-                        cancellation_token=token,
+            async def cancellable_user_agent():
+                try:
+                    timeout_task = asyncio.create_task(timeout(3))
+                    timeout_task.add_done_callback(cancellation_callback)
+                    agent_task = asyncio.create_task(
+                        agent.on_messages(
+                            [TextMessage(content="What is your name? ", source="user")],
+                            cancellation_token=CancellationToken(),
+                        )
                     )
-                )
-                response = await agent_task
-                print(f"Your name is {response.chat_message.content}")
-            except Exception as e:
-                print(f"Exception: {e}")
-            except BaseException as e:
-                print(f"BaseException: {e}")
+                    response = await agent_task
+                    print(f"Your name is {response.chat_message.content}")
+                except Exception as e:
+                    print(f"Exception: {e}")
+                except BaseException as e:
+                    print(f"BaseException: {e}")
     """
 
     def __init__(
