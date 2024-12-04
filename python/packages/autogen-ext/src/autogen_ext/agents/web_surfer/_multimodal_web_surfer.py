@@ -707,7 +707,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         for line in page_markdown.splitlines():
             message = UserMessage(
                 # content=[
-                prompt + buffer + line,
+                content=prompt + buffer + line,
                 #    ag_image,
                 # ],
                 source=self.name,

@@ -135,7 +135,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             select_speaker_prompt = self._selector_prompt.format(
                 roles=roles, participants=str(participants), history=history
             )
-            select_speaker_messages = [SystemMessage(select_speaker_prompt)]
+            select_speaker_messages = [SystemMessage(content=select_speaker_prompt)]
             response = await self._model_client.create(messages=select_speaker_messages)
             assert isinstance(response.content, str)
             mentions = self._mentioned_agents(response.content, self._participant_topic_types)
