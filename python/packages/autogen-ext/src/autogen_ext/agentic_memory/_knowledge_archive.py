@@ -50,6 +50,13 @@ class KnowledgeArchive:
                 self.last_insight_id = len(self.uid_insight_dict)
                 parent_page.add_lines("\n{} INSIGHTS LOADED".format(len(self.uid_insight_dict)))
 
+    def save_archive(self):
+        self.memo_store.save_memos()
+        parent_page = self.page_log.last_page()
+        parent_page.add_lines("\nSAVING INSIGHTS TO DISK  {}".format(self.path_to_dict))
+        with open(self.path_to_dict, "wb") as file:
+            pickle.dump(self.uid_insight_dict, file)
+
     def add_insight(self, insight_str: str, task_str: Optional[str] = None, topics: Optional[List[str]] = None):
         """Adds an insight to the knowledge archive."""
         assert topics is not None, "For now, the topics list must be provided."
@@ -61,13 +68,6 @@ class KnowledgeArchive:
             self.memo_store.add_input_output_pair(topic, id_str)
         self.uid_insight_dict[str(id_str)] = insight
         self.save_archive()
-
-    def save_archive(self):
-        self.memo_store.save_memos()
-        parent_page = self.page_log.last_page()
-        parent_page.add_lines("\nSAVING INSIGHTS TO DISK  {}".format(self.path_to_dict))
-        with open(self.path_to_dict, "wb") as file:
-            pickle.dump(self.uid_insight_dict, file)
 
     def get_relevant_insights(self, task_str: Optional[str] = None, topics: Optional[List[str]] = None):
         """Returns any insights from the knowledge archive that are relevant to the given task or topics."""

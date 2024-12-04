@@ -83,15 +83,18 @@ class AgenticMemory:
             details="",
             method_call="AgenticMemory.add_insight_to_memory")
 
+        # Generalize the task.
+        generalized_task = await self.prompter.generalize_task(task)
+
         # Get a combined list of topics from the task and insight.
-        task_plus_insight = task.strip() + "\n(Hint:  " + insight + ")"
+        task_plus_insight = generalized_task.strip() + "\n(Hint:  " + insight + ")"
         topics = await self.prompter.find_index_topics(task_plus_insight)
         page.add_lines("\nTOPICS EXTRACTED FROM TASK AND INSIGHT:")
         page.add_lines("\n".join(topics))
         page.add_lines("")
 
         # Add the insight to the archive.
-        self.archive.add_insight(insight, task, topics)
+        self.archive.add_insight(insight, generalized_task, topics)
 
         self.page_log.finish_page(page)
 
@@ -102,8 +105,11 @@ class AgenticMemory:
             details="",
             method_call="AgenticMemory.retrieve_relevant_insights")
 
+        # Generalize the task.
+        generalized_task = await self.prompter.generalize_task(task)
+
         # Get a list of topics from the task.
-        topics = await self.prompter.find_index_topics(task)
+        topics = await self.prompter.find_index_topics(generalized_task)
         page.add_lines("\nTOPICS EXTRACTED FROM TASK:")
         page.add_lines("\n".join(topics))
         page.add_lines("")
@@ -114,9 +120,13 @@ class AgenticMemory:
         page.add_lines("\nUNFILTERED INSIGHTS")
         for insight, relevance in unfiltered_insights.items():
             page.add_lines("  INSIGHT: {}\n  RELEVANCE: {:.3f}".format(insight, relevance))
-            if relevance > 5.0:
-                filtered_insights.append(insight)
+            filtered_insights.append(insight)
         page.add_lines("\nFiltered to top {} insights".format(len(filtered_insights)))
+
+        if len(filtered_insights) > 0:
+            # Apply a final filtering stage to keep only the insights that the LLM believes are relevant.
+            filtered_insights = await self.prompter.validate_insights(filtered_insights, task)
+            page.add_lines("\n{} insights were validated".format(len(filtered_insights)))
 
         self.page_log.finish_page(page)
         return filtered_insights
@@ -184,7 +194,6 @@ class AgenticMemory:
             page.add_lines("-----  TRAIN TRIAL {}  -----\n".format(trial), flush=True)
 
             # Add any new insights we've accumulated so far.
-            # memory_section = self.format_memory_section(old_insights + new_insights)
             if last_insight is not None:
                 memory_section = self.format_memory_section(old_insights + [last_insight])
             else:

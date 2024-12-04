@@ -181,3 +181,65 @@ class Prompter:
                 topic_list.append(line)
 
         return topic_list
+
+    async def generalize_task(self, task_description):
+        # Returns a list of topics related to the input string.
+
+        sys_message = """You are a helpful and thoughtful assistant."""
+
+        user_message = ["We have been given a task description. Our job is not to complete the task, but merely rephrase the task in simpler, more general terms, if possible. Please reach through the following task description, then explain your understanding of the task in detail, as a single, flat list of all the important points."]
+        user_message.append("\n# Task description")
+        user_message.append(task_description)
+
+        self.clear_history()
+        response1, page = await self.call_model(
+            system_message=sys_message,
+            user_content=user_message,
+            details="to rephrase the task in a list of important points")
+
+        user_message = ["Do you see any parts of this list that are irrelevant to actually solving the task? If so, explain which items are irrelevant."]
+        response2, page = await self.call_model(
+            system_message=sys_message,
+            user_content=user_message,
+            details="to identify irrelevant points")
+
+        user_message = ["Revise your original list to include only the most general terms, those that are critical to solving the task, removing any themes or descriptions that are not essential to the solution. Your final list may be shorter, but do not leave out any part of the task that is needed for solving the task. Do not add any additional commentary either before or after the list."]
+        generalized_task, page = await self.call_model(
+            system_message=sys_message,
+            user_content=user_message,
+            details="to make a final list of general terms")
+
+        return generalized_task
+
+    async def validate_insights(self, insights, task_description):
+        # Returns only the insights that the client verifies are relevant to the task.
+
+        sys_message = """You are a helpful and thoughtful assistant."""
+
+        user_message = ["""We have been given a list of insights that may or may not be useful for solving the given task. 
+- First review the following task.
+- Then review the list of insights that follow, and discuss which ones could be useful in solving the given task.
+- Do not attempt to actually solve the task. That will come later."""]
+        user_message.append("\n# Task description")
+        user_message.append(task_description)
+        user_message.append("\n# Possibly useful insights")
+        user_message.extend(insights)
+        self.clear_history()
+        response1, page = await self.call_model(
+            system_message=sys_message,
+            user_content=user_message,
+            details="to review the task and insights")
+
+        user_message = ["""Now output a verbatim copy the insights that you decided are relevant to the task.
+- The original list of insights is provided below for reference.
+- If an insight is not relevant to the task, simply omit it from your response.
+- Do not add any additional commentary either before or after the relevant tasks.
+- If none of the tasks are relevant, simply write "None"."""]
+        user_message.append("\n# Original list of possibly useful insights")
+        user_message.extend(insights)
+        validated_insights, page = await self.call_model(
+            system_message=sys_message,
+            user_content=user_message,
+            details="to list the relevant insights")
+
+        return [validated_insights] if validated_insights != "None" else []
