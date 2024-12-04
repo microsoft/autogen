@@ -85,10 +85,10 @@ class CodeExecutorAgent(BaseChatAgent):
             code_output = result.output
             if code_output.strip() == "":
                 # No output
-                code_output = f"The script ran but produced no output to console. The Unix exit code was: {result.exit_code}. If you were expecting output, consider revising the script to ensure content is printed to stdout."
+                code_output = f"The script ran but produced no output to console. The POSIX exit code was: {result.exit_code}. If you were expecting output, consider revising the script to ensure content is printed to stdout."
             elif result.exit_code != 0:
                 # Error
-                code_output = f"The script ran, then exited with an error (Unix exit code: {result.exit_code})\nIts output was:\n{result.output}"
+                code_output = f"The script ran, then exited with an error (POSIX exit code: {result.exit_code})\nIts output was:\n{result.output}"
 
             return Response(chat_message=TextMessage(content=code_output, source=self.name))
         else:
