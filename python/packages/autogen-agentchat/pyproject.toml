@@ -40,3 +40,4 @@ include = "../../shared_tasks.toml"
 
 [tool.poe.tasks]
 test = "pytest -n auto"
+integ-test = "sh run-integ-test.sh"
