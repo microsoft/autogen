@@ -2,9 +2,15 @@ import asyncio
 from dataclasses import dataclass
 
 import pytest
+from autogen_core import (
+    AgentId,
+    AgentInstantiationContext,
+    CancellationToken,
+    MessageContext,
+    RoutedAgent,
+    message_handler,
+)
 from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, AgentInstantiationContext, CancellationToken, MessageContext
-from autogen_core.components import RoutedAgent, message_handler
 
 
 @dataclass

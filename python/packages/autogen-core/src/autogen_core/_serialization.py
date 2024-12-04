@@ -6,7 +6,7 @@ from google.protobuf import any_pb2
 from google.protobuf.message import Message
 from pydantic import BaseModel
 
-from autogen_core.base._type_helpers import is_union
+from ._type_helpers import is_union
 
 T = TypeVar("T")
 
@@ -199,6 +199,8 @@ V = TypeVar("V")
 
 
 def try_get_known_serializers_for_type(cls: type[Any]) -> list[MessageSerializer[Any]]:
+    """:meta private:"""
+
     serializers: List[MessageSerializer[Any]] = []
     if issubclass(cls, BaseModel):
         serializers.append(PydanticJsonMessageSerializer(cls))
@@ -211,6 +213,8 @@ def try_get_known_serializers_for_type(cls: type[Any]) -> list[MessageSerializer
 
 
 class SerializationRegistry:
+    """:meta private:"""
+
     def __init__(self) -> None:
         # type_name, data_content_type -> serializer
         self._serializers: dict[tuple[str, str], MessageSerializer[Any]] = {}

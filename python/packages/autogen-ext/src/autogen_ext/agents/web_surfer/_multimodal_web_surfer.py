@@ -26,10 +26,9 @@ import PIL.Image
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import ChatMessage, MultiModalMessage, TextMessage
+from autogen_core import CancellationToken, FunctionCall
+from autogen_core import Image as AGImage
 from autogen_core.application.logging import EVENT_LOGGER_NAME
-from autogen_core.base import CancellationToken
-from autogen_core.components import FunctionCall
-from autogen_core.components import Image as AGImage
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,

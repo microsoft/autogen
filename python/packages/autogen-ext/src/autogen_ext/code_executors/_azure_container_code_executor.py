@@ -13,7 +13,7 @@ import aiohttp
 
 # async functions shouldn't use open()
 from anyio import open_file
-from autogen_core.base import CancellationToken
+from autogen_core import CancellationToken
 from autogen_core.components.code_executor import (
     CodeBlock,
     CodeExecutor,

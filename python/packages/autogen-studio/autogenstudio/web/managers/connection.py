@@ -6,8 +6,8 @@ from uuid import UUID
 
 from autogen_agentchat.base._task import TaskResult
 from autogen_agentchat.messages import AgentMessage, ChatMessage, MultiModalMessage, TextMessage
-from autogen_core.base import CancellationToken
-from autogen_core.components import Image as AGImage
+from autogen_core import CancellationToken
+from autogen_core import Image as AGImage
 from fastapi import WebSocket, WebSocketDisconnect
 
 from ...database import DatabaseManager

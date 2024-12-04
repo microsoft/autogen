@@ -86,6 +86,9 @@ class AgentRuntime(Protocol):
     ) -> AgentType:
         """Register an agent factory with the runtime associated with a specific type. The type must be unique.
 
+        .. deprecated:: 0.4.0.dev1
+            Use a specific agent's `register` method directly instead of this method. For example: :meth:`BaseAgent.register`
+
         Args:
             type (str): The type of agent this factory creates. It is not the same as agent class name. The `type` parameter is used to differentiate between different factory functions rather than agent classes.
             agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type. Inside the factory, use `autogen_core.base.AgentInstantiationContext` to access variables like the current runtime and agent ID.

@@ -7,7 +7,7 @@ myst:
 
 # Installation
 
-## Create a virtual environment (optional)
+## Create a Virtual Environment (optional)
 
 When installing AgentChat locally, we recommend using a virtual environment for the installation. This will ensure that the dependencies for AgentChat are isolated from the rest of your system.
 
@@ -55,7 +55,7 @@ conda deactivate
 
 ``````
 
-## Intall the AgentChat package using pip
+## Install Using pip
 
 Install the `autogen-agentchat` package using pip:
 

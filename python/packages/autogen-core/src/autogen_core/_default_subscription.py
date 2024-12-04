@@ -1,8 +1,9 @@
 from typing import Callable, Type, TypeVar, overload
 
-from ..base import BaseAgent, SubscriptionInstantiationContext, subscription_factory
-from ..base.exceptions import CantHandleException
+from ._base_agent import BaseAgent, subscription_factory
+from ._subscription_context import SubscriptionInstantiationContext
 from ._type_subscription import TypeSubscription
+from .exceptions import CantHandleException
 
 
 class DefaultSubscription(TypeSubscription):

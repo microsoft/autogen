@@ -2,8 +2,7 @@ import asyncio
 
 import pytest
 from autogen_agentchat.base import TerminatedException
-from autogen_agentchat.messages import HandoffMessage, StopMessage, TextMessage
-from autogen_agentchat.task import (
+from autogen_agentchat.conditions import (
     ExternalTermination,
     HandoffTermination,
     MaxMessageTermination,
@@ -13,6 +12,7 @@ from autogen_agentchat.task import (
     TimeoutTermination,
     TokenUsageTermination,
 )
+from autogen_agentchat.messages import HandoffMessage, StopMessage, TextMessage
 from autogen_core.components.models import RequestUsage
 
 

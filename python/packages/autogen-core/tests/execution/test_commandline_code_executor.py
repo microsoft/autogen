@@ -13,7 +13,7 @@ from typing import AsyncGenerator, TypeAlias
 import pytest
 import pytest_asyncio
 from aiofiles import open
-from autogen_core.base import CancellationToken
+from autogen_core import CancellationToken
 from autogen_core.components.code_executor import CodeBlock, LocalCommandLineCodeExecutor
 
 

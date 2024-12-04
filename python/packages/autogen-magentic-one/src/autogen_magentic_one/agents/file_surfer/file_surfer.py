@@ -2,8 +2,7 @@ import json
 import time
 from typing import List, Optional, Tuple
 
-from autogen_core.base import CancellationToken
-from autogen_core.components import FunctionCall, default_subscription
+from autogen_core import CancellationToken, FunctionCall, default_subscription
 from autogen_core.components.models import (
     ChatCompletionClient,
     SystemMessage,
