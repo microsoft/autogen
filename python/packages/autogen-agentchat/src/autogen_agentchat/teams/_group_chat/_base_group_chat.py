@@ -149,7 +149,11 @@ class BaseGroupChat(Team, ABC):
             if isinstance(message, GroupChatTermination):
                 self._stop_reason = message.message.content
                 return
-            await self._output_message_queue.put(message.message)
+
+            # Handle single message or list of messages
+            messages = message.message if isinstance(message.message, List) else [message.message]
+            for msg in messages:
+                await self._output_message_queue.put(msg)
 
         await ClosureAgent.register_closure(
             runtime,
@@ -164,7 +168,7 @@ class BaseGroupChat(Team, ABC):
     async def run(
         self,
         *,
-        task: str | ChatMessage | list[ChatMessage] | None = None,
+        task: str | ChatMessage | List[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the team and return the result. The base implementation uses
@@ -172,7 +176,7 @@ class BaseGroupChat(Team, ABC):
         Once the team is stopped, the termination condition is reset.
 
         Args:
-            task (str | ChatMessage | list[ChatMessage] | None): The task to run the team with. Can be a string, a single message, or a list of messages.
+            task (str | ChatMessage | List[ChatMessage] | None): The task to run the team with. Can be a string, a single :class:`ChatMessage` , or a list of :class:`ChatMessage`.
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
@@ -263,7 +267,7 @@ class BaseGroupChat(Team, ABC):
     async def run_stream(
         self,
         *,
-        task: str | ChatMessage | list[ChatMessage] | None = None,
+        task: str | ChatMessage | List[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
@@ -271,7 +275,7 @@ class BaseGroupChat(Team, ABC):
         team is stopped, the termination condition is reset.
 
         Args:
-            task (str | ChatMessage | list[ChatMessage] | None): The task to run the team with. Can be a string, a single message, or a list of messages.
+            task (str | ChatMessage | List[ChatMessage] | None): The task to run the team with. Can be a string, a single :class:`ChatMessage` , or a list of :class:`ChatMessage`.
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.

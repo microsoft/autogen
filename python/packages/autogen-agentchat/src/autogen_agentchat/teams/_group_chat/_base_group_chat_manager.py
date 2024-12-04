@@ -74,20 +74,28 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         await self.validate_group_state(message.message)
 
         if message.message is not None:
-            # Log the start message.
-            await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
+            messages_to_process = [message.message] if isinstance(message.message, ChatMessage) else message.message
 
-            # Relay the start message to the participants.
-            await self.publish_message(
-                message, topic_id=DefaultTopicId(type=self._group_topic_type), cancellation_token=ctx.cancellation_token
-            )
+            # Log and relay each message
+            for msg in messages_to_process:
+                # Log the message
+                await self.publish_message(
+                    GroupChatStart(message=msg), topic_id=DefaultTopicId(type=self._output_topic_type)
+                )
 
-            # Append the user message to the message thread.
-            self._message_thread.append(message.message)
+                # Relay the message to participants
+                await self.publish_message(
+                    GroupChatStart(message=msg),
+                    topic_id=DefaultTopicId(type=self._group_topic_type),
+                    cancellation_token=ctx.cancellation_token,
+                )
 
-            # Check if the conversation should be terminated.
+                # Append to message thread
+                self._message_thread.append(msg)
+
+            # Check termination condition after processing all messages
             if self._termination_condition is not None:
-                stop_message = await self._termination_condition([message.message])
+                stop_message = await self._termination_condition(messages_to_process)
                 if stop_message is not None:
                     await self.publish_message(
                         GroupChatTermination(message=stop_message),
@@ -97,7 +105,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                     await self._termination_condition.reset()
                     return
 
-        # Select a speaker to start the conversation.
+        # Select a speaker to start/continue the conversation
         speaker_topic_type_future = asyncio.ensure_future(self.select_speaker(self._message_thread))
         # Link the select speaker future to the cancellation token.
         ctx.cancellation_token.link_future(speaker_topic_type_future)
