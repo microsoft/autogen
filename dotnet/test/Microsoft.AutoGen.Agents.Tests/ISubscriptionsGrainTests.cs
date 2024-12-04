@@ -23,7 +23,7 @@ public class ISubscriptionsGrainTests
         // Arrange
         var subscriptionsState = new SubscriptionsState
         {
-            Subscriptions = new ConcurrentDictionary<string, List<string>>
+            SubscriptionsByAgentType = new ConcurrentDictionary<string, List<string>>
             {
                 ["topic1"] = ["agentType1"],
                 ["topic2"] = ["agentType2"]
@@ -35,9 +35,9 @@ public class ISubscriptionsGrainTests
         var result = await _mockSubscriptionsGrain.Object.GetSubscriptionsStateAsync();
 
         // Assert
-        Assert.Equal(2, result.Subscriptions.Count);
-        Assert.Contains("topic1", result.Subscriptions.Keys);
-        Assert.Contains("topic2", result.Subscriptions.Keys);
+        Assert.Equal(2, result.SubscriptionsByAgentType.Count);
+        Assert.Contains("topic1", result.SubscriptionsByAgentType.Keys);
+        Assert.Contains("topic2", result.SubscriptionsByAgentType.Keys);
     }
 
     [Fact]

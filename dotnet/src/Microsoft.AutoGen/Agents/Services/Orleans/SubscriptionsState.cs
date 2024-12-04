@@ -6,8 +6,7 @@ namespace Microsoft.AutoGen.Abstractions;
 [GenerateSerializer]
 [Serializable]
 public sealed class SubscriptionsState
-{    
-    public ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
-    public ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
-    public ConcurrentDictionary<string, List<string>> Subscriptions { get; set; } = new();
+{
+    public ConcurrentDictionary<string, List<string>> SubscriptionsByTopic = new();
+    public ConcurrentDictionary<string, List<string>> SubscriptionsByAgentType { get; set; } = new();
 }

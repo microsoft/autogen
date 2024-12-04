@@ -11,7 +11,7 @@ internal sealed class SubscriptionsGrain([PersistentState("state", "PubSubStore"
 
     public ValueTask<ConcurrentDictionary<string, List<string>>> GetSubscriptionsByAgentTypeAsync(string? agentType = null)
     {
-        var _subscriptions = _subscriptionsState.State.Subscriptions;
+        var _subscriptions = _subscriptionsState.State.SubscriptionsByAgentType;
         //if agentType is null, return all subscriptions else filter on agentType
         if (agentType != null)
         {
@@ -22,7 +22,7 @@ internal sealed class SubscriptionsGrain([PersistentState("state", "PubSubStore"
     }
     public ValueTask<ConcurrentDictionary<string, List<string>>> GetSubscriptionsByTopicAsync(string? topic = null)
     {
-        var _subscriptions = _subscriptionsState.State.Subscriptions;
+        var _subscriptions = _subscriptionsState.State.SubscriptionsByTopic;
         //if topic is null, return all subscriptions else filter on topic
         if (topic != null)
         {
@@ -49,7 +49,7 @@ internal sealed class SubscriptionsGrain([PersistentState("state", "PubSubStore"
 
     private async ValueTask WriteSubscriptionsAsync(string agentType, string topic, bool subscribe=true)
     {
-        var _subscriptions = _subscriptionsState.State.Subscriptions;
+        var _subscriptions = await GetSubscriptionsByAgentTypeAsync().ConfigureAwait(true);
         if (!_subscriptions.TryGetValue(topic, out var agentTypes))
         {
             agentTypes = _subscriptions[topic] = [];
@@ -65,8 +65,9 @@ internal sealed class SubscriptionsGrain([PersistentState("state", "PubSubStore"
                 agentTypes.Remove(agentType);
             }
         }
-        _subscriptions[topic] = agentTypes;
-        _subscriptionsState.State.Subscriptions = _subscriptions;
+        _subscriptionsState.State.SubscriptionsByAgentType = _subscriptions;
+        var _subsByTopic = await GetSubscriptionsByTopicAsync().ConfigureAwait(true);
+        _subsByTopic.GetOrAdd(topic, _ => []).Add(agentType);
         await _subscriptionsState.WriteStateAsync().ConfigureAwait(false);
     }
 }

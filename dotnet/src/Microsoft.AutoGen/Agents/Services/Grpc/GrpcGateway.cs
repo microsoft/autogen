@@ -135,10 +135,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             topic = request.Subscription.TypeSubscription.TopicType;
             agentType = request.Subscription.TypeSubscription.AgentType;
         }
-        _subscriptionsState._subscriptionsByAgentType[agentType] = request.Subscription;
-        _subscriptionsState._subscriptionsByTopic.GetOrAdd(topic, _ => []).Add(agentType);
         await _subscriptionsGrain.SubscribeAsync(topic, agentType).ConfigureAwait(true);
-        await _subscriptionsGrain.WriteSubscriptionsStateAsync(_subscriptionsState).ConfigureAwait(true);
         Message response = new()
         {
             AddSubscriptionResponse = new()
