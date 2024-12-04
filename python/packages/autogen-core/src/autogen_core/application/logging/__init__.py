@@ -1,5 +1,3 @@
-from ._llm_usage import LLMUsageTracker
-
 ROOT_LOGGER_NAME = "autogen_core"
 """str: Logger name used for structured event logging"""
 
@@ -14,5 +12,4 @@ __all__ = [
     "ROOT_LOGGER_NAME",
     "EVENT_LOGGER_NAME",
     "TRACE_LOGGER_NAME",
-    "LLMUsageTracker",
 ]
