@@ -58,7 +58,7 @@ print("%0.3f" % (square_root,))
 
     assert isinstance(response, Response)
     assert isinstance(response.chat_message, TextMessage)
-    assert "The script ran, then exited with an error (Unix exit code: 1)" in response.chat_message.content
+    assert "The script ran, then exited with an error (POSIX exit code: 1)" in response.chat_message.content
     assert "ValueError: math domain error" in response.chat_message.content
 
 
@@ -86,7 +86,7 @@ square_root = math.sqrt(number)
     assert isinstance(response, Response)
     assert isinstance(response.chat_message, TextMessage)
     assert (
-        "The script ran but produced no output to console. The Unix exit code was: 0. If you were expecting output, consider revising the script to ensure content is printed to stdout."
+        "The script ran but produced no output to console. The POSIX exit code was: 0. If you were expecting output, consider revising the script to ensure content is printed to stdout."
         in response.chat_message.content
     )
 
@@ -162,5 +162,5 @@ print("%0.3f" % (square_root,))
     assert isinstance(response.chat_message, TextMessage)
     assert "6.481" in response.chat_message.content
     assert "The current time is:" in response.chat_message.content
-    assert "The script ran, then exited with an error (Unix exit code: 1)" in response.chat_message.content
+    assert "The script ran, then exited with an error (POSIX exit code: 1)" in response.chat_message.content
     assert "ValueError: math domain error" in response.chat_message.content
