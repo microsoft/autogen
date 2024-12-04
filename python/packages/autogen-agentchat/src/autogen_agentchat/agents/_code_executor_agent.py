@@ -81,9 +81,23 @@ class CodeExecutorAgent(BaseChatAgent):
         if code_blocks:
             # Execute the code blocks.
             result = await self._code_executor.execute_code_blocks(code_blocks, cancellation_token=cancellation_token)
-            return Response(chat_message=TextMessage(content=result.output, source=self.name))
+
+            code_output = result.output
+            if code_output.strip() == "":
+                # No output
+                code_output = f"The script ran but produced no output to console. The POSIX exit code was: {result.exit_code}. If you were expecting output, consider revising the script to ensure content is printed to stdout."
+            elif result.exit_code != 0:
+                # Error
+                code_output = f"The script ran, then exited with an error (POSIX exit code: {result.exit_code})\nIts output was:\n{result.output}"
+
+            return Response(chat_message=TextMessage(content=code_output, source=self.name))
         else:
-            return Response(chat_message=TextMessage(content="No code blocks found in the thread.", source=self.name))
+            return Response(
+                chat_message=TextMessage(
+                    content="No code blocks found in the thread. Please provide at least one markdown-encoded code block to execute (i.e., quoting code in ```python or ```sh code blocks).",
+                    source=self.name,
+                )
+            )
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """It it's a no-op as the code executor agent has no mutable state."""
