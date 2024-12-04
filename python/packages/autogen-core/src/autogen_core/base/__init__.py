@@ -134,5 +134,5 @@ class SubscriptionInstantiationContext(SubscriptionInstantiationContextAlias):
 class TopicId(TopicIdAlias):
     pass
 
-__all__ = []
 
+__all__ = []
