@@ -831,10 +831,28 @@ def test_register_for_llm_without_LLM():
             return f"{s} done"
 
 
+def test_register_for_llm_with_valid_configuration():
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv("OPENAI_API_KEY", MOCK_OPEN_AI_API_KEY)
+
+        valid_config = {
+            "config_list": [
+                {"model": "gpt-4"},
+                {"model": "gpt-4", "api_key": MOCK_OPEN_AI_API_KEY, "tags": ["gpt4", "openai"]},
+            ],
+        }
+        assistant = ConversableAgent(
+            name="assistant",
+            llm_config=valid_config,
+        )
+        assert assistant is not None
+        assert assistant.llm_config == valid_config
+
+
 def test_register_for_llm_without_configuration():
     with pytest.raises(
         ValueError,
-        match="When using OpenAI or Azure OpenAI endpoints, specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+        match="llm_config: 'model' field is required in 'llm_config' or each 'config_list' entry.",
     ):
         ConversableAgent(name="agent", llm_config={"config_list": []})
 
@@ -842,9 +860,25 @@ def test_register_for_llm_without_configuration():
 def test_register_for_llm_without_model_name():
     with pytest.raises(
         ValueError,
-        match="When using OpenAI or Azure OpenAI endpoints, specify a non-empty 'model' either in 'llm_config' or in each config of 'config_list'.",
+        match="llm_config: 'model' field is required for each item in 'config_list' and must not be empty.",
     ):
         ConversableAgent(name="agent", llm_config={"config_list": [{"model": ""}]})
+
+
+def test_register_for_llm_with_invalid_tags():
+    with pytest.raises(
+        ValueError,
+        match="llm_config: 'tags' must be a list of strings.",
+    ):
+        ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4", "tags": "invalid_tags"}]})
+
+
+def test_register_for_llm_with_invalid_api_key():
+    with pytest.raises(
+        ValueError,
+        match="llm_config: 'api_key' must be a string.",
+    ):
+        ConversableAgent(name="agent", llm_config={"config_list": [{"model": "gpt-4", "api_key": 1234}]})
 
 
 def test_register_for_execution():
@@ -1606,7 +1640,7 @@ def test_http_client():
 
 def test_adding_duplicate_function_warning():
 
-    config_base = [{"base_url": "http://0.0.0.0:8000", "api_key": "NULL"}]
+    config_base = [{"base_url": "http://0.0.0.0:8000", "api_key": "NULL", "model": "na"}]
 
     agent = autogen.ConversableAgent(
         "jtoy",
