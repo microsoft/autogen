@@ -78,6 +78,7 @@
     <PackageVersion Include="Microsoft.Orleans.Server" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Orleans.Streaming" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Orleans.Streaming.EventHubs" Version="9.0.1" />
+    <PackageVersion Include="Microsoft.Orleans.TestingHost" Version="9.0.1" />
     <PackageVersion Include="Microsoft.SemanticKernel" Version="1.29.0" />
     <PackageVersion Include="Microsoft.SemanticKernel.Agents.Core" Version="$(MicrosoftSemanticKernelExperimentalVersion)" />
     <PackageVersion Include="Microsoft.SemanticKernel.Connectors.AzureOpenAI" Version="1.29.0" />

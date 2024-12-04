@@ -6,7 +6,7 @@ using Microsoft.AutoGen.Runtime.Grpc;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.AddAgentService(inMemoryOrleans: true, useGrpc: true);
+builder.AddGrpcRuntime(inMemoryOrleans: true);
 
 var app = builder.Build();
 

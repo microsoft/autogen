@@ -43,4 +43,16 @@ internal sealed class GrpcGatewayService : AgentRpc.AgentRpcBase
             Success = true // TODO: Implement error handling
         };
     }
+
+    public override Task<AddSubscriptionResponse> AddSubscription(AddSubscriptionRequest request, ServerCallContext context)
+    {
+        // TODO: This should map to Orleans Streaming explicit api
+        return base.AddSubscription(request, context);
+    }
+
+    public override async Task<RegisterAgentTypeResponse> RegisterAgent(RegisterAgentTypeRequest request, ServerCallContext context)
+    {
+        // TODO: This should add the agent to registry
+        return await Gateway.RegisterAgentTypeAsync(request);
+    }
 }

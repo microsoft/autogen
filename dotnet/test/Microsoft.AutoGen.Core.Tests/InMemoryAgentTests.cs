@@ -4,6 +4,7 @@
 using FluentAssertions;
 using Google.Protobuf.Reflection;
 using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Core.Tests.Helpers;
 using Microsoft.Extensions.DependencyInjection;
 using Tests.Events;
 using Xunit;

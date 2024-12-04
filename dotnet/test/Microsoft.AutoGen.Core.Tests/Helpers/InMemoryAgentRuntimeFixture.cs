@@ -8,7 +8,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
 
-namespace Microsoft.AutoGen.Core.Tests;
+namespace Microsoft.AutoGen.Core.Tests.Helpers;
 
 public sealed class InMemoryAgentRuntimeFixture : IDisposable
 {

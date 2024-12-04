@@ -203,17 +203,14 @@ public sealed class GrpcAgentWorker(
 
             // TODO: Reimplement registration as RPC call
             _logger.LogInformation($"{cancellationToken.ToString}"); // TODO: remove this
-            //await WriteChannelAsync(new Message
-            //{
-            //    RegisterAgentTypeRequest = new RegisterAgentTypeRequest
-            //    {
-            //        Type = type,
-            //        RequestId = Guid.NewGuid().ToString(),
-            //        //TopicTypes = { topicTypes },
-            //        //StateType = state?.Name,
-            //        Events = { events }
-            //    }
-            //}, cancellationToken).ConfigureAwait(false);
+            var response = await _client.RegisterAgentAsync(new RegisterAgentTypeRequest
+            {
+                Type = type,
+                RequestId = Guid.NewGuid().ToString(),
+                //TopicTypes = { topicTypes },
+                //StateType = state?.Name,
+                Events = { events }
+            }, null, null, cancellationToken);
         }
     }
 

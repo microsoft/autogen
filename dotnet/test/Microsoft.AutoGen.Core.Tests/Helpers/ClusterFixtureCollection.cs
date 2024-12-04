@@ -3,7 +3,7 @@
 
 using Xunit;
 
-namespace Microsoft.AutoGen.Core.Tests;
+namespace Microsoft.AutoGen.Core.Tests.Helpers;
 
 [CollectionDefinition(Name)]
 public sealed class ClusterFixtureCollection : ICollectionFixture<InMemoryAgentRuntimeFixture>
