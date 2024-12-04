@@ -14,9 +14,9 @@ from .tools import (
 )
 
 
-class VideoSurferAgent(AssistantAgent):
+class VideoSurfer(AssistantAgent):
     """
-    VideoSurferAgent is a specialized agent designed to answer questions about a local video file.
+    VideoSurfer is a specialized agent designed to answer questions about a local video file.
 
     This agent utilizes various tools to extract information from the video, such as its length, screenshots at specific timestamps, and audio transcriptions. It processes these elements to provide detailed answers to user queries.
 
@@ -43,15 +43,15 @@ class VideoSurferAgent(AssistantAgent):
             from autogen_agentchat.conditions import TextMentionTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_ext.models import OpenAIChatCompletionClient
-            from autogen_ext.agents.video_surfer import VideoSurferAgent
+            from autogen_ext.agents.video_surfer import VideoSurfer
 
             async def main() -> None:
                 \"\"\"
                 Main function to run the video agent.
                 \"\"\"
                 # Define an agent
-                video_agent = VideoSurferAgent(
-                    name="VideoSurferAgent",
+                video_agent = VideoSurfer(
+                    name="VideoSurfer",
                     model_client=OpenAIChatCompletionClient(model="gpt-4o-2024-08-06")
                     )
 
@@ -67,7 +67,7 @@ class VideoSurferAgent(AssistantAgent):
 
             asyncio.run(main())
 
-        The following example demonstrates how to create and use a VideoSurferAgent and UserProxyAgent with MagenticOneGroupChat.
+        The following example demonstrates how to create and use a VideoSurfer and UserProxyAgent with MagenticOneGroupChat.
 
         .. code-block:: python
 
@@ -77,7 +77,7 @@ class VideoSurferAgent(AssistantAgent):
             from autogen_agentchat.teams import MagenticOneGroupChat
             from autogen_agentchat.agents import UserProxyAgent
             from autogen_ext.models import OpenAIChatCompletionClient
-            from autogen_ext.agents.video_surfer import VideoSurferAgent
+            from autogen_ext.agents.video_surfer import VideoSurfer
 
             async def main() -> None:
                 \"\"\"
@@ -87,8 +87,8 @@ class VideoSurferAgent(AssistantAgent):
                 model_client = OpenAIChatCompletionClient(model="gpt-4o-2024-08-06")
 
                 # Define an agent
-                video_agent = VideoSurferAgent(
-                    name="VideoSurferAgent",
+                video_agent = VideoSurfer(
+                    name="VideoSurfer",
                     model_client=model_client
                     )
 
@@ -128,7 +128,7 @@ class VideoSurferAgent(AssistantAgent):
         system_message: Optional[str] = None,
     ):
         """
-        Initialize the VideoSurferAgent.
+        Initialize the VideoSurfer.
 
         Args:
             name (str): The name of the agent.
