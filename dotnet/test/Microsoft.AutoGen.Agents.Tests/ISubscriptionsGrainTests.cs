@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ISubscriptionsGrainTests.cs
 
+using System.Collections.Concurrent;
 using Moq;
 using Xunit;
 
@@ -19,15 +20,13 @@ public class ISubscriptionsGrainTests
     public async Task GetSubscriptions_ReturnsAllSubscriptions_WhenAgentTypeIsNull()
     {
         // Arrange
-        var subscriptions = new Dictionary<string, List<string>>
-        {
-            { "topic1", new List<string> { "agentType1" } },
-            { "topic2", new List<string> { "agentType2" } }
-        };
-        _mockSubscriptionsGrain.Setup(grain => grain.GetSubscriptions(null)).ReturnsAsync(subscriptions);
+        var subscriptions = new ConcurrentDictionary<string, List<string>>();
+        subscriptions.TryAdd("topic1", new List<string> { "agentType1" });
+        subscriptions.TryAdd("topic2", new List<string> { "agentType2" });
+        _mockSubscriptionsGrain.Setup(grain => grain.GetSubscriptionsAsync(null)).ReturnsAsync(subscriptions);
 
         // Act
-        var result = await _mockSubscriptionsGrain.Object.GetSubscriptions();
+        var result = await _mockSubscriptionsGrain.Object.GetSubscriptionsAsync();
 
         // Assert
         Assert.Equal(2, result.Count);
@@ -39,14 +38,12 @@ public class ISubscriptionsGrainTests
     public async Task GetSubscriptions_ReturnsFilteredSubscriptions_WhenAgentTypeIsNotNull()
     {
         // Arrange
-        var subscriptions = new Dictionary<string, List<string>>
-        {
-            { "topic1", new List<string> { "agentType1" } }
-        };
-        _mockSubscriptionsGrain.Setup(grain => grain.GetSubscriptions("agentType1")).ReturnsAsync(subscriptions);
+        var subscriptions = new ConcurrentDictionary<string, List<string>>();
+        subscriptions.TryAdd("topic1", new List<string> { "agentType1" });
+        _mockSubscriptionsGrain.Setup(grain => grain.GetSubscriptionsAsync("agentType1")).ReturnsAsync(subscriptions);
 
         // Act
-        var result = await _mockSubscriptionsGrain.Object.GetSubscriptions("agentType1");
+        var result = await _mockSubscriptionsGrain.Object.GetSubscriptionsAsync("agentType1");
 
         // Assert
         Assert.Single(result);
