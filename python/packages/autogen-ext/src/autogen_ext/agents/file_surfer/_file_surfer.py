@@ -74,10 +74,7 @@ class FileSurfer(BaseChatAgent):
         try:
             _, content = await self._generate_reply(cancellation_token=cancellation_token)
             self._chat_history.append(AssistantMessage(content=content, source=self.name))
-            if isinstance(content, str):
-                return Response(chat_message=TextMessage(content=content, source=self.name))
-            else:
-                return Response(chat_message=MultiModalMessage(content=content, source=self.name))
+            return Response(chat_message=TextMessage(content=content, source=self.name))
 
         except BaseException:
             content = f"File surfing error:\n\n{traceback.format_exc()}"

@@ -182,7 +182,7 @@ class MultimodalWebSurfer(BaseChatAgent):
 
         try:
             _, content = await self.__generate_reply(cancellation_token=cancellation_token)
-            self._chat_history.append(AssistantMessage(content=content, source=self.name))
+            self._chat_history.append(AssistantMessage(content=message_content_to_str(content), source=self.name))
             if isinstance(content, str):
                 return Response(chat_message=TextMessage(content=content, source=self.name))
             else:
