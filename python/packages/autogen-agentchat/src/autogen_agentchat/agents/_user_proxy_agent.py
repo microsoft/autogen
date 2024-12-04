@@ -69,14 +69,15 @@ class UserProxyAgent(BaseChatAgent):
         Cancellable usage case::
 
             import asyncio
+            from typing import Any
             from autogen_agentchat.agents import UserProxyAgent
 
 
-            async def timeout(delay):
+            async def timeout(delay: float):
                 await asyncio.sleep(delay)
 
 
-            def cancellation_callback(task):
+            def cancellation_callback(task: asyncio.Task[Any]):
                 token.cancel()
 
 
