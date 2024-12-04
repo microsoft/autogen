@@ -33,7 +33,7 @@ class UserProxyAgent(BaseChatAgent):
 
         For typical use cases that involve
         slow human responses, it is recommended to use termination conditions
-        such as :class:`~autogen_agentchat.task.HandoffTermination` or :class:`~autogen_agentchat.task.SourceMatchTermination`
+        such as :class:`~autogen_agentchat.conditions.HandoffTermination` or :class:`~autogen_agentchat.conditions.SourceMatchTermination`
         to stop the running team and return the control to the application.
         You can run the team again with the user input. This way, the state of the team
         can be saved and restored when the user responds.
