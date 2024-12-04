@@ -16,12 +16,16 @@ class BaseMessage(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    type: str = "BaseMessage"
+
 
 class TextMessage(BaseMessage):
     """A text message."""
 
     content: str
     """The content of the message."""
+
+    type: str = "TextMessage"
 
 
 class MultiModalMessage(BaseMessage):
@@ -30,12 +34,16 @@ class MultiModalMessage(BaseMessage):
     content: List[str | Image]
     """The content of the message."""
 
+    type: str = "MultiModalMessage"
+
 
 class StopMessage(BaseMessage):
     """A message requesting stop of a conversation."""
 
     content: str
     """The content for the stop message."""
+
+    type: str = "StopMessage"
 
 
 class HandoffMessage(BaseMessage):
@@ -47,6 +55,8 @@ class HandoffMessage(BaseMessage):
     content: str
     """The handoff message to the target agent."""
 
+    type: str = "HandoffMessage"
+
 
 class ToolCallMessage(BaseMessage):
     """A message signaling the use of tools."""
@@ -54,12 +64,16 @@ class ToolCallMessage(BaseMessage):
     content: List[FunctionCall]
     """The tool calls."""
 
+    type: str = "ToolCallMessage"
+
 
 class ToolCallResultMessage(BaseMessage):
     """A message signaling the results of tool calls."""
 
     content: List[FunctionExecutionResult]
     """The tool call results."""
+
+    type: str = "ToolCallResultMessage"
 
 
 ChatMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage

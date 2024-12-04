@@ -1,10 +1,10 @@
 import logging
 import re
-from typing import Callable, Dict, List, Sequence
+from typing import Any, Callable, Dict, List, Mapping, Sequence
 
 from autogen_core.components.models import ChatCompletionClient, SystemMessage
 
-from ... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
+from ... import TRACE_LOGGER_NAME
 from ...base import ChatAgent, TerminationCondition
 from ...messages import (
     AgentMessage,
@@ -16,11 +16,11 @@ from ...messages import (
     ToolCallMessage,
     ToolCallResultMessage,
 )
+from ...state import SelectorManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
 
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
-event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class SelectorGroupChatManager(BaseGroupChatManager):
@@ -63,6 +63,20 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         if self._termination_condition is not None:
             await self._termination_condition.reset()
         self._previous_speaker = None
+
+    async def save_state(self) -> Mapping[str, Any]:
+        state = SelectorManagerState(
+            message_thread=list(self._message_thread),
+            current_turn=self._current_turn,
+            previous_speaker=self._previous_speaker,
+        )
+        return state.model_dump()
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        selector_state = SelectorManagerState.model_validate(state)
+        self._message_thread = list(selector_state.message_thread)
+        self._current_turn = selector_state.current_turn
+        self._previous_speaker = selector_state.previous_speaker
 
     async def select_speaker(self, thread: List[AgentMessage]) -> str:
         """Selects the next speaker in a group chat using a ChatCompletion client,

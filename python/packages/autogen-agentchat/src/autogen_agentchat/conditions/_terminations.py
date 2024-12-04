@@ -3,17 +3,6 @@ from typing import List, Sequence
 
 from ..base import TerminatedException, TerminationCondition
 from ..messages import AgentMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
-from ..state._termination_states import (
-    BaseTerminationState,
-    ExternalTerminationState,
-    HandoffTerminationState,
-    MaxMessageTerminationState,
-    SourceMatchTerminationState,
-    StopMessageTerminationState,
-    TextMentionTerminationState,
-    TimeoutTerminationState,
-    TokenUsageTerminationState,
-)
 
 
 class StopMessageTermination(TerminationCondition):
@@ -37,14 +26,6 @@ class StopMessageTermination(TerminationCondition):
 
     async def reset(self) -> None:
         self._terminated = False
-
-    async def save_state(self) -> StopMessageTerminationState:
-        return StopMessageTerminationState(terminated=self._terminated)
-
-    async def load_state(self, state: BaseTerminationState) -> None:
-        if not isinstance(state, StopMessageTerminationState):
-            raise ValueError(f"Expected StopMessageTerminationState, got {type(state)}")
-        self._terminated = state.terminated
 
 
 class MaxMessageTermination(TerminationCondition):
@@ -75,15 +56,6 @@ class MaxMessageTermination(TerminationCondition):
 
     async def reset(self) -> None:
         self._message_count = 0
-
-    async def save_state(self) -> MaxMessageTerminationState:
-        return MaxMessageTerminationState(message_count=self._message_count, max_messages=self._max_messages)
-
-    async def load_state(self, state: BaseTerminationState) -> None:
-        if not isinstance(state, MaxMessageTerminationState):
-            raise ValueError(f"Expected MaxMessageTerminationState, got {type(state)}")
-        self._message_count = state.message_count
-        self._max_messages = state.max_messages
 
 
 class TextMentionTermination(TerminationCondition):
@@ -117,15 +89,6 @@ class TextMentionTermination(TerminationCondition):
 
     async def reset(self) -> None:
         self._terminated = False
-
-    async def save_state(self) -> TextMentionTerminationState:
-        return TextMentionTerminationState(terminated=self._terminated, text=self._text)
-
-    async def load_state(self, state: BaseTerminationState) -> None:
-        if not isinstance(state, TextMentionTerminationState):
-            raise ValueError(f"Expected TextMentionTerminationState, got {type(state)}")
-        self._terminated = state.terminated
-        self._text = state.text
 
 
 class TokenUsageTermination(TerminationCondition):
@@ -183,26 +146,6 @@ class TokenUsageTermination(TerminationCondition):
         self._prompt_token_count = 0
         self._completion_token_count = 0
 
-    async def save_state(self) -> TokenUsageTerminationState:
-        return TokenUsageTerminationState(
-            total_token_count=self._total_token_count,
-            prompt_token_count=self._prompt_token_count,
-            completion_token_count=self._completion_token_count,
-            max_total_token=self._max_total_token,
-            max_prompt_token=self._max_prompt_token,
-            max_completion_token=self._max_completion_token,
-        )
-
-    async def load_state(self, state: BaseTerminationState) -> None:
-        if not isinstance(state, TokenUsageTerminationState):
-            raise ValueError(f"Expected TokenUsageTerminationState, got {type(state)}")
-        self._total_token_count = state.total_token_count
-        self._prompt_token_count = state.prompt_token_count
-        self._completion_token_count = state.completion_token_count
-        self._max_total_token = state.max_total_token
-        self._max_prompt_token = state.max_prompt_token
-        self._max_completion_token = state.max_completion_token
-
 
 class HandoffTermination(TerminationCondition):
     """Terminate the conversation if a :class:`~autogen_agentchat.messages.HandoffMessage`
@@ -233,15 +176,6 @@ class HandoffTermination(TerminationCondition):
 
     async def reset(self) -> None:
         self._terminated = False
-
-    async def save_state(self) -> HandoffTerminationState:
-        return HandoffTerminationState(terminated=self._terminated, target=self._target)
-
-    async def load_state(self, state: BaseTerminationState) -> None:
-        if not isinstance(state, HandoffTerminationState):
-            raise ValueError(f"Expected HandoffTerminationState, got {type(state)}")
-        self._terminated = state.terminated
-        self._target = state.target
 
 
 class TimeoutTermination(TerminationCondition):
@@ -274,18 +208,6 @@ class TimeoutTermination(TerminationCondition):
     async def reset(self) -> None:
         self._start_time = time.monotonic()
         self._terminated = False
-
-    async def save_state(self) -> TimeoutTerminationState:
-        return TimeoutTerminationState(
-            terminated=self._terminated, start_time=self._start_time, timeout_seconds=self._timeout_seconds
-        )
-
-    async def load_state(self, state: BaseTerminationState) -> None:
-        if not isinstance(state, TimeoutTerminationState):
-            raise ValueError(f"Expected TimeoutTerminationState, got {type(state)}")
-        self._terminated = state.terminated
-        self._start_time = state.start_time
-        self._timeout_seconds = state.timeout_seconds
 
 
 class ExternalTermination(TerminationCondition):
@@ -332,15 +254,6 @@ class ExternalTermination(TerminationCondition):
         self._terminated = False
         self._setted = False
 
-    async def save_state(self) -> ExternalTerminationState:
-        return ExternalTerminationState(terminated=self._terminated, setted=self._setted)
-
-    async def load_state(self, state: BaseTerminationState) -> None:
-        if not isinstance(state, ExternalTerminationState):
-            raise ValueError(f"Expected ExternalTerminationState, got {type(state)}")
-        self._terminated = state.terminated
-        self._setted = state.setted
-
 
 class SourceMatchTermination(TerminationCondition):
     """Terminate the conversation after a specific source responds.
@@ -373,12 +286,3 @@ class SourceMatchTermination(TerminationCondition):
 
     async def reset(self) -> None:
         self._terminated = False
-
-    async def save_state(self) -> SourceMatchTerminationState:
-        return SourceMatchTerminationState(terminated=self._terminated, sources=self._sources)
-
-    async def load_state(self, state: BaseTerminationState) -> None:
-        if not isinstance(state, SourceMatchTerminationState):
-            raise ValueError(f"Expected SourceMatchTerminationState, got {type(state)}")
-        self._terminated = state.terminated
-        self._sources = state.sources

@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import warnings
-from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List, Sequence
+from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List, Mapping, Sequence
 
 from autogen_core import CancellationToken, FunctionCall
 from autogen_core.components.models import (
@@ -29,7 +29,7 @@ from ..messages import (
     ToolCallMessage,
     ToolCallResultMessage,
 )
-from ..state import AssistantAgentState, BaseState
+from ..state import AssistantAgentState
 from ._base_chat_agent import BaseChatAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -49,6 +49,12 @@ class Handoff(HandoffBase):
 
 class AssistantAgent(BaseChatAgent):
     """An agent that provides assistance with tool use.
+
+    ```{note}
+    The assistant agent is not thread-safe or coroutine-safe.
+    It should not be shared between multiple tasks or coroutines, and it should
+    not call its methods concurrently.
+    ```
 
     Args:
         name (str): The name of the agent.
@@ -225,6 +231,7 @@ class AssistantAgent(BaseChatAgent):
                 f"Handoff names must be unique from tool names. Handoff names: {handoff_tool_names}; tool names: {tool_names}"
             )
         self._model_context: List[LLMMessage] = []
+        self._is_running = False
 
     @property
     def produced_message_types(self) -> List[type[ChatMessage]]:
@@ -329,19 +336,12 @@ class AssistantAgent(BaseChatAgent):
         """Reset the assistant agent to its initialization state."""
         self._model_context.clear()
 
-    async def save_state(self) -> AssistantAgentState:
-        """Save the current state of the assistant agent"""
+    async def save_state(self) -> Mapping[str, Any]:
+        """Save the current state of the assistant agent."""
+        return AssistantAgentState(model_context=self._model_context.copy()).model_dump()
 
-        return AssistantAgentState(state_type="AssistantAgent", model_context=self._model_context.copy())
-
-    async def load_state(self, state: BaseState) -> None:
+    async def load_state(self, state: Mapping[str, Any]) -> None:
         """Load the state of the assistant agent"""
-
-        if not isinstance(state, AssistantAgentState):
-            raise ValueError(f"Expected AssistantAgentState, got {type(state)}")
-
-        if state.state_type != "AssistantAgent":
-            raise ValueError(f"Cannot load {state.state_type} state into AssistantAgent")
-
+        assistant_agent_state = AssistantAgentState.model_validate(state)
         self._model_context.clear()
-        self._model_context.extend(state.model_context)
+        self._model_context.extend(assistant_agent_state.model_context)

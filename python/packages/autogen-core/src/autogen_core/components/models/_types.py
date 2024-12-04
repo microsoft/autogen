@@ -7,6 +7,7 @@ from ... import FunctionCall, Image
 @dataclass
 class SystemMessage:
     content: str
+    type: str = "SystemMessage"
 
 
 @dataclass
@@ -16,6 +17,8 @@ class UserMessage:
     # Name of the agent that sent this message
     source: str
 
+    type: str = "UserMessage"
+
 
 @dataclass
 class AssistantMessage:
@@ -23,6 +26,8 @@ class AssistantMessage:
 
     # Name of the agent that sent this message
     source: str
+
+    type: str = "AssistantMessage"
 
 
 @dataclass
@@ -34,6 +39,8 @@ class FunctionExecutionResult:
 @dataclass
 class FunctionExecutionResultMessage:
     content: List[FunctionExecutionResult]
+
+    type: str = "FunctionExecutionResultMessage"
 
 
 LLMMessage = Union[SystemMessage, UserMessage, AssistantMessage, FunctionExecutionResultMessage]
