@@ -72,7 +72,7 @@ class FileSurfer(BaseChatAgent):
                 raise ValueError(f"Unexpected message in FileSurfer: {chat_message}")
 
         try:
-            _, content = await self.__generate_reply(cancellation_token=cancellation_token)
+            _, content = await self._generate_reply(cancellation_token=cancellation_token)
             self._chat_history.append(AssistantMessage(content=content, source=self.name))
             if isinstance(content, str):
                 return Response(chat_message=TextMessage(content=content, source=self.name))
