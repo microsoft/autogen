@@ -9,7 +9,6 @@ from autogen_agentchat.agents import (
     BaseChatAgent,
 )
 from autogen_agentchat.base import Response
-from autogen_agentchat.logging import FileLogHandler
 from autogen_agentchat.messages import (
     ChatMessage,
     TextMessage,
@@ -17,8 +16,9 @@ from autogen_agentchat.messages import (
 from autogen_agentchat.teams import (
     MagenticOneGroupChat,
 )
-from autogen_core.base import CancellationToken
+from autogen_core import CancellationToken
 from autogen_ext.models import ReplayChatCompletionClient
+from utils import FileLogHandler
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 logger.setLevel(logging.DEBUG)

@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field, model_serializer
 
-from ...base import CancellationToken
+from ... import CancellationToken
 from ..code_executor import CodeBlock, CodeExecutor
 from ._base import BaseTool
 

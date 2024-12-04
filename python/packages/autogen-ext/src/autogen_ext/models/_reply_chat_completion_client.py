@@ -3,8 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union
 
+from autogen_core import CancellationToken
 from autogen_core.application.logging import EVENT_LOGGER_NAME
-from autogen_core.base import CancellationToken
 from autogen_core.components.models import (
     ChatCompletionClient,
     CreateResult,

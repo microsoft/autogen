@@ -3,7 +3,7 @@
 import re
 from typing import Dict, List
 
-from autogen_core.base import AgentProxy
+from autogen_core import AgentProxy
 from autogen_core.components.model_context import ChatCompletionContext
 from autogen_core.components.models import ChatCompletionClient, SystemMessage, UserMessage
 

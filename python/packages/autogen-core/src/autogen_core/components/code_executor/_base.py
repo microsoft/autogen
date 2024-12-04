@@ -6,7 +6,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Protocol, runtime_checkable
 
-from autogen_core.base import CancellationToken
+from ... import CancellationToken
 
 
 @dataclass
