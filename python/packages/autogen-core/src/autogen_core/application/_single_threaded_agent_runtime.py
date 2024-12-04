@@ -15,9 +15,9 @@ from typing import Any, Awaitable, Callable, Dict, List, Mapping, ParamSpec, Set
 from opentelemetry.trace import TracerProvider
 from typing_extensions import deprecated
 
-from autogen_core.base._serialization import MessageSerializer, SerializationRegistry
+from autogen_core._serialization import MessageSerializer, SerializationRegistry
 
-from ..base import (
+from .. import (
     Agent,
     AgentId,
     AgentInstantiationContext,
@@ -31,8 +31,8 @@ from ..base import (
     SubscriptionInstantiationContext,
     TopicId,
 )
-from ..base.exceptions import MessageDroppedException
 from ..base.intervention import DropMessage, InterventionHandler
+from ..exceptions import MessageDroppedException
 from ._helpers import SubscriptionManager, get_impl
 from .telemetry import EnvelopeMetadata, MessageRuntimeTracingConfig, TraceHelper, get_telemetry_envelope_metadata
 

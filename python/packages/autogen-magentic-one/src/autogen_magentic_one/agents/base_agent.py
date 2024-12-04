@@ -2,9 +2,8 @@ import asyncio
 import logging
 from typing import Any
 
+from autogen_core import MessageContext, RoutedAgent, message_handler
 from autogen_core.application.logging import EVENT_LOGGER_NAME
-from autogen_core.base import MessageContext
-from autogen_core.components import RoutedAgent, message_handler
 
 from autogen_magentic_one.messages import (
     AgentEvent,

@@ -4,24 +4,22 @@ import os
 from typing import Any, List
 
 import pytest
-from autogen_core.application import WorkerAgentRuntime, WorkerAgentRuntimeHost
-from autogen_core.base import (
+from autogen_core import (
     PROTOBUF_DATA_CONTENT_TYPE,
     AgentId,
     AgentType,
+    DefaultTopicId,
     MessageContext,
+    RoutedAgent,
     Subscription,
     TopicId,
-    try_get_known_serializers_for_type,
-)
-from autogen_core.components import (
-    DefaultTopicId,
-    RoutedAgent,
     TypeSubscription,
     default_subscription,
     event,
+    try_get_known_serializers_for_type,
     type_subscription,
 )
+from autogen_core.application import WorkerAgentRuntime, WorkerAgentRuntimeHost
 from protos.serialization_test_pb2 import ProtoMessage
 from test_utils import (
     CascadingAgent,

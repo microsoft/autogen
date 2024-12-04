@@ -34,9 +34,7 @@ from typing_extensions import Self, deprecated
 
 from autogen_core.application.protos import cloudevent_pb2
 
-from ..base import (
-    JSON_DATA_CONTENT_TYPE,
-    PROTOBUF_DATA_CONTENT_TYPE,
+from .. import (
     Agent,
     AgentId,
     AgentInstantiationContext,
@@ -50,9 +48,15 @@ from ..base import (
     SubscriptionInstantiationContext,
     TopicId,
 )
-from ..base._serialization import MessageSerializer, SerializationRegistry
-from ..base._type_helpers import ChannelArgumentType
-from ..components import TypePrefixSubscription, TypeSubscription
+from .._serialization import (
+    JSON_DATA_CONTENT_TYPE,
+    PROTOBUF_DATA_CONTENT_TYPE,
+    MessageSerializer,
+    SerializationRegistry,
+)
+from .._type_helpers import ChannelArgumentType
+from .._type_prefix_subscription import TypePrefixSubscription
+from .._type_subscription import TypeSubscription
 from . import _constants
 from ._constants import GRPC_IMPORT_ERROR_STR
 from ._helpers import SubscriptionManager, get_impl
@@ -733,7 +737,7 @@ class WorkerAgentRuntime(AgentRuntime):
 
     async def _process_register_agent_type_response(self, response: agent_worker_pb2.RegisterAgentTypeResponse) -> None:
         future = self._pending_requests.pop(response.request_id)
-        if response.HasField("error"):
+        if response.HasField("error") and response.error != "":
             future.set_exception(RuntimeError(response.error))
         else:
             future.set_result(None)
@@ -835,7 +839,7 @@ class WorkerAgentRuntime(AgentRuntime):
 
     async def _process_add_subscription_response(self, response: agent_worker_pb2.AddSubscriptionResponse) -> None:
         future = self._pending_requests.pop(response.request_id)
-        if response.HasField("error"):
+        if response.HasField("error") and response.error != "":
             future.set_exception(RuntimeError(response.error))
         else:
             future.set_result(None)

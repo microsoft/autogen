@@ -296,7 +296,7 @@ class ExternalTermination(TerminationCondition):
 
     .. code-block:: python
 
-        from autogen_agentchat.task import ExternalTermination
+        from autogen_agentchat.conditions import ExternalTermination
 
         termination = ExternalTermination()
 

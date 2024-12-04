@@ -5,10 +5,10 @@ import warnings
 from _agents import GroupChatManager, publish_message_to_ui, publish_message_to_ui_and_backend
 from _types import AppConfig, GroupChatMessage, MessageChunk, RequestToSpeak
 from _utils import get_serializers, load_config, set_all_log_levels
-from autogen_core.application import WorkerAgentRuntime
-from autogen_core.components import (
+from autogen_core import (
     TypeSubscription,
 )
+from autogen_core.application import WorkerAgentRuntime
 from autogen_ext.models import AzureOpenAIChatCompletionClient
 from rich.console import Console
 from rich.markdown import Markdown

@@ -8,8 +8,8 @@ from dataclasses import asdict
 
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
-from autogen_core.base import AgentId, AgentProxy
-from autogen_core.components import DefaultTopicId
+from autogen_core import AgentId, AgentProxy
+from autogen_core import DefaultTopicId
 from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
 from autogen_ext.code_executor.docker_executor import DockerCommandLineCodeExecutor
 from autogen_core.components.code_executor import CodeBlock

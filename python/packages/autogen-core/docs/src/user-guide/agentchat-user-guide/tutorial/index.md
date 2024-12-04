@@ -7,11 +7,7 @@ myst:
 
 # Tutorial
 
-Tutorial to get started with AgentChat.
-
-```{include} ../warning.md
-
-```
+Get started with AgentChat through this comprehensive tutorial.
 
 ::::{grid} 2 2 2 3
 :gutter: 3
