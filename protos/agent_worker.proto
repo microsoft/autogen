@@ -117,7 +117,7 @@ message Message {
     oneof message {
         RpcRequest request = 1;
         RpcResponse response = 2;
-        cloudevent.CloudEvent cloudEvent = 3;
+        io.cloudevents.v1.CloudEvent cloudEvent = 3;
         RegisterAgentTypeRequest registerAgentTypeRequest = 4;
         RegisterAgentTypeResponse registerAgentTypeResponse = 5;
         AddSubscriptionRequest addSubscriptionRequest = 6;

@@ -1,6 +1,16 @@
+// https://github.com/cloudevents/spec/blob/main/cloudevents/formats/cloudevents.proto
+
+/**
+ * CloudEvent Protobuf Format
+ *
+ * - Required context attributes are explicitly represented.
+ * - Optional and Extension context attributes are carried in a map structure.
+ * - Data may be represented as binary, text, or protobuf messages.
+ */
+
 syntax = "proto3";
 
-package cloudevent;
+package io.cloudevents.v1;
 
 import "google/protobuf/any.proto";
 import "google/protobuf/timestamp.proto";
@@ -20,12 +30,12 @@ message CloudEvent {
 
   // Optional & Extension Attributes
   map<string, CloudEventAttributeValue> attributes = 5;
-  map<string, string> metadata = 6;
+
   // -- CloudEvent Data (Bytes, Text, or Proto)
   oneof  data {
-    bytes binary_data = 7;
-    string text_data = 8;
-    google.protobuf.Any proto_data = 9;
+    bytes binary_data = 6;
+    string text_data = 7;
+    google.protobuf.Any proto_data = 8;
   }
 
   /**
