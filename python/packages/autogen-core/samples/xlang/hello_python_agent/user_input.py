@@ -2,8 +2,7 @@ import asyncio
 import logging
 from typing import Union
 
-from autogen_core.base import MessageContext
-from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler
+from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, message_handler
 from protos.agent_events_pb2 import ConversationClosed, Input, NewMessageReceived, Output  # type: ignore
 
 input_types = Union[ConversationClosed, Input, Output]

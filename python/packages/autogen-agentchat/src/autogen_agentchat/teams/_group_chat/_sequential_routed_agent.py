@@ -1,8 +1,7 @@
 import asyncio
 from typing import Any
 
-from autogen_core.base import MessageContext
-from autogen_core.components import RoutedAgent
+from autogen_core import MessageContext, RoutedAgent
 
 
 class FIFOLock:

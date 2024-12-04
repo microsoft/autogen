@@ -2,18 +2,16 @@ from dataclasses import dataclass
 from typing import Union
 
 import pytest
-from autogen_core.base import (
+from autogen_core import Image
+from autogen_core._serialization import (
     JSON_DATA_CONTENT_TYPE,
+    PROTOBUF_DATA_CONTENT_TYPE,
+    DataclassJsonMessageSerializer,
     MessageSerializer,
+    PydanticJsonMessageSerializer,
     SerializationRegistry,
     try_get_known_serializers_for_type,
 )
-from autogen_core.base._serialization import (
-    PROTOBUF_DATA_CONTENT_TYPE,
-    DataclassJsonMessageSerializer,
-    PydanticJsonMessageSerializer,
-)
-from autogen_core.components import Image
 from PIL import Image as PILImage
 from protos.serialization_test_pb2 import NestingProtoMessage, ProtoMessage
 from pydantic import BaseModel

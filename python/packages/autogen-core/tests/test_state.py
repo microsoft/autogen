@@ -1,8 +1,8 @@
 from typing import Any, Mapping
 
 import pytest
+from autogen_core import AgentId, BaseAgent, MessageContext
 from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, BaseAgent, MessageContext
 
 
 class StatefulAgent(BaseAgent):

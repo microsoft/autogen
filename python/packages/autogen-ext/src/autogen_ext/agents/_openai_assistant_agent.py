@@ -32,8 +32,7 @@ from autogen_agentchat.messages import (
     ToolCallMessage,
     ToolCallResultMessage,
 )
-from autogen_core.base import CancellationToken
-from autogen_core.components import FunctionCall
+from autogen_core import CancellationToken, FunctionCall
 from autogen_core.components.models._types import FunctionExecutionResult
 from autogen_core.components.tools import FunctionTool, Tool
 
@@ -125,7 +124,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         .. code-block:: python
 
             from openai import AsyncClient
-            from autogen_core.base import CancellationToken
+            from autogen_core import CancellationToken
             import asyncio
             from autogen_ext.agents import OpenAIAssistantAgent
             from autogen_agentchat.messages import TextMessage

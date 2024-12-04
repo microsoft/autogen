@@ -6,7 +6,7 @@ from google.protobuf import any_pb2
 from google.protobuf.message import Message
 from pydantic import BaseModel
 
-from autogen_core.base._type_helpers import is_union
+from ._type_helpers import is_union
 
 T = TypeVar("T")
 

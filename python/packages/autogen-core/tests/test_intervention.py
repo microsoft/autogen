@@ -1,8 +1,8 @@
 import pytest
+from autogen_core import AgentId
 from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId
-from autogen_core.base.exceptions import MessageDroppedException
 from autogen_core.base.intervention import DefaultInterventionHandler, DropMessage
+from autogen_core.exceptions import MessageDroppedException
 from test_utils import LoopbackAgent, MessageType
 
 

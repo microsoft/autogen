@@ -2,7 +2,7 @@ import asyncio
 from inspect import iscoroutinefunction
 from typing import Awaitable, Callable, List, Optional, Sequence, Union, cast
 
-from autogen_core.base import CancellationToken
+from autogen_core import CancellationToken
 
 from ..base import Response
 from ..messages import ChatMessage, HandoffMessage, TextMessage

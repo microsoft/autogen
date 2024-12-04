@@ -4,8 +4,7 @@ import logging
 import warnings
 from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List, Sequence
 
-from autogen_core.base import CancellationToken
-from autogen_core.components import FunctionCall
+from autogen_core import CancellationToken, FunctionCall
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -74,7 +73,7 @@ class AssistantAgent(BaseChatAgent):
         .. code-block:: python
 
             import asyncio
-            from autogen_core.base import CancellationToken
+            from autogen_core import CancellationToken
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.messages import TextMessage
@@ -107,7 +106,7 @@ class AssistantAgent(BaseChatAgent):
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.messages import TextMessage
             from autogen_agentchat.ui import Console
-            from autogen_core.base import CancellationToken
+            from autogen_core import CancellationToken
 
 
             async def get_current_time() -> str:
@@ -136,7 +135,7 @@ class AssistantAgent(BaseChatAgent):
         .. code-block:: python
 
             import asyncio
-            from autogen_core.base import CancellationToken
+            from autogen_core import CancellationToken
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.messages import TextMessage

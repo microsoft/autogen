@@ -2,8 +2,7 @@ import asyncio
 from abc import ABC, abstractmethod
 from typing import Any, List
 
-from autogen_core.base import MessageContext
-from autogen_core.components import DefaultTopicId, event, rpc
+from autogen_core import DefaultTopicId, MessageContext, event, rpc
 
 from ...base import TerminationCondition
 from ...messages import AgentMessage, ChatMessage, StopMessage
