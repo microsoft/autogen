@@ -48,6 +48,12 @@ A dynamic team that uses handoffs to pass tasks between agents.
 How to build custom agents.
 :::
 
+:::{grid-item-card} {fas}`users;pst-color-primary` State Management
+:link: ./state.html
+
+How to manage state in agents and teams.
+:::
+
 ::::
 
 ```{toctree}

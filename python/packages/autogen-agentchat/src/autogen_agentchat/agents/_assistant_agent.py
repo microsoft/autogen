@@ -338,10 +338,10 @@ class AssistantAgent(BaseChatAgent):
 
     async def save_state(self) -> Mapping[str, Any]:
         """Save the current state of the assistant agent."""
-        return AssistantAgentState(model_context=self._model_context.copy()).model_dump()
+        return AssistantAgentState(llm_messages=self._model_context.copy()).model_dump()
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         """Load the state of the assistant agent"""
         assistant_agent_state = AssistantAgentState.model_validate(state)
         self._model_context.clear()
-        self._model_context.extend(assistant_agent_state.model_context)
+        self._model_context.extend(assistant_agent_state.llm_messages)

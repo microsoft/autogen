@@ -31,13 +31,13 @@ class BaseState(BaseModel):
 class AssistantAgentState(BaseState):
     """State for an assistant agent."""
 
-    model_context: List[LLMMessage] = Field(default_factory=list)
+    llm_messages: List[LLMMessage] = Field(default_factory=list)
     type: str = Field(default="AssistantAgentState")
 
-    @field_validator("model_context", mode="before")
-    def validate_model_context(cls, value: List[LLMMessage] | List[Dict[str, Any]]) -> List[LLMMessage]:
+    @field_validator("llm_messages", mode="before")
+    def validate_llm_messages(cls, value: List[LLMMessage] | List[Dict[str, Any]]) -> List[LLMMessage]:
         if not isinstance(value, list):
-            raise ValueError("model_context must be a list")
+            raise ValueError("llm_messages must be a list")
         model_context: List[LLMMessage] = []
         for msg in value:
             if isinstance(msg, UserMessage | SystemMessage | AssistantMessage | FunctionExecutionResultMessage):
