@@ -5,7 +5,7 @@ import os
 
 import polars
 import pytest
-from autogen_core.base import CancellationToken
+from autogen_core import CancellationToken
 from autogen_core.components.code_executor import (
     CodeBlock,
     FunctionWithRequirements,

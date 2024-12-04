@@ -2,10 +2,12 @@ import asyncio
 import json
 from typing import Any, Coroutine, Dict, List, Mapping, Sequence, Tuple
 
-from autogen_core.base import AgentId, CancellationToken, MessageContext
-from autogen_core.components import (
+from autogen_core import (
+    AgentId,
+    CancellationToken,
     DefaultTopicId,
     FunctionCall,
+    MessageContext,
     RoutedAgent,
     message_handler,
 )

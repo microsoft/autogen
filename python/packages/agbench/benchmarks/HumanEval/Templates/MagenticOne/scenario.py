@@ -1,10 +1,10 @@
 import asyncio
 import logging
 
-from autogen_core.base import AgentId, AgentProxy, TopicId
+from autogen_core import AgentId, AgentProxy, TopicId
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
-from autogen_core.components import DefaultSubscription, DefaultTopicId
+from autogen_core import DefaultSubscription, DefaultTopicId
 from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
 from autogen_core.components.models import (
     UserMessage,
@@ -41,7 +41,7 @@ async def main() -> None:
     executor = AgentProxy(AgentId("Executor", "default"), runtime)
 
     await runtime.register(
-        "Orchestrator", 
+        "Orchestrator",
         lambda: RoundRobinOrchestrator([coder, executor]),
         subscriptions=lambda: [DefaultSubscription()],
     )

@@ -2,7 +2,7 @@ import json
 from enum import Enum
 from typing import Any, cast
 
-from autogen_core.base import AgentId
+from autogen_core import AgentId
 
 
 class LLMCallEvent:

@@ -4,10 +4,8 @@ from _collections_abc import AsyncIterator, Iterator
 from asyncio import Future, Task
 from typing import Any, Dict, Set, cast
 
-from autogen_core.base._type_prefix_subscription import TypePrefixSubscription
-
-from ..base import Subscription, TopicId
-from ..components import TypeSubscription
+from .. import Subscription, TopicId, TypeSubscription
+from .._type_prefix_subscription import TypePrefixSubscription
 from ._constants import GRPC_IMPORT_ERROR_STR
 from ._helpers import SubscriptionManager
 

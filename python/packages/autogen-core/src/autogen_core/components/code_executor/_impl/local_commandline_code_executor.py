@@ -14,7 +14,7 @@ from typing import Any, Callable, ClassVar, List, Optional, Sequence, Union
 
 from typing_extensions import ParamSpec
 
-from ....base import CancellationToken
+from .... import CancellationToken
 from .._base import CodeBlock, CodeExecutor
 from .._func_with_reqs import (
     FunctionWithRequirements,
@@ -69,7 +69,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
             from pathlib import Path
             import asyncio
 
-            from autogen_core.base import CancellationToken
+            from autogen_core import CancellationToken
             from autogen_core.components.code_executor import CodeBlock, LocalCommandLineCodeExecutor
 
 

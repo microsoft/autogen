@@ -9,8 +9,7 @@ from autogen_agentchat.messages import (
     MultiModalMessage,
     TextMessage,
 )
-from autogen_core.base import CancellationToken
-from autogen_core.components import FunctionCall
+from autogen_core import CancellationToken, FunctionCall
 from autogen_core.components.models import (
     ChatCompletionClient,
     LLMMessage,

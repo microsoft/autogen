@@ -1,6 +1,6 @@
 from typing import List, Sequence
 
-from autogen_core.base import CancellationToken
+from autogen_core import CancellationToken
 from autogen_core.components.code_executor import CodeBlock, CodeExecutor, extract_markdown_code_blocks
 
 from ..base import Response
@@ -28,7 +28,7 @@ class CodeExecutorAgent(BaseChatAgent):
             from autogen_agentchat.agents import CodeExecutorAgent
             from autogen_agentchat.messages import TextMessage
             from autogen_ext.code_executors import DockerCommandLineCodeExecutor
-            from autogen_core.base import CancellationToken
+            from autogen_core import CancellationToken
 
 
             async def run_code_executor_agent() -> None:
