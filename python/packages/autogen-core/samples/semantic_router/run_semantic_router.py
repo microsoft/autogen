@@ -31,9 +31,8 @@ from _semantic_router_components import (
     UserProxyMessage,
     WorkerAgentMessage,
 )
+from autogen_core import ClosureAgent, ClosureContext, DefaultSubscription, DefaultTopicId, MessageContext
 from autogen_core.application import WorkerAgentRuntime
-from autogen_core.base import MessageContext
-from autogen_core.components import ClosureAgent, ClosureContext, DefaultSubscription, DefaultTopicId
 
 
 class MockIntentClassifier(IntentClassifierBase):

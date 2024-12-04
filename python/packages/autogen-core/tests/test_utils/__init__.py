@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from autogen_core.base import BaseAgent, MessageContext
-from autogen_core.components import DefaultTopicId, RoutedAgent, default_subscription, message_handler
+from autogen_core import BaseAgent, DefaultTopicId, MessageContext, RoutedAgent, default_subscription, message_handler
 
 
 @dataclass

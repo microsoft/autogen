@@ -2,7 +2,7 @@ from contextlib import contextmanager
 from contextvars import ContextVar
 from typing import Any, ClassVar, Generator
 
-from autogen_core.base._agent_type import AgentType
+from autogen_core._agent_type import AgentType
 
 
 class SubscriptionInstantiationContext:

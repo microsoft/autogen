@@ -14,7 +14,7 @@ from pathlib import Path
 from types import TracebackType
 from typing import Any, Callable, ClassVar, List, Optional, ParamSpec, Type, Union
 
-from autogen_core.base import CancellationToken
+from autogen_core import CancellationToken
 from autogen_core.components.code_executor import (
     CodeBlock,
     CodeExecutor,

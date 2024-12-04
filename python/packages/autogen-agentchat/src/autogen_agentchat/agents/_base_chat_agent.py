@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import AsyncGenerator, List, Sequence
 
-from autogen_core.base import CancellationToken
+from autogen_core import CancellationToken
 
 from ..base import ChatAgent, Response, TaskResult
 from ..messages import AgentMessage, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage

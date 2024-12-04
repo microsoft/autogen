@@ -21,13 +21,13 @@ from typing import (
 )
 
 import tiktoken
-from autogen_core.application.logging import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
-from autogen_core.application.logging.events import LLMCallEvent
-from autogen_core.base import CancellationToken
-from autogen_core.components import (
+from autogen_core import (
+    CancellationToken,
     FunctionCall,
     Image,
 )
+from autogen_core.application.logging import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
+from autogen_core.application.logging.events import LLMCallEvent
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
