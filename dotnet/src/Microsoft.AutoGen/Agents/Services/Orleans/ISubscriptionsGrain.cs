@@ -4,7 +4,10 @@
 namespace Microsoft.AutoGen.Agents;
 public interface ISubscriptionsGrain : IGrainWithIntegerKey
 {
+    [Alias("SubscribeAsync")]
     ValueTask SubscribeAsync(string agentType, string topic);
+    [Alias("UnsubscribeAsync")]
     ValueTask UnsubscribeAsync(string agentType, string topic);
-    ValueTask<Dictionary<string, List<string>>> GetSubscriptions(string agentType);
+    [Alias("GetSubscriptions")]
+    ValueTask<Dictionary<string, List<string>>> GetSubscriptions(string? agentType = null);
 }
