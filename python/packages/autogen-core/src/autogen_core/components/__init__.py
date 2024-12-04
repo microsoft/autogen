@@ -36,7 +36,7 @@ from .._type_prefix_subscription import TypePrefixSubscription as TypePrefixSubs
 from .._type_subscription import TypeSubscription as TypeSubscriptionAlias
 from .._types import FunctionCall as FunctionCallAlias
 
-__all__ = []
+__all__ = []  # type: ignore
 
 
 @deprecated("Moved to autogen_core.TypePrefixSubscription. Will be removed in 0.4.0")

@@ -34,4 +34,4 @@ class NotAccessibleError(NotAccessibleErrorAlias):
     """Tried to access a value that is not accessible. For example if it is remote cannot be accessed locally."""
 
 
-__all__ = []
+__all__ = []  # type: ignore

@@ -135,4 +135,4 @@ class TopicId(TopicIdAlias):
     pass
 
 
-__all__ = []
+__all__ = []  # type: ignore
