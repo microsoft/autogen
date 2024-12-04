@@ -11,6 +11,7 @@ from autogen_agentchat.messages import (
 )
 from autogen_core import CancellationToken, FunctionCall
 from autogen_core.components.models import (
+    AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
     SystemMessage,
@@ -82,7 +83,6 @@ class FileSurfer(BaseChatAgent):
             content = f"File surfing error:\n\n{traceback.format_exc()}"
             self._chat_history.append(AssistantMessage(content, source=self.name))
             return Response(chat_message=TextMessage(content=content, source=self.name))
-
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         self._chat_history.clear()
