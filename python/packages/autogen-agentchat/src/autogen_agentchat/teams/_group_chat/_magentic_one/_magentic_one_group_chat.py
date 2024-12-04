@@ -41,7 +41,7 @@ class MagenticOneGroupChat(BaseGroupChat):
             from autogen_ext.models import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import MagenticOneGroupChat
-            from autogen_agentchat.task import Console
+            from autogen_agentchat.ui import Console
 
 
             async def main() -> None:
