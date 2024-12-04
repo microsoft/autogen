@@ -9,17 +9,30 @@ internal sealed class SubscriptionsGrain([PersistentState("state", "PubSubStore"
 {
     private readonly IPersistentState<SubscriptionsState> _subscriptionsState = subscriptionsState;
 
-    public ValueTask<ConcurrentDictionary<string, List<string>>> GetSubscriptionsAsync(string? agentType = null)
+    public ValueTask<ConcurrentDictionary<string, List<string>>> GetSubscriptionsByAgentTypeAsync(string? agentType = null)
     {
         var _subscriptions = _subscriptionsState.State.Subscriptions;
         //if agentType is null, return all subscriptions else filter on agentType
         if (agentType != null)
         {
             var filteredSubscriptions = _subscriptions.Where(x => x.Value.Contains(agentType));
+            return ValueTask.FromResult<ConcurrentDictionary<string, List<string>>>((ConcurrentDictionary<string, List<string>>)filteredSubscriptions);
+        }
+        return ValueTask.FromResult<ConcurrentDictionary<string, List<string>>>(_subscriptions);
+    }
+    public ValueTask<ConcurrentDictionary<string, List<string>>> GetSubscriptionsByTopicAsync(string? topic = null)
+    {
+        var _subscriptions = _subscriptionsState.State.Subscriptions;
+        //if topic is null, return all subscriptions else filter on topic
+        if (topic != null)
+        {
+            var filteredSubscriptions = _subscriptions.Where(x => x.Key == topic);
             return new ValueTask<ConcurrentDictionary<string, List<string>>>((ConcurrentDictionary<string, List<string>>)filteredSubscriptions);
         }
         return new ValueTask<ConcurrentDictionary<string, List<string>>>(_subscriptions);
     }
+    public ValueTask<SubscriptionsState> GetSubscriptionsStateAsync() => ValueTask.FromResult(_subscriptionsState.State);
+
     public async ValueTask SubscribeAsync(string agentType, string topic)
     {
         await WriteSubscriptionsAsync(agentType: agentType, topic: topic, subscribe: true).ConfigureAwait(false);
@@ -28,6 +41,12 @@ internal sealed class SubscriptionsGrain([PersistentState("state", "PubSubStore"
     {
         await WriteSubscriptionsAsync(agentType: agentType, topic: topic, subscribe: false).ConfigureAwait(false);
     }
+    public async ValueTask WriteSubscriptionsStateAsync(SubscriptionsState subscriptionsState)
+    {
+        _subscriptionsState.State = subscriptionsState;
+        await _subscriptionsState.WriteStateAsync().ConfigureAwait(true);
+    }
+
     private async ValueTask WriteSubscriptionsAsync(string agentType, string topic, bool subscribe=true)
     {
         var _subscriptions = _subscriptionsState.State.Subscriptions;

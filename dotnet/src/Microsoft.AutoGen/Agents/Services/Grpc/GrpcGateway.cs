@@ -16,13 +16,12 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly IClusterClient _clusterClient;
     private readonly ConcurrentDictionary<string, AgentState> _agentState = new();
     private readonly IRegistryGrain _gatewayRegistry;
-    private readonly ISubscriptionsGrain _subscriptions;
+    private readonly ISubscriptionsGrain _subscriptionsGrain;
     private readonly IGateway _reference;
     // The agents supported by each worker process.
+    private SubscriptionsState _subscriptionsState = new();
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
     public readonly ConcurrentDictionary<IConnection, IConnection> _workers = new();
-    private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
-    private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
 
     // The mapping from agent id to worker process.
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
@@ -36,7 +35,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         _clusterClient = clusterClient;
         _reference = clusterClient.CreateObjectReference<IGateway>(this);
         _gatewayRegistry = clusterClient.GetGrain<IRegistryGrain>(0);
-        _subscriptions = clusterClient.GetGrain<ISubscriptionsGrain>(0);
+        _subscriptionsGrain = clusterClient.GetGrain<ISubscriptionsGrain>(0);
     }
     public async ValueTask BroadcastEvent(CloudEvent evt)
     {
@@ -123,6 +122,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     // {genttype}:rpc_response={request_id}
     private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, AddSubscriptionRequest request)
     {
+        _subscriptionsState = await _subscriptionsGrain.GetSubscriptionsStateAsync().ConfigureAwait(true);
         var topic = "";
         var agentType = "";
         if (request.Subscription.TypePrefixSubscription is not null)
@@ -135,10 +135,10 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             topic = request.Subscription.TypeSubscription.TopicType;
             agentType = request.Subscription.TypeSubscription.AgentType;
         }
-        _subscriptionsByAgentType[agentType] = request.Subscription;
-        _subscriptionsByTopic.GetOrAdd(topic, _ => []).Add(agentType);
-        await _subscriptions.SubscribeAsync(topic, agentType);
-        //var response = new AddSubscriptionResponse { RequestId = request.RequestId, Error = "", Success = true };
+        _subscriptionsState._subscriptionsByAgentType[agentType] = request.Subscription;
+        _subscriptionsState._subscriptionsByTopic.GetOrAdd(topic, _ => []).Add(agentType);
+        await _subscriptionsGrain.SubscribeAsync(topic, agentType).ConfigureAwait(true);
+        await _subscriptionsGrain.WriteSubscriptionsStateAsync(_subscriptionsState).ConfigureAwait(true);
         Message response = new()
         {
             AddSubscriptionResponse = new()
@@ -169,12 +169,14 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     }
     private async ValueTask DispatchEventAsync(CloudEvent evt)
     {
+        _subscriptionsState = await _subscriptionsGrain.GetSubscriptionsStateAsync().ConfigureAwait(true);
+        var _subscriptionsByTopic = _subscriptionsState._subscriptionsByTopic;
         // get the event type and then send to all agents that are subscribed to that event type
         var eventType = evt.Type;
         // ensure that we get agentTypes as an async enumerable list - try to get the value of agentTypes by topic and then cast it to an async enumerable list
         if (_subscriptionsByTopic.TryGetValue(eventType, out var agentTypes))
         {
-            await DispatchEventToAgentsAsync(agentTypes, evt);
+            await DispatchEventToAgentsAsync(agentTypes, evt).ConfigureAwait(false);
         }
         // instead of an exact match, we can also check for a prefix match where key starts with the eventType
         else if (_subscriptionsByTopic.Keys.Any(key => key.StartsWith(eventType)))
