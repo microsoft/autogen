@@ -10,10 +10,9 @@ from autogen_agentchat.agents import (
     AssistantAgent,
     BaseChatAgent,
     CodeExecutorAgent,
-    Handoff,
 )
-from autogen_agentchat.base import Response, TaskResult
-from autogen_agentchat.logging import FileLogHandler
+from autogen_agentchat.base import Handoff, Response, TaskResult
+from autogen_agentchat.conditions import HandoffTermination, MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.messages import (
     AgentMessage,
     ChatMessage,
@@ -24,12 +23,12 @@ from autogen_agentchat.messages import (
     ToolCallMessage,
     ToolCallResultMessage,
 )
-from autogen_agentchat.task import Console, HandoffTermination, MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.teams import (
     RoundRobinGroupChat,
     SelectorGroupChat,
     Swarm,
 )
+from autogen_agentchat.ui import Console
 from autogen_core.base import CancellationToken
 from autogen_core.components import FunctionCall
 from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
@@ -42,6 +41,7 @@ from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall, Function
 from openai.types.completion_usage import CompletionUsage
+from utils import FileLogHandler
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 logger.setLevel(logging.DEBUG)
