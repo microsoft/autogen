@@ -1,4 +1,5 @@
-from ..base import MessageHandlerContext, TopicId
+from ._message_handler_context import MessageHandlerContext
+from ._topic import TopicId
 
 
 class DefaultTopicId(TopicId):

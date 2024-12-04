@@ -1,5 +1,4 @@
 import logging
-import warnings
 from functools import wraps
 from typing import (
     Any,
@@ -19,9 +18,11 @@ from typing import (
     runtime_checkable,
 )
 
-from ..base import BaseAgent, MessageContext, MessageSerializer, try_get_known_serializers_for_type
-from ..base._type_helpers import AnyType, get_types
-from ..base.exceptions import CantHandleException
+from ._base_agent import BaseAgent
+from ._message_context import MessageContext
+from ._serialization import MessageSerializer, try_get_known_serializers_for_type
+from ._type_helpers import AnyType, get_types
+from .exceptions import CantHandleException
 
 logger = logging.getLogger("autogen_core")
 
@@ -423,8 +424,8 @@ class RoutedAgent(BaseAgent):
     .. code-block:: python
 
         from dataclasses import dataclass
-        from autogen_core.base import MessageContext
-        from autogen_core.components import RoutedAgent, event, rpc
+        from autogen_core import MessageContext
+        from autogen_core import RoutedAgent, event, rpc
 
 
         @dataclass
@@ -470,7 +471,7 @@ class RoutedAgent(BaseAgent):
 
         super().__init__(description)
 
-    async def on_message(self, message: Any, ctx: MessageContext) -> Any | None:
+    async def on_message_impl(self, message: Any, ctx: MessageContext) -> Any | None:
         """Handle a message by routing it to the appropriate message handler.
         Do not override this method in subclasses. Instead, add message handlers as methods decorated with
         either the :func:`event` or :func:`rpc` decorator."""
@@ -515,12 +516,3 @@ class RoutedAgent(BaseAgent):
 
                 types.append((t, try_get_known_serializers_for_type(t)))
         return types
-
-
-# Deprecation warning for TypeRoutedAgent
-class TypeRoutedAgent(RoutedAgent):
-    """Deprecated. Use :class:`RoutedAgent` instead."""
-
-    def __init__(self, description: str) -> None:
-        warnings.warn("TypeRoutedAgent is deprecated. Use RoutedAgent instead.", DeprecationWarning, stacklevel=2)
-        super().__init__(description)

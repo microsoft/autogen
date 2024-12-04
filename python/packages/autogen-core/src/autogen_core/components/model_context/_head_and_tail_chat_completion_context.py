@@ -1,6 +1,6 @@
 from typing import Any, List, Mapping
 
-from .._types import FunctionCall
+from ..._types import FunctionCall
 from ..models import AssistantMessage, FunctionExecutionResultMessage, LLMMessage, UserMessage
 from ._chat_completion_context import ChatCompletionContext
 

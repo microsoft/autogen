@@ -13,18 +13,9 @@ For beginner users, AgentChat is the recommended starting point.
 For advanced users, [`autogen-core`](../core-user-guide/index.md)'s event-driven
 programming model provides more flexibility and control over the underlying components.
 
-AgentChat aims to provide intuitive defaults, such as **Agents** with preset
+AgentChat provides intuitive defaults, such as **Agents** with preset
 behaviors and **Teams** with predefined [multi-agent design patterns](../core-user-guide/design-patterns/index.md).
-to simplify building multi-agent applications.
 
-```{include} warning.md
-
-```
-
-```{tip}
-If you are interested in implementing complex agent interaction behaviours, defining custom messaging protocols, or orchestration mechanisms, consider using the [ `autogen-core`](../core-user-guide/index.md) package.
-
-```
 
 ::::{grid} 2 2 2 2
 :gutter: 3

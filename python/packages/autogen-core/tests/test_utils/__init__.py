@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 from typing import Any
 
-from autogen_core.base import BaseAgent, MessageContext
-from autogen_core.components import DefaultTopicId, RoutedAgent, default_subscription, message_handler
+from autogen_core import BaseAgent, DefaultTopicId, MessageContext, RoutedAgent, default_subscription, message_handler
 
 
 @dataclass
@@ -57,5 +56,5 @@ class NoopAgent(BaseAgent):
     def __init__(self) -> None:
         super().__init__("A no op agent")
 
-    async def on_message(self, message: Any, ctx: MessageContext) -> Any:
+    async def on_message_impl(self, message: Any, ctx: MessageContext) -> Any:
         raise NotImplementedError

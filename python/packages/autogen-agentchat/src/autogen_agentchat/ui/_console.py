@@ -3,7 +3,7 @@ import sys
 import time
 from typing import AsyncGenerator, List, Optional, TypeVar, cast
 
-from autogen_core.components import Image
+from autogen_core import Image
 from autogen_core.components.models import RequestUsage
 
 from autogen_agentchat.base import Response, TaskResult
@@ -58,6 +58,7 @@ async def Console(
                 f"Duration: {duration:.2f} seconds\n"
             )
             sys.stdout.write(output)
+            sys.stdout.flush()
             # mypy ignore
             last_processed = message  # type: ignore
 
@@ -71,6 +72,7 @@ async def Console(
                 total_usage.completion_tokens += message.chat_message.models_usage.completion_tokens
                 total_usage.prompt_tokens += message.chat_message.models_usage.prompt_tokens
             sys.stdout.write(output)
+            sys.stdout.flush()
 
             # Print summary.
             if message.inner_messages is not None:
@@ -85,6 +87,7 @@ async def Console(
                 f"Duration: {duration:.2f} seconds\n"
             )
             sys.stdout.write(output)
+            sys.stdout.flush()
             # mypy ignore
             last_processed = message  # type: ignore
 
@@ -97,6 +100,7 @@ async def Console(
                 total_usage.completion_tokens += message.models_usage.completion_tokens
                 total_usage.prompt_tokens += message.models_usage.prompt_tokens
             sys.stdout.write(output)
+            sys.stdout.flush()
 
     if last_processed is None:
         raise ValueError("No TaskResult or Response was processed.")

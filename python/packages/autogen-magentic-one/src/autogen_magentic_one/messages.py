@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import Any, Dict, List, Union
 
-from autogen_core.components import FunctionCall, Image
+from autogen_core import FunctionCall, Image
 from autogen_core.components.models import FunctionExecutionResult, LLMMessage
 from pydantic import BaseModel
 

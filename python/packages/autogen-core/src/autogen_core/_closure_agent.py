@@ -3,23 +3,20 @@ from __future__ import annotations
 import inspect
 from typing import Any, Awaitable, Callable, List, Mapping, Protocol, Sequence, TypeVar, get_type_hints
 
-from autogen_core.base._serialization import try_get_known_serializers_for_type
-from autogen_core.base._subscription_context import SubscriptionInstantiationContext
-
-from ..base import (
-    AgentId,
-    AgentInstantiationContext,
-    AgentMetadata,
-    AgentRuntime,
-    AgentType,
-    BaseAgent,
-    CancellationToken,
-    MessageContext,
-    Subscription,
-    TopicId,
-)
-from ..base._type_helpers import get_types
-from ..base.exceptions import CantHandleException
+from ._agent_id import AgentId
+from ._agent_instantiation import AgentInstantiationContext
+from ._agent_metadata import AgentMetadata
+from ._agent_runtime import AgentRuntime
+from ._agent_type import AgentType
+from ._base_agent import BaseAgent
+from ._cancellation_token import CancellationToken
+from ._message_context import MessageContext
+from ._serialization import try_get_known_serializers_for_type
+from ._subscription import Subscription
+from ._subscription_context import SubscriptionInstantiationContext
+from ._topic import TopicId
+from ._type_helpers import get_types
+from .exceptions import CantHandleException
 
 T = TypeVar("T")
 ClosureAgentType = TypeVar("ClosureAgentType", bound="ClosureAgent")
@@ -111,7 +108,7 @@ class ClosureAgent(BaseAgent, ClosureContext):
     def runtime(self) -> AgentRuntime:
         return self._runtime
 
-    async def on_message(self, message: Any, ctx: MessageContext) -> Any:
+    async def on_message_impl(self, message: Any, ctx: MessageContext) -> Any:
         if type(message) not in self._expected_types:
             raise CantHandleException(
                 f"Message type {type(message)} not in target types {self._expected_types} of {self.id}"

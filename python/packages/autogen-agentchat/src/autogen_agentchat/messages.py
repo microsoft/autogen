@@ -1,6 +1,6 @@
 from typing import List
 
-from autogen_core.components import FunctionCall, Image
+from autogen_core import FunctionCall, Image
 from autogen_core.components.models import FunctionExecutionResult, RequestUsage
 from pydantic import BaseModel, ConfigDict
 
