@@ -8,9 +8,8 @@ from math import ceil
 from typing import Mapping
 
 import pytest
+from autogen_core import AgentId, AgentProxy, FunctionCall
 from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, AgentProxy
-from autogen_core.components import FunctionCall
 from autogen_core.components.models import (
     UserMessage,
 )

@@ -1,6 +1,6 @@
 from typing import Any, Dict, List, TypedDict, Union
 
-from autogen_core.components import FunctionCall, Image
+from autogen_core import FunctionCall, Image
 from autogen_core.components.models import FunctionExecutionResult
 
 UserContent = Union[str, List[Union[str, Image]]]

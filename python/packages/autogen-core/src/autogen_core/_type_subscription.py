@@ -1,7 +1,9 @@
 import uuid
 
-from ..base import AgentId, Subscription, TopicId
-from ..base.exceptions import CantHandleException
+from ._agent_id import AgentId
+from ._subscription import Subscription
+from ._topic import TopicId
+from .exceptions import CantHandleException
 
 
 class TypeSubscription(Subscription):
@@ -13,7 +15,7 @@ class TypeSubscription(Subscription):
 
         .. code-block:: python
 
-            from autogen_core.components import TypeSubscription
+            from autogen_core import TypeSubscription
 
             subscription = TypeSubscription(topic_type="t1", agent_type="a1")
 
