@@ -1,3 +1,3 @@
-from ._video_surfer import VideoSurferAgent
+from ._video_surfer import VideoSurfer
 
-__all__ = ["VideoSurferAgent"]
+__all__ = ["VideoSurfer"]
