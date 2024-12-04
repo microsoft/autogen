@@ -27,9 +27,9 @@ internal sealed class SubscriptionsGrain([PersistentState("state", "PubSubStore"
         if (topic != null)
         {
             var filteredSubscriptions = _subscriptions.Where(x => x.Key == topic);
-            return new ValueTask<ConcurrentDictionary<string, List<string>>>((ConcurrentDictionary<string, List<string>>)filteredSubscriptions);
+            return ValueTask.FromResult<ConcurrentDictionary<string, List<string>>>((ConcurrentDictionary<string, List<string>>)filteredSubscriptions);
         }
-        return new ValueTask<ConcurrentDictionary<string, List<string>>>(_subscriptions);
+        return ValueTask.FromResult<ConcurrentDictionary<string, List<string>>>(_subscriptions);
     }
     public ValueTask<SubscriptionsState> GetSubscriptionsStateAsync() => ValueTask.FromResult(_subscriptionsState.State);
 
