@@ -4,9 +4,8 @@ from typing import Awaitable, Callable, List
 from uuid import uuid4
 
 from _types import GroupChatMessage, MessageChunk, RequestToSpeak, UIAgentConfig
+from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, message_handler
 from autogen_core.application import WorkerAgentRuntime
-from autogen_core.base import MessageContext
-from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,

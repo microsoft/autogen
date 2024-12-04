@@ -16,7 +16,7 @@ from autogen_agentchat.messages import (
 from autogen_agentchat.teams import (
     MagenticOneGroupChat,
 )
-from autogen_core.base import CancellationToken
+from autogen_core import CancellationToken
 from autogen_ext.models import ReplayChatCompletionClient
 from utils import FileLogHandler
 

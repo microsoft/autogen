@@ -2,10 +2,10 @@ from dataclasses import dataclass
 from types import NoneType
 from typing import Any, List, Optional, Union
 
-from autogen_core.base import MessageContext
-from autogen_core.base._serialization import has_nested_base_model
-from autogen_core.base._type_helpers import AnyType, get_types
-from autogen_core.components._routed_agent import RoutedAgent, message_handler
+from autogen_core import MessageContext
+from autogen_core._routed_agent import RoutedAgent, message_handler
+from autogen_core._serialization import has_nested_base_model
+from autogen_core._type_helpers import AnyType, get_types
 from pydantic import BaseModel
 
 

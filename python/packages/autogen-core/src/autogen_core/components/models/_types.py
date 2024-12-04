@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List, Literal, Optional, Union
 
-from .. import FunctionCall, Image
+from ... import FunctionCall, Image
 
 
 @dataclass

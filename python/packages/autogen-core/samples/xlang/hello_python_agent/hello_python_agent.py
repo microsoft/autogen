@@ -3,11 +3,16 @@ import logging
 import os
 import sys
 
-from autogen_core.application import WorkerAgentRuntime
-
 # from protos.agents_events_pb2 import NewMessageReceived
-from autogen_core.base import PROTOBUF_DATA_CONTENT_TYPE, AgentId, try_get_known_serializers_for_type
-from autogen_core.components import DefaultSubscription, DefaultTopicId, TypeSubscription
+from autogen_core import (
+    PROTOBUF_DATA_CONTENT_TYPE,
+    AgentId,
+    DefaultSubscription,
+    DefaultTopicId,
+    TypeSubscription,
+    try_get_known_serializers_for_type,
+)
+from autogen_core.application import WorkerAgentRuntime
 
 # Add the local package directory to sys.path
 thisdir = os.path.dirname(os.path.abspath(__file__))

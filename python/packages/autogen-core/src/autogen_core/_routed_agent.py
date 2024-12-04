@@ -1,5 +1,4 @@
 import logging
-import warnings
 from functools import wraps
 from typing import (
     Any,
@@ -19,9 +18,11 @@ from typing import (
     runtime_checkable,
 )
 
-from .. import BaseAgent, MessageContext, MessageSerializer, try_get_known_serializers_for_type
-from .._type_helpers import AnyType, get_types
-from ..exceptions import CantHandleException
+from ._base_agent import BaseAgent
+from ._message_context import MessageContext
+from ._serialization import MessageSerializer, try_get_known_serializers_for_type
+from ._type_helpers import AnyType, get_types
+from .exceptions import CantHandleException
 
 logger = logging.getLogger("autogen_core")
 
@@ -515,12 +516,3 @@ class RoutedAgent(BaseAgent):
 
                 types.append((t, try_get_known_serializers_for_type(t)))
         return types
-
-
-# Deprecation warning for TypeRoutedAgent
-class TypeRoutedAgent(RoutedAgent):
-    """Deprecated. Use :class:`RoutedAgent` instead."""
-
-    def __init__(self, description: str) -> None:
-        warnings.warn("TypeRoutedAgent is deprecated. Use RoutedAgent instead.", DeprecationWarning, stacklevel=2)
-        super().__init__(description)

@@ -1,7 +1,6 @@
 from typing import AsyncGenerator, List, Sequence
 
-from autogen_core.base import CancellationToken
-from autogen_core.components import Image
+from autogen_core import CancellationToken, Image
 from autogen_core.components.models import ChatCompletionClient
 from autogen_core.components.models._types import SystemMessage
 

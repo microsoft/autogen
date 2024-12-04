@@ -4,8 +4,8 @@ from typing import Any, Callable
 
 from pydantic import BaseModel
 
-from ...base import CancellationToken
-from .._function_utils import (
+from ... import CancellationToken
+from ..._function_utils import (
     args_base_model_from_signature,
     get_typed_signature,
 )
@@ -38,7 +38,7 @@ class FunctionTool(BaseTool[BaseModel, BaseModel]):
         .. code-block:: python
 
             import random
-            from autogen_core.base import CancellationToken
+            from autogen_core import CancellationToken
             from autogen_core.components.tools import FunctionTool
             from typing_extensions import Annotated
             import asyncio

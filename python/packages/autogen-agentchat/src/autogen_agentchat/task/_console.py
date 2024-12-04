@@ -3,7 +3,7 @@ import sys
 import time
 from typing import AsyncGenerator, List, Optional, TypeVar, cast
 
-from autogen_core.components import Image
+from autogen_core import Image
 from autogen_core.components.models import RequestUsage
 
 from autogen_agentchat.base import Response, TaskResult

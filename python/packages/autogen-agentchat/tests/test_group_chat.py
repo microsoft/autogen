@@ -28,8 +28,7 @@ from autogen_agentchat.teams import (
     SelectorGroupChat,
     Swarm,
 )
-from autogen_core.base import CancellationToken
-from autogen_core.components import FunctionCall
+from autogen_core import CancellationToken, FunctionCall
 from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
 from autogen_core.components.models import FunctionExecutionResult
 from autogen_core.components.tools import FunctionTool
