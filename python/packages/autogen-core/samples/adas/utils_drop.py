@@ -1,5 +1,7 @@
-# https://github.com/openai/simple-evals/blob/main/drop_eval.py
-"""
+"""Utility file for DROP benchmark.
+
+https://github.com/openai/simple-evals/blob/main/drop_eval.py
+
 DROP: A Reading Comprehension Benchmark Requiring Discrete Reasoning Over Paragraphs
 Dheeru Dua, Yizhong Wang, Pradeep Dasigi, Gabriel Stanovsky, Sameer Singh, Matt Gardner
 https://arxiv.org/abs/1903.00161
@@ -210,7 +212,7 @@ def fuzzy_match(s1: str, s2: str) -> bool:
     return s1 in s2 or s2 in s1
 
 
-def drop_metric(sample: str, reference: list[str]) -> Tuple[float, float]:
+def compute_drop_metrics(sample: str, reference: list[str]) -> Tuple[float, float]:
     em_scores = []
     f1_scores = []
     for answer in reference:
@@ -221,10 +223,53 @@ def drop_metric(sample: str, reference: list[str]) -> Tuple[float, float]:
     return (max(em_scores), max(f1_scores))
 
 
-def load_drop(file_path):
+def compute_metrics(predictions: List[Any], labels: List[Any]) -> List[float]:
+    """
+    Calculates the score based on a list of predictions and labels.
+
+    Args:
+        predictions: A list of predictions that the agent system predicts
+            and returns as its final answer.
+        labels: A list of ground truth labels from the dataset.
+
+    Returns:
+        A list of metrics, where each corresponds to the computed score for each prediction.
+    """
+    acc_list = []
+    for q_idx, res in enumerate(predictions):
+        try:
+            correct_answers = labels[q_idx]
+            print(
+                f"extracted_answer {res}, correct_answers {correct_answers}"
+            )
+            em_score, f1_score = compute_drop_metrics(res, correct_answers)
+        except Exception:
+            acc_list.append(0)
+            continue
+
+        acc_list.append(f1_score)
+    return acc_list
+
+
+def load_dataset(file_path: str) -> List[Dict[str, Any]]:
+    """
+    Loads in a dataset, with both input and targets, based on a file path.
+
+    Args:
+        file_path: A string representing the path of the dataset.
+
+    Returns:
+        A list of dicts, where each dict has 'input' and 'targets' keys
+        corresponding to the input and ground truth labels, respectively.
+
+        The 'input' should be a string containing the task instruction,
+        (optional) few-shot contexts, and the actual input data.
+
+        The 'output' can be of any data type. Note that this will be used
+        in the `compute_metrics` function that benchmark uses.
+    """
     with gzip.open(file_path, mode="rb") as f:
         test_samples = [json.loads(line) for line in f]
-    prompt = """You will be asked to read a passage and answer a question.\n"""
     few_shot_prompt = """You will be asked to read a passage and answer a question.
 
 # Examples:
@@ -236,61 +281,7 @@ Passage: As of the census of 2000, there were 952 people, 392 households, and 24
 """
     examples = []
     for sample in test_samples:
-        sample['inputs'] = few_shot_prompt + sample['context']
-        sample['targets'] = sample["ref_text"].split("|")
+        sample["inputs"] = few_shot_prompt + sample["context"]
+        sample["targets"] = sample["ref_text"].split("|")
         examples.append(sample)
     return examples
-
-
-def random_id(length=4):
-    characters = string.ascii_letters + string.digits  # includes both upper/lower case letters and numbers
-    random_id = ''.join(random.choices(characters, k=length))
-    return random_id
-
-
-def bootstrap_confidence_interval(data, num_bootstrap_samples=100000, confidence_level=0.95):
-    """
-    Calculate the bootstrap confidence interval for the mean of 1D accuracy data.
-    Also returns the median of the bootstrap means.
-    
-    Args:
-    - data (list or array of float): 1D list or array of data points.
-    - num_bootstrap_samples (int): Number of bootstrap samples.
-    - confidence_level (float): The desired confidence level (e.g., 0.95 for 95%).
-    
-    Returns:
-    - str: Formatted string with 95% confidence interval and median as percentages with one decimal place.
-    """
-    # Convert data to a numpy array for easier manipulation
-    data = np.array(data)
-
-    # List to store the means of bootstrap samples
-    bootstrap_means = []
-
-    # Generate bootstrap samples and compute the mean for each sample
-    for _ in range(num_bootstrap_samples):
-        # Resample with replacement
-        bootstrap_sample = np.random.choice(data, size=len(data), replace=True)
-        # Compute the mean of the bootstrap sample
-        bootstrap_mean = np.mean(bootstrap_sample)
-        bootstrap_means.append(bootstrap_mean)
-
-    # Convert bootstrap_means to a numpy array for percentile calculation
-    bootstrap_means = np.array(bootstrap_means)
-
-    # Compute the lower and upper percentiles for the confidence interval
-    lower_percentile = (1.0 - confidence_level) / 2.0
-    upper_percentile = 1.0 - lower_percentile
-    ci_lower = np.percentile(bootstrap_means, lower_percentile)
-    ci_upper = np.percentile(bootstrap_means, upper_percentile)
-
-    # Compute the median of the bootstrap means
-    median = np.median(bootstrap_means)
-
-    # Convert to percentages and format to one decimal place
-    ci_lower_percent = ci_lower
-    ci_upper_percent = ci_upper
-    median_percent = median
-
-    # Return the formatted string with confidence interval and median
-    return f"95% Bootstrap Confidence Interval: ({ci_lower_percent:.1f}%, {ci_upper_percent:.1f}%), Median: {median_percent:.1f}%"

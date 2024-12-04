@@ -1,4 +1,5 @@
 import json
+
 import requests
 from github import Github
 
@@ -894,6 +895,194 @@ LLM_debate = {
 """,
 }
 
+Tree_of_thought = {
+    "thought": "By using a tree search strategy, the model can explore multiple branches of thoughts, where at any step of the problem, multiple independent thoughts are generated and evaluated to find the most useful ones.",
+    "name": "Tree of Thought",
+    "code": """def forward(self, task, model_client_kwargs):
+    import asyncio
+    import logging
+    from dataclasses import dataclass
+    from typing import List, Dict, Any
+    from autogen_core.application import SingleThreadedAgentRuntime
+    from autogen_core.base import AgentId, AgentRuntime, MessageContext, TopicId
+    from autogen_core.components import default_subscription, RoutedAgent, message_handler, ClosureAgent, TypeSubscription, DefaultTopicId
+    from autogen_core.components.models import (
+        ChatCompletionClient,
+        SystemMessage,
+        UserMessage,
+        AssistantMessage,
+        LLMMessage,
+    )
+    from autogen_ext.models import AzureOpenAIChatCompletionClient
+    from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+    from autogen_core.application.logging import TRACE_LOGGER_NAME 
+
+    # Configure logging as per documentation 
+    logging.basicConfig(level=logging.WARNING) 
+    logger = logging.getLogger(TRACE_LOGGER_NAME) 
+    logger.setLevel(logging.INFO)
+    token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
+
+    # Create an AzureOpenAI model client.
+    model_client = AzureOpenAIChatCompletionClient(
+        model=model_client_kwargs['model'],
+        api_version=model_client_kwargs['api_version'],
+        azure_endpoint=model_client_kwargs['azure_endpoint'],
+        azure_ad_token_provider=token_provider,
+        model_capabilities={
+            "vision": True,
+            "function_calling": True,
+            "json_output": True,
+        },
+    )
+ 
+    @dataclass 
+    class Message: 
+        content: str 
+    
+    @dataclass 
+    class FinalAnswer: 
+        answer: str 
+
+    @default_subscription
+    class TreeOfThoughtsAgent(RoutedAgent): 
+        def __init__(self, model_client: ChatCompletionClient, max_depth: int = 3, beam_width: int = 3): 
+            super().__init__("TreeOfThoughtsAgent") 
+            self._model_client = model_client 
+            self._max_depth = max_depth 
+            self._beam_width = beam_width 
+            self._system_messages = [ 
+                SystemMessage( 
+                    content="You are a helpful assistant who reasons step-by-step to solve complex problems.") 
+            ] 
+    
+        async def generate_thoughts(self, prompt: List[LLMMessage], num_thoughts: int, cancellation_token) -> List[str]: 
+            # Generate multiple thoughts using the model 
+            thoughts = [] 
+            # Create multiple async tasks to generate thoughts in parallel 
+            tasks = [] 
+            for _ in range(num_thoughts): 
+                tasks.append(self._model_client.create( 
+                    prompt, 
+                    extra_create_args={"temperature": 1.0},
+                    cancellation_token=cancellation_token, 
+                )) 
+            responses = await asyncio.gather(*tasks) 
+            for response in responses: 
+                thoughts.append(response.content.strip()) 
+            return thoughts 
+    
+        async def evaluate_thoughts(self, thoughts: List[str], ctx: MessageContext) -> List[str]: 
+            # Batch evaluation of thoughts 
+            eval_prompt = [ 
+                SystemMessage(content="You are an assistant that evaluates reasoning steps for solving a problem."), 
+                UserMessage( 
+                    content=f"Evaluate the following thoughts for their usefulness in solving the problem. Rank them from most useful to least useful and provide the rankings.\\n\\nThoughts:\\n" + "\\n".join( 
+                        [f"{i+1}. {t}" for i, t in enumerate(thoughts)]), 
+                    source="user" 
+                ) 
+            ] 
+            eval_response = await self._model_client.create( 
+                eval_prompt, 
+                cancellation_token=ctx.cancellation_token, 
+            ) 
+            # Parse the response to extract rankings 
+            rankings_text = eval_response.content.strip() 
+            # For simplicity, assume the model outputs the rankings as a list of numbers 
+            rankings = [] 
+            for line in rankings_text.split('\\n'): 
+                line = line.strip() 
+                if line and line[0].isdigit(): 
+                    rankings.append(int(line[0]) - 1)  # Subtract 1 to get index 
+            # Select top-k thoughts 
+            best_thoughts = [thoughts[i] for i in rankings[:self._beam_width]] 
+            return best_thoughts 
+    
+        @message_handler 
+        async def handle_message(self, message: Message, ctx: MessageContext) -> None: 
+            logger.info(f"Received task: {message.content}") 
+            initial_prompt = self._system_messages + [UserMessage(content=message.content, source="user")] 
+            tree = [[]]  # Initialize the tree with an empty path 
+            for depth in range(self._max_depth): 
+                new_branches = [] 
+                logger.info(f"Depth {depth+1}") 
+                for path in tree: 
+                    # Build the prompt up to this point 
+                    prompt = initial_prompt.copy() 
+                    for thought in path: 
+                        prompt.append(AssistantMessage(content=thought, source="assistant")) 
+                    # Generate thoughts 
+                    thoughts = await self.generate_thoughts(prompt, self._beam_width, ctx.cancellation_token) 
+                    logger.info(f"Generated thoughts: {thoughts}") 
+                    # Evaluate thoughts 
+                    best_thoughts = await self.evaluate_thoughts(thoughts, ctx) 
+                    logger.info(f"Best thoughts: {best_thoughts}") 
+                    # Expand tree with best thoughts 
+                    for thought in best_thoughts: 
+                        new_path = path + [thought] 
+                        new_branches.append(new_path) 
+                # Update tree with new branches 
+                if not new_branches: 
+                    logger.info("No more branches to expand.") 
+                    break  # No more thoughts to expand 
+                tree = new_branches 
+            # After reaching max depth, select the best path 
+            # For simplicity, select the first path 
+            best_path = tree[0] 
+            final_answer = best_path[-1] 
+            logger.info(f"Final answer: {final_answer}") 
+            # Publish the final answer 
+            await self.publish_message( 
+                FinalAnswer(answer=final_answer), 
+                topic_id=TopicId(type="result", source=self.id.key) 
+            ) 
+    
+    # Main function 
+    async def main(): 
+        # Create a queue to collect the final answer 
+        queue = asyncio.Queue[FinalAnswer]() 
+    
+        async def output_result(_runtime: AgentRuntime, id: AgentId, message: FinalAnswer, ctx: MessageContext) -> None: 
+            await queue.put(message) 
+    
+        # Initialize runtime 
+        runtime = SingleThreadedAgentRuntime() 
+    
+        # Register TreeOfThoughtsAgent 
+        await TreeOfThoughtsAgent.register( 
+            runtime, 
+            "TreeOfThoughtsAgent", 
+            lambda: TreeOfThoughtsAgent(model_client) 
+        ) 
+    
+        # Register ClosureAgent with agent key matching self.id.key (default is "default") 
+        result_topic = TypeSubscription(topic_type="result", agent_type="output_result") 
+        await ClosureAgent.register( 
+            runtime, 
+            "output_result", 
+            output_result, 
+            subscriptions=lambda: [result_topic] 
+        ) 
+    
+        # Start the runtime 
+        runtime.start() 
+    
+        # Publish initial message to TreeOfThoughtsAgent
+        await runtime.publish_message( 
+            Message(content=task), 
+            topic_id=DefaultTopicId() 
+        ) 
+    
+        # Wait until idle 
+        await runtime.stop_when_idle() 
+    
+        # Return the final answer 
+        final_message = await queue.get() 
+        return final_message.answer
+    return asyncio.run(main())
+""",
+}
+
 # TODO(yeandy): Take a Step Back currently not used as a seed in the archive. Refactor using the AutoGen API
 Take_a_step_back = {
     "thought": "Let LLM first think about the principles involved in solving this task which could be helpful. By understanding the underlying principles, the model can better reason through the problem and provide a more accurate solution.",
@@ -1358,6 +1547,13 @@ The `publish_message` should publish to a topic. Use `TopicId` or `DefaultTopicI
 await runtime.publish_message(DiverseThoughtTask(task='Who is the most creative composer?'), TopicId("consensus_agent", "default"))
 ```
 
+14. This is WRONG: ```
+UserMessage(content=content)
+```
+Two arguments are required: The message, as well as the source. Make sure to add the source as the second argument. For example: ```
+UserMessage(content=content, source=self.metadata["type"])
+```
+
 ## CORRECT Implementation examples:
 Here are some correct patterns you should follow:
 
@@ -1409,7 +1605,7 @@ Creating the model client using the model_client_kwargs dictionary. Do not modif
     
     return asyncio.run(main())
 ```
-This is the format for the `main` function. Make sure that when creating a `ClosureAgent`, you have created `queue` from which you can call `return (await queue.get()).answer` at the very end of the `main` function. The datatype of the Queue should be the final message that the agent system publishes to indicate that the system is terminating. 
+This is the format for the `main` function. Make sure that when creating a `ClosureAgent`, you have created `queue` from which you can call `return (await queue.get()).answer` at the very end of the `main` function. The datatype of the Queue should be the final message that the agent system publishes to indicate that the system is terminating.
 The `result_topic` should have a unique `topic_type`, which should be called "result". The agent that publishes the final message MUST publish to the same topic_id
 
 3. This is CORRECT: ```
@@ -1459,13 +1655,12 @@ Be creative when thinking about the next interesting agent to try. You are encou
 Use the knowledge from the archive and inspiration from academic literature to propose the next interesting agentic system design.
 THINK OUTSIDE THE BOX.
 
-Make sure to return in a WELL-FORMED JSON object. Key and values of all entries must be enclosed in double quotes " or \"\"\", and not single quotes '. Additionally, any multiline string in the JSON object should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. The JSON object itself may also be multiline, and should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. Finally, do not add any code blocks around the JSON object.
+Make sure to return in a WELL-FORMED JSON object. Key and values of all JSON entries must be enclosed in double quotes " or \"\"\", and not single quotes \'. To reduce any JSON parsing errors when using the `json.loads()` function, there should be not be any multiline strings in the JSON object. Use the newline character `\n` if necessary. Additionally, to reduce any JSON parsing errors when using the `json.loads()` function, the JSON object itself cannot be multiline. It must be a single line. Finally, do not add any code blocks around the JSON object.
 """
 
+Reflexion_prompt_1 = """"[EXAMPLE]Carefully review the proposed new architecture and reflect on the following points:
 
-Reflexion_prompt_1 = f""""[EXAMPLE]Carefully review the proposed new architecture and reflect on the following points:
-
-1. **Interestingness**: Assess whether your proposed architecture is interesting or innovative compared to existing methods in the archive. If you determine that the proposed architecture is not interesting, suggest a new architecture that addresses these shortcomings. 
+1. **Interestingness**: Assess whether your proposed architecture is interesting or innovative compared to existing methods in the archive. If you determine that the proposed architecture is not interesting, suggest a new architecture that addresses these shortcomings.
 - Make sure to check the difference between the proposed architecture and previous attempts.
 - Compare the proposal and the architectures in the archive CAREFULLY, including their actual differences in the implementation.
 - Decide whether the current architecture is innovative.
@@ -1490,38 +1685,40 @@ Your response should be organized as follows:
 
 "code": Provide the corrected code or an improved implementation. Make sure you actually implement your fix and improvement in this code.
 
-Make sure to return in a WELL-FORMED JSON object. Key and values of all entries must be enclosed in double quotes " or \"\"\", and not single quotes '. Additionally, any multiline string in the JSON object should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. The JSON object itself may also be multiline, and should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. Finally, do not add any code blocks around the JSON object.
+Make sure to return in a WELL-FORMED JSON object. Key and values of all JSON entries must be enclosed in double quotes " or \"\"\", and not single quotes \'. To reduce any JSON parsing errors when using the `json.loads()` function, there should be not be any multiline strings in the JSON object. Use the newline character `\n` if necessary. Additionally, to reduce any JSON parsing errors when using the `json.loads()` function, the JSON object itself cannot be multiline. It must be a single line. Finally, do not add any code blocks around the JSON object.
 """
 
 Reflexion_prompt_2 = """Using the tips in "## WRONG Implementation examples" section, revise the code further.
 Your response should be organized as follows:
 Put your new reflection thinking in "reflection". Repeat the previous "thought" and "name", and update the corrected version of the code in "code".
 
-Make sure to return in a WELL-FORMED JSON object. Key and values of all entries must be enclosed in double quotes " or \"\"\", and not single quotes '. Additionally, any multiline string in the JSON object should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. The JSON object itself may also be multiline, and should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. Finally, do not add any code blocks around the JSON object.
+Make sure to return in a WELL-FORMED JSON object. Key and values of all JSON entries must be enclosed in double quotes " or \"\"\", and not single quotes \'. To reduce any JSON parsing errors when using the `json.loads()` function, there should be not be any multiline strings in the JSON object. Use the newline character `\n` if necessary. Additionally, to reduce any JSON parsing errors when using the `json.loads()` function, the JSON object itself cannot be multiline. It must be a single line. Finally, do not add any code blocks around the JSON object.
 """
 
 Reflexion_prompt_3 = """Using the tips in "## CORRECT Implementation examples" section, revise the code further.
 Your response should be organized as follows:
 Put your new reflection thinking in "reflection". Repeat the previous "thought" and "name", and update the corrected version of the code in "code".
 
-Make sure to return in a WELL-FORMED JSON object. Key and values of all entries must be enclosed in double quotes " or \"\"\", and not single quotes '. Additionally, any multiline string in the JSON object should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. The JSON object itself may also be multiline, and should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. Finally, do not add any code blocks around the JSON object.
+Make sure to return in a WELL-FORMED JSON object. Key and values of all JSON entries must be enclosed in double quotes " or \"\"\", and not single quotes \'. To reduce any JSON parsing errors when using the `json.loads()` function, there should be not be any multiline strings in the JSON object. Use the newline character `\n` if necessary. Additionally, to reduce any JSON parsing errors when using the `json.loads()` function, the JSON object itself cannot be multiline. It must be a single line. Finally, do not add any code blocks around the JSON object.
 """
 
 Reflexion_prompt_4 = """Using the official API documentation in "## Documentation" section, revise the code further.
 Your response should be organized as follows:
 Put your new reflection thinking in "reflection". Repeat the previous "thought" and "name", and update the corrected version of the code in "code".
 
-Make sure to return in a WELL-FORMED JSON object. Key and values of all entries must be enclosed in double quotes " or \"\"\", and not single quotes '. Additionally, any multiline string in the JSON object should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. The JSON object itself may also be multiline, and should contain the newline character `\n` to reduce any JSON parsing errors when using the `json.loads()` function. Finally, do not add any code blocks around the JSON object.
+Make sure to return in a WELL-FORMED JSON object. Key and values of all JSON entries must be enclosed in double quotes " or \"\"\", and not single quotes \'. To reduce any JSON parsing errors when using the `json.loads()` function, there should be not be any multiline strings in the JSON object. Use the newline character `\n` if necessary. Additionally, to reduce any JSON parsing errors when using the `json.loads()` function, the JSON object itself cannot be multiline. It must be a single line. Finally, do not add any code blocks around the JSON object.
 """
 
 
 def get_init_archive():
-    return [
-        COT,
-        COT_SC,
-        Reflexion,
-        LLM_debate,
-    ]  # TODO: Take_a_step_back, QD, Role_Assignment
+    return [Tree_of_thought]
+    # return [
+    #     COT,
+    #     COT_SC,
+    #     Reflexion,
+    #     LLM_debate,
+    #     Tree_of_thought,
+    # ]  # TODO: Take_a_step_back, QD, Role_Assignment
 
 
 def get_prompt(current_archive, adaptive=False):
