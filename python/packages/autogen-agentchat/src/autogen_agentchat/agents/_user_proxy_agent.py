@@ -58,6 +58,7 @@ class UserProxyAgent(BaseChatAgent):
             from autogen_agentchat.agents import UserProxyAgent
             from autogen_agentchat.messages import TextMessage
 
+
             async def simple_user_agent():
                 agent = UserProxyAgent("user_proxy")
                 response = await asyncio.create_task(
@@ -80,13 +81,15 @@ class UserProxyAgent(BaseChatAgent):
 
             token = CancellationToken()
             agent = UserProxyAgent("user_proxy")
-            
+
+
             async def timeout(delay: float):
                 await asyncio.sleep(delay)
 
 
             def cancellation_callback(task: asyncio.Task[Any]):
                 token.cancel()
+
 
             async def cancellable_user_agent():
                 try:
