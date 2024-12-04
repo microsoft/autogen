@@ -549,7 +549,6 @@ class MultimodalWebSurfer(BaseChatAgent):
                 elif isinstance(m, SystemMessage):
                     history.append(SystemMessage(content=content))
 
-
         # Ask the page for interactive elements, then prepare the state-of-mark screenshot
         rects = await self._playwright_controller.get_interactive_rects(self._page)
         viewport = await self._playwright_controller.get_visual_viewport(self._page)
