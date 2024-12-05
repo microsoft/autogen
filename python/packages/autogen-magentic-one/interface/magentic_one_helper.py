@@ -6,7 +6,7 @@ from datetime import datetime
 import json
 from dataclasses import asdict
 
-from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core import SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
 from autogen_core import AgentId, AgentProxy
 from autogen_core import DefaultTopicId

@@ -1,8 +1,14 @@
 import pytest
-from autogen_core import AgentId, DefaultSubscription, DefaultTopicId, TopicId, TypeSubscription
-from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core import (
+    AgentId,
+    DefaultSubscription,
+    DefaultTopicId,
+    SingleThreadedAgentRuntime,
+    TopicId,
+    TypeSubscription,
+)
 from autogen_core.exceptions import CantHandleException
-from test_utils import LoopbackAgent, MessageType
+from autogen_test_utils import LoopbackAgent, MessageType
 
 
 def test_type_subscription_match() -> None:
