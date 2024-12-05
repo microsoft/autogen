@@ -2,7 +2,7 @@
 // GrpcGatewayTests.cs
 
 using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers;
+using Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Orleans;
 using Microsoft.Extensions.Logging;
 using Moq;
 

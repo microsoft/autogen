@@ -3,7 +3,7 @@
 
 using Orleans.TestingHost;
 
-namespace Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers;
+namespace Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Orleans;
 
 public sealed class ClusterFixture : IDisposable
 {
