@@ -12,27 +12,25 @@ from string import Template
 from types import SimpleNamespace
 from typing import Any, Callable, ClassVar, List, Optional, Sequence, Union
 
-from typing_extensions import ParamSpec, deprecated
+from autogen_core import CancellationToken
+from autogen_core.code_executor import CodeBlock, CodeExecutor, FunctionWithRequirements, FunctionWithRequirementsStr
+from typing_extensions import ParamSpec
 
-from .... import CancellationToken
-from ....code_executor._base import CodeBlock, CodeExecutor
-from ....code_executor._func_with_reqs import (
-    FunctionWithRequirements,
-    FunctionWithRequirementsStr,
+from .._common import (
+    PYTHON_VARIANTS,
+    CommandLineCodeResult,
     build_python_functions_file,
+    get_file_name_from_content,
+    lang_to_cmd,
+    silence_pip,
     to_stub,
 )
-from .command_line_code_result import CommandLineCodeResult  # type: ignore
-from .utils import PYTHON_VARIANTS, get_file_name_from_content, lang_to_cmd, silence_pip  # type: ignore
 
 __all__ = ("LocalCommandLineCodeExecutor",)
 
 A = ParamSpec("A")
 
 
-@deprecated(
-    "LocalCommandLineCodeExecutor moved to autogen_ext.code_executors.local.LocalCommandLineCodeExecutor. This alias will be removed in 0.4.0."
-)
 class LocalCommandLineCodeExecutor(CodeExecutor):
     """A code executor class that executes code through a local command line
     environment.
@@ -73,8 +71,7 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
             import asyncio
 
             from autogen_core import CancellationToken
-            from autogen_core.code_executor import CodeBlock
-            from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+            from autogen_core.components.code_executor import CodeBlock, LocalCommandLineCodeExecutor
 
 
             async def example():
@@ -247,7 +244,7 @@ $functions"""
 
     async def execute_code_blocks(
         self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
-    ) -> CommandLineCodeResult:  # type: ignore
+    ) -> CommandLineCodeResult:
         """(Experimental) Execute the code blocks and return the result.
 
         Args:
@@ -264,7 +261,7 @@ $functions"""
 
     async def _execute_code_dont_check_setup(
         self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
-    ) -> CommandLineCodeResult:  # type: ignore
+    ) -> CommandLineCodeResult:
         logs_all: str = ""
         file_names: List[Path] = []
         exitcode = 0
@@ -287,7 +284,7 @@ $functions"""
                 # Check if there is a filename comment
                 filename = get_file_name_from_content(code, self._work_dir)
             except ValueError:
-                return CommandLineCodeResult(  # type: ignore
+                return CommandLineCodeResult(
                     exit_code=1,
                     output="Filename is not in the workspace",
                     code_file=None,
@@ -351,7 +348,7 @@ $functions"""
                 break
 
         code_file = str(file_names[0]) if len(file_names) > 0 else None
-        return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_file)  # type: ignore
+        return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_file)
 
     async def restart(self) -> None:
         """(Experimental) Restart the code executor."""

@@ -6,12 +6,9 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import List, Protocol, runtime_checkable
 
-from typing_extensions import deprecated
-
-from ... import CancellationToken
+from .._cancellation_token import CancellationToken
 
 
-@deprecated("Moved to autogen_core.code_executor.CodeBlock. This alias will be removed in 0.4.0.")
 @dataclass
 class CodeBlock:
     """A code block extracted fromm an agent message."""
@@ -20,7 +17,6 @@ class CodeBlock:
     language: str
 
 
-@deprecated("Moved to autogen_core.code_executor.CodeResult. This alias will be removed in 0.4.0.")
 @dataclass
 class CodeResult:
     """Result of a code execution."""
@@ -29,16 +25,13 @@ class CodeResult:
     output: str
 
 
-@deprecated("Moved to autogen_core.code_executor.CodeExecutor. This alias will be removed in 0.4.0.")
 @runtime_checkable
 class CodeExecutor(Protocol):
     """Executes code blocks and returns the result."""
 
     async def execute_code_blocks(
-        self,
-        code_blocks: List[CodeBlock],  # type: ignore
-        cancellation_token: CancellationToken,  # type: ignore
-    ) -> CodeResult:  # type: ignore
+        self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
+    ) -> CodeResult:
         """Execute code blocks and return the result.
 
         This method should be implemented by the code executor.
