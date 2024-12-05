@@ -68,6 +68,7 @@ internal sealed class SubscriptionsGrain([PersistentState("state", "PubSubStore"
         _subscriptionsState.State.SubscriptionsByAgentType = _subscriptions;
         var _subsByTopic = await GetSubscriptionsByTopicAsync().ConfigureAwait(true);
         _subsByTopic.GetOrAdd(topic, _ => []).Add(agentType);
+        _subscriptionsState.State.SubscriptionsByTopic = _subsByTopic;
         await _subscriptionsState.WriteStateAsync().ConfigureAwait(false);
     }
 }
