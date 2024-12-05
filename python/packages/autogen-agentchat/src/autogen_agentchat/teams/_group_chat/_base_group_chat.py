@@ -2,7 +2,7 @@ import asyncio
 import logging
 import uuid
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, Callable, List
+from typing import Any, AsyncGenerator, Callable, List, Mapping
 
 from autogen_core import (
     AgentId,
@@ -20,6 +20,7 @@ from autogen_core.application import SingleThreadedAgentRuntime
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
 from ...messages import AgentMessage, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
+from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import GroupChatMessage, GroupChatReset, GroupChatStart, GroupChatTermination
 from ._sequential_routed_agent import SequentialRoutedAgent
@@ -491,5 +492,40 @@ class BaseGroupChat(Team, ABC):
             while not self._output_message_queue.empty():
                 self._output_message_queue.get_nowait()
 
+            # Indicate that the team is no longer running.
+            self._is_running = False
+
+    async def save_state(self) -> Mapping[str, Any]:
+        """Save the state of the group chat team."""
+        if not self._initialized:
+            raise RuntimeError("The group chat has not been initialized. It must be run before it can be saved.")
+
+        if self._is_running:
+            raise RuntimeError("The team cannot be saved while it is running.")
+        self._is_running = True
+
+        try:
+            # Save the state of the runtime. This will save the state of the participants and the group chat manager.
+            agent_states = await self._runtime.save_state()
+            return TeamState(agent_states=agent_states, team_id=self._team_id).model_dump()
+        finally:
+            # Indicate that the team is no longer running.
+            self._is_running = False
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        """Load the state of the group chat team."""
+        if not self._initialized:
+            await self._init(self._runtime)
+
+        if self._is_running:
+            raise RuntimeError("The team cannot be loaded while it is running.")
+        self._is_running = True
+
+        try:
+            # Load the state of the runtime. This will load the state of the participants and the group chat manager.
+            team_state = TeamState.model_validate(state)
+            self._team_id = team_state.team_id
+            await self._runtime.load_state(team_state.agent_states)
+        finally:
             # Indicate that the team is no longer running.
             self._is_running = False

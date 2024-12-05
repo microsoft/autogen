@@ -33,7 +33,7 @@ class LLMAgent(RoutedAgent):
 
     @property
     def _fixed_message_history_type(self) -> List[SystemMessage]:
-        return [SystemMessage(msg.content) for msg in self._chat_history]
+        return [SystemMessage(content=msg.content) for msg in self._chat_history]
 
 
 @default_subscription

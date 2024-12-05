@@ -36,9 +36,11 @@ class FileSurfer(BaseChatAgent):
     DEFAULT_DESCRIPTION = "An agent that can handle local files."
 
     DEFAULT_SYSTEM_MESSAGES = [
-        SystemMessage("""
+        SystemMessage(
+            content="""
         You are a helpful AI Assistant.
-        When given a user query, use available functions to help the user with their request."""),
+        When given a user query, use available functions to help the user with their request."""
+        ),
     ]
 
     def __init__(
@@ -78,7 +80,7 @@ class FileSurfer(BaseChatAgent):
 
         except BaseException:
             content = f"File surfing error:\n\n{traceback.format_exc()}"
-            self._chat_history.append(AssistantMessage(content, source=self.name))
+            self._chat_history.append(AssistantMessage(content=content, source=self.name))
             return Response(chat_message=TextMessage(content=content, source=self.name))
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
