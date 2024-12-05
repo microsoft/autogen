@@ -23,7 +23,7 @@ from autogen_core.code_executor import (
 )
 from typing_extensions import ParamSpec
 
-from ._common import build_python_functions_file, get_required_packages, to_stub
+from .._common import build_python_functions_file, get_required_packages, to_stub
 
 if TYPE_CHECKING:
     from azure.core.credentials import AccessToken
@@ -47,7 +47,11 @@ class ACADynamicSessionsCodeExecutor(CodeExecutor):
 
     .. note::
 
-        This class requires the :code:`azure` extra for the :code:`autogen-ext` package.
+        This class requires the :code:`azure` extra for the :code:`autogen-ext` package:
+
+        .. code-block:: bash
+
+            pip install 'autogen-ext[azure]==0.4.0.dev7'
 
 
     **This will execute LLM generated code on an Azure dynamic code container.**
