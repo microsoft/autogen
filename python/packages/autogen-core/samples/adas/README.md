@@ -1,5 +1,200 @@
 # User Guide for using ADAS in AutoGen
 
+TLDR:
+This is a feature to use a meta-agent to generate new agent systems. For example, this agent system was discovered and written entirely by an agent using o1-preview:
+```
+def forward(self, task, model_client_kwargs):
+    import asyncio
+    import logging
+    from dataclasses import dataclass
+    from typing import List, Dict, Any
+    from autogen_core.application import SingleThreadedAgentRuntime
+    from autogen_core.base import AgentId, AgentRuntime, MessageContext, TopicId
+    from autogen_core.components import default_subscription, RoutedAgent, message_handler, ClosureAgent, TypeSubscription, DefaultTopicId
+    from autogen_core.components.models import (
+        ChatCompletionClient,
+        SystemMessage,
+        UserMessage,
+        AssistantMessage,
+        LLMMessage,
+    )
+    from autogen_ext.models import AzureOpenAIChatCompletionClient
+    from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+    from autogen_core.application.logging import TRACE_LOGGER_NAME
+
+    # Configure logging as per documentation
+    logging.basicConfig(level=logging.WARNING)
+    logger = logging.getLogger(TRACE_LOGGER_NAME)
+    logger.setLevel(logging.INFO)
+    token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
+
+    # Create an AzureOpenAI model client.
+    model_client = AzureOpenAIChatCompletionClient(
+        model=model_client_kwargs["model"],
+        api_version=model_client_kwargs["api_version"],
+        azure_endpoint=model_client_kwargs["azure_endpoint"],
+        azure_ad_token_provider=token_provider,
+        model_capabilities={
+            "vision": True,
+            "function_calling": True,
+            "json_output": True,
+        },
+    )
+
+    @dataclass
+    class Message:
+        content: str
+
+    @dataclass
+    class FinalAnswer:
+        answer: str
+
+    @default_subscription
+    class TreeOfThoughtsAgent(RoutedAgent):
+        def __init__(self, model_client: ChatCompletionClient, max_depth: int = 3, beam_width: int = 3):
+            super().__init__("TreeOfThoughtsAgent")
+            self._model_client = model_client
+            self._max_depth = max_depth
+            self._beam_width = beam_width
+            self._system_messages = [
+                SystemMessage(
+                    content="You are a helpful assistant who reasons step-by-step to solve complex problems.")
+            ]
+
+        async def generate_thoughts(self, prompt: List[LLMMessage], num_thoughts: int, cancellation_token) -> List[str]:
+            # Generate multiple thoughts using the model
+            thoughts = []
+            # Create multiple async tasks to generate thoughts in parallel
+            tasks = []
+            for _ in range(num_thoughts):
+                tasks.append(self._model_client.create(
+                    prompt,
+                    extra_create_args={"temperature": 1.0},
+                    cancellation_token=cancellation_token,
+                ))
+            responses = await asyncio.gather(*tasks)
+            for response in responses:
+                thoughts.append(response.content.strip())
+            return thoughts
+
+        async def evaluate_thoughts(self, thoughts: List[str], ctx: MessageContext) -> List[Dict[str, Any]]:
+            # Evaluate thoughts with the model outputting JSON-formatted scores
+            eval_prompt = [
+                SystemMessage(content="You are an assistant that evaluates reasoning steps for solving a problem."),
+                UserMessage(
+                    content=(
+                        "Evaluate the following thoughts for their usefulness in solving the problem. "
+                        "Provide a JSON array of objects with 'thought' and 'score' (from 1 to 10).\n\nThoughts:\n" + "\n".join(
+                            [f"- {t}" for t in thoughts])
+                    ),
+                    source="user"
+                )
+            ]
+            eval_response = await self._model_client.create(
+                eval_prompt,
+                cancellation_token=ctx.cancellation_token,
+            )
+            # Parse the JSON response
+            import json
+            try:
+                evaluations = json.loads(eval_response.content.strip())
+                # Each evaluation should be a dict with 'thought' and 'score'
+                return evaluations
+            except json.JSONDecodeError:
+                # If parsing fails, assign default scores
+                return [{"thought": t, "score": 5} for t in thoughts]
+
+        @message_handler
+        async def handle_message(self, message: Message, ctx: MessageContext) -> None:
+            logger.info(f"Received task: {message.content}")
+            initial_prompt = self._system_messages + [UserMessage(content=message.content, source="user")]
+            tree = [[{"thought": "", "score": 0, "cumulative_score": 0}]]  # Initialize the tree with an empty path
+            for depth in range(self._max_depth):
+                new_branches = []
+                logger.info(f"Depth {depth+1}")
+                for path in tree:
+                    # Build the prompt up to this point
+                    prompt = initial_prompt.copy()
+                    for node in path:
+                        if node["thought"]:
+                            prompt.append(AssistantMessage(content=node["thought"], source="assistant"))
+                    # Generate thoughts
+                    thoughts = await self.generate_thoughts(prompt, self._beam_width, ctx.cancellation_token)
+                    logger.info(f"Generated thoughts: {thoughts}")
+                    # Evaluate thoughts
+                    evaluations = await self.evaluate_thoughts(thoughts, ctx)
+                    logger.info(f"Evaluations: {evaluations}")
+                    # Expand tree with evaluated thoughts
+                    for eval in evaluations:
+                        new_path = path + [{
+                            "thought": eval["thought"],
+                            "score": eval["score"],
+                            "cumulative_score": path[-1]["cumulative_score"] + eval["score"]
+                        }]
+                        new_branches.append(new_path)
+                # Select top-k paths based on cumulative_score
+                if not new_branches:
+                    logger.info("No more branches to expand.")
+                    break  # No more thoughts to expand
+                # Sort paths by cumulative score
+                new_branches.sort(key=lambda p: p[-1]["cumulative_score"], reverse=True)
+                tree = new_branches[:self._beam_width]
+            # After reaching max depth, select the best path
+            best_path = tree[0]
+            final_answer = best_path[-1]["thought"]
+            logger.info(f"Final answer: {final_answer}")
+            # Publish the final answer to topic_id=TopicId(type="result", source="default")
+            await self.publish_message(
+                FinalAnswer(answer=final_answer),
+                topic_id=TopicId(type="result", source="default")
+            )
+
+    # Main function
+    async def main():
+        # Create a queue to collect the final answer
+        queue = asyncio.Queue()
+
+        async def output_result(_runtime: AgentRuntime, id: AgentId, message: FinalAnswer, ctx: MessageContext) -> None:
+            await queue.put(message)
+
+        # Initialize runtime
+        runtime = SingleThreadedAgentRuntime()
+
+        # Register TreeOfThoughtsAgent
+        await TreeOfThoughtsAgent.register(
+            runtime,
+            "TreeOfThoughtsAgent",
+            lambda: TreeOfThoughtsAgent(model_client)
+        )
+
+        # Register ClosureAgent
+        result_topic = TypeSubscription(topic_type="result", agent_type="output_result")
+        await ClosureAgent.register(
+            runtime,
+            "output_result",
+            output_result,
+            subscriptions=lambda: [result_topic]
+        )
+
+        # Start the runtime
+        runtime.start()
+
+        # Publish initial message to TreeOfThoughtsAgent
+        await runtime.publish_message(
+            Message(content=task),
+            topic_id=DefaultTopicId()
+        )
+
+        # Wait until idle
+        await runtime.stop_when_idle()
+
+        # Return the final answer
+        final_message = await queue.get()
+        return final_message.answer
+
+    return asyncio.run(main())
+```
+
 ## Motivation
 
 The Automated Design of Agentic Systems (ADAS) [paper](https://arxiv.org/pdf/2408.08435) introduces a way to automatically create powerful agentic system designs. This is motivated by the observation that in the field of machine learning, hand-designed solutions are often replaced by learned solutions over time.
