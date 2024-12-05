@@ -97,7 +97,7 @@ python3 -m venv .venv
 source .venv/bin/activate
 
 # Clone the ADAS repo to be able to use the DROP dataset for the sample.
-# Not required if you do not plan on evaluating with DROP, and intend to run with your own dataset / benchmark.
+# Recommended to perform a demo, though not required if you do not plan on evaluating with DROP, and intend to run with your own dataset / benchmark.
 git clone https://github.com/ShengranHu/ADAS.git && cd ..
 
 # Install package at latest dev tag
@@ -178,14 +178,14 @@ o1-preview is also reported to be great at writing code, and we suggest you try 
 
 This should be passed as a JSON string to the `meta_agent_model_config` flag.
 ```bash
---meta_agent_model_config='{"api_version": "2024-08-01-preview", "azure_endpoint": "https://andyye-aoai1.openai.azure.com/openai/deployments/o1-preview/chat/completions?api-version=2024-08-01-preview", "model_capabilities": {"function_calling": false, "json_output": false, "vision": false}, "azure_ad_token_provider": "DEFAULT", "model": "o1-preview-2024-09-12"}'
+--meta_agent_model_config='{"api_version": "2024-08-01-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/o1-preview/chat/completions?api-version=2024-08-01-preview", "model_capabilities": {"function_calling": false, "json_output": false, "vision": false}, "azure_ad_token_provider": "DEFAULT", "model": "o1-preview-2024-09-12"}'
 ```
 #### Choose the LLM for the base agents used within the agent system
 The paper authors use GPT-3.5 (for cost purposes), but we recommend GPT-4o for better quality.
 
 This should be passed as a JSON string to the `base_agent_model_config` flag.
 ```bash
---base_agent_model_config='{"api_version": "2023-03-15-preview", "azure_endpoint": "https://andyye-aoai1.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2023-03-15-preview", "model_capabilities": {"function_calling": true, "json_output": true, "vision": true}, "azure_ad_token_provider": "DEFAULT", "model": "gpt-4o-2024-08-06"}'
+--base_agent_model_config='{"api_version": "2023-03-15-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2023-03-15-preview", "model_capabilities": {"function_calling": true, "json_output": true, "vision": true}, "azure_ad_token_provider": "DEFAULT", "model": "gpt-4o-2024-08-06"}'
 ```
 ### Run ADAS
 ```bash
@@ -215,14 +215,16 @@ python3 adas.py --n_generations 100 --max_workers 1
 ```
 ## Results for DROP benchmark
 ### Best Agent System that the Meta-Agent discovered
-See this [section](#all-agent-systems-that-the-meta-agent-discovered-for-drop) for the full list of discovered Agent Systems.
+See the files in the `adas/results` director for the full list of discovered Agent Systems.
 #### Meta-Agent used o1-preview, and Base Agents used GPT3.5
 ```
-TODO
+TODO: Testing/optimizations/reruns actively in progress.
+See drop_o1_preview_meta_agent_gpt3.5_base_agent_results_run_archive.json for preliminary findings. 
 ```
 #### Meta-Agent used o1-preview, and Base Agents used GPT4.0
 ```
-TODO
+TODO: Testing/optimizations/reruns actively in progress.
+See drop_o1_preview_meta_agent_gpt4o_base_agent_results_run_archive.json for preliminary findings. 
 ```
 
 ### Performance with different LLMs
@@ -265,8 +267,8 @@ The code for the Agent System compiles with no issue, but the systems hangs duri
 ```
 INFO:autogen_core:Calling message handler for output_result with message type FinalAnswer published by coordinator_agent/default
 ERROR:autogen_core:Error processing publish message
-Traceback (most recent call last): File "/home/andyye/autogen/python/packages/autogen-core/src/autogen_core/application/_single_threaded_agent_runtime.py", line 372, in _process_publish agent = await self._get_agent(agent_id)
-    File "/home/andyye/autogen/python/packages/autogen-core/src/autogen_core/application/_single_threaded_agent_runtime.py", line 620, in _get_agent raise LookupError(f"Agent with name {agent_id.type} not found.")
+Traceback (most recent call last): File "/home/<user>/autogen/python/packages/autogen-core/src/autogen_core/application/_single_threaded_agent_runtime.py", line 372, in _process_publish agent = await self._get_agent(agent_id)
+    File "/home/<user>/autogen/python/packages/autogen-core/src/autogen_core/application/_single_threaded_agent_runtime.py", line 620, in _get_agent raise LookupError(f"Agent with name {agent_id.type} not found.")
 LookupError: Agent with name output_result not found. 
 ```
 The easiest solution is to terminate the program with `Ctrl + \` command, and then rerun the `adas.py` script. 
@@ -287,15 +289,15 @@ The reason for this is unknown.
 If you see something like this during execution of the Agent System code, it should be fine. 
 ```
 INFO:autogen_core:Calling message handler for reasoning_agent with message type Question published by Unknown
-ERROR:asyncio:Task exception was never retrieved future: <Task finished name='Task-88' coro=<AsyncClient.aclose() done, defined at /home/andyye/autogen/python/.venv/lib/python3.10/site-packages/httpx/_client.py:2024> exception=RuntimeError('Event loop is closed')>
-Traceback (most recent call last): File "/home/andyye/autogen/python/.venv/lib/python3.10/site-packages/httpx/_client.py", line 2031, in aclose await self._transport.aclose()
-    File "/home/andyye/autogen/python/.venv/lib/python3.10/site-packages/httpx/_transports/default.py", line 389, in aclose await self._pool.aclose()
-    File "/home/andyye/autogen/python/.venv/lib/python3.10/site-packages/httpcore/_async/connection_pool.py", line 313, in aclose await self._close_connections(closing_connections) File "/home/andyye/autogen/python/.venv/lib/python3.10/site-packages/httpcore/_async/connection_pool.py", line 305, in _close_connections await connection.aclose()
-    File "/home/andyye/autogen/python/.venv/lib/python3.10/site-packages/httpcore/_async/connection.py", line 171, in aclose await self._connection.aclose()
-    File "/home/andyye/autogen/python/.venv/lib/python3.10/site-packages/httpcore/_async/http11.py", line 265, in aclose await self._network_stream.aclose()
-    File "/home/andyye/autogen/python/.venv/lib/python3.10/site-packages/httpcore/_backends/anyio.py", line 55, in aclose await self._stream.aclose()
-    File "/home/andyye/autogen/python/.venv/lib/python3.10/site-packages/anyio/streams/tls.py", line 202, in aclose await self.transport_stream.aclose()
-    File "/home/andyye/autogen/python/.venv/lib/python3.10/site-packages/anyio/_backends/_asyncio.py", line 1202, in aclose self._transport.close()
+ERROR:asyncio:Task exception was never retrieved future: <Task finished name='Task-88' coro=<AsyncClient.aclose() done, defined at /home/<user>/autogen/python/.venv/lib/python3.10/site-packages/httpx/_client.py:2024> exception=RuntimeError('Event loop is closed')>
+Traceback (most recent call last): File "/home/<user>/autogen/python/.venv/lib/python3.10/site-packages/httpx/_client.py", line 2031, in aclose await self._transport.aclose()
+    File "/home/<user>/autogen/python/.venv/lib/python3.10/site-packages/httpx/_transports/default.py", line 389, in aclose await self._pool.aclose()
+    File "/home/<user>/autogen/python/.venv/lib/python3.10/site-packages/httpcore/_async/connection_pool.py", line 313, in aclose await self._close_connections(closing_connections) File "/home/<user>/autogen/python/.venv/lib/python3.10/site-packages/httpcore/_async/connection_pool.py", line 305, in _close_connections await connection.aclose()
+    File "/home/<user>/autogen/python/.venv/lib/python3.10/site-packages/httpcore/_async/connection.py", line 171, in aclose await self._connection.aclose()
+    File "/home/<user>/autogen/python/.venv/lib/python3.10/site-packages/httpcore/_async/http11.py", line 265, in aclose await self._network_stream.aclose()
+    File "/home/<user>/autogen/python/.venv/lib/python3.10/site-packages/httpcore/_backends/anyio.py", line 55, in aclose await self._stream.aclose()
+    File "/home/<user>/autogen/python/.venv/lib/python3.10/site-packages/anyio/streams/tls.py", line 202, in aclose await self.transport_stream.aclose()
+    File "/home/<user>/autogen/python/.venv/lib/python3.10/site-packages/anyio/_backends/_asyncio.py", line 1202, in aclose self._transport.close()
     File "/usr/lib/python3.10/asyncio/selector_events.py", line 706, in close self._loop.call_soon(self._call_connection_lost, None)
     File "/usr/lib/python3.10/asyncio/base_events.py", line 753, in call_soon self._check_closed()
     File "/usr/lib/python3.10/asyncio/base_events.py", line 515, in _check_closed raise RuntimeError('Event loop is closed')
@@ -315,23 +317,3 @@ The reason for this is unknown.
 - Finish adding Quality-Diversity, Role_Assignment, and Take_A_Step_Back Agent Systems to the archive 
 - Improve prompts to the meta-agent to reduce code errors 
 - Add extra_create_args options such as `temperature`, `max_completion_tokens`, `top_p` in the model client `create()`. i.e. `extra_create_args={"temperature": 0.0}`
-
-## Appendix
-
-### All Agent Systems that the Meta-Agent discovered for DROP
-
-#### Meta-Agent used o1-preview, and Base Agents used GPT3.5
-```
-TODO
-```
-#### Meta-Agent used o1-preview, and Base Agents used GPT4.0
-
-Tree of Thought
-```
-
-```
-
-Tree of Thought Imp
-```
-
-```

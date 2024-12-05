@@ -1,7 +1,8 @@
 """
-To run, type
-`python packages/autogen-core/samples/common/adas/adas.py --data_filename=<path_to_data>`
+ADAS implementation in AutoGen.
 
+This script uses a meta-agent to search for novel agent
+systems. Please read the README.md for more information.
 """
 
 import argparse
