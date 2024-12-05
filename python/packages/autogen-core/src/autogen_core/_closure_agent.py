@@ -116,10 +116,12 @@ class ClosureAgent(BaseAgent, ClosureContext):
         return await self._closure(self, message, ctx)
 
     async def save_state(self) -> Mapping[str, Any]:
-        raise ValueError("save_state not implemented for ClosureAgent")
+        """Closure agents do not have state. So this method always returns an empty dictionary."""
+        return {}
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
-        raise ValueError("load_state not implemented for ClosureAgent")
+        """Closure agents do not have state. So this method does nothing."""
+        pass
 
     @classmethod
     async def register_closure(

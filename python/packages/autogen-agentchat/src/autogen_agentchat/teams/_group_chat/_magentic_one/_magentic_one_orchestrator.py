@@ -1,6 +1,6 @@
 import json
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Mapping
 
 from autogen_core import AgentId, CancellationToken, DefaultTopicId, Image, MessageContext, event, rpc
 from autogen_core.components.models import (
@@ -13,6 +13,7 @@ from autogen_core.components.models import (
 from .... import TRACE_LOGGER_NAME
 from ....base import Response, TerminationCondition
 from ....messages import AgentMessage, ChatMessage, MultiModalMessage, StopMessage, TextMessage
+from ....state import MagenticOneOrchestratorState
 from .._base_group_chat_manager import BaseGroupChatManager
 from .._events import (
     GroupChatAgentResponse,
@@ -177,6 +178,28 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     async def validate_group_state(self, message: ChatMessage | None) -> None:
         pass
+
+    async def save_state(self) -> Mapping[str, Any]:
+        state = MagenticOneOrchestratorState(
+            message_thread=list(self._message_thread),
+            current_turn=self._current_turn,
+            task=self._task,
+            facts=self._facts,
+            plan=self._plan,
+            n_rounds=self._n_rounds,
+            n_stalls=self._n_stalls,
+        )
+        return state.model_dump()
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        orchestrator_state = MagenticOneOrchestratorState.model_validate(state)
+        self._message_thread = orchestrator_state.message_thread
+        self._current_turn = orchestrator_state.current_turn
+        self._task = orchestrator_state.task
+        self._facts = orchestrator_state.facts
+        self._plan = orchestrator_state.plan
+        self._n_rounds = orchestrator_state.n_rounds
+        self._n_stalls = orchestrator_state.n_stalls
 
     async def select_speaker(self, thread: List[AgentMessage]) -> str:
         """Not used in this orchestrator, we select next speaker in _orchestrate_step."""
