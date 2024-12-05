@@ -2,7 +2,7 @@
 
 In this tutorial you'll learn how to create _video surfer agent_ using AutoGen.
 We'll first walk you through how to create your development environment and then we'll extend
-built-in agents in AutoGen and adapt them to create a the video surfer.
+built-in agents in AutoGen and adapt them to create the video surfer.
 
 ## What you'll learn
 
