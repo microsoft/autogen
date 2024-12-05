@@ -28,12 +28,15 @@ from autogen_agentchat.teams import (
     SelectorGroupChat,
     Swarm,
 )
+from autogen_agentchat.teams._group_chat._round_robin_group_chat import RoundRobinGroupChatManager
+from autogen_agentchat.teams._group_chat._selector_group_chat import SelectorGroupChatManager
+from autogen_agentchat.teams._group_chat._swarm_group_chat import SwarmGroupChatManager
 from autogen_agentchat.ui import Console
-from autogen_core import CancellationToken, FunctionCall
+from autogen_core import AgentId, CancellationToken, FunctionCall
 from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
 from autogen_core.components.models import FunctionExecutionResult
 from autogen_core.components.tools import FunctionTool
-from autogen_ext.models import OpenAIChatCompletionClient
+from autogen_ext.models import OpenAIChatCompletionClient, ReplayChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
@@ -215,6 +218,38 @@ async def test_round_robin_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
         )
         assert result.messages[0].content == result_2.messages[0].content[0]
         assert result.messages[1:] == result_2.messages[1:]
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_state() -> None:
+    model_client = ReplayChatCompletionClient(
+        ["No facts", "No plan", "print('Hello, world!')", "TERMINATE"],
+    )
+    agent1 = AssistantAgent("agent1", model_client=model_client)
+    agent2 = AssistantAgent("agent2", model_client=model_client)
+    termination = TextMentionTermination("TERMINATE")
+    team1 = RoundRobinGroupChat(participants=[agent1, agent2], termination_condition=termination)
+    await team1.run(task="Write a program that prints 'Hello, world!'")
+    state = await team1.save_state()
+
+    agent3 = AssistantAgent("agent1", model_client=model_client)
+    agent4 = AssistantAgent("agent2", model_client=model_client)
+    team2 = RoundRobinGroupChat(participants=[agent3, agent4], termination_condition=termination)
+    await team2.load_state(state)
+    state2 = await team2.save_state()
+    assert state == state2
+    assert agent3._model_context == agent1._model_context  # pyright: ignore
+    assert agent4._model_context == agent2._model_context  # pyright: ignore
+    manager_1 = await team1._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId("group_chat_manager", team1._team_id),  # pyright: ignore
+        RoundRobinGroupChatManager,  # pyright: ignore
+    )  # pyright: ignore
+    manager_2 = await team2._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId("group_chat_manager", team2._team_id),  # pyright: ignore
+        RoundRobinGroupChatManager,  # pyright: ignore
+    )  # pyright: ignore
+    assert manager_1._current_turn == manager_2._current_turn  # pyright: ignore
+    assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore
 
 
 @pytest.mark.asyncio
@@ -529,6 +564,42 @@ async def test_selector_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_selector_group_chat_state() -> None:
+    model_client = ReplayChatCompletionClient(
+        ["agent1", "No facts", "agent2", "No plan", "agent1", "print('Hello, world!')", "agent2", "TERMINATE"],
+    )
+    agent1 = AssistantAgent("agent1", model_client=model_client)
+    agent2 = AssistantAgent("agent2", model_client=model_client)
+    termination = TextMentionTermination("TERMINATE")
+    team1 = SelectorGroupChat(
+        participants=[agent1, agent2], termination_condition=termination, model_client=model_client
+    )
+    await team1.run(task="Write a program that prints 'Hello, world!'")
+    state = await team1.save_state()
+
+    agent3 = AssistantAgent("agent1", model_client=model_client)
+    agent4 = AssistantAgent("agent2", model_client=model_client)
+    team2 = SelectorGroupChat(
+        participants=[agent3, agent4], termination_condition=termination, model_client=model_client
+    )
+    await team2.load_state(state)
+    state2 = await team2.save_state()
+    assert state == state2
+    assert agent3._model_context == agent1._model_context  # pyright: ignore
+    assert agent4._model_context == agent2._model_context  # pyright: ignore
+    manager_1 = await team1._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId("group_chat_manager", team1._team_id),  # pyright: ignore
+        SelectorGroupChatManager,  # pyright: ignore
+    )  # pyright: ignore
+    manager_2 = await team2._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId("group_chat_manager", team2._team_id),  # pyright: ignore
+        SelectorGroupChatManager,  # pyright: ignore
+    )  # pyright: ignore
+    assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore
+    assert manager_1._previous_speaker == manager_2._previous_speaker  # pyright: ignore
+
+
+@pytest.mark.asyncio
 async def test_selector_group_chat_two_speakers(monkeypatch: pytest.MonkeyPatch) -> None:
     model = "gpt-4o-2024-05-13"
     chat_completions = [
@@ -767,6 +838,26 @@ async def test_swarm_handoff() -> None:
         else:
             assert message == result.messages[index]
         index += 1
+
+    # Test save and load.
+    state = await team.save_state()
+    first_agent2 = _HandOffAgent("first_agent", description="first agent", next_agent="second_agent")
+    second_agent2 = _HandOffAgent("second_agent", description="second agent", next_agent="third_agent")
+    third_agent2 = _HandOffAgent("third_agent", description="third agent", next_agent="first_agent")
+    team2 = Swarm([second_agent2, first_agent2, third_agent2], termination_condition=termination)
+    await team2.load_state(state)
+    state2 = await team2.save_state()
+    assert state == state2
+    manager_1 = await team._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId("group_chat_manager", team._team_id),  # pyright: ignore
+        SwarmGroupChatManager,  # pyright: ignore
+    )  # pyright: ignore
+    manager_2 = await team2._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId("group_chat_manager", team2._team_id),  # pyright: ignore
+        SwarmGroupChatManager,  # pyright: ignore
+    )  # pyright: ignore
+    assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore
+    assert manager_1._current_speaker == manager_2._current_speaker  # pyright: ignore
 
 
 @pytest.mark.asyncio
