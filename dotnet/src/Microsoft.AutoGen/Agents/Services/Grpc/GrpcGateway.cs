@@ -8,7 +8,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
-
 public sealed class GrpcGateway : BackgroundService, IGateway
 {
     private static readonly TimeSpan s_agentResponseTimeout = TimeSpan.FromSeconds(30);
@@ -122,7 +121,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     // {genttype}:rpc_response={request_id}
     private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, AddSubscriptionRequest request)
     {
-        _subscriptionsState = await _subscriptionsGrain.GetSubscriptionsStateAsync().ConfigureAwait(true);
         var topic = "";
         var agentType = "";
         if (request.Subscription.TypePrefixSubscription is not null)
@@ -136,6 +134,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             agentType = request.Subscription.TypeSubscription.AgentType;
         }
         await _subscriptionsGrain.SubscribeAsync(topic, agentType).ConfigureAwait(true);
+        _subscriptionsState = await _subscriptionsGrain.GetSubscriptionsStateAsync().ConfigureAwait(true);
+
         Message response = new()
         {
             AddSubscriptionResponse = new()
