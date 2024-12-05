@@ -45,6 +45,9 @@ python/autogen_ext.agents.video_surfer
 python/autogen_ext.agents.video_surfer.tools
 python/autogen_ext.models
 python/autogen_ext.tools
+python/autogen_ext.code_executors.local
+python/autogen_ext.code_executors.docker
+python/autogen_ext.code_executors.azure
 python/autogen_ext.runtimes.grpc
 ```
 
