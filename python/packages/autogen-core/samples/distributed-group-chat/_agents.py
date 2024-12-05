@@ -31,7 +31,7 @@ class BaseGroupChatAgent(RoutedAgent):
         super().__init__(description=description)
         self._group_chat_topic_type = group_chat_topic_type
         self._model_client = model_client
-        self._system_message = SystemMessage(system_message)
+        self._system_message = SystemMessage(content=system_message)
         self._chat_history: List[LLMMessage] = []
         self._ui_config = ui_config
         self.console = Console()
@@ -126,7 +126,7 @@ Read the following conversation. Then select the next role from {participants} t
 
 Read the above conversation. Then select the next role from {participants} to play. if you think it's enough talking (for example they have talked for {self._max_rounds} rounds), return 'FINISH'.
 """
-        system_message = SystemMessage(selector_prompt)
+        system_message = SystemMessage(content=selector_prompt)
         completion = await self._model_client.create([system_message], cancellation_token=ctx.cancellation_token)
 
         assert isinstance(
