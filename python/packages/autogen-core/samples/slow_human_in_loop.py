@@ -160,12 +160,14 @@ class SchedulingAssistantAgent(RoutedAgent):
         self._name = name
         self._model_client = model_client
         self._system_messages = [
-            SystemMessage(f"""
+            SystemMessage(
+                content=f"""
 I am a helpful AI assistant that helps schedule meetings.
 If there are missing parameters, I will ask for them.
 
 Today's date is {datetime.datetime.now().strftime("%Y-%m-%d")}
-""")
+"""
+            )
         ]
 
     @message_handler

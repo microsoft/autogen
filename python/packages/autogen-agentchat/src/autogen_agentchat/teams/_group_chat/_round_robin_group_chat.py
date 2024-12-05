@@ -1,7 +1,8 @@
-from typing import Callable, List
+from typing import Any, Callable, List, Mapping
 
 from ...base import ChatAgent, TerminationCondition
 from ...messages import AgentMessage, ChatMessage
+from ...state import RoundRobinManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
 
@@ -37,6 +38,20 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         if self._termination_condition is not None:
             await self._termination_condition.reset()
         self._next_speaker_index = 0
+
+    async def save_state(self) -> Mapping[str, Any]:
+        state = RoundRobinManagerState(
+            message_thread=list(self._message_thread),
+            current_turn=self._current_turn,
+            next_speaker_index=self._next_speaker_index,
+        )
+        return state.model_dump()
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        round_robin_state = RoundRobinManagerState.model_validate(state)
+        self._message_thread = list(round_robin_state.message_thread)
+        self._current_turn = round_robin_state.current_turn
+        self._next_speaker_index = round_robin_state.next_speaker_index
 
     async def select_speaker(self, thread: List[AgentMessage]) -> str:
         """Select a speaker from the participants in a round-robin fashion."""
