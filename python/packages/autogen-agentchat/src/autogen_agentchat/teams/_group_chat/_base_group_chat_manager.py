@@ -95,7 +95,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
 
             # Check termination condition after processing all messages
             if self._termination_condition is not None:
-                stop_message = await self._termination_condition(messages_to_process)
+                stop_message = await self._termination_condition([msg])
                 if stop_message is not None:
                     await self.publish_message(
                         GroupChatTermination(message=stop_message),
