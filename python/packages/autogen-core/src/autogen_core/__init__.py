@@ -12,7 +12,15 @@ from ._agent_type import AgentType
 from ._base_agent import BaseAgent
 from ._cancellation_token import CancellationToken
 from ._closure_agent import ClosureAgent, ClosureContext
-from ._constants import EVENT_LOGGER_NAME, ROOT_LOGGER_NAME, TRACE_LOGGER_NAME
+from ._constants import (
+    EVENT_LOGGER_NAME as EVENT_LOGGER_NAME_ALIAS,
+)
+from ._constants import (
+    ROOT_LOGGER_NAME as ROOT_LOGGER_NAME_ALIAS,
+)
+from ._constants import (
+    TRACE_LOGGER_NAME as TRACE_LOGGER_NAME_ALIAS,
+)
 from ._default_subscription import DefaultSubscription, default_subscription, type_subscription
 from ._default_topic import DefaultTopicId
 from ._image import Image
@@ -20,8 +28,12 @@ from ._message_context import MessageContext
 from ._message_handler_context import MessageHandlerContext
 from ._routed_agent import RoutedAgent, event, message_handler, rpc
 from ._serialization import (
-    JSON_DATA_CONTENT_TYPE,
-    PROTOBUF_DATA_CONTENT_TYPE,
+    JSON_DATA_CONTENT_TYPE as JSON_DATA_CONTENT_TYPE_ALIAS,
+)
+from ._serialization import (
+    PROTOBUF_DATA_CONTENT_TYPE as PROTOBUF_DATA_CONTENT_TYPE_ALIAS,
+)
+from ._serialization import (
     MessageSerializer,
     UnknownPayload,
     try_get_known_serializers_for_type,
@@ -33,6 +45,21 @@ from ._topic import TopicId
 from ._type_prefix_subscription import TypePrefixSubscription
 from ._type_subscription import TypeSubscription
 from ._types import FunctionCall
+
+EVENT_LOGGER_NAME = EVENT_LOGGER_NAME_ALIAS
+"""The name of the logger used for structured events."""
+
+ROOT_LOGGER_NAME = ROOT_LOGGER_NAME_ALIAS
+"""The name of the root logger."""
+
+TRACE_LOGGER_NAME = TRACE_LOGGER_NAME_ALIAS
+"""Logger name used for developer intended trace logging. The content and format of this log should not be depended upon."""
+
+JSON_DATA_CONTENT_TYPE = JSON_DATA_CONTENT_TYPE_ALIAS
+"""The content type for JSON data."""
+
+PROTOBUF_DATA_CONTENT_TYPE = PROTOBUF_DATA_CONTENT_TYPE_ALIAS
+"""The content type for Protobuf data."""
 
 __all__ = [
     "Agent",
