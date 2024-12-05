@@ -7,12 +7,12 @@ import tempfile
 import polars
 import pytest
 from autogen_core import CancellationToken
-from autogen_core.components.code_executor import (
+from autogen_core.code_executor import (
     CodeBlock,
     FunctionWithRequirements,
-    LocalCommandLineCodeExecutor,
     with_requirements,
 )
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 
 ENVIRON_KEY_AZURE_POOL_ENDPOINT = "AZURE_POOL_ENDPOINT"
 

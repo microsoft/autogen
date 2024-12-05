@@ -15,12 +15,15 @@ from types import TracebackType
 from typing import Any, Callable, ClassVar, List, Optional, ParamSpec, Type, Union
 
 from autogen_core import CancellationToken
-from autogen_core.components.code_executor import (
+from autogen_core.code_executor import (
     CodeBlock,
     CodeExecutor,
-    CommandLineCodeResult,
     FunctionWithRequirements,
     FunctionWithRequirementsStr,
+)
+
+from ._common import (
+    CommandLineCodeResult,
     build_python_functions_file,
     get_file_name_from_content,
     lang_to_cmd,

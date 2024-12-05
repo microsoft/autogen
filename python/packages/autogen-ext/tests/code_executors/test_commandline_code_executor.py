@@ -14,7 +14,8 @@ import pytest
 import pytest_asyncio
 from aiofiles import open
 from autogen_core import CancellationToken
-from autogen_core.components.code_executor import CodeBlock, LocalCommandLineCodeExecutor
+from autogen_core.code_executor import CodeBlock
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 
 
 @pytest_asyncio.fixture(scope="function")  # type: ignore
