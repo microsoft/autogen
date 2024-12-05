@@ -2,7 +2,7 @@ import re
 from typing import List, Sequence
 
 from autogen_core import CancellationToken
-from autogen_core.components.code_executor import CodeBlock, CodeExecutor
+from autogen_core.code_executor import CodeBlock, CodeExecutor
 
 from ..base import Response
 from ..messages import ChatMessage, TextMessage

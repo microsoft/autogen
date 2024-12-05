@@ -3,7 +3,7 @@ from autogen_agentchat.agents import CodeExecutorAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import TextMessage
 from autogen_core import CancellationToken
-from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 
 
 @pytest.mark.asyncio
