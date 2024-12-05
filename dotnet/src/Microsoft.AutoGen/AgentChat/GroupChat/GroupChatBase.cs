@@ -1,20 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // GroupChatBase.cs
 
+using System.Runtime.CompilerServices;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.AgentChat.Abstractions;
 using Microsoft.AutoGen.Agents;
-using Microsoft.AutoGen.Runtime;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using TextMessage = Microsoft.AutoGen.AgentChat.Abstractions.TextMessage;
 
 namespace Microsoft.AutoGen.AgentChat.GroupChat;
-
-internal class RuntimeScaffolding
-{
-
-}
 
 public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChatManagerBase
 {
@@ -49,7 +44,7 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
         this.running = 0;
     }
 
-    public async IAsyncEnumerable<TaskFrame> StreamAsync(string task, CancellationToken cancellationToken)
+    public async IAsyncEnumerable<TaskFrame> StreamAsync(string task, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
         if (String.IsNullOrEmpty(task))
         {
@@ -69,30 +64,28 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
         const string groupTopicType = "group_topic";
         const string outputTopicType = "output_topic";
         const string groupChatManagerTopicType = "group_chat_manager";
-        //const string collectorAgentType = "collect_output_messages";
+        const string collectorAgentType = "collect_output_messages";
 
         Dictionary<string, Type> agentMap = new Dictionary<string, Type>();
-        AgentChatConfigurator configurator = new AgentChatConfigurator(groupTopicType, outputTopicType);
+        AgentChatBinder binder = new AgentChatBinder(groupTopicType, outputTopicType, cancellationToken);
 
         foreach (var participant in participants)
         {
-            configurator[participant.Name] = new AgentChatConfig(participant, groupTopicType, outputTopicType);
+            binder[participant.Name] = new AgentChatConfig(participant, groupTopicType, outputTopicType);
             agentMap[participant.Name] = typeof(ChatAgentContainer); // We always host inside of ChatAgentContainer
-
-            // TODO: Add topic subscriptions? (does not seem to do anything? see GrpcAgentWorker.RegisterAgentTypeAsync)
         }
 
         agentMap[groupChatManagerTopicType] = typeof(TManager);
+        agentMap[collectorAgentType] = typeof(OutputCollectorAgent);
 
-        hostBuilder.Services.AddSingleton(configurator);
-
-        // TODO: Where does the AgentRuntime come from?
+        hostBuilder.Services.AddSingleton(binder);
+        
         AgentTypes agentTypes = new AgentTypes(agentMap);
 
         await AgentsApp.StartAsync(hostBuilder, agentTypes, local: true);
 
         // TODO: Send this on
-        _ = new GroupChatStart
+        GroupChatStart taskStart = new()
         {
             Message = new TextMessage
             {
@@ -101,10 +94,65 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
             }
         };
 
+        // TODO: Turn this into a less verbose helper call
+        Task shutdownTask = AgentsApp.Host.WaitForShutdownAsync(cancellationToken);
+        _ = shutdownTask.ContinueWith((t) =>
+        {
+            binder.OutputQueue.TryEnqueue(null);
+        }, cancellationToken, TaskContinuationOptions.AttachedToParent, TaskScheduler.Current);
 
+        try
+        {
+            // TODO: Protos
+            GroupChatStart taskMessage = new GroupChatStart
+            {
+                Message = new TextMessage
+                {
+                    Content = task,
+                    Source = "user"
+                }
+            };
 
-        // TODO: Protos
-        //AgentsApp.PublishMessageAsync(groupChatManagerTopicType, taskMessage);
+            // TODO: Convert events to Protos so they can participate in the PublishMessageAsync contracts
+            // Alternatively, don't force the events that we publish to be Protos (similar to Python?)
+            //await AgentsApp.PublishMessageAsync(groupChatManagerTopicType, taskMessage.ToCloudEvt());
 
+            List<AgentMessage> outputMessages = [];
+            while (true)
+            {
+                AgentMessage? chatMessage = await binder.OutputQueue.DequeueAsync();
+                // any of:
+                //  * the queue was disposed,
+                //  * we sent a null,
+                //  * cancellation was requested
+                if (chatMessage == null)
+                {
+                    break;
+                }
+
+                outputMessages.Add(chatMessage);
+                yield return new TaskFrame(chatMessage);
+            }
+
+            TaskResult result = new TaskResult(outputMessages)
+            {
+                StopReason = binder.StopReason
+            };
+
+            yield return new TaskFrame(result);
+        }
+        finally
+        {
+            await shutdownTask;
+
+            
+
+            this.EndRun();
+        }
+    }
+
+    public ValueTask ResetAsync(CancellationToken cancel)
+    {
+        throw new NotImplementedException();
     }
 }

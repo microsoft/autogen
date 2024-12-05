@@ -3,12 +3,26 @@
 
 namespace Microsoft.AutoGen.AgentChat.Abstractions;
 
-public struct TaskResult(List<ChatMessage> messages)
+public struct TaskResult(List<AgentMessage> messages)
 {
-    public List<ChatMessage> Messages { get; } = messages;
+    public List<AgentMessage> Messages { get; } = messages;
+    public string? StopReason = null;
 }
 
-public class TaskFrame : StreamingFrame<TaskResult>;
+public class TaskFrame : StreamingFrame<TaskResult>
+{
+    public TaskFrame(TaskResult response)
+    {
+        this.Response = response;
+        this.Type = TaskFrame.FrameType.Response;
+    }
+
+    public TaskFrame(AgentMessage message)
+    {
+        this.InternalMessage = message;
+        this.Type = TaskFrame.FrameType.InternalMessage;
+    }
+}
 
 public interface ITaskRunner
 {

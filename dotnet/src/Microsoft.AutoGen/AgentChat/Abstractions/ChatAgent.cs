@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ChatAgent.cs
 
+using System.Configuration;
+using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Microsoft.AutoGen.Abstractions;
 
@@ -115,7 +117,7 @@ public class Response
     public List<InternalMessage>? InnerMessages { get; set; }
 }
 
-public class StreamingFrame<TResponse, TInternalMessage> where TInternalMessage : AgentMessage
+public class StreamingFrame<TResponse, TInternalMessage>() where TInternalMessage : AgentMessage
 {
     public enum FrameType
     {

@@ -21,7 +21,7 @@ public abstract class GroupChatManagerBase : SequentialRoutedAgent,
 
     // It is kind of annoying that all child classes need to be aware of all of these objects to go up the stack
     // TODO: Should we replace all of these with IServiceCollection?
-    public GroupChatManagerBase(IAgentRuntime context, EventTypes eventTypes, AgentChatConfigurator configurator) : base(context, eventTypes)
+    public GroupChatManagerBase(IAgentRuntime context, EventTypes eventTypes, AgentChatBinder configurator) : base(context, eventTypes)
     {
         this.groupChatTopic = configurator.GroupChatTopic;
         this.outputTopic = configurator.OutputTopic;
@@ -48,6 +48,8 @@ public abstract class GroupChatManagerBase : SequentialRoutedAgent,
 
         this.messageThread = configurator.MessageThread ?? new List<AgentMessage>();
         this.terminationCondition = configurator.TerminationCondition;
+
+        configurator.SubscribeGroup(this);
     }
 
     protected virtual async ValueTask ValidateGroupState(ChatMessage? message)

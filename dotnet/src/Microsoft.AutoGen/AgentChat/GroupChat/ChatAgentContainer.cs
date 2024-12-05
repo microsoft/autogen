@@ -20,7 +20,7 @@ internal class ChatAgentContainer : SequentialRoutedAgent,
     private readonly IChatAgent agent;
     private readonly List<ChatMessage> messageBuffer;
 
-    public ChatAgentContainer(IAgentRuntime agentContext, EventTypes eventTypes, AgentChatConfigurator configurator)
+    public ChatAgentContainer(IAgentRuntime agentContext, EventTypes eventTypes, AgentChatBinder configurator)
         : base(agentContext, eventTypes)
     {
         AgentChatConfig agentConfig = configurator[agentContext.AgentId.Key];
@@ -28,6 +28,8 @@ internal class ChatAgentContainer : SequentialRoutedAgent,
         this.agent = agentConfig.ChatAgent;
         this.parentTopic = agentConfig.ParentTopic;
         this.outputTopic = agentConfig.OutputTopic;
+
+        configurator.SubscribeGroup(this);
 
         this.messageBuffer = new List<ChatMessage>();
     }
