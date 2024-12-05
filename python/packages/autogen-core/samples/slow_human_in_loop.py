@@ -37,10 +37,10 @@ from autogen_core import (
     FunctionCall,
     MessageContext,
     RoutedAgent,
+    SingleThreadedAgentRuntime,
     message_handler,
     type_subscription,
 )
-from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base.intervention import DefaultInterventionHandler
 from autogen_core.components.model_context import BufferedChatCompletionContext
 from autogen_core.components.models import (

@@ -4,13 +4,14 @@ isort:skip_file
 """
 
 import builtins
-import cloudevent_pb2
 import collections.abc
+import typing
+
+import cloudevent_pb2
 import google.protobuf.any_pb2
 import google.protobuf.descriptor
 import google.protobuf.internal.containers
 import google.protobuf.message
-import typing
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
 
@@ -67,7 +68,12 @@ class Payload(google.protobuf.message.Message):
         data_content_type: builtins.str = ...,
         data: builtins.bytes = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["data", b"data", "data_content_type", b"data_content_type", "data_type", b"data_type"]) -> None: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "data", b"data", "data_content_type", b"data_content_type", "data_type", b"data_type"
+        ],
+    ) -> None: ...
 
 global___Payload = Payload
 
@@ -117,8 +123,31 @@ class RpcRequest(google.protobuf.message.Message):
         payload: global___Payload | None = ...,
         metadata: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_source", b"_source", "payload", b"payload", "source", b"source", "target", b"target"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_source", b"_source", "metadata", b"metadata", "method", b"method", "payload", b"payload", "request_id", b"request_id", "source", b"source", "target", b"target"]) -> None: ...
+    def HasField(
+        self,
+        field_name: typing.Literal[
+            "_source", b"_source", "payload", b"payload", "source", b"source", "target", b"target"
+        ],
+    ) -> builtins.bool: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "_source",
+            b"_source",
+            "metadata",
+            b"metadata",
+            "method",
+            b"method",
+            "payload",
+            b"payload",
+            "request_id",
+            b"request_id",
+            "source",
+            b"source",
+            "target",
+            b"target",
+        ],
+    ) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_source", b"_source"]) -> typing.Literal["source"] | None: ...
 
 global___RpcRequest = RpcRequest
@@ -162,7 +191,12 @@ class RpcResponse(google.protobuf.message.Message):
         metadata: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["payload", b"payload"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["error", b"error", "metadata", b"metadata", "payload", b"payload", "request_id", b"request_id"]) -> None: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "error", b"error", "metadata", b"metadata", "payload", b"payload", "request_id", b"request_id"
+        ],
+    ) -> None: ...
 
 global___RpcResponse = RpcResponse
 
@@ -208,8 +242,26 @@ class Event(google.protobuf.message.Message):
         payload: global___Payload | None = ...,
         metadata: collections.abc.Mapping[builtins.str, builtins.str] | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_source", b"_source", "payload", b"payload", "source", b"source"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_source", b"_source", "metadata", b"metadata", "payload", b"payload", "source", b"source", "topic_source", b"topic_source", "topic_type", b"topic_type"]) -> None: ...
+    def HasField(
+        self, field_name: typing.Literal["_source", b"_source", "payload", b"payload", "source", b"source"]
+    ) -> builtins.bool: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "_source",
+            b"_source",
+            "metadata",
+            b"metadata",
+            "payload",
+            b"payload",
+            "source",
+            b"source",
+            "topic_source",
+            b"topic_source",
+            "topic_type",
+            b"topic_type",
+        ],
+    ) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_source", b"_source"]) -> typing.Literal["source"] | None: ...
 
 global___Event = Event
@@ -250,7 +302,12 @@ class RegisterAgentTypeResponse(google.protobuf.message.Message):
         error: builtins.str | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_error", b"_error", "error", b"error"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_error", b"_error", "error", b"error", "request_id", b"request_id", "success", b"success"]) -> None: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "_error", b"_error", "error", b"error", "request_id", b"request_id", "success", b"success"
+        ],
+    ) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_error", b"_error"]) -> typing.Literal["error"] | None: ...
 
 global___RegisterAgentTypeResponse = RegisterAgentTypeResponse
@@ -269,7 +326,9 @@ class TypeSubscription(google.protobuf.message.Message):
         topic_type: builtins.str = ...,
         agent_type: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["agent_type", b"agent_type", "topic_type", b"topic_type"]) -> None: ...
+    def ClearField(
+        self, field_name: typing.Literal["agent_type", b"agent_type", "topic_type", b"topic_type"]
+    ) -> None: ...
 
 global___TypeSubscription = TypeSubscription
 
@@ -287,7 +346,9 @@ class TypePrefixSubscription(google.protobuf.message.Message):
         topic_type_prefix: builtins.str = ...,
         agent_type: builtins.str = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["agent_type", b"agent_type", "topic_type_prefix", b"topic_type_prefix"]) -> None: ...
+    def ClearField(
+        self, field_name: typing.Literal["agent_type", b"agent_type", "topic_type_prefix", b"topic_type_prefix"]
+    ) -> None: ...
 
 global___TypePrefixSubscription = TypePrefixSubscription
 
@@ -307,9 +368,31 @@ class Subscription(google.protobuf.message.Message):
         typeSubscription: global___TypeSubscription | None = ...,
         typePrefixSubscription: global___TypePrefixSubscription | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["subscription", b"subscription", "typePrefixSubscription", b"typePrefixSubscription", "typeSubscription", b"typeSubscription"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["subscription", b"subscription", "typePrefixSubscription", b"typePrefixSubscription", "typeSubscription", b"typeSubscription"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["subscription", b"subscription"]) -> typing.Literal["typeSubscription", "typePrefixSubscription"] | None: ...
+    def HasField(
+        self,
+        field_name: typing.Literal[
+            "subscription",
+            b"subscription",
+            "typePrefixSubscription",
+            b"typePrefixSubscription",
+            "typeSubscription",
+            b"typeSubscription",
+        ],
+    ) -> builtins.bool: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "subscription",
+            b"subscription",
+            "typePrefixSubscription",
+            b"typePrefixSubscription",
+            "typeSubscription",
+            b"typeSubscription",
+        ],
+    ) -> None: ...
+    def WhichOneof(
+        self, oneof_group: typing.Literal["subscription", b"subscription"]
+    ) -> typing.Literal["typeSubscription", "typePrefixSubscription"] | None: ...
 
 global___Subscription = Subscription
 
@@ -329,7 +412,9 @@ class AddSubscriptionRequest(google.protobuf.message.Message):
         subscription: global___Subscription | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["subscription", b"subscription"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["request_id", b"request_id", "subscription", b"subscription"]) -> None: ...
+    def ClearField(
+        self, field_name: typing.Literal["request_id", b"request_id", "subscription", b"subscription"]
+    ) -> None: ...
 
 global___AddSubscriptionRequest = AddSubscriptionRequest
 
@@ -351,7 +436,12 @@ class AddSubscriptionResponse(google.protobuf.message.Message):
         error: builtins.str | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_error", b"_error", "error", b"error"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_error", b"_error", "error", b"error", "request_id", b"request_id", "success", b"success"]) -> None: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "_error", b"_error", "error", b"error", "request_id", b"request_id", "success", b"success"
+        ],
+    ) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_error", b"_error"]) -> typing.Literal["error"] | None: ...
 
 global___AddSubscriptionResponse = AddSubscriptionResponse
@@ -381,9 +471,41 @@ class AgentState(google.protobuf.message.Message):
         text_data: builtins.str = ...,
         proto_data: google.protobuf.any_pb2.Any | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["agent_id", b"agent_id", "binary_data", b"binary_data", "data", b"data", "proto_data", b"proto_data", "text_data", b"text_data"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["agent_id", b"agent_id", "binary_data", b"binary_data", "data", b"data", "eTag", b"eTag", "proto_data", b"proto_data", "text_data", b"text_data"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["data", b"data"]) -> typing.Literal["binary_data", "text_data", "proto_data"] | None: ...
+    def HasField(
+        self,
+        field_name: typing.Literal[
+            "agent_id",
+            b"agent_id",
+            "binary_data",
+            b"binary_data",
+            "data",
+            b"data",
+            "proto_data",
+            b"proto_data",
+            "text_data",
+            b"text_data",
+        ],
+    ) -> builtins.bool: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "agent_id",
+            b"agent_id",
+            "binary_data",
+            b"binary_data",
+            "data",
+            b"data",
+            "eTag",
+            b"eTag",
+            "proto_data",
+            b"proto_data",
+            "text_data",
+            b"text_data",
+        ],
+    ) -> None: ...
+    def WhichOneof(
+        self, oneof_group: typing.Literal["data", b"data"]
+    ) -> typing.Literal["binary_data", "text_data", "proto_data"] | None: ...
 
 global___AgentState = AgentState
 
@@ -405,8 +527,15 @@ class GetStateResponse(google.protobuf.message.Message):
         success: builtins.bool = ...,
         error: builtins.str | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["_error", b"_error", "agent_state", b"agent_state", "error", b"error"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_error", b"_error", "agent_state", b"agent_state", "error", b"error", "success", b"success"]) -> None: ...
+    def HasField(
+        self, field_name: typing.Literal["_error", b"_error", "agent_state", b"agent_state", "error", b"error"]
+    ) -> builtins.bool: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "_error", b"_error", "agent_state", b"agent_state", "error", b"error", "success", b"success"
+        ],
+    ) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_error", b"_error"]) -> typing.Literal["error"] | None: ...
 
 global___GetStateResponse = GetStateResponse
@@ -426,7 +555,9 @@ class SaveStateResponse(google.protobuf.message.Message):
         error: builtins.str | None = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_error", b"_error", "error", b"error"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_error", b"_error", "error", b"error", "success", b"success"]) -> None: ...
+    def ClearField(
+        self, field_name: typing.Literal["_error", b"_error", "error", b"error", "success", b"success"]
+    ) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_error", b"_error"]) -> typing.Literal["error"] | None: ...
 
 global___SaveStateResponse = SaveStateResponse
@@ -467,8 +598,61 @@ class Message(google.protobuf.message.Message):
         addSubscriptionRequest: global___AddSubscriptionRequest | None = ...,
         addSubscriptionResponse: global___AddSubscriptionResponse | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["addSubscriptionRequest", b"addSubscriptionRequest", "addSubscriptionResponse", b"addSubscriptionResponse", "cloudEvent", b"cloudEvent", "message", b"message", "registerAgentTypeRequest", b"registerAgentTypeRequest", "registerAgentTypeResponse", b"registerAgentTypeResponse", "request", b"request", "response", b"response"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["addSubscriptionRequest", b"addSubscriptionRequest", "addSubscriptionResponse", b"addSubscriptionResponse", "cloudEvent", b"cloudEvent", "message", b"message", "registerAgentTypeRequest", b"registerAgentTypeRequest", "registerAgentTypeResponse", b"registerAgentTypeResponse", "request", b"request", "response", b"response"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["message", b"message"]) -> typing.Literal["request", "response", "cloudEvent", "registerAgentTypeRequest", "registerAgentTypeResponse", "addSubscriptionRequest", "addSubscriptionResponse"] | None: ...
+    def HasField(
+        self,
+        field_name: typing.Literal[
+            "addSubscriptionRequest",
+            b"addSubscriptionRequest",
+            "addSubscriptionResponse",
+            b"addSubscriptionResponse",
+            "cloudEvent",
+            b"cloudEvent",
+            "message",
+            b"message",
+            "registerAgentTypeRequest",
+            b"registerAgentTypeRequest",
+            "registerAgentTypeResponse",
+            b"registerAgentTypeResponse",
+            "request",
+            b"request",
+            "response",
+            b"response",
+        ],
+    ) -> builtins.bool: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "addSubscriptionRequest",
+            b"addSubscriptionRequest",
+            "addSubscriptionResponse",
+            b"addSubscriptionResponse",
+            "cloudEvent",
+            b"cloudEvent",
+            "message",
+            b"message",
+            "registerAgentTypeRequest",
+            b"registerAgentTypeRequest",
+            "registerAgentTypeResponse",
+            b"registerAgentTypeResponse",
+            "request",
+            b"request",
+            "response",
+            b"response",
+        ],
+    ) -> None: ...
+    def WhichOneof(
+        self, oneof_group: typing.Literal["message", b"message"]
+    ) -> (
+        typing.Literal[
+            "request",
+            "response",
+            "cloudEvent",
+            "registerAgentTypeRequest",
+            "registerAgentTypeResponse",
+            "addSubscriptionRequest",
+            "addSubscriptionResponse",
+        ]
+        | None
+    ): ...
 
 global___Message = Message

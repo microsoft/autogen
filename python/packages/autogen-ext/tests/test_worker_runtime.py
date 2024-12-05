@@ -19,9 +19,8 @@ from autogen_core import (
     try_get_known_serializers_for_type,
     type_subscription,
 )
-from autogen_core.application import WorkerAgentRuntime, WorkerAgentRuntimeHost
-from protos.serialization_test_pb2 import ProtoMessage
-from test_utils import (
+from autogen_ext.runtimes.grpc import WorkerAgentRuntime, WorkerAgentRuntimeHost
+from autogen_test_utils import (
     CascadingAgent,
     CascadingMessageType,
     ContentMessage,
@@ -30,6 +29,7 @@ from test_utils import (
     MessageType,
     NoopAgent,
 )
+from protos.serialization_test_pb2 import ProtoMessage
 
 
 @pytest.mark.asyncio

@@ -9,7 +9,7 @@ from _utils import get_serializers, load_config, set_all_log_levels
 from autogen_core import (
     TypeSubscription,
 )
-from autogen_core.application import WorkerAgentRuntime
+from autogen_ext.runtimes.grpc import WorkerAgentRuntime
 from chainlit import Message  # type: ignore [reportAttributeAccessIssue]
 from rich.console import Console
 from rich.markdown import Markdown

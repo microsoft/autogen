@@ -1,6 +1,6 @@
 from agents import CascadingMessage, ObserverAgent
 from autogen_core import DefaultTopicId, try_get_known_serializers_for_type
-from autogen_core.application import WorkerAgentRuntime
+from autogen_ext.runtimes.grpc import WorkerAgentRuntime
 
 
 async def main() -> None:

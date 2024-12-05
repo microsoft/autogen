@@ -11,7 +11,7 @@ from autogen_core import (
     message_handler,
     try_get_known_serializers_for_type,
 )
-from autogen_core.application import WorkerAgentRuntime
+from autogen_ext.runtimes.grpc import WorkerAgentRuntime
 
 
 @dataclass

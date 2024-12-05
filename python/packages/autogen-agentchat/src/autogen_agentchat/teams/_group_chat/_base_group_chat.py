@@ -12,10 +12,10 @@ from autogen_core import (
     CancellationToken,
     ClosureAgent,
     MessageContext,
+    SingleThreadedAgentRuntime,
     TypeSubscription,
 )
 from autogen_core._closure_agent import ClosureContext
-from autogen_core.application import SingleThreadedAgentRuntime
 
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition

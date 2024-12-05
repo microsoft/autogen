@@ -2,7 +2,7 @@ import uuid
 
 from agents import CascadingAgent, ReceiveMessageEvent
 from autogen_core import try_get_known_serializers_for_type
-from autogen_core.application import WorkerAgentRuntime
+from autogen_ext.runtimes.grpc import WorkerAgentRuntime
 
 
 async def main() -> None:

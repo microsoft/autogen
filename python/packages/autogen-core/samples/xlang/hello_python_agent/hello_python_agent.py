@@ -12,7 +12,7 @@ from autogen_core import (
     TypeSubscription,
     try_get_known_serializers_for_type,
 )
-from autogen_core.application import WorkerAgentRuntime
+from autogen_ext.runtimes.grpc import WorkerAgentRuntime
 
 # Add the local package directory to sys.path
 thisdir = os.path.dirname(os.path.abspath(__file__))

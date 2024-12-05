@@ -1,6 +1,6 @@
 import asyncio
 
-from autogen_core.application import WorkerAgentRuntimeHost
+from autogen_ext.runtimes.grpc import WorkerAgentRuntimeHost
 
 
 async def main() -> None:

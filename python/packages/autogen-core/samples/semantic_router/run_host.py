@@ -2,8 +2,8 @@ import asyncio
 import logging
 import platform
 
-from autogen_core.application import WorkerAgentRuntimeHost
-from autogen_core.application.logging import TRACE_LOGGER_NAME
+from autogen_core import TRACE_LOGGER_NAME
+from autogen_ext.runtimes.grpc import WorkerAgentRuntimeHost
 
 
 async def run_host():

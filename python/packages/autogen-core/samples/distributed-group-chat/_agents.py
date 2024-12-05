@@ -5,7 +5,6 @@ from uuid import uuid4
 
 from _types import GroupChatMessage, MessageChunk, RequestToSpeak, UIAgentConfig
 from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, message_handler
-from autogen_core.application import WorkerAgentRuntime
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -13,6 +12,7 @@ from autogen_core.components.models import (
     SystemMessage,
     UserMessage,
 )
+from autogen_ext.runtimes.grpc import WorkerAgentRuntime
 from rich.console import Console
 from rich.markdown import Markdown
 

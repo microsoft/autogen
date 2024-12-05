@@ -32,7 +32,7 @@ from _semantic_router_components import (
     WorkerAgentMessage,
 )
 from autogen_core import ClosureAgent, ClosureContext, DefaultSubscription, DefaultTopicId, MessageContext
-from autogen_core.application import WorkerAgentRuntime
+from autogen_ext.runtimes.grpc import WorkerAgentRuntime
 
 
 class MockIntentClassifier(IntentClassifierBase):

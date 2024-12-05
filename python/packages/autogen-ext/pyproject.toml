@@ -41,21 +41,28 @@ video-surfer = [
     "openai-whisper",
 ]
 
+grpc = [
+    "grpcio~=1.62.0", # TODO: update this once we have a stable version.
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
 
 [tool.uv]
-dev-dependencies = []
+dev-dependencies = [
+    "autogen_test_utils"
+]
 
 
 [tool.ruff]
 extend = "../../pyproject.toml"
 include = ["src/**", "tests/*.py"]
-exclude = ["src/autogen_ext/agents/web_surfer/*.js"]
+exclude = ["src/autogen_ext/agents/web_surfer/*.js", "src/autogen_ext/runtimes/grpc/protos", "tests/protos"]
 
 [tool.pyright]
 extends = "../../pyproject.toml"
 include = ["src", "tests"]
+exclude = ["src/autogen_ext/runtimes/grpc/protos", "tests/protos"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -66,6 +73,7 @@ include = "../../shared_tasks.toml"
 
 [tool.poe.tasks]
 test = "pytest -n auto"
+mypy = "mypy --config-file ../../pyproject.toml --exclude src/autogen_ext/runtimes/grpc/protos --exclude tests/protos src tests"
 
 [tool.mypy]
 [[tool.mypy.overrides]]

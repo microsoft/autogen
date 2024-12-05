@@ -3,8 +3,8 @@ import logging
 import signal
 from typing import Optional, Sequence
 
-from .._type_helpers import ChannelArgumentType
 from ._constants import GRPC_IMPORT_ERROR_STR
+from ._type_helpers import ChannelArgumentType
 from ._worker_runtime_host_servicer import WorkerAgentRuntimeHostServicer
 
 try:
