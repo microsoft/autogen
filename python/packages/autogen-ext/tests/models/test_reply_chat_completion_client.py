@@ -3,8 +3,15 @@ from dataclasses import dataclass
 from typing import List
 
 import pytest
-from autogen_core import AgentId, DefaultTopicId, MessageContext, RoutedAgent, default_subscription, message_handler
-from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core import (
+    AgentId,
+    DefaultTopicId,
+    MessageContext,
+    RoutedAgent,
+    SingleThreadedAgentRuntime,
+    default_subscription,
+    message_handler,
+)
 from autogen_core.components.models import ChatCompletionClient, CreateResult, SystemMessage, UserMessage
 from autogen_ext.models import ReplayChatCompletionClient
 

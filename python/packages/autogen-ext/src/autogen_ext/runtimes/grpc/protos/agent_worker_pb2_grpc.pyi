@@ -4,16 +4,16 @@ isort:skip_file
 """
 
 import abc
-import agent_worker_pb2
 import collections.abc
+import typing
+
+import agent_worker_pb2
 import grpc
 import grpc.aio
-import typing
 
 _T = typing.TypeVar("_T")
 
 class _MaybeAsyncIterator(collections.abc.AsyncIterator[_T], collections.abc.Iterator[_T], metaclass=abc.ABCMeta): ...
-
 class _ServicerContext(grpc.ServicerContext, grpc.aio.ServicerContext):  # type: ignore[misc, type-arg]
     ...
 
@@ -56,20 +56,26 @@ class AgentRpcServicer(metaclass=abc.ABCMeta):
         self,
         request_iterator: _MaybeAsyncIterator[agent_worker_pb2.Message],
         context: _ServicerContext,
-    ) -> typing.Union[collections.abc.Iterator[agent_worker_pb2.Message], collections.abc.AsyncIterator[agent_worker_pb2.Message]]: ...
-
+    ) -> typing.Union[
+        collections.abc.Iterator[agent_worker_pb2.Message], collections.abc.AsyncIterator[agent_worker_pb2.Message]
+    ]: ...
     @abc.abstractmethod
     def GetState(
         self,
         request: agent_worker_pb2.AgentId,
         context: _ServicerContext,
-    ) -> typing.Union[agent_worker_pb2.GetStateResponse, collections.abc.Awaitable[agent_worker_pb2.GetStateResponse]]: ...
-
+    ) -> typing.Union[
+        agent_worker_pb2.GetStateResponse, collections.abc.Awaitable[agent_worker_pb2.GetStateResponse]
+    ]: ...
     @abc.abstractmethod
     def SaveState(
         self,
         request: agent_worker_pb2.AgentState,
         context: _ServicerContext,
-    ) -> typing.Union[agent_worker_pb2.SaveStateResponse, collections.abc.Awaitable[agent_worker_pb2.SaveStateResponse]]: ...
+    ) -> typing.Union[
+        agent_worker_pb2.SaveStateResponse, collections.abc.Awaitable[agent_worker_pb2.SaveStateResponse]
+    ]: ...
 
-def add_AgentRpcServicer_to_server(servicer: AgentRpcServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...
+def add_AgentRpcServicer_to_server(
+    servicer: AgentRpcServicer, server: typing.Union[grpc.Server, grpc.aio.Server]
+) -> None: ...
