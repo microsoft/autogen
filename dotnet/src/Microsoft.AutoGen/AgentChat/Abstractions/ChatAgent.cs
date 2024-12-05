@@ -133,7 +133,7 @@ public class StreamingFrame<TResponse, TInternalMessage>() where TInternalMessag
 
 public class StreamingFrame<TResponse> : StreamingFrame<TResponse, AgentMessage>;
 
-public class ChatStreamFrame : StreamingFrame<Response, InternalMessage>;
+public class ChatStreamFrame : StreamingFrame<Response, AgentMessage>;
 
 public interface IChatAgent :
                  IHandleEx<IEnumerable<ChatMessage>, Response>,
