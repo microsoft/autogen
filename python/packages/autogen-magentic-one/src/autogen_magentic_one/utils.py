@@ -6,11 +6,11 @@ from datetime import datetime
 from typing import Any, Dict, List, Literal
 
 from autogen_core import Image
-from autogen_core.application.logging.events import LLMCallEvent
 from autogen_core.components.models import (
     ChatCompletionClient,
     ModelCapabilities,
 )
+from autogen_core.logging import LLMCallEvent
 from autogen_ext.models import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 
 from .messages import (

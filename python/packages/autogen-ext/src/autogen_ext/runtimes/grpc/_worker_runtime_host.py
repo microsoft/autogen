@@ -3,9 +3,9 @@ import logging
 import signal
 from typing import Optional, Sequence
 
-from .._type_helpers import ChannelArgumentType
 from ._constants import GRPC_IMPORT_ERROR_STR
-from ._worker_runtime_host_servicer import WorkerAgentRuntimeHostServicer
+from ._type_helpers import ChannelArgumentType
+from ._worker_runtime_host_servicer import GrpcWorkerAgentRuntimeHostServicer
 
 try:
     import grpc
@@ -16,10 +16,10 @@ from .protos import agent_worker_pb2_grpc
 logger = logging.getLogger("autogen_core")
 
 
-class WorkerAgentRuntimeHost:
+class GrpcWorkerAgentRuntimeHost:
     def __init__(self, address: str, extra_grpc_config: Optional[ChannelArgumentType] = None) -> None:
         self._server = grpc.aio.server(options=extra_grpc_config)
-        self._servicer = WorkerAgentRuntimeHostServicer()
+        self._servicer = GrpcWorkerAgentRuntimeHostServicer()
         agent_worker_pb2_grpc.add_AgentRpcServicer_to_server(self._servicer, self._server)
         self._server.add_insecure_port(address)
         self._address = address

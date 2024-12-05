@@ -22,12 +22,12 @@ from typing import (
 
 import tiktoken
 from autogen_core import (
+    EVENT_LOGGER_NAME,
+    TRACE_LOGGER_NAME,
     CancellationToken,
     FunctionCall,
     Image,
 )
-from autogen_core.application.logging import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
-from autogen_core.application.logging.events import LLMCallEvent
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -42,6 +42,7 @@ from autogen_core.components.models import (
     UserMessage,
 )
 from autogen_core.components.tools import Tool, ToolSchema
+from autogen_core.logging import LLMCallEvent
 from openai import AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
     ChatCompletion,

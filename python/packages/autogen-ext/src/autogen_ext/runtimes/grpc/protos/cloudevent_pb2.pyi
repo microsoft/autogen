@@ -5,12 +5,13 @@ isort:skip_file
 
 import builtins
 import collections.abc
+import typing
+
 import google.protobuf.any_pb2
 import google.protobuf.descriptor
 import google.protobuf.internal.containers
 import google.protobuf.message
 import google.protobuf.timestamp_pb2
-import typing
 
 DESCRIPTOR: google.protobuf.descriptor.FileDescriptor
 
@@ -87,9 +88,54 @@ class CloudEvent(google.protobuf.message.Message):
             ce_uri_ref: builtins.str = ...,
             ce_timestamp: google.protobuf.timestamp_pb2.Timestamp | None = ...,
         ) -> None: ...
-        def HasField(self, field_name: typing.Literal["attr", b"attr", "ce_boolean", b"ce_boolean", "ce_bytes", b"ce_bytes", "ce_integer", b"ce_integer", "ce_string", b"ce_string", "ce_timestamp", b"ce_timestamp", "ce_uri", b"ce_uri", "ce_uri_ref", b"ce_uri_ref"]) -> builtins.bool: ...
-        def ClearField(self, field_name: typing.Literal["attr", b"attr", "ce_boolean", b"ce_boolean", "ce_bytes", b"ce_bytes", "ce_integer", b"ce_integer", "ce_string", b"ce_string", "ce_timestamp", b"ce_timestamp", "ce_uri", b"ce_uri", "ce_uri_ref", b"ce_uri_ref"]) -> None: ...
-        def WhichOneof(self, oneof_group: typing.Literal["attr", b"attr"]) -> typing.Literal["ce_boolean", "ce_integer", "ce_string", "ce_bytes", "ce_uri", "ce_uri_ref", "ce_timestamp"] | None: ...
+        def HasField(
+            self,
+            field_name: typing.Literal[
+                "attr",
+                b"attr",
+                "ce_boolean",
+                b"ce_boolean",
+                "ce_bytes",
+                b"ce_bytes",
+                "ce_integer",
+                b"ce_integer",
+                "ce_string",
+                b"ce_string",
+                "ce_timestamp",
+                b"ce_timestamp",
+                "ce_uri",
+                b"ce_uri",
+                "ce_uri_ref",
+                b"ce_uri_ref",
+            ],
+        ) -> builtins.bool: ...
+        def ClearField(
+            self,
+            field_name: typing.Literal[
+                "attr",
+                b"attr",
+                "ce_boolean",
+                b"ce_boolean",
+                "ce_bytes",
+                b"ce_bytes",
+                "ce_integer",
+                b"ce_integer",
+                "ce_string",
+                b"ce_string",
+                "ce_timestamp",
+                b"ce_timestamp",
+                "ce_uri",
+                b"ce_uri",
+                "ce_uri_ref",
+                b"ce_uri_ref",
+            ],
+        ) -> None: ...
+        def WhichOneof(
+            self, oneof_group: typing.Literal["attr", b"attr"]
+        ) -> (
+            typing.Literal["ce_boolean", "ce_integer", "ce_string", "ce_bytes", "ce_uri", "ce_uri_ref", "ce_timestamp"]
+            | None
+        ): ...
 
     ID_FIELD_NUMBER: builtins.int
     SOURCE_FIELD_NUMBER: builtins.int
@@ -115,7 +161,9 @@ class CloudEvent(google.protobuf.message.Message):
     binary_data: builtins.bytes
     text_data: builtins.str
     @property
-    def attributes(self) -> google.protobuf.internal.containers.MessageMap[builtins.str, global___CloudEvent.CloudEventAttributeValue]:
+    def attributes(
+        self,
+    ) -> google.protobuf.internal.containers.MessageMap[builtins.str, global___CloudEvent.CloudEventAttributeValue]:
         """Optional & Extension Attributes"""
 
     @property
@@ -136,8 +184,41 @@ class CloudEvent(google.protobuf.message.Message):
         text_data: builtins.str = ...,
         proto_data: google.protobuf.any_pb2.Any | None = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["binary_data", b"binary_data", "data", b"data", "proto_data", b"proto_data", "text_data", b"text_data"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["attributes", b"attributes", "binary_data", b"binary_data", "data", b"data", "datacontenttype", b"datacontenttype", "id", b"id", "metadata", b"metadata", "proto_data", b"proto_data", "source", b"source", "spec_version", b"spec_version", "text_data", b"text_data", "type", b"type"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["data", b"data"]) -> typing.Literal["binary_data", "text_data", "proto_data"] | None: ...
+    def HasField(
+        self,
+        field_name: typing.Literal[
+            "binary_data", b"binary_data", "data", b"data", "proto_data", b"proto_data", "text_data", b"text_data"
+        ],
+    ) -> builtins.bool: ...
+    def ClearField(
+        self,
+        field_name: typing.Literal[
+            "attributes",
+            b"attributes",
+            "binary_data",
+            b"binary_data",
+            "data",
+            b"data",
+            "datacontenttype",
+            b"datacontenttype",
+            "id",
+            b"id",
+            "metadata",
+            b"metadata",
+            "proto_data",
+            b"proto_data",
+            "source",
+            b"source",
+            "spec_version",
+            b"spec_version",
+            "text_data",
+            b"text_data",
+            "type",
+            b"type",
+        ],
+    ) -> None: ...
+    def WhichOneof(
+        self, oneof_group: typing.Literal["data", b"data"]
+    ) -> typing.Literal["binary_data", "text_data", "proto_data"] | None: ...
 
 global___CloudEvent = CloudEvent

@@ -1,11 +1,11 @@
 from collections import defaultdict
 from typing import Awaitable, Callable, DefaultDict, List, Set
 
-from .._agent import Agent
-from .._agent_id import AgentId
-from .._agent_type import AgentType
-from .._subscription import Subscription
-from .._topic import TopicId
+from ._agent import Agent
+from ._agent_id import AgentId
+from ._agent_type import AgentType
+from ._subscription import Subscription
+from ._topic import TopicId
 
 
 async def get_impl(

@@ -28,13 +28,9 @@ from typing import (
     cast,
 )
 
-from google.protobuf import any_pb2
-from opentelemetry.trace import TracerProvider
-from typing_extensions import Self, deprecated
-
-from autogen_core.application.protos import cloudevent_pb2
-
-from .. import (
+from autogen_core import (
+    JSON_DATA_CONTENT_TYPE,
+    PROTOBUF_DATA_CONTENT_TYPE,
     Agent,
     AgentId,
     AgentInstantiationContext,
@@ -44,24 +40,26 @@ from .. import (
     CancellationToken,
     MessageContext,
     MessageHandlerContext,
+    MessageSerializer,
     Subscription,
     SubscriptionInstantiationContext,
     TopicId,
+    TypePrefixSubscription,
+    TypeSubscription,
 )
-from .._serialization import (
-    JSON_DATA_CONTENT_TYPE,
-    PROTOBUF_DATA_CONTENT_TYPE,
-    MessageSerializer,
+from autogen_core._runtime_impl_helpers import SubscriptionManager, get_impl
+from autogen_core._serialization import (
     SerializationRegistry,
 )
-from .._type_helpers import ChannelArgumentType
-from .._type_prefix_subscription import TypePrefixSubscription
-from .._type_subscription import TypeSubscription
+from autogen_core._telemetry import MessageRuntimeTracingConfig, TraceHelper, get_telemetry_grpc_metadata
+from google.protobuf import any_pb2
+from opentelemetry.trace import TracerProvider
+from typing_extensions import Self, deprecated
+
 from . import _constants
 from ._constants import GRPC_IMPORT_ERROR_STR
-from ._helpers import SubscriptionManager, get_impl
-from .protos import agent_worker_pb2, agent_worker_pb2_grpc
-from .telemetry import MessageRuntimeTracingConfig, TraceHelper, get_telemetry_grpc_metadata
+from ._type_helpers import ChannelArgumentType
+from .protos import agent_worker_pb2, agent_worker_pb2_grpc, cloudevent_pb2
 
 try:
     import grpc.aio
@@ -181,7 +179,7 @@ class HostConnection:
         return await self._recv_queue.get()
 
 
-class WorkerAgentRuntime(AgentRuntime):
+class GrpcWorkerAgentRuntime(AgentRuntime):
     def __init__(
         self,
         host_address: str,
