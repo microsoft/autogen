@@ -18,6 +18,12 @@ Get started with AgentChat through this comprehensive tutorial.
 Setting up model clients for agents and teams.
 :::
 
+:::{grid-item-card} {fas}`book-open;pst-color-primary` Models
+:link: ./messages.html
+
+Understanding different types of messages.
+:::
+
 :::{grid-item-card} {fas}`users;pst-color-primary` Agents
 :link: ./agents.html
 
@@ -61,6 +67,7 @@ How to manage state in agents and teams.
 :hidden:
 
 models
+messages
 agents
 teams
 selector-group-chat
