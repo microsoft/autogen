@@ -12,6 +12,12 @@ Get started with AgentChat through this comprehensive tutorial.
 ::::{grid} 2 2 2 3
 :gutter: 3
 
+:::{grid-item-card} {fas}`book-open;pst-color-primary` Messages
+:link: ./messages.html
+
+Messages and events in AgentChat.
+:::
+
 :::{grid-item-card} {fas}`book-open;pst-color-primary` Models
 :link: ./models.html
 
@@ -55,10 +61,11 @@ How to build custom agents.
 :hidden:
 
 models
+agent_messages
 agents
 teams
 selector-group-chat
-swarm
 termination
 custom-agents
+swarm
 ```
