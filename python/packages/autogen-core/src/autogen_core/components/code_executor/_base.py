@@ -35,8 +35,10 @@ class CodeExecutor(Protocol):
     """Executes code blocks and returns the result."""
 
     async def execute_code_blocks(
-        self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken # type: ignore
-    ) -> CodeResult: # type: ignore
+        self,
+        code_blocks: List[CodeBlock],
+        cancellation_token: CancellationToken,  # type: ignore
+    ) -> CodeResult:  # type: ignore
         """Execute code blocks and return the result.
 
         This method should be implemented by the code executor.

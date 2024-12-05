@@ -246,7 +246,7 @@ $functions"""
 
     async def execute_code_blocks(
         self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
-    ) -> CommandLineCodeResult: # type: ignore
+    ) -> CommandLineCodeResult:  # type: ignore
         """(Experimental) Execute the code blocks and return the result.
 
         Args:
@@ -263,7 +263,7 @@ $functions"""
 
     async def _execute_code_dont_check_setup(
         self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
-    ) -> CommandLineCodeResult: # type: ignore
+    ) -> CommandLineCodeResult:  # type: ignore
         logs_all: str = ""
         file_names: List[Path] = []
         exitcode = 0
@@ -286,7 +286,7 @@ $functions"""
                 # Check if there is a filename comment
                 filename = get_file_name_from_content(code, self._work_dir)
             except ValueError:
-                return CommandLineCodeResult( # type: ignore
+                return CommandLineCodeResult(  # type: ignore
                     exit_code=1,
                     output="Filename is not in the workspace",
                     code_file=None,
@@ -350,7 +350,7 @@ $functions"""
                 break
 
         code_file = str(file_names[0]) if len(file_names) > 0 else None
-        return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_file) # type: ignore
+        return CommandLineCodeResult(exit_code=exitcode, output=logs_all, code_file=code_file)  # type: ignore
 
     async def restart(self) -> None:
         """(Experimental) Restart the code executor."""

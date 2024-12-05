@@ -14,7 +14,6 @@ from autogen_core.code_executor import (
 )
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 
-
 ENVIRON_KEY_AZURE_POOL_ENDPOINT = "AZURE_POOL_ENDPOINT"
 
 DUMMY_POOL_ENDPOINT = "DUMMY_POOL_ENDPOINT"
