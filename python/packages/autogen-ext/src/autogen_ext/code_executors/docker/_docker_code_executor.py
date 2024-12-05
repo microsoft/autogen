@@ -22,7 +22,7 @@ from autogen_core.code_executor import (
     FunctionWithRequirementsStr,
 )
 
-from ._common import (
+from .._common import (
     CommandLineCodeResult,
     build_python_functions_file,
     get_file_name_from_content,
@@ -55,7 +55,11 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
 
     .. note::
 
-        This class requires the :code:`docker` extra for the :code:`autogen-ext` package.
+        This class requires the :code:`docker` extra for the :code:`autogen-ext` package:
+
+        .. code-block:: bash
+
+            pip install 'autogen-ext[docker]==0.4.0.dev7'
 
 
     The executor first saves each code block in a file in the working
@@ -323,6 +327,7 @@ $functions"""
     async def start(self) -> None:
         try:
             import asyncio_atexit
+
             import docker
             from docker.errors import ImageNotFound
         except ImportError as e:
