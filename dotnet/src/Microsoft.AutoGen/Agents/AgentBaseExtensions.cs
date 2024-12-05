@@ -2,6 +2,8 @@
 // AgentBaseExtensions.cs
 
 using System.Diagnostics;
+using Google.Protobuf;
+using Microsoft.AutoGen.Abstractions;
 
 namespace Microsoft.AutoGen.Agents;
 
@@ -111,5 +113,10 @@ public static class AgentBaseExtensions
         {
             activity?.Stop();
         }
+    }
+
+    public static async ValueTask PublishEventAsync(this AgentBase agent, string topic, IMessage evt, CancellationToken cancellationToken = default)
+    {
+        await agent.PublishEventAsync(evt.ToCloudEvent(topic), cancellationToken).ConfigureAwait(false);
     }
 }
