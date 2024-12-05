@@ -7,6 +7,7 @@ import {
   AgentConfig,
   ToolConfig,
   ComponentTypes,
+  TerminationConfig,
 } from "../../../../../types/datamodel";
 
 interface ConversionResult {
@@ -40,7 +41,12 @@ const calculateParticipantPosition = (
 const createNode = (
   type: ComponentTypes,
   position: Position,
-  config: TeamConfig | ModelConfig | AgentConfig | ToolConfig,
+  config:
+    | TeamConfig
+    | ModelConfig
+    | AgentConfig
+    | ToolConfig
+    | TerminationConfig,
   label?: string
 ): CustomNode => ({
   id: nanoid(),
@@ -54,6 +60,7 @@ const createNode = (
       modelClient: null,
       tools: [],
       participants: [],
+      termination: null,
     },
   },
 });
@@ -62,7 +69,12 @@ const createNode = (
 const createEdge = (
   source: string,
   target: string,
-  type: "model-connection" | "tool-connection" | "participant-connection"
+  type:
+    | "model-connection"
+    | "tool-connection"
+    | "agent-connection"
+    | "team-connection"
+    | "termination-connection"
 ): CustomEdge => ({
   id: `e${source}-${target}`,
   source,
@@ -102,7 +114,7 @@ export const convertTeamConfigToGraph = (
     nodes.push(agentNode);
 
     // Connect to team
-    edges.push(createEdge(teamNode.id, agentNode.id, "participant-connection"));
+    edges.push(createEdge(teamNode.id, agentNode.id, "agent-connection"));
 
     // Add agent's model client if present
     if (participant.model_client) {
@@ -136,6 +148,18 @@ export const convertTeamConfigToGraph = (
     });
   });
 
+  if (config?.termination_condition) {
+    const terminationNode = createNode(
+      "termination",
+      { x: 600, y: 50 }, // Adjust position as needed
+      config.termination_condition
+    );
+    nodes.push(terminationNode);
+    edges.push(
+      createEdge(terminationNode.id, teamNode.id, "termination-connection")
+    );
+  }
+
   return { nodes, edges };
 };
 
@@ -149,7 +173,7 @@ export const getLayoutedElements = (
   const g = new dagre.graphlib.Graph();
   g.setGraph({
     rankdir: "LR", // Left to right layout
-    nodesep: 100, // Vertical spacing between nodes
+    nodesep: 200, // Vertical spacing between nodes
     ranksep: 200, // Horizontal spacing between nodes
     align: "DL", // Down-left alignment
   });

@@ -7,6 +7,7 @@ import Footer from "./footer";
 import "antd/dist/reset.css";
 import SideBar from "./sidebar";
 import ContentHeader from "./contentheader";
+import { ConfigProvider, theme } from "antd";
 
 const classNames = (...classes: (string | undefined | boolean)[]) => {
   return classes.filter(Boolean).join(" ");
@@ -91,13 +92,21 @@ const Layout = ({
       >
         {showHeader && (
           <ContentHeader
-            title={title}
             isMobileMenuOpen={isMobileMenuOpen}
             onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           />
         )}
 
-        <main className="flex-1 p-2 text-primary">{children}</main>
+        <ConfigProvider
+          theme={{
+            algorithm:
+              darkMode === "dark"
+                ? theme.darkAlgorithm
+                : theme.defaultAlgorithm,
+          }}
+        >
+          <main className="flex-1 p-2 text-primary">{children}</main>
+        </ConfigProvider>
 
         <Footer />
       </div>

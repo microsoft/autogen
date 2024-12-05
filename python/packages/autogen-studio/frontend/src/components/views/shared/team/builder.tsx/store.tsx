@@ -130,6 +130,7 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
             modelClient: null,
             tools: [],
             participants: [],
+            termination: null,
           },
         },
       };
@@ -173,8 +174,8 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
               id: nanoid(),
               source: newNode.id,
               target: targetNode.id,
-              sourceHandle: `${newNode.id}-output-handle`,
-              targetHandle: `${targetNode.id}-input-handle`,
+              sourceHandle: `${newNode.id}-model-output-handle`,
+              targetHandle: `${targetNode.id}-model-input-handle`,
               type: "model-connection",
             });
           } else if (type === "tool" && targetNode.data.type === "agent") {
@@ -185,8 +186,8 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
               id: nanoid(),
               source: newNode.id,
               target: targetNode.id,
-              sourceHandle: `${newNode.id}-output-handle`,
-              targetHandle: `${targetNode.id}-input-handle`,
+              sourceHandle: `${newNode.id}-tool-output-handle`,
+              targetHandle: `${targetNode.id}-tool-input-handle`,
               type: "tool-connection",
             });
 
@@ -209,9 +210,9 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
                 id: nanoid(),
                 source: targetNode.id,
                 target: newNode.id,
-                sourceHandle: `${targetNode.id}-output-handle`,
-                targetHandle: `${newNode.id}-output-handle`,
-                type: "participant-connection",
+                sourceHandle: `${targetNode.id}-agent-output-handle`,
+                targetHandle: `${newNode.id}-agent-input-handle`,
+                type: "agent-connection",
               });
             }
           } else if (
@@ -240,8 +241,8 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
                 id: nanoid(),
                 source: newNode.id,
                 target: targetNode.id,
-                sourceHandle: `${newNode.id}-output-handle`,
-                targetHandle: `${targetNode.id}-input-handle`,
+                sourceHandle: `${newNode.id}-termination-output-handle`,
+                targetHandle: `${targetNode.id}-termination-input-handle`,
                 type: "termination-connection",
               });
             }
@@ -288,6 +289,7 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
 
   removeNode: (nodeId: string) => {
     set((state) => {
+      console.log;
       const newNodes = state.nodes.filter((node) => node.id !== nodeId);
       const newEdges = state.edges.filter(
         (edge) => edge.source !== nodeId && edge.target !== nodeId

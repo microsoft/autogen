@@ -1,20 +1,39 @@
 import React from "react";
-import { Card, Input, Tabs } from "antd";
+import { Input, Collapse, type CollapseProps } from "antd";
 import { useDraggable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
-import { Brain, Settings } from "lucide-react";
-import { LibraryProps, DragItem } from "../types";
-import {
-  ComponentTypes,
-  ComponentConfigTypes,
-  ModelConfig,
-  AgentConfig,
-  ToolConfig,
-  TerminationConfig,
-} from "../../../../../types/datamodel";
-import { config } from "process";
+import { Brain, Settings, FoldVertical, ChevronDown } from "lucide-react";
 
-const { Search } = Input;
+// Types
+interface ComponentConfigTypes {
+  [key: string]: any;
+}
+
+type ComponentTypes = "agent" | "model" | "tool" | "termination";
+
+interface AgentConfig {
+  name: string;
+  agent_type: string;
+  system_message: string;
+}
+
+interface ModelConfig {
+  model: string;
+  model_type: string;
+}
+
+interface ToolConfig {
+  name: string;
+  description: string;
+  tool_type: string;
+}
+
+interface TerminationConfig {
+  termination_type: string;
+  max_messages: number;
+}
+
+interface LibraryProps {}
 
 interface PresetItemProps {
   id: string;
@@ -24,25 +43,9 @@ interface PresetItemProps {
   icon: React.ReactNode;
 }
 
-// Define interfaces for preset items
-interface PresetAgent {
+interface SectionItem {
   label: string;
-  config: AgentConfig;
-}
-
-interface PresetModel {
-  label: string;
-  config: ModelConfig;
-}
-
-interface PresetTool {
-  label: string;
-  config: ToolConfig;
-}
-
-interface PresetTermination {
-  label: string;
-  config: TerminationConfig;
+  config: ComponentConfigTypes;
 }
 
 const PresetItem: React.FC<PresetItemProps> = ({
@@ -57,7 +60,6 @@ const PresetItem: React.FC<PresetItemProps> = ({
       id,
       data: {
         current: {
-          // Add current level
           type,
           config,
           label,
@@ -76,7 +78,7 @@ const PresetItem: React.FC<PresetItemProps> = ({
       style={style}
       {...attributes}
       {...listeners}
-      className="p-2   text-primary mb-2 border rounded cursor-move hover:bg-gray-50 transition-colors"
+      className="p-2 text-primary mb-2 border rounded cursor-move hover:bg-secondary transition-colors"
     >
       <div className="flex items-center gap-2">
         {icon}
@@ -86,159 +88,167 @@ const PresetItem: React.FC<PresetItemProps> = ({
   );
 };
 
-const presetAgents: PresetAgent[] = [
-  {
-    label: "Assistant Agent",
-    config: {
-      name: "Assistant",
-      agent_type: "AssistantAgent",
-      system_message: "You are a helpful assistant.",
-    } as AgentConfig,
-  },
-  {
-    label: "User Proxy Agent",
-    config: {
-      name: "User Proxy",
-      agent_type: "UserProxyAgent",
-      system_message: "Human user proxy",
-    } as AgentConfig,
-  },
-];
-
-const presetModels: PresetModel[] = [
-  {
-    label: "OpenAI GPT-4",
-    config: {
-      model: "gpt-4",
-      model_type: "OpenAIChatCompletionClient",
-    } as ModelConfig,
-  },
-  {
-    label: "OpenAI GPT-3.5",
-    config: {
-      model: "gpt-3.5-turbo",
-      model_type: "OpenAIChatCompletionClient",
-    } as ModelConfig,
-  },
-];
-
-const presetTools = [
-  {
-    label: "Weather Tool",
-    config: {
-      name: "Weather Tool",
-      description: "Tool 1 description",
-      tool_type: "PythonFunction",
-    } as ToolConfig,
-  },
-  {
-    label: "News Tool",
-    config: {
-      name: "News Tool",
-      description: "Tool 2 description",
-      tool_type: "PythonFunction",
-    } as ToolConfig,
-  },
-];
-
-const presetTerminations = [
-  {
-    label: "Max Message Termination",
-    config: {
-      termination_type: "MaxMessageTermination",
-      max_messages: 10,
-    } as TerminationConfig,
-  },
-];
-
 export const ComponentLibrary: React.FC<LibraryProps> = () => {
   const [searchTerm, setSearchTerm] = React.useState("");
 
-  // Generic filter function that works with both types
-  const filterItems = <
-    T extends PresetAgent | PresetModel | PresetTermination | PresetTool
-  >(
-    items: T[]
-  ): T[] => {
-    if (!searchTerm) return items;
-    return items.filter((item) =>
-      item.label.toLowerCase().includes(searchTerm.toLowerCase())
-    );
-  };
-
-  const tabs = [
+  const sections: Array<{
+    title: string;
+    items: SectionItem[];
+    icon: React.ReactNode;
+    type: ComponentTypes;
+  }> = [
     {
-      key: "agents",
-      label: "Agents",
-      children: filterItems(presetAgents).map((agent, index) => (
-        <PresetItem
-          key={index}
-          id={`agent-${index}`}
-          type="agent"
-          config={agent.config}
-          label={agent.label}
-          icon={<Brain className="w-4 h-4" />}
-        />
-      )),
+      title: "Agents",
+      type: "agent",
+      items: [
+        {
+          label: "Assistant Agent",
+          config: {
+            name: "Assistant",
+            agent_type: "AssistantAgent",
+            system_message: "You are a helpful assistant.",
+          } as AgentConfig,
+        },
+        {
+          label: "User Proxy Agent",
+          config: {
+            name: "User Proxy",
+            agent_type: "UserProxyAgent",
+            system_message: "Human user proxy",
+          } as AgentConfig,
+        },
+      ],
+      icon: <Brain className="w-4 h-4" />,
     },
     {
-      key: "models",
-      label: "Models",
-      children: filterItems(presetModels).map((model, index) => (
-        <PresetItem
-          key={index}
-          id={`model-${index}`}
-          type="model"
-          config={model.config}
-          label={model.label}
-          icon={<Settings className="w-4 h-4" />}
-        />
-      )),
+      title: "Models",
+      type: "model",
+      items: [
+        {
+          label: "OpenAI GPT-4",
+          config: {
+            model: "gpt-4",
+            model_type: "OpenAIChatCompletionClient",
+          } as ModelConfig,
+        },
+        {
+          label: "OpenAI GPT-3.5",
+          config: {
+            model: "gpt-3.5-turbo",
+            model_type: "OpenAIChatCompletionClient",
+          } as ModelConfig,
+        },
+      ],
+      icon: <Settings className="w-4 h-4" />,
     },
     {
-      key: "tools",
-      label: "Tools",
-      children: filterItems(presetTools).map((tool, index) => (
-        <PresetItem
-          key={index}
-          id={`tool-${index}`}
-          type="tool"
-          config={tool.config}
-          label={tool.label}
-          icon={<Settings className="w-4 h-4" />}
-        />
-      )),
+      title: "Tools",
+      type: "tool",
+      items: [
+        {
+          label: "Weather Tool",
+          config: {
+            name: "Weather Tool",
+            description: "Tool 1 description",
+            tool_type: "PythonFunction",
+          } as ToolConfig,
+        },
+        {
+          label: "News Tool",
+          config: {
+            name: "News Tool",
+            description: "Tool 2 description",
+            tool_type: "PythonFunction",
+          } as ToolConfig,
+        },
+      ],
+      icon: <Settings className="w-4 h-4" />,
     },
     {
-      key: "terminations",
-      label: "Terminations",
-      children: filterItems(presetTerminations).map((termination, index) => (
-        <PresetItem
-          key={index}
-          id={`termination-${index}`}
-          type="termination"
-          config={termination.config}
-          label={termination.label}
-          icon={<Settings className="w-4 h-4" />}
-        />
-      )),
+      title: "Terminations",
+      type: "termination",
+      items: [
+        {
+          label: "Max Message Termination",
+          config: {
+            termination_type: "MaxMessageTermination",
+            max_messages: 10,
+          } as TerminationConfig,
+        },
+        {
+          label: "Max Message Termination",
+          config: {
+            termination_type: "MaxMessageTermination",
+            max_messages: 10,
+          } as TerminationConfig,
+        },
+      ],
+      icon: <Settings className="w-4 h-4" />,
     },
   ];
 
+  const items: CollapseProps["items"] = sections.map((section, index) => {
+    const filteredItems = section.items.filter((item) =>
+      item.label.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+
+    return {
+      key: section.title,
+      label: (
+        <div className="flex items-center gap-2 font-medium">
+          {section.icon}
+          <span>{section.title}</span>
+          <span className="text-xs text-gray-500">
+            ({filteredItems.length})
+          </span>
+        </div>
+      ),
+      children: (
+        <div className="space-y-2">
+          {filteredItems.map((item, itemIndex) => (
+            <PresetItem
+              key={itemIndex}
+              id={`${section.title.toLowerCase()}-${itemIndex}`}
+              type={section.type}
+              config={item.config}
+              label={item.label}
+              icon={section.icon}
+            />
+          ))}
+        </div>
+      ),
+    };
+  });
+
   return (
-    <div className="h-full   rounded p-2 pt-2 ">
-      <div className="text-normal font-semibold"> Component Library </div>
+    <div className="rounded p-2 pt-2">
+      <div className="text-normal font-semibold">Component Library</div>
       <div className="mb-4 text-secondary">
         Drag a component to add it to the team
       </div>
-      <div className="mb-4">
-        <Search
+
+      <div className="flex items-center gap-2 mb-4 ">
+        <Input
           placeholder="Search components..."
           onChange={(e) => setSearchTerm(e.target.value)}
+          className="flex-1 p-2"
         />
       </div>
 
-      <Tabs defaultActiveKey="agents" items={tabs} />
+      <Collapse
+        items={items}
+        defaultActiveKey={["Agents"]}
+        bordered={false}
+        expandIcon={({ isActive }) => (
+          <ChevronDown
+            strokeWidth={1}
+            className={isActive ? "transform rotate-180" : ""}
+          />
+        )}
+        // className="bg-tertiary rounded"
+      />
     </div>
   );
 };
+
+export default ComponentLibrary;

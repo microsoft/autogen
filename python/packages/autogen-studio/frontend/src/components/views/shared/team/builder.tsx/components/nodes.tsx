@@ -15,6 +15,8 @@ import {
   Brain,
   Timer,
   Workflow,
+  X,
+  Trash2Icon,
 } from "lucide-react";
 import { NodeData, CustomNode, DragItem } from "../types";
 import {
@@ -26,6 +28,8 @@ import {
   ComponentTypes,
 } from "../../../../../types/datamodel";
 import { useDroppable } from "@dnd-kit/core";
+import { TruncatableText } from "../../../atoms";
+import { useTeamBuilderStore } from "../store";
 
 // Icon mapping for different node types
 const iconMap: Record<NodeData["type"], LucideIcon> = {
@@ -74,6 +78,7 @@ const DroppableZone: React.FC<DroppableZoneProps> = ({
 
 // Base node layout component
 interface BaseNodeProps extends NodeProps<CustomNode> {
+  id: string;
   icon: LucideIcon;
   children?: React.ReactNode;
   headerContent?: React.ReactNode;
@@ -82,6 +87,7 @@ interface BaseNodeProps extends NodeProps<CustomNode> {
 }
 
 const BaseNode: React.FC<BaseNodeProps> = ({
+  id,
   data,
   selected,
   dragHandle,
@@ -91,6 +97,10 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   descriptionContent,
   className,
 }) => {
+  const removeNode = useTeamBuilderStore((state) => state.removeNode);
+  // const id = useTeamBuilderStore((state) => state.selectedNodeId);
+  const showDelete = data.type !== "team";
+
   return (
     <div
       ref={dragHandle}
@@ -107,9 +117,23 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             <Icon className="w-5 h-5 text-gray-600" />
             <span className="font-medium text-gray-800">{data.label}</span>
           </div>
-          <span className="text-xs px-2 py-1 bg-gray-200 rounded-full text-gray-700">
-            {data.type}
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="text-xs px-2 py-1 bg-gray-200 rounded text-gray-700">
+              {data.type}
+            </span>
+            {showDelete && (
+              <button
+                onClick={(e) => {
+                  console.log("remove node", id);
+                  e.stopPropagation();
+                  if (id) removeNode(id);
+                }}
+                className="p-1 hover:bg-red-100  rounded"
+              >
+                <Trash2Icon className="w-4 h-4 text-red-500" />
+              </button>
+            )}
+          </div>
         </div>
         {headerContent}
       </div>
@@ -130,7 +154,7 @@ const NodeSection: React.FC<{
   title: string | React.ReactNode;
   children: React.ReactNode;
 }> = ({ title, children }) => (
-  <div className="space-y-1">
+  <div className="space-y-1 relative">
     <h4 className="text-xs font-medium text-gray-500 uppercase">{title}</h4>
     <div className="bg-gray-50 rounded p-2">{children}</div>
   </div>
@@ -165,7 +189,9 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
           <ConnectionBadge connected={hasModel} label="Model" />
           <ConnectionBadge
             connected={participantCount > 0}
-            label={`${participantCount} Participants`}
+            label={`${participantCount} Agent ${
+              participantCount > 1 ? "s" : ""
+            }`}
           />
         </div>
       }
@@ -174,27 +200,25 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
           <div>Type: {config.team_type}</div>
           {config.selector_prompt && (
             <div className="mt-1 text-xs">
-              Selector: {config.selector_prompt}
+              Selector:{" "}
+              <TruncatableText
+                content={config.selector_prompt}
+                textThreshold={150}
+              />
             </div>
           )}
         </div>
       }
     >
-      {(config.model_client || config.termination_condition) && (
-        <Handle
-          type="target"
-          position={Position.Left}
-          id={`${props.id}-input-handle`}
-          className="my-left-handle"
-        />
-      )}
-      <Handle
-        type="source"
-        position={Position.Right}
-        id={`${props.id}-output-handle`}
-        className="my-right-handle"
-      />
       <NodeSection title="Model">
+        {config.model_client && (
+          <Handle
+            type="target"
+            position={Position.Left}
+            id={`${props.id}-model-input-handle`}
+            className="my-left-handle"
+          />
+        )}
         <div className="relative">
           {config.model_client && (
             <div className="text-sm">{config.model_client.model}</div>
@@ -210,11 +234,19 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
       <NodeSection
         title={
           <div>
-            Participants{" "}
-            <span className="text-xs text-accent">{participantCount}</span>
+            Agents{" "}
+            <span className="text-xs text-accent">({participantCount})</span>
           </div>
         }
       >
+        {participantCount > 0 && (
+          <Handle
+            type="source"
+            position={Position.Right}
+            id={`${props.id}-agent-output-handle`}
+            className="my-right-handle"
+          />
+        )}
         <div className="space-y-1">
           {config.participants?.map((participant, index) => (
             <div
@@ -234,6 +266,14 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
       </NodeSection>
 
       <NodeSection title="Terminations">
+        {config.termination_condition && (
+          <Handle
+            type="target"
+            position={Position.Left}
+            id={`${props.id}-termination-input-handle`}
+            className="my-left-handle"
+          />
+        )}
         <div className="space-y-1">
           {config.termination_condition && (
             <div className="text-sm py-1 px-2 bg-white rounded flex items-center gap-2">
@@ -277,7 +317,12 @@ export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
         <div>
           <div>Type: {config.agent_type}</div>
           {config.system_message && (
-            <div className="mt-1 text-xs">{config.system_message}</div>
+            <div className="mt-1 text-xs">
+              <TruncatableText
+                content={config.system_message}
+                textThreshold={150}
+              />
+            </div>
           )}
         </div>
       }
@@ -285,18 +330,20 @@ export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
       <Handle
         type="target"
         position={Position.Left}
-        id={`${props.id}-input-handle`}
+        id={`${props.id}-agent-input-handle`}
         className="my-left-handle"
       />
 
-      <Handle
-        type="target"
-        position={Position.Right}
-        id={`${props.id}-output-handle`}
-        className="my-right-handle"
-      />
-
       <NodeSection title="Model">
+        {config.model_client && (
+          <Handle
+            type="target"
+            position={Position.Left}
+            id={`${props.id}-model-input-handle`}
+            className="my-left-handle"
+          />
+        )}
+
         <div className="relative">
           {config.model_client && (
             <>
@@ -313,6 +360,14 @@ export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
       </NodeSection>
 
       <NodeSection title="Tools">
+        {toolCount > 0 && (
+          <Handle
+            type="target"
+            position={Position.Left}
+            id={`${props.id}-tool-input-handle`}
+            className="my-left-handle"
+          />
+        )}
         <div className="space-y-1">
           {config.tools && toolCount > 0 && (
             <div className="space-y-1">
@@ -358,7 +413,7 @@ export const ModelNode: React.FC<NodeProps<CustomNode>> = (props) => {
       <Handle
         type="source" // This model's handle should be source since it connects TO team/agent
         position={Position.Right}
-        id={`${props.id}-output-handle`}
+        id={`${props.id}-model-output-handle`}
         className="my-right-handle"
       />
       <NodeSection title="Configuration">
@@ -381,7 +436,7 @@ export const ToolNode: React.FC<NodeProps<CustomNode>> = (props) => {
       <Handle
         type="source"
         position={Position.Right}
-        id={`${props.id}-output-handle`} // Add index to match store logic
+        id={`${props.id}-tool-output-handle`} // Add index to match store logic
         className="my-right-handle"
       />
       <NodeSection title="Configuration">
@@ -389,7 +444,9 @@ export const ToolNode: React.FC<NodeProps<CustomNode>> = (props) => {
       </NodeSection>
 
       <NodeSection title="Content">
-        <div className="text-sm">{config.content}</div>
+        <div className="text-sm break-all">
+          <TruncatableText content={config.content || ""} textThreshold={150} />
+        </div>
       </NodeSection>
     </BaseNode>
   );
@@ -410,7 +467,7 @@ export const TerminationNode: React.FC<NodeProps<CustomNode>> = (props) => {
       <Handle
         type="source"
         position={Position.Right}
-        id={`${props.id}-output-handle`}
+        id={`${props.id}-termination-output-handle`}
         className="my-right-handle"
       />
 
@@ -443,7 +500,8 @@ export const nodeTypes = {
 const EDGE_STYLES = {
   "model-connection": { stroke: "rgb(59, 130, 246)" },
   "tool-connection": { stroke: "rgb(34, 197, 94)" },
-  "participant-connection": { stroke: "rgb(168, 85, 247)" },
+  "agent-connection": { stroke: "rgb(168, 85, 247)" },
+  "termination-connection": { stroke: "rgb(255, 159, 67)" },
 } as const;
 
 type EdgeType = keyof typeof EDGE_STYLES;
@@ -464,5 +522,6 @@ export const CustomEdge = ({ data, ...props }: EdgeProps) => {
 export const edgeTypes = {
   "model-connection": CustomEdge,
   "tool-connection": CustomEdge,
-  "participant-connection": CustomEdge,
+  "agent-connection": CustomEdge,
+  "termination-connection": CustomEdge,
 };

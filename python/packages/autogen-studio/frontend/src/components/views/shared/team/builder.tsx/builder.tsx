@@ -210,9 +210,9 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({ team, onChange }) => {
       onDragEnd={handleDragEnd}
       onDragOver={handleDragOver}
     >
-      <Layout className="h-full bg-primary ">
-        <Sider width={300} className="bg-primary  z-10  mt-2 mr-2  border-r">
-          <ComponentLibrary onDragStart={onDragStart} />
+      <Layout className=" bg-primary ">
+        <Sider width={300} className="bg-primary   z-10  mt-2 mr-2  border-r">
+          <ComponentLibrary />
         </Sider>
 
         <Layout className="bg-primary rounded">

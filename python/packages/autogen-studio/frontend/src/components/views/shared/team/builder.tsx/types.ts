@@ -1,16 +1,6 @@
-import {
-  Node,
-  Edge,
-  type BaseEdge,
-  EdgeProps,
-  getBezierPath,
-} from "@xyflow/react";
+import { Node, Edge } from "@xyflow/react";
 import {
   TeamConfig,
-  AgentConfig,
-  ModelConfig,
-  ToolConfig,
-  TerminationConfig,
   ComponentConfigTypes,
   ComponentTypes,
 } from "../../../../types/datamodel";
@@ -19,6 +9,7 @@ interface NodeConnections {
   modelClient: string | null;
   tools: string[];
   participants: string[];
+  termination: string | null;
 }
 
 export interface NodeData extends Record<string, unknown> {
@@ -30,7 +21,18 @@ export interface NodeData extends Record<string, unknown> {
 
 // Define our node type that extends the XYFlow Node type
 export type CustomNode = Node<NodeData>;
-export type CustomEdge = Edge;
+// export type CustomEdge = Edge;
+
+export type EdgeTypes =
+  | "model-connection"
+  | "tool-connection"
+  | "agent-connection"
+  | "team-connection"
+  | "termination-connection";
+
+export interface CustomEdge extends Edge {
+  type: EdgeTypes;
+}
 
 export interface Position {
   x: number;
