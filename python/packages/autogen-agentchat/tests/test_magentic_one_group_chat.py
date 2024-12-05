@@ -16,7 +16,8 @@ from autogen_agentchat.messages import (
 from autogen_agentchat.teams import (
     MagenticOneGroupChat,
 )
-from autogen_core import CancellationToken
+from autogen_agentchat.teams._group_chat._magentic_one._magentic_one_orchestrator import MagenticOneOrchestrator
+from autogen_core import AgentId, CancellationToken
 from autogen_ext.models import ReplayChatCompletionClient
 from utils import FileLogHandler
 
@@ -120,6 +121,27 @@ async def test_magentic_one_group_chat_basic() -> None:
     assert result.messages[2].content == "Continue task"
     assert result.messages[4].content == "print('Hello, world!')"
     assert result.stop_reason is not None and result.stop_reason == "Because"
+
+    # Test save and load.
+    state = await team.save_state()
+    team2 = MagenticOneGroupChat(participants=[agent_1, agent_2, agent_3, agent_4], model_client=model_client)
+    await team2.load_state(state)
+    state2 = await team2.save_state()
+    assert state == state2
+    manager_1 = await team._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId("group_chat_manager", team._team_id),  # pyright: ignore
+        MagenticOneOrchestrator,  # pyright: ignore
+    )  # pyright: ignore
+    manager_2 = await team2._runtime.try_get_underlying_agent_instance(  # pyright: ignore
+        AgentId("group_chat_manager", team2._team_id),  # pyright: ignore
+        MagenticOneOrchestrator,  # pyright: ignore
+    )  # pyright: ignore
+    assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore
+    assert manager_1._task == manager_2._task  # pyright: ignore
+    assert manager_1._facts == manager_2._facts  # pyright: ignore
+    assert manager_1._plan == manager_2._plan  # pyright: ignore
+    assert manager_1._n_rounds == manager_2._n_rounds  # pyright: ignore
+    assert manager_1._n_stalls == manager_2._n_stalls  # pyright: ignore
 
 
 @pytest.mark.asyncio

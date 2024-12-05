@@ -817,7 +817,7 @@ When deciding between tools, consider if the request can be best addressed by:
         for line in re.split(r"([\r\n]+)", page_markdown):
             message = UserMessage(
                 # content=[
-                prompt + buffer + line,
+                content=prompt + buffer + line,
                 #    ag_image,
                 # ],
                 source=self.metadata["type"],
