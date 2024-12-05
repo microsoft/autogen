@@ -14,17 +14,16 @@ import aiohttp
 # async functions shouldn't use open()
 from anyio import open_file
 from autogen_core import CancellationToken
-from autogen_core.components.code_executor import (
+from autogen_core.code_executor import (
     CodeBlock,
     CodeExecutor,
     CodeResult,
     FunctionWithRequirements,
     FunctionWithRequirementsStr,
-    build_python_functions_file,
-    get_required_packages,
-    to_stub,
 )
 from typing_extensions import ParamSpec
+
+from ._common import build_python_functions_file, get_required_packages, to_stub
 
 if TYPE_CHECKING:
     from azure.core.credentials import AccessToken

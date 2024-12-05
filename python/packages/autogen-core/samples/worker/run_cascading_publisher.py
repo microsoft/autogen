@@ -1,10 +1,10 @@
 from agents import CascadingMessage, ObserverAgent
 from autogen_core import DefaultTopicId, try_get_known_serializers_for_type
-from autogen_core.application import WorkerAgentRuntime
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
 
 
 async def main() -> None:
-    runtime = WorkerAgentRuntime(host_address="localhost:50051")
+    runtime = GrpcWorkerAgentRuntime(host_address="localhost:50051")
     runtime.add_message_serializer(try_get_known_serializers_for_type(CascadingMessage))
     runtime.start()
     await ObserverAgent.register(runtime, "observer_agent", lambda: ObserverAgent())

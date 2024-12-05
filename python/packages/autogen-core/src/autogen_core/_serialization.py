@@ -92,8 +92,11 @@ def has_nested_base_model_in_type(tp: Any) -> bool:
 DataclassT = TypeVar("DataclassT", bound=IsDataclass)
 
 JSON_DATA_CONTENT_TYPE = "application/json"
+"""JSON data content type"""
+
 # TODO: what's the correct content type? There seems to be some disagreement over what it should be
 PROTOBUF_DATA_CONTENT_TYPE = "application/x-protobuf"
+"""Protobuf data content type"""
 
 
 class DataclassJsonMessageSerializer(MessageSerializer[DataclassT]):
