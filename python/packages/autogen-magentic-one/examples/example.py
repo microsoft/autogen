@@ -8,7 +8,7 @@ import os
 from autogen_core import AgentId, AgentProxy, SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
 from autogen_core.code_executor import CodeBlock
-from autogen_ext.code_executors import DockerCommandLineCodeExecutor
+from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 from autogen_magentic_one.agents.coder import Coder, Executor
 from autogen_magentic_one.agents.file_surfer import FileSurfer
 from autogen_magentic_one.agents.multimodal_web_surfer import MultimodalWebSurfer
