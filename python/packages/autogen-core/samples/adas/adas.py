@@ -105,18 +105,14 @@ def evaluate_forward_fn(arguments, forward_str):
     AgentSystem.forward = func
 
     # set seed 0 for valid set
-    examples = module.load_dataset(arguments.data_filename)[
-        1:-1
-    ]  # first one and the last one is for few-shot examples
+    examples = module.load_dataset(arguments.data_filename)[1:-1]  # first one and the last one is for few-shot examples
     random.seed(arguments.shuffle_seed)
     random.shuffle(examples)
 
     if SEARCHING_MODE:
         examples = examples[: arguments.valid_size] * arguments.n_repeat
     else:
-        examples = (
-            examples[arguments.valid_size : arguments.valid_size + arguments.test_size] * arguments.n_repeat
-        )
+        examples = examples[arguments.valid_size : arguments.valid_size + arguments.test_size] * arguments.n_repeat
 
     questions = [example["inputs"] for example in examples]
     answers = [example["targets"] for example in examples]
@@ -141,9 +137,7 @@ def evaluate_forward_fn(arguments, forward_str):
         return result
 
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
-        results = list(
-            tqdm(executor.map(call_forward, task_queue), total=len(task_queue))
-        )
+        results = list(tqdm(executor.map(call_forward, task_queue), total=len(task_queue)))
 
     acc_list = module.compute_metrics(results, answers)
 
@@ -155,9 +149,7 @@ def evaluate_forward_fn(arguments, forward_str):
 class ADASAgent(RoutedAgent):
     """An agent that performs ADAS."""
 
-    def __init__(
-        self, model_client: ChatCompletionClient, system_prompt: str, args, archive
-    ) -> None:
+    def __init__(self, model_client: ChatCompletionClient, system_prompt: str, args, archive) -> None:
         super().__init__("An agent searching agent.")
         self._args = args
         self._archive = archive
@@ -176,14 +168,10 @@ class ADASAgent(RoutedAgent):
         self._model_client = model_client
 
     @message_handler
-    async def handle_task(
-        self, message: LLMMessageList, ctx: MessageContext
-    ) -> LLMResponse:
+    async def handle_task(self, message: LLMMessageList, ctx: MessageContext) -> LLMResponse:
         print("Meta-Agent making a LLM call...")
         logging.info(f"{self._description} received message: {message}")
-        model_result = await self._model_client.create(
-            self._system_messages + message.llm_message_list
-        )
+        model_result = await self._model_client.create(self._system_messages + message.llm_message_list)
 
         assert isinstance(model_result.content, str)
         print(f"Model client result: {model_result.content}")
@@ -201,11 +189,9 @@ class ADASAgent(RoutedAgent):
         # Process archive
         file_path = os.path.join(self._args.save_dir, f"{self._args.expr_name}_run_archive.json")
         if os.path.exists(file_path):
-            with open(file_path, "r") as json_file: # noqa: ASYNC101
+            with open(file_path, "r") as json_file:  # noqa: ASYNC101
                 archive = json.load(json_file)
-            if "generation" in archive[-1] and isinstance(
-                archive[-1]["generation"], int
-            ):
+            if "generation" in archive[-1] and isinstance(archive[-1]["generation"], int):
                 start = archive[-1]["generation"]
             else:
                 start = 0
@@ -231,7 +217,7 @@ class ADASAgent(RoutedAgent):
 
             # save results
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            with open(file_path, "w") as json_file: # noqa: ASYNC101
+            with open(file_path, "w") as json_file:  # noqa: ASYNC101
                 json.dump(archive, json_file, indent=4)
 
         # Initial prompt
@@ -255,61 +241,37 @@ class ADASAgent(RoutedAgent):
 
                 # Reflexion 1
                 new_messages = msg_list + [
-                    AssistantMessage(
-                        content=str(next_solution), source=self.metadata["type"]
-                    ),
-                    UserMessage(
-                        content=reflexion_prompt_1, source=self.metadata["type"]
-                    ),
+                    AssistantMessage(content=str(next_solution), source=self.metadata["type"]),
+                    UserMessage(content=reflexion_prompt_1, source=self.metadata["type"]),
                 ]
-                response = await self.send_message(
-                    LLMMessageList(new_messages), self.id
-                )
+                response = await self.send_message(LLMMessageList(new_messages), self.id)
                 next_solution = response.json_content
                 print(f"--After reflexion_prompt_1 {response}")
 
                 # Reflexion 2
                 new_messages = new_messages + [
-                    AssistantMessage(
-                        content=str(next_solution), source=self.metadata["type"]
-                    ),
-                    UserMessage(
-                        content=reflexion_prompt_2, source=self.metadata["type"]
-                    ),
+                    AssistantMessage(content=str(next_solution), source=self.metadata["type"]),
+                    UserMessage(content=reflexion_prompt_2, source=self.metadata["type"]),
                 ]
-                response = await self.send_message(
-                    LLMMessageList(new_messages), self.id
-                )
+                response = await self.send_message(LLMMessageList(new_messages), self.id)
                 next_solution = response.json_content
                 print(f"--After reflexion_prompt_2 {next_solution}")
 
                 # Reflexion 3
                 new_messages = new_messages + [
-                    AssistantMessage(
-                        content=str(next_solution), source=self.metadata["type"]
-                    ),
-                    UserMessage(
-                        content=reflexion_prompt_3, source=self.metadata["type"]
-                    ),
+                    AssistantMessage(content=str(next_solution), source=self.metadata["type"]),
+                    UserMessage(content=reflexion_prompt_3, source=self.metadata["type"]),
                 ]
-                response = await self.send_message(
-                    LLMMessageList(new_messages), self.id
-                )
+                response = await self.send_message(LLMMessageList(new_messages), self.id)
                 next_solution = response.json_content
                 print(f"--After reflexion_prompt_3 {next_solution}")
 
                 # Reflexion 4
                 new_messages = new_messages + [
-                    AssistantMessage(
-                        content=str(next_solution), source=self.metadata["type"]
-                    ),
-                    UserMessage(
-                        content=reflexion_prompt_4, source=self.metadata["type"]
-                    ),
+                    AssistantMessage(content=str(next_solution), source=self.metadata["type"]),
+                    UserMessage(content=reflexion_prompt_4, source=self.metadata["type"]),
                 ]
-                response = await self.send_message(
-                    LLMMessageList(new_messages), self.id
-                )
+                response = await self.send_message(LLMMessageList(new_messages), self.id)
                 next_solution = response.json_content
                 print(f"--After reflexion_prompt_4 {next_solution}")
             except Exception as e:
@@ -331,18 +293,14 @@ class ADASAgent(RoutedAgent):
                     print("During evaluation:")
                     print(e)
                     new_messages = new_messages + [
-                        AssistantMessage(
-                            content=str(next_solution), source=self.metadata["type"]
-                        ),
+                        AssistantMessage(content=str(next_solution), source=self.metadata["type"]),
                         UserMessage(
                             content=f"Error during evaluation:\n{e}\nCarefully consider where you went wrong in your latest implementation. Using insights from previous attempts, try to debug the current code to implement the same thought. Repeat your previous thought in 'thought', and put your thinking for debugging in 'debug_thought'",
                             source=self.metadata["type"],
                         ),
                     ]
                     try:
-                        response = await self.send_message(
-                            LLMMessageList(new_messages), self.id
-                        )
+                        response = await self.send_message(LLMMessageList(new_messages), self.id)
                         next_solution = response.json_content
                     except Exception as e:
                         print("During LLM generate new solution:")
@@ -365,17 +323,15 @@ class ADASAgent(RoutedAgent):
 
             # save results
             os.makedirs(os.path.dirname(file_path), exist_ok=True)
-            with open(file_path, "w") as json_file: # noqa: ASYNC101
+            with open(file_path, "w") as json_file:  # noqa: ASYNC101
                 json.dump(archive, json_file, indent=4)
 
 
 async def main(arguments) -> None:
-    token_provider = get_bearer_token_provider(
-        DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
-    )
+    token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
     # Create an AzureOpenAI model client.
     client = AzureOpenAIChatCompletionClient(
-        model= arguments.meta_agent_model_config["model"],
+        model=arguments.meta_agent_model_config["model"],
         api_version=arguments.meta_agent_model_config["api_version"],
         azure_endpoint=arguments.meta_agent_model_config["azure_endpoint"],
         azure_ad_token_provider=token_provider,
@@ -412,12 +368,8 @@ async def main(arguments) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run ADAS")
-    parser.add_argument(
-        "--verbose", action="store_true", help="Enable verbose logging."
-    )
-    parser.add_argument(
-        "--data_filename", type=str, default="dataset/drop_v0_dev.jsonl.gz"
-    )
+    parser.add_argument("--verbose", action="store_true", help="Enable verbose logging.")
+    parser.add_argument("--data_filename", type=str, default="dataset/drop_v0_dev.jsonl.gz")
     parser.add_argument("--valid_size", type=int, default=128)
     parser.add_argument("--test_size", type=int, default=800)
     parser.add_argument("--shuffle_seed", type=int, default=0)
@@ -433,25 +385,25 @@ if __name__ == "__main__":
         type=int,
         default=0,
         help="Amount of time to sleep between new threads."
-             "This is to mitigate any errors due to request limits with Azure or AutoGen",
+        "This is to mitigate any errors due to request limits with Azure or AutoGen",
     )
     parser.add_argument(
         "--benchmark_specific_utils_file",
         type=str,
-        default="/home/andyye/autogen/python/packages/autogen-core/samples/adas/utils_drop.py",
-        help="File must contain load_dataset and compute_metrics functions."
+        default="utils_drop.py",
+        help="File must contain load_dataset and compute_metrics functions.",
     )
     parser.add_argument(
         "--meta_agent_model_config",
         type=str,
         default="{}",
-        help="JSON string of the AzureOpenAIChatCompletionClient settings for the Meta-Agent."
+        help="JSON string of the AzureOpenAIChatCompletionClient settings for the Meta-Agent.",
     )
     parser.add_argument(
         "--base_agent_model_config",
         type=str,
         default="{}",
-        help="JSON string of the AzureOpenAIChatCompletionClient settings for the Base Agent."
+        help="JSON string of the AzureOpenAIChatCompletionClient settings for the Base Agent.",
     )
     arguments = parser.parse_args()
     arguments.base_agent_model_config = json.loads(arguments.base_agent_model_config)

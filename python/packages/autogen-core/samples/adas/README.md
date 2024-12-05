@@ -2,9 +2,9 @@
 
 ## Motivation
 
-The Automated Design of Agentic Systems [paper](https://arxiv.org/pdf/2408.08435) introduces a way to automatically create powerful agentic system designs. This is motivated by the observation that in the field of machine learning, hand-designed solutions are often replaced by learned solutions over time.
+The Automated Design of Agentic Systems (ADAS) [paper](https://arxiv.org/pdf/2408.08435) introduces a way to automatically create powerful agentic system designs. This is motivated by the observation that in the field of machine learning, hand-designed solutions are often replaced by learned solutions over time.
 
-We intend to implement this concept using the AutoGen framework, with the intention of discovering novel systems built directly with the AutoGen API.
+We have implemented this concept using the AutoGen framework, with the intention of discovering novel systems built directly with the AutoGen API.
 
 ## Background
 
@@ -14,13 +14,13 @@ ADAS uses a meta-agent to generate creative and novel agent systems. Base agent 
 
 ### Key Concepts
 
-- **Agent System:** A software system designed to perform tasks autonomously. It can include one or more agents --which we will refer to as base agents-- and should be able to complete a task end-to-end (E2E), from receiving input, and producing a final output. Examples of an Agent System include “Chain-of-Thought" reasoning and planning, or “Self-Reflection”.
-- **Building block:** A fundamental component or module that can be used to construct more complex systems. These building blocks are the basic units that can be combined and recombined in various ways to create different agentic systems. Effective building blocks include “Chain-of-Thought" reasoning and planning, or “Self-Reflection”.
+- **Agent System:** A software system designed to perform tasks autonomously. It can include one or more agents --which we will refer to as base agents-- and should be able to complete a task end-to-end (E2E), from receiving input, and producing a final output. Examples of an Agent System include "Chain-of-Thought" reasoning and planning, or "Self-Reflection".
+- **Building block:** A fundamental component or module that can be used to construct more complex systems. These building blocks are the basic units that can be combined and recombined in various ways to create different agentic systems. Effective building blocks include "Chain-of-Thought" reasoning and planning, or "Self-Reflection".
 - **Base agent:** The agent(s) within an Agent System that interact with each other using the event-based / messaging protocol as defined by AutoGen 0.4 API, and tries to accomplish the task as defined by the benchmark.
 - **Foundation Models (FMs):** Used as modules within agentic systems for tasks requiring flexible reasoning and planning. Examples include GPT-3.5, GPT-4.o, Claude-Sonnet, Llama-70B, Gemini, etc.
 - **Compound Agent System:** A complex system composed of multiple simpler agentic systems or building blocks. These individual components work together to perform more sophisticated tasks than they could individually. By combining building blocks, one can create a more powerful and versatile agentic system capable of handling a wide range of tasks and challenges.
 - **Meta Agent Search:** An algorithm where a meta-agent iteratively programs new agents, tests their performance, and refines them based on an archive of previous discoveries.
-- **Archive:** A file containing a list of 1) seed Agent Systems (Chain-of-Thought, Self-Reflection, etc.) which are manually defined, or 1) Agent Systems discovered by the meta-agent.
+- **Archive:** A list of 1) seed Agent Systems (Chain-of-Thought, Self-Reflection, etc.) which are manually defined, or 2) Agent Systems discovered by the meta-agent.
 - **Meta Agent:** The agent that, given context of the benchmark and archive Agent Systems, tries to write code for novel Agent Systems.
 
 ### Methodology
@@ -32,15 +32,15 @@ ADAS uses a meta-agent to generate creative and novel agent systems. Base agent 
 
 In the original paper, the discovered agents significantly outperformed state-of-the-art hand-designed agents, demonstrating robustness and generality across domains.
 
-To see the results of early experiments with ADAS in AutoGen, please see the Results section.
+To see the [results](#results-for-drop-benchmark) of early experiments with ADAS in AutoGen, please see the Results section.
 
 ## ADAS in AutoGen
 
-We have refactored the building block Agent Systems found in the original ADAS code to run using the AutoGen API. Specifically, we decided to implement these Agent Systems at the AutoGen-Core level of abstraction (rather than at the AutoGen-Agentchat level).
+We have refactored the building block Agent Systems found in the original ADAS code to run using the AutoGen API. Specifically, we decided to implement these Agent Systems at the `AutoGen-Core` level of abstraction (rather than at the `AutoGen-AgentChat` level).
 
-The vision for going down this path is that the meta-agent can design, using AutoGen-Core building blocks, a new (multi-)agent system, which if proven useful (after going through a period of testing/adoption by the team), be incorporated into the official AgentChat API.
+The vision for going down this path is that the meta-agent can design, using `AutoGen-Core` building blocks, a new (multi-)agent system, which if proven useful (after going through a period of testing/adoption by the team), be incorporated into the official `AgentChat` API.
 
-See this document for more on the design tradeoffs between AutoGen-Core and AutoGen-Agentchat API.
+See this document for more on the design tradeoffs between AutoGen-Core and `AutoGen-AgentChat` API.
 
 ### 4 manually crafted Agent Systems serving as the seeds to the archive
 - More will be added over time
@@ -48,20 +48,20 @@ See this document for more on the design tradeoffs between AutoGen-Core and Auto
 ### Prompt to Meta-Agent
 
 - Instructions: Generate novel code with name and thought of the new system
-- Output and formatting requirements: Must be JSON, with `thought`, `name`, `code` (with the `forward` function)
+- Output and formatting requirements: Must be JSON, with `thought`, `name`, `code` (which must be written inside a `forward` function)
 - Examples of how to use or not use the AutoGen-Core API
     - Wrong ways to use the AutoGen-Core API
     - Correct ways to use the AutoGen-Core API
 - Historical context (archive) of previous Agent Systems.
-    - Documentation from official AutoGen website. Currently only parsing .md and .ipynb files from the [core-concepts](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/core-concepts/index.html) and [framework](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/framework/index.html) sections
+- Documentation from official AutoGen website. Currently only parsing `.md` and `.ipynb` files from the [core-concepts](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/core-concepts/index.html) and [framework](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/framework/index.html) sections.
 
 ### Meta-Agent does 5 iterations of LLM calls to create and edit code
 
-- The original prompt contains all the instructions (generate novel code with name and thought of the new system), output and formatting requirements, examples of how to use or not use the API, and historical context (archive) of previous Agent Systems.
+- The initial prompt to the meta-agent contains all the instructions (generate novel code with name and thought of the new system), output and formatting requirements, examples of how to use or not use the API, and historical context (archive) of previous Agent Systems.
 - 4 rounds of reflection:
     - Round 1 to reflect on interestingness, implementation mistakes, and improvement
-    - Round 2 to revise based on the tips from the Wrong Implementation section in the original prompt
-    - Round 3 to revise based on the tips of Correct Implementation
+    - Round 2 to revise based on the tips from the "Wrong Implementation" section in the original prompt
+    - Round 3 to revise based on the tips from the "Correct Implementation" section in the original prompt
     - Round 4 to revise based on the tips from the official API documentation
 
 ### Meta-Agent will try again fresh if it encounters (code compilation) errors when trying to execute
@@ -70,20 +70,21 @@ An example of an exception is the following:
 ```
 Error during evaluation:\nClosureAgent.register() takes 4 positional arguments but 5 positional arguments (and 1 keyword-only argument) were given\nCarefully consider where you went wrong in your latest implementation. Using insights from previous attempts, try to debug the current code to implement the same thought. Repeat your previous thought in 'thought', and put your thinking for debugging in 'debug_thought'", source='adas_agent')
 ```
+The current behavior is that the meta-agent will start over the generation sequence (using the 5 steps of LLM calls).
 
-Note: The `adas.py` script can still get stuck even if the code of the agent system compiles, but the agent system itself hangs due to a message being published to a topic that is not used. See this [section](#the-code-that-the-meta-agent-does-not-compile) under the Troubleshooting section for details on how to address this issue.
+Note: The `adas.py` script can still get stuck even if the code of the agent system compiles. This can occur because the agent system itself hangs due to a message being published to a topic that is not used. See this [section](#the-code-that-the-meta-agent-does-not-compile) under the Troubleshooting section for details on how to address this issue.
 
 ### Notable arguments to the script
 
 Please see the `adas.py` file for details of all available settings.
 
 - `data_filename`: the name of full path of the dataset location
-- `benchmark_specific_utils_file`: Benchmark-specific utility file to load the dataset and also evaluate the outputs. This file must contain the load_dataset and compute_metrics functions
-- `meta_agent_model_config`: JSON string of the AzureOpenAIChatCompletionClient settings for the Meta-Agent.
-- `base_agent_model_config`: JSON string of the AzureOpenAIChatCompletionClient settings for the Base Agent.
+- `benchmark_specific_utils_file`: Benchmark-specific utility file to load the dataset and also evaluate the outputs. This file must contain the `load_dataset` and `compute_metrics` functions
+- `meta_agent_model_config`: JSON string of the `AzureOpenAIChatCompletionClient` settings for the Meta-Agent.
+- `base_agent_model_config`: JSON string of the `AzureOpenAIChatCompletionClient` settings for the Base Agent.
 - `n_generation`: number of generations of new agents that the meta-agent tries to discover
 - `expr_name`: name of the output file containing both the original/seed and newly generated agent systems, as well as their fitness scores.
-- `max_workers`: the number of threads to spin up in a ThreadPoolExecutor, to parallelize the execution of the particular Agent System that is currently being evaluated.
+- `max_workers`: the number of threads to spin up in a `ThreadPoolExecutor`, to parallelize the execution of the particular Agent System that is currently being evaluated.
 
 ## QuickStart
 
@@ -95,12 +96,16 @@ Follow the instructions here: [Installation — AutoGen](https://github.com/micr
 python3 -m venv .venv
 source .venv/bin/activate
 
+# Clone the ADAS repo to be able to use the DROP dataset for the sample.
+# Not required if you do not plan on evaluating with DROP, and intend to run with your own dataset / benchmark.
+git clone https://github.com/ShengranHu/ADAS.git && cd ..
+
 # Install package at latest dev tag
-pip install 'autogen-core==0.4.0.dev6'
-# Or install in editable mode if you are modifying/testing AutoGen code at the same time
-# git clone -b yeandy_adas https://github.com/yeandy/autogen.git
+pip install 'autogen-core==0.4.0.dev7'
+
+# Clone the AutoGen package, and switch to branch with the adas script.
+git clone -b yeandy_adas https://github.com/yeandy/autogen.git
 cd autogen/python
-pip install -e packages/autogen-core
 ```
 
 ### Agent System code definitions
@@ -146,7 +151,7 @@ Note: If you add a new agent system after you’ve started generating new Agent 
 #### Prepare your dataset
 First download your dataset locally.
 
-Then create a copy the file called `utils_benchmark_template.py`, and name it with a suffix corresponding to your benchmark. For example, see `utils_drop.py`. Place this under the `adas` directory.
+Then create a copy the file called `utils_benchmark_template.py`, and name it with a suffix corresponding to your benchmark. For example, see `utils_drop.py`. Place this under the `adas` directory. This file will later be passed to the `benchmark_specific_utils_file` flag when running the script.
 
 Under the `load_dataset` function, add logic to load in your dataset. Do any preprocessing that is required, such as adding instructions or any few-shot examples with the actual input data.
 
@@ -184,6 +189,7 @@ This should be passed as a JSON string to the `base_agent_model_config` flag.
 ```
 ### Run ADAS
 ```bash
+# For DROP benchmark
 python packages/autogen-core/samples/adas/adas.py \
     --data_filename=/home/<user>/ADAS/dataset/drop_v0_dev.jsonl.gz \
     --n_generation=150 \
@@ -191,39 +197,52 @@ python packages/autogen-core/samples/adas/adas.py \
     --meta_agent_model_config='{"api_version": "2024-08-01-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/o1-preview/chat/completions?api-version=2024-08-01-preview", "model_capabilities": {"function_calling": false, "json_output": false, "vision": false}, "azure_ad_token_provider": "DEFAULT", "model": " o1-preview-2024-09-12"}' \
     --base_agent_model_config='{"api_version": "2023-03-15-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2023-03-15-preview", "model_capabilities": {"function_calling": true, "json_output": true, "vision": true}, "azure_ad_token_pr ovider": "DEFAULT", "model": "gpt-4o-2024-08-06"}' \
     --benchmark_specific_utils_file='/home/<user>/autogen/python/packages/autogen-core/samples/adas/utils_drop.py'
+
+# For your own benchmark
+python packages/autogen-core/samples/adas/adas.py \
+    --data_filename=/home/<user>/my_benchmark_data.csv \
+    --n_generation=150 \
+    --expr_name=drop_o1_preview_meta_gpt4o_base_results \
+    --meta_agent_model_config='{"api_version": "2024-08-01-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/o1-preview/chat/completions?api-version=2024-08-01-preview", "model_capabilities": {"function_calling": false, "json_output": false, "vision": false}, "azure_ad_token_provider": "DEFAULT", "model": " o1-preview-2024-09-12"}' \
+    --base_agent_model_config='{"api_version": "2023-03-15-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2023-03-15-preview", "model_capabilities": {"function_calling": true, "json_output": true, "vision": true}, "azure_ad_token_pr ovider": "DEFAULT", "model": "gpt-4o-2024-08-06"}' \
+    --benchmark_specific_utils_file='/home/<user>/autogen/python/packages/autogen-core/samples/adas/utils_my_benchmark.py'
 ```
-You can increase the number of generations for the meta-agent to try creating. Note that if there is any compilation error, the count of the generation will be skipped. (Potential bug, or at least confusing behavior). You can also increase the number of threads to run evaluation of the agent system at any time.
+You can also increase the number of generations for the meta-agent to try creating. Note that if there is any compilation error, the count of the generation will be skipped. (Potential bug, or at least confusing behavior). 
+
+You can also increase or decrease the number of threads to run evaluation of the agent system at any time. Note: There is currently some behavior (bug?) where if `max_workers` is not 1, the code hangs for certain systems. See this [section](#certain-agent-systems-will-hang-if-max_workers-is-not-equal-to-1) for details.
 ```bash
-python3 adas.py --n_generations 50 --max_workers 10
+python3 adas.py --n_generations 100 --max_workers 1
 ```
 ## Results for DROP benchmark
 ### Best Agent System that the Meta-Agent discovered
+See this [section](#all-agent-systems-that-the-meta-agent-discovered-for-drop) for the full list of discovered Agent Systems.
+#### Meta-Agent used o1-preview, and Base Agents used GPT3.5
+```
 TODO
-
-See this [section]() for the full list of discovered Agent Systems.
+```
+#### Meta-Agent used o1-preview, and Base Agents used GPT4.0
+```
+TODO
+```
 
 ### Performance with different LLMs
 The LLM that the Meta-Agent or the Base Agents use These are the results for the DROP benchmark
-```
-Meta-Agent | Base Agent
------------|-----------
-O1-preview | GPT4o
-GPT3.5     | O1-preview
-TODO       | TODO
-TODO       | TODO
-GPT4o      | TODO
-TODO       | TODO
-TODO       | TODO
-```
+| **Meta-Agent \ Base Agent** | **o1-preview** | **GPT-4o** | **GPT-3.5** |
+|------------------------------|----------------|------------|-------------|
+| **o1-preview**               |      TODO      |    TODO    |    TODO     |
+| **GPT-4o**                   |      TODO      |    TODO    |    TODO     |
+
 ## Troubleshooting
 ### Exceed token limit
-If you are exceeding the token rate limit on your Azure AI Studio deployment
+If you are exceeding the token rate limit on your Azure AI Studio deployment, try the following strategies.
 
 #### Increase the Rate Limit in Azure AI Studio
-TODO: Insert image 
+Go to your deployment, and update the Tokens per Minute Rate Limit.
+![Update GPT-3.5 deployment](./docs/azure_ai_studio_edit_deployment.png)
+
 
 #### Setting the number of max_workers=1
-This can be an argument passed to `adas.py`
+This can be an argument passed to `adas.py`.
 
 #### Add sleep time after the forward function for each thread runs. Setting to 10 seconds is a good place to start 
 ```bash
@@ -247,14 +266,14 @@ The code for the Agent System compiles with no issue, but the systems hangs duri
 INFO:autogen_core:Calling message handler for output_result with message type FinalAnswer published by coordinator_agent/default
 ERROR:autogen_core:Error processing publish message
 Traceback (most recent call last): File "/home/andyye/autogen/python/packages/autogen-core/src/autogen_core/application/_single_threaded_agent_runtime.py", line 372, in _process_publish agent = await self._get_agent(agent_id)
-File "/home/andyye/autogen/python/packages/autogen-core/src/autogen_core/application/_single_threaded_agent_runtime.py", line 620, in _get_agent raise LookupError(f"Agent with name {agent_id.type} not found.")
+    File "/home/andyye/autogen/python/packages/autogen-core/src/autogen_core/application/_single_threaded_agent_runtime.py", line 620, in _get_agent raise LookupError(f"Agent with name {agent_id.type} not found.")
 LookupError: Agent with name output_result not found. 
 ```
 The easiest solution is to terminate the program with `Ctrl + \` command, and then rerun the `adas.py` script. 
 
 #### Certain Agent Systems will hang if `max_workers` is not equal to 1.
 
-Another reason is if `max_workers` is not equal to 1. This means we spin up multiple threads to run the agent systems in parallel on the individual validation dataset. This has been overserved for the LLM_debate Agent System. The solution is to terminate the program, set `max_workers=1`, and rerun with this setting just for this agent system during its code execution / evaluation. You can then terminate after this has finished evaluating, and try again without `max_workers=1`.  
+Another reason is if `max_workers` is not equal to 1. This means we spin up multiple threads to run the agent systems in parallel on the individual validation dataset. This has been overserved for the `LLM_debate` or `Tree of Thought` Agent System. The solution is to terminate the program, set `max_workers=1`, and rerun with this setting just for this agent system during its code execution / evaluation. Unfortunately, this means longer time due to single thread of execution. You can then terminate after this has finished evaluating, and try again without `max_workers=1`.  
 
 The reason for this is unknown. 
 
@@ -299,3 +318,20 @@ The reason for this is unknown.
 
 ## Appendix
 
+### All Agent Systems that the Meta-Agent discovered for DROP
+
+#### Meta-Agent used o1-preview, and Base Agents used GPT3.5
+```
+TODO
+```
+#### Meta-Agent used o1-preview, and Base Agents used GPT4.0
+
+Tree of Thought
+```
+
+```
+
+Tree of Thought Imp
+```
+
+```

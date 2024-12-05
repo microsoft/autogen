@@ -49,8 +49,7 @@ def _normalize_answer(text: str) -> str:
     """Lower text and remove punctuation, articles and extra whitespace."""
 
     parts = [
-        _white_space_fix(_remove_articles(_normalize_number(_remove_punc(_lower(token)))))
-        for token in _tokenize(text)
+        _white_space_fix(_remove_articles(_normalize_number(_remove_punc(_lower(token))))) for token in _tokenize(text)
     ]
     parts = [part for part in parts if part.strip()]
     normalized = " ".join(parts).strip()
@@ -72,9 +71,7 @@ def _normalize_number(text: str) -> str:
         return text
 
 
-def _answer_to_bags(
-        answer: Union[str, List[str], Tuple[str, ...]]
-) -> Tuple[List[str], List[Set[str]]]:
+def _answer_to_bags(answer: Union[str, List[str], Tuple[str, ...]]) -> Tuple[List[str], List[Set[str]]]:
     if isinstance(answer, (list, tuple)):
         raw_spans = answer
     else:
@@ -116,11 +113,7 @@ def _compute_f1(predicted_bag: Set[str], gold_bag: Set[str]) -> float:
         recall = 1.0
     else:
         recall = intersection / float(len(gold_bag))
-    f1 = (
-             (2 * precision * recall) / (precision + recall)
-             if not (precision == 0.0 and recall == 0.0)
-             else 0.0
-         ) * 100
+    f1 = ((2 * precision * recall) / (precision + recall) if not (precision == 0.0 and recall == 0.0) else 0.0) * 100
     return f1
 
 
@@ -139,7 +132,7 @@ def _match_numbers_if_present(gold_bag: Set[str], predicted_bag: Set[str]) -> bo
 
 
 def get_drop_metrics(
-        predicted: Union[str, List[str], Tuple[str, ...]], gold: Union[str, List[str], Tuple[str, ...]]
+    predicted: Union[str, List[str], Tuple[str, ...]], gold: Union[str, List[str], Tuple[str, ...]]
 ) -> Tuple[float, float]:
     """
     Takes a predicted answer and a gold answer (that are both either a string or a list of
@@ -174,18 +167,12 @@ def answer_json_to_strings(answer: Dict[str, Any]) -> Tuple[Tuple[str, ...], str
     elif "date" in answer:
         return (
             tuple(
-                [
-                    "{0} {1} {2}".format(
-                        answer["date"]["day"], answer["date"]["month"], answer["date"]["year"]
-                    ).strip()
-                ]
+                ["{0} {1} {2}".format(answer["date"]["day"], answer["date"]["month"], answer["date"]["year"]).strip()]
             ),
             "date",
         )
     else:
-        raise ValueError(
-            f"Answer type not found, should be one of number, spans or date at: {json.dumps(answer)}"
-        )
+        raise ValueError(f"Answer type not found, should be one of number, spans or date at: {json.dumps(answer)}")
 
 
 def answer_json_to_string(answer_json):
@@ -239,9 +226,7 @@ def compute_metrics(predictions: List[Any], labels: List[Any]) -> List[float]:
     for q_idx, res in enumerate(predictions):
         try:
             correct_answers = labels[q_idx]
-            print(
-                f"extracted_answer {res}, correct_answers {correct_answers}"
-            )
+            print(f"extracted_answer {res}, correct_answers {correct_answers}")
             em_score, f1_score = compute_drop_metrics(res, correct_answers)
         except Exception:
             acc_list.append(0)

@@ -26,18 +26,12 @@ def print_repo_contents(repo, path="", indent=""):
     documentation = []
     for content_file in contents:
         if content_file.type == "dir":
-            documentation.extend(
-                print_repo_contents(repo, content_file.path, indent + "│   ")
-            )
+            documentation.extend(print_repo_contents(repo, content_file.path, indent + "│   "))
         else:
-            if content_file.download_url.endswith(
-                ".md"
-            ) or content_file.download_url.endswith(".ipynb"):
+            if content_file.download_url.endswith(".md") or content_file.download_url.endswith(".ipynb"):
                 print(f"Reading file from {content_file.download_url}")
                 f = read_github_file(content_file.download_url)
-                documentation.append(
-                    "Title: " + content_file.name + "\nContents:\n" + f
-                )
+                documentation.append("Title: " + content_file.name + "\nContents:\n" + f)
     return documentation
 
 
@@ -52,9 +46,7 @@ def get_autogen_documentation():
     for subdir in subdirectories:
         try:
             repo = g.get_repo(repo_name)
-            documentation.extend(
-                print_repo_contents(repo, directory_name + "/" + subdir)
-            )
+            documentation.extend(print_repo_contents(repo, directory_name + "/" + subdir))
         except Exception as e:
             print(f"Error: {e}")
     print(f"Found {len(documentation)} pages of documentation")
@@ -1711,14 +1703,13 @@ Make sure to return in a WELL-FORMED JSON object. Key and values of all JSON ent
 
 
 def get_init_archive():
-    return [Tree_of_thought]
-    # return [
-    #     COT,
-    #     COT_SC,
-    #     Reflexion,
-    #     LLM_debate,
-    #     Tree_of_thought,
-    # ]  # TODO: Take_a_step_back, QD, Role_Assignment
+    return [
+        COT,
+        COT_SC,
+        Reflexion,
+        LLM_debate,
+        Tree_of_thought,
+    ]  # TODO: Take_a_step_back, QD, Role_Assignment
 
 
 def get_prompt(current_archive, adaptive=False):
@@ -1731,9 +1722,7 @@ def get_prompt(current_archive, adaptive=False):
 
 
 def get_reflexion_prompt(prev_example):
-    prev_example_str = (
-        "Here is the previous agent you tried:\n" + json.dumps(prev_example) + "\n\n"
-    )
+    prev_example_str = "Here is the previous agent you tried:\n" + json.dumps(prev_example) + "\n\n"
     r1 = (
         Reflexion_prompt_1.replace("[EXAMPLE]", prev_example_str)
         if prev_example
