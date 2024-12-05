@@ -3,8 +3,7 @@ import json
 from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union
 
 import pytest
-from autogen_core import AgentId, CancellationToken, FunctionCall
-from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core import AgentId, CancellationToken, FunctionCall, SingleThreadedAgentRuntime
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,

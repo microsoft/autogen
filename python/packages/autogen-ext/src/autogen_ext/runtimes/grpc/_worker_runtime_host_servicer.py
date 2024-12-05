@@ -4,10 +4,10 @@ from _collections_abc import AsyncIterator, Iterator
 from asyncio import Future, Task
 from typing import Any, Dict, Set, cast
 
-from .. import Subscription, TopicId, TypeSubscription
-from .._type_prefix_subscription import TypePrefixSubscription
+from autogen_core import Subscription, TopicId, TypePrefixSubscription, TypeSubscription
+from autogen_core._runtime_impl_helpers import SubscriptionManager
+
 from ._constants import GRPC_IMPORT_ERROR_STR
-from ._helpers import SubscriptionManager
 
 try:
     import grpc
@@ -20,7 +20,7 @@ logger = logging.getLogger("autogen_core")
 event_logger = logging.getLogger("autogen_core.events")
 
 
-class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
+class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
     """A gRPC servicer that hosts message delivery service for agents."""
 
     def __init__(self) -> None:

@@ -7,8 +7,7 @@ The code snippets are not executed in this example."""
 import asyncio
 import logging
 
-from autogen_core import AgentId, AgentProxy
-from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core import AgentId, AgentProxy, SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
 
 # from typing import Any, Dict, List, Tuple, Union

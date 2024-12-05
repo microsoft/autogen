@@ -6,7 +6,8 @@ from opentelemetry.trace import SpanKind
 from opentelemetry.util import types
 from typing_extensions import NotRequired
 
-from ... import AgentId, TopicId
+from .._agent_id import AgentId
+from .._topic import TopicId
 from ._constants import NAMESPACE
 
 logger = logging.getLogger("autogen_core")
