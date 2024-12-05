@@ -18,7 +18,7 @@ Get started with AgentChat through this comprehensive tutorial.
 Setting up model clients for agents and teams.
 :::
 
-:::{grid-item-card} {fas}`book-open;pst-color-primary` Models
+:::{grid-item-card} {fas}`message;pst-color-primary` Messages
 :link: ./messages.html
 
 Understanding different types of messages.
@@ -54,7 +54,7 @@ A dynamic team that uses handoffs to pass tasks between agents.
 How to build custom agents.
 :::
 
-:::{grid-item-card} {fas}`users;pst-color-primary` State Management
+:::{grid-item-card} {fas}`database;pst-color-primary` State Management
 :link: ./state.html
 
 How to manage state in agents and teams.
