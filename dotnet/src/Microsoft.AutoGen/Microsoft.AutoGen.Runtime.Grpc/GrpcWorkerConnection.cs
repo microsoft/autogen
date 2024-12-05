@@ -95,7 +95,7 @@ internal sealed class GrpcWorkerConnection : IAsyncDisposable
         }
         finally
         {
-            _shutdownCancellationToken.Cancel();
+            await _shutdownCancellationToken.CancelAsync();
             _gateway.OnRemoveWorkerProcess(this);
         }
     }
