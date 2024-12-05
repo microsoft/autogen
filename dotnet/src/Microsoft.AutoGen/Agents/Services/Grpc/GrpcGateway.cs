@@ -166,8 +166,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     }
     private async ValueTask DispatchEventAsync(CloudEvent evt)
     {
-        _subscriptionsState = await _subscriptionsGrain.GetSubscriptionsStateAsync().ConfigureAwait(true);
-        var _subscriptionsByTopic = _subscriptionsState._subscriptionsByTopic;
+        var _subscriptionsByTopic = await _subscriptionsGrain.GetSubscriptionsByTopicAsync().ConfigureAwait(true);
         // get the event type and then send to all agents that are subscribed to that event type
         var eventType = evt.Type;
         // ensure that we get agentTypes as an async enumerable list - try to get the value of agentTypes by topic and then cast it to an async enumerable list
