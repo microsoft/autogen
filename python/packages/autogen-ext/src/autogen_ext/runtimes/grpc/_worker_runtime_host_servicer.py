@@ -20,7 +20,7 @@ logger = logging.getLogger("autogen_core")
 event_logger = logging.getLogger("autogen_core.events")
 
 
-class WorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
+class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
     """A gRPC servicer that hosts message delivery service for agents."""
 
     def __init__(self) -> None:

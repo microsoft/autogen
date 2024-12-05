@@ -3,11 +3,11 @@ import logging
 import platform
 
 from autogen_core import TRACE_LOGGER_NAME
-from autogen_ext.runtimes.grpc import WorkerAgentRuntimeHost
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntimeHost
 
 
 async def run_host():
-    host = WorkerAgentRuntimeHost(address="localhost:50051")
+    host = GrpcWorkerAgentRuntimeHost(address="localhost:50051")
     host.start()  # Start a host service in the background.
     if platform.system() == "Windows":
         try:

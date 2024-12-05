@@ -179,7 +179,7 @@ class HostConnection:
         return await self._recv_queue.get()
 
 
-class WorkerAgentRuntime(AgentRuntime):
+class GrpcWorkerAgentRuntime(AgentRuntime):
     def __init__(
         self,
         host_address: str,
