@@ -1,15 +1,15 @@
-# Tutorial: Video Sufer Agent using AutoGen
+# Tutorial: Video Surfer Agent using AutoGen
 
 In this tutorial you'll learn how to create _video surfer agent_ using AutoGen.
 We'll first walk you through how to create your development environment and then we'll extend
-built-in agents in AutoGen and adapt them to create a the video sufer.
+built-in agents in AutoGen and adapt them to create a the video surfer.
 
 ## What you'll learn
 
 - How to setup and install AutoGen.
-- How to use and modify built-in agent provided by AutoGen.
+- How to use and modify built-in agents provided by AutoGen.
 - How to equip an agent with tools.
-- How to create a multi-agent team.
+- How to create and use a multi-agent team to solve tasks.
 
 ## Requirements and resources
 
@@ -71,23 +71,27 @@ asyncio.run(main())
 
 Note that AutoGen uses the Python async API. Here is a link to [async programming in python](https://docs.python.org/3/library/asyncio.html).
 
-### Exercise 1: Modify the System Prompt
+### Exercise 1: Modify the system message
+
+Modify the system message to describe your video surfer agent's roles and responsibilities.
 
 ```python
   ...
-  SYSTEM_PROMPT="custom system prompt"
-   video_agent = AssistantAgent(
+  SYSTEM_MESSAGE="custom system message"
+  video_agent = AssistantAgent(
         name="VideoSurferAgent",
         model_client=OpenAIChatCompletionClient(
           model="gpt-4o",
           # api_key = "your_openai_api_key"
           ),
-        system_prompt=SYSTEM_PROMPT
+        system_message=SYSTEM_MESSAGE
         )
   ...
 ```
 
-### Exercise 2: Add a Given Action
+### Exercise 2: Add a new action
+
+Give your video surfer agent tools that can be used to perform specific actions. In this case, add an action that allows the video surfer to compute the length of a video.
 
 ```python
 
@@ -110,14 +114,14 @@ def get_video_length(video_path: str) -> str:
 
 
   ...
-  SYSTEM_PROMPT="custom system prompt"
+  SYSTEM_MESSAGE="custom system message"
   video_agent = AssistantAgent(
       name="VideoSurferAgent",
       model_client=OpenAIChatCompletionClient(
         model="gpt-4o",
         # api_key = "your_openai_api_key"
         ),
-      system_prompt=SYSTEM_PROMPT,
+      system_message=SYSTEM_MESSAGE,
       tools=[get_video_length],
    )
   ...
@@ -125,6 +129,10 @@ def get_video_length(video_path: str) -> str:
 ```
 
 ### Exercise 3: Add more actions of your choice
+
+Now add any other tools of your choice. For example, you can try adding a tool that allows video surfer to transcribe the audio in the video, or a tool that allows the video surfer to caption the contents of the video a given timestamp. 
+
+Note that if your tools require new dependecies (e.g., python packages) ensure that you've installed them.
 
 ```python
 
@@ -140,11 +148,9 @@ def tool2(...)
     ...
 ```
 
-You may add any tools of your choice. For example, a tool that allows video surfer to transcribe the audio in the video, or a tool that allows the video surfer to caption the contents of the video a given timestamp. Note that if your tools require new dependecies (e.g., python packages) ensure that you've installed them.
-
 ### Exercise 4: Create an agent team
 
-You will now create a multi-agent team consisting of the a user (using the UserProxyAgent) and the MagenticOneGroupChat, a powerful agent that orchestrate other agents and solve tasks by planning and tracking progress via ledgers.
+Now create a multi-agent team consisting of the a user (using the UserProxyAgent) and the MagenticOneGroupChat, a powerful agent that orchestrates other agents and solve tasks by planning and tracking progress via ledgers.
 
 ```python
 from autogen_agentchat.teams import MagenticOneGroupChat
@@ -160,12 +166,12 @@ async def main() -> None:
         ...  # your arguments
         )
 
-    web_surfer_agent = UserProxyAgent(
+    user_proxy_agent = UserProxyAgent(
         name="User"
     )
 
     # Define a team
-    agent_team = MagenticOneGroupChat([web_surfer_agent, video_agent], model_client=model_client,)
+    agent_team = MagenticOneGroupChat([user_proxy_agent, video_agent], model_client=model_client,)
 
     # Run the team and stream messages to the console
     stream = agent_team.run_stream(task="Answer any questions the user asks about video.mp4.")
