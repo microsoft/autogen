@@ -22,7 +22,7 @@ from autogen_core.code_executor import (
     FunctionWithRequirementsStr,
 )
 
-from ._common import (
+from .._common import (
     CommandLineCodeResult,
     build_python_functions_file,
     get_file_name_from_content,
@@ -327,6 +327,7 @@ $functions"""
     async def start(self) -> None:
         try:
             import asyncio_atexit
+
             import docker
             from docker.errors import ImageNotFound
         except ImportError as e:

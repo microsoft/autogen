@@ -23,7 +23,7 @@ from autogen_core.code_executor import (
 )
 from typing_extensions import ParamSpec
 
-from ._common import build_python_functions_file, get_required_packages, to_stub
+from .._common import build_python_functions_file, get_required_packages, to_stub
 
 if TYPE_CHECKING:
     from azure.core.credentials import AccessToken
