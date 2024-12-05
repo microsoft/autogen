@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 from autogen_core import AgentId, AgentProxy, TopicId
-from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core import SingleThreadedAgentRuntime
 from autogen_core.application.logging import EVENT_LOGGER_NAME
 from autogen_core import DefaultSubscription, DefaultTopicId
 from autogen_core.components.code_executor import LocalCommandLineCodeExecutor

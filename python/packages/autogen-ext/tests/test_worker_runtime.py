@@ -19,9 +19,8 @@ from autogen_core import (
     try_get_known_serializers_for_type,
     type_subscription,
 )
-from autogen_core.application import WorkerAgentRuntime, WorkerAgentRuntimeHost
-from protos.serialization_test_pb2 import ProtoMessage
-from test_utils import (
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime, GrpcWorkerAgentRuntimeHost
+from autogen_test_utils import (
     CascadingAgent,
     CascadingMessageType,
     ContentMessage,
@@ -30,15 +29,16 @@ from test_utils import (
     MessageType,
     NoopAgent,
 )
+from protos.serialization_test_pb2 import ProtoMessage
 
 
 @pytest.mark.asyncio
 async def test_agent_types_must_be_unique_single_worker() -> None:
     host_address = "localhost:50051"
-    host = WorkerAgentRuntimeHost(address=host_address)
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
     host.start()
 
-    worker = WorkerAgentRuntime(host_address=host_address)
+    worker = GrpcWorkerAgentRuntime(host_address=host_address)
     worker.start()
 
     await worker.register_factory(type=AgentType("name1"), agent_factory=lambda: NoopAgent(), expected_class=NoopAgent)
@@ -57,12 +57,12 @@ async def test_agent_types_must_be_unique_single_worker() -> None:
 @pytest.mark.asyncio
 async def test_agent_types_must_be_unique_multiple_workers() -> None:
     host_address = "localhost:50052"
-    host = WorkerAgentRuntimeHost(address=host_address)
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
     host.start()
 
-    worker1 = WorkerAgentRuntime(host_address=host_address)
+    worker1 = GrpcWorkerAgentRuntime(host_address=host_address)
     worker1.start()
-    worker2 = WorkerAgentRuntime(host_address=host_address)
+    worker2 = GrpcWorkerAgentRuntime(host_address=host_address)
     worker2.start()
 
     await worker1.register_factory(type=AgentType("name1"), agent_factory=lambda: NoopAgent(), expected_class=NoopAgent)
@@ -82,10 +82,10 @@ async def test_agent_types_must_be_unique_multiple_workers() -> None:
 @pytest.mark.asyncio
 async def test_register_receives_publish() -> None:
     host_address = "localhost:50053"
-    host = WorkerAgentRuntimeHost(address=host_address)
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
     host.start()
 
-    worker1 = WorkerAgentRuntime(host_address=host_address)
+    worker1 = GrpcWorkerAgentRuntime(host_address=host_address)
     worker1.start()
     worker1.add_message_serializer(try_get_known_serializers_for_type(MessageType))
     await worker1.register_factory(
@@ -93,7 +93,7 @@ async def test_register_receives_publish() -> None:
     )
     await worker1.add_subscription(TypeSubscription("default", "name1"))
 
-    worker2 = WorkerAgentRuntime(host_address=host_address)
+    worker2 = GrpcWorkerAgentRuntime(host_address=host_address)
     worker2.start()
     worker2.add_message_serializer(try_get_known_serializers_for_type(MessageType))
     await worker2.register_factory(
@@ -127,9 +127,9 @@ async def test_register_receives_publish() -> None:
 @pytest.mark.asyncio
 async def test_register_receives_publish_cascade_single_worker() -> None:
     host_address = "localhost:50054"
-    host = WorkerAgentRuntimeHost(address=host_address)
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
     host.start()
-    runtime = WorkerAgentRuntime(host_address=host_address)
+    runtime = GrpcWorkerAgentRuntime(host_address=host_address)
     runtime.start()
 
     num_agents = 5
@@ -164,7 +164,7 @@ async def test_register_receives_publish_cascade_single_worker() -> None:
 async def test_register_receives_publish_cascade_multiple_workers() -> None:
     logging.basicConfig(level=logging.DEBUG)
     host_address = "localhost:50055"
-    host = WorkerAgentRuntimeHost(address=host_address)
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
     host.start()
 
     # TODO: Increasing num_initial_messages or max_round to 2 causes the test to fail.
@@ -176,16 +176,16 @@ async def test_register_receives_publish_cascade_multiple_workers() -> None:
         total_num_calls_expected += num_initial_messages * ((num_agents - 1) ** i)
 
     # Run multiple workers one for each agent.
-    workers: List[WorkerAgentRuntime] = []
+    workers: List[GrpcWorkerAgentRuntime] = []
     # Register agents
     for i in range(num_agents):
-        runtime = WorkerAgentRuntime(host_address=host_address)
+        runtime = GrpcWorkerAgentRuntime(host_address=host_address)
         runtime.start()
         await CascadingAgent.register(runtime, f"name{i}", lambda: CascadingAgent(max_rounds))
         workers.append(runtime)
 
     # Publish messages
-    publisher = WorkerAgentRuntime(host_address=host_address)
+    publisher = GrpcWorkerAgentRuntime(host_address=host_address)
     publisher.add_message_serializer(try_get_known_serializers_for_type(CascadingMessageType))
     publisher.start()
     for _ in range(num_initial_messages):
@@ -207,11 +207,11 @@ async def test_register_receives_publish_cascade_multiple_workers() -> None:
 @pytest.mark.asyncio
 async def test_default_subscription() -> None:
     host_address = "localhost:50056"
-    host = WorkerAgentRuntimeHost(address=host_address)
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
     host.start()
-    worker = WorkerAgentRuntime(host_address=host_address)
+    worker = GrpcWorkerAgentRuntime(host_address=host_address)
     worker.start()
-    publisher = WorkerAgentRuntime(host_address=host_address)
+    publisher = GrpcWorkerAgentRuntime(host_address=host_address)
     publisher.add_message_serializer(try_get_known_serializers_for_type(MessageType))
     publisher.start()
 
@@ -241,11 +241,11 @@ async def test_default_subscription() -> None:
 @pytest.mark.asyncio
 async def test_default_subscription_other_source() -> None:
     host_address = "localhost:50057"
-    host = WorkerAgentRuntimeHost(address=host_address)
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
     host.start()
-    runtime = WorkerAgentRuntime(host_address=host_address)
+    runtime = GrpcWorkerAgentRuntime(host_address=host_address)
     runtime.start()
-    publisher = WorkerAgentRuntime(host_address=host_address)
+    publisher = GrpcWorkerAgentRuntime(host_address=host_address)
     publisher.add_message_serializer(try_get_known_serializers_for_type(MessageType))
     publisher.start()
 
@@ -275,11 +275,11 @@ async def test_default_subscription_other_source() -> None:
 @pytest.mark.asyncio
 async def test_type_subscription() -> None:
     host_address = "localhost:50058"
-    host = WorkerAgentRuntimeHost(address=host_address)
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
     host.start()
-    worker = WorkerAgentRuntime(host_address=host_address)
+    worker = GrpcWorkerAgentRuntime(host_address=host_address)
     worker.start()
-    publisher = WorkerAgentRuntime(host_address=host_address)
+    publisher = GrpcWorkerAgentRuntime(host_address=host_address)
     publisher.add_message_serializer(try_get_known_serializers_for_type(MessageType))
     publisher.start()
 
@@ -312,9 +312,9 @@ async def test_type_subscription() -> None:
 @pytest.mark.asyncio
 async def test_duplicate_subscription() -> None:
     host_address = "localhost:50059"
-    host = WorkerAgentRuntimeHost(address=host_address)
-    worker1 = WorkerAgentRuntime(host_address=host_address)
-    worker1_2 = WorkerAgentRuntime(host_address=host_address)
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
+    worker1 = GrpcWorkerAgentRuntime(host_address=host_address)
+    worker1_2 = GrpcWorkerAgentRuntime(host_address=host_address)
     host.start()
     try:
         worker1.start()
@@ -343,10 +343,10 @@ async def test_duplicate_subscription() -> None:
 @pytest.mark.asyncio
 async def test_disconnected_agent() -> None:
     host_address = "localhost:50060"
-    host = WorkerAgentRuntimeHost(address=host_address)
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
     host.start()
-    worker1 = WorkerAgentRuntime(host_address=host_address)
-    worker1_2 = WorkerAgentRuntime(host_address=host_address)
+    worker1 = GrpcWorkerAgentRuntime(host_address=host_address)
+    worker1_2 = GrpcWorkerAgentRuntime(host_address=host_address)
 
     # TODO: Implementing `get_current_subscriptions` and `get_subscribed_recipients` requires access
     # to some private properties. This needs to be updated once they are available publicly
@@ -421,13 +421,13 @@ class ProtoReceivingAgent(RoutedAgent):
 @pytest.mark.asyncio
 async def test_proto_payloads() -> None:
     host_address = "localhost:50057"
-    host = WorkerAgentRuntimeHost(address=host_address)
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
     host.start()
-    receiver_runtime = WorkerAgentRuntime(
+    receiver_runtime = GrpcWorkerAgentRuntime(
         host_address=host_address, payload_serialization_format=PROTOBUF_DATA_CONTENT_TYPE
     )
     receiver_runtime.start()
-    publisher_runtime = WorkerAgentRuntime(
+    publisher_runtime = GrpcWorkerAgentRuntime(
         host_address=host_address, payload_serialization_format=PROTOBUF_DATA_CONTENT_TYPE
     )
     publisher_runtime.add_message_serializer(try_get_known_serializers_for_type(ProtoMessage))
@@ -473,10 +473,10 @@ async def test_grpc_max_message_size() -> None:
         ("grpc.max_receive_message_length", new_max_size),
     ]
     host_address = "localhost:50061"
-    host = WorkerAgentRuntimeHost(address=host_address, extra_grpc_config=extra_grpc_config)
-    worker1 = WorkerAgentRuntime(host_address=host_address, extra_grpc_config=extra_grpc_config)
-    worker2 = WorkerAgentRuntime(host_address=host_address)
-    worker3 = WorkerAgentRuntime(host_address=host_address, extra_grpc_config=extra_grpc_config)
+    host = GrpcWorkerAgentRuntimeHost(address=host_address, extra_grpc_config=extra_grpc_config)
+    worker1 = GrpcWorkerAgentRuntime(host_address=host_address, extra_grpc_config=extra_grpc_config)
+    worker2 = GrpcWorkerAgentRuntime(host_address=host_address)
+    worker3 = GrpcWorkerAgentRuntime(host_address=host_address, extra_grpc_config=extra_grpc_config)
 
     try:
         host.start()
