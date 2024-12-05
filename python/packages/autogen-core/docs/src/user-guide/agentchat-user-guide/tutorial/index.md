@@ -67,7 +67,7 @@ How to manage state in agents and teams.
 :hidden:
 
 models
-agent_messages
+messages
 agents
 teams
 selector-group-chat
