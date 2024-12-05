@@ -1,4 +1,4 @@
-# Tutorial: Using Distributed Runtime in Autogen
+# Tutorial: Using Distributed Runtime in AutoGen
 
 In this tutorial you'll learn how to distributed runtime works in AutoGen.
 We'll first walk you through how to create your development environment and then we'll guide to to created a two
