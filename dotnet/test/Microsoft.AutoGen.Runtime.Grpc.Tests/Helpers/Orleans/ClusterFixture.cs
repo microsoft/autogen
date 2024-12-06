@@ -7,9 +7,15 @@ namespace Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Orleans;
 
 public sealed class ClusterFixture : IDisposable
 {
-    public TestCluster Cluster { get; } = new TestClusterBuilder().Build();
+    public ClusterFixture()
+    {
+        var builder = new TestClusterBuilder();
+        builder.AddSiloBuilderConfigurator<SiloBuilderConfigurator>();
+        Cluster = builder.Build();
+        Cluster.Deploy();
 
-    public ClusterFixture() => Cluster.Deploy();
+    }
+    public TestCluster Cluster { get; }
 
     void IDisposable.Dispose() => Cluster.StopAllSilos();
 }

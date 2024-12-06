@@ -233,9 +233,9 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         return response;
     }
 
-    public ValueTask<RegisterAgentTypeResponse> RegisterAgentTypeAsync(RegisterAgentTypeRequest request)
+    public async ValueTask<RegisterAgentTypeResponse>  RegisterAgentTypeAsync(RegisterAgentTypeRequest request)
     {
-        throw new NotImplementedException();
+        return new RegisterAgentTypeResponse();
     }
 
     public ValueTask<RpcResponse> InvokeRequest(RpcRequest request)

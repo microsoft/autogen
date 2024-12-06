@@ -49,7 +49,7 @@ public class GrpcGatewayServiceTests
         var service = new GrpcGatewayService(gateway);
         var callContext = TestServerCallContext.Create();
 
-        var response = await service.SaveState(new AgentState { }, callContext);
+        var response = await service.SaveState(new AgentState { AgentId = new AgentId { Key = "", Type = "" } }, callContext);
 
         response.Should().NotBeNull();
     }
