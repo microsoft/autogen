@@ -116,7 +116,7 @@ export type AgentTypes =
   | "CodingAssistantAgent"
   | "MultimodalWebSurfer";
 
-export type TeamTypes = "RoundRobinGroupChat" | "SelectorGroupChat";
+export type TeamTypes = "RoundRobinGroupChat" | "SelectorGroupChat" | "MagenticOneGroupChat";
 
 // class ComponentType(str, Enum):
 //     TEAM = "team"

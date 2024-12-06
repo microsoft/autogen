@@ -8,7 +8,7 @@ import aiofiles
 import yaml
 from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
 from autogen_agentchat.conditions import MaxMessageTermination, StopMessageTermination, TextMentionTermination
-from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
+from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat, MagenticOneGroupChat
 from autogen_core.components.tools import FunctionTool
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.models import OpenAIChatCompletionClient
@@ -32,7 +32,7 @@ from ..utils.utils import Version
 
 logger = logging.getLogger(__name__)
 
-TeamComponent = Union[RoundRobinGroupChat, SelectorGroupChat]
+TeamComponent = Union[RoundRobinGroupChat, SelectorGroupChat, MagenticOneGroupChat]
 AgentComponent = Union[AssistantAgent, MultimodalWebSurfer]
 ModelComponent = Union[OpenAIChatCompletionClient]
 ToolComponent = Union[FunctionTool]  # Will grow with more tool types
@@ -242,6 +242,15 @@ class ComponentFactory:
                     model_client=model_client,
                     termination_condition=termination,
                     selector_prompt=selector_prompt,
+                )
+            elif config.team_type == TeamTypes.MAGENTIC_ONE:
+                if not model_client:
+                    raise ValueError("MagenticOneGroupChat requires a model_client")
+                return MagenticOneGroupChat(
+                    participants=participants,
+                    model_client=model_client,
+                    termination_condition=termination,
+                    max_turns=config.max_turns if config.max_turns is not None else 20,
                 )
             else:
                 raise ValueError(f"Unsupported team type: {config.team_type}")

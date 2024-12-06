@@ -24,6 +24,7 @@ class AgentTypes(str, Enum):
 class TeamTypes(str, Enum):
     ROUND_ROBIN = "RoundRobinGroupChat"
     SELECTOR = "SelectorGroupChat"
+    MAGENTIC_ONE = "MagenticOneGroupChat"
 
 
 class TerminationTypes(str, Enum):
@@ -103,6 +104,7 @@ class TeamConfig(BaseConfig):
     selector_prompt: Optional[str] = None
     termination_condition: Optional[TerminationConfig] = None
     component_type: ComponentTypes = ComponentTypes.TEAM
+    max_turns: Optional[int] = None
 
 
 class TeamResult(BaseModel):
