@@ -23,7 +23,7 @@ from autogen_core.code_executor import (
 )
 from typing_extensions import ParamSpec
 
-from ._common import build_python_functions_file, get_required_packages, to_stub
+from .._common import build_python_functions_file, get_required_packages, to_stub
 
 if TYPE_CHECKING:
     from azure.core.credentials import AccessToken
@@ -47,10 +47,15 @@ class ACADynamicSessionsCodeExecutor(CodeExecutor):
 
     .. note::
 
-        This class requires the :code:`azure` extra for the :code:`autogen-ext` package.
+        This class requires the :code:`azure` extra for the :code:`autogen-ext` package:
 
+        .. code-block:: bash
 
-    **This will execute LLM generated code on an Azure dynamic code container.**
+            pip install 'autogen-ext[azure]==0.4.0.dev9'
+
+    .. caution::
+
+        **This will execute LLM generated code on an Azure dynamic code container.**
 
     The execution environment is similar to that of a jupyter notebook which allows for incremental code execution. The parameter functions are executed in order once at the beginning of each session. Each code block is then executed serially and in the order they are received. Each environment has a statically defined set of available packages which cannot be changed.
     Currently, attempting to use packages beyond what is available on the environment will result in an error. To get the list of supported packages, call the `get_available_packages` function.

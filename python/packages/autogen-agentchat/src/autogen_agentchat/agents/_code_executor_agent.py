@@ -31,7 +31,7 @@ class CodeExecutorAgent(BaseChatAgent):
         Follow the installation instructions for `Docker <https://docs.docker.com/get-docker/>`_.
 
     In this example, we show how to set up a `CodeExecutorAgent` agent that uses the
-    :py:class:`~autogen_ext.code_executors.DockerCommandLineCodeExecutor`
+    :py:class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor`
     to execute code snippets in a Docker container. The `work_dir` parameter indicates where all executed files are first saved locally before being executed in the Docker container.
 
         .. code-block:: python
@@ -39,7 +39,7 @@ class CodeExecutorAgent(BaseChatAgent):
             import asyncio
             from autogen_agentchat.agents import CodeExecutorAgent
             from autogen_agentchat.messages import TextMessage
-            from autogen_ext.code_executors import DockerCommandLineCodeExecutor
+            from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
             from autogen_core import CancellationToken
 
 

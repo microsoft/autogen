@@ -28,7 +28,7 @@ class UserProxyAgent(BaseChatAgent):
 
         Using :class:`UserProxyAgent` puts a running team in a temporary blocked
         state until the user responds. So it is important to time out the user input
-        function and cancel using the :class:`~autogen_core.base.CancellationToken` if the user does not respond.
+        function and cancel using the :class:`~autogen_core.CancellationToken` if the user does not respond.
         The input function should also handle exceptions and return a default response if needed.
 
         For typical use cases that involve
