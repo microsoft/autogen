@@ -18,7 +18,7 @@ from autogen_core.components.models import (
     LLMMessage,
 )
 from autogen_core import DefaultSubscription, DefaultTopicId
-from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_core.components.models import AssistantMessage
 
 from autogen_magentic_one.markdown_browser import MarkdownConverter, UnsupportedFormatException
