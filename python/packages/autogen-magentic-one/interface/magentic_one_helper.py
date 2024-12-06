@@ -7,11 +7,11 @@ import json
 from dataclasses import asdict
 
 from autogen_core import SingleThreadedAgentRuntime
-from autogen_core.application.logging import EVENT_LOGGER_NAME
+from autogen_core import EVENT_LOGGER_NAME
 from autogen_core import AgentId, AgentProxy
 from autogen_core import DefaultTopicId
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_ext.code_executor.docker_executor import DockerCommandLineCodeExecutor
+from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 from autogen_core.code_executor import CodeBlock
 from autogen_magentic_one.agents.coder import Coder, Executor
 from autogen_magentic_one.agents.file_surfer import FileSurfer

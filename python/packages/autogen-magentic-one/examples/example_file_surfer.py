@@ -5,8 +5,7 @@ to write input or perform actions, orchestrated by an round-robin orchestrator a
 import asyncio
 import logging
 
-from autogen_core import AgentId, AgentProxy, SingleThreadedAgentRuntime
-from autogen_core.application.logging import EVENT_LOGGER_NAME
+from autogen_core import EVENT_LOGGER_NAME, AgentId, AgentProxy, SingleThreadedAgentRuntime
 from autogen_magentic_one.agents.file_surfer import FileSurfer
 from autogen_magentic_one.agents.orchestrator import RoundRobinOrchestrator
 from autogen_magentic_one.agents.user_proxy import UserProxy
