@@ -51,7 +51,7 @@ async def main() -> None:
     video_agent = AssistantAgent(
         name="VideoSurferAgent",
         model_client=OpenAIChatCompletionClient(
-          model="gpt-4o",
+          model="gpt-4o-mini",
           # api_key = "your_openai_api_key"
           )
         )
@@ -81,7 +81,7 @@ Modify the system message to describe your video surfer agent's roles and respon
   video_agent = AssistantAgent(
         name="VideoSurferAgent",
         model_client=OpenAIChatCompletionClient(
-          model="gpt-4o",
+          model="gpt-4o-mini",
           # api_key = "your_openai_api_key"
           ),
         system_message=SYSTEM_MESSAGE
@@ -118,7 +118,7 @@ def get_video_length(video_path: str) -> str:
   video_agent = AssistantAgent(
       name="VideoSurferAgent",
       model_client=OpenAIChatCompletionClient(
-        model="gpt-4o",
+        model="gpt-4o-mini",
         # api_key = "your_openai_api_key"
         ),
       system_message=SYSTEM_MESSAGE,
