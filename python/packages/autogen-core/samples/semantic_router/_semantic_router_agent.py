@@ -1,8 +1,14 @@
 import logging
 
 from _semantic_router_components import AgentRegistryBase, IntentClassifierBase, TerminationMessage, UserProxyMessage
-from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, default_subscription, message_handler
-from autogen_core.application.logging import TRACE_LOGGER_NAME
+from autogen_core import (
+    TRACE_LOGGER_NAME,
+    DefaultTopicId,
+    MessageContext,
+    RoutedAgent,
+    default_subscription,
+    message_handler,
+)
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(f"{TRACE_LOGGER_NAME}.semantic_router")
