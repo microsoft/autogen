@@ -25,5 +25,6 @@ group-chat
 handoffs
 mixture-of-agents
 multi-agent-debate
+sequential-chat
 reflection
 ```
