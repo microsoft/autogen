@@ -51,7 +51,12 @@
     {
         "name": "0.4.0.dev8",
         "version": "0.4.0.dev8",
-        "url": "/autogen/0.4.0.dev8/",
+        "url": "/autogen/0.4.0.dev8/"
+    },
+    {
+        "name": "0.4.0.dev9",
+        "version": "0.4.0.dev9",
+        "url": "/autogen/0.4.0.dev9/",
         "preferred": true
     }
 ]
