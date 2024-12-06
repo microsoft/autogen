@@ -39,6 +39,7 @@ from autogen_core.components.tools import FunctionTool, Tool
 _has_openai_dependencies: bool = True
 try:
     import aiofiles
+
     from openai import NOT_GIVEN
     from openai.resources.beta.threads import AsyncMessages, AsyncRuns, AsyncThreads
     from openai.types.beta.code_interpreter_tool_param import CodeInterpreterToolParam
@@ -50,6 +51,7 @@ except ImportError:
 
 if TYPE_CHECKING:
     import aiofiles
+
     from openai import NOT_GIVEN, AsyncClient, NotGiven
     from openai.pagination import AsyncCursorPage
     from openai.resources.beta.threads import AsyncMessages, AsyncRuns, AsyncThreads
@@ -126,7 +128,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
             from openai import AsyncClient
             from autogen_core import CancellationToken
             import asyncio
-            from autogen_ext.agents import OpenAIAssistantAgent
+            from autogen_ext.agents.openai import OpenAIAssistantAgent
             from autogen_agentchat.messages import TextMessage
 
 
