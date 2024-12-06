@@ -75,11 +75,21 @@ public abstract class GroupChatManagerBase : SequentialRoutedAgent,
             return;
         }
 
-        this.messageThread.Add(item.Message);
+        if (item.Message != null)
+        {
+            this.messageThread.Add(item.Message);
+        }
 
         await this.ValidateGroupState(item.Message);
 
-        await this.ProcessNextSpeakerAsync(item.Message);
+        if (item.Message == null)
+        {
+            await this.ProcessNextSpeakerAsync();
+        }
+        else
+        {
+            await this.ProcessNextSpeakerAsync(item.Message);
+        }
     }
 
     public ValueTask HandleAsync(GroupChatAgentResponse item, CancellationToken cancellationToken)

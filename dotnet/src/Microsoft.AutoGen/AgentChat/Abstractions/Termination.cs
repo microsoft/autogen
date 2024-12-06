@@ -66,6 +66,8 @@ internal sealed class CombinerCondition : ITerminationCondition
                     ? (IEnumerable<ITerminationCondition>) combiner.clauses
                     : new[] { c });
 
+        this.conjunction = conjuction;
+
         this.clauses = flattened.ToList();
     }
 

@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// ChatAgentContainer.cs
+// AgentChatBinder.cs
 
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.AgentChat.Abstractions;

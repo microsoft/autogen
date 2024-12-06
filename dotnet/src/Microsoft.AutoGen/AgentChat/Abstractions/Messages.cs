@@ -2,6 +2,7 @@
 // Messages.cs
 
 using System.Collections;
+using System.Diagnostics;
 using System.Text;
 using Microsoft.Extensions.AI;
 
@@ -10,18 +11,17 @@ namespace Microsoft.AutoGen.AgentChat.Abstractions;
 // Needed abstractions
 // TODO: These should come from Protos for x-lang support
 
-public abstract class AgentMessage
-{
-}
-
-/// <summary>
-/// Messages for intra-agent monologues.
-/// </summary>
-public abstract class InternalMessage : AgentMessage
+public abstract class BaseMessage
 {
     public required string Source { get; set; }
+}
 
-    public abstract Microsoft.Extensions.AI.ChatMessage ToCompletionClientMessage();
+public abstract class AgentMessage : BaseMessage
+{
+    public Microsoft.Extensions.AI.ChatMessage ToCompletionClientMessage()
+        => ToCompletionClientMessage(role: ChatRole.Assistant);
+
+    public abstract Microsoft.Extensions.AI.ChatMessage ToCompletionClientMessage(ChatRole role);
 }
 
 /// <summary>
@@ -29,9 +29,6 @@ public abstract class InternalMessage : AgentMessage
 /// </summary>
 public abstract class ChatMessage : AgentMessage
 {
-    public required string Source { get; set; }
-
-    public abstract Microsoft.Extensions.AI.ChatMessage ToCompletionClientMessage();
 }
 
 // Leaf Classes
@@ -39,9 +36,9 @@ public class TextMessage : ChatMessage
 {
     public required string Content { get; set; }
 
-    public override Microsoft.Extensions.AI.ChatMessage ToCompletionClientMessage()
+    public override Microsoft.Extensions.AI.ChatMessage ToCompletionClientMessage(ChatRole role)
     {
-        return new Microsoft.Extensions.AI.ChatMessage(ChatRole.User, this.Content) { AuthorName = this.Source };
+        return new Microsoft.Extensions.AI.ChatMessage(role, this.Content) { AuthorName = this.Source };
     }
 }
 
@@ -177,7 +174,7 @@ public class MultiModalMessage : ChatMessage, IList<AIContent>
         return GetEnumerator();
     }
 
-    public override Microsoft.Extensions.AI.ChatMessage ToCompletionClientMessage()
+    public override Microsoft.Extensions.AI.ChatMessage ToCompletionClientMessage(ChatRole role)
     {
         StringBuilder contentBuilder = new StringBuilder();
         foreach (MultiModalData item in this.Content)
@@ -192,7 +189,7 @@ public class MultiModalMessage : ChatMessage, IList<AIContent>
             }
         }
 
-        return new Microsoft.Extensions.AI.ChatMessage(ChatRole.Assistant, contentBuilder.ToString()) { AuthorName = this.Source };
+        return new Microsoft.Extensions.AI.ChatMessage(role, contentBuilder.ToString()) { AuthorName = this.Source };
     }
 }
 
@@ -202,8 +199,9 @@ public class HandoffMessage : ChatMessage // TODO: Should this be InternalMessag
 
     public required string Content { get; set; }
 
-    public override Microsoft.Extensions.AI.ChatMessage ToCompletionClientMessage()
+    public override Microsoft.Extensions.AI.ChatMessage ToCompletionClientMessage(ChatRole role)
     {
+        Debug.Assert(role == ChatRole.Assistant, "HandoffMessage can only come from agents in the Assistant Role");
         return new Microsoft.Extensions.AI.ChatMessage(ChatRole.Assistant, this.Content) { AuthorName = this.Source };
     }
 }
@@ -212,22 +210,24 @@ public class HandoffMessage : ChatMessage // TODO: Should this be InternalMessag
 //public partial class FunctionCall { }
 public partial class FunctionExecutionResult { }
 
-public class ToolCallMessage : InternalMessage
+public class ToolCallMessage : AgentMessage
 {
     public List<FunctionCallContent> Content { get; private set; } = new List<FunctionCallContent>();
 
-    public override Microsoft.Extensions.AI.ChatMessage ToCompletionClientMessage()
+    public override Microsoft.Extensions.AI.ChatMessage ToCompletionClientMessage(ChatRole role)
     {
+        Debug.Assert(role == ChatRole.Assistant, "ToolCallMessage can only come from agents in the Assistant Role");
         return new Microsoft.Extensions.AI.ChatMessage(ChatRole.Assistant, (IList<AIContent>)this.Content) { AuthorName = this.Source };
     }
 }
 
-public class ToolCallResultMessage : InternalMessage
+public class ToolCallResultMessage : AgentMessage
 {
     public List<FunctionResultContent> Content { get; private set; } = new List<FunctionResultContent>();
 
-    public override Microsoft.Extensions.AI.ChatMessage ToCompletionClientMessage()
+    public override Microsoft.Extensions.AI.ChatMessage ToCompletionClientMessage(ChatRole role)
     {
+        Debug.Assert(role == ChatRole.Tool, "ToolCallResultMessage can only come from agents in the Tool Role");
         return new Microsoft.Extensions.AI.ChatMessage(ChatRole.Tool, (IList<AIContent>)this.Content) { AuthorName = this.Source };
     }
 }
@@ -236,8 +236,9 @@ public class StopMessage : ChatMessage
 {
     public required string Content { get; set; }
 
-    public override Microsoft.Extensions.AI.ChatMessage ToCompletionClientMessage()
+    public override Microsoft.Extensions.AI.ChatMessage ToCompletionClientMessage(ChatRole role)
     {
+        Debug.Assert(role == ChatRole.Assistant, "StopMessage can only come from agents in the Assistant Role");
         return new Microsoft.Extensions.AI.ChatMessage(ChatRole.Assistant, this.Content) { AuthorName = this.Source };
     }
 }

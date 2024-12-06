@@ -3,12 +3,11 @@
 
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.AgentChat.Abstractions;
-using Microsoft.AutoGen.AgentChat.GroupChat;
 using Microsoft.AutoGen.Agents;
 
 namespace Microsoft.AutoGen.AgentChat.GroupChat;
 
-internal class ChatAgentContainer : SequentialRoutedAgent,
+internal sealed class ChatAgentContainer : SequentialRoutedAgent,
                                     IHandleEx<GroupChatStart>,
                                     IHandleEx<GroupChatAgentResponse>,
                                     IHandleEx<GroupChatReset>,
@@ -36,7 +35,11 @@ internal class ChatAgentContainer : SequentialRoutedAgent,
 
     public ValueTask HandleAsync(GroupChatStart item, CancellationToken cancellationToken)
     {
-        this.messageBuffer.Add(item.Message);
+        if (item.Message != null)
+        {
+            this.messageBuffer.Add(item.Message);
+        }
+
         return ValueTask.CompletedTask;
     }
 

@@ -160,9 +160,10 @@ public class AssistantAgent : ChatAgentBase
 
     public override async IAsyncEnumerable<ChatStreamFrame> StreamAsync(IEnumerable<ChatMessage> item, [EnumeratorCancellation] CancellationToken cancellationToken)
     {
-        this.modelContext.AddRange(from message in item select message.ToCompletionClientMessage());
+        // TODO: feed the right Roles into the call
+        this.modelContext.AddRange(from message in item select message.ToCompletionClientMessage(ChatRole.User));
 
-        List<InternalMessage> innerMessages = [];
+        List<AgentMessage> innerMessages = [];
 
         ChatOptions options = new()
         {

@@ -1,4 +1,5 @@
-// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// CodingAssistantAgent.cs
 
 using Microsoft.AutoGen.AgentChat.Abstractions;
 using Microsoft.Extensions.AI;
@@ -9,7 +10,7 @@ using CompletionChatMessage = Microsoft.Extensions.AI.ChatMessage;
 namespace Microsoft.AutoGen.AgentChat.Agents;
 
 // TODO: Replatfrom this on top of AssistantAgent
-internal class CodingAssistantAgent : ChatAgentBase
+public class CodingAssistantAgent : ChatAgentBase
 {
     // TODO: How do we make this be more pluggable depending on what ICodeExecutor can expect to be able to code?
     private const string DefaultDescription = "A helpful and general-purpose AI assistant that has strong language skills, Python skills, and C# .NET skills.";

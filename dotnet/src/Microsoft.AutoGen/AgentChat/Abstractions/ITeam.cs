@@ -3,7 +3,7 @@
 
 namespace Microsoft.AutoGen.AgentChat.Abstractions;
 
-internal interface ITeam : ITaskRunner
+public interface ITeam : ITaskRunner
 {
     ValueTask ResetAsync(CancellationToken cancellationToken = default);
 }

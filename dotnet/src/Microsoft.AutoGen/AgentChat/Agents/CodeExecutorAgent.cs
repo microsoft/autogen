@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // CodeExecutorAgent.cs
 
-using System.Reflection.Metadata.Ecma335;
 using System.Text.RegularExpressions;
+using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.AgentChat.Abstractions;
+
+using TextMessage = Microsoft.AutoGen.AgentChat.Abstractions.TextMessage;
 
 namespace Microsoft.AutoGen.AgentChat.Agents;
 
@@ -23,7 +25,7 @@ public static partial class MarkdownExtensions
     }
 }
 
-internal class CodeExecutorAgent : ChatAgentBase
+public class CodeExecutorAgent : ChatAgentBase
 {
     private const string DefaultDescription = "A computer terminal that performs no other action than running scripts (provided to it quoted in ```<language>> code blocks).";
     public CodeExecutorAgent(string name, ICodeExecutor codeExecutor, string description = DefaultDescription) : base(name, description)

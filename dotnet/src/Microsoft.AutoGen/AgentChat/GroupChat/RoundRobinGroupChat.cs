@@ -14,7 +14,7 @@ namespace Microsoft.AutoGen.AgentChat.GroupChat;
 public class RoundRobinGroupChatManager : GroupChatManagerBase
 {
     private readonly List<string> participantNames;
-    private int currentIndex;
+    //private int currentIndex;
 
     public RoundRobinGroupChatManager(IAgentRuntime context, EventTypes eventTypes, AgentChatBinder configurator) : base(context, eventTypes, configurator)
     {
@@ -23,7 +23,7 @@ public class RoundRobinGroupChatManager : GroupChatManagerBase
 
     public override ValueTask<string> SelectSpeakerAsync(List<AgentMessage> thread)
     {
-        
+        throw new NotImplementedException();
     }
 
     //override Reset()

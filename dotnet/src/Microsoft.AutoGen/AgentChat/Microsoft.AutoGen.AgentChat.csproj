@@ -13,7 +13,6 @@
 
 	<ItemGroup>
 		<ProjectReference Include="../Abstractions/Microsoft.AutoGen.Abstractions.csproj" />
-		<ProjectReference Include="../Runtime/Microsoft.AutoGen.Runtime.csproj" />
 		<ProjectReference Include="../Agents/Microsoft.AutoGen.Agents.csproj" />
 	</ItemGroup>
 

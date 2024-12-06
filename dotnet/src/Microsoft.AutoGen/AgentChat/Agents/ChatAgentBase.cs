@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// BaseChatAgent.cs
+// ChatAgentBase.cs
 
 using System.Runtime.CompilerServices;
 using Microsoft.AutoGen.AgentChat.Abstractions;

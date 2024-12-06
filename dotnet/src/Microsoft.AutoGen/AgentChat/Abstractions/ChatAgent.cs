@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ChatAgent.cs
 
-using System.Configuration;
-using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 using Microsoft.AutoGen.Abstractions;
 
@@ -114,7 +112,7 @@ public class Response
 {
     public required ChatMessage Message { get; set; }
 
-    public List<InternalMessage>? InnerMessages { get; set; }
+    public List<AgentMessage>? InnerMessages { get; set; }
 }
 
 public class StreamingFrame<TResponse, TInternalMessage>() where TInternalMessage : AgentMessage

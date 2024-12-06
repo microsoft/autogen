@@ -27,7 +27,7 @@ internal static class UserProxyExtensions
     }
 }
 
-internal class UserProxyAgent : ChatAgentBase
+public class UserProxyAgent : ChatAgentBase
 {
     public override IEnumerable<Type> ProducedMessageTypes => [typeof(TextMessage), typeof(HandoffMessage)];
     private UserInputAsyncFn userInputFn;

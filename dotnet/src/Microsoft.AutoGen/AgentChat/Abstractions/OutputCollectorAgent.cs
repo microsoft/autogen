@@ -11,10 +11,10 @@ namespace Microsoft.AutoGen.AgentChat.Abstractions;
 
 // TODO: Abstract the core logic of this out into the equivalent of ClosureAgent, because that seems like a
 // useful facility to have in Core
-internal class OutputCollectorAgent : AgentBase,
-                                      IHandleEx<GroupChatStart>,
-                                      IHandleEx<GroupChatMessage>,
-                                      IHandleEx<GroupChatTermination>
+internal sealed class OutputCollectorAgent : AgentBase,
+                                             IHandleEx<GroupChatStart>,
+                                             IHandleEx<GroupChatMessage>,
+                                             IHandleEx<GroupChatTermination>
 {
     public AgentChatBinder binder;
 
@@ -36,7 +36,11 @@ internal class OutputCollectorAgent : AgentBase,
 
     public ValueTask HandleAsync(GroupChatStart item, CancellationToken cancel)
     {
-        this.ForwardMessageInternal(item.Message, cancel);
+        if (item.Message != null)
+        {
+            this.ForwardMessageInternal(item.Message, cancel);
+        }
+
         return ValueTask.CompletedTask;
     }
 

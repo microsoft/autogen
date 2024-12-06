@@ -6,8 +6,7 @@ using System.Text;
 using Microsoft.AutoGen.AgentChat.Abstractions;
 using Microsoft.Extensions.AI;
 
-using MEAI=Microsoft.Extensions.AI;
-
+using MEAI = Microsoft.Extensions.AI;
 
 using ChatMessage = Microsoft.AutoGen.AgentChat.Abstractions.ChatMessage;
 namespace Microsoft.AutoGen.AgentChat.Agents;
@@ -74,7 +73,7 @@ public class StringTemplate(TemplateBuilder builder)
         internal SlotFormatter BindFormat(string? format) => new SlotFormatter(Name, format);
     }
 
-    internal record class SlotFormatter(string Name, string? Format)
+    internal sealed record class SlotFormatter(string Name, string? Format)
     {
         private string FormatInternal<T>(T value)
         {
@@ -99,7 +98,7 @@ public class StringTemplate(TemplateBuilder builder)
         public StringBuilder AppendFormatted(StringBuilder target, IDictionary<string, object?> values) => AppendInternal(target, values[Name]);
     }
 
-    internal class LiteralRun
+    internal sealed class LiteralRun
     {
         private readonly List<string> literals = [];
 
@@ -199,7 +198,7 @@ public class StringTemplate(TemplateBuilder builder)
     }
 }
 
-internal class SocietyOfMindAgent : ChatAgentBase
+public class SocietyOfMindAgent : ChatAgentBase
 {
     public static readonly StringTemplate.Slot TranscriptSlot = new StringTemplate.Slot("transcript");
 
@@ -288,15 +287,32 @@ internal class SocietyOfMindAgent : ChatAgentBase
 
     public override async ValueTask<Response> HandleAsync(IEnumerable<ChatMessage> item, CancellationToken cancellationToken)
     {
+        // In the Python implementation AssistantAgent and SocietyOfMindAgent have different strategies for
+        // reducing on_messages to on_messages_stream. The former returns the first Response as the final
+        // result, while the latter takes the last
+        Response? response = null;
+        await foreach (ChatStreamFrame frame in this.StreamAsync(item, cancellationToken))
+        {
+            if (frame.Type == ChatStreamFrame.FrameType.Response)
+            {
+                response = frame.Response;
+            }
+        };
+
+        return response ?? throw new InvalidOperationException("No response.");
+    }
+
+    public override async IAsyncEnumerable<ChatStreamFrame> StreamAsync(IEnumerable<ChatMessage> item, [EnumeratorCancellation] CancellationToken cancellationToken)
+    {
         List<ChatMessage> delta = item.ToList();
         string taskSpecification = this.FormatTask(this.CreateTranscript(delta));
 
         TaskResult? result = null;
         List<AgentMessage> innerMessages = [];
 
-        await foreach (StreamingFrame<TaskResult> frame in this.team.StreamAsync(taskSpecification, cancellationToken))
+        await foreach (TaskFrame frame in this.team.StreamAsync(taskSpecification, cancellationToken))
         {
-            if (frame.Type == StreamingFrame<TaskResult>.FrameType.Response)
+            if (frame.Type == TaskFrame.FrameType.Response)
             {
                 result = frame.Response!;
                 //break; // Python does not break out on receiving a response, so last response wins
