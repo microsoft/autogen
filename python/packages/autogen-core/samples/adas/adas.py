@@ -21,9 +21,8 @@ from typing import Dict, List
 
 import numpy as np
 from adas_prompt import get_init_archive, get_prompt, get_reflexion_prompt
-from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core import DefaultTopicId, RoutedAgent, SingleThreadedAgentRuntime, default_subscription, message_handler
 from autogen_core.base import MessageContext
-from autogen_core.components import DefaultTopicId, RoutedAgent, default_subscription, message_handler
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -33,6 +32,7 @@ from autogen_core.components.models import (
 )
 from autogen_ext.models import AzureOpenAIChatCompletionClient
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+from pydantic import BaseModel
 from tqdm import tqdm
 from utils import bootstrap_confidence_interval
 
@@ -49,8 +49,7 @@ class ADASTask:
     task: str
 
 
-@dataclass
-class LLMMessageList:
+class LLMMessageList(BaseModel):
     llm_message_list: List[LLMMessage]
 
 
@@ -158,7 +157,7 @@ class ADASAgent(RoutedAgent):
         self._session_memory: Dict[str, List[ADASTask]] = {}
 
         self._system_messages: List[LLMMessage] = [
-            # SystemMessage is not allowed in o1-preview API.
+            # SystemMessage is not allowed in o1-preview API. TODO: Accomodate o1 model
             # SystemMessage(
             AssistantMessage(
                 content=system_prompt,
@@ -230,7 +229,7 @@ class ADASAgent(RoutedAgent):
 
             msg_list = [UserMessage(content=prompt, source=self.metadata["type"])]
             try:
-                response = await self.send_message(LLMMessageList(msg_list), self.id)
+                response = await self.send_message(LLMMessageList(llm_message_list=msg_list), self.id)
                 next_solution = response.json_content
                 (
                     reflexion_prompt_1,
@@ -245,7 +244,7 @@ class ADASAgent(RoutedAgent):
                     AssistantMessage(content=str(next_solution), source=self.metadata["type"]),
                     UserMessage(content=reflexion_prompt_1, source=self.metadata["type"]),
                 ]
-                response = await self.send_message(LLMMessageList(new_messages), self.id)
+                response = await self.send_message(LLMMessageList(llm_message_list=new_messages), self.id)
                 next_solution = response.json_content
                 print(f"--After reflexion_prompt_1 {response}")
 
@@ -254,7 +253,7 @@ class ADASAgent(RoutedAgent):
                     AssistantMessage(content=str(next_solution), source=self.metadata["type"]),
                     UserMessage(content=reflexion_prompt_2, source=self.metadata["type"]),
                 ]
-                response = await self.send_message(LLMMessageList(new_messages), self.id)
+                response = await self.send_message(LLMMessageList(llm_message_list=new_messages), self.id)
                 next_solution = response.json_content
                 print(f"--After reflexion_prompt_2 {next_solution}")
 
@@ -263,7 +262,7 @@ class ADASAgent(RoutedAgent):
                     AssistantMessage(content=str(next_solution), source=self.metadata["type"]),
                     UserMessage(content=reflexion_prompt_3, source=self.metadata["type"]),
                 ]
-                response = await self.send_message(LLMMessageList(new_messages), self.id)
+                response = await self.send_message(LLMMessageList(llm_message_list=new_messages), self.id)
                 next_solution = response.json_content
                 print(f"--After reflexion_prompt_3 {next_solution}")
 
@@ -272,7 +271,7 @@ class ADASAgent(RoutedAgent):
                     AssistantMessage(content=str(next_solution), source=self.metadata["type"]),
                     UserMessage(content=reflexion_prompt_4, source=self.metadata["type"]),
                 ]
-                response = await self.send_message(LLMMessageList(new_messages), self.id)
+                response = await self.send_message(LLMMessageList(llm_message_list=new_messages), self.id)
                 next_solution = response.json_content
                 print(f"--After reflexion_prompt_4 {next_solution}")
             except Exception as e:
@@ -301,7 +300,7 @@ class ADASAgent(RoutedAgent):
                         ),
                     ]
                     try:
-                        response = await self.send_message(LLMMessageList(new_messages), self.id)
+                        response = await self.send_message(LLMMessageList(llm_message_list=new_messages), self.id)
                         next_solution = response.json_content
                     except Exception as e:
                         print("During LLM generate new solution:")

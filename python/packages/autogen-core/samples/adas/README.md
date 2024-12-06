@@ -8,9 +8,8 @@ def forward(self, task, model_client_kwargs):
     import logging
     from dataclasses import dataclass
     from typing import List, Dict, Any
-    from autogen_core.application import SingleThreadedAgentRuntime
+    from autogen_core import SingleThreadedAgentRuntime, default_subscription, RoutedAgent, message_handler, ClosureAgent, ClosureContext, TypeSubscription, DefaultTopicId
     from autogen_core.base import AgentId, AgentRuntime, MessageContext, TopicId
-    from autogen_core.components import default_subscription, RoutedAgent, message_handler, ClosureAgent, TypeSubscription, DefaultTopicId
     from autogen_core.components.models import (
         ChatCompletionClient,
         SystemMessage,
@@ -154,7 +153,7 @@ def forward(self, task, model_client_kwargs):
         # Create a queue to collect the final answer
         queue = asyncio.Queue()
 
-        async def output_result(_runtime: AgentRuntime, id: AgentId, message: FinalAnswer, ctx: MessageContext) -> None:
+        async def output_result(_agent: ClosureContext, message: FinalAnswer, ctx: MessageContext) -> None:
             await queue.put(message)
 
         # Initialize runtime
@@ -169,7 +168,7 @@ def forward(self, task, model_client_kwargs):
 
         # Register ClosureAgent
         result_topic = TypeSubscription(topic_type="result", agent_type="output_result")
-        await ClosureAgent.register(
+        await ClosureAgent.register_closure(
             runtime,
             "output_result",
             output_result,

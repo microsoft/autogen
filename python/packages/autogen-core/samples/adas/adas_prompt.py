@@ -64,9 +64,8 @@ COT = {
     import json
     from dataclasses import dataclass
     import sys
-    from autogen_core.application import SingleThreadedAgentRuntime
+    from autogen_core import SingleThreadedAgentRuntime, DefaultTopicId, RoutedAgent, message_handler, ClosureAgent, ClosureContext, DefaultSubscription
     from autogen_core.base import AgentId, AgentRuntime, MessageContext
-    from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler, ClosureAgent, DefaultSubscription
     from autogen_core.components.models import (
         ChatCompletionClient,
         LLMMessage,
@@ -139,7 +138,7 @@ COT = {
 
         # Create a queue to collect final answer
         queue = asyncio.Queue[FinalResult]()
-        async def output_result(_runtime: AgentRuntime, id: AgentId, message: FinalResult, ctx: MessageContext) -> None:
+        async def output_result(_agent: ClosureContext, message: FinalResult, ctx: MessageContext) -> None:
             await queue.put(message)
 
         # Initialize the agent runtime
@@ -157,7 +156,7 @@ COT = {
             )
         )
         # Create closure agent to collect final output result
-        await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [DefaultSubscription()])
+        await ClosureAgent.register_closure(runtime, "output_result", output_result, subscriptions=lambda: [DefaultSubscription()])
 
         # Start the runtime, and publish the first message
         runtime.start()
@@ -183,9 +182,8 @@ COT_SC = {
     import json
     from dataclasses import dataclass
     import sys
-    from autogen_core.application import SingleThreadedAgentRuntime
+    from autogen_core import SingleThreadedAgentRuntime, DefaultTopicId, RoutedAgent, message_handler, ClosureAgent, ClosureContext, DefaultSubscription
     from autogen_core.base import AgentId, AgentRuntime, MessageContext
-    from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler, ClosureAgent, DefaultSubscription
     from autogen_core.components.models import (
         ChatCompletionClient,
         LLMMessage,
@@ -252,7 +250,7 @@ COT_SC = {
                 system_prompt = "Given all the solutions, reason over them carefully and provide a final answer."
                 system_prompt += "\\n" + "\\n\\n".join([f"{i+1}. {r}" for i, r in enumerate(message.previous_results)])
                 model_result = await self._model_client.create(
-                    [SystemMessage(system_prompt), UserMessage(content=user_prompt, source="user")]
+                    [SystemMessage(content=system_prompt), UserMessage(content=user_prompt, source="user")]
                 )
             else:
                 # If no previous results are provided, we can simply pass the user query to the model.
@@ -295,11 +293,10 @@ COT_SC = {
                 worker_task = WorkerTask(task=message.task, previous_results=[r.result for r in results])
             # Perform final aggregation.
             print(f"{'-'*80}\\nOrchestrator-{self.id}:\\nPerforming final aggregation")
-            # system_prompt = "You have been provided with a set of responses from various open-source models to the latest user query. Your task is to synthesize these responses into a single, high-quality response. It is crucial to critically evaluate the information provided in these responses, recognizing that some of it may be biased or incorrect. Your response should not simply replicate the given answers but should offer a refined, accurate, and comprehensive reply to the instruction. Ensure your response is well-structured, coherent, and adheres to the highest standards of accuracy and reliability.\\n\\nResponses from models:"
             system_prompt = "Given all the above solutions, reason over them carefully and provide a final answer."
             system_prompt += "\\n" + "\\n\\n".join([f"{i+1}. {r}" for i, r in enumerate(worker_task.previous_results)])
             model_result = await self._model_client.create(
-                [SystemMessage(system_prompt), UserMessage(content=message.task, source="user")]
+                [SystemMessage(content=system_prompt), UserMessage(content=message.task, source="user")]
             )
             assert isinstance(model_result.content, str)
             return FinalResult(result=model_result.content)
@@ -347,7 +344,7 @@ Reflexion = {
     from dataclasses import dataclass
     from typing import Dict, List, Union
     from autogen_core.base import MessageContext, TopicId, AgentId, AgentRuntime
-    from autogen_core.components import RoutedAgent, default_subscription, message_handler, TypeSubscription
+    from autogen_core import SingleThreadedAgentRuntime, DefaultTopicId, RoutedAgent, TypeSubscription, DefaultSubscription, ClosureAgent, ClosureContext, message_handler, default_subscription
     from autogen_core.components.models import (
         AssistantMessage,
         ChatCompletionClient,
@@ -355,8 +352,6 @@ Reflexion = {
         SystemMessage,
         UserMessage,
     )
-    from autogen_core.application import SingleThreadedAgentRuntime
-    from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler, ClosureAgent
     from autogen_ext.models import AzureOpenAIChatCompletionClient
     from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
@@ -592,7 +587,7 @@ Reflexion = {
     async def main():
         # Create a queue to collect final answer
         queue = asyncio.Queue[WritingResult]()
-        async def output_result(_runtime: AgentRuntime, id: AgentId, message: WritingResult, ctx: MessageContext) -> None:
+        async def output_result(_agent: ClosureContext, message: WritingResult, ctx: MessageContext) -> None:
             await queue.put(message)
 
         # Initialize the agent runtime
@@ -608,7 +603,7 @@ Reflexion = {
         )
         # Create closure agent to collect final output result
         result_topic = TypeSubscription(topic_type="result", agent_type="output_result")
-        await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])
+        await ClosureAgent.register_closure(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])
 
         # Start the runtime, and publish the first message
         runtime.start()
@@ -641,7 +636,7 @@ LLM_debate = {
     from dataclasses import dataclass
     from typing import Dict, List, Union
     from autogen_core.base import MessageContext, TopicId, AgentId, AgentRuntime
-    from autogen_core.components import RoutedAgent, default_subscription, message_handler, TypeSubscription
+    from autogen_core import SingleThreadedAgentRuntime, RoutedAgent, default_subscription, message_handler, TypeSubscription, ClosureAgent, ClosureContext, DefaultTopicId
     from autogen_core.components.models import (
         AssistantMessage,
         ChatCompletionClient,
@@ -649,8 +644,6 @@ LLM_debate = {
         SystemMessage,
         UserMessage,
     )
-    from autogen_core.application import SingleThreadedAgentRuntime
-    from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler, ClosureAgent
     from autogen_ext.models import AzureOpenAIChatCompletionClient
     from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
@@ -707,7 +700,7 @@ LLM_debate = {
             self._history: List[LLMMessage] = []
             self._buffer: Dict[int, List[IntermediateSolverResponse]] = {}
             self._system_messages = [
-                SystemMessage(
+                SystemMessage(content=
                     (
                         "You are a helpful assistant with expertise in reasoning. "
                         "Your task is to assist in solving a reasoning problem by providing "
@@ -807,7 +800,7 @@ LLM_debate = {
     # Define the main function to set up and run the agent system
     async def main():
         queue = asyncio.Queue[Answer]()
-        async def output_result(_runtime: AgentRuntime, id: AgentId, message: Answer, ctx: MessageContext) -> None:
+        async def output_result(_agent: ClosureContext, message: Answer, ctx: MessageContext) -> None:
             await queue.put(message)
 
         runtime = SingleThreadedAgentRuntime()
@@ -872,7 +865,7 @@ LLM_debate = {
         # All solvers and the aggregator subscribe to the default topic.
 
         result_topic = TypeSubscription(topic_type="result", agent_type="output_result")
-        await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])
+        await ClosureAgent.register_closure(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])
 
         runtime.start()
         await runtime.publish_message(Question(content=task), DefaultTopicId())
@@ -895,9 +888,8 @@ Tree_of_thought = {
     import logging
     from dataclasses import dataclass
     from typing import List, Dict, Any
-    from autogen_core.application import SingleThreadedAgentRuntime
+    from autogen_core import SingleThreadedAgentRuntime, default_subscription, RoutedAgent, message_handler, ClosureAgent, ClosureContext, TypeSubscription, DefaultTopicId
     from autogen_core.base import AgentId, AgentRuntime, MessageContext, TopicId
-    from autogen_core.components import default_subscription, RoutedAgent, message_handler, ClosureAgent, TypeSubscription, DefaultTopicId
     from autogen_core.components.models import (
         ChatCompletionClient,
         SystemMessage,
@@ -1034,7 +1026,7 @@ Tree_of_thought = {
         # Create a queue to collect the final answer 
         queue = asyncio.Queue[FinalAnswer]() 
     
-        async def output_result(_runtime: AgentRuntime, id: AgentId, message: FinalAnswer, ctx: MessageContext) -> None: 
+        async def output_result(_agent: ClosureContext, message: FinalAnswer, ctx: MessageContext) -> None: 
             await queue.put(message) 
     
         # Initialize runtime 
@@ -1049,7 +1041,7 @@ Tree_of_thought = {
     
         # Register ClosureAgent with agent key matching self.id.key (default is "default") 
         result_topic = TypeSubscription(topic_type="result", agent_type="output_result") 
-        await ClosureAgent.register( 
+        await ClosureAgent.register_closure( 
             runtime, 
             "output_result", 
             output_result, 
@@ -1075,7 +1067,7 @@ Tree_of_thought = {
 """,
 }
 
-# TODO(yeandy): Take a Step Back currently not used as a seed in the archive. Refactor using the AutoGen API
+# TODO: Take a Step Back currently not used as a seed in the archive. Refactor using the AutoGen API
 Take_a_step_back = {
     "thought": "Let LLM first think about the principles involved in solving this task which could be helpful. By understanding the underlying principles, the model can better reason through the problem and provide a more accurate solution.",
     "name": "Step-back Abstraction",
@@ -1099,7 +1091,7 @@ Take_a_step_back = {
 """,
 }
 
-# TODO(yeandy): QD currently not used as a seed in the archive. Refactor using the AutoGen API
+# TODO: QD currently not used as a seed in the archive. Refactor using the AutoGen API
 QD = {
     "thought": "Similar to Quality-Diversity methods, let LLM generate multiple diverse interesting solutions could help. By encouraging the model to explore different reasoning paths, we can increase the chances of finding the best solution.",
     "name": "Quality-Diversity",
@@ -1139,7 +1131,7 @@ QD = {
 """,
 }
 
-# TODO(yeandy): Role Assignment currently not used as a seed in the archive. Refactor using the AutoGen API
+# TODO: Role Assignment currently not used as a seed in the archive. Refactor using the AutoGen API
 Role_Assignment = {
     "thought": "Similar to Auto-GPT and expert prompting, we can use dynamic control flow in the design to let the agent decide what expert we should use.",
     "name": "Dynamic Assignment of Roles",
@@ -1244,7 +1236,7 @@ class WorkerAgent(RoutedAgent):
 async def main():
     # Create a queue to collect final answer
     queue = asyncio.Queue[FinalResult]()
-    async def output_result(_runtime: AgentRuntime, id: AgentId, message: FinalResult, ctx: MessageContext) -> None:
+    async def output_result(_agent: ClosureContext, message: FinalResult, ctx: MessageContext) -> None:
         await queue.put(message)
 
     runtime = SingleThreadedAgentRuntime()
@@ -1256,7 +1248,7 @@ async def main():
         runtime, "WorkerAgent", lambda: WorkerAgent(model_client=model_client, instruction=cot_instruction)
     )
     # Create closure agent to collect final output result
-    await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [DefaultSubscription()])
+    await ClosureAgent.register_closure(runtime, "output_result", output_result, subscriptions=lambda: [DefaultSubscription()])
 
     runtime.start()
     await runtime.publish_message(
@@ -1371,11 +1363,10 @@ class OrchestratorAgent(RoutedAgent):
             worker_task = WorkerTask(task=message.task, previous_results=[r.result for r in results])
         # Perform final aggregation.
         print(f"{'-'*80}\\nOrchestrator-{self.id}:\\nPerforming final aggregation")
-        # system_prompt = "You have been provided with a set of responses from various open-source models to the latest user query. Your task is to synthesize these responses into a single, high-quality response. It is crucial to critically evaluate the information provided in these responses, recognizing that some of it may be biased or incorrect. Your response should not simply replicate the given answers but should offer a refined, accurate, and comprehensive reply to the instruction. Ensure your response is well-structured, coherent, and adheres to the highest standards of accuracy and reliability.\\n\\nResponses from models:"
         system_prompt = "Given all the above solutions, reason over them carefully and provide a final answer."
         system_prompt += "\\n" + "\\n\\n".join([f"{i+1}. {r}" for i, r in enumerate(worker_task.previous_results)])
         model_result = await self._model_client.create(
-            [SystemMessage(system_prompt), UserMessage(content=message.task, source="user")]
+            [SystemMessage(content=system_prompt), UserMessage(content=message.task, source="user")]
         )
         assert isinstance(model_result.content, str)
         return FinalResult(result=model_result.content)
@@ -1414,36 +1405,36 @@ await ctx.publish(AdaptiveResult(result=response.content), topic_id=ctx.default_
 Publishing should be called with `self.publish_message()`.
 
 7. This is WRONG: ```
-await ClosureAgent.register(runtime, "final_collection", collect_final_result, subscriptions=[TypeSubscription("consensus_result", "consensus_agent")])
+await ClosureAgent.register_closure(runtime, "final_collection", collect_final_result, subscriptions=[TypeSubscription("consensus_result", "consensus_agent")])
 ```
 The argument passed to `subscriptions` should not be a list. It should be a lambda function to a list. For example: ```
-await ClosureAgent.register(runtime, "final_collection", collect_final_result, subscriptions=lambda: [TypeSubscription("consensus_result", "consensus_agent")])
+await ClosureAgent.register_closure(runtime, "final_collection", collect_final_result, subscriptions=lambda: [TypeSubscription("consensus_result", "consensus_agent")])
 ```
 
 8. This is WRONG: ```
 async def main():
     queue = asyncio.Queue[FinalDecision]()
 
-    async def output_result(_runtime, _id, message, _ctx):
+    async def output_result(_agent, message, _ctx):
         await queue.put(message)
 
     # Closure Agent for collecting results
     result_topic = TopicId("result", "output_result")
     await runtime.add_subscription(TypeSubscription("result", "output_result"))
-    await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])
+    await ClosureAgent.register_closure(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])
 ```
 The function `output_result` that the `ClosureAgent` must follow the following signature: ```
 async def main():
-    async def output_result(_runtime: AgentRuntime, id: AgentId, message: Answer, ctx: MessageContext) -> None:
+    async def output_result(_agent: ClosureContext, message: Answer, ctx: MessageContext) -> None:
         await queue.put(message)
 
     # Closure Agent for collecting results
     result_topic = TopicId("result", "output_result")
     await runtime.add_subscription(TypeSubscription("result", "output_result"))
-    await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])
+    await ClosureAgent.register_closure(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])
 ```
 where the type of `message` can be whatever dataclass is used by the agent publishing the final message. In this case, it is the `Answer` dataclass.
-Additionally, the ClosureAgent MUST subscribe to a `result_topic` called `TopicId("result", "output_result")` using this line `await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])`. And the agent that publishes the final answer MUST publish to the `topic_id=TopicId("result", self.id.type)`.
+Additionally, the ClosureAgent MUST subscribe to a `result_topic` called `TopicId("result", "output_result")` using this line `await ClosureAgent.register_closure(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])`. And the agent that publishes the final answer MUST publish to the `topic_id=TopicId("result", self.id.type)`.
 
 9. This is WRONG: ```
 await runtime.publish_message(Task(content='What is the highest mountain in the world?'), topic_id=TypeSubscription("initial_task", "worker_agent").topic_id())
@@ -1572,7 +1563,7 @@ Creating the model client using the model_client_kwargs dictionary. Do not modif
     async def main():
         # Create a queue to collect final answer
         queue = asyncio.Queue[WritingResult]()
-        async def output_result(_runtime: AgentRuntime, id: AgentId, message: WritingResult, ctx: MessageContext) -> None:
+        async def output_result(_agent: ClosureContext, message: WritingResult, ctx: MessageContext) -> None:
             await queue.put(message)
 
         # Initialize the agent runtime
@@ -1582,7 +1573,7 @@ Creating the model client using the model_client_kwargs dictionary. Do not modif
 
         # Create closure agent to collect final output result
         result_topic = TypeSubscription(topic_type="result", agent_type="output_result")
-        await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])
+        await ClosureAgent.register_closure(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])
 
         # Start the runtime, and publish the first message
         runtime.start()
@@ -1614,7 +1605,7 @@ class Coordinator(RoutedAgent):
 async def main():
     queue = asyncio.Queue[Answer]()
 
-    async def output_result(_runtime: AgentRuntime, id: AgentId, message: Answer, ctx: MessageContext) -> None:
+    async def output_result(_agent: ClosureContext, message: Answer, ctx: MessageContext) -> None:
         await queue.put(message)
 
     runtime = SingleThreadedAgentRuntime()
@@ -1625,7 +1616,7 @@ async def main():
     await Coordinator.register(runtime, "coordinator", lambda: Coordinator(num_solvers=3))
 
     result_topic = TypeSubscription(topic_type="result", agent_type="output_result")
-    await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])
+    await ClosureAgent.register_closure(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])
 
     runtime.start()
     await runtime.publish_message(Question(content=task, reasoning_type='general'), DefaultTopicId())
@@ -1635,7 +1626,7 @@ async def main():
     return (await queue.get()).content
 ```
 The `Coordinator` agent is publishing the final message. It publishes to the topic_id object `TopicId('result', self.id.type)`, where the `type` is `result`, and the `source` is `self.id.type`. This matches the result topic `TypeSubscription(topic_type="result", agent_type="output_result")`, which the `ClosureAgent` subscribes to. Importantly, the `topic_type="result"` matches the topic type "result" used in `publish_message` by the Coordinator agent.
-In other words, the ClosureAgent MUST subscribe to a `result_topic` called `TopicId("result", "output_result")` using this line `await ClosureAgent.register(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])`. And the agent that publishes the final answer MUST publish to the `topic_id=TopicId("result", self.id.type)`.
+In other words, the ClosureAgent MUST subscribe to a `result_topic` called `TopicId("result", "output_result")` using this line `await ClosureAgent.register_closure(runtime, "output_result", output_result, subscriptions=lambda: [result_topic])`. And the agent that publishes the final answer MUST publish to the `topic_id=TopicId("result", self.id.type)`.
 
 ## Documentation
 [DOCUMENTATION]
