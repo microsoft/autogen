@@ -186,6 +186,17 @@ public static partial class DistributedApplicationExtensions
     }
 
     /// <summary>
+    /// Get all logs from the whole test run.
+    /// </summary>
+    /// <param name="app"></param>
+    /// <returns>List</returns>
+    public static IReadOnlyList<FakeLogRecord> GetAllLogs(this DistributedApplication app)
+    {
+        var logCollector = app.Services.GetFakeLogCollector();
+        return logCollector.GetSnapshot();
+    }
+
+    /// <summary>
     /// Asserts that no errors were logged by the application or any of its resources.
     /// </summary>
     /// <remarks>
@@ -216,6 +227,17 @@ public static partial class DistributedApplicationExtensions
                 && !resource.Name.EndsWith("-dapr-cli");
 #pragma warning restore ASPIREHOSTINGPYTHON001
         }
+    }
+
+    /// <summary>
+    /// Asserts that the application and resource logs contain the specified message.
+    /// </summary>
+    /// <param name="app"></param>
+    /// <param name="message"></param>
+    public static void EnsureLogContains(this DistributedApplication app, string message)
+    {
+        var resourceLogs = app.GetAllLogs();
+        Assert.Contains(resourceLogs, log => log.Message.Contains(message));
     }
 
     /// <summary>

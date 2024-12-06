@@ -3,7 +3,6 @@
 
 using System.Text.Json;
 using Xunit.Abstractions;
-using Xunit.Sdk;
 
 namespace Microsoft.AutoGen.Integration.Tests;
 
@@ -20,25 +19,20 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         await app.WaitForResourcesAsync().WaitAsync(TimeSpan.FromSeconds(120));
 
         app.EnsureNoErrorsLogged();
-
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(15));
     }
 
     [Theory]
     [MemberData(nameof(TestEndpoints))]
-    public async Task TestEndpointsReturnOk(TestEndpoints testEndpoints)
+    public async Task AppHostLogsHelloAgentE2E(TestEndpoints testEndpoints)
     {
         var appHostName = testEndpoints.AppHost!;
-        var resourceEndpoints = testEndpoints.ResourceEndpoints!;
-
         var appHostPath = $"{appHostName}.dll";
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
-        var projects = appHost.Resources.OfType<ProjectResource>();
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
 
         await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
         await app.WaitForResourcesAsync().WaitAsync(TimeSpan.FromSeconds(120));
-
         if (testEndpoints.WaitForResources?.Count > 0)
         {
             // Wait until each resource transitions to the required state
@@ -48,53 +42,14 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
                 await app.WaitForResource(ResourceName, TargetState).WaitAsync(timeout);
             }
         }
-
-        foreach (var resource in resourceEndpoints.Keys)
-        {
-            var endpoints = resourceEndpoints[resource];
-
-            if (endpoints.Count == 0)
-            {
-                // No test endpoints so ignore this resource
-                continue;
-            }
-
-            HttpResponseMessage? response = null;
-
-            using var client = app.CreateHttpClient(resource, null, clientBuilder =>
-            {
-                clientBuilder
-                    .ConfigureHttpClient(client => client.Timeout = Timeout.InfiniteTimeSpan)
-                    .AddStandardResilienceHandler(resilience =>
-                    {
-                        resilience.TotalRequestTimeout.Timeout = TimeSpan.FromSeconds(120);
-                        resilience.AttemptTimeout.Timeout = TimeSpan.FromSeconds(60);
-                        resilience.Retry.MaxRetryAttempts = 30;
-                        resilience.CircuitBreaker.SamplingDuration = resilience.AttemptTimeout.Timeout * 2;
-                    });
-            });
-
-            foreach (var path in endpoints)
-            {
-                testOutput.WriteLine($"Calling endpoint '{client.BaseAddress}{path.TrimStart('/')} for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}'");
-                try
-                {
-                    response = await client.GetAsync(path);
-                }
-                catch(Exception e)
-                {
-                    throw new XunitException($"Failed calling endpoint '{client.BaseAddress}{path.TrimStart('/')} for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}'", e);
-                }
-
-                Assert.True(HttpStatusCode.OK == response.StatusCode, $"Endpoint '{client.BaseAddress}{path.TrimStart('/')}' for resource '{resource}' in app '{Path.GetFileNameWithoutExtension(appHostPath)}' returned status code {response.StatusCode}");
-            }
-        }
-
+        //sleep 5 seconds to make sure the app is running
+        await Task.Delay(5000);
         app.EnsureNoErrorsLogged();
+        app.EnsureLogContains("HelloAgents said Goodbye");
+        app.EnsureLogContains("Wild Hello");
 
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(15));
     }
-
     public static TheoryData<string> AppHostAssemblies()
     {
         var appHostAssemblies = GetSamplesAppHostAssemblyPaths();
