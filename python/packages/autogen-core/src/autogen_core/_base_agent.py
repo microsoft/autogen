@@ -122,7 +122,7 @@ class BaseAgent(ABC, Agent):
         *,
         cancellation_token: CancellationToken | None = None,
     ) -> Any:
-        """See :py:meth:`autogen_core.base.AgentRuntime.send_message` for more information."""
+        """See :py:meth:`autogen_core.AgentRuntime.send_message` for more information."""
         if cancellation_token is None:
             cancellation_token = CancellationToken()
 

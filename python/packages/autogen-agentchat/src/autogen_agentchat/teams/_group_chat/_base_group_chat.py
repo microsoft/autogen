@@ -210,7 +210,7 @@ class BaseGroupChat(Team, ABC):
             asyncio.run(main())
 
 
-        Example using the :class:`~autogen_core.base.CancellationToken` to cancel the task:
+        Example using the :class:`~autogen_core.CancellationToken` to cancel the task:
 
         .. code-block:: python
 
@@ -310,7 +310,7 @@ class BaseGroupChat(Team, ABC):
             asyncio.run(main())
 
 
-        Example using the :class:`~autogen_core.base.CancellationToken` to cancel the task:
+        Example using the :class:`~autogen_core.CancellationToken` to cancel the task:
 
         .. code-block:: python
 
