@@ -112,6 +112,15 @@ dev = [
 ]
 
 [[package]]
+name = "aioconsole"
+version = "0.8.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/c7/c9/c57e979eea211b10a63783882a826f257713fa7c0d6c9a6eac851e674fb4/aioconsole-0.8.1.tar.gz", hash = "sha256:0535ce743ba468fb21a1ba43c9563032c779534d4ecd923a46dbd350ad91d234", size = 61085 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/fa/ea/23e756ec1fea0c685149304dda954b3b3932d6d06afbf42a66a2e6dc2184/aioconsole-0.8.1-py3-none-any.whl", hash = "sha256:e1023685cde35dde909fbf00631ffb2ed1c67fe0b7058ebb0892afbde5f213e5", size = 43324 },
+]
+
+[[package]]
 name = "aiofiles"
 version = "24.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -356,6 +365,7 @@ name = "autogen-core"
 version = "0.4.0.dev9"
 source = { editable = "packages/autogen-core" }
 dependencies = [
+    { name = "aioconsole" },
     { name = "aiohttp" },
     { name = "asyncio-atexit" },
     { name = "jsonref" },
@@ -419,6 +429,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
+    { name = "aioconsole" },
     { name = "aiohttp" },
     { name = "asyncio-atexit" },
     { name = "grpcio", marker = "extra == 'grpc'", specifier = "~=1.62.0" },

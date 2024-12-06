@@ -17,6 +17,7 @@ classifiers = [
 dependencies = [
     "openai>=1.3",
     "pillow",
+    "aioconsole",
     "aiohttp",
     "typing-extensions",
     "pydantic<3.0.0,>=2.0.0",
