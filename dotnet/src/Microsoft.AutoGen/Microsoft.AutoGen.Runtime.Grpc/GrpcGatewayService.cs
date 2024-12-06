@@ -18,7 +18,9 @@ public sealed class GrpcGatewayService : AgentRpc.AgentRpcBase
     {
         try
         {
-            await Gateway.ConnectToWorkerProcess(requestStream, responseStream, context).ConfigureAwait(true);
+            var connectionId = await Gateway.ConnectToWorkerProcess(requestStream, responseStream, context).ConfigureAwait(true);
+            // Generate a response with the connectionId, to be used in subsequent RPC requests to the service
+            await responseStream.WriteAsync(new Message { Response = new RpcResponse { RequestId = connectionId } });
         }
         catch
         {

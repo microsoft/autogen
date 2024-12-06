@@ -18,7 +18,8 @@ using Grpc.Core;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Grpc;
 
-public class TestAsyncStreamReader<T> : IAsyncStreamReader<T> where T : class
+public class TestAsyncStreamReader<T> : IDisposable, IAsyncStreamReader<T>
+                                           where T : class
 {
     private readonly Channel<T> _channel;
     private readonly ServerCallContext _serverCallContext;
@@ -59,5 +60,10 @@ public class TestAsyncStreamReader<T> : IAsyncStreamReader<T> where T : class
             Current = null!;
             return false;
         }
+    }
+
+    public void Dispose()
+    {
+        Complete();
     }
 }

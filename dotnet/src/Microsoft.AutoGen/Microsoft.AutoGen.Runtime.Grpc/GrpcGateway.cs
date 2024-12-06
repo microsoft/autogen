@@ -20,12 +20,16 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     // The agents supported by each worker process.
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
     internal readonly ConcurrentDictionary<GrpcWorkerConnection, GrpcWorkerConnection> _workers = new();
+    internal readonly ConcurrentDictionary<string, GrpcWorkerConnection> _workersByConnection = new();
     private readonly ConcurrentDictionary<string, HashSet<string>> _agentsToEventsMap = new();
 
     // The mapping from agent id to worker process.
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
     // RPC
     private readonly ConcurrentDictionary<(GrpcWorkerConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
+
+    public int WorkersCount => _workers.Count;
+
     // InMemory Message Queue
 
     public GrpcGateway(IClusterClient clusterClient, ILogger<GrpcGateway> logger)
@@ -59,11 +63,14 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
     }
 
-    internal async Task ConnectToWorkerProcess(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
+    internal async Task<string> ConnectToWorkerProcess(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {
         _logger.LogInformation("Received new connection from {Peer}.", context.Peer);
         var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
+        var connectionId = Guid.NewGuid().ToString();
         _workers[workerProcess] = workerProcess;
+        _workersByConnection[connectionId] = workerProcess;
+
         var completion = new TaskCompletionSource<Task>();
         var _ = Task.Run(() =>
         {
@@ -71,6 +78,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         });
         
         await completion.Task;
+        return connectionId;
     }
 
     public async ValueTask BroadcastEvent(CloudEvent evt)
@@ -152,14 +160,23 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         */
     }
 
-    private async ValueTask RegisterAgentTypeAsync(GrpcWorkerConnection connection, RegisterAgentTypeRequest msg)
+    public async ValueTask<RegisterAgentTypeResponse> RegisterAgentTypeAsync(RegisterAgentTypeRequest request)
     {
-        connection.AddSupportedType(msg.Type);
-        _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
-        _agentsToEventsMap.TryAdd(msg.Type, new HashSet<string>(msg.Events));
+        var connection = _workersByConnection[request.RequestId];
+        connection.AddSupportedType(request.Type);
+        _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
+        _agentsToEventsMap.TryAdd(request.Type, new HashSet<string>(request.Events));
 
-        await _gatewayRegistry.RegisterAgentType(msg.Type, _reference).ConfigureAwait(true);
+        await _gatewayRegistry.RegisterAgentType(request.Type, _reference).ConfigureAwait(true);
+        var response = new RegisterAgentTypeResponse {
+        };
+        return response;
     }
+
+    //private async ValueTask RegisterAgentTypeAsync(GrpcWorkerConnection connection, RegisterAgentTypeRequest msg)
+    //{
+       
+    //}
 
     private static async Task InvokeRequestDelegate(GrpcWorkerConnection connection, RpcRequest request, Func<RpcRequest, Task<RpcResponse>> func)
     {
@@ -236,10 +253,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         return response;
     }
 
-    public async ValueTask<RegisterAgentTypeResponse>  RegisterAgentTypeAsync(RegisterAgentTypeRequest request)
-    {
-        return new RegisterAgentTypeResponse();
-    }
+   
 
     public ValueTask<RpcResponse> InvokeRequest(RpcRequest request)
     {

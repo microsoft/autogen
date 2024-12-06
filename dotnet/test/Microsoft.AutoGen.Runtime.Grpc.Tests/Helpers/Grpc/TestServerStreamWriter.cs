@@ -18,7 +18,7 @@ using Grpc.Core;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Grpc;
 
-public class TestServerStreamWriter<T> : IServerStreamWriter<T> where T : class
+public class TestServerStreamWriter<T> : IDisposable, IServerStreamWriter<T> where T : class
 {
     private readonly ServerCallContext _serverCallContext;
     private readonly Channel<T> _channel;
@@ -77,5 +77,10 @@ public class TestServerStreamWriter<T> : IServerStreamWriter<T> where T : class
     public Task WriteAsync(T message)
     {
         return WriteAsync(message, CancellationToken.None);
+    }
+
+    public void Dispose()
+    {
+        Complete();
     }
 }

@@ -61,5 +61,14 @@ public sealed class EventTypes
         }
         return null;
     }
+
+    public HashSet<string>? GetEventsForAgent(Type agent)
+    {
+        if (_eventsMap.TryGetValue(agent, out var events))
+        {
+            return events;
+        }
+        return null;
+    }
 }
 

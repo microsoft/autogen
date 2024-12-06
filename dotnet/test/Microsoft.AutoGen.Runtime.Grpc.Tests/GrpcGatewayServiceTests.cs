@@ -3,10 +3,12 @@
 
 using FluentAssertions;
 using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Core;
 using Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Grpc;
 using Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Orleans;
 using Microsoft.Extensions.Logging;
 using Moq;
+using Tests.Events;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Tests;
 [Collection(ClusterCollection.Name)]
@@ -26,30 +28,63 @@ public class GrpcGatewayServiceTests
         var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
         var service = new GrpcGatewayService(gateway);
         var callContext = TestServerCallContext.Create();
-        var requestStream = new TestAsyncStreamReader<Message>(callContext);
-        var responseStream = new TestServerStreamWriter<Message>(callContext);
 
-        await service.RegisterAgent(new RegisterAgentTypeRequest { Type = nameof(PBAgent), RequestId = $"{Guid.NewGuid()}", Events = { "", "" } }, callContext);
-        await service.RegisterAgent(new RegisterAgentTypeRequest { Type = nameof(GMAgent), RequestId = $"{Guid.NewGuid()}", Events = { "", "" } }, callContext);
+        using var requestStream = new TestAsyncStreamReader<Message>(callContext);
+        using var responseStream = new TestServerStreamWriter<Message>(callContext);
+
+        gateway.WorkersCount.Should().Be(0);
+        await service.OpenChannel(requestStream, responseStream, callContext);
+        gateway.WorkersCount.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task Test_Message_Exchange_Through_Gateway()
+    {
+        var logger = Mock.Of<ILogger<GrpcGateway>>();
+        var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
+        var service = new GrpcGatewayService(gateway);
+        var callContext = TestServerCallContext.Create();
+
+        using var requestStream = new TestAsyncStreamReader<Message>(callContext);
+        using var responseStream = new TestServerStreamWriter<Message>(callContext);
+
+        var assembly = typeof(PBAgent).Assembly;
+        var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
 
         await service.OpenChannel(requestStream, responseStream, callContext);
-
-        var bgEvent = new CloudEvent
-        {
-            Id = "1",
-            Source = "gh/repo/1",
-            Type = "test",
-
-        };
-
-        requestStream.AddMessage(new Message { CloudEvent = bgEvent });
-
-        requestStream.Complete();
-
-        responseStream.Complete();
-
         var responseMessage = await responseStream.ReadNextAsync();
-        responseMessage.Should().NotBeNull();
+
+        await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), responseMessage!.Response.RequestId), callContext);
+        await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(GMAgent), responseMessage!.Response.RequestId), callContext);
+
+        var inputEvent = new NewMessageReceived { Message = "Hello" }.ToCloudEvent("gh-gh-gh");
+
+        requestStream.AddMessage(new Message { CloudEvent = inputEvent });
+        var newMessageReceived = await responseStream.ReadNextAsync();
+        newMessageReceived!.CloudEvent.Type.Should().Be(GetFullName(typeof(NewMessageReceived)));
+
+        // Simulate an agent, by publishing a new message in the request stream
+
+        var outputEvent = await responseStream.ReadNextAsync();
+        outputEvent!.CloudEvent.Type.Should().Be(GetFullName(typeof(Hello)));
+
+    }
+
+    private RegisterAgentTypeRequest CreateRegistrationRequest(EventTypes eventTypes, Type type, string requestId)
+    {
+        var registration = new RegisterAgentTypeRequest
+        {
+            Type = type.Name,
+            RequestId = requestId
+        };
+        registration.Events.AddRange(eventTypes.GetEventsForAgent(type)?.ToList());
+
+        return registration;
+    }
+
+    private string GetFullName(Type type)
+    {
+        return ReflectionHelper.GetMessageDescriptor(type)!.FullName;
     }
 
     [Fact]
