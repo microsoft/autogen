@@ -34,3 +34,27 @@ worker1 = GrpcWorkerAgentRuntime(host_address=host_address, extra_grpc_config=ex
 ```
 
 **Note**: When `GrpcWorkerAgentRuntime` creates a host connection for the clients, it uses `DEFAULT_GRPC_CONFIG` from `HostConnection` class as default set of values which will can be overriden if you pass parameters with the same name using `extra_grpc_config`.
+
+## What are model capabilities and how do I specify them?
+
+Model capabilites are additional capabilities an LLM may have beyond the standard natural language features. There are currently 3 additional capabilities that can be specified within Autogen
+
+- vision: The model is capable of processing and interpreting image data.
+- function_calling: The model has the capacity to accept function descriptions; such as the function name, purpose, input parameters, etc; and can respond with an appropriate function to call including any necessary parameters.
+- json_output: The model is capable of outputting responses to conform with a specified json format.
+
+Model capabilities can be passed into a model, which will override the default definitions. These capabilities will not affect what the underlying model is actually capable of, but will allow or disallow behaviors associated with them. This is particularly useful when [using local LLMs](cookbook/local-llms-ollama-litellm.ipynb).
+
+```python
+from autogen_ext.models import OpenAIChatCompletionClient
+
+client = OpenAIChatCompletionClient(
+    model="gpt-4o",
+    api_key="YourApiKey",
+    model_capabilities={
+        "vision": True,
+        "function_calling": False,
+        "json_output": False,
+    }
+)
+```
