@@ -12,22 +12,22 @@ namespace Microsoft.AutoGen.Integration.Tests;
 
 public static partial class DistributedApplicationExtensions
 {
-  /*  /// <summary>
-    /// Ensures all parameters in the application configuration have values set.
-    /// </summary>
-     public static TBuilder WithRandomParameterValues<TBuilder>(this TBuilder builder)
-        where TBuilder : IDistributedApplicationTestingBuilder
-    {
-        var parameters = builder.Resources.OfType<ParameterResource>().Where(p => !p.IsConnectionString).ToList();
-        foreach (var parameter in parameters)
-        {
-            builder.Configuration[$"Parameters:{parameter.Name}"] = parameter.Secret
-                ? PasswordGenerator.Generate(16, true, true, true, false, 1, 1, 1, 0)
-                : Convert.ToHexString(RandomNumberGenerator.GetBytes(4));
-        }
+    /*  /// <summary>
+      /// Ensures all parameters in the application configuration have values set.
+      /// </summary>
+       public static TBuilder WithRandomParameterValues<TBuilder>(this TBuilder builder)
+          where TBuilder : IDistributedApplicationTestingBuilder
+      {
+          var parameters = builder.Resources.OfType<ParameterResource>().Where(p => !p.IsConnectionString).ToList();
+          foreach (var parameter in parameters)
+          {
+              builder.Configuration[$"Parameters:{parameter.Name}"] = parameter.Secret
+                  ? PasswordGenerator.Generate(16, true, true, true, false, 1, 1, 1, 0)
+                  : Convert.ToHexString(RandomNumberGenerator.GetBytes(4));
+          }
 
-        return builder;
-    } */
+          return builder;
+      } */
 
     /// <summary>
     /// Sets the container lifetime for all container resources in the application.
@@ -112,7 +112,7 @@ public static partial class DistributedApplicationExtensions
     {
         var logger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger(nameof(WaitForResourcesAsync));
 
-        targetStates ??= [KnownResourceStates.Running, KnownResourceStates.Hidden, ..KnownResourceStates.TerminalStates];
+        targetStates ??= [KnownResourceStates.Running, KnownResourceStates.Hidden, .. KnownResourceStates.TerminalStates];
         var applicationModel = app.Services.GetRequiredService<DistributedApplicationModel>();
         var resourceNotificationService = app.Services.GetRequiredService<ResourceNotificationService>();
 
