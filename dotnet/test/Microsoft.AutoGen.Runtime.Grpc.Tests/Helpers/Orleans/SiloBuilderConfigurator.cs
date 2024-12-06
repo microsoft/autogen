@@ -12,7 +12,10 @@ public class SiloBuilderConfigurator : ISiloConfigurator
     {
         siloBuilder.ConfigureServices(services =>
         {
-           services.AddSerializer(a=> a.AddProtobufSerializer());
+            services.AddSerializer(a => a.AddProtobufSerializer());
         });
+        siloBuilder.AddMemoryStreams("StreamProvider")
+                    .AddMemoryGrainStorage("PubSubStore")
+                    .AddMemoryGrainStorage("AgentStateStore");
     }
 }

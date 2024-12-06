@@ -29,9 +29,20 @@ public class GrpcGatewayServiceTests
         var requestStream = new TestAsyncStreamReader<Message>(callContext);
         var responseStream = new TestServerStreamWriter<Message>(callContext);
 
+        await service.RegisterAgent(new RegisterAgentTypeRequest { Type = nameof(PBAgent), RequestId = $"{Guid.NewGuid()}", Events = { "", "" } }, callContext);
+        await service.RegisterAgent(new RegisterAgentTypeRequest { Type = nameof(GMAgent), RequestId = $"{Guid.NewGuid()}", Events = { "", "" } }, callContext);
+
         await service.OpenChannel(requestStream, responseStream, callContext);
 
-        requestStream.AddMessage(new Message {  });
+        var bgEvent = new CloudEvent
+        {
+            Id = "1",
+            Source = "gh/repo/1",
+            Type = "test",
+
+        };
+
+        requestStream.AddMessage(new Message { CloudEvent = bgEvent });
 
         requestStream.Complete();
 
@@ -62,7 +73,7 @@ public class GrpcGatewayServiceTests
         var service = new GrpcGatewayService(gateway);
         var callContext = TestServerCallContext.Create();
 
-        var response = await service.GetState(new AgentId { }, callContext);
+        var response = await service.GetState(new AgentId { Key = "", Type = "" }, callContext);
 
         response.Should().NotBeNull();
     }

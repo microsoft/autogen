@@ -10,13 +10,14 @@ namespace Microsoft.AutoGen.Runtime.Grpc;
 internal sealed class GrpcWorkerConnection : IAsyncDisposable
 {
     private static long s_nextConnectionId;
-    private readonly Task _readTask;
-    private readonly Task _writeTask;
+    private Task? _readTask;
+    private Task? _writeTask;
     private readonly string _connectionId = Interlocked.Increment(ref s_nextConnectionId).ToString();
     private readonly object _lock = new();
     private readonly HashSet<string> _supportedTypes = [];
     private readonly GrpcGateway _gateway;
     private readonly CancellationTokenSource _shutdownCancellationToken = new();
+    public Task? Completion { get; private set; }
 
     public GrpcWorkerConnection(GrpcGateway agentWorker, IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {
@@ -25,7 +26,10 @@ internal sealed class GrpcWorkerConnection : IAsyncDisposable
         ResponseStream = responseStream;
         ServerCallContext = context;
         _outboundMessages = Channel.CreateUnbounded<Message>(new UnboundedChannelOptions { AllowSynchronousContinuations = true, SingleReader = true, SingleWriter = false });
+    }
 
+    public Task Connect()
+    {
         var didSuppress = false;
         if (!ExecutionContext.IsFlowSuppressed())
         {
@@ -46,7 +50,7 @@ internal sealed class GrpcWorkerConnection : IAsyncDisposable
             }
         }
 
-        Completion = Task.WhenAll(_readTask, _writeTask);
+        return Completion = Task.WhenAll(_readTask, _writeTask);
     }
 
     public IAsyncStreamReader<Message> RequestStream { get; }
@@ -75,8 +79,6 @@ internal sealed class GrpcWorkerConnection : IAsyncDisposable
     {
         await _outboundMessages.Writer.WriteAsync(message).ConfigureAwait(false);
     }
-
-    public Task Completion { get; }
 
     public async Task RunReadPump()
     {
@@ -122,7 +124,10 @@ internal sealed class GrpcWorkerConnection : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         _shutdownCancellationToken.Cancel();
-        await Completion.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        if (Completion is not null)
+        {
+            await Completion.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
+        }
     }
 
     public override string ToString() => $"Connection-{_connectionId}";

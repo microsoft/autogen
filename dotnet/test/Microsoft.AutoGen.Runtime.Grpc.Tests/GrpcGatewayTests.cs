@@ -29,7 +29,8 @@ public class GrpcGatewayTests
 
         // 1. Register Agent
         // 2. Broadcast Event
-        // 3. 
+        // 3.
+       
         await gateway.BroadcastEvent(evt);
         //var registry = fixture.Registry;
         //var subscriptions = fixture.Subscriptions;

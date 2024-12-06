@@ -1,11 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentStateGrain.cs
 
+using System.Data;
 using Microsoft.AutoGen.Abstractions;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
 
-internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore")] IPersistentState<AgentState> state) : Grain
+internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore")] IPersistentState<AgentState> state) : Grain, IAgentGrain
 {
     /// <inheritdoc />
     public async ValueTask<string> WriteStateAsync(AgentState newState, string eTag/*, CancellationToken cancellationToken = default*/)
@@ -22,7 +23,7 @@ internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore
         else
         {
             //TODO - this is probably not the correct behavior to just throw - I presume we want to somehow let the caller know that the state has changed and they need to re-read it
-            throw new ArgumentException(
+            throw new DBConcurrencyException(
                 "The provided ETag does not match the current ETag. The state has been modified by another request.");
         }
         return state.Etag;
@@ -33,4 +34,10 @@ internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore
     {
         return ValueTask.FromResult(state.State);
     }
+}
+
+internal interface IAgentGrain : IGrainWithStringKey
+{
+    ValueTask<AgentState> ReadStateAsync();
+    ValueTask<string> WriteStateAsync(AgentState state, string eTag);
 }

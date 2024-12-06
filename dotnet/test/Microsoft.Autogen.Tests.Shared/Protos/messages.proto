@@ -7,7 +7,7 @@ message TextMessage {
     string message = 1;
     string source = 2;
 }
-message Input {
+message Hello {
       string message = 1;
 }
 message InputProcessed {

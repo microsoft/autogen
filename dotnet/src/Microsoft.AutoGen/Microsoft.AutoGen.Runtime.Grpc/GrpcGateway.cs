@@ -14,7 +14,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private static readonly TimeSpan s_agentResponseTimeout = TimeSpan.FromSeconds(30);
     private readonly ILogger<GrpcGateway> _logger;
     private readonly IClusterClient _clusterClient;
-    private readonly ConcurrentDictionary<string, AgentState> _agentState = new();
     private readonly IRegistryGrain _gatewayRegistry;
     private readonly IGateway _reference;
 
@@ -60,12 +59,18 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
     }
 
-    internal Task ConnectToWorkerProcess(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
+    internal async Task ConnectToWorkerProcess(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {
         _logger.LogInformation("Received new connection from {Peer}.", context.Peer);
         var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
         _workers[workerProcess] = workerProcess;
-        return workerProcess.Completion;
+        var completion = new TaskCompletionSource<Task>();
+        var _ = Task.Run(() =>
+        {
+            completion.SetResult(workerProcess.Connect());
+        });
+        
+        await completion.Task;
     }
 
     public async ValueTask BroadcastEvent(CloudEvent evt)
@@ -172,18 +177,16 @@ public sealed class GrpcGateway : BackgroundService, IGateway
 
     public async ValueTask StoreAsync(AgentState value)
     {
-        var agentId = value.AgentId ?? throw new ArgumentNullException(nameof(value.AgentId));
-        _agentState[agentId.Key] = value;
+        var agentState = _clusterClient.GetGrain<IAgentGrain>($"{value.AgentId.Type}:{value.AgentId.Key}");
+        await agentState.WriteStateAsync(value, value.ETag);
     }
 
     public async ValueTask<AgentState> ReadAsync(AgentId agentId)
     {
-        if (_agentState.TryGetValue(agentId.Key, out var state))
-        {
-            return state;
-        }
-        return new AgentState { AgentId = agentId };
+        var agentState = _clusterClient.GetGrain<IAgentGrain>($"{agentId.Type}:{agentId.Key}");
+        return await agentState.ReadStateAsync();
     }
+
     internal void OnRemoveWorkerProcess(GrpcWorkerConnection workerProcess)
     {
         _workers.TryRemove(workerProcess, out _);
@@ -208,7 +211,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request, CancellationToken cancellationToken = default)
     {
         var agentId = (request.Target.Type, request.Target.Key);
-        if (!_agentDirectory.TryGetValue(agentId, out var connection) || connection.Completion.IsCompleted)
+        if (!_agentDirectory.TryGetValue(agentId, out var connection) || connection.Completion?.IsCompleted == true)
         {
             // Activate the agent on a compatible worker process.
             if (_supportedAgentTypes.TryGetValue(request.Target.Type, out var workers))
