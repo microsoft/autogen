@@ -12,10 +12,9 @@ from typing import Any, BinaryIO, Dict, List, Optional, Tuple, Union, cast  # An
 from urllib.parse import quote_plus  # parse_qs, quote, unquote, urlparse, urlunparse
 
 import aiofiles
+from autogen_core import CancellationToken, FunctionCall, default_subscription
+from autogen_core import Image as AGImage
 from autogen_core.application.logging import EVENT_LOGGER_NAME
-from autogen_core.base import CancellationToken
-from autogen_core.components import FunctionCall, default_subscription
-from autogen_core.components import Image as AGImage
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -818,7 +817,7 @@ When deciding between tools, consider if the request can be best addressed by:
         for line in re.split(r"([\r\n]+)", page_markdown):
             message = UserMessage(
                 # content=[
-                prompt + buffer + line,
+                content=prompt + buffer + line,
                 #    ag_image,
                 # ],
                 source=self.metadata["type"],

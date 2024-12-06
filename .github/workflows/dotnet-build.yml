@@ -37,6 +37,7 @@ jobs:
           filters: |
             dotnet:
               - "dotnet/**"
+              - "protos/**"
             workflows:
               - ".github/workflows/**"
       - name: dotnet has changes

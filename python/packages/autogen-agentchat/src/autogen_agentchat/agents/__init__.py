@@ -1,4 +1,4 @@
-from ._assistant_agent import AssistantAgent, Handoff
+from ._assistant_agent import AssistantAgent, Handoff  # type: ignore
 from ._base_chat_agent import BaseChatAgent
 from ._code_executor_agent import CodeExecutorAgent
 from ._coding_assistant_agent import CodingAssistantAgent

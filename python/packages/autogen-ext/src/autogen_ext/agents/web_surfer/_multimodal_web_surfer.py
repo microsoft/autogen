@@ -26,10 +26,9 @@ import PIL.Image
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import ChatMessage, MultiModalMessage, TextMessage
+from autogen_core import CancellationToken, FunctionCall
+from autogen_core import Image as AGImage
 from autogen_core.application.logging import EVENT_LOGGER_NAME
-from autogen_core.base import CancellationToken
-from autogen_core.components import FunctionCall
-from autogen_core.components import Image as AGImage
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -159,6 +158,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         )
         self.default_tools = [
             TOOL_VISIT_URL,
+            TOOL_WEB_SEARCH,
             TOOL_HISTORY_BACK,
             TOOL_CLICK,
             TOOL_TYPE,
@@ -182,14 +182,16 @@ class MultimodalWebSurfer(BaseChatAgent):
 
         try:
             _, content = await self.__generate_reply(cancellation_token=cancellation_token)
+            self._chat_history.append(AssistantMessage(content=message_content_to_str(content), source=self.name))
             if isinstance(content, str):
                 return Response(chat_message=TextMessage(content=content, source=self.name))
             else:
                 return Response(chat_message=MultiModalMessage(content=content, source=self.name))
+
         except BaseException:
-            return Response(
-                chat_message=TextMessage(content=f"Web surfing error:\n\n{traceback.format_exc()}", source=self.name)
-            )
+            content = f"Web surfing error:\n\n{traceback.format_exc()}"
+            self._chat_history.append(AssistantMessage(content=content, source=self.name))
+            return Response(chat_message=TextMessage(content=content, source=self.name))
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         if not self.did_lazy_init:
@@ -533,9 +535,12 @@ class MultimodalWebSurfer(BaseChatAgent):
         # Clone the messages to give context, removing old screenshots
         history: List[LLMMessage] = []
         for m in self._chat_history:
+            assert isinstance(m, UserMessage | AssistantMessage | SystemMessage)
+            assert isinstance(m.content, str | list)
+
             if isinstance(m.content, str):
                 history.append(m)
-            elif isinstance(m.content, list):
+            else:
                 content = message_content_to_str(m.content)
                 if isinstance(m, UserMessage):
                     history.append(UserMessage(content=content, source=m.source))
@@ -563,8 +568,6 @@ class MultimodalWebSurfer(BaseChatAgent):
             )
         # What tools are available?
         tools = self.default_tools.copy()
-
-        tools.append(TOOL_WEB_SEARCH)
 
         # We can scroll up
         if viewport["pageTop"] > 5:
@@ -629,6 +632,7 @@ class MultimodalWebSurfer(BaseChatAgent):
 
         # Add the multimodal message and make the request
         history.append(UserMessage(content=[text_prompt, AGImage.from_pil(scaled_screenshot)], source=self.name))
+
         response = await self._model_client.create(
             history, tools=tools, extra_create_args={"tool_choice": "auto"}, cancellation_token=cancellation_token
         )  # , "parallel_tool_calls": False})
@@ -708,7 +712,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         for line in page_markdown.splitlines():
             message = UserMessage(
                 # content=[
-                prompt + buffer + line,
+                content=prompt + buffer + line,
                 #    ag_image,
                 # ],
                 source=self.name,

@@ -31,9 +31,8 @@ from _semantic_router_components import (
     UserProxyMessage,
     WorkerAgentMessage,
 )
-from autogen_core.application import WorkerAgentRuntime
-from autogen_core.base import MessageContext
-from autogen_core.components import ClosureAgent, ClosureContext, DefaultSubscription, DefaultTopicId
+from autogen_core import ClosureAgent, ClosureContext, DefaultSubscription, DefaultTopicId, MessageContext
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
 
 
 class MockIntentClassifier(IntentClassifierBase):
@@ -79,7 +78,7 @@ async def output_result(
 
 
 async def run_workers():
-    agent_runtime = WorkerAgentRuntime(host_address="localhost:50051")
+    agent_runtime = GrpcWorkerAgentRuntime(host_address="localhost:50051")
 
     agent_runtime.start()
 

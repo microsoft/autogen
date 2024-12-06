@@ -36,23 +36,50 @@ public abstract class AgentBase : IAgentBase, IHandle
         runtime.AgentInstance = this;
         this.EventTypes = eventTypes;
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();
-        var subscriptionRequest = new AddSubscriptionRequest
-        {
-            RequestId = Guid.NewGuid().ToString(),
-            Subscription = new Subscription
-            {
-                TypeSubscription = new TypeSubscription
-                {
-                    AgentType = this.AgentId.Type,
-                    TopicType = this.AgentId.Type + "/" + this.AgentId.Key
-                }
-            }
-        };
-        _runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).AsTask().Wait();
+        AddImplicitSubscriptionsAsync().AsTask().Wait();
         Completion = Start();
     }
     internal Task Completion { get; }
 
+    private async ValueTask AddImplicitSubscriptionsAsync()
+    {
+        var topicTypes = new List<string>
+        {
+            this.AgentId.Type + ":" + this.AgentId.Key,
+            this.AgentId.Type
+        };
+
+        foreach (var topicType in topicTypes)
+        {
+            var subscriptionRequest = new AddSubscriptionRequest
+            {
+                RequestId = Guid.NewGuid().ToString(),
+                Subscription = new Subscription
+                {
+                    TypeSubscription = new TypeSubscription
+                    {
+                        AgentType = this.AgentId.Type,
+                        TopicType = topicType
+                    }
+                }
+            };
+            // explicitly wait for this to complete
+            await _runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).ConfigureAwait(true);
+        }
+
+        // using reflection, find all methods that Handle<T> and subscribe to the topic T
+        var handleMethods = this.GetType().GetMethods().Where(m => m.Name == "Handle").ToList();
+        foreach (var method in handleMethods)
+        {
+            var eventType = method.GetParameters()[0].ParameterType;
+            var topic = EventTypes.EventsMap.FirstOrDefault(x => x.Value.Contains(eventType.Name)).Key;
+            if (topic != null)
+            {
+                Subscribe(nameof(topic));
+            }
+        }
+
+    }
     internal Task Start()
     {
         var didSuppress = false;

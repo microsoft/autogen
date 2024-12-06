@@ -1,10 +1,8 @@
 import json
 import logging
-from typing import Any, List, Dict
-from .... import TRACE_LOGGER_NAME
+from typing import Any, Dict, List, Mapping
 
-from autogen_core.base import AgentId, CancellationToken, MessageContext
-from autogen_core.components import DefaultTopicId, Image, event, rpc
+from autogen_core import AgentId, CancellationToken, DefaultTopicId, Image, MessageContext, event, rpc
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -12,8 +10,11 @@ from autogen_core.components.models import (
     UserMessage,
 )
 
+from .... import TRACE_LOGGER_NAME
 from ....base import Response, TerminationCondition
-from ....messages import AgentMessage, MultiModalMessage, StopMessage, TextMessage, ChatMessage
+from ....messages import AgentMessage, ChatMessage, MultiModalMessage, StopMessage, TextMessage
+from ....state import MagenticOneOrchestratorState
+from .._base_group_chat_manager import BaseGroupChatManager
 from .._events import (
     GroupChatAgentResponse,
     GroupChatMessage,
@@ -22,7 +23,6 @@ from .._events import (
     GroupChatStart,
     GroupChatTermination,
 )
-from .._base_group_chat_manager import BaseGroupChatManager
 from ._prompts import (
     ORCHESTRATOR_FINAL_ANSWER_PROMPT,
     ORCHESTRATOR_PROGRESS_LEDGER_PROMPT,
@@ -48,6 +48,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         max_turns: int | None,
         model_client: ChatCompletionClient,
         max_stalls: int,
+        final_answer_prompt: str,
         termination_condition: TerminationCondition | None,
     ):
         super().__init__(
@@ -60,6 +61,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         )
         self._model_client = model_client
         self._max_stalls = max_stalls
+        self._final_answer_prompt = final_answer_prompt
         self._name = "MagenticOneOrchestrator"
         self._max_json_retries = 10
         self._task = ""
@@ -95,7 +97,10 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         return ORCHESTRATOR_TASK_LEDGER_PLAN_UPDATE_PROMPT.format(team=team)
 
     def _get_final_answer_prompt(self, task: str) -> str:
-        return ORCHESTRATOR_FINAL_ANSWER_PROMPT.format(task=task)
+        if self._final_answer_prompt == ORCHESTRATOR_FINAL_ANSWER_PROMPT:
+            return ORCHESTRATOR_FINAL_ANSWER_PROMPT.format(task=task)
+        else:
+            return self._final_answer_prompt
 
     async def _log_message(self, log_message: str) -> None:
         trace_logger.debug(log_message)
@@ -173,6 +178,28 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     async def validate_group_state(self, message: ChatMessage | None) -> None:
         pass
+
+    async def save_state(self) -> Mapping[str, Any]:
+        state = MagenticOneOrchestratorState(
+            message_thread=list(self._message_thread),
+            current_turn=self._current_turn,
+            task=self._task,
+            facts=self._facts,
+            plan=self._plan,
+            n_rounds=self._n_rounds,
+            n_stalls=self._n_stalls,
+        )
+        return state.model_dump()
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        orchestrator_state = MagenticOneOrchestratorState.model_validate(state)
+        self._message_thread = orchestrator_state.message_thread
+        self._current_turn = orchestrator_state.current_turn
+        self._task = orchestrator_state.task
+        self._facts = orchestrator_state.facts
+        self._plan = orchestrator_state.plan
+        self._n_rounds = orchestrator_state.n_rounds
+        self._n_stalls = orchestrator_state.n_stalls
 
     async def select_speaker(self, thread: List[AgentMessage]) -> str:
         """Not used in this orchestrator, we select next speaker in _orchestrate_step."""

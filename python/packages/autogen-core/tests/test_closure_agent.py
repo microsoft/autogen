@@ -2,9 +2,14 @@ import asyncio
 from dataclasses import dataclass
 
 import pytest
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import MessageContext
-from autogen_core.components import ClosureAgent, ClosureContext, DefaultSubscription, DefaultTopicId
+from autogen_core import (
+    ClosureAgent,
+    ClosureContext,
+    DefaultSubscription,
+    DefaultTopicId,
+    MessageContext,
+    SingleThreadedAgentRuntime,
+)
 
 
 @dataclass

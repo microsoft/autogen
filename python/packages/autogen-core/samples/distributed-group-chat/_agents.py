@@ -4,9 +4,7 @@ from typing import Awaitable, Callable, List
 from uuid import uuid4
 
 from _types import GroupChatMessage, MessageChunk, RequestToSpeak, UIAgentConfig
-from autogen_core.application import WorkerAgentRuntime
-from autogen_core.base import MessageContext
-from autogen_core.components import DefaultTopicId, RoutedAgent, message_handler
+from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, message_handler
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -14,6 +12,7 @@ from autogen_core.components.models import (
     SystemMessage,
     UserMessage,
 )
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
 from rich.console import Console
 from rich.markdown import Markdown
 
@@ -32,7 +31,7 @@ class BaseGroupChatAgent(RoutedAgent):
         super().__init__(description=description)
         self._group_chat_topic_type = group_chat_topic_type
         self._model_client = model_client
-        self._system_message = SystemMessage(system_message)
+        self._system_message = SystemMessage(content=system_message)
         self._chat_history: List[LLMMessage] = []
         self._ui_config = ui_config
         self.console = Console()
@@ -127,7 +126,7 @@ Read the following conversation. Then select the next role from {participants} t
 
 Read the above conversation. Then select the next role from {participants} to play. if you think it's enough talking (for example they have talked for {self._max_rounds} rounds), return 'FINISH'.
 """
-        system_message = SystemMessage(selector_prompt)
+        system_message = SystemMessage(content=selector_prompt)
         completion = await self._model_client.create([system_message], cancellation_token=ctx.cancellation_token)
 
         assert isinstance(
@@ -169,7 +168,7 @@ class UIAgent(RoutedAgent):
 
 
 async def publish_message_to_ui(
-    runtime: RoutedAgent | WorkerAgentRuntime,
+    runtime: RoutedAgent | GrpcWorkerAgentRuntime,
     source: str,
     user_message: str,
     ui_config: UIAgentConfig,
@@ -194,7 +193,7 @@ async def publish_message_to_ui(
 
 
 async def publish_message_to_ui_and_backend(
-    runtime: RoutedAgent | WorkerAgentRuntime,
+    runtime: RoutedAgent | GrpcWorkerAgentRuntime,
     source: str,
     user_message: str,
     ui_config: UIAgentConfig,

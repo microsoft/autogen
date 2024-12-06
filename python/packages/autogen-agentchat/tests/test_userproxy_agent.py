@@ -5,7 +5,7 @@ import pytest
 from autogen_agentchat.agents import UserProxyAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import ChatMessage, HandoffMessage, TextMessage
-from autogen_core.base import CancellationToken
+from autogen_core import CancellationToken
 
 
 @pytest.mark.asyncio

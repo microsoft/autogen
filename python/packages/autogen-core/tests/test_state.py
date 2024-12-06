@@ -1,8 +1,7 @@
 from typing import Any, Mapping
 
 import pytest
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, BaseAgent, MessageContext
+from autogen_core import AgentId, BaseAgent, MessageContext, SingleThreadedAgentRuntime
 
 
 class StatefulAgent(BaseAgent):
@@ -10,7 +9,7 @@ class StatefulAgent(BaseAgent):
         super().__init__("A stateful agent")
         self.state = 0
 
-    async def on_message(self, message: Any, ctx: MessageContext) -> None:
+    async def on_message_impl(self, message: Any, ctx: MessageContext) -> None:
         raise NotImplementedError
 
     async def save_state(self) -> Mapping[str, Any]:
