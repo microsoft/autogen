@@ -249,7 +249,7 @@ class ComponentFactory:
                 return MagenticOneGroupChat(
                     participants=participants,
                     model_client=model_client,
-                    termination_condition=termination,
+                    termination_condition=termination if termination is not None else None,
                     max_turns=config.max_turns if config.max_turns is not None else 20,
                 )
             else:
