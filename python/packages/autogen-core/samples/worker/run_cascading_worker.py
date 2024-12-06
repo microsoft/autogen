@@ -2,11 +2,11 @@ import uuid
 
 from agents import CascadingAgent, ReceiveMessageEvent
 from autogen_core import try_get_known_serializers_for_type
-from autogen_core.application import WorkerAgentRuntime
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
 
 
 async def main() -> None:
-    runtime = WorkerAgentRuntime(host_address="localhost:50051")
+    runtime = GrpcWorkerAgentRuntime(host_address="localhost:50051")
     runtime.add_message_serializer(try_get_known_serializers_for_type(ReceiveMessageEvent))
     runtime.start()
     agent_type = f"cascading_agent_{uuid.uuid4()}".replace("-", "_")

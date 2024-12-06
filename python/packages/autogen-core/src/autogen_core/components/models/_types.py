@@ -1,42 +1,49 @@
 from dataclasses import dataclass
 from typing import List, Literal, Optional, Union
 
+from pydantic import BaseModel, Field
+from typing_extensions import Annotated
+
 from ... import FunctionCall, Image
 
 
-@dataclass
-class SystemMessage:
+class SystemMessage(BaseModel):
     content: str
+    type: Literal["SystemMessage"] = "SystemMessage"
 
 
-@dataclass
-class UserMessage:
+class UserMessage(BaseModel):
     content: Union[str, List[Union[str, Image]]]
 
     # Name of the agent that sent this message
     source: str
 
+    type: Literal["UserMessage"] = "UserMessage"
 
-@dataclass
-class AssistantMessage:
+
+class AssistantMessage(BaseModel):
     content: Union[str, List[FunctionCall]]
 
     # Name of the agent that sent this message
     source: str
 
+    type: Literal["AssistantMessage"] = "AssistantMessage"
 
-@dataclass
-class FunctionExecutionResult:
+
+class FunctionExecutionResult(BaseModel):
     content: str
     call_id: str
 
 
-@dataclass
-class FunctionExecutionResultMessage:
+class FunctionExecutionResultMessage(BaseModel):
     content: List[FunctionExecutionResult]
 
+    type: Literal["FunctionExecutionResultMessage"] = "FunctionExecutionResultMessage"
 
-LLMMessage = Union[SystemMessage, UserMessage, AssistantMessage, FunctionExecutionResultMessage]
+
+LLMMessage = Annotated[
+    Union[SystemMessage, UserMessage, AssistantMessage, FunctionExecutionResultMessage], Field(discriminator="type")
+]
 
 
 @dataclass
@@ -54,16 +61,14 @@ class TopLogprob:
     bytes: Optional[List[int]] = None
 
 
-@dataclass
-class ChatCompletionTokenLogprob:
+class ChatCompletionTokenLogprob(BaseModel):
     token: str
     logprob: float
     top_logprobs: Optional[List[TopLogprob] | None] = None
     bytes: Optional[List[int]] = None
 
 
-@dataclass
-class CreateResult:
+class CreateResult(BaseModel):
     finish_reason: FinishReasons
     content: Union[str, List[FunctionCall]]
     usage: RequestUsage

@@ -1,7 +1,7 @@
 import pytest
 from autogen_core import AgentId, AgentInstantiationContext, AgentRuntime
+from autogen_test_utils import NoopAgent
 from pytest_mock import MockerFixture
-from test_utils import NoopAgent
 
 
 @pytest.mark.asyncio

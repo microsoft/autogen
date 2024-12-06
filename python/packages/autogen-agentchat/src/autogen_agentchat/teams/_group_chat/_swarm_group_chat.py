@@ -1,13 +1,10 @@
-import logging
-from typing import Callable, List
+from typing import Any, Callable, List, Mapping
 
-from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TerminationCondition
 from ...messages import AgentMessage, ChatMessage, HandoffMessage
+from ...state import SwarmManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
-
-event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class SwarmGroupChatManager(BaseGroupChatManager):
@@ -76,6 +73,20 @@ class SwarmGroupChatManager(BaseGroupChatManager):
                 assert self._current_speaker in self._participant_topic_types
                 return self._current_speaker
         return self._current_speaker
+
+    async def save_state(self) -> Mapping[str, Any]:
+        state = SwarmManagerState(
+            message_thread=list(self._message_thread),
+            current_turn=self._current_turn,
+            current_speaker=self._current_speaker,
+        )
+        return state.model_dump()
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        swarm_state = SwarmManagerState.model_validate(state)
+        self._message_thread = list(swarm_state.message_thread)
+        self._current_turn = swarm_state.current_turn
+        self._current_speaker = swarm_state.current_speaker
 
 
 class Swarm(BaseGroupChat):

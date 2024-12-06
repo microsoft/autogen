@@ -18,7 +18,7 @@ The key can correspond to a user id, a session id, or could just be "default" if
 
 ## How do I increase the GRPC message size?
 
-If you need to provide custom gRPC options, such as overriding the `max_send_message_length` and `max_receive_message_length`, you can define an `extra_grpc_config` variable and pass it to both the `WorkerAgentRuntimeHost` and `WorkerAgentRuntime` instances.
+If you need to provide custom gRPC options, such as overriding the `max_send_message_length` and `max_receive_message_length`, you can define an `extra_grpc_config` variable and pass it to both the `GrpcWorkerAgentRuntimeHost` and `GrpcWorkerAgentRuntime` instances.
 
 ```python
 # Define custom gRPC options
@@ -27,10 +27,34 @@ extra_grpc_config = [
     ("grpc.max_receive_message_length", new_max_size),
 ]
 
-# Create instances of WorkerAgentRuntimeHost and WorkerAgentRuntime with the custom gRPC options
+# Create instances of GrpcWorkerAgentRuntimeHost and GrpcWorkerAgentRuntime with the custom gRPC options
 
-host = WorkerAgentRuntimeHost(address=host_address, extra_grpc_config=extra_grpc_config)
-worker1 = WorkerAgentRuntime(host_address=host_address, extra_grpc_config=extra_grpc_config)
+host = GrpcWorkerAgentRuntimeHost(address=host_address, extra_grpc_config=extra_grpc_config)
+worker1 = GrpcWorkerAgentRuntime(host_address=host_address, extra_grpc_config=extra_grpc_config)
 ```
 
-**Note**: When `WorkerAgentRuntime` creates a host connection for the clients, it uses `DEFAULT_GRPC_CONFIG` from `HostConnection` class as default set of values which will can be overriden if you pass parameters with the same name using `extra_grpc_config`.
+**Note**: When `GrpcWorkerAgentRuntime` creates a host connection for the clients, it uses `DEFAULT_GRPC_CONFIG` from `HostConnection` class as default set of values which will can be overriden if you pass parameters with the same name using `extra_grpc_config`.
+
+## What are model capabilities and how do I specify them?
+
+Model capabilites are additional capabilities an LLM may have beyond the standard natural language features. There are currently 3 additional capabilities that can be specified within Autogen
+
+- vision: The model is capable of processing and interpreting image data.
+- function_calling: The model has the capacity to accept function descriptions; such as the function name, purpose, input parameters, etc; and can respond with an appropriate function to call including any necessary parameters.
+- json_output: The model is capable of outputting responses to conform with a specified json format.
+
+Model capabilities can be passed into a model, which will override the default definitions. These capabilities will not affect what the underlying model is actually capable of, but will allow or disallow behaviors associated with them. This is particularly useful when [using local LLMs](cookbook/local-llms-ollama-litellm.ipynb).
+
+```python
+from autogen_ext.models import OpenAIChatCompletionClient
+
+client = OpenAIChatCompletionClient(
+    model="gpt-4o",
+    api_key="YourApiKey",
+    model_capabilities={
+        "vision": True,
+        "function_calling": False,
+        "json_output": False,
+    }
+)
+```
