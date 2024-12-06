@@ -100,27 +100,26 @@ class OpenAIAssistantAgent(BaseChatAgent):
     """An agent implementation that uses the OpenAI Assistant API to generate responses.
 
     This agent leverages the OpenAI Assistant API to create AI assistants with capabilities like:
-    - Code interpretation and execution
-    - File handling and search
-    - Custom function calling
-    - Multi-turn conversations
 
-    The agent maintains a thread of conversation and can use various tools including:
-    - Code interpreter: For executing code and working with files
-    - File search: For searching through uploaded documents
-    - Custom functions: For extending capabilities with user-defined tools
+    * Code interpretation and execution
+    * File handling and search
+    * Custom function calling
+    * Multi-turn conversations
 
-    .. note::
+    The agent maintains a thread of conversation and can use various tools including
 
-        The agent deletes all messages in the thread when :meth:`on_reset` is called.
+    * Code interpreter: For executing code and working with files
+    * File search: For searching through uploaded documents
+    * Custom functions: For extending capabilities with user-defined tools
 
     Key Features:
-    - Supports multiple file formats including code, documents, images
-    - Can handle up to 128 tools per assistant
-    - Maintains conversation context in threads
-    - Supports file uploads for code interpreter and search
-    - Vector store integration for efficient file search
-    - Automatic file parsing and embedding
+
+    * Supports multiple file formats including code, documents, images
+    * Can handle up to 128 tools per assistant
+    * Maintains conversation context in threads
+    * Supports file uploads for code interpreter and search
+    * Vector store integration for efficient file search
+    * Automatic file parsing and embedding
 
     Example:
         .. code-block:: python
