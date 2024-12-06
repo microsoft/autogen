@@ -7,8 +7,7 @@ round-robin orchestrator agent. The code snippets are executed inside a docker c
 import asyncio
 import logging
 
-from autogen_core import AgentId, AgentProxy, SingleThreadedAgentRuntime
-from autogen_core.application.logging import EVENT_LOGGER_NAME
+from autogen_core import EVENT_LOGGER_NAME, AgentId, AgentProxy, SingleThreadedAgentRuntime
 from autogen_core.code_executor import CodeBlock
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 from autogen_magentic_one.agents.coder import Coder, Executor
