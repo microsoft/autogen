@@ -17,7 +17,7 @@ internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore
         if ((string.IsNullOrEmpty(state.Etag)) || (string.IsNullOrEmpty(eTag)) || (string.Equals(state.Etag, eTag, StringComparison.Ordinal)))
         {
             state.State = newState;
-            await state.WriteStateAsync().ConfigureAwait(false);
+            await state.WriteStateAsync().ConfigureAwait(true);
         }
         else
         {
