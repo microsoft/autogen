@@ -74,7 +74,8 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         await self.validate_group_state(message.message)
 
         if message.message is not None:
-            messages_to_process = [message.message] if isinstance(message.message, ChatMessage) else message.message
+            # Check if message is a ChatMessage by checking for the discriminator field 'type'
+            messages_to_process = [message.message] if hasattr(message.message, 'type') else message.message
 
             # Log and relay each message
             for msg in messages_to_process:
@@ -95,7 +96,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
 
             # Check termination condition after processing all messages
             if self._termination_condition is not None:
-                stop_message = await self._termination_condition([msg])
+                stop_message = await self._termination_condition(messages_to_process)
                 if stop_message is not None:
                     await self.publish_message(
                         GroupChatTermination(message=stop_message),
