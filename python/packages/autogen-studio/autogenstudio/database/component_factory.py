@@ -11,6 +11,8 @@ from autogen_agentchat.conditions import MaxMessageTermination, StopMessageTermi
 from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat, MagenticOneGroupChat
 from autogen_core.components.tools import FunctionTool
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
+from autogen_ext.agents.file_surfer import FileSurfer
+from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
 from autogen_ext.models import OpenAIChatCompletionClient
 
 from ..datamodel.types import (
@@ -33,7 +35,7 @@ from ..utils.utils import Version
 logger = logging.getLogger(__name__)
 
 TeamComponent = Union[RoundRobinGroupChat, SelectorGroupChat, MagenticOneGroupChat]
-AgentComponent = Union[AssistantAgent, MultimodalWebSurfer]
+AgentComponent = Union[AssistantAgent, MultimodalWebSurfer, UserProxyAgent, FileSurfer, MagenticOneCoderAgent]
 ModelComponent = Union[OpenAIChatCompletionClient]
 ToolComponent = Union[FunctionTool]  # Will grow with more tool types
 TerminationComponent = Union[MaxMessageTermination, StopMessageTermination, TextMentionTermination]
@@ -301,7 +303,16 @@ class ComponentFactory:
                     use_ocr=config.use_ocr if config.use_ocr is not None else False,
                     animate_actions=config.animate_actions if config.animate_actions is not None else False,
                 )
-
+            elif config.agent_type == AgentTypes.FILE_SURFER:
+                return FileSurfer(
+                    name=config.name,
+                    model_client=model_client,
+                )
+            elif config.agent_type == AgentTypes.MAGENTIC_ONE_CODER:
+                return MagenticOneCoderAgent(
+                    name=config.name,
+                    model_client=model_client,
+                )
             else:
                 raise ValueError(f"Unsupported agent type: {config.agent_type}")
 

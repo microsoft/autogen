@@ -19,6 +19,8 @@ class AgentTypes(str, Enum):
     ASSISTANT = "AssistantAgent"
     USERPROXY = "UserProxyAgent"
     MULTIMODAL_WEBSURFER = "MultimodalWebSurfer"
+    FILE_SURFER = "FileSurfer"
+    MAGENTIC_ONE_CODER = "MagenticOneCoderAgent"
 
 
 class TeamTypes(str, Enum):
