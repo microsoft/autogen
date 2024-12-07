@@ -9,7 +9,6 @@ from autogen_agentchat.messages import AgentMessage, ChatMessage, MultiModalMess
 from autogen_core import CancellationToken
 from autogen_core import Image as AGImage
 from fastapi import WebSocket, WebSocketDisconnect
-import traceback
 
 from ...database import DatabaseManager
 from ...datamodel import Message, MessageConfig, Run, RunStatus, TeamResult
@@ -123,7 +122,6 @@ class WebSocketManager:
 
         except Exception as e:
             logger.error(f"Stream error for run {run_id}: {e}")
-            logger.error(traceback.format_exc())
             await self._handle_stream_error(run_id, e)
         finally:
             self._cancellation_tokens.pop(run_id, None)
@@ -302,7 +300,7 @@ class WebSocketManager:
                     },
                 ]
                 return {"type": "message", "data": message_dump}
-            
+
             elif isinstance(message, TextMessage):
                 return {"type": "message", "data": message.model_dump()}
 
