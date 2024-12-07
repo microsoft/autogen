@@ -54,6 +54,7 @@ class AssistantAgent(BaseChatAgent):
     The assistant agent is not thread-safe or coroutine-safe.
     It should not be shared between multiple tasks or coroutines, and it should
     not call its methods concurrently.
+    If multiple handoffs are detected, only the first handoff is executed.
     ```
 
     Args:
@@ -299,7 +300,8 @@ class AssistantAgent(BaseChatAgent):
                     handoffs.append(self._handoffs[call.name])
             if len(handoffs) > 0:
                 if len(handoffs) > 1:
-                    raise ValueError(f"Multiple handoffs detected: {[handoff.name for handoff in handoffs]}")
+                    # show warning if multiple handoffs detected
+                    warnings.warn(f"Multiple handoffs detected only the first is executed: {[handoff.name for handoff in handoffs]}")
                 # Return the output messages to signal the handoff.
                 yield Response(
                     chat_message=HandoffMessage(
