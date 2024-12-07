@@ -85,7 +85,7 @@ export const TeamEditor: React.FC<TeamEditorProps> = ({
         throw new Error("Participants must be an array");
       }
       if (
-        !["RoundRobinGroupChat", "SelectorGroupChat"].includes(parsed.team_type)
+        !["RoundRobinGroupChat", "SelectorGroupChat", "MagenticOneGroupChat"].includes(parsed.team_type)
       ) {
         throw new Error("Invalid team_type");
       }
@@ -169,7 +169,7 @@ export const TeamEditor: React.FC<TeamEditorProps> = ({
         >
           <div className="mb-2 text-xs text-gray-500">
             Required fields: name (string), team_type ("RoundRobinGroupChat" |
-            "SelectorGroupChat"), participants (array)
+            "SelectorGroupChat" | "MagenticOneGroupChat"), participants (array)
           </div>
 
           <div className="h-[500px] mb-4">
