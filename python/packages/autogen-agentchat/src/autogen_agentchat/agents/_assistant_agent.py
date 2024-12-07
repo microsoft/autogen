@@ -68,6 +68,7 @@ class AssistantAgent(BaseChatAgent):
         description (str, optional): The description of the agent.
         system_message (str, optional): The system message for the model.
         max_tool_iterations (int, optional): The maximum number of tool iterations to run before returning the response.
+        return_only_response (bool, optional): If `True`, the agent will only return the final response and not the tool calls.
 
     Raises:
         ValueError: If tool names are not unique.
@@ -293,7 +294,6 @@ class AssistantAgent(BaseChatAgent):
         result = await self._model_client.create(
             llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
         )
-
         # Add the response to the model context.
         self._model_context.append(AssistantMessage(content=result.content, source=self.name))
 
@@ -329,7 +329,9 @@ class AssistantAgent(BaseChatAgent):
             if len(handoffs) > 0:
                 if len(handoffs) > 1:
                     # show warning if multiple handoffs detected
-                    warnings.warn(f"Multiple handoffs detected only the first is executed: {[handoff.name for handoff in handoffs]}")
+                    warnings.warn(
+                        f"Multiple handoffs detected only the first is executed: {[handoff.name for handoff in handoffs]}"
+                    )
                 # Return the output messages to signal the handoff.
                 yield Response(
                     chat_message=HandoffMessage(
@@ -340,17 +342,27 @@ class AssistantAgent(BaseChatAgent):
                 return
 
             # Generate an inference result based on the current model context.
-            llm_messages = self._system_messages + self._model_context
-            result = await self._model_client.create(
-                llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
-            )
-            self._model_context.append(AssistantMessage(content=result.content, source=self.name))
+            if self._max_tool_iterations > 1:
+                llm_messages = self._system_messages + self._model_context
+                result = await self._model_client.create(
+                    llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
+                )
+                self._model_context.append(AssistantMessage(content=result.content, source=self.name))
 
-        assert isinstance(result.content, str)
-        yield Response(
-            chat_message=TextMessage(content=result.content, source=self.name, models_usage=result.usage),
-            inner_messages=inner_messages,
-        )
+        if isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content):
+            tool_call_summary = "Tool calls:\n"
+            for i in range(len(tool_call_msg.content)):
+                tool_call_summary += f"{tool_call_msg.content[i].name}({tool_call_msg.content[i].arguments}) = {tool_call_result_msg.content[i].content}\n"
+            yield Response(
+                chat_message=TextMessage(content=tool_call_summary, source=self.name, models_usage=result.usage),
+                inner_messages=inner_messages,
+            )
+        else:
+            assert isinstance(result.content, str)
+            yield Response(
+                chat_message=TextMessage(content=result.content, source=self.name, models_usage=result.usage),
+                inner_messages=inner_messages,
+            )
 
     async def _execute_tool_call(
         self, tool_call: FunctionCall, cancellation_token: CancellationToken
