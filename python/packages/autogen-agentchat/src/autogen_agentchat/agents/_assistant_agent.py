@@ -184,10 +184,12 @@ class AssistantAgent(BaseChatAgent):
         system_message: str
         | None = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
         max_tool_iterations: int = 1,
+        return_only_response: bool = False,
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client
         self._max_tool_iterations = max_tool_iterations
+        self._return_only_response = return_only_response
         if system_message is None:
             self._system_messages = []
         else:
@@ -281,7 +283,8 @@ class AssistantAgent(BaseChatAgent):
             event_logger.debug(tool_call_msg)
             # Add the tool call message to the output.
             inner_messages.append(tool_call_msg)
-            yield tool_call_msg
+            if not self._return_only_response:
+                yield tool_call_msg
 
             # Execute the tool calls.
             results = await asyncio.gather(
@@ -291,7 +294,8 @@ class AssistantAgent(BaseChatAgent):
             event_logger.debug(tool_call_result_msg)
             self._model_context.append(FunctionExecutionResultMessage(content=results))
             inner_messages.append(tool_call_result_msg)
-            yield tool_call_result_msg
+            if not self._return_only_response:
+                yield tool_call_result_msg
 
             # Detect handoff requests.
             handoffs: List[HandoffBase] = []
