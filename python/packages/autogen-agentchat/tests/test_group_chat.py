@@ -36,7 +36,8 @@ from autogen_core import AgentId, CancellationToken, FunctionCall
 from autogen_core.components.models import FunctionExecutionResult
 from autogen_core.components.tools import FunctionTool
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_ext.models import OpenAIChatCompletionClient, ReplayChatCompletionClient
+from autogen_ext.models import ReplayChatCompletionClient
+from autogen_ext.models.openai import OpenAIChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk

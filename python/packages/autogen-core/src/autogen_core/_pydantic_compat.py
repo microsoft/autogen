@@ -23,9 +23,9 @@ def evaluate_forwardref(
 
         return evaluate_forwardref_internal(value, globalns, localns)
     else:
-        from pydantic._internal._typing_extra import eval_type_lenient
+        from pydantic._internal._typing_extra import try_eval_type
 
-        return eval_type_lenient(value, globalns, localns)
+        return try_eval_type(value, globalns, localns)
 
 
 def type2schema(t: Type[Any] | None) -> Dict[str, Any]:

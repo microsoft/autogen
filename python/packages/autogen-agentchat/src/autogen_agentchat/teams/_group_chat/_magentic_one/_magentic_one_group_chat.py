@@ -38,7 +38,7 @@ class MagenticOneGroupChat(BaseGroupChat):
         .. code-block:: python
 
             import asyncio
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import MagenticOneGroupChat
             from autogen_agentchat.ui import Console

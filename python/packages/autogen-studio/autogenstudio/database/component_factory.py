@@ -11,7 +11,7 @@ from autogen_agentchat.conditions import MaxMessageTermination, StopMessageTermi
 from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
 from autogen_core.components.tools import FunctionTool
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
-from autogen_ext.models import OpenAIChatCompletionClient
+from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 from ..datamodel.types import (
     AgentConfig,
