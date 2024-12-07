@@ -75,24 +75,22 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
 
         if message.message is not None:
             # Check if message is a ChatMessage by checking for the discriminator field 'type'
-            messages_to_process = [message.message] if hasattr(message.message, 'type') else message.message
+            messages_to_process = [message.message] if hasattr(message.message, "type") else message.message
 
-            # Log and relay each message
-            for msg in messages_to_process:
-                # Log the message
-                await self.publish_message(
-                    GroupChatStart(message=msg), topic_id=DefaultTopicId(type=self._output_topic_type)
-                )
+            # Log all messages at once
+            await self.publish_message(
+                GroupChatStart(message=messages_to_process), topic_id=DefaultTopicId(type=self._output_topic_type)
+            )
 
-                # Relay the message to participants
-                await self.publish_message(
-                    GroupChatStart(message=msg),
-                    topic_id=DefaultTopicId(type=self._group_topic_type),
-                    cancellation_token=ctx.cancellation_token,
-                )
+            # Relay all messages at once to participants
+            await self.publish_message(
+                GroupChatStart(message=messages_to_process),
+                topic_id=DefaultTopicId(type=self._group_topic_type),
+                cancellation_token=ctx.cancellation_token,
+            )
 
-                # Append to message thread
-                self._message_thread.append(msg)
+            # Append all messages to thread
+            self._message_thread.extend(messages_to_process)
 
             # Check termination condition after processing all messages
             if self._termination_condition is not None:
