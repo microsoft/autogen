@@ -9,6 +9,7 @@ from autogen_agentchat.messages import AgentMessage, ChatMessage, MultiModalMess
 from autogen_core import CancellationToken
 from autogen_core import Image as AGImage
 from fastapi import WebSocket, WebSocketDisconnect
+import traceback
 
 from ...database import DatabaseManager
 from ...datamodel import Message, MessageConfig, Run, RunStatus, TeamResult
@@ -92,12 +93,15 @@ class WebSocketManager:
                     await self._send_message(run_id, formatted_message)
 
                     # Save message if it's a content message
-                    if isinstance(message, (AgentMessage, ChatMessage)):
+                    if isinstance(message, TextMessage):
+                        await self._save_message(run_id, message)
+                    elif isinstance(message, MultiModalMessage):
                         await self._save_message(run_id, message)
                     # Capture final result if it's a TeamResult
                     elif isinstance(message, TeamResult):
                         final_result = message.model_dump()
-
+                    elif isinstance(message, (AgentMessage, ChatMessage)):
+                        await self._save_message(run_id, message)
             if not cancellation_token.is_cancelled() and run_id not in self._closed_connections:
                 if final_result:
                     await self._update_run(run_id, RunStatus.COMPLETE, team_result=final_result)
@@ -119,6 +123,7 @@ class WebSocketManager:
 
         except Exception as e:
             logger.error(f"Stream error for run {run_id}: {e}")
+            logger.error(traceback.format_exc())
             await self._handle_stream_error(run_id, e)
         finally:
             self._cancellation_tokens.pop(run_id, None)
@@ -285,6 +290,7 @@ class WebSocketManager:
         Returns:
             Optional[dict]: Formatted message or None if formatting fails
         """
+
         try:
             if isinstance(message, MultiModalMessage):
                 message_dump = message.model_dump()
@@ -296,7 +302,8 @@ class WebSocketManager:
                     },
                 ]
                 return {"type": "message", "data": message_dump}
-            elif isinstance(message, (AgentMessage, ChatMessage)):
+            
+            elif isinstance(message, TextMessage):
                 return {"type": "message", "data": message.model_dump()}
 
             elif isinstance(message, TeamResult):
@@ -305,6 +312,9 @@ class WebSocketManager:
                     "data": message.model_dump(),
                     "status": "complete",
                 }
+            elif isinstance(message, (AgentMessage, ChatMessage)):
+                return {"type": "message", "data": message.model_dump()}
+
             return None
         except Exception as e:
             logger.error(f"Message formatting error: {e}")
