@@ -117,20 +117,18 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             )
             # Stop the group chat.
             return
-        assert message is not None and message.message is not None
+        assert message is not None and message.messages is not None
 
         # Validate the group state given the start message.
-        await self.validate_group_state(message.message)
+        await self.validate_group_state(message.messages[0])
 
         # Log the start message.
         await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
         # Outer Loop for first time
         # Create the initial task ledger
         #################################
-        # Handle single message or list of messages
-        messages = [message.message] if hasattr(message.message, "type") else message.message
         # Combine all message contents for task
-        self._task = " ".join([self._content_to_str(msg.content) for msg in messages])
+        self._task = " ".join([self._content_to_str(msg.content) for msg in message.messages])
         planning_conversation: List[LLMMessage] = []
 
         # 1. GATHER FACTS

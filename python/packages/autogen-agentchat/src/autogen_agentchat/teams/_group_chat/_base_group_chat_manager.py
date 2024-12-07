@@ -70,31 +70,28 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             # Stop the group chat.
             return
 
-        # Validate the group state given the start message.
-        await self.validate_group_state(message.message)
+        # Validate the group state given the start messages
+        await self.validate_group_state(message.messages[0] if message.messages else None)
 
-        if message.message is not None:
-            # Check if message is a ChatMessage by checking for the discriminator field 'type'
-            messages_to_process = [message.message] if hasattr(message.message, "type") else message.message
-
+        if message.messages is not None:
             # Log all messages at once
             await self.publish_message(
-                GroupChatStart(message=messages_to_process), topic_id=DefaultTopicId(type=self._output_topic_type)
+                GroupChatStart(messages=message.messages), topic_id=DefaultTopicId(type=self._output_topic_type)
             )
 
             # Relay all messages at once to participants
             await self.publish_message(
-                GroupChatStart(message=messages_to_process),
+                GroupChatStart(messages=message.messages),
                 topic_id=DefaultTopicId(type=self._group_topic_type),
                 cancellation_token=ctx.cancellation_token,
             )
 
             # Append all messages to thread
-            self._message_thread.extend(messages_to_process)
+            self._message_thread.extend(message.messages)
 
             # Check termination condition after processing all messages
             if self._termination_condition is not None:
-                stop_message = await self._termination_condition(messages_to_process)
+                stop_message = await self._termination_condition(message.messages)
                 if stop_message is not None:
                     await self.publish_message(
                         GroupChatTermination(message=stop_message),

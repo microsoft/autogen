@@ -146,15 +146,18 @@ class BaseGroupChat(Team, ABC):
             message: GroupChatStart | GroupChatMessage | GroupChatTermination,
             ctx: MessageContext,
         ) -> None:
-            event_logger.info(message.message)
-            if isinstance(message, GroupChatTermination):
+            """Collect output messages from the group chat."""
+            if isinstance(message, GroupChatStart):
+                if message.messages is not None:
+                    for msg in message.messages:
+                        event_logger.info(msg)
+                        await self._output_message_queue.put(msg)
+            elif isinstance(message, GroupChatMessage):
+                event_logger.info(message.message)
+                await self._output_message_queue.put(message.message)
+            elif isinstance(message, GroupChatTermination):
+                event_logger.info(message.message)
                 self._stop_reason = message.message.content
-                return
-
-            # Handle single message or list of messages
-            messages = message.message if isinstance(message.message, List) else [message.message]
-            for msg in messages:
-                await self._output_message_queue.put(msg)
 
         await ClosureAgent.register_closure(
             runtime,
@@ -401,8 +404,12 @@ class BaseGroupChat(Team, ABC):
             # Run the team by sending the start message to the group chat manager.
             # The group chat manager will start the group chat by relaying the message to the participants
             # and the closure agent.
+            if first_chat_message is not None:
+                messages = [first_chat_message]
+            else:
+                messages = None
             await self._runtime.send_message(
-                GroupChatStart(message=first_chat_message),
+                GroupChatStart(messages=messages),
                 recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
                 cancellation_token=cancellation_token,
             )

@@ -9,8 +9,8 @@ from ...messages import AgentMessage, ChatMessage, StopMessage
 class GroupChatStart(BaseModel):
     """A request to start a group chat."""
 
-    message: ChatMessage | List[ChatMessage] | None = None
-    """An optional user message or list of messages to start the group chat."""
+    messages: List[ChatMessage] | None = None
+    """An optional list of messages to start the group chat."""
 
 
 class GroupChatAgentResponse(BaseModel):
