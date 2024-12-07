@@ -66,6 +66,7 @@ class AssistantAgent(BaseChatAgent):
             If a handoff is a string, it should represent the target agent's name.
         description (str, optional): The description of the agent.
         system_message (str, optional): The system message for the model.
+        max_tool_iterations (int, optional): The maximum number of tool iterations to run before returning the response.
 
     Raises:
         ValueError: If tool names are not unique.
@@ -181,9 +182,11 @@ class AssistantAgent(BaseChatAgent):
         description: str = "An agent that provides assistance with ability to use tools.",
         system_message: str
         | None = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
+        max_tool_iterations: int = 1,
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client
+        self._max_tool_iterations = max_tool_iterations
         if system_message is None:
             self._system_messages = []
         else:
@@ -268,7 +271,11 @@ class AssistantAgent(BaseChatAgent):
         self._model_context.append(AssistantMessage(content=result.content, source=self.name))
 
         # Run tool calls until the model produces a string response.
+        tool_call_iteration = 0
         while isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content):
+            if tool_call_iteration >= self._max_tool_iterations:
+                break
+            tool_call_iteration += 1
             tool_call_msg = ToolCallMessage(content=result.content, source=self.name, models_usage=result.usage)
             event_logger.debug(tool_call_msg)
             # Add the tool call message to the output.
