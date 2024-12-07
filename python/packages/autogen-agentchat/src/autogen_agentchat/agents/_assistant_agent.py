@@ -239,6 +239,30 @@ class AssistantAgent(BaseChatAgent):
         self._model_context: List[LLMMessage] = []
         self._is_running = False
 
+    def add_tool(self, tool: Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]) -> None:
+        """Add a tool to the assistant agent."""
+        if isinstance(tool, Tool):
+            self._tools.append(tool)
+        elif callable(tool):
+            if hasattr(tool, "__doc__") and tool.__doc__ is not None:
+                description = tool.__doc__
+            else:
+                description = ""
+            self._tools.append(FunctionTool(tool, description=description))
+        else:
+            raise ValueError(f"Unsupported tool type: {type(tool)}")
+        # Check if tool names are unique.
+        tool_names = [tool.name for tool in self._tools]
+        if len(tool_names) != len(set(tool_names)):
+            raise ValueError(f"Tool names must be unique: {tool_names}")
+
+    def remove_tool(self, tool_name: str) -> None:
+        """Remove a tool from the assistant agent by name."""
+        if tool_name not in [tool.name for tool in self._tools]:
+            warnings.warn(f"Tool '{tool_name}' does not exist and cannot be removed.", UserWarning)
+        else:
+            self._tools = [tool for tool in self._tools if tool.name != tool_name]
+
     @property
     def produced_message_types(self) -> List[type[ChatMessage]]:
         """The types of messages that the assistant agent produces."""
