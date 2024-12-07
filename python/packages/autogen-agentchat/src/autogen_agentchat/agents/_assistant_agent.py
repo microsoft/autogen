@@ -260,7 +260,7 @@ class AssistantAgent(BaseChatAgent):
     def remove_tool(self, tool_name: str) -> None:
         """Remove a tool from the assistant agent by name."""
         if tool_name not in [tool.name for tool in self._tools]:
-            warnings.warn(f"Tool '{tool_name}' does not exist and cannot be removed.", UserWarning)
+            warnings.warn(f"Tool '{tool_name}' does not exist and cannot be removed.", stacklevel=2)
         else:
             self._tools = [tool for tool in self._tools if tool.name != tool_name]
 
@@ -299,6 +299,8 @@ class AssistantAgent(BaseChatAgent):
 
         # Run tool calls until the model produces a string response.
         tool_call_iteration = 0
+        tool_call_msg: ToolCallMessage | None = None
+        tool_call_result_msg: ToolCallResultMessage | None = None
         while isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content):
             if tool_call_iteration >= self._max_tool_iterations:
                 break
@@ -330,7 +332,8 @@ class AssistantAgent(BaseChatAgent):
                 if len(handoffs) > 1:
                     # show warning if multiple handoffs detected
                     warnings.warn(
-                        f"Multiple handoffs detected only the first is executed: {[handoff.name for handoff in handoffs]}"
+                        f"Multiple handoffs detected only the first is executed: {[handoff.name for handoff in handoffs]}",
+                        stacklevel=2,
                     )
                 # Return the output messages to signal the handoff.
                 yield Response(
@@ -351,6 +354,8 @@ class AssistantAgent(BaseChatAgent):
 
         if isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content):
             tool_call_summary = "Tool calls:\n"
+            assert isinstance(tool_call_msg, ToolCallMessage)
+            assert isinstance(tool_call_result_msg, ToolCallResultMessage)
             for i in range(len(tool_call_msg.content)):
                 tool_call_summary += f"{tool_call_msg.content[i].name}({tool_call_msg.content[i].arguments}) = {tool_call_result_msg.content[i].content}\n"
             yield Response(
