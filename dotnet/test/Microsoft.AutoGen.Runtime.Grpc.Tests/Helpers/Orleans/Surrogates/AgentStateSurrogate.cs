@@ -46,7 +46,7 @@ public sealed class AgentStateSurrogateConverter :
             BinaryData = value.BinaryData,
             TextData = value.TextData,
             Etag = value.ETag,
-            ProtoData = value.ProtoData.Value
+            //ProtoData = value.ProtoData.Value
         };
 }
 
