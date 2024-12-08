@@ -17,6 +17,10 @@ from ._types import (
 
 
 class PlaywrightController:
+    """
+    A helper class to allow Playwright to interact with web pages to perform actions such as clicking, filling, and scrolling.
+    """
+
     def __init__(
         self,
         animate_actions: bool = False,
@@ -27,14 +31,23 @@ class PlaywrightController:
         to_resize_viewport: bool = True,
     ) -> None:
         """
-        A controller for Playwright to interact with web pages.
-        animate_actions: If True, actions will be animated.
-        downloads_folder: The folder to save downloads to.
-        viewport_width: The width of the viewport.
-        viewport_height: The height of the viewport.
-        _download_handler: A handler for downloads.
-        to_resize_viewport: If True, the viewport will be resized.
+        Initialize the PlaywrightController.
+
+        Args:
+            animate_actions (bool): Whether to animate the actions (create fake cursor to click).
+            downloads_folder (Optional[str]): The folder to save downloads to.
+            viewport_width (int): The width of the viewport.
+            viewport_height (int): The height of the viewport.
+            _download_handler (Optional[Callable[[Download], None]]): A function to handle downloads.
+            to_resize_viewport (bool): Whether to resize the viewport
         """
+        assert isinstance(animate_actions, bool)
+        assert downloads_folder is None or isinstance(downloads_folder, str)
+        assert isinstance(viewport_width, int)
+        assert isinstance(viewport_height, int)
+        assert viewport_height > 0
+        assert viewport_width > 0
+
         self.animate_actions = animate_actions
         self.downloads_folder = downloads_folder
         self.viewport_width = viewport_width
@@ -49,10 +62,26 @@ class PlaywrightController:
             self._page_script = fh.read()
 
     async def sleep(self, page: Page, duration: Union[int, float]) -> None:
+        """
+        Pause the execution for a specified duration.
+
+        Args:
+            page (Page): The Playwright page object.
+            duration (Union[int, float]): The duration to sleep in seconds.
+        """
         assert page is not None
         await page.wait_for_timeout(duration * 1000)
 
     async def get_interactive_rects(self, page: Page) -> Dict[str, InteractiveRegion]:
+        """
+        Retrieve interactive regions from the web page.
+
+        Args:
+            page (Page): The Playwright page object.
+
+        Returns:
+            Dict[str, InteractiveRegion]: A dictionary of interactive regions.
+        """
         assert page is not None
         # Read the regions from the DOM
         try:
@@ -71,6 +100,15 @@ class PlaywrightController:
         return typed_results
 
     async def get_visual_viewport(self, page: Page) -> VisualViewport:
+        """
+        Retrieve the visual viewport of the web page.
+
+        Args:
+            page (Page): The Playwright page object.
+
+        Returns:
+            VisualViewport: The visual viewport of the page.
+        """
         assert page is not None
         try:
             await page.evaluate(self._page_script)
@@ -79,6 +117,15 @@ class PlaywrightController:
         return visualviewport_from_dict(await page.evaluate("MultimodalWebSurfer.getVisualViewport();"))
 
     async def get_focused_rect_id(self, page: Page) -> str:
+        """
+        Retrieve the ID of the currently focused element.
+
+        Args:
+            page (Page): The Playwright page object.
+
+        Returns:
+            str: The ID of the focused element.
+        """
         assert page is not None
         try:
             await page.evaluate(self._page_script)
@@ -88,6 +135,15 @@ class PlaywrightController:
         return str(result)
 
     async def get_page_metadata(self, page: Page) -> Dict[str, Any]:
+        """
+        Retrieve metadata from the web page.
+
+        Args:
+            page (Page): The Playwright page object.
+
+        Returns:
+            Dict[str, Any]: A dictionary of page metadata.
+        """
         assert page is not None
         try:
             await page.evaluate(self._page_script)
@@ -98,6 +154,12 @@ class PlaywrightController:
         return cast(Dict[str, Any], result)
 
     async def on_new_page(self, page: Page) -> None:
+        """
+        Handle actions to perform on a new page.
+
+        Args:
+            page (Page): The Playwright page object.
+        """
         assert page is not None
         page.on("download", self._download_handler)  # type: ignore
         if self.to_resize_viewport and self.viewport_width and self.viewport_height:
@@ -107,10 +169,26 @@ class PlaywrightController:
         await page.wait_for_load_state()
 
     async def back(self, page: Page) -> None:
+        """
+        Navigate back to the previous page.
+
+        Args:
+            page (Page): The Playwright page object.
+        """
         assert page is not None
         await page.go_back()
 
     async def visit_page(self, page: Page, url: str) -> Tuple[bool, bool]:
+        """
+        Visit a specified URL.
+
+        Args:
+            page (Page): The Playwright page object.
+            url (str): The URL to visit.
+
+        Returns:
+            Tuple[bool, bool]: A tuple indicating whether to reset prior metadata hash and last download.
+        """
         assert page is not None
         reset_prior_metadata_hash = False
         reset_last_download = False
@@ -143,16 +221,38 @@ class PlaywrightController:
         return reset_prior_metadata_hash, reset_last_download
 
     async def page_down(self, page: Page) -> None:
+        """
+        Scroll the page down by one viewport height minus 50 pixels.
+
+        Args:
+            page (Page): The Playwright page object.
+        """
         assert page is not None
         await page.evaluate(f"window.scrollBy(0, {self.viewport_height-50});")
 
     async def page_up(self, page: Page) -> None:
+        """
+        Scroll the page up by one viewport height minus 50 pixels.
+
+        Args:
+            page (Page): The Playwright page object.
+        """
         assert page is not None
         await page.evaluate(f"window.scrollBy(0, -{self.viewport_height-50});")
 
     async def gradual_cursor_animation(
         self, page: Page, start_x: float, start_y: float, end_x: float, end_y: float
     ) -> None:
+        """
+        Animate the cursor movement gradually from start to end coordinates.
+
+        Args:
+            page (Page): The Playwright page object.
+            start_x (float): The starting x-coordinate.
+            start_y (float): The starting y-coordinate.
+            end_x (float): The ending x-coordinate.
+            end_y (float): The ending y-coordinate.
+        """
         # animation helper
         steps = 20
         for step in range(steps):
@@ -171,6 +271,13 @@ class PlaywrightController:
         self.last_cursor_position = (end_x, end_y)
 
     async def add_cursor_box(self, page: Page, identifier: str) -> None:
+        """
+        Add a red cursor box around the element with the given identifier.
+
+        Args:
+            page (Page): The Playwright page object.
+            identifier (str): The element identifier.
+        """
         # animation helper
         await page.evaluate(f"""
             (function() {{
@@ -199,6 +306,13 @@ class PlaywrightController:
         """)
 
     async def remove_cursor_box(self, page: Page, identifier: str) -> None:
+        """
+        Remove the red cursor box around the element with the given identifier.
+
+        Args:
+            page (Page): The Playwright page object.
+            identifier (str): The element identifier.
+        """
         # Remove the highlight and cursor
         await page.evaluate(f"""
             (function() {{
@@ -215,7 +329,14 @@ class PlaywrightController:
 
     async def click_id(self, page: Page, identifier: str) -> Page | None:
         """
-        Returns new page if a new page is opened, otherwise None.
+        Click the element with the given identifier.
+
+        Args:
+            page (Page): The Playwright page object.
+            identifier (str): The element identifier.
+
+        Returns:
+            Page | None: The new page if a new page is opened, otherwise None.
         """
         new_page: Page | None = None
         assert page is not None
@@ -266,7 +387,11 @@ class PlaywrightController:
 
     async def hover_id(self, page: Page, identifier: str) -> None:
         """
-        Hovers the mouse over the target with the given id.
+        Hover the mouse over the element with the given identifier.
+
+        Args:
+            page (Page): The Playwright page object.
+            identifier (str): The element identifier.
         """
         assert page is not None
         target = page.locator(f"[__elementId='{identifier}']")
@@ -297,6 +422,14 @@ class PlaywrightController:
             await page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
 
     async def fill_id(self, page: Page, identifier: str, value: str) -> None:
+        """
+        Fill the element with the given identifier with the specified value.
+
+        Args:
+            page (Page): The Playwright page object.
+            identifier (str): The element identifier.
+            value (str): The value to fill.
+        """
         assert page is not None
         target = page.locator(f"[__elementId='{identifier}']")
 
@@ -338,6 +471,14 @@ class PlaywrightController:
             await self.remove_cursor_box(page, identifier)
 
     async def scroll_id(self, page: Page, identifier: str, direction: str) -> None:
+        """
+        Scroll the element with the given identifier in the specified direction.
+
+        Args:
+            page (Page): The Playwright page object.
+            identifier (str): The element identifier.
+            direction (str): The direction to scroll ("up" or "down").
+        """
         assert page is not None
         await page.evaluate(
             f"""
@@ -357,9 +498,14 @@ class PlaywrightController:
 
     async def get_webpage_text(self, page: Page, n_lines: int = 100) -> str:
         """
-        page: playwright page object
-        n_lines: number of lines to return from the page innertext
-        return: text in the first n_lines of the page
+        Retrieve the text content of the web page.
+
+        Args:
+            page (Page): The Playwright page object.
+            n_lines (int): The number of lines to return from the page inner text.
+
+        Returns:
+            str: The text content of the page.
         """
         assert page is not None
         try:
@@ -375,6 +521,16 @@ class PlaywrightController:
             return ""
 
     async def get_page_markdown(self, page: Page) -> str:
+        """
+        Retrieve the markdown content of the web page.
+        Currently not implemented.
+
+        Args:
+            page (Page): The Playwright page object.
+
+        Returns:
+            str: The markdown content of the page.
+        """
         # TODO: replace with mdconvert
         assert page is not None
         return await self.get_webpage_text(page, n_lines=1000)

@@ -39,7 +39,7 @@ from PIL import Image
 from playwright.async_api import BrowserContext, Download, Page, Playwright, async_playwright
 
 from ._events import WebSurferEvent
-from ._playwright_controller import PlaywrightController
+from .playwright_controller import PlaywrightController
 from ._prompts import WEB_SURFER_OCR_PROMPT, WEB_SURFER_QA_PROMPT, WEB_SURFER_QA_SYSTEM_MESSAGE, WEB_SURFER_TOOL_PROMPT
 from ._set_of_mark import add_set_of_mark
 from ._tool_definitions import (
@@ -73,7 +73,45 @@ SCREENSHOT_TOKENS = 1105
 
 
 class MultimodalWebSurfer(BaseChatAgent):
-    """(In preview) A multimodal agent that acts as a web surfer that can search the web and visit web pages."""
+    """
+    MultimodalWebSurfer is a multimodal agent that acts as a web surfer that can search the web and visit web pages.
+
+
+    Example usage:
+
+    The following example demonstrates how to create an video surfing agent with
+    a model client and generate a response to a simple query about a local video
+    called video.mp4.
+
+        .. code-block:: python
+
+
+            import asyncio
+            from autogen_agentchat.ui import Console
+            from autogen_agentchat.teams import RoundRobinGroupChat
+            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.agents.web_surfer import MultimodalWebSurfer
+
+            async def main() -> None:
+                # Define an agent
+                video_agent = MultimodalWebSurfer(
+                    name="MultimodalWebSurfer",
+                    model_client=OpenAIChatCompletionClient(model="gpt-4o-2024-08-06"),
+                    headless = True,
+                    downloads_folder="logs",
+                    debug_dir="logs",
+                    )
+
+
+                # Define a team
+                agent_team = RoundRobinGroupChat([video_agent], termination_condition=termination)
+
+                # Run the team and stream messages to the console
+                stream = agent_team.run_stream(task="How does Adam define complex tasks in video.mp4? What concrete example of complex does his use? Can you save this example to disk as well?")
+                await Console(stream)
+
+            asyncio.run(main())
+    """
 
     DEFAULT_DESCRIPTION = "A helpful assistant with access to a web browser. Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, etc., filling in form fields, etc.) It can also summarize the entire page, or answer questions based on the content of the page. It can also be asked to sleep and wait for pages to load, in cases where the pages seem to be taking a while to load."
 
