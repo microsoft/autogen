@@ -25,7 +25,7 @@ While this exercise is designed to be self-sufficient, at any time feel free to 
 Create a python virtual environment. Please feel free to use a virtual environment manager of your choice (e.g., `venv` or `conda`). Once you have created the virtual environment, please install the `agentchat` package using:
 
 ```bash
-pip install 'autogen-agentchat==0.4.0.dev9' 'autogen-ext==0.4.0.dev9'
+pip install "autogen-agentchat==0.4.0.dev9" "autogen-ext[openai,video-surfer]==0.4.0.dev9"
 ```
 
 This will install the high-level API for agents built using `autogen-core`.
