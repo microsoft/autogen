@@ -55,7 +55,7 @@ class BaseChatAgent(ChatAgent, ABC):
     async def run(
         self,
         *,
-        task: str | ChatMessage | None = None,
+        task: str | ChatMessage | List[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the agent with the given task and return the result."""
@@ -69,7 +69,7 @@ class BaseChatAgent(ChatAgent, ABC):
             text_msg = TextMessage(content=task, source="user")
             input_messages.append(text_msg)
             output_messages.append(text_msg)
-        elif isinstance(task, TextMessage | MultiModalMessage | StopMessage | HandoffMessage):
+        elif isinstance(task, (TextMessage, MultiModalMessage, StopMessage, HandoffMessage)):
             input_messages.append(task)
             output_messages.append(task)
         else:
@@ -83,7 +83,7 @@ class BaseChatAgent(ChatAgent, ABC):
     async def run_stream(
         self,
         *,
-        task: str | ChatMessage | None = None,
+        task: str | ChatMessage | List[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
         """Run the agent with the given task and return a stream of messages
@@ -99,7 +99,15 @@ class BaseChatAgent(ChatAgent, ABC):
             input_messages.append(text_msg)
             output_messages.append(text_msg)
             yield text_msg
-        elif isinstance(task, TextMessage | MultiModalMessage | StopMessage | HandoffMessage):
+        elif isinstance(task, list):
+            for msg in task:
+                if isinstance(msg, (TextMessage, MultiModalMessage, StopMessage, HandoffMessage)):
+                    input_messages.append(msg)
+                    output_messages.append(msg)
+                    yield msg
+                else:
+                    raise ValueError(f"Invalid message type in list: {type(msg)}")
+        elif isinstance(task, (TextMessage, MultiModalMessage, StopMessage, HandoffMessage)):
             input_messages.append(task)
             output_messages.append(task)
             yield task
