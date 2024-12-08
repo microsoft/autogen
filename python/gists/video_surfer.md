@@ -25,7 +25,7 @@ While this exercise is designed to be self-sufficient, at any time feel free to 
 Create a python virtual environment. Please feel free to use a virtual environment manager of your choice (e.g., `venv` or `conda`). Once you have created the virtual environment, please install the `agentchat` package using:
 
 ```bash
-pip install 'autogen-agentchat==0.4.0.dev8' 'autogen-ext==0.4.0.dev8'
+pip install 'autogen-agentchat==0.4.0.dev9' 'autogen-ext==0.4.0.dev9'
 ```
 
 This will install the high-level API for agents built using `autogen-core`.
@@ -37,7 +37,8 @@ Run the script below. You'll need an OpenAI API key.
 ```python
 import asyncio
 
-from autogen_agentchat.task import Console, TextMentionTermination
+from autogen_agentchat.ui import Console
+from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_ext.models import OpenAIChatCompletionClient
