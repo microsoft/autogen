@@ -1,0 +1,6 @@
+autogen-agentchat==0.4.0.dev9
+autogen-ext==0.4.0.dev9
+azure-identity
+chainlit
+opentelemetry-exporter-otlp-proto-grpc==1.27
+pydantic==2.10.1
