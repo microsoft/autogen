@@ -306,6 +306,7 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
             usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
     ]
+    # Test with repeat tool calls once
     mock = _MockChatCompletion(chat_completions)
     monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
     tool = FunctionTool(_pass_function, name="pass", description="pass function")
@@ -313,6 +314,7 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
         "tool_use_agent",
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),
         tools=[tool],
+        max_tool_call_iterations=2,
     )
     echo_agent = _EchoAgent("echo_agent", description="echo agent")
     termination = TextMentionTermination("TERMINATE")
@@ -320,7 +322,6 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     result = await team.run(
         task="Write a program that prints 'Hello, world!'",
     )
-
     assert len(result.messages) == 6
     assert isinstance(result.messages[0], TextMessage)  # task
     assert isinstance(result.messages[1], ToolCallMessage)  # tool call
@@ -328,7 +329,9 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     assert isinstance(result.messages[3], TextMessage)  # tool use agent response
     assert isinstance(result.messages[4], TextMessage)  # echo agent response
     assert isinstance(result.messages[5], TextMessage)  # tool use agent response
+
     assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
+
 
     context = tool_use_agent._model_context  # pyright: ignore
     assert context[0].content == "Write a program that prints 'Hello, world!'"
@@ -363,6 +366,32 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     await team.reset()
     result2 = await Console(team.run_stream(task="Write a program that prints 'Hello, world!'"))
     assert result2 == result
+    # Test with no tool call repeat
+    mock = _MockChatCompletion(chat_completions)
+    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
+    tool = FunctionTool(_pass_function, name="pass", description="pass function")
+    tool_use_agent = AssistantAgent(
+        "tool_use_agent",
+        model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+        tools=[tool],
+    )
+    echo_agent = _EchoAgent("echo_agent", description="echo agent")
+    termination = TextMentionTermination("TERMINATE")
+    team = RoundRobinGroupChat(participants=[tool_use_agent, echo_agent], termination_condition=termination)
+    result = await team.run(
+        task="Write a program that prints 'Hello, world!'",
+    )
+    assert len(result.messages) == 8
+    assert isinstance(result.messages[0], TextMessage)  # task
+    assert isinstance(result.messages[1], ToolCallMessage)  # tool call
+    assert isinstance(result.messages[2], ToolCallResultMessage)  # tool call result
+    assert isinstance(result.messages[3], TextMessage)  # tool use agent response
+    assert isinstance(result.messages[4], TextMessage)  # echo agent response
+    assert isinstance(result.messages[5], TextMessage)  # tool use agent response
+    assert isinstance(result.messages[6], TextMessage)  # echo agent response
+    assert isinstance(result.messages[7], TextMessage)  # tool use agent response, that has TERMINATE
+
+    assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
 
 
 @pytest.mark.asyncio
