@@ -71,7 +71,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             return
 
         # Validate the group state given the start messages
-        await self.validate_group_state(message.messages[0] if message.messages else None)
+        await self.validate_group_state(message.messages)
 
         if message.messages is not None:
             # Log all messages at once
@@ -170,8 +170,13 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         await self.reset()
 
     @abstractmethod
-    async def validate_group_state(self, message: ChatMessage | None) -> None:
-        """Validate the state of the group chat given the start message. This is executed when the group chat manager receives a GroupChatStart event."""
+    async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
+        """Validate the state of the group chat given the start messages.
+        This is executed when the group chat manager receives a GroupChatStart event.
+
+        Args:
+            messages: A list of chat messages to validate, or None if no messages are provided.
+        """
         ...
 
     @abstractmethod
