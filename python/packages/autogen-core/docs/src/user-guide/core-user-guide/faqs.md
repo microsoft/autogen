@@ -46,7 +46,7 @@ Model capabilites are additional capabilities an LLM may have beyond the standar
 Model capabilities can be passed into a model, which will override the default definitions. These capabilities will not affect what the underlying model is actually capable of, but will allow or disallow behaviors associated with them. This is particularly useful when [using local LLMs](cookbook/local-llms-ollama-litellm.ipynb).
 
 ```python
-from autogen_ext.models import OpenAIChatCompletionClient
+from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 client = OpenAIChatCompletionClient(
     model="gpt-4o",

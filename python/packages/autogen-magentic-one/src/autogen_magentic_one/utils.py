@@ -11,7 +11,7 @@ from autogen_core.components.models import (
     ModelCapabilities,
 )
 from autogen_core.logging import LLMCallEvent
-from autogen_ext.models import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 
 from .messages import (
     AgentEvent,

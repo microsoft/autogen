@@ -15,9 +15,9 @@ from autogen_core.components.models import (
     UserMessage,
 )
 from autogen_core.components.tools import BaseTool, FunctionTool
-from autogen_ext.models import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
-from autogen_ext.models._openai._model_info import resolve_model
-from autogen_ext.models._openai._openai_client import calculate_vision_tokens, convert_tools
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
+from autogen_ext.models.openai._model_info import resolve_model
+from autogen_ext.models.openai._openai_client import calculate_vision_tokens, convert_tools
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, ChoiceDelta
