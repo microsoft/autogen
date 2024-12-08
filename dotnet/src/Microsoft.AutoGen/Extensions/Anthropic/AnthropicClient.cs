@@ -1,16 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AnthropicClient.cs
 
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Net.Http;
+using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using System.Threading;
-using System.Threading.Tasks;
+
 using AutoGen.Anthropic.Converters;
 using AutoGen.Anthropic.DTO;
 
@@ -41,6 +37,8 @@ public sealed class AnthropicClient : IDisposable
         _httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
         _httpClient.DefaultRequestHeaders.Add("anthropic-version", "2023-06-01");
     }
+
+    internal string BaseUrl => _baseUrl;
 
     public async Task<ChatCompletionResponse> CreateChatCompletionsAsync(ChatCompletionRequest chatCompletionRequest,
         CancellationToken cancellationToken)
@@ -80,12 +78,17 @@ public sealed class AnthropicClient : IDisposable
             }
             else // an empty line indicates the end of an event
             {
+                Delta? initialText = null;
                 if (currentEvent.EventType == "content_block_start" && !string.IsNullOrEmpty(currentEvent.Data))
                 {
                     var dataBlock = JsonSerializer.Deserialize<DataBlock>(currentEvent.Data!);
                     if (dataBlock != null && dataBlock.ContentBlock?.Type == "tool_use")
-                    {
+                    { // TODO: verify we never get a non-empty text start content block
                         currentEvent.ContentBlock = dataBlock.ContentBlock;
+                    }
+                    else if (dataBlock != null && dataBlock.ContentBlock?.Type == "text")
+                    {
+                        initialText = new Delta { Type = "text_delta", Text = dataBlock.ContentBlock?.Text };
                     }
                 }
 
@@ -94,6 +97,12 @@ public sealed class AnthropicClient : IDisposable
                     var res = await JsonSerializer.DeserializeAsync<ChatCompletionResponse>(
                         new MemoryStream(Encoding.UTF8.GetBytes(currentEvent.Data)),
                         cancellationToken: cancellationToken) ?? throw new Exception("Failed to deserialize response");
+                    if (initialText != null)
+                    {
+                        Debug.Assert(res.Delta == null, "content_block_start events should not also contain deltas");
+                        res.Delta = initialText;
+                    }
+
                     if (res.Delta?.Type == "input_json_delta" && !string.IsNullOrEmpty(res.Delta.PartialJson) &&
                         currentEvent.ContentBlock != null)
                     {
@@ -181,6 +190,9 @@ public sealed class AnthropicClient : IDisposable
 
         [JsonPropertyName("parameters")]
         public string? Parameters { get; set; }
+
+        [JsonPropertyName("text")]
+        public string? Text { get; set; }
 
         public void AppendDeltaParameters(string deltaParams)
         {

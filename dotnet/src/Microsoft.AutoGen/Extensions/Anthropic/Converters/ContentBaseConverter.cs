@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ContentBaseConverter.cs
 
-using System;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoGen.Anthropic.DTO;
+
 namespace AutoGen.Anthropic.Converters;
 
 public sealed class ContentBaseConverter : JsonConverter<ContentBase>
