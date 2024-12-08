@@ -19,12 +19,20 @@ from ._types import (
 class PlaywrightController:
     """
     A helper class to allow Playwright to interact with web pages to perform actions such as clicking, filling, and scrolling.
+
+    Args:
+        downloads_folder (str): The folder to save downloads.
+        animate_actions (bool): Whether to animate the actions (create fake cursor to click).
+        viewport_width (int): The width of the viewport.
+        viewport_height (int): The height of the viewport.
+        _download_handler (Optional[Callable[[Download], None]]): A function to handle downloads.
+        to_resize_viewport (bool): Whether to resize the viewport
     """
 
     def __init__(
         self,
+        downloads_folder: str,
         animate_actions: bool = False,
-        downloads_folder: Optional[str] = None,
         viewport_width: int = 1440,
         viewport_height: int = 900,
         _download_handler: Optional[Callable[[Download], None]] = None,
@@ -32,17 +40,9 @@ class PlaywrightController:
     ) -> None:
         """
         Initialize the PlaywrightController.
-
-        Args:
-            animate_actions (bool): Whether to animate the actions (create fake cursor to click).
-            downloads_folder (Optional[str]): The folder to save downloads to.
-            viewport_width (int): The width of the viewport.
-            viewport_height (int): The height of the viewport.
-            _download_handler (Optional[Callable[[Download], None]]): A function to handle downloads.
-            to_resize_viewport (bool): Whether to resize the viewport
         """
         assert isinstance(animate_actions, bool)
-        assert downloads_folder is None or isinstance(downloads_folder, str)
+        assert isinstance(downloads_folder, str)
         assert isinstance(viewport_width, int)
         assert isinstance(viewport_height, int)
         assert viewport_height > 0
@@ -67,7 +67,7 @@ class PlaywrightController:
 
         Args:
             page (Page): The Playwright page object.
-            duration (Union[int, float]): The duration to sleep in seconds.
+            duration (Union[int, float]): The duration to sleep in milliseconds.
         """
         assert page is not None
         await page.wait_for_timeout(duration * 1000)
