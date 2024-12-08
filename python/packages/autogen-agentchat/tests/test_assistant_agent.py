@@ -118,6 +118,7 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
         tools=[_pass_function, _fail_function, FunctionTool(_echo_function, description="Echo")],
     )
     result = await agent.run(task="task")
+
     assert len(result.messages) == 4
     assert isinstance(result.messages[0], TextMessage)
     assert result.messages[0].models_usage is None
@@ -128,9 +129,8 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     assert isinstance(result.messages[2], ToolCallResultMessage)
     assert result.messages[2].models_usage is None
     assert isinstance(result.messages[3], TextMessage)
-    assert result.messages[3].models_usage is not None
-    assert result.messages[3].models_usage.completion_tokens == 5
-    assert result.messages[3].models_usage.prompt_tokens == 10
+    assert result.messages[3].content == 'Tool calls:\n_pass_function({"input": "task"}) = pass'
+    assert result.messages[3].models_usage is None
 
     # Test streaming.
     mock._curr_index = 0  # pyright: ignore

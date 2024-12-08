@@ -50,11 +50,20 @@ class Handoff(HandoffBase):
 class AssistantAgent(BaseChatAgent):
     """An agent that provides assistance with tool use.
 
-    ```{note}
-    The assistant agent is not thread-safe or coroutine-safe.
-    It should not be shared between multiple tasks or coroutines, and it should
-    not call its methods concurrently.
-    ```
+    Each time the agent's :meth:`on_messages` or :meth:`on_messages_stream` method is called:
+
+    1) If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` in the :attr:`~autogen_agentchat.base.Response.chat_message`.
+
+    2) When the model returns tool calls, they will be executed right away, and the tool call results
+       are returned as a single :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
+
+    .. note::
+        The assistant agent is not thread-safe or coroutine-safe.
+        It should not be shared between multiple tasks or coroutines, and it should
+        not call its methods concurrently.
+
+    .. note::
+        Furthermore, if multiple handoffs are detected, only the first handoff is executed.
 
     Args:
         name (str): The name of the agent.
@@ -71,6 +80,7 @@ class AssistantAgent(BaseChatAgent):
         ValueError: If tool names are not unique.
         ValueError: If handoff names are not unique.
         ValueError: If handoff names are not unique from tool names.
+        ValueError: If maximum number of tool iterations is less than 1.
 
     Examples:
 
@@ -267,51 +277,55 @@ class AssistantAgent(BaseChatAgent):
         # Add the response to the model context.
         self._model_context.append(AssistantMessage(content=result.content, source=self.name))
 
-        # Run tool calls until the model produces a string response.
-        while isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content):
-            tool_call_msg = ToolCallMessage(content=result.content, source=self.name, models_usage=result.usage)
-            event_logger.debug(tool_call_msg)
-            # Add the tool call message to the output.
-            inner_messages.append(tool_call_msg)
-            yield tool_call_msg
-
-            # Execute the tool calls.
-            results = await asyncio.gather(
-                *[self._execute_tool_call(call, cancellation_token) for call in result.content]
+        # Check if the response is a string and return it.
+        if isinstance(result.content, str):
+            yield Response(
+                chat_message=TextMessage(content=result.content, source=self.name, models_usage=result.usage),
+                inner_messages=inner_messages,
             )
-            tool_call_result_msg = ToolCallResultMessage(content=results, source=self.name)
-            event_logger.debug(tool_call_result_msg)
-            self._model_context.append(FunctionExecutionResultMessage(content=results))
-            inner_messages.append(tool_call_result_msg)
-            yield tool_call_result_msg
+            return
 
-            # Detect handoff requests.
-            handoffs: List[HandoffBase] = []
-            for call in result.content:
-                if call.name in self._handoffs:
-                    handoffs.append(self._handoffs[call.name])
-            if len(handoffs) > 0:
-                if len(handoffs) > 1:
-                    raise ValueError(f"Multiple handoffs detected: {[handoff.name for handoff in handoffs]}")
-                # Return the output messages to signal the handoff.
-                yield Response(
-                    chat_message=HandoffMessage(
-                        content=handoffs[0].message, target=handoffs[0].target, source=self.name
-                    ),
-                    inner_messages=inner_messages,
+        # Process tool calls.
+        assert isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content)
+        tool_call_msg = ToolCallMessage(content=result.content, source=self.name, models_usage=result.usage)
+        event_logger.debug(tool_call_msg)
+        # Add the tool call message to the output.
+        inner_messages.append(tool_call_msg)
+        yield tool_call_msg
+
+        # Execute the tool calls.
+        results = await asyncio.gather(*[self._execute_tool_call(call, cancellation_token) for call in result.content])
+        tool_call_result_msg = ToolCallResultMessage(content=results, source=self.name)
+        event_logger.debug(tool_call_result_msg)
+        self._model_context.append(FunctionExecutionResultMessage(content=results))
+        inner_messages.append(tool_call_result_msg)
+        yield tool_call_result_msg
+
+        # Detect handoff requests.
+        handoffs: List[HandoffBase] = []
+        for call in result.content:
+            if call.name in self._handoffs:
+                handoffs.append(self._handoffs[call.name])
+        if len(handoffs) > 0:
+            if len(handoffs) > 1:
+                # show warning if multiple handoffs detected
+                warnings.warn(
+                    f"Multiple handoffs detected only the first is executed: {[handoff.name for handoff in handoffs]}",
+                    stacklevel=2,
                 )
-                return
-
-            # Generate an inference result based on the current model context.
-            llm_messages = self._system_messages + self._model_context
-            result = await self._model_client.create(
-                llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
+            # Return the output messages to signal the handoff.
+            yield Response(
+                chat_message=HandoffMessage(content=handoffs[0].message, target=handoffs[0].target, source=self.name),
+                inner_messages=inner_messages,
             )
-            self._model_context.append(AssistantMessage(content=result.content, source=self.name))
+            return
 
-        assert isinstance(result.content, str)
+        # Return tool call result as the response.
+        tool_call_summary = "Tool calls:"
+        for i in range(len(tool_call_msg.content)):
+            tool_call_summary += f"\n{tool_call_msg.content[i].name}({tool_call_msg.content[i].arguments}) = {tool_call_result_msg.content[i].content}"
         yield Response(
-            chat_message=TextMessage(content=result.content, source=self.name, models_usage=result.usage),
+            chat_message=TextMessage(content=tool_call_summary, source=self.name),
             inner_messages=inner_messages,
         )
 
