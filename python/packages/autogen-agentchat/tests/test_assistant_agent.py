@@ -118,7 +118,6 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
         tools=[_pass_function, _fail_function, FunctionTool(_echo_function, description="Echo")],
     )
     result = await agent.run(task="task")
-    print(result.messages)
 
     assert len(result.messages) == 4
     assert isinstance(result.messages[0], TextMessage)
