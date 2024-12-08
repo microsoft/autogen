@@ -1,5 +1,5 @@
 autogen\_ext.models.openai
-=========================
+==========================
 
 
 .. automodule:: autogen_ext.models.openai
