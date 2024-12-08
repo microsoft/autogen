@@ -14,7 +14,7 @@ from autogen_core.components.models import (
     SystemMessage,
     UserMessage,
 )
-from autogen_core.components.models._types import CreateResult
+from autogen_core.components.models import CreateResult
 from autogen_core.components.tools import FunctionTool, Tool
 from typing_extensions import deprecated
 
