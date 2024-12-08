@@ -8,13 +8,13 @@ from autogen_core import CancellationToken, FunctionCall
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
+    CreateResult,
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
     SystemMessage,
     UserMessage,
 )
-from autogen_core.components.models import CreateResult
 from autogen_core.components.tools import FunctionTool, Tool
 from typing_extensions import deprecated
 
@@ -51,12 +51,25 @@ class Handoff(HandoffBase):
 class AssistantAgent(BaseChatAgent):
     """An agent that provides assistance with tool use.
 
-    ```{note}
-    The assistant agent is not thread-safe or coroutine-safe.
-    It should not be shared between multiple tasks or coroutines, and it should
-    not call its methods concurrently.
-    If multiple handoffs are detected, only the first handoff is executed.
-    ```
+    Each time the agent's :meth:`on_messages` and :meth:`on_messages_stream` method is called:
+
+    1) If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` in the :attr:`~autogen_agentchat.base.Response.chat_message`.
+
+    2) By default, when the model returns tool calls, they will be executed right away, and the tool call results
+       are returned as a single :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
+
+    3) If :attr:`max_tool_call_iterations` is greater than 1, then agent will execute tool calls and reflect on the results by creating another model inference.
+       This process will repeat until the model stop returning tool calls, or :attr:`max_tool_call_iterations` is reached, whichever comes first,
+       and the final model result or the tool call results will be returned.
+       If :attr:`max_tool_call_iterations` is set to `None`, the agent will execute tool calls until the model returns a string response.
+
+
+    .. note::
+        The assistant agent is not thread-safe or coroutine-safe.
+        It should not be shared between multiple tasks or coroutines, and it should
+        not call its methods concurrently.
+
+        Furthermore, if multiple handoffs are detected, only the first handoff is executed.
 
     Args:
         name (str): The name of the agent.
@@ -68,7 +81,7 @@ class AssistantAgent(BaseChatAgent):
             If a handoff is a string, it should represent the target agent's name.
         description (str, optional): The description of the agent.
         system_message (str, optional): The system message for the model.
-        max_tool_call_iterations (int, optional): The maximum number of attempts to run the model until the response is not a list of tool calls but a string.
+        max_tool_call_iterations (int | None, optional): The maximum number of tool call iterations to execute. If set to `None`, the agent will execute tool calls until the model returns a string response.
 
     Raises:
         ValueError: If tool names are not unique.
@@ -185,12 +198,12 @@ class AssistantAgent(BaseChatAgent):
         description: str = "An agent that provides assistance with ability to use tools.",
         system_message: str
         | None = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
-        max_tool_call_iterations: int = 1,
+        max_tool_call_iterations: int | None = 1,
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client
-        if max_tool_call_iterations < 1:
-            raise ValueError("The maximum number of tool iterations must be at least 1.")
+        if isinstance(max_tool_call_iterations, int) and max_tool_call_iterations < 1:
+            raise ValueError("The maximum number of tool call iterations must be at least 1.")
         self._max_tool_call_iterations = max_tool_call_iterations
         if system_message is None:
             self._system_messages = []
@@ -272,7 +285,9 @@ class AssistantAgent(BaseChatAgent):
 
         # call the model for _max_tool_call_iterations times or until the response is a string
         tool_call_iteration = 0
-        while tool_call_iteration < self._max_tool_call_iterations:
+        while self._max_tool_call_iterations is None or (
+            isinstance(self._max_tool_call_iterations, int) and tool_call_iteration < self._max_tool_call_iterations
+        ):
             tool_call_iteration += 1
             # Generate an inference result based on the current model context.
             llm_messages = self._system_messages + self._model_context
