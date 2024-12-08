@@ -14,6 +14,7 @@ from autogen_core.components.models import (
     SystemMessage,
     UserMessage,
 )
+from autogen_core.components.models._types import CreateResult
 from autogen_core.components.tools import FunctionTool, Tool
 from typing_extensions import deprecated
 
@@ -67,13 +68,13 @@ class AssistantAgent(BaseChatAgent):
             If a handoff is a string, it should represent the target agent's name.
         description (str, optional): The description of the agent.
         system_message (str, optional): The system message for the model.
-        max_tool_iterations (int, optional): The maximum number of tool iterations to run before returning the response.
-        return_only_response (bool, optional): If `True`, the agent will only return the final response and not the tool calls.
+        max_tool_call_iterations (int, optional): The maximum number of attempts to run the model until the response is not a list of tool calls but a string.
 
     Raises:
         ValueError: If tool names are not unique.
         ValueError: If handoff names are not unique.
         ValueError: If handoff names are not unique from tool names.
+        ValueError: If maximum number of tool iterations is less than 1.
 
     Examples:
 
@@ -184,13 +185,13 @@ class AssistantAgent(BaseChatAgent):
         description: str = "An agent that provides assistance with ability to use tools.",
         system_message: str
         | None = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
-        max_tool_iterations: int = 1,
-        return_only_response: bool = False,
+        max_tool_call_iterations: int = 1,
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client
-        self._max_tool_iterations = max_tool_iterations
-        self._return_only_response = return_only_response
+        if max_tool_call_iterations < 1:
+            raise ValueError("The maximum number of tool iterations must be at least 1.")
+        self._max_tool_call_iterations = max_tool_call_iterations
         if system_message is None:
             self._system_messages = []
         else:
@@ -240,30 +241,6 @@ class AssistantAgent(BaseChatAgent):
         self._model_context: List[LLMMessage] = []
         self._is_running = False
 
-    def add_tool(self, tool: Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]) -> None:
-        """Add a tool to the assistant agent."""
-        if isinstance(tool, Tool):
-            self._tools.append(tool)
-        elif callable(tool):
-            if hasattr(tool, "__doc__") and tool.__doc__ is not None:
-                description = tool.__doc__
-            else:
-                description = ""
-            self._tools.append(FunctionTool(tool, description=description))
-        else:
-            raise ValueError(f"Unsupported tool type: {type(tool)}")
-        # Check if tool names are unique.
-        tool_names = [tool.name for tool in self._tools]
-        if len(tool_names) != len(set(tool_names)):
-            raise ValueError(f"Tool names must be unique: {tool_names}")
-
-    def remove_tool(self, tool_name: str) -> None:
-        """Remove a tool from the assistant agent by name."""
-        if tool_name not in [tool.name for tool in self._tools]:
-            warnings.warn(f"Tool '{tool_name}' does not exist and cannot be removed.", stacklevel=2)
-        else:
-            self._tools = [tool for tool in self._tools if tool.name != tool_name]
-
     @property
     def produced_message_types(self) -> List[type[ChatMessage]]:
         """The types of messages that the assistant agent produces."""
@@ -288,70 +265,65 @@ class AssistantAgent(BaseChatAgent):
 
         # Inner messages.
         inner_messages: List[AgentMessage] = []
-
-        # Generate an inference result based on the current model context.
-        llm_messages = self._system_messages + self._model_context
-        result = await self._model_client.create(
-            llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
-        )
-        # Add the response to the model context.
-        self._model_context.append(AssistantMessage(content=result.content, source=self.name))
-
-        # Run tool calls until the model produces a string response.
-        tool_call_iteration = 0
+        # Model response holder and tool call messages.
+        result: CreateResult | None = None
         tool_call_msg: ToolCallMessage | None = None
         tool_call_result_msg: ToolCallResultMessage | None = None
-        while isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content):
-            if tool_call_iteration >= self._max_tool_iterations:
-                break
+
+        # call the model for _max_tool_call_iterations times or until the response is a string
+        tool_call_iteration = 0
+        while tool_call_iteration < self._max_tool_call_iterations:
             tool_call_iteration += 1
-            tool_call_msg = ToolCallMessage(content=result.content, source=self.name, models_usage=result.usage)
-            event_logger.debug(tool_call_msg)
-            # Add the tool call message to the output.
-            inner_messages.append(tool_call_msg)
-            if not self._return_only_response:
+            # Generate an inference result based on the current model context.
+            llm_messages = self._system_messages + self._model_context
+            result = await self._model_client.create(
+                llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
+            )
+            # Add the response to the model context.
+            self._model_context.append(AssistantMessage(content=result.content, source=self.name))
+            # check if the response is a list of tool calls and run the tool calls.
+            if isinstance(result.content, str):
+                break
+            elif isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content):
+                tool_call_msg = ToolCallMessage(content=result.content, source=self.name, models_usage=result.usage)
+                event_logger.debug(tool_call_msg)
+                # Add the tool call message to the output.
+                inner_messages.append(tool_call_msg)
                 yield tool_call_msg
 
-            # Execute the tool calls.
-            results = await asyncio.gather(
-                *[self._execute_tool_call(call, cancellation_token) for call in result.content]
-            )
-            tool_call_result_msg = ToolCallResultMessage(content=results, source=self.name)
-            event_logger.debug(tool_call_result_msg)
-            self._model_context.append(FunctionExecutionResultMessage(content=results))
-            inner_messages.append(tool_call_result_msg)
-            if not self._return_only_response:
+                # Execute the tool calls.
+                results = await asyncio.gather(
+                    *[self._execute_tool_call(call, cancellation_token) for call in result.content]
+                )
+                tool_call_result_msg = ToolCallResultMessage(content=results, source=self.name)
+                event_logger.debug(tool_call_result_msg)
+                self._model_context.append(FunctionExecutionResultMessage(content=results))
+                inner_messages.append(tool_call_result_msg)
                 yield tool_call_result_msg
 
-            # Detect handoff requests.
-            handoffs: List[HandoffBase] = []
-            for call in result.content:
-                if call.name in self._handoffs:
-                    handoffs.append(self._handoffs[call.name])
-            if len(handoffs) > 0:
-                if len(handoffs) > 1:
-                    # show warning if multiple handoffs detected
-                    warnings.warn(
-                        f"Multiple handoffs detected only the first is executed: {[handoff.name for handoff in handoffs]}",
-                        stacklevel=2,
+                # Detect handoff requests.
+                handoffs: List[HandoffBase] = []
+                for call in result.content:
+                    if call.name in self._handoffs:
+                        handoffs.append(self._handoffs[call.name])
+                if len(handoffs) > 0:
+                    if len(handoffs) > 1:
+                        # show warning if multiple handoffs detected
+                        warnings.warn(
+                            f"Multiple handoffs detected only the first is executed: {[handoff.name for handoff in handoffs]}",
+                            stacklevel=2,
+                        )
+                    # Return the output messages to signal the handoff.
+                    yield Response(
+                        chat_message=HandoffMessage(
+                            content=handoffs[0].message, target=handoffs[0].target, source=self.name
+                        ),
+                        inner_messages=inner_messages,
                     )
-                # Return the output messages to signal the handoff.
-                yield Response(
-                    chat_message=HandoffMessage(
-                        content=handoffs[0].message, target=handoffs[0].target, source=self.name
-                    ),
-                    inner_messages=inner_messages,
-                )
-                return
+                    return
 
-            # Generate an inference result based on the current model context.
-            if self._max_tool_iterations > 1:
-                llm_messages = self._system_messages + self._model_context
-                result = await self._model_client.create(
-                    llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
-                )
-                self._model_context.append(AssistantMessage(content=result.content, source=self.name))
-
+        assert result is not None
+        # if last model response is a list of tool calls
         if isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content):
             tool_call_summary = "Tool calls:\n"
             assert isinstance(tool_call_msg, ToolCallMessage)
@@ -362,6 +334,7 @@ class AssistantAgent(BaseChatAgent):
                 chat_message=TextMessage(content=tool_call_summary, source=self.name, models_usage=result.usage),
                 inner_messages=inner_messages,
             )
+        # if last model response is a string
         else:
             assert isinstance(result.content, str)
             yield Response(
