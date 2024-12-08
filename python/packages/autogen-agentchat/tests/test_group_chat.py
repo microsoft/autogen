@@ -332,7 +332,6 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
 
     assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
 
-
     context = tool_use_agent._model_context  # pyright: ignore
     assert context[0].content == "Write a program that prints 'Hello, world!'"
     assert isinstance(context[1].content, list)

@@ -325,11 +325,11 @@ class AssistantAgent(BaseChatAgent):
         assert result is not None
         # if last model response is a list of tool calls
         if isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content):
-            tool_call_summary = "Tool calls:\n"
+            tool_call_summary = "Tool calls:"
             assert isinstance(tool_call_msg, ToolCallMessage)
             assert isinstance(tool_call_result_msg, ToolCallResultMessage)
             for i in range(len(tool_call_msg.content)):
-                tool_call_summary += f"{tool_call_msg.content[i].name}({tool_call_msg.content[i].arguments}) = {tool_call_result_msg.content[i].content}\n"
+                tool_call_summary += f"\n{tool_call_msg.content[i].name}({tool_call_msg.content[i].arguments}) = {tool_call_result_msg.content[i].content}"
             yield Response(
                 chat_message=TextMessage(content=tool_call_summary, source=self.name, models_usage=result.usage),
                 inner_messages=inner_messages,
