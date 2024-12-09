@@ -76,6 +76,17 @@ jobs:
     - name: list available kernels
       run: |
         python -m jupyter kernelspec list
+    - uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    - run: uv sync --locked --all-extras
+      working-directory: ./python
+    - name: Prepare python venv
+      run: |
+        source ${{ github.workspace }}/python/.venv/bin/activate
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
