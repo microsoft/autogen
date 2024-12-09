@@ -106,6 +106,19 @@ jobs:
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: Unit Test
       run: dotnet test --no-build -bl --configuration Release --filter type=!integration
+  
+  integration-test:
+    strategy:
+      fail-fast: true 
+      matrix:
+        os: [ ubuntu-latest]
+        version: [ net9.0 ]
+    needs: build
+    defaults:
+      run:
+        working-directory: dotnet
+    runs-on: ${{ matrix.os }}
+    steps:
     - name: Setup .NET 9.0
       uses: actions/setup-dotnet@v4
       with:
@@ -118,9 +131,10 @@ jobs:
     - name: Install dev certs
       run:  dotnet --version && sudo dotnet dev-certs https --trust
     - name: Integration Test
-      run: dotnet test --no-build -bl --configuration Release --filter type=integration
+      run: dotnet --version && dotnet test --no-build -bl --configuration Release --filter type=integration
     - name: Restore the global.json
       run: rm global.json && git checkout -- global.json
+
   aot-test: # this make sure the AutoGen.Core is aot compatible
     strategy:
       fail-fast: false  # ensures the entire test matrix is run, even if one permutation fails
