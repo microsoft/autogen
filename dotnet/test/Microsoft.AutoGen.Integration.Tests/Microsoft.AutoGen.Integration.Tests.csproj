@@ -31,4 +31,24 @@
     <ProjectReference Include="..\..\samples\Hello\Hello.AppHost\Hello.AppHost.csproj" />
   </ItemGroup>
 
+  <!-- Properties, Items, and targets to ensure Python apps are initialized -->
+  <PropertyGroup>
+    <PythonVirtualEnvironmentName>.venv</PythonVirtualEnvironmentName>
+    <PythonVenvRoot>..\..\..\python</PythonVenvRoot>
+
+  </PropertyGroup>
+
+  <Target Name="CreatePythonVirtualEnvironments">
+    <PropertyGroup>
+      <VenvDir>$(PythonVenvRoot)$(PythonVirtualEnvironmentName)/</VenvDir>
+      <CreateVenv Condition="!Exists('$(VenvDir)')">True</CreateVenv>
+    </PropertyGroup>
+
+    <Message Importance="Normal" Text="Initializing virtual environment for $(PythonVenvRoot)" />
+
+    <Exec Command="uv sync --all-extras" WorkingDirectory="$(PythonVenvRoot)" Condition=" '$(CreateVenv)' == 'True' " />
+    <Exec Command="source .venv/bin/activate" WorkingDirectory="$(PythonVenvRoot)" Condition=" '$(CreateVenv)' == 'True' " />
+  </Target>
+
+
 </Project>
