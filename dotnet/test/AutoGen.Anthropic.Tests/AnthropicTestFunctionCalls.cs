@@ -5,7 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using AutoGen.Core;
 
-namespace AutoGen.Anthropic.Tests;
+namespace Microsoft.AutoGen.Extensions.Anthropic.Tests;
 
 public partial class AnthropicTestFunctionCalls
 {
