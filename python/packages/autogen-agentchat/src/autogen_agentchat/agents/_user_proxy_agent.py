@@ -18,7 +18,7 @@ InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
 # TODO: ainput doesn't seem to play nicely with jupyter.
 #       No input window appears in this case.
 async def cancellable_input(prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
-    task = asyncio.Task[str](asyncio.create_task(ainput(prompt)))  # type: ignore
+    task: asyncio.Task[str] = asyncio.create_task(ainput(prompt))  # type: ignore
     if cancellation_token is not None:
         cancellation_token.link_future(task)
     return await task
