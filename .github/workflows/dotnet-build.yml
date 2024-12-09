@@ -106,6 +106,8 @@ jobs:
       run: |
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
+    - name: install dev certs
+      run: dotnet dev-certs https --trust
     - name: Unit Test
       run: dotnet test --no-build -bl --configuration Release
   aot-test: # this make sure the AutoGen.Core is aot compatible
