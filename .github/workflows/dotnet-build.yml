@@ -91,10 +91,21 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.0.x'
+    - name: Install Temp Global.JSON
+      run: |
+        echo "{\"sdk\": {\"version\": \"9.0.101\"}}" > global.json
     - name: Install .NET Aspire workload
       run: dotnet workload install aspire
     - name: Install dev certs
       run:  dotnet --version && sudo dotnet dev-certs https --trust
+    - name: put back the global.json
+      run: |
+        rm global.json && git checkout global.json
+    - name: Switch back to .NET 8.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+        global-json-file: dotnet/global.json
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
