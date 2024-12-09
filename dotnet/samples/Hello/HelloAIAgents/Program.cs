@@ -2,7 +2,7 @@
 // Program.cs
 
 using Hello.Events;
-using Microsoft.AutoGen.Abstractions;
+using HelloAIAgents;
 using Microsoft.AutoGen.Core;
 
 // send a message to the agent
@@ -16,29 +16,27 @@ if (Environment.GetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING") == null
     throw new InvalidOperationException("AZURE_OPENAI_CONNECTION_STRING not set, try something like AZURE_OPENAI_CONNECTION_STRING = \"Endpoint=https://TODO.openai.azure.com/;Key=TODO;Deployment=TODO\"");
 }
 builder.Configuration["ConectionStrings:HelloAIAgents"] = Environment.GetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING");
-//builder.AddChatCompletionService("HelloAIAgents");
-//var agentTypes = new AgentTypes(new Dictionary<string, Type>
-//{
-//    { "HelloAIAgents", typeof(HelloAIAgent) }
-//});
-// TODO: replace with Client
-//var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
-//{
-//    Message = "World"
-//}, builder, agentTypes, local: true);
-var app = builder.Build();
+builder.AddChatCompletionService("HelloAIAgents");
+var agentTypes = new AgentTypes(new Dictionary<string, Type>
+{
+    { "HelloAIAgents", typeof(HelloAIAgent) }
+});
+var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
+{
+    Message = "World"
+}, builder, agentTypes, local: true);
+
 await app.WaitForShutdownAsync();
 
-namespace HelloAIAgents
+namespace Hello
 {
-    [TopicSubscription("HelloAgents")]
+    [TopicSubscription("agents")]
     public class HelloAgent(
         [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
         IHostApplicationLifetime hostApplicationLifetime) : Agent(
-            typeRegistry),
-            ISayHello,
-            IHandle<NewMessageReceived>,
-            IHandle<ConversationClosed>
+        typeRegistry),
+        IHandle<NewMessageReceived>,
+        IHandle<ConversationClosed>
     {
         public async Task Handle(NewMessageReceived item, CancellationToken cancellationToken = default)
         {
@@ -50,7 +48,7 @@ namespace HelloAIAgents
             await PublishEventAsync(evt).ConfigureAwait(false);
             var goodbye = new ConversationClosed
             {
-                UserId = AgentId.Key,
+                UserId = this.AgentId.Key,
                 UserMessage = "Goodbye"
             };
             await PublishEventAsync(goodbye).ConfigureAwait(false);

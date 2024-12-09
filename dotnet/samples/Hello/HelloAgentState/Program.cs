@@ -7,13 +7,12 @@ using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Core;
 
 // send a message to the agent
-// TODO: replace with Client
-var builder = WebApplication.CreateBuilder();
-//var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
-//{
-//    Message = "World"
-//}, local: false);
-var app = builder.Build();
+var local = true;
+if (Environment.GetEnvironmentVariable("AGENT_HOST") != null) { local = false; }
+var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
+{
+    Message = "World"
+}, local: local).ConfigureAwait(false);
 await app.WaitForShutdownAsync();
 
 namespace HelloAgentState

@@ -20,7 +20,7 @@ internal sealed class RegistryGrain : Grain, IRegistryGrain
     }
     public ValueTask<(IGateway? Worker, bool NewPlacement)> GetOrPlaceAgent(AgentId agentId)
     {
-        // TODO: 
+        // TODO: Clarify the logic
         bool isNewPlacement;
         if (!_agentDirectory.TryGetValue((agentId.Type, agentId.Key), out var worker) || !_workerStates.ContainsKey(worker))
         {
