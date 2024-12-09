@@ -8,10 +8,10 @@ import nltk
 from typing import Any, Dict, List, Tuple, Union
 
 from autogen_core import AgentId, AgentProxy, TopicId
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.application.logging import EVENT_LOGGER_NAME
+from autogen_core import SingleThreadedAgentRuntime
+from autogen_core import EVENT_LOGGER_NAME
 from autogen_core import DefaultSubscription, DefaultTopicId
-from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_core.components.models import (
     ChatCompletionClient,
     UserMessage,
@@ -127,7 +127,7 @@ async def main() -> None:
         lambda: Coder(
             model_client=client,
             system_messages=[
-                SystemMessage("""You are a general-purpose AI assistant and can handle many questions -- but you don't have access to a web browser. However, the user you are talking to does have a browser, and you can see the screen. Provide short direct instructions to them to take you where you need to go to answer the initial question posed to you.
+                SystemMessage(content="""You are a general-purpose AI assistant and can handle many questions -- but you don't have access to a web browser. However, the user you are talking to does have a browser, and you can see the screen. Provide short direct instructions to them to take you where you need to go to answer the initial question posed to you.
 
 Once the user has taken the final necessary action to complete the task, and you have fully addressed the initial request, reply with the word TERMINATE.""",
                 )

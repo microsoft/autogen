@@ -31,9 +31,9 @@ class VideoSurfer(AssistantAgent):
 
     Example usage:
 
-        The following example demonstrates how to create an video surfing agent with
-        a model client and generate a response to a simple query about a local video
-        called video.mp4.
+    The following example demonstrates how to create an video surfing agent with
+    a model client and generate a response to a simple query about a local video
+    called video.mp4.
 
         .. code-block:: python
 
@@ -67,7 +67,7 @@ class VideoSurfer(AssistantAgent):
 
             asyncio.run(main())
 
-        The following example demonstrates how to create and use a VideoSurfer and UserProxyAgent with MagenticOneGroupChat.
+    The following example demonstrates how to create and use a VideoSurfer and UserProxyAgent with MagenticOneGroupChat.
 
         .. code-block:: python
 

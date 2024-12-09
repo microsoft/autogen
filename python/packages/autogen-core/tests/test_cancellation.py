@@ -8,9 +8,9 @@ from autogen_core import (
     CancellationToken,
     MessageContext,
     RoutedAgent,
+    SingleThreadedAgentRuntime,
     message_handler,
 )
-from autogen_core.application import SingleThreadedAgentRuntime
 
 
 @dataclass
