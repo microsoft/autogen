@@ -75,7 +75,7 @@ class MultimodalWebSurfer(BaseChatAgent):
     Args:
         name (str): The name of the agent.
         model_client (ChatCompletionClient): The model client used by the agent.
-        downloads_folder (str): The folder where downloads are saved.
+        downloads_folder (str, optional): The folder where downloads are saved. Defaults to None, no downloads are saved.
         description (str, optional): The description of the agent. Defaults to MultimodalWebSurfer.DEFAULT_DESCRIPTION.
         debug_dir (str, optional): The directory where debug information is saved. Defaults to None.
         headless (bool, optional): Whether the browser should be headless. Defaults to True.
@@ -152,7 +152,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         self,
         name: str,
         model_client: ChatCompletionClient,
-        downloads_folder: str,
+        downloads_folder: str | None = None,
         description: str = DEFAULT_DESCRIPTION,
         debug_dir: str | None = None,
         headless: bool = True,
@@ -174,8 +174,6 @@ class MultimodalWebSurfer(BaseChatAgent):
             raise ValueError(
                 "Cannot save screenshots without a debug directory. Set it using the 'debug_dir' parameter. The debug directory is created if it does not exist."
             )
-        if not os.path.isdir(downloads_folder):
-            raise ValueError(f"Downloads folder '{downloads_folder}' does not exist. Please create it first.")
         self._model_client = model_client
         self.headless = headless
         self.browser_channel = browser_channel
