@@ -40,7 +40,7 @@
 
   <Target Name="CreatePythonVirtualEnvironments" AfterTargets="PrepareForBuild">
     <PropertyGroup>
-      <VenvDir>$(PythonVenvRoot)$(PythonVirtualEnvironmentName)/</VenvDir>
+      <VenvDir>$(PythonVenvRoot)\$(PythonVirtualEnvironmentName)\</VenvDir>
       <CreateVenv Condition="!Exists('$(VenvDir)')">True</CreateVenv>
     </PropertyGroup>
 
