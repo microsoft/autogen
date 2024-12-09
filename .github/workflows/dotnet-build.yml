@@ -119,6 +119,9 @@ jobs:
         working-directory: dotnet
     runs-on: ${{ matrix.os }}
     steps:
+    - uses: actions/checkout@v4
+      with:
+          fetch-depth: 0 # fetching all
     - name: Setup .NET 9.0
       uses: actions/setup-dotnet@v4
       with:
