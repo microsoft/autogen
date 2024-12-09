@@ -33,8 +33,8 @@ from autogen_agentchat.messages import (
     ToolCallResultMessage,
 )
 from autogen_core import CancellationToken, FunctionCall
-from autogen_core.components.models._types import FunctionExecutionResult
 from autogen_core.components.tools import FunctionTool, Tool
+from autogen_core.models._types import FunctionExecutionResult
 
 _has_openai_dependencies: bool = True
 try:

@@ -1,7 +1,7 @@
 import os
 from typing import Any, List, Optional, Union
 
-from autogen_core.components.models import (
+from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     FunctionExecutionResult,

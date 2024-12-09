@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Any, Callable, Dict, List, Mapping, Sequence
 
-from autogen_core.components.models import ChatCompletionClient, SystemMessage
+from autogen_core.models import ChatCompletionClient, SystemMessage
 
 from ... import TRACE_LOGGER_NAME
 from ...base import ChatAgent, TerminationCondition

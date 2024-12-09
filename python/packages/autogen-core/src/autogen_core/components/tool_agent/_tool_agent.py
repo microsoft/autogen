@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import List
 
 from ... import FunctionCall, MessageContext, RoutedAgent, message_handler
-from ..models import FunctionExecutionResult
+from ...models import FunctionExecutionResult
 from ..tools import Tool
 
 __all__ = [

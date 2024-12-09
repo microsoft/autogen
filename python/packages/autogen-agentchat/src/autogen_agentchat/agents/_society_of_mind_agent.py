@@ -1,8 +1,8 @@
 from typing import AsyncGenerator, List, Sequence
 
 from autogen_core import CancellationToken, Image
-from autogen_core.components.models import ChatCompletionClient
-from autogen_core.components.models._types import SystemMessage
+from autogen_core.models import ChatCompletionClient
+from autogen_core.models._types import SystemMessage
 
 from autogen_agentchat.base import Response
 

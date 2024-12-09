@@ -1,7 +1,7 @@
 import logging
 from typing import Callable, List
 
-from autogen_core.components.models import ChatCompletionClient
+from autogen_core.models import ChatCompletionClient
 
 from .... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ....base import ChatAgent, TerminationCondition

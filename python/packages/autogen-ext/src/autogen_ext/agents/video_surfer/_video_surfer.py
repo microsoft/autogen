@@ -1,8 +1,8 @@
 from typing import Any, Awaitable, Callable, List, Optional
 
 from autogen_agentchat.agents import AssistantAgent
-from autogen_core.components.models import ChatCompletionClient
 from autogen_core.components.tools import Tool
+from autogen_core.models import ChatCompletionClient
 
 from .tools import (
     extract_audio,

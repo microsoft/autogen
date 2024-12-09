@@ -3,7 +3,7 @@ import logging
 from typing import Any, Dict, List, Mapping
 
 from autogen_core import AgentId, CancellationToken, DefaultTopicId, Image, MessageContext, event, rpc
-from autogen_core.components.models import (
+from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
@@ -22,7 +22,6 @@ from ....messages import (
     ToolCallMessage,
     ToolCallResultMessage,
 )
-
 from ....state import MagenticOneOrchestratorState
 from .._base_group_chat_manager import BaseGroupChatManager
 from .._events import (
