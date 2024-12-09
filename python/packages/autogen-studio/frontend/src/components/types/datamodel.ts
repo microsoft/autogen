@@ -119,11 +119,16 @@ export type AgentTypes =
   | "AssistantAgent"
   | "CodingAssistantAgent"
   | "UserProxyAgent"
-  | "MultimodalWebSurfer";
+  | "MultimodalWebSurfer"
+  | "FileSurfer"
+  | "MagenticOneCoderAgent";
 
 export type ToolTypes = "PythonFunction";
 
-export type TeamTypes = "RoundRobinGroupChat" | "SelectorGroupChat";
+export type TeamTypes =
+  | "RoundRobinGroupChat"
+  | "SelectorGroupChat"
+  | "MagenticOneGroupChat";
 
 // class ComponentType(str, Enum):
 //     TEAM = "team"
