@@ -113,9 +113,6 @@ class MultimodalWebSurfer(BaseChatAgent):
                 web_surfer_agent = MultimodalWebSurfer(
                     name="MultimodalWebSurfer",
                     model_client=OpenAIChatCompletionClient(model="gpt-4o-2024-08-06"),
-                    headless=True,
-                    downloads_folder="logs",
-                    debug_dir="logs",
                 )
 
                 # Define a team
@@ -221,6 +218,7 @@ class MultimodalWebSurfer(BaseChatAgent):
             TOOL_SLEEP,
             TOOL_HOVER,
         ]
+        self.n_lines_page_text = 50 # Number of lines of text to extract from the page in the absence of OCR
         self.did_lazy_init = False  # flag to check if we have initialized the browser
 
     async def _lazy_init(
@@ -680,15 +678,19 @@ class MultimodalWebSurfer(BaseChatAgent):
         ocr_text = (
             await self._get_ocr_text(new_screenshot, cancellation_token=cancellation_token)
             if self.use_ocr is True
-            else await self._playwright_controller.get_webpage_text(self._page)
+            else await self._playwright_controller.get_webpage_text(self._page, n_lines=self.n_lines_page_text)
         )
 
         # Return the complete observation
-        message_content = ""  # message.content or ""
         page_title = await self._page.title()
+        message_content = f"{action_description}\n\n Here is a screenshot of the webpage: [{page_title}]({self._page.url}).\n The viewport shows {percent_visible}% of the webpage, and is positioned {position_text} {page_metadata}\n"
+        if self.use_ocr:
+            message_content += f"Automatic OCR of the page screenshot has detected the following text:\n\n{ocr_text}"
+        else:
+            message_content += f"The first {self.n_lines_page_text} lines of the page text is:\n\n{ocr_text}"
 
         return [
-            f"{message_content}\n\n{action_description}\n\nHere is a screenshot of [{page_title}]({self._page.url}). The viewport shows {percent_visible}% of the webpage, and is positioned {position_text}.{page_metadata}\nAutomatic OCR of the page screenshot has detected the following text:\n\n{ocr_text}".strip(),
+            message_content,
             AGImage.from_pil(PIL.Image.open(io.BytesIO(new_screenshot))),
         ]
 
