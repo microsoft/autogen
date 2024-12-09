@@ -1,5 +1,5 @@
 from autogen_agentchat.agents import AssistantAgent
-from autogen_core.components.models import (
+from autogen_core.models import (
     ChatCompletionClient,
 )
 

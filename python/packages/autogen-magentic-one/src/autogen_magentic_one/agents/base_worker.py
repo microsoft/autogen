@@ -1,7 +1,7 @@
 from typing import List, Tuple
 
 from autogen_core import CancellationToken, MessageContext, TopicId
-from autogen_core.components.models import (
+from autogen_core.models import (
     AssistantMessage,
     LLMMessage,
     UserMessage,
