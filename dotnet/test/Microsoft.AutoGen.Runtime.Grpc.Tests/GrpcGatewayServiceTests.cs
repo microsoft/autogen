@@ -90,21 +90,39 @@ public class GrpcGatewayServiceTests
 
     }
 
-    private RegisterAgentTypeRequest CreateRegistrationRequest(EventTypes eventTypes, Type type, string requestId)
+    [Fact]
+    public async Task Test_RegisterAgent_Should_Succeed()
     {
-        var registration = new RegisterAgentTypeRequest
-        {
-            Type = type.Name,
-            RequestId = requestId
-        };
-        registration.Events.AddRange(eventTypes.GetEventsForAgent(type)?.ToList());
+        var logger = Mock.Of<ILogger<GrpcGateway>>();
+        var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
+        var service = new GrpcGatewayService(gateway);
+        using var client = new TestGrpcClient();
 
-        return registration;
+        var assembly = typeof(PBAgent).Assembly;
+        var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
+
+        await service.OpenChannel(client.RequestStream, client.ResponseStream, client.CallContext);
+        var responseMessage = await client.ReadNext();
+
+        var connectionId = responseMessage!.Response.RequestId;
+
+        var response = await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), connectionId), client.CallContext);
+        response.Success.Should().BeTrue();
     }
 
-    private string GetFullName(Type type)
+    [Fact]
+    public async Task Test_RegisterAgent_Should_Fail_For_Wrong_ConnectionId()
     {
-        return ReflectionHelper.GetMessageDescriptor(type)!.FullName;
+        var logger = Mock.Of<ILogger<GrpcGateway>>();
+        var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
+        var service = new GrpcGatewayService(gateway);
+        using var client = new TestGrpcClient();
+
+        var assembly = typeof(PBAgent).Assembly;
+        var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
+
+        var response = await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), "faulty_connection_id"), client.CallContext);
+        response.Success.Should().BeFalse();
     }
 
     [Fact]
@@ -131,5 +149,22 @@ public class GrpcGatewayServiceTests
         var response = await service.GetState(new AgentId { Key = "", Type = "" }, callContext);
 
         response.Should().NotBeNull();
+    }
+
+    private RegisterAgentTypeRequest CreateRegistrationRequest(EventTypes eventTypes, Type type, string requestId)
+    {
+        var registration = new RegisterAgentTypeRequest
+        {
+            Type = type.Name,
+            RequestId = requestId
+        };
+        registration.Events.AddRange(eventTypes.GetEventsForAgent(type)?.ToList());
+
+        return registration;
+    }
+
+    private string GetFullName(Type type)
+    {
+        return ReflectionHelper.GetMessageDescriptor(type)!.FullName;
     }
 }

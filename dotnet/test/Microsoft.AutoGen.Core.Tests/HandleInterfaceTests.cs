@@ -30,7 +30,7 @@ public class HandleInterfaceTests
     }
 
     [Fact]
-    public void Can_build_handlers_lookup()
+    public void Can_Build_Handlers_Lookup()
     {
         var source = typeof(TestAgent);
         var handlers = source.GetHandlersLookupTable();

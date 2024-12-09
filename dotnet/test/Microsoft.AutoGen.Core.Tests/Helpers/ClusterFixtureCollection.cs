@@ -6,7 +6,7 @@ using Xunit;
 namespace Microsoft.AutoGen.Core.Tests.Helpers;
 
 [CollectionDefinition(Name)]
-public sealed class ClusterFixtureCollection : ICollectionFixture<InMemoryAgentRuntimeFixture>
+public sealed class CoreFixtureCollection : ICollectionFixture<InMemoryAgentRuntimeFixture>
 {
-    public const string Name = nameof(ClusterFixtureCollection);
+    public const string Name = nameof(CoreFixtureCollection);
 }

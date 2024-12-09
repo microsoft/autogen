@@ -162,20 +162,35 @@ public sealed class GrpcGateway : BackgroundService, IGateway
 
     public async ValueTask<RegisterAgentTypeResponse> RegisterAgentTypeAsync(RegisterAgentTypeRequest request)
     {
-        var connection = _workersByConnection[request.RequestId];
-        connection.AddSupportedType(request.Type);
-        _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
-        _agentsToEventsMap.TryAdd(request.Type, new HashSet<string>(request.Events));
+        try
+        {
+            var connection = _workersByConnection[request.RequestId];
+            connection.AddSupportedType(request.Type);
+            _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
+            _agentsToEventsMap.TryAdd(request.Type, new HashSet<string>(request.Events));
 
-        await _gatewayRegistry.RegisterAgentType(request.Type, _reference).ConfigureAwait(true);
-        var response = new RegisterAgentTypeResponse {
-        };
-        return response;
+            await _gatewayRegistry.RegisterAgentType(request.Type, _reference).ConfigureAwait(true);
+            return new RegisterAgentTypeResponse
+            {
+                Success = true,
+                RequestId = request.RequestId
+            };
+        }
+        catch (Exception ex)
+        {
+            return new RegisterAgentTypeResponse
+            {
+                Success = false,
+                RequestId = request.RequestId,
+                Error = ex.Message
+            };
+        }
     }
 
+    // TODO: consider adding this back for backwards compatibility
     //private async ValueTask RegisterAgentTypeAsync(GrpcWorkerConnection connection, RegisterAgentTypeRequest msg)
     //{
-       
+
     //}
 
     private static async Task InvokeRequestDelegate(GrpcWorkerConnection connection, RpcRequest request, Func<RpcRequest, Task<RpcResponse>> func)

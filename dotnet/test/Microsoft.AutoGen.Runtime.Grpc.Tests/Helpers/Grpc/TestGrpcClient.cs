@@ -4,7 +4,7 @@
 using Microsoft.AutoGen.Abstractions;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Grpc;
-internal class TestGrpcClient: IDisposable
+internal sealed class TestGrpcClient: IDisposable
 {
     public TestAsyncStreamReader<Message> RequestStream { get; }
     public TestServerStreamWriter<Message> ResponseStream { get; }

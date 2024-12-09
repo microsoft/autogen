@@ -11,7 +11,7 @@ using Xunit;
 
 namespace Microsoft.AutoGen.Core.Tests;
 
-[Collection(ClusterFixtureCollection.Name)]
+[Collection(CoreFixtureCollection.Name)]
 public partial class InMemoryAgentTests(InMemoryAgentRuntimeFixture fixture)
 {
     private readonly InMemoryAgentRuntimeFixture _fixture = fixture;
