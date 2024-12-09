@@ -4,7 +4,15 @@ from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union
 
 import pytest
 from autogen_core import AgentId, CancellationToken, FunctionCall, SingleThreadedAgentRuntime
-from autogen_core.components.models import (
+from autogen_core.components.tool_agent import (
+    InvalidToolArgumentsException,
+    ToolAgent,
+    ToolExecutionException,
+    ToolNotFoundException,
+    tool_agent_caller_loop,
+)
+from autogen_core.components.tools import FunctionTool, Tool, ToolSchema
+from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     CreateResult,
@@ -15,14 +23,6 @@ from autogen_core.components.models import (
     RequestUsage,
     UserMessage,
 )
-from autogen_core.components.tool_agent import (
-    InvalidToolArgumentsException,
-    ToolAgent,
-    ToolExecutionException,
-    ToolNotFoundException,
-    tool_agent_caller_loop,
-)
-from autogen_core.components.tools import FunctionTool, Tool, ToolSchema
 
 
 def _pass_function(input: str) -> str:
