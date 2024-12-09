@@ -1,8 +1,8 @@
 from typing import Any, Awaitable, Callable, List, Optional
 
 from autogen_agentchat.agents import AssistantAgent
-from autogen_core.components.models import ChatCompletionClient
 from autogen_core.components.tools import Tool
+from autogen_core.models import ChatCompletionClient
 
 from .tools import (
     extract_audio,
@@ -31,9 +31,9 @@ class VideoSurfer(AssistantAgent):
 
     Example usage:
 
-        The following example demonstrates how to create an video surfing agent with
-        a model client and generate a response to a simple query about a local video
-        called video.mp4.
+    The following example demonstrates how to create an video surfing agent with
+    a model client and generate a response to a simple query about a local video
+    called video.mp4.
 
         .. code-block:: python
 
@@ -67,7 +67,7 @@ class VideoSurfer(AssistantAgent):
 
             asyncio.run(main())
 
-        The following example demonstrates how to create and use a VideoSurfer and UserProxyAgent with MagenticOneGroupChat.
+    The following example demonstrates how to create and use a VideoSurfer and UserProxyAgent with MagenticOneGroupChat.
 
         .. code-block:: python
 

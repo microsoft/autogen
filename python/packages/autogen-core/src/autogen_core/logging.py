@@ -17,7 +17,8 @@ class LLMCallEvent:
 
             .. code-block:: python
 
-                from autogen_core.application.logging import LLMCallEvent, EVENT_LOGGER_NAME
+                from autogen_core import EVENT_LOGGER_NAME
+                from autogen_core.logging import LLMCallEvent
 
                 logger = logging.getLogger(EVENT_LOGGER_NAME)
                 logger.info(LLMCallEvent(prompt_tokens=10, completion_tokens=20))

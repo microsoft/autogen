@@ -4,7 +4,7 @@ At the foundation level, the framework provides a _runtime environment_, which f
 communication between agents, manages their identities and lifecycles,
 and enforce security and privacy boundaries.
 
-It supports two types of runtime environment: *standalone* and *distributed*.
+It supports two types of runtime environment: _standalone_ and _distributed_.
 Both types provide a common set of APIs for building multi-agent applications,
 so you can switch between them without changing your agent implementation.
 Each type can also have multiple implementations.
@@ -13,7 +13,7 @@ Each type can also have multiple implementations.
 
 Standalone runtime is suitable for single-process applications where all agents
 are implemented in the same programming language and running in the same process.
-In the Python API, an example of standalone runtime is the {py:class}`~autogen_core.application.SingleThreadedAgentRuntime`.
+In the Python API, an example of standalone runtime is the {py:class}`~autogen_core.SingleThreadedAgentRuntime`.
 
 The following diagram shows the standalone runtime in the framework.
 
@@ -44,4 +44,3 @@ They advertise to the host servicer the agents they run and manage the agents' l
 
 Agents work the same way as in the standalone runtime so that developers can
 switch between the two runtime types with no change to their agent implementation.
-

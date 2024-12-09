@@ -3,7 +3,7 @@ from typing import Awaitable, Callable, List, Literal, Tuple, Union
 
 from autogen_core import CancellationToken, default_subscription
 from autogen_core.code_executor import CodeBlock, CodeExecutor
-from autogen_core.components.models import (
+from autogen_core.models import (
     ChatCompletionClient,
     SystemMessage,
     UserMessage,
