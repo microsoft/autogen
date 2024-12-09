@@ -33,7 +33,8 @@ public partial class MiddlewareTest
 
         var alwaysAskUserInputMW = new HumanInputMiddleware(
             mode: HumanInputMode.ALWAYS,
-            getInput: () => "input");
+            getInput: () => "input"
+        );
 
         var alwaysInputAgent = agent.RegisterMiddleware(alwaysAskUserInputMW);
         reply = await alwaysInputAgent.SendAsync("hello");
@@ -46,7 +47,8 @@ public partial class MiddlewareTest
             mode: HumanInputMode.AUTO,
             isTermination: async (messages, ct) => messages.Last()?.GetContent() == "terminate",
             getInput: () => "input",
-            exitKeyword: "exit");
+            exitKeyword: "exit"
+        );
         var autoInputAgent = agent.RegisterMiddleware(autoAskUserInputMW);
         reply = await autoInputAgent.SendAsync("hello");
         reply.GetContent()!.Should().Be("hello");
@@ -60,7 +62,8 @@ public partial class MiddlewareTest
             mode: HumanInputMode.AUTO,
             isTermination: async (messages, ct) => messages.Last().GetContent() == "terminate",
             getInput: () => "exit",
-            exitKeyword: "exit");
+            exitKeyword: "exit"
+        );
         autoInputAgent = agent.RegisterMiddleware(autoAskUserInputMW);
 
         reply = await autoInputAgent.SendAsync("terminate");
@@ -72,25 +75,41 @@ public partial class MiddlewareTest
     {
         var agent = new EchoAgent("echo");
         var args = new EchoSchema { message = "hello" };
-        var argsJson = JsonSerializer.Serialize(args) ?? throw new InvalidOperationException("Failed to serialize args");
+        var argsJson =
+            JsonSerializer.Serialize(args)
+            ?? throw new InvalidOperationException("Failed to serialize args");
         var functionCall = new ToolCall("Echo", argsJson);
-        var functionCallAgent = agent.RegisterMiddleware(async (messages, options, agent, ct) =>
-        {
-            if (options?.Functions is null)
+        var functionCallAgent = agent.RegisterMiddleware(
+            async (messages, options, agent, ct) =>
             {
-                return await agent.GenerateReplyAsync(messages, options, ct);
-            }
+                if (options?.Functions is null)
+                {
+                    return await agent.GenerateReplyAsync(messages, options, ct);
+                }
 
-            return new ToolCallMessage(functionCall.FunctionName, functionCall.FunctionArguments, from: agent.Name);
-        });
+                return new ToolCallMessage(
+                    functionCall.FunctionName,
+                    functionCall.FunctionArguments,
+                    from: agent.Name
+                );
+            }
+        );
 
         // test 1
         // middleware should invoke function call if the message is a function call message
         var mw = new FunctionCallMiddleware(
-            functionMap: new Dictionary<string, Func<string, Task<string>>> { { "Echo", EchoWrapper } });
+            functionMap: new Dictionary<string, Func<string, Task<string>>>
+            {
+                { "Echo", EchoWrapper }
+            }
+        );
 
         var testAgent = agent.RegisterMiddleware(mw);
-        var functionCallMessage = new ToolCallMessage(functionCall.FunctionName, functionCall.FunctionArguments, from: "user");
+        var functionCallMessage = new ToolCallMessage(
+            functionCall.FunctionName,
+            functionCall.FunctionArguments,
+            from: "user"
+        );
         var reply = await testAgent.SendAsync(functionCallMessage);
         reply.Should().BeOfType<ToolCallResultMessage>();
         reply.GetContent()!.Should().Be("[FUNC] hello");
@@ -108,7 +127,11 @@ public partial class MiddlewareTest
         // middleware should invoke function call if agent reply is a function call message
         mw = new FunctionCallMiddleware(
             functions: [this.EchoFunctionContract],
-            functionMap: new Dictionary<string, Func<string, Task<string>>> { { "Echo", EchoWrapper } });
+            functionMap: new Dictionary<string, Func<string, Task<string>>>
+            {
+                { "Echo", EchoWrapper }
+            }
+        );
         testAgent = functionCallAgent.RegisterMiddleware(mw);
         reply = await testAgent.SendAsync("hello");
         reply.GetContent()!.Should().Be("[FUNC] hello");
@@ -117,7 +140,11 @@ public partial class MiddlewareTest
         // test 4
         // middleware should return original reply if the reply from agent is not a function call message
         mw = new FunctionCallMiddleware(
-            functionMap: new Dictionary<string, Func<string, Task<string>>> { { "Echo", EchoWrapper } });
+            functionMap: new Dictionary<string, Func<string, Task<string>>>
+            {
+                { "Echo", EchoWrapper }
+            }
+        );
         testAgent = agent.RegisterMiddleware(mw);
         reply = await testAgent.SendAsync("hello");
         reply.GetContent()!.Should().Be("hello");
@@ -126,9 +153,16 @@ public partial class MiddlewareTest
         // test 5
         // middleware should return an error message if the function name is not available when invoking the function from previous agent reply
         mw = new FunctionCallMiddleware(
-            functionMap: new Dictionary<string, Func<string, Task<string>>> { { "Echo2", EchoWrapper } });
+            functionMap: new Dictionary<string, Func<string, Task<string>>>
+            {
+                { "Echo2", EchoWrapper }
+            }
+        );
         testAgent = agent.RegisterMiddleware(mw);
         reply = await testAgent.SendAsync(functionCallMessage);
-        reply.GetContent()!.Should().Be("Function Echo is not available. Available functions are: Echo2");
+        reply
+            .GetContent()!
+            .Should()
+            .Be("Function Echo is not available. Available functions are: Echo2");
     }
 }

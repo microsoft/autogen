@@ -8,7 +8,7 @@ namespace Microsoft.AutoGen.Integration.Tests;
 
 public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
 {
-    [Theory]
+    [Theory, Trait("type", "integration")]
     [MemberData(nameof(AppHostAssemblies))]
     public async Task AppHostRunsCleanly(string appHostPath)
     {
@@ -22,7 +22,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(15));
     }
 
-    [Theory]
+    [Theory, Trait("type", "integration")]
     [MemberData(nameof(TestEndpoints))]
     public async Task AppHostLogsHelloAgentE2E(TestEndpoints testEndpoints)
     {
