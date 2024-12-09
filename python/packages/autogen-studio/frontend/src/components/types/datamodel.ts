@@ -91,6 +91,10 @@ export interface Session extends DBModel {
   team_id?: number;
 }
 
+export interface SessionRuns {
+  runs: Run[];
+}
+
 export interface BaseConfig {
   component_type: string;
   version?: string;
@@ -114,11 +118,17 @@ export type ModelTypes = "OpenAIChatCompletionClient";
 export type AgentTypes =
   | "AssistantAgent"
   | "CodingAssistantAgent"
+  | "UserProxyAgent"
   | "MultimodalWebSurfer"
   | "FileSurfer"
   | "MagenticOneCoderAgent";
 
-export type TeamTypes = "RoundRobinGroupChat" | "SelectorGroupChat" | "MagenticOneGroupChat";
+export type ToolTypes = "PythonFunction";
+
+export type TeamTypes =
+  | "RoundRobinGroupChat"
+  | "SelectorGroupChat"
+  | "MagenticOneGroupChat";
 
 // class ComponentType(str, Enum):
 //     TEAM = "team"
@@ -129,7 +139,9 @@ export type TeamTypes = "RoundRobinGroupChat" | "SelectorGroupChat" | "MagenticO
 export type TerminationTypes =
   | "MaxMessageTermination"
   | "StopMessageTermination"
-  | "TextMentionTermination";
+  | "TextMentionTermination"
+  | "TimeoutTermination"
+  | "CombinationTermination";
 
 export type ComponentTypes =
   | "team"
@@ -137,6 +149,13 @@ export type ComponentTypes =
   | "model"
   | "tool"
   | "termination";
+
+export type ComponentConfigTypes =
+  | TeamConfig
+  | AgentConfig
+  | ModelConfig
+  | ToolConfig
+  | TerminationConfig;
 
 export interface ModelConfig extends BaseConfig {
   model: string;
@@ -149,7 +168,7 @@ export interface ToolConfig extends BaseConfig {
   name: string;
   description: string;
   content: string;
-  tool_type: string;
+  tool_type: ToolTypes;
 }
 export interface AgentConfig extends BaseConfig {
   name: string;
@@ -171,7 +190,7 @@ export interface TeamConfig extends BaseConfig {
   team_type: TeamTypes;
   model_client?: ModelConfig;
   termination_condition?: TerminationConfig;
-  selector_config?: string;
+  selector_prompt?: string;
 }
 
 export interface Team extends DBModel {
@@ -187,6 +206,7 @@ export interface TeamResult {
 export interface Run {
   id: string;
   created_at: string;
+  updated_at?: string;
   status: RunStatus;
   task: AgentMessageConfig;
   team_result: TeamResult | null;

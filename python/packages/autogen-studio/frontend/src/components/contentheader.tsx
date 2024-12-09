@@ -48,7 +48,7 @@ const ContentHeader = ({
         </button>
 
         {/* Desktop Sidebar Toggle - Hidden on Mobile */}
-        <div className="hidden md:block">
+        {/* <div className="hidden md:block">
           <Tooltip title={isExpanded ? "Close Sidebar" : "Open Sidebar"}>
             <button
               onClick={() => setSidebarState({ isExpanded: !isExpanded })}
@@ -65,7 +65,7 @@ const ContentHeader = ({
               )}
             </button>
           </Tooltip>
-        </div>
+        </div> */}
 
         <div className="flex flex-1 gap-x-4 self-stretch lg:gap-x-6">
           {/* Breadcrumbs */}

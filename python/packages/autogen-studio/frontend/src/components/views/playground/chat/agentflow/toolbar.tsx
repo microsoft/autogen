@@ -14,6 +14,7 @@ import {
   MessageSquare,
   LayoutGrid,
   RotateCcw,
+  MapIcon,
 } from "lucide-react";
 import { useConfigStore } from "../../../../../hooks/store";
 
@@ -55,6 +56,12 @@ export const AgentFlowToolbar: React.FC<AgentFlowToolbarProps> = ({
     //   icon: <MessageSquare size={16} />,
     //   onClick: toggleSetting("showMessages"),
     // },
+    {
+      key: "miniMap",
+      label: "Mini Map",
+      icon: <MapIcon size={16} />,
+      onClick: toggleSetting("showMiniMap"),
+    },
     {
       type: "divider",
     },
