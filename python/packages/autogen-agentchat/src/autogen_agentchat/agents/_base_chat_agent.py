@@ -4,7 +4,14 @@ from typing import Any, AsyncGenerator, List, Mapping, Sequence
 from autogen_core import CancellationToken
 
 from ..base import ChatAgent, Response, TaskResult
-from ..messages import AgentMessage, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
+from ..messages import (
+    AgentMessage,
+    ChatMessage,
+    HandoffMessage,
+    MultiModalMessage,
+    StopMessage,
+    TextMessage,
+)
 from ..state import BaseState
 
 
@@ -45,8 +52,9 @@ class BaseChatAgent(ChatAgent, ABC):
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[AgentMessage | Response, None]:
         """Handles incoming messages and returns a stream of messages and
-        and the final item is the response. The base implementation in :class:`BaseChatAgent`
-        simply calls :meth:`on_messages` and yields the messages in the response."""
+        and the final item is the response. The base implementation in
+        :class:`BaseChatAgent` simply calls :meth:`on_messages` and yields
+        the messages in the response."""
         response = await self.on_messages(messages, cancellation_token)
         for inner_message in response.inner_messages or []:
             yield inner_message
@@ -69,6 +77,13 @@ class BaseChatAgent(ChatAgent, ABC):
             text_msg = TextMessage(content=task, source="user")
             input_messages.append(text_msg)
             output_messages.append(text_msg)
+        elif isinstance(task, list):
+            for msg in task:
+                if isinstance(msg, (TextMessage, MultiModalMessage, StopMessage, HandoffMessage)):
+                    input_messages.append(msg)
+                    output_messages.append(msg)
+                else:
+                    raise ValueError(f"Invalid message type in list: {type(msg)}")
         elif isinstance(task, (TextMessage, MultiModalMessage, StopMessage, HandoffMessage)):
             input_messages.append(task)
             output_messages.append(task)
