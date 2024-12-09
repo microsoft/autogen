@@ -12,7 +12,7 @@ from autogen_core import (
     default_subscription,
     message_handler,
 )
-from autogen_core.components.models import ChatCompletionClient, CreateResult, SystemMessage, UserMessage
+from autogen_core.models import ChatCompletionClient, CreateResult, SystemMessage, UserMessage
 from autogen_ext.models import ReplayChatCompletionClient
 
 
