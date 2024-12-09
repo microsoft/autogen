@@ -347,7 +347,7 @@ class AssistantAgent(BaseChatAgent):
             self._model_context.append(AssistantMessage(content=result.content, source=self.name))
             # Yield the response.
             yield Response(
-                chat_message=TextMessage(content=result.content, source=self.name),
+                chat_message=TextMessage(content=result.content, source=self.name, models_usage=result.usage),
                 inner_messages=inner_messages,
             )
         else:
