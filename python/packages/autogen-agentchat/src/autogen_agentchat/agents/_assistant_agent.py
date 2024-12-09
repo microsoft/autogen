@@ -50,12 +50,20 @@ class Handoff(HandoffBase):
 class AssistantAgent(BaseChatAgent):
     """An agent that provides assistance with tool use.
 
-    Each time the agent's :meth:`on_messages` or :meth:`on_messages_stream` method is called:
+    The :meth:`on_messages` returns a :class:`~autogen_agentchat.base.Response`
+    in which :attr:`~autogen_agentchat.base.Response.chat_message` is the final
+    response message.
 
-    1) If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` in the :attr:`~autogen_agentchat.base.Response.chat_message`.
+    The :meth:`on_messages_stream` creates an async generator that produces
+    the inner messages as they are created, and the :class:`~autogen_agentchat.base.Response`
+    object as the last item before closing the generator.
 
-    2) When the model returns tool calls, they will be executed right away, and the tool call results
-       are returned as a single :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
+    Each time :meth:`on_messages` or :meth:`on_messages_stream` is called:
+
+    1. If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` in the :attr:`~autogen_agentchat.base.Response.chat_message`.
+    2. When the model returns tool calls, they will be executed right away.
+    3. When `reflect_on_tool_use` is False (default), the tool call results are returned as a :class:`~autogen_agentchat.messages.TextMessage` in the :attr:`~autogen_agentchat.base.Response.chat_message`.
+    4. When `reflect_on_tool_use` is True, the agent will make another model inference using the tool calls and results, and return the response as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
 
     .. note::
         The assistant agent is not thread-safe or coroutine-safe.
@@ -75,6 +83,8 @@ class AssistantAgent(BaseChatAgent):
             If a handoff is a string, it should represent the target agent's name.
         description (str, optional): The description of the agent.
         system_message (str, optional): The system message for the model.
+        reflect_on_tool_use (bool, optional): If `True`, the agent will make another model inference using the tool call and result
+            to generate a response. If `False`, the tool call result will be returned as the response. Defaults to `False`.
 
     Raises:
         ValueError: If tool names are not unique.
@@ -191,6 +201,7 @@ class AssistantAgent(BaseChatAgent):
         description: str = "An agent that provides assistance with ability to use tools.",
         system_message: str
         | None = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
+        reflect_on_tool_use: bool = False,
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client
@@ -241,6 +252,7 @@ class AssistantAgent(BaseChatAgent):
                 f"Handoff names must be unique from tool names. Handoff names: {handoff_tool_names}; tool names: {tool_names}"
             )
         self._model_context: List[LLMMessage] = []
+        self._reflect_on_tool_use = reflect_on_tool_use
         self._is_running = False
 
     @property
@@ -320,14 +332,27 @@ class AssistantAgent(BaseChatAgent):
             )
             return
 
-        # Return tool call result as the response.
-        tool_call_summary = "Tool calls:"
-        for i in range(len(tool_call_msg.content)):
-            tool_call_summary += f"\n{tool_call_msg.content[i].name}({tool_call_msg.content[i].arguments}) = {tool_call_result_msg.content[i].content}"
-        yield Response(
-            chat_message=TextMessage(content=tool_call_summary, source=self.name),
-            inner_messages=inner_messages,
-        )
+        if self._reflect_on_tool_use:
+            # Generate another inference result based on the tool call and result.
+            llm_messages = self._system_messages + self._model_context
+            result = await self._model_client.create(llm_messages, cancellation_token=cancellation_token)
+            assert isinstance(result.content, str)
+            # Add the response to the model context.
+            self._model_context.append(AssistantMessage(content=result.content, source=self.name))
+            # Yield the response.
+            yield Response(
+                chat_message=TextMessage(content=result.content, source=self.name),
+                inner_messages=inner_messages,
+            )
+        else:
+            # Return tool call result as the response.
+            tool_call_summary = ""
+            for i in range(len(tool_call_msg.content)):
+                tool_call_summary += f"\n{tool_call_msg.content[i].name}({tool_call_msg.content[i].arguments}) = {tool_call_result_msg.content[i].content}"
+            yield Response(
+                chat_message=TextMessage(content=tool_call_summary, source=self.name),
+                inner_messages=inner_messages,
+            )
 
     async def _execute_tool_call(
         self, tool_call: FunctionCall, cancellation_token: CancellationToken
