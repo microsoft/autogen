@@ -346,7 +346,7 @@ class AssistantAgent(BaseChatAgent):
             )
         else:
             # Return tool call result as the response.
-            tool_call_summary = ""
+            tool_call_summary = "Tool calls:"
             for i in range(len(tool_call_msg.content)):
                 tool_call_summary += f"\n{tool_call_msg.content[i].name}({tool_call_msg.content[i].arguments}) = {tool_call_result_msg.content[i].content}"
             yield Response(
