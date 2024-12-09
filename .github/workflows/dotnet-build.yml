@@ -84,7 +84,7 @@ jobs:
     - name: Prepare python venv
       run: |
         source ${{ github.workspace }}/python/.venv/bin/activate
-    - name: Setup .NET 8.0
+    - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
         global-json-file: dotnet/global.json

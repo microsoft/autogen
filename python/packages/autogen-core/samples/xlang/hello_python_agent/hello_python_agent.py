@@ -63,9 +63,12 @@ async def main() -> None:
         topic_id=DefaultTopicId("agents.Output", "HelloAgents/python"),
         sender=AgentId("HelloAgents", "python"),
     )
-    await runtime.stop_when_signal()
-    # await runtime.stop_when_idle()
 
+    try:
+        await runtime._read_task
+    except KeyboardInterrupt:
+        print("KeyboardInterrupt")
+        await runtime.stop()
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
