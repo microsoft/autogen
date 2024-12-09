@@ -38,7 +38,6 @@ Run the script below. You'll need an OpenAI API key.
 import asyncio
 
 from autogen_agentchat.ui import Console
-from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_ext.models import OpenAIChatCompletionClient
@@ -57,15 +56,17 @@ async def main() -> None:
           )
         )
 
-    # Define termination condition
-    termination = TextMentionTermination("TERMINATE")
+    # Define a team, with max_turns=1 to limit the agent to run for a single turn.
+    agent_team = RoundRobinGroupChat([video_agent], max_turns=1)
 
-    # Define a team
-    agent_team = RoundRobinGroupChat([video_agent], termination_condition=termination)
-
-    # Run the team and stream messages to the console
-    stream = agent_team.run_stream(task="Hi!")
-    await Console(stream)
+    # Run the user-agent interaction in a loop.
+    while True:
+        user_input = input("Enter a message (type 'exit' to leave): ")
+        if user_input.strip().lower() == "exit":
+            break
+        # Run the team and stream messages to the console
+        stream = agent_team.run_stream(task=user_input)
+        await Console(stream)
 
 asyncio.run(main())
 ```
@@ -131,7 +132,7 @@ def get_video_length(video_path: str) -> str:
 
 ### Exercise 3: Add more actions of your choice
 
-Now add any other tools of your choice. For example, you can try adding a tool that allows video surfer to transcribe the audio in the video, or a tool that allows the video surfer to caption the contents of the video a given timestamp. 
+Now add any other tools of your choice. For example, you can try adding a tool that allows video surfer to transcribe the audio in the video, or a tool that allows the video surfer to caption the contents of the video a given timestamp.
 
 Note that if your tools require new dependecies (e.g., python packages) ensure that you've installed them.
 
