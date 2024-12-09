@@ -6,7 +6,7 @@ from typing import Any
 import pandas as pd
 import tiktoken
 from autogen_core import CancellationToken
-from autogen_core.components.tools._base import BaseTool
+from autogen_core.components.tools import BaseTool
 from graphrag.query.indexer_adapters import (
     read_indexer_communities,
     read_indexer_entities,
@@ -16,7 +16,7 @@ from graphrag.query.structured_search.global_search.community_context import Glo
 from graphrag.query.structured_search.global_search.search import GlobalSearch
 from pydantic import BaseModel, Field
 
-from autogen_ext.models.openai._openai_client import OpenAIChatCompletionClient
+from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 from ._model_adapter import GraphragOpenAiModelAdapter
 

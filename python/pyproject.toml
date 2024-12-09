@@ -22,6 +22,10 @@ dev-dependencies = [
     "tomli",
 ]
 
+override-dependencies = [
+    "tenacity==9.0.0"
+]
+
 [tool.uv.sources]
 autogen-core = { workspace = true }
 autogen-ext = { workspace = true }
