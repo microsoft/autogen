@@ -180,7 +180,7 @@ jobs:
       with:
         dotnet-version: '9.0.x'
     - name: Install dev certs
-      run: sudo dotnet dev-certs https --trust
+      run: source /Users/runner/.dotnet && dotnet --version && sudo dotnet dev-certs https --trust
     - name: Switch back to .NET 8.0
       uses: actions/setup-dotnet@v4
       with:
