@@ -617,7 +617,7 @@ Reflexion = {
         # Return the first answer from the queue
         print(f"queue {queue}")
         return (await queue.get()).answer
-    
+
     return asyncio.run(main())
 ''',
 }
@@ -660,7 +660,7 @@ LLM_debate = {
             "json_output": True,
         },
     )
-    
+
     @dataclass
     class Question:
         content: str
@@ -898,11 +898,11 @@ Tree_of_thought = {
     )
     from autogen_ext.models import AzureOpenAIChatCompletionClient
     from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-    from autogen_core.application.logging import TRACE_LOGGER_NAME 
+    from autogen_core.application.logging import TRACE_LOGGER_NAME
 
-    # Configure logging as per documentation 
-    logging.basicConfig(level=logging.WARNING) 
-    logger = logging.getLogger(TRACE_LOGGER_NAME) 
+    # Configure logging as per documentation
+    logging.basicConfig(level=logging.WARNING)
+    logger = logging.getLogger(TRACE_LOGGER_NAME)
     logger.setLevel(logging.INFO)
     token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
 
@@ -918,149 +918,149 @@ Tree_of_thought = {
             "json_output": True,
         },
     )
- 
-    @dataclass 
-    class Message: 
-        content: str 
-    
-    @dataclass 
-    class FinalAnswer: 
-        answer: str 
+
+    @dataclass
+    class Message:
+        content: str
+
+    @dataclass
+    class FinalAnswer:
+        answer: str
 
     @default_subscription
-    class TreeOfThoughtsAgent(RoutedAgent): 
-        def __init__(self, model_client: ChatCompletionClient, max_depth: int = 3, beam_width: int = 3): 
-            super().__init__("TreeOfThoughtsAgent") 
-            self._model_client = model_client 
-            self._max_depth = max_depth 
-            self._beam_width = beam_width 
-            self._system_messages = [ 
-                SystemMessage( 
-                    content="You are a helpful assistant who reasons step-by-step to solve complex problems.") 
-            ] 
-    
-        async def generate_thoughts(self, prompt: List[LLMMessage], num_thoughts: int, cancellation_token) -> List[str]: 
-            # Generate multiple thoughts using the model 
-            thoughts = [] 
-            # Create multiple async tasks to generate thoughts in parallel 
-            tasks = [] 
-            for _ in range(num_thoughts): 
-                tasks.append(self._model_client.create( 
-                    prompt, 
+    class TreeOfThoughtsAgent(RoutedAgent):
+        def __init__(self, model_client: ChatCompletionClient, max_depth: int = 3, beam_width: int = 3):
+            super().__init__("TreeOfThoughtsAgent")
+            self._model_client = model_client
+            self._max_depth = max_depth
+            self._beam_width = beam_width
+            self._system_messages = [
+                SystemMessage(
+                    content="You are a helpful assistant who reasons step-by-step to solve complex problems.")
+            ]
+
+        async def generate_thoughts(self, prompt: List[LLMMessage], num_thoughts: int, cancellation_token) -> List[str]:
+            # Generate multiple thoughts using the model
+            thoughts = []
+            # Create multiple async tasks to generate thoughts in parallel
+            tasks = []
+            for _ in range(num_thoughts):
+                tasks.append(self._model_client.create(
+                    prompt,
                     extra_create_args={"temperature": 1.0},
-                    cancellation_token=cancellation_token, 
-                )) 
-            responses = await asyncio.gather(*tasks) 
-            for response in responses: 
-                thoughts.append(response.content.strip()) 
-            return thoughts 
-    
-        async def evaluate_thoughts(self, thoughts: List[str], ctx: MessageContext) -> List[str]: 
-            # Batch evaluation of thoughts 
-            eval_prompt = [ 
-                SystemMessage(content="You are an assistant that evaluates reasoning steps for solving a problem."), 
-                UserMessage( 
-                    content=f"Evaluate the following thoughts for their usefulness in solving the problem. Rank them from most useful to least useful and provide the rankings.\\n\\nThoughts:\\n" + "\\n".join( 
-                        [f"{i+1}. {t}" for i, t in enumerate(thoughts)]), 
-                    source="user" 
-                ) 
-            ] 
-            eval_response = await self._model_client.create( 
-                eval_prompt, 
-                cancellation_token=ctx.cancellation_token, 
-            ) 
-            # Parse the response to extract rankings 
-            rankings_text = eval_response.content.strip() 
-            # For simplicity, assume the model outputs the rankings as a list of numbers 
-            rankings = [] 
-            for line in rankings_text.split('\\n'): 
-                line = line.strip() 
-                if line and line[0].isdigit(): 
-                    rankings.append(int(line[0]) - 1)  # Subtract 1 to get index 
-            # Select top-k thoughts 
-            best_thoughts = [thoughts[i] for i in rankings[:self._beam_width]] 
-            return best_thoughts 
-    
-        @message_handler 
-        async def handle_message(self, message: Message, ctx: MessageContext) -> None: 
-            logger.info(f"Received task: {message.content}") 
-            initial_prompt = self._system_messages + [UserMessage(content=message.content, source="user")] 
-            tree = [[]]  # Initialize the tree with an empty path 
-            for depth in range(self._max_depth): 
-                new_branches = [] 
-                logger.info(f"Depth {depth+1}") 
-                for path in tree: 
-                    # Build the prompt up to this point 
-                    prompt = initial_prompt.copy() 
-                    for thought in path: 
-                        prompt.append(AssistantMessage(content=thought, source="assistant")) 
-                    # Generate thoughts 
-                    thoughts = await self.generate_thoughts(prompt, self._beam_width, ctx.cancellation_token) 
-                    logger.info(f"Generated thoughts: {thoughts}") 
-                    # Evaluate thoughts 
-                    best_thoughts = await self.evaluate_thoughts(thoughts, ctx) 
-                    logger.info(f"Best thoughts: {best_thoughts}") 
-                    # Expand tree with best thoughts 
-                    for thought in best_thoughts: 
-                        new_path = path + [thought] 
-                        new_branches.append(new_path) 
-                # Update tree with new branches 
-                if not new_branches: 
-                    logger.info("No more branches to expand.") 
-                    break  # No more thoughts to expand 
-                tree = new_branches 
-            # After reaching max depth, select the best path 
-            # For simplicity, select the first path 
-            best_path = tree[0] 
-            final_answer = best_path[-1] 
-            logger.info(f"Final answer: {final_answer}") 
-            # Publish the final answer 
-            await self.publish_message( 
-                FinalAnswer(answer=final_answer), 
-                topic_id=TopicId(type="result", source=self.id.key) 
-            ) 
-    
-    # Main function 
-    async def main(): 
-        # Create a queue to collect the final answer 
-        queue = asyncio.Queue[FinalAnswer]() 
-    
-        async def output_result(_agent: ClosureContext, message: FinalAnswer, ctx: MessageContext) -> None: 
-            await queue.put(message) 
-    
-        # Initialize runtime 
-        runtime = SingleThreadedAgentRuntime() 
-    
-        # Register TreeOfThoughtsAgent 
-        await TreeOfThoughtsAgent.register( 
-            runtime, 
-            "TreeOfThoughtsAgent", 
-            lambda: TreeOfThoughtsAgent(model_client) 
-        ) 
-    
-        # Register ClosureAgent with agent key matching self.id.key (default is "default") 
-        result_topic = TypeSubscription(topic_type="result", agent_type="output_result") 
-        await ClosureAgent.register_closure( 
-            runtime, 
-            "output_result", 
-            output_result, 
-            subscriptions=lambda: [result_topic] 
-        ) 
-    
-        # Start the runtime 
-        runtime.start() 
-    
+                    cancellation_token=cancellation_token,
+                ))
+            responses = await asyncio.gather(*tasks)
+            for response in responses:
+                thoughts.append(response.content.strip())
+            return thoughts
+
+        async def evaluate_thoughts(self, thoughts: List[str], ctx: MessageContext) -> List[str]:
+            # Batch evaluation of thoughts
+            eval_prompt = [
+                SystemMessage(content="You are an assistant that evaluates reasoning steps for solving a problem."),
+                UserMessage(
+                    content=f"Evaluate the following thoughts for their usefulness in solving the problem. Rank them from most useful to least useful and provide the rankings.\\n\\nThoughts:\\n" + "\\n".join(
+                        [f"{i+1}. {t}" for i, t in enumerate(thoughts)]),
+                    source="user"
+                )
+            ]
+            eval_response = await self._model_client.create(
+                eval_prompt,
+                cancellation_token=ctx.cancellation_token,
+            )
+            # Parse the response to extract rankings
+            rankings_text = eval_response.content.strip()
+            # For simplicity, assume the model outputs the rankings as a list of numbers
+            rankings = []
+            for line in rankings_text.split('\\n'):
+                line = line.strip()
+                if line and line[0].isdigit():
+                    rankings.append(int(line[0]) - 1)  # Subtract 1 to get index
+            # Select top-k thoughts
+            best_thoughts = [thoughts[i] for i in rankings[:self._beam_width]]
+            return best_thoughts
+
+        @message_handler
+        async def handle_message(self, message: Message, ctx: MessageContext) -> None:
+            logger.info(f"Received task: {message.content}")
+            initial_prompt = self._system_messages + [UserMessage(content=message.content, source="user")]
+            tree = [[]]  # Initialize the tree with an empty path
+            for depth in range(self._max_depth):
+                new_branches = []
+                logger.info(f"Depth {depth+1}")
+                for path in tree:
+                    # Build the prompt up to this point
+                    prompt = initial_prompt.copy()
+                    for thought in path:
+                        prompt.append(AssistantMessage(content=thought, source="assistant"))
+                    # Generate thoughts
+                    thoughts = await self.generate_thoughts(prompt, self._beam_width, ctx.cancellation_token)
+                    logger.info(f"Generated thoughts: {thoughts}")
+                    # Evaluate thoughts
+                    best_thoughts = await self.evaluate_thoughts(thoughts, ctx)
+                    logger.info(f"Best thoughts: {best_thoughts}")
+                    # Expand tree with best thoughts
+                    for thought in best_thoughts:
+                        new_path = path + [thought]
+                        new_branches.append(new_path)
+                # Update tree with new branches
+                if not new_branches:
+                    logger.info("No more branches to expand.")
+                    break  # No more thoughts to expand
+                tree = new_branches
+            # After reaching max depth, select the best path
+            # For simplicity, select the first path
+            best_path = tree[0]
+            final_answer = best_path[-1]
+            logger.info(f"Final answer: {final_answer}")
+            # Publish the final answer
+            await self.publish_message(
+                FinalAnswer(answer=final_answer),
+                topic_id=TopicId(type="result", source=self.id.key)
+            )
+
+    # Main function
+    async def main():
+        # Create a queue to collect the final answer
+        queue = asyncio.Queue[FinalAnswer]()
+
+        async def output_result(_agent: ClosureContext, message: FinalAnswer, ctx: MessageContext) -> None:
+            await queue.put(message)
+
+        # Initialize runtime
+        runtime = SingleThreadedAgentRuntime()
+
+        # Register TreeOfThoughtsAgent
+        await TreeOfThoughtsAgent.register(
+            runtime,
+            "TreeOfThoughtsAgent",
+            lambda: TreeOfThoughtsAgent(model_client)
+        )
+
+        # Register ClosureAgent with agent key matching self.id.key (default is "default")
+        result_topic = TypeSubscription(topic_type="result", agent_type="output_result")
+        await ClosureAgent.register_closure(
+            runtime,
+            "output_result",
+            output_result,
+            subscriptions=lambda: [result_topic]
+        )
+
+        # Start the runtime
+        runtime.start()
+
         # Publish initial message to TreeOfThoughtsAgent
-        await runtime.publish_message( 
-            Message(content=task), 
-            topic_id=DefaultTopicId() 
-        ) 
-    
-        # Wait until idle 
-        await runtime.stop_when_idle() 
-    
-        # Return the final answer 
-        final_message = await queue.get() 
+        await runtime.publish_message(
+            Message(content=task),
+            topic_id=DefaultTopicId()
+        )
+
+        # Wait until idle
+        await runtime.stop_when_idle()
+
+        # Return the final answer
+        final_message = await queue.get()
         return final_message.answer
     return asyncio.run(main())
 """,
@@ -1073,14 +1073,14 @@ Take_a_step_back = {
     "code": """def forward(self, taskInfo):
         # Instruction for understanding the principles involved in the task
         principle_instruction = "What are the physics, chemistry or biology principles and concepts involved in solving this task? First think step by step. Then list all involved principles and explain them."
-        
+
         # Instruction for solving the task based on the principles
         cot_instruction = "Given the question and the involved principle behind the question, think step by step and then solve the task."
-        
+
         # Instantiate LLM agents
         principle_agent = LLMAgentBase(['thinking', 'principle'], 'Principle Agent')
         cot_agent = LLMAgentBase(['thinking', 'answer'], 'Chain-of-Thought Agent')
-        
+
         # Get the principles involved in the task
         thinking, principle = principle_agent([taskInfo], principle_instruction)
 
@@ -1105,7 +1105,7 @@ QD = {
     # Instruction for final decision-making based on collected reasoning and answers
     final_decision_instruction = "Given all the above solutions, reason over them carefully and provide a final answer."
     final_decision_agent = LLMAgentBase(['thinking', 'answer'], 'Final Decision Agent', temperature=0.1)
-    
+
     N_max = 3 # Maximum number of attempts
 
     # Initial attempt
@@ -1172,7 +1172,7 @@ You will be asked to read a passage and answer a question.
 Passage:
 Non-nationals make up more than half of the population of Bahrain, with immigrants making up about 55% of the overall population.  Of those, the vast majority come from South and Southeast Asia: according to various media reports and government statistics dated between 2005-2009 roughly 290,000 Indians, 125,000 Bangladeshis, 45,000 Pakistanis, 45,000 Filipinos, and 8,000 Indonesians.\nQuestion: What two nationalities had the same number of people living in Bahrain between 2005-2009?
 Answer [Not Given]:
-Pakistanis and Filipinos 
+Pakistanis and Filipinos
 
 
 # The utility code:
@@ -1188,11 +1188,11 @@ class AgentArchitecture:
     def forward(self, task, model_client_kwargs) -> str:
         \"""
         Placeholder method for processing task information.
-        
+
         Args:
         - task (Info): Task information.
         - model_client_kwargs (Dict): Information for the AzureOpenAIChatCompletionClient
-        
+
         Returns:
         - Answer (str): Your FINAL Answer. Return a string of answers.
         \"""
@@ -1207,14 +1207,14 @@ The fitness value is the median and 95% Bootstrap Confidence Interval of the cor
 
 # Output Instruction and Example:
 The first key should be ("thought"), and it should capture your thought process for designing the next function. In the "thought" section, first reason about what should be the next interesting agent to try, then describe your reasoning and the overall concept behind the agent design, and finally detail the implementation steps. Make sure to talk about the agent(s) that are supposted to start and end the system.
-The second key ("name") corresponds to the name of your next agent architecture. 
+The second key ("name") corresponds to the name of your next agent architecture.
 The last key ("code") corresponds to the exact “forward()” function in Python code that you would like to try. You must write a COMPLETE CODE in "code": Your code will be part of the entire project, so please implement complete, reliable, reusable code snippets.
 
 Here is an example of the output format for the next agent architecture:
 
 [EXAMPLE]
 
-You must use the exact function interface used above. You need to specify the instruction, input information, and the required output fields for various LLM agents to do their specific part of the architecture. 
+You must use the exact function interface used above. You need to specify the instruction, input information, and the required output fields for various LLM agents to do their specific part of the architecture.
 Also, it could be helpful to set the LLM’s role to further control the LLM’s response.
 DO NOT FORGET the `task` input to LLM if you think it is needed, otherwise LLM will not know about the task.
 
@@ -1370,7 +1370,7 @@ class OrchestratorAgent(RoutedAgent):
         assert isinstance(model_result.content, str)
         return FinalResult(result=model_result.content)
 ```
-Directly returning a message dataclass `FinalResult` requires setting the return type of the `handle_task` function to return `FinalResult`. Example: `async def handle_task(self, message: UserTask, ctx: MessageContext) -> FinalResult:`. 
+Directly returning a message dataclass `FinalResult` requires setting the return type of the `handle_task` function to return `FinalResult`. Example: `async def handle_task(self, message: UserTask, ctx: MessageContext) -> FinalResult:`.
 
 5. This is WRONG: ```
     # Main orchestration
@@ -1458,7 +1458,7 @@ await OrchestratorAgent.register(runtime, "orchestrator", lambda: OrchestratorAg
 11. This is WRONG: ```
 class OrchestratorAgent(RoutedAgent):
     pass
-    
+
 async def main():
     await OrchestratorAgent.register(runtime, "orchestrator", lambda: OrchestratorAgent())
 
@@ -1483,7 +1483,7 @@ Or use the `type_subscription()` class decorator on the agent.
 @type_subscription(topic_type="orchestrator_type")
 class OrchestratorAgent(RoutedAgent):
     pass
-    
+
 async def main():
     await OrchestratorAgent.register(runtime, "orchestrator", lambda: OrchestratorAgent())
 
@@ -1497,7 +1497,7 @@ Now, you can publish directly to a specific topic through the runtime.
 12. This is WRONG: ```
 class OrchestratorAgent(RoutedAgent):
     pass
-    
+
 async def main():
     await OrchestratorAgent.register(runtime, "orchestrator", lambda: OrchestratorAgent())
 
@@ -1512,7 +1512,7 @@ Use the `default_subscription` class decorator on the agent.
 @default_subscription
 class OrchestratorAgent(RoutedAgent):
     pass
-    
+
 async def main():
     await OrchestratorAgent.register(runtime, "orchestrator", lambda: OrchestratorAgent())
 
@@ -1584,7 +1584,7 @@ Creating the model client using the model_client_kwargs dictionary. Do not modif
         # Return the first answer from the queue
         print(f"queue {queue}")
         return (await queue.get()).answer
-    
+
     return asyncio.run(main())
 ```
 This is the format for the `main` function. Make sure that when creating a `ClosureAgent`, you have created `queue` from which you can call `return (await queue.get()).answer` at the very end of the `main` function. The datatype of the Queue should be the final message that the agent system publishes to indicate that the system is terminating.
@@ -1702,7 +1702,8 @@ def get_init_archive():
     ]  # TODO: Take_a_step_back, QD, Role_Assignment
 
 
-def get_prompt(current_archive, adaptive=False):
+# from typing import tuple
+def get_prompt(current_archive, adaptive=False) -> tuple[str, str]:
     archive_str = ",\n".join([json.dumps(sol) for sol in current_archive])
     archive_str = f"[{archive_str}]"
     prompt = base.replace("[ARCHIVE]", archive_str)
@@ -1711,7 +1712,7 @@ def get_prompt(current_archive, adaptive=False):
     return system_prompt, prompt
 
 
-def get_reflexion_prompt(prev_example):
+def get_reflexion_prompt(prev_example) -> tuple[str, str, str, str]:
     prev_example_str = "Here is the previous agent you tried:\n" + json.dumps(prev_example) + "\n\n"
     r1 = (
         Reflexion_prompt_1.replace("[EXAMPLE]", prev_example_str)

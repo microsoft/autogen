@@ -98,7 +98,7 @@ def _align_bags(predicted: List[Set[str]], gold: List[Set[str]]) -> List[float]:
     row_ind, col_ind = linear_sum_assignment(-scores)
 
     max_scores = np.zeros([max(len(gold), len(predicted))])
-    for row, column in zip(row_ind, col_ind):
+    for row, column in zip(row_ind, col_ind, strict=False):
         max_scores[row] = max(max_scores[row], scores[row, column])
     return max_scores
 
