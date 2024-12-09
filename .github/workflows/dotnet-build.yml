@@ -121,6 +121,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
       with:
+          lfs: true
           fetch-depth: 0 # fetching all
     - name: Setup .NET 9.0
       uses: actions/setup-dotnet@v4
