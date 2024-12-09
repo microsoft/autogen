@@ -25,8 +25,6 @@ from autogen_core.components.tools import FunctionTool
 from autogen_ext.models import OpenAIChatCompletionClient
 from IPython.display import display  # type: ignore
 from pydantic import BaseModel
-from rich.console import Console
-from rich.markdown import Markdown
 
 
 class GroupChatMessage(BaseModel):

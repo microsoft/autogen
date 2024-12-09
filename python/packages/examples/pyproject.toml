@@ -16,8 +16,14 @@ classifiers = [
 ]
 dependencies = [
     "autogen-core",
+    "autogen-ext",
+    "autogen-agentchat",
     "langfuse>=2.54.1",
     "litellm>=1.51.3",
+    "llama-index>=0.11.20",
+    "llama-index-agent-openai>=0.3.4",
+    "llama-index-llms-openai-like>=0.2.0",
+    "llama-index-llms-ollama>=0.3.6",
 ]
 
 [tool.uv]

@@ -6,7 +6,6 @@ from pydantic import Field
 from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base import AgentId, MessageContext
 from autogen_core.components import RoutedAgent, message_handler
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from llama_index.core import Settings
 from llama_index.core.agent import ReActAgent
 from llama_index.core.agent.runner.base import AgentRunner

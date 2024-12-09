@@ -7,10 +7,11 @@ from autogen_core.components.model_context import BufferedChatCompletionContext
 from autogen_core.components.models import (
     AssistantMessage,
     ChatCompletionClient,
-    OpenAIChatCompletionClient,
     SystemMessage,
     UserMessage,
 )
+from autogen_ext.models import OpenAIChatCompletionClient
+
 
 def get_model_client() -> OpenAIChatCompletionClient:
     "Mimic OpenAI API using Local LLM Server."

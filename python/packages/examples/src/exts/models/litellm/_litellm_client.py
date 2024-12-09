@@ -64,7 +64,6 @@ from autogen_core.components.models._types import (
     TopLogprob,
     UserMessage,
 )
-from autogen_core.components.models.config import AzureOpenAIClientConfiguration, OpenAIClientConfiguration
 from litellm import acompletion as litellm_achat
 from ._provider_infos import is_not_support_user_message_name
 import litellm
@@ -100,99 +99,6 @@ def type_to_role(message: LLMMessage) -> ChatCompletionRole:
         return "assistant"
     else:
         return "tool"
-
-
-def user_message_to_oai(message: UserMessage) -> ChatCompletionUserMessageParam:
-    if message.source:
-        assert_valid_name(message.source)
-    if isinstance(message.content, str):
-        return ChatCompletionUserMessageParam(
-            content=message.content,
-            role="user",
-            name=message.source,
-        )
-    else:
-        parts: List[ChatCompletionContentPartParam] = []
-        for part in message.content:
-            if isinstance(part, str):
-                oai_part = ChatCompletionContentPartTextParam(
-                    text=part,
-                    type="text",
-                )
-                parts.append(oai_part)
-            elif isinstance(part, Image):
-                # TODO: support url based images
-                # TODO: support specifying details
-                parts.append(part.to_openai_format())
-            else:
-                raise ValueError(f"Unknown content type: {part}")
-        return ChatCompletionUserMessageParam(
-            content=parts,
-            role="user",
-            name=message.source,
-        )
-
-
-def system_message_to_oai(message: SystemMessage) -> ChatCompletionSystemMessageParam:
-    return ChatCompletionSystemMessageParam(
-        content=message.content,
-        role="system",
-    )
-
-
-def func_call_to_oai(message: FunctionCall) -> ChatCompletionMessageToolCallParam:
-    return ChatCompletionMessageToolCallParam(
-        id=message.id,
-        function={
-            "arguments": message.arguments,
-            "name": message.name,
-        },
-        type="function",
-    )
-
-
-def tool_message_to_oai(
-    message: FunctionExecutionResultMessage,
-) -> Sequence[ChatCompletionToolMessageParam]:
-    return [
-        ChatCompletionToolMessageParam(content=x.content, role="tool", tool_call_id=x.call_id) for x in message.content
-    ]
-
-
-def assistant_message_to_oai(
-    message: AssistantMessage,
-) -> ChatCompletionAssistantMessageParam:
-    assert_valid_name(message.source)
-    if isinstance(message.content, list):
-        return ChatCompletionAssistantMessageParam(
-            tool_calls=[func_call_to_oai(x) for x in message.content],
-            role="assistant",
-            name=message.source,
-        )
-    else:
-        return ChatCompletionAssistantMessageParam(
-            content=message.content,
-            role="assistant",
-            name=message.source,
-        )
-
-
-def to_oai_type(provider,message: LLMMessage) -> Sequence[ChatCompletionMessageParam]:
-    if isinstance(message, SystemMessage):
-        return [system_message_to_oai(message)]
-    elif isinstance(message, UserMessage):
-        user_msg = user_message_to_oai(message)
-        if is_not_support_user_message_name(provider):
-            del user_msg['name']
-        return [user_msg]
-
-    elif isinstance(message, AssistantMessage):
-        assistant_msg = assistant_message_to_oai(message)
-        if is_not_support_user_message_name(provider):
-            del assistant_msg['name']
-        return [assistant_msg]
-    else:
-        return tool_message_to_oai(message)
 
 
 def calculate_vision_tokens(image: Image, detail: str = "auto") -> int:
@@ -311,7 +217,7 @@ class LiteLlmChatCompletionClient(ChatCompletionClient):
         
     ):
         self._provider = provider
-        self._model = provider+"/"+model
+        self._model = provider+"/"+model if provider else model
         self._create_args = create_args
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
@@ -319,6 +225,97 @@ class LiteLlmChatCompletionClient(ChatCompletionClient):
     @classmethod
     def create_from_config(cls, config: Dict[str, Any]) -> ChatCompletionClient:
         return LiteLlmChatCompletionClient(**config)
+    
+    def user_message_to_oai(self,message: UserMessage) -> ChatCompletionUserMessageParam:
+        if message.source:
+            assert_valid_name(message.source)
+        if isinstance(message.content, str):
+            return ChatCompletionUserMessageParam(
+                content=message.content,
+                role="user",
+                name=message.source,
+            )
+        else:
+            parts: List[ChatCompletionContentPartParam] = []
+            for part in message.content:
+                if isinstance(part, str):
+                    oai_part = ChatCompletionContentPartTextParam(
+                        text=part,
+                        type="text",
+                    )
+                    parts.append(oai_part)
+                elif isinstance(part, Image):
+                    # TODO: support url based images
+                    # TODO: support specifying details
+                    parts.append(part.to_openai_format())
+                else:
+                    raise ValueError(f"Unknown content type: {part}")
+            return ChatCompletionUserMessageParam(
+                content=parts,
+                role="user",
+                name=message.source,
+            )
+
+
+    def system_message_to_oai(self,message: SystemMessage) -> ChatCompletionSystemMessageParam:
+        return ChatCompletionSystemMessageParam(
+            content=message.content,
+            role="system",
+        )
+
+
+    def func_call_to_oai(self,message: FunctionCall) -> ChatCompletionMessageToolCallParam:
+        return ChatCompletionMessageToolCallParam(
+            id=message.id,
+            function={
+                "arguments": message.arguments,
+                "name": message.name,
+            },
+            type="function",
+        )
+
+
+    def tool_message_to_oai(self,
+        message: FunctionExecutionResultMessage,
+    ) -> Sequence[ChatCompletionToolMessageParam]:
+        return [
+            ChatCompletionToolMessageParam(content=x.content, role="tool", tool_call_id=x.call_id) for x in message.content
+        ]
+
+
+    def assistant_message_to_oai(self,
+        message: AssistantMessage,
+    ) -> ChatCompletionAssistantMessageParam:
+        assert_valid_name(message.source)
+        if isinstance(message.content, list):
+            return ChatCompletionAssistantMessageParam(
+                tool_calls=[self.func_call_to_oai(x) for x in message.content],
+                role="assistant",
+                name=message.source,
+            )
+        else:
+            return ChatCompletionAssistantMessageParam(
+                content=message.content,
+                role="assistant",
+                name=message.source,
+            )
+    
+    def to_oai_type(self,message: LLMMessage) -> Sequence[ChatCompletionMessageParam]:
+        if isinstance(message, SystemMessage):
+            return [self.system_message_to_oai(message)]
+        elif isinstance(message, UserMessage):
+            user_msg = self.user_message_to_oai(message)
+            if is_not_support_user_message_name(self._provider):
+                del user_msg['name']
+            return [user_msg]
+
+        elif isinstance(message, AssistantMessage):
+            assistant_msg = self.assistant_message_to_oai(message)
+            if is_not_support_user_message_name(self._provider):
+                del assistant_msg['name']
+            return [assistant_msg]
+        else:
+            return self.tool_message_to_oai(message)
 
     async def create(
         self,
@@ -364,7 +361,7 @@ class LiteLlmChatCompletionClient(ChatCompletionClient):
             else:
                 create_args["response_format"] = {"type": "text"}
 
-        oai_messages_nested = [to_oai_type(self._provider,m) for m in messages]
+        oai_messages_nested = [self.to_oai_type(m) for m in messages]
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]
 
         future: Union[Task[ParsedChatCompletion[BaseModel]], Task[ChatCompletion]]
@@ -456,9 +453,10 @@ class LiteLlmChatCompletionClient(ChatCompletionClient):
             raise ValueError("Function calls are not supported in this context")
 
         content: Union[str, List[FunctionCall]]
-        if choice.finish_reason == "tool_calls":
-            assert choice.message.tool_calls is not None
-            assert choice.message.function_call is None
+
+       # if choice.finish_reason == "tool_calls":
+       # 非openai的接口，它finish_reason有可能是stop的：
+        if getattr(choice.message,"tool_calls",None):
 
             # NOTE: If OAI response type changes, this will need to be updated
             content = [
@@ -540,7 +538,7 @@ class LiteLlmChatCompletionClient(ChatCompletionClient):
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
 
-        oai_messages_nested = [to_oai_type(self._provider,m) for m in messages]
+        oai_messages_nested = [self.to_oai_type(m) for m in messages]
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]
         if json_output is not None:
             if self.capabilities["json_output"] is False and json_output is True:
@@ -707,7 +705,7 @@ class LiteLlmChatCompletionClient(ChatCompletionClient):
         # Message tokens.
         for message in messages:
             num_tokens += tokens_per_message
-            oai_message = to_oai_type(self._provider,message)
+            oai_message = self.to_oai_type(message)
             for oai_message_part in oai_message:
                 for key, value in oai_message_part.items():
                     if value is None:
@@ -784,5 +782,7 @@ class LiteLlmChatCompletionClient(ChatCompletionClient):
 
     def remaining_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
         return DEFUALT_TOKEN_LIMIT - self.count_tokens(messages, tools)
-
+    @property
+    def capabilities(self) -> ModelCapabilities:
+        return ModelCapabilities(vision=False,function_calling=True,json_output=True)
    
