@@ -34,7 +34,7 @@
   <!-- Properties, Items, and targets to ensure Python apps are initialized -->
   <PropertyGroup>
     <PythonVirtualEnvironmentName>.venv</PythonVirtualEnvironmentName>
-    <PythonVenvRoot>..\..\..\python</PythonVenvRoot>
+    <PythonVenvRoot>$(RepoRoot)..\python</PythonVenvRoot>
 
   </PropertyGroup>
 
