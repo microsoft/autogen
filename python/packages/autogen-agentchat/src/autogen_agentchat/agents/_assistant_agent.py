@@ -58,12 +58,18 @@ class AssistantAgent(BaseChatAgent):
     the inner messages as they are created, and the :class:`~autogen_agentchat.base.Response`
     object as the last item before closing the generator.
 
-    Each time :meth:`on_messages` or :meth:`on_messages_stream` is called:
+    Tool call behavior:
 
-    1. If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` in the :attr:`~autogen_agentchat.base.Response.chat_message`.
-    2. When the model returns tool calls, they will be executed right away.
-    3. When `reflect_on_tool_use` is False (default), the tool call results are returned as a :class:`~autogen_agentchat.messages.TextMessage` in the :attr:`~autogen_agentchat.base.Response.chat_message`.
-    4. When `reflect_on_tool_use` is True, the agent will make another model inference using the tool calls and results, and return the response as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
+    * If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
+    * When the model returns tool calls, they will be executed right away:
+        - When `reflect_on_tool_use` is False (default), the tool call results are returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
+        - When `reflect_on_tool_use` is True, the another model inference is made using the tool calls and results, and the text response is returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
+
+    Hand off behavior:
+
+    * If a handoff is triggered, a :class:`~autogen_agentchat.messages.HandoffMessage` will be returned in :attr:`~autogen_agentchat.base.Response.chat_message`.
+    * If there are tool calls, they will also be executed right away before returning the handoff.
+
 
     .. note::
         The assistant agent is not thread-safe or coroutine-safe.
