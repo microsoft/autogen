@@ -1,4 +1,4 @@
-autogen\_core.components.models
+autogen\_core.models
 ===============================
 
 
