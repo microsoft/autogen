@@ -495,7 +495,7 @@ class PlaywrightController:
     """
         )
 
-    async def get_webpage_text(self, page: Page, n_lines: int = 100) -> str:
+    async def get_webpage_text(self, page: Page, n_lines: int = 50) -> str:
         """
         Retrieve the text content of the web page.
 
