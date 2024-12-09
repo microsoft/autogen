@@ -42,12 +42,10 @@
     <PropertyGroup>
       <VenvDir>$(PythonVenvRoot)\$(PythonVirtualEnvironmentName)\</VenvDir>
       <CreateVenv Condition="!Exists('$(VenvDir)')">True</CreateVenv>
-    </PropertyGroup>
-
+    </PropertyGroup>  
     <Message Importance="Normal" Text="Initializing virtual environment for $(PythonVenvRoot)" />
 
     <Exec Command="uv sync --all-extras" WorkingDirectory="$(PythonVenvRoot)" Condition=" '$(CreateVenv)' == 'True' " />
-    <Exec Command="source .venv/bin/activate" WorkingDirectory="$(PythonVenvRoot)" Condition=" '$(CreateVenv)' == 'True' " />
   </Target>
 
 
