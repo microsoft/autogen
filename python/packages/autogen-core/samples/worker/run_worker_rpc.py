@@ -2,12 +2,15 @@ import asyncio
 import logging
 from dataclasses import dataclass
 
-from autogen_core.application import WorkerAgentRuntime
-from autogen_core.base import (
+from autogen_core import (
     AgentId,
+    DefaultSubscription,
+    DefaultTopicId,
     MessageContext,
+    RoutedAgent,
+    message_handler,
 )
-from autogen_core.components import DefaultSubscription, DefaultTopicId, RoutedAgent, message_handler
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
 
 
 @dataclass
@@ -50,7 +53,7 @@ class GreeterAgent(RoutedAgent):
 
 
 async def main() -> None:
-    runtime = WorkerAgentRuntime(host_address="localhost:50051")
+    runtime = GrpcWorkerAgentRuntime(host_address="localhost:50051")
     runtime.start()
 
     await ReceiveAgent.register(

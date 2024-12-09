@@ -49,11 +49,6 @@ A framework for building AI agents and multi-agent applications
 :shadow: none
 :margin: 2 0 0 0
 
-<div class="wip-card">
-
-{fas}`triangle-exclamation` Work in progress
-</div>
-
 <div class="sd-card-title sd-font-weight-bold docutils">
 
 {fas}`people-group;pst-color-primary`
@@ -61,10 +56,10 @@ AgentChat </div>
 High-level API that includes preset agents and teams for building multi-agent systems.
 
 ```sh
-pip install 'autogen-agentchat==0.4.0.dev8'
+pip install 'autogen-agentchat==0.4.0.dev9'
 ```
 
-💡 *Start here if you are looking for an API similar to AutoGen 0.2*
+💡 *Start here if you are looking for an API similar to AutoGen 0.2.*
 
 +++
 
@@ -82,7 +77,7 @@ Get Started
 Provides building blocks for creating asynchronous, event driven multi-agent systems.
 
 ```sh
-pip install 'autogen-core==0.4.0.dev8'
+pip install 'autogen-core==0.4.0.dev9'
 ```
 
 +++

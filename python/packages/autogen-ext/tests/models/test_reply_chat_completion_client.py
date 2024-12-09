@@ -3,9 +3,15 @@ from dataclasses import dataclass
 from typing import List
 
 import pytest
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, MessageContext
-from autogen_core.components import DefaultTopicId, RoutedAgent, default_subscription, message_handler
+from autogen_core import (
+    AgentId,
+    DefaultTopicId,
+    MessageContext,
+    RoutedAgent,
+    SingleThreadedAgentRuntime,
+    default_subscription,
+    message_handler,
+)
 from autogen_core.components.models import ChatCompletionClient, CreateResult, SystemMessage, UserMessage
 from autogen_ext.models import ReplayChatCompletionClient
 
@@ -34,7 +40,7 @@ class LLMAgent(RoutedAgent):
 
     @property
     def _fixed_message_history_type(self) -> List[SystemMessage]:
-        return [SystemMessage(msg.content) for msg in self._chat_history]
+        return [SystemMessage(content=msg.content) for msg in self._chat_history]
 
 
 @default_subscription

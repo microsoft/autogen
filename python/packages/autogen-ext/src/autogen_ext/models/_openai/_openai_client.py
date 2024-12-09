@@ -21,10 +21,10 @@ from typing import (
 )
 
 import tiktoken
-from autogen_core.application.logging import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
-from autogen_core.application.logging.events import LLMCallEvent
-from autogen_core.base import CancellationToken
-from autogen_core.components import (
+from autogen_core import (
+    EVENT_LOGGER_NAME,
+    TRACE_LOGGER_NAME,
+    CancellationToken,
     FunctionCall,
     Image,
 )
@@ -42,6 +42,7 @@ from autogen_core.components.models import (
     UserMessage,
 )
 from autogen_core.components.tools import Tool, ToolSchema
+from autogen_core.logging import LLMCallEvent
 from openai import AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
     ChatCompletion,
@@ -908,7 +909,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
 
         .. code-block:: bash
 
-            pip install 'autogen-ext[openai]==0.4.0.dev8'
+            pip install 'autogen-ext[openai]==0.4.0.dev9'
 
     The following code snippet shows how to use the client with an OpenAI model:
 
@@ -988,7 +989,7 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
 
         .. code-block:: bash
 
-            pip install 'autogen-ext[openai,azure]==0.4.0.dev8'
+            pip install 'autogen-ext[openai,azure]==0.4.0.dev9'
 
     To use the client, you need to provide your deployment id, Azure Cognitive Services endpoint,
     api version, and model capabilities.

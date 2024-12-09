@@ -5,13 +5,13 @@ import os
 
 import polars
 import pytest
-from autogen_core.base import CancellationToken
-from autogen_core.components.code_executor import (
+from autogen_core import CancellationToken
+from autogen_core.code_executor import (
     CodeBlock,
     FunctionWithRequirements,
     with_requirements,
 )
-from autogen_ext.code_executors import ACADynamicSessionsCodeExecutor
+from autogen_ext.code_executors.azure import ACADynamicSessionsCodeExecutor
 from azure.identity import DefaultAzureCredential
 
 ENVIRON_KEY_AZURE_POOL_ENDPOINT = "AZURE_POOL_ENDPOINT"

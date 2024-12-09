@@ -30,16 +30,18 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from typing import Any, Mapping, Optional
 
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, CancellationToken, MessageContext
-from autogen_core.base.intervention import DefaultInterventionHandler
-from autogen_core.components import (
+from autogen_core import (
+    AgentId,
+    CancellationToken,
     DefaultTopicId,
     FunctionCall,
+    MessageContext,
     RoutedAgent,
+    SingleThreadedAgentRuntime,
     message_handler,
     type_subscription,
 )
+from autogen_core.base.intervention import DefaultInterventionHandler
 from autogen_core.components.model_context import BufferedChatCompletionContext
 from autogen_core.components.models import (
     AssistantMessage,
@@ -158,12 +160,14 @@ class SchedulingAssistantAgent(RoutedAgent):
         self._name = name
         self._model_client = model_client
         self._system_messages = [
-            SystemMessage(f"""
+            SystemMessage(
+                content=f"""
 I am a helpful AI assistant that helps schedule meetings.
 If there are missing parameters, I will ask for them.
 
 Today's date is {datetime.datetime.now().strftime("%Y-%m-%d")}
-""")
+"""
+            )
         ]
 
     @message_handler

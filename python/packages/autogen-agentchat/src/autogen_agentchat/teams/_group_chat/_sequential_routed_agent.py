@@ -1,8 +1,7 @@
 import asyncio
 from typing import Any
 
-from autogen_core.base import MessageContext
-from autogen_core.components import RoutedAgent
+from autogen_core import MessageContext, RoutedAgent
 
 
 class FIFOLock:
@@ -36,16 +35,16 @@ class FIFOLock:
 
 
 class SequentialRoutedAgent(RoutedAgent):
-    """A subclass of :class:`autogen_core.components.RoutedAgent` that ensures
+    """A subclass of :class:`autogen_core.RoutedAgent` that ensures
     messages are handled sequentially in the order they arrive."""
 
     def __init__(self, description: str) -> None:
         super().__init__(description=description)
         self._fifo_lock = FIFOLock()
 
-    async def on_message(self, message: Any, ctx: MessageContext) -> Any | None:
+    async def on_message_impl(self, message: Any, ctx: MessageContext) -> Any | None:
         await self._fifo_lock.acquire()
         try:
-            return await super().on_message(message, ctx)
+            return await super().on_message_impl(message, ctx)
         finally:
             self._fifo_lock.release()

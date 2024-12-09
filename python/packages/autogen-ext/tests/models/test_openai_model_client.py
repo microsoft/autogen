@@ -3,8 +3,7 @@ from typing import Annotated, Any, AsyncGenerator, List, Tuple
 from unittest.mock import MagicMock
 
 import pytest
-from autogen_core.base import CancellationToken
-from autogen_core.components import Image
+from autogen_core import CancellationToken, Image
 from autogen_core.components.models import (
     AssistantMessage,
     CreateResult,
