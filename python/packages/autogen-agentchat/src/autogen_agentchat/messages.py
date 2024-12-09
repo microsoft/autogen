@@ -1,8 +1,9 @@
-from typing import List
+from typing import List, Literal
 
 from autogen_core import FunctionCall, Image
 from autogen_core.components.models import FunctionExecutionResult, RequestUsage
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field
+from typing_extensions import Annotated
 
 
 class BaseMessage(BaseModel):
@@ -23,6 +24,8 @@ class TextMessage(BaseMessage):
     content: str
     """The content of the message."""
 
+    type: Literal["TextMessage"] = "TextMessage"
+
 
 class MultiModalMessage(BaseMessage):
     """A multimodal message."""
@@ -30,12 +33,16 @@ class MultiModalMessage(BaseMessage):
     content: List[str | Image]
     """The content of the message."""
 
+    type: Literal["MultiModalMessage"] = "MultiModalMessage"
+
 
 class StopMessage(BaseMessage):
     """A message requesting stop of a conversation."""
 
     content: str
     """The content for the stop message."""
+
+    type: Literal["StopMessage"] = "StopMessage"
 
 
 class HandoffMessage(BaseMessage):
@@ -47,12 +54,16 @@ class HandoffMessage(BaseMessage):
     content: str
     """The handoff message to the target agent."""
 
+    type: Literal["HandoffMessage"] = "HandoffMessage"
+
 
 class ToolCallMessage(BaseMessage):
     """A message signaling the use of tools."""
 
     content: List[FunctionCall]
     """The tool calls."""
+
+    type: Literal["ToolCallMessage"] = "ToolCallMessage"
 
 
 class ToolCallResultMessage(BaseMessage):
@@ -61,12 +72,17 @@ class ToolCallResultMessage(BaseMessage):
     content: List[FunctionExecutionResult]
     """The tool call results."""
 
+    type: Literal["ToolCallResultMessage"] = "ToolCallResultMessage"
 
-ChatMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage
+
+ChatMessage = Annotated[TextMessage | MultiModalMessage | StopMessage | HandoffMessage, Field(discriminator="type")]
 """Messages for agent-to-agent communication."""
 
 
-AgentMessage = TextMessage | MultiModalMessage | StopMessage | HandoffMessage | ToolCallMessage | ToolCallResultMessage
+AgentMessage = Annotated[
+    TextMessage | MultiModalMessage | StopMessage | HandoffMessage | ToolCallMessage | ToolCallResultMessage,
+    Field(discriminator="type"),
+]
 """All message types."""
 
 

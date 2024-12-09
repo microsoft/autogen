@@ -92,7 +92,7 @@ def convert_messages_to_llm_messages(
                 converted_message_2 = convert_content_message_to_user_message(message, handle_unrepresentable)
                 if converted_message_2 is not None:
                     result.append(converted_message_2)
-            case FunctionExecutionResultMessage(_):
+            case FunctionExecutionResultMessage(content=_):
                 converted_message_3 = convert_tool_call_response_message(message, handle_unrepresentable)
                 if converted_message_3 is not None:
                     result.append(converted_message_3)
