@@ -4,7 +4,8 @@ from unittest.mock import MagicMock
 
 import pytest
 from autogen_core import CancellationToken, Image
-from autogen_core.components.models import (
+from autogen_core.components.tools import BaseTool, FunctionTool
+from autogen_core.models import (
     AssistantMessage,
     CreateResult,
     FunctionExecutionResult,
@@ -14,7 +15,6 @@ from autogen_core.components.models import (
     SystemMessage,
     UserMessage,
 )
-from autogen_core.components.tools import BaseTool, FunctionTool
 from autogen_ext.models import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 from autogen_ext.models._openai._model_info import resolve_model
 from autogen_ext.models._openai._openai_client import calculate_vision_tokens, convert_tools

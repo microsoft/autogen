@@ -1,6 +1,6 @@
 from typing import List, Mapping, Protocol
 
-from ..components.models import LLMMessage
+from ..models import LLMMessage
 
 
 class ChatCompletionContext(Protocol):
