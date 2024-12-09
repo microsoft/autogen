@@ -35,7 +35,6 @@ def print_repo_contents(repo, path="", indent=""):
     return documentation
 
 
-# TODO: pip install pygithub
 def get_autogen_documentation():
     repo_name = "microsoft/autogen"
     directory_name = "python/packages/autogen-core/docs/src/user-guide/core-user-guide"

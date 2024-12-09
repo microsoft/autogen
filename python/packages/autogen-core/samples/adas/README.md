@@ -294,12 +294,14 @@ source .venv/bin/activate
 # Recommended to perform a demo, though not required if you do not plan on evaluating with DROP, and intend to run with your own dataset / benchmark.
 git clone https://github.com/ShengranHu/ADAS.git && cd ..
 
-# Install package at latest dev tag
-pip install 'autogen-core==0.4.0.dev7'
-
 # Clone the AutoGen package, and switch to branch with the adas script.
 git clone -b yeandy_adas https://github.com/yeandy/autogen.git
 cd autogen/python
+
+# Install autogen-core and autogen-ext in editable mode
+pip install -e packages/autogen-core
+pip install -e packages/autogen-ext
+pip install -r packages/autogen-core/samples/adas/requirements.txt
 ```
 
 ### Agent System code definitions
