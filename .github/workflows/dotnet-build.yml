@@ -87,12 +87,18 @@ jobs:
     - name: Prepare python venv
       run: |
         source ${{ github.workspace }}/python/.venv/bin/activate
-    - name: Setup .NET
+    - name: Setup .NET 9.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+    - name: Install .NET Aspire workload
+      run: dotnet workload install aspire
+    - name: Install dev certs
+      run: sudo dotnet dev-certs https --trust
+    - name: Switch back to .NET 8.0
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
-    - name: Install .NET Aspire workload
-      run: dotnet workload install aspire
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
@@ -106,8 +112,6 @@ jobs:
       run: |
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
-    - name: install dev certs
-      run: sudo dotnet dev-certs https --trust
     - name: Unit Test
       run: dotnet test --no-build -bl --configuration Release
   aot-test: # this make sure the AutoGen.Core is aot compatible
@@ -174,6 +178,13 @@ jobs:
     - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
+        dotnet-version: '9.0.x'
+    - name: Install dev certs
+      run: sudo dotnet dev-certs https --trust
+    - name: Switch back to .NET 8.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
         global-json-file: dotnet/global.json
     - name: Restore dependencies
       run: |
@@ -182,8 +193,6 @@ jobs:
       run: |
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
-    - name: install dev certs
-      run: sudo dotnet dev-certs https --trust
     - name: OpenAI Test
       run: dotnet test --no-build -bl --configuration Release
       env:
