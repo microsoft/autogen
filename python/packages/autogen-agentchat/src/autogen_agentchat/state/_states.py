@@ -1,6 +1,6 @@
 from typing import Any, List, Mapping, Optional
 
-from autogen_core.components.models import (
+from autogen_core.models import (
     LLMMessage,
 )
 from pydantic import BaseModel, Field

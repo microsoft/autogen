@@ -2,8 +2,8 @@ import logging
 from typing import Any, Callable, List, Mapping
 
 from autogen_core import AgentId, AgentProxy, MessageContext, RoutedAgent, message_handler
-from autogen_core.components.model_context import ChatCompletionContext
-from autogen_core.components.models import ChatCompletionClient, UserMessage
+from autogen_core.model_context import ChatCompletionContext
+from autogen_core.models import ChatCompletionClient, UserMessage
 
 from ..types import (
     MultiModalMessage,

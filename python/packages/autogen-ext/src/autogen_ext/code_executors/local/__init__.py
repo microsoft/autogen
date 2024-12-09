@@ -71,7 +71,8 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
             import asyncio
 
             from autogen_core import CancellationToken
-            from autogen_core.components.code_executor import CodeBlock, LocalCommandLineCodeExecutor
+            from autogen_core.code_executor import CodeBlock
+            from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 
 
             async def example():
