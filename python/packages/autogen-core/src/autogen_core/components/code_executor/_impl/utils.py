@@ -46,24 +46,6 @@ def silence_pip(code: str, lang: str) -> str:
     return "\n".join(lines)
 
 
-def get_required_packages(code: str, lang: str) -> set[str]:
-    ret: set[str] = set()
-    if lang == "python":
-        regex = r"^! ?pip install(.*)$"
-    else:
-        return ret
-
-    # Find lines that start with pip install and make sure "-qqq" flag is added.
-    lines = code.split("\n")
-    for _, line in enumerate(lines):
-        # use regex to find lines that start with pip install.
-        match = re.search(regex, line)
-        if match is not None:
-            reqs = match.group(1).split(",")
-            ret = {req.strip(" ") for req in reqs}
-    return ret
-
-
 PYTHON_VARIANTS = ["python", "Python", "py"]
 
 

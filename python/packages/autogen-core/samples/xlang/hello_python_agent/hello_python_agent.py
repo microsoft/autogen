@@ -12,7 +12,7 @@ from autogen_core import (
     TypeSubscription,
     try_get_known_serializers_for_type,
 )
-from autogen_core.application import WorkerAgentRuntime
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
 
 # Add the local package directory to sys.path
 thisdir = os.path.dirname(os.path.abspath(__file__))
@@ -34,7 +34,7 @@ async def main() -> None:
         agentHost = agentHost[8:]
     agnext_logger.info("0")
     agnext_logger.info(agentHost)
-    runtime = WorkerAgentRuntime(host_address=agentHost, payload_serialization_format=PROTOBUF_DATA_CONTENT_TYPE)
+    runtime = GrpcWorkerAgentRuntime(host_address=agentHost, payload_serialization_format=PROTOBUF_DATA_CONTENT_TYPE)
 
     agnext_logger.info("1")
     runtime.start()

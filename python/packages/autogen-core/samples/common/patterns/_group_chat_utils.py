@@ -36,7 +36,7 @@ Read the following conversation. Then select the next role from {participants} t
 
 Read the above conversation. Then select the next role from {participants} to play. Only return the role.
 """
-    select_speaker_messages = [SystemMessage(select_speaker_prompt)]
+    select_speaker_messages = [SystemMessage(content=select_speaker_prompt)]
     response = await client.create(messages=select_speaker_messages)
     assert isinstance(response.content, str)
     mentions = await mentioned_agents(response.content, agents)
