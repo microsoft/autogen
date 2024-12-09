@@ -112,7 +112,7 @@ jobs:
       fail-fast: true 
       matrix:
         os: [ ubuntu-latest]
-        version: [ net9.0 ]
+        version: [ net8.0 ]
     needs: build
     defaults:
       run:
