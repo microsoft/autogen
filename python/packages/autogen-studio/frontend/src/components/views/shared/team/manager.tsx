@@ -13,15 +13,19 @@ export const TeamManager: React.FC = () => {
   const [teams, setTeams] = useState<Team[]>([]);
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
-    const stored = localStorage.getItem("teamSidebar");
-    return stored !== null ? JSON.parse(stored) : true;
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("teamSidebar");
+      return stored !== null ? JSON.parse(stored) : true;
+    }
   });
 
   const { user } = useContext(appContext);
 
   // Persist sidebar state
   useEffect(() => {
-    localStorage.setItem("teamSidebar", JSON.stringify(isSidebarOpen));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("teamSidebar", JSON.stringify(isSidebarOpen));
+    }
   }, [isSidebarOpen]);
 
   const fetchTeams = useCallback(async () => {
@@ -106,26 +110,6 @@ export const TeamManager: React.FC = () => {
     setCurrentTeam(newTeam);
   };
 
-  // const handleSaveTeam = async (teamData: Partial<Team>) => {
-  //   if (!user?.email) return;
-
-  //   try {
-  //     const savedTeam = await teamAPI.createTeam(teamData, user.email);
-
-  //     if (teamData.id) {
-  //       setTeams(teams.map((t) => (t.id === savedTeam.id ? savedTeam : t)));
-  //       if (currentTeam?.id === savedTeam.id) {
-  //         setCurrentTeam(savedTeam);
-  //       }
-  //     } else {
-  //       setTeams([savedTeam, ...teams]);
-  //       setCurrentTeam(savedTeam);
-  //       window.history.pushState({}, "", `?teamId=${savedTeam.id}`);
-  //     }
-  //   } catch (error) {
-  //     throw error;
-  //   }
-  // };
   const handleSaveTeam = async (teamData: Partial<Team>) => {
     if (!user?.email) return;
 

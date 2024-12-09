@@ -13,15 +13,20 @@ export const SessionManager: React.FC = () => {
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | undefined>();
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
-    const stored = localStorage.getItem("sessionSidebar");
-    return stored !== null ? JSON.parse(stored) : true;
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("sessionSidebar");
+      return stored !== null ? JSON.parse(stored) : true;
+    }
+    return true; // Default value during SSR
   });
 
   const { user } = useContext(appContext);
   const { session, setSession, sessions, setSessions } = useConfigStore();
 
   useEffect(() => {
-    localStorage.setItem("sessionSidebar", JSON.stringify(isSidebarOpen));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sessionSidebar", JSON.stringify(isSidebarOpen));
+    }
   }, [isSidebarOpen]);
 
   const fetchSessions = useCallback(async () => {
@@ -58,7 +63,7 @@ export const SessionManager: React.FC = () => {
         }
       } else {
         const created = await sessionAPI.createSession(sessionData, user.email);
-        setSessions([...sessions, created]);
+        setSessions([created, ...sessions]);
         setSession(created);
       }
       setIsEditorOpen(false);
