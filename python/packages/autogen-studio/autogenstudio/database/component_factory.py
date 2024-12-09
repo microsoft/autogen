@@ -8,9 +8,11 @@ import aiofiles
 import yaml
 from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
 from autogen_agentchat.conditions import MaxMessageTermination, StopMessageTermination, TextMentionTermination
-from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
+from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat, MagenticOneGroupChat
 from autogen_core.components.tools import FunctionTool
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
+from autogen_ext.agents.file_surfer import FileSurfer
+from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
 from autogen_ext.models import OpenAIChatCompletionClient
 
 from ..datamodel.types import (
@@ -32,8 +34,8 @@ from ..utils.utils import Version
 
 logger = logging.getLogger(__name__)
 
-TeamComponent = Union[RoundRobinGroupChat, SelectorGroupChat]
-AgentComponent = Union[AssistantAgent, MultimodalWebSurfer]
+TeamComponent = Union[RoundRobinGroupChat, SelectorGroupChat, MagenticOneGroupChat]
+AgentComponent = Union[AssistantAgent, MultimodalWebSurfer, UserProxyAgent, FileSurfer, MagenticOneCoderAgent]
 ModelComponent = Union[OpenAIChatCompletionClient]
 ToolComponent = Union[FunctionTool]  # Will grow with more tool types
 TerminationComponent = Union[MaxMessageTermination, StopMessageTermination, TextMentionTermination]
@@ -243,6 +245,15 @@ class ComponentFactory:
                     termination_condition=termination,
                     selector_prompt=selector_prompt,
                 )
+            elif config.team_type == TeamTypes.MAGENTIC_ONE:
+                if not model_client:
+                    raise ValueError("MagenticOneGroupChat requires a model_client")
+                return MagenticOneGroupChat(
+                    participants=participants,
+                    model_client=model_client,
+                    termination_condition=termination if termination is not None else None,
+                    max_turns=config.max_turns if config.max_turns is not None else 20,
+                )
             else:
                 raise ValueError(f"Unsupported team type: {config.team_type}")
 
@@ -292,7 +303,16 @@ class ComponentFactory:
                     use_ocr=config.use_ocr if config.use_ocr is not None else False,
                     animate_actions=config.animate_actions if config.animate_actions is not None else False,
                 )
-
+            elif config.agent_type == AgentTypes.FILE_SURFER:
+                return FileSurfer(
+                    name=config.name,
+                    model_client=model_client,
+                )
+            elif config.agent_type == AgentTypes.MAGENTIC_ONE_CODER:
+                return MagenticOneCoderAgent(
+                    name=config.name,
+                    model_client=model_client,
+                )
             else:
                 raise ValueError(f"Unsupported agent type: {config.agent_type}")
 

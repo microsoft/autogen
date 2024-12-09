@@ -12,7 +12,17 @@ from autogen_core.components.models import (
 
 from .... import TRACE_LOGGER_NAME
 from ....base import Response, TerminationCondition
-from ....messages import AgentMessage, ChatMessage, MultiModalMessage, StopMessage, TextMessage
+from ....messages import (
+    AgentMessage,
+    ChatMessage,
+    HandoffMessage,
+    MultiModalMessage,
+    StopMessage,
+    TextMessage,
+    ToolCallMessage,
+    ToolCallResultMessage,
+)
+
 from ....state import MagenticOneOrchestratorState
 from .._base_group_chat_manager import BaseGroupChatManager
 from .._events import (
@@ -418,7 +428,12 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         """Convert the message thread to a context for the model."""
         context: List[LLMMessage] = []
         for m in self._message_thread:
-            if m.source == self._name:
+            if isinstance(m, ToolCallMessage | ToolCallResultMessage):
+                # Ignore tool call messages.
+                continue
+            elif isinstance(m, StopMessage | HandoffMessage):
+                context.append(UserMessage(content=m.content, source=m.source))
+            elif m.source == self._name:
                 assert isinstance(m, TextMessage)
                 context.append(AssistantMessage(content=m.content, source=m.source))
             else:
