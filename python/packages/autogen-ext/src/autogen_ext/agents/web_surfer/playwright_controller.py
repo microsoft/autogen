@@ -21,7 +21,7 @@ class PlaywrightController:
     A helper class to allow Playwright to interact with web pages to perform actions such as clicking, filling, and scrolling.
 
     Args:
-        downloads_folder (str): The folder to save downloads.
+        downloads_folder (str | None): The folder to save downloads to. If None, downloads are not saved.
         animate_actions (bool): Whether to animate the actions (create fake cursor to click).
         viewport_width (int): The width of the viewport.
         viewport_height (int): The height of the viewport.
@@ -31,7 +31,7 @@ class PlaywrightController:
 
     def __init__(
         self,
-        downloads_folder: str,
+        downloads_folder: str | None = None,
         animate_actions: bool = False,
         viewport_width: int = 1440,
         viewport_height: int = 900,
@@ -42,7 +42,6 @@ class PlaywrightController:
         Initialize the PlaywrightController.
         """
         assert isinstance(animate_actions, bool)
-        assert isinstance(downloads_folder, str)
         assert isinstance(viewport_width, int)
         assert isinstance(viewport_height, int)
         assert viewport_height > 0
