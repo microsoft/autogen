@@ -98,14 +98,6 @@ jobs:
       run: dotnet workload install aspire
     - name: Install dev certs
       run:  dotnet --version && sudo dotnet dev-certs https --trust
-    - name: put back the global.json
-      run: |
-        rm global.json && git checkout global.json
-    - name: Switch back to .NET 8.0
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
-        global-json-file: dotnet/global.json
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
