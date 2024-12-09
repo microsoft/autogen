@@ -133,6 +133,13 @@ jobs:
       run: dotnet workload install aspire
     - name: Install dev certs
       run:  dotnet --version && sudo dotnet dev-certs https --trust
+    - name: Restore dependencies
+      run: |
+        dotnet restore -bl
+    - name: Build
+      run: |
+        echo "Build AutoGen"
+        dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: Integration Test
       run: dotnet --version && dotnet test --no-build -bl --configuration Release --filter type=integration
     - name: Restore the global.json
