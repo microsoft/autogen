@@ -74,9 +74,9 @@ class KnowledgeArchive:
         assert (task_str is not None) or (topics is not None), "Either the task string or the topics list must be provided."
         assert topics is not None, "For now, the topics list is always required, because it won't be generated."
 
-        # Maintain a dict of insight-relevance pairs.
+        # Build a dict of insight-relevance pairs.
         insight_relevance_dict = {}
-        relevance_conversion_threshold = 1.7
+        relevance_conversion_threshold = 1.7  # The approximate borderline between relevant and irrelevant topic matches.
 
         # Process the matching topics.
         matches = []  # Each match is a tuple: (topic, insight, distance)
@@ -90,5 +90,10 @@ class KnowledgeArchive:
                 insight_relevance_dict[insight_str] += relevance
             else:
                 insight_relevance_dict[insight_str] = relevance
+
+        # Filter out insights with overall relevance below zero.
+        for insight in list(insight_relevance_dict.keys()):
+            if insight_relevance_dict[insight] < 0:
+                del insight_relevance_dict[insight]
 
         return insight_relevance_dict

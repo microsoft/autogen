@@ -1,5 +1,7 @@
 import asyncio
 from autogen_ext.models import OpenAIChatCompletionClient
+from autogen_ext.models import AzureOpenAIChatCompletionClient
+from azure.identity import DefaultAzureCredential, ChainedTokenCredential, AzureCliCredential, get_bearer_token_provider
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import MagenticOneGroupChat
 from autogen_ext.agents import MultimodalWebSurfer
@@ -18,9 +20,6 @@ from typing import (
     Tuple,
 )
 from autogen_ext.agentic_memory import AgenticMemory, PageLog
-
-
-USE_AGENTIC_MEMORY = 1  # 1 = Assign task to AgenticMemory instead of directly to the completion agent
 
 PATH_TO_ARCHIVE_DIR = "~/agentic_memory_archive"
 
@@ -56,7 +55,7 @@ The final line of your response must contain nothing but the answer as a number.
     return tasks_with_answers
 
 
-def create_client():
+def create_oai_client():
     # Create an OpenAI client
     model_name = "gpt-4o-2024-05-13"
     temp = 0.1
@@ -72,6 +71,65 @@ def create_client():
         max_retries=65535,
     )
     return client
+
+
+def create_aoai_client():
+    # Create the token provider
+    token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
+
+    # Create an OpenAI client
+    azure_deployment = "gpt-4o-2024-08-06-eval"
+    model = "gpt-4o-2024-08-06"
+    azure_endpoint = "https://agentic2.openai.azure.com/"
+    client = AzureOpenAIChatCompletionClient(
+        azure_endpoint=azure_endpoint,
+        azure_ad_token_provider=token_provider,
+        azure_deployment=azure_deployment,
+        api_version="2024-06-01",
+        model=model,
+    )
+    return client
+
+
+def create_trapi_client():
+    # Create the token provider
+    token_provider = get_bearer_token_provider(ChainedTokenCredential(
+        AzureCliCredential(),
+        DefaultAzureCredential(
+            exclude_cli_credential=True,
+            # Exclude other credentials we are not interested in.
+            exclude_environment_credential=True,
+            exclude_shared_token_cache_credential=True,
+            exclude_developer_cli_credential=True,
+            exclude_powershell_credential=True,
+            exclude_interactive_browser_credential=True,
+            exclude_visual_studio_code_credentials=True,
+            # managed_identity_client_id=os.environ.get("DEFAULT_IDENTITY_CLIENT_ID"),  # See the TRAPI docs
+        )
+    ), "api://trapi/.default")
+
+    model = "gpt-4o-2024-08-06"  # This is (for instance) the OpenAI model name, which is used to look up capabilities.
+    azure_deployment = 'gpt-4o_2024-08-06'  # This is DeploymentName in the table at https://aka.ms/trapi/models
+    trapi_suffix = 'msraif/shared'  # This is TRAPISuffix (without /openai) in the table at https://aka.ms/trapi/models
+    endpoint = f'https://trapi.research.microsoft.com/{trapi_suffix}'
+    api_version = '2024-10-21'  # From https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation#latest-ga-api-release
+
+    client = AzureOpenAIChatCompletionClient(
+        azure_ad_token_provider=token_provider,
+        model=model,
+        azure_deployment=azure_deployment,
+        azure_endpoint=endpoint,
+        api_version=api_version,
+    )
+
+    return client
+
+
+def create_client():
+    # Choose one.
+    return create_oai_client()
+    # return create_aoai_client()
+    # return create_trapi_client()
 
 
 async def assign_task_to_magentic_one(task, model_client, page_log) -> Tuple[str, str]:
@@ -167,14 +225,33 @@ async def train(task_with_answer, max_train_trials, max_test_trials, task_assign
         max_test_trials=max_test_trials)
 
 
-async def test(task_with_answer, num_trials, task_assignment_callback, reset_memory,
+async def test(task_with_answer, num_trials, task_assignment_callback, use_memory, reset_memory,
                client, page_log) -> Tuple[str, int, int]:
-    memory = AgenticMemory(reset=reset_memory, client=client, page_log=page_log, path_to_archive_dir=PATH_TO_ARCHIVE_DIR)
-    response, num_successes, num_trials = await memory.test_on_task(
-        task=task_with_answer["task"],
-        expected_answer=task_with_answer["expected_answer"],
-        task_assignment_callback=task_assignment_callback,
-        num_trials=num_trials)
+    if use_memory:
+        memory = AgenticMemory(reset=reset_memory, client=client, page_log=page_log, path_to_archive_dir=PATH_TO_ARCHIVE_DIR)
+        response, num_successes, num_trials = await memory.test_on_task(
+            task=task_with_answer["task"],
+            expected_answer=task_with_answer["expected_answer"],
+            task_assignment_callback=task_assignment_callback,
+            num_trials=num_trials)
+    else:
+        page = page_log.begin_page(
+            summary="test without memory",
+            details="",
+            method_call="test without memory")
+        response = None
+        num_successes = 0
+        for trial in range(num_trials):
+            page.add_lines("-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
+            page.add_lines("Try to solve the task.\n", flush=True)
+            response, _ = await task_assignment_callback(task_with_answer["task"], client, page_log)
+            response_is_correct = (response.lower() == task_with_answer["expected_answer"].lower())
+            if response_is_correct:
+                num_successes += 1
+            page.add_lines("Response:  {}\n".format(response), flush=True)
+        page.add_lines("\nSuccess rate:  {}%\n".format(round((num_successes / num_trials) * 100)), flush=True)
+        page_log.finish_page(page)
+
     return response, num_successes, num_trials
 
 
@@ -182,7 +259,7 @@ async def train_and_test(task_index, max_train_trials, max_test_trials, task_ass
     tasklist = define_tasks_with_answers()
     task_with_answer = tasklist[task_index]
 
-    num_loops = 10
+    num_loops = 1  # Normally 10
     total_num_successes = 0
     total_num_trials = 0
     for i in range(num_loops):
@@ -198,6 +275,7 @@ async def train_and_test(task_index, max_train_trials, max_test_trials, task_ass
             task_with_answer=task_with_answer,
             num_trials=max_test_trials,
             task_assignment_callback=task_assignment_callback,
+            use_memory=True,
             reset_memory=False,
             client=create_client(),
             page_log=page_log)
@@ -212,7 +290,20 @@ async def test_on_task_with_memory(task_index, task_assignment_callback, page_lo
         task_with_answer=define_tasks_with_answers()[task_index],
         num_trials=num_trials,
         task_assignment_callback=task_assignment_callback,
+        use_memory=True,
         reset_memory=reset_memory,
+        client=create_client(),
+        page_log=page_log)
+    print("SUCCESS RATE:  {}%\n".format(round((num_successes / num_trials) * 100)))
+
+
+async def test_on_task(task_index, task_assignment_callback, page_log, num_trials):
+    last_response, num_successes, num_trials = await test(
+        task_with_answer=define_tasks_with_answers()[task_index],
+        num_trials=num_trials,
+        task_assignment_callback=task_assignment_callback,
+        use_memory=False,
+        reset_memory=False,
         client=create_client(),
         page_log=page_log)
     print("SUCCESS RATE:  {}%\n".format(round((num_successes / num_trials) * 100)))
@@ -220,20 +311,33 @@ async def test_on_task_with_memory(task_index, task_assignment_callback, page_lo
 
 async def main() -> None:
     # Create the PageLog. (This is optional)
-    page_log = PageLog("~/pagelogs/", "code_sample")
+    page_log = PageLog("~/pagelogs/", "stress_test")
     page = page_log.begin_page(
         summary="main",
         details='',
         method_call="main")
 
-    task_index = 1
-    task_assignment_callback = assign_task_to_magentic_one  # assign_task_to_client or assign_task_to_magentic_one
+    # Choose the task from those listed at the top.
+    task_index = 0
 
+    # Choose the client, agent or team to assign the task to.
+    task_assignment_callback = assign_task_to_client  # assign_task_to_client or assign_task_to_magentic_one
+
+    # Test, without using memory.
+    await test_on_task(task_index, task_assignment_callback, page_log, 1)
+
+    # Test, using memory.
     # await test_on_task_with_memory(task_index, task_assignment_callback, page_log, num_trials=3, reset_memory=True)
 
-    num_successes, num_trials = await train_and_test(task_index, 10, 3, task_assignment_callback, page_log)
-    success_rate = round((num_successes / num_trials) * 100)
-    page.add_lines("\nOverall success rate:  {}%\n".format(success_rate), flush=True)
+    # Train and test, using memory.
+    # num_successes, num_trials = await train_and_test(
+    #     task_index,
+    #     1,  # Normally 10
+    #     1,  # Normally 3
+    #     task_assignment_callback,
+    #     page_log)
+    # success_rate = round((num_successes / num_trials) * 100)
+    # page.add_lines("\nOverall success rate:  {}%\n".format(success_rate), flush=True)
 
     page_log.flush(final=True)  # Finalize the page log
     page_log.finish_page(page)
