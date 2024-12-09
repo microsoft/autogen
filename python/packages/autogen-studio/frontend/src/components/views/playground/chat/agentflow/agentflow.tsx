@@ -15,6 +15,7 @@ import {
   ReactFlowProvider,
   NodeChange,
   applyNodeChanges,
+  MiniMap,
 } from "@xyflow/react";
 import Dagre from "@dagrejs/dagre";
 import "@xyflow/react/dist/style.css";
@@ -564,6 +565,7 @@ const AgentFlow: React.FC<AgentFlowProps> = ({ teamConfig, run }) => {
 
       <ReactFlow {...reactFlowProps}>
         {settings.showGrid && <Background />}
+        {settings.showMiniMap && <MiniMap />}
         <div className="absolute top-0 right-0 z-50">
           <AgentFlowToolbar {...toolbarProps} />
         </div>

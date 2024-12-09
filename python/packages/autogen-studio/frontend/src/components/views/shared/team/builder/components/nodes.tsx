@@ -14,11 +14,9 @@ import {
   Settings,
   Brain,
   Timer,
-  Workflow,
-  X,
   Trash2Icon,
 } from "lucide-react";
-import { NodeData, CustomNode, DragItem } from "../types";
+import { NodeData, CustomNode } from "../types";
 import {
   AgentConfig,
   TeamConfig,
@@ -105,19 +103,21 @@ const BaseNode: React.FC<BaseNodeProps> = ({
     <div
       ref={dragHandle}
       className={`
-        bg-white relative rounded-lg shadow-lg w-72 
+        bg-white text-primary relative rounded-lg shadow-lg w-72 
         ${selected ? "ring-2 ring-accent" : ""}
         ${className || ""} 
         transition-all duration-200
       `}
     >
       <div className="border-b p-3 bg-gray-50 rounded-t-lg">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Icon className="w-5 h-5 text-gray-600" />
-            <span className="font-medium text-gray-800">{data.label}</span>
+        <div className="flex items-center justify-between min-w-0">
+          <div className="flex items-center gap-2 min-w-0 flex-1">
+            <Icon className="flex-shrink-0 w-5 h-5 text-gray-600" />
+            <span className="font-medium text-gray-800 truncate">
+              {data.label}
+            </span>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-xs px-2 py-1 bg-gray-200 rounded text-gray-700">
               {data.type}
             </span>
@@ -128,7 +128,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
                   e.stopPropagation();
                   if (id) removeNode(id);
                 }}
-                className="p-1 hover:bg-red-100  rounded"
+                className="p-1 hover:bg-red-100 rounded"
               >
                 <Trash2Icon className="w-4 h-4 text-red-500" />
               </button>
@@ -211,14 +211,13 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
       }
     >
       <NodeSection title="Model">
-        {config.model_client && (
-          <Handle
-            type="target"
-            position={Position.Left}
-            id={`${props.id}-model-input-handle`}
-            className="my-left-handle"
-          />
-        )}
+        <Handle
+          type="target"
+          position={Position.Left}
+          id={`${props.id}-model-input-handle`}
+          className="my-left-handle"
+        />
+
         <div className="relative">
           {config.model_client && (
             <div className="text-sm">{config.model_client.model}</div>
@@ -239,7 +238,7 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
           </div>
         }
       >
-        {participantCount > 0 && (
+        {true && (
           <Handle
             type="source"
             position={Position.Right}
@@ -335,14 +334,12 @@ export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
       />
 
       <NodeSection title="Model">
-        {config.model_client && (
-          <Handle
-            type="target"
-            position={Position.Left}
-            id={`${props.id}-model-input-handle`}
-            className="my-left-handle"
-          />
-        )}
+        <Handle
+          type="target"
+          position={Position.Left}
+          id={`${props.id}-model-input-handle`}
+          className="my-left-handle"
+        />
 
         <div className="relative">
           {config.model_client && (
@@ -360,14 +357,14 @@ export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
       </NodeSection>
 
       <NodeSection title="Tools">
-        {toolCount > 0 && (
+        {
           <Handle
             type="target"
             position={Position.Left}
             id={`${props.id}-tool-input-handle`}
             className="my-left-handle"
           />
-        )}
+        }
         <div className="space-y-1">
           {config.tools && toolCount > 0 && (
             <div className="space-y-1">

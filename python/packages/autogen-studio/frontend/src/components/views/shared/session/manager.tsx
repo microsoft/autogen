@@ -1,24 +1,29 @@
 import React, { useCallback, useEffect, useState, useContext } from "react";
-import { Button, message, Collapse, Badge, CollapseProps } from "antd";
-import { Plus, ChevronDown } from "lucide-react";
+import { message } from "antd";
 import { useConfigStore } from "../../../../hooks/store";
 import { appContext } from "../../../../hooks/provider";
 import { sessionAPI } from "./api";
-import { SessionList } from "./list";
 import { SessionEditor } from "./editor";
 import type { Session } from "../../../types/datamodel";
+import ChatView from "../../playground/chat/chat";
+import { Sidebar } from "./sidebar";
 
 export const SessionManager: React.FC = () => {
-  // UI State
   const [isLoading, setIsLoading] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | undefined>();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    const stored = localStorage.getItem("sessionSidebar");
+    return stored !== null ? JSON.parse(stored) : true;
+  });
 
-  // Global context and store
   const { user } = useContext(appContext);
   const { session, setSession, sessions, setSessions } = useConfigStore();
 
-  // Fetch all sessions
+  useEffect(() => {
+    localStorage.setItem("sessionSidebar", JSON.stringify(isSidebarOpen));
+  }, [isSidebarOpen]);
+
   const fetchSessions = useCallback(async () => {
     if (!user?.email) return;
 
@@ -35,9 +40,8 @@ export const SessionManager: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.email, setSessions]);
+  }, [user?.email, setSessions, session, setSession]);
 
-  // Handle session operations
   const handleSaveSession = async (sessionData: Partial<Session>) => {
     if (!user?.email) return;
 
@@ -48,21 +52,20 @@ export const SessionManager: React.FC = () => {
           sessionData,
           user.email
         );
-        setSessions(
-          sessions.map((s) => (s.id && s.id === updated.id ? updated : s))
-        );
+        setSessions(sessions.map((s) => (s.id === updated.id ? updated : s)));
         if (session?.id === updated.id) {
           setSession(updated);
         }
       } else {
         const created = await sessionAPI.createSession(sessionData, user.email);
-        setSession(created);
         setSessions([...sessions, created]);
+        setSession(created);
       }
       setIsEditorOpen(false);
       setEditingSession(undefined);
     } catch (error) {
-      throw error;
+      message.error("Error saving session");
+      console.error(error);
     }
   };
 
@@ -70,13 +73,11 @@ export const SessionManager: React.FC = () => {
     if (!user?.email) return;
 
     try {
-      await sessionAPI.deleteSession(sessionId, user.email);
+      const response = await sessionAPI.deleteSession(sessionId, user.email);
+      console.log("response", response);
       setSessions(sessions.filter((s) => s.id !== sessionId));
-      if (sessions.length > 0) {
-        setSession(sessions[0]);
-      }
-      if (session?.id === sessionId) {
-        setSession(null);
+      if (session?.id === sessionId || sessions.length === 0) {
+        setSession(sessions[0] || null);
       }
       message.success("Session deleted");
     } catch (error) {
@@ -100,82 +101,47 @@ export const SessionManager: React.FC = () => {
     }
   };
 
-  // Load sessions on mount
   useEffect(() => {
     fetchSessions();
   }, [fetchSessions]);
 
-  // Custom header with session count
-  const CollapsibleHeader = () => (
-    <div className="flex items-center justify-between w-full">
-      <div className="flex items-center gap-3">
-        <span className="font-medium">Sessions</span>
-        <Badge
-          count={sessions.length}
-          showZero
-          className="site-badge-count-4"
-          style={{ backgroundColor: "#52525b" }}
-        />
-      </div>
-      {session && (
-        <span className="text-sm text-gray-500">Current: {session.name}</span>
-      )}
-    </div>
-  );
-
-  // Session management content
-  const SessionContent = () => (
-    <div className="flex gap-2 items-center">
-      {sessions && sessions.length > 0 && (
-        <SessionList
+  return (
+    <div className="relative flex h-full w-full">
+      <div
+        className={`absolute left-0 top-0 h-full transition-all duration-200 ease-in-out ${
+          isSidebarOpen ? "w-64" : "w-12"
+        }`}
+      >
+        <Sidebar
+          isOpen={isSidebarOpen}
           sessions={sessions}
           currentSession={session}
-          onSelect={handleSelectSession}
-          onEdit={(session) => {
+          onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+          onSelectSession={handleSelectSession}
+          onEditSession={(session) => {
             setEditingSession(session);
             setIsEditorOpen(true);
           }}
-          onDelete={handleDeleteSession}
-          isLoading={isLoading}
+          onDeleteSession={handleDeleteSession}
         />
-      )}
-      <div className="relative">
-        <Button
-          type="primary"
-          onClick={() => {
-            setEditingSession(undefined);
-            setIsEditorOpen(true);
-          }}
-          icon={<Plus className="w-4 h-4" />}
-        >
-          New Session{" "}
-          {/* {sessions.length === 0 && (
-            <span className="relative flex h-3 w-3 -mt-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-secondary opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-secondary"></span>
-            </span>
-          )} */}
-        </Button>
       </div>
-    </div>
-  );
 
-  const items: CollapseProps["items"] = [
-    {
-      key: "1",
-      label: <CollapsibleHeader />,
-      children: <SessionContent />,
-    },
-  ];
-
-  return (
-    <>
-      <div className="bg-secondary rounded p-2">
-        <div className="text-xs pb-2">
-          Sessions <span className="px-1 text-accent">{sessions.length} </span>
-        </div>
-        <SessionContent />
+      <div
+        className={`flex-1 transition-all duration-200 ${
+          isSidebarOpen ? "ml-64" : "ml-12"
+        }`}
+      >
+        {session && sessions.length > 0 ? (
+          <div className="pl-4">
+            {session && <ChatView session={session} />}
+          </div>
+        ) : (
+          <div className="flex items-center justify-center h-full text-secondary">
+            No session selected. Create or select a session from the sidebar.
+          </div>
+        )}
       </div>
+
       <SessionEditor
         session={editingSession}
         isOpen={isEditorOpen}
@@ -185,6 +151,6 @@ export const SessionManager: React.FC = () => {
           setEditingSession(undefined);
         }}
       />
-    </>
+    </div>
   );
 };

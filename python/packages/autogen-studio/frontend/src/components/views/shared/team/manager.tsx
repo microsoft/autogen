@@ -1,25 +1,29 @@
 import React, { useCallback, useEffect, useState, useContext } from "react";
-import { Button, message, Badge } from "antd";
-import { Plus } from "lucide-react";
+import { Button, message } from "antd";
+import { ChevronRight } from "lucide-react";
 import { appContext } from "../../../../hooks/provider";
 import { teamAPI } from "./api";
-import { TeamList } from "./list";
-import { TeamEditor } from "./editor";
+import { TeamSidebar } from "./sidebar";
 import type { Team } from "../../../types/datamodel";
-import { TeamBuilder } from "./builder.tsx/builder";
+import { defaultTeam } from "./types";
+import { TeamBuilder } from "./builder/builder";
 
 export const TeamManager: React.FC = () => {
-  // UI State
   const [isLoading, setIsLoading] = useState(false);
-  const [isEditorOpen, setIsEditorOpen] = useState(false);
-  const [editingTeam, setEditingTeam] = useState<Team | undefined>();
   const [teams, setTeams] = useState<Team[]>([]);
   const [currentTeam, setCurrentTeam] = useState<Team | null>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+    const stored = localStorage.getItem("teamSidebar");
+    return stored !== null ? JSON.parse(stored) : true;
+  });
 
-  // Global context
   const { user } = useContext(appContext);
 
-  // Fetch all teams
+  // Persist sidebar state
+  useEffect(() => {
+    localStorage.setItem("teamSidebar", JSON.stringify(isSidebarOpen));
+  }, [isSidebarOpen]);
+
   const fetchTeams = useCallback(async () => {
     if (!user?.email) return;
 
@@ -32,34 +36,51 @@ export const TeamManager: React.FC = () => {
       }
     } catch (error) {
       console.error("Error fetching teams:", error);
-      message.error("Error loading teams");
     } finally {
       setIsLoading(false);
     }
-  }, [user?.email, currentTeam]);
+  }, [user?.email]);
 
-  // Handle team operations
-  const handleSaveTeam = async (teamData: Partial<Team>) => {
-    if (!user?.email) return;
+  useEffect(() => {
+    fetchTeams();
+  }, [fetchTeams]);
+
+  // Handle URL params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const teamId = params.get("teamId");
+
+    if (teamId && !currentTeam) {
+      handleSelectTeam({ id: parseInt(teamId) } as Team);
+    }
+  }, []);
+
+  useEffect(() => {
+    const handleLocationChange = () => {
+      const params = new URLSearchParams(window.location.search);
+      const teamId = params.get("teamId");
+
+      if (!teamId && currentTeam) {
+        setCurrentTeam(null);
+      }
+    };
+
+    window.addEventListener("popstate", handleLocationChange);
+    return () => window.removeEventListener("popstate", handleLocationChange);
+  }, [currentTeam]);
+
+  const handleSelectTeam = async (selectedTeam: Team) => {
+    if (!user?.email || !selectedTeam.id) return;
 
     try {
-      console.log("teamData", teamData);
-      const savedTeam = await teamAPI.createTeam(teamData, user.email);
-
-      // Update teams list
-      if (teamData.id) {
-        setTeams(teams.map((t) => (t.id === savedTeam.id ? savedTeam : t)));
-        if (currentTeam?.id === savedTeam.id) {
-          setCurrentTeam(savedTeam);
-        }
-      } else {
-        setTeams([...teams, savedTeam]);
-      }
-
-      setIsEditorOpen(false);
-      setEditingTeam(undefined);
+      setIsLoading(true);
+      const data = await teamAPI.getTeam(selectedTeam.id, user.email);
+      setCurrentTeam(data);
+      window.history.pushState({}, "", `?teamId=${selectedTeam.id}`);
     } catch (error) {
-      throw error;
+      console.error("Error loading team:", error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -79,82 +100,114 @@ export const TeamManager: React.FC = () => {
     }
   };
 
-  const handleSelectTeam = async (selectedTeam: Team) => {
-    if (!user?.email || !selectedTeam.id) return;
+  const handleCreateTeam = () => {
+    const newTeam = Object.assign({}, defaultTeam);
+    newTeam.config.name = "new_team_" + new Date().getTime();
+    setCurrentTeam(newTeam);
+  };
+
+  // const handleSaveTeam = async (teamData: Partial<Team>) => {
+  //   if (!user?.email) return;
+
+  //   try {
+  //     const savedTeam = await teamAPI.createTeam(teamData, user.email);
+
+  //     if (teamData.id) {
+  //       setTeams(teams.map((t) => (t.id === savedTeam.id ? savedTeam : t)));
+  //       if (currentTeam?.id === savedTeam.id) {
+  //         setCurrentTeam(savedTeam);
+  //       }
+  //     } else {
+  //       setTeams([savedTeam, ...teams]);
+  //       setCurrentTeam(savedTeam);
+  //       window.history.pushState({}, "", `?teamId=${savedTeam.id}`);
+  //     }
+  //   } catch (error) {
+  //     throw error;
+  //   }
+  // };
+  const handleSaveTeam = async (teamData: Partial<Team>) => {
+    if (!user?.email) return;
 
     try {
-      setIsLoading(true);
-      const data = await teamAPI.getTeam(selectedTeam.id, user.email);
-      setCurrentTeam(data);
+      console.log("teamData", teamData);
+      const savedTeam = await teamAPI.createTeam(teamData, user.email);
+
+      message.success(
+        `Team ${teamData.id ? "updated" : "created"} successfully`
+      );
+
+      // Update teams list
+      if (teamData.id) {
+        setTeams(teams.map((t) => (t.id === savedTeam.id ? savedTeam : t)));
+        if (currentTeam?.id === savedTeam.id) {
+          setCurrentTeam(savedTeam);
+        }
+      } else {
+        setTeams([savedTeam, ...teams]);
+        setCurrentTeam(savedTeam);
+      }
     } catch (error) {
-      console.error("Error loading team:", error);
-      message.error("Error loading team");
-    } finally {
-      setIsLoading(false);
+      throw error;
     }
   };
 
-  // Load teams on mount
-  useEffect(() => {
-    fetchTeams();
-  }, [fetchTeams]);
-
-  // Content component
-  const TeamContent = () => (
-    <div className="flex gap-2 items-center">
-      {teams && teams.length > 0 && (
-        <div className="flex items-center gap-3">
-          <TeamList
-            teams={teams}
-            currentTeam={currentTeam}
-            onSelect={handleSelectTeam}
-            onEdit={(team) => {
-              setEditingTeam(team);
-              setIsEditorOpen(true);
-            }}
-            onDelete={handleDeleteTeam}
-            isLoading={isLoading}
-          />
-        </div>
-      )}
-      <Button
-        type="primary"
-        onClick={() => {
-          setEditingTeam(undefined);
-          setIsEditorOpen(true);
-        }}
-        icon={<Plus className="w-4 h-4" />}
-      >
-        New Team
-      </Button>
-    </div>
-  );
-
   return (
-    <div className=" h-full flex flex-col">
-      <div className="bg-secondary rounded p-2">
-        <div className="text-xs pb-2">
-          Teams <span className="px-1 text-accent">{teams.length} </span>
-        </div>
-        <TeamContent />
-      </div>
-      <TeamEditor
-        team={editingTeam}
-        isOpen={isEditorOpen}
-        onSave={handleSaveTeam}
-        onCancel={() => {
-          setIsEditorOpen(false);
-          setEditingTeam(undefined);
-        }}
-      />
-      {currentTeam && (
-        <TeamBuilder
-          team={currentTeam}
-          onChange={(updatedTeam) => {
-            console.log("Team updated", updatedTeam);
-          }}
+    <div className="relative flex h-full w-full">
+      {/* Sidebar */}
+      <div
+        className={`absolute left-0 top-0 h-full transition-all duration-200 ease-in-out ${
+          isSidebarOpen ? "w-64" : "w-12"
+        }`}
+      >
+        <TeamSidebar
+          isOpen={isSidebarOpen}
+          teams={teams}
+          currentTeam={currentTeam}
+          onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
+          onSelectTeam={handleSelectTeam}
+          onCreateTeam={handleCreateTeam}
+          onEditTeam={setCurrentTeam}
+          onDeleteTeam={handleDeleteTeam}
+          isLoading={isLoading}
         />
-      )}
+      </div>
+
+      {/* Main Content */}
+      <div
+        className={`flex-1 transition-all duration-200 ${
+          isSidebarOpen ? "ml-64" : "ml-12"
+        }`}
+      >
+        <div className="p-4 pt-2">
+          {/* Breadcrumb */}
+          <div className="flex items-center gap-2 mb-4 text-sm">
+            <span className="text-primary font-medium"> Teams</span>
+            {currentTeam && (
+              <>
+                <ChevronRight className="w-4 h-4 text-secondary" />
+                <span className="text-secondary">
+                  {currentTeam.config.name}
+                  {currentTeam.id ? (
+                    ""
+                  ) : (
+                    <span className="text-xs text-orange-500"> (New)</span>
+                  )}
+                </span>
+              </>
+            )}
+          </div>
+
+          {/* Content Area */}
+          {currentTeam ? (
+            <TeamBuilder team={currentTeam} onChange={handleSaveTeam} />
+          ) : (
+            <div className="flex items-center justify-center h-[calc(100vh-120px)] text-secondary">
+              Select a team from the sidebar or create a new one
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 };

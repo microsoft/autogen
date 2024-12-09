@@ -16,7 +16,6 @@ export interface NodeData extends Record<string, unknown> {
   label: string;
   type: ComponentTypes;
   config: ComponentConfigTypes;
-  connections: NodeConnections;
 }
 
 // Define our node type that extends the XYFlow Node type
@@ -41,37 +40,6 @@ export interface Position {
 export interface GraphState {
   nodes: CustomNode[];
   edges: CustomEdge[];
-}
-
-export interface TeamBuilderState {
-  nodes: CustomNode[];
-  edges: CustomEdge[];
-  selectedNodeId: string | null;
-  history: Array<{ nodes: CustomNode[]; edges: CustomEdge[] }>;
-  currentHistoryIndex: number;
-  originalConfig: TeamConfig | null;
-  addNode: (
-    type: ComponentTypes,
-    position: Position,
-    config: ComponentConfigTypes,
-    targetNodeId?: string
-  ) => void;
-
-  updateNode: (nodeId: string, updates: Partial<NodeData>) => void;
-  removeNode: (nodeId: string) => void;
-
-  addEdge: (edge: CustomEdge) => void;
-  removeEdge: (edgeId: string) => void;
-
-  setSelectedNode: (nodeId: string | null) => void;
-
-  undo: () => void;
-  redo: () => void;
-
-  // Sync with JSON
-  syncToJson: () => TeamConfig | null;
-  loadFromJson: (config: TeamConfig) => GraphState;
-  layoutNodes: () => void;
 }
 
 export interface FormFieldMapping {

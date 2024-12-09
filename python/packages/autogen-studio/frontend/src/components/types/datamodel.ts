@@ -91,6 +91,10 @@ export interface Session extends DBModel {
   team_id?: number;
 }
 
+export interface SessionRuns {
+  runs: Run[];
+}
+
 export interface BaseConfig {
   component_type: string;
   version?: string;
@@ -197,6 +201,7 @@ export interface TeamResult {
 export interface Run {
   id: string;
   created_at: string;
+  updated_at?: string;
   status: RunStatus;
   task: AgentMessageConfig;
   team_result: TeamResult | null;

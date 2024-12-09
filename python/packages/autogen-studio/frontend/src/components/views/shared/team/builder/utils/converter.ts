@@ -89,7 +89,14 @@ export const convertTeamConfigToGraph = (
   const edges: CustomEdge[] = [];
 
   // Create team node
-  const teamNode = createNode("team", { x: 400, y: 50 }, config);
+  const teamNode = createNode(
+    "team",
+    { x: 400, y: 50 },
+    {
+      ...config,
+      // participants: [], // Clear participants as we'll rebuild from edges
+    }
+  );
   nodes.push(teamNode);
 
   // Add model client if present
@@ -101,7 +108,14 @@ export const convertTeamConfigToGraph = (
       config.model_client.model
     );
     nodes.push(modelNode);
-    edges.push(createEdge(modelNode.id, teamNode.id, "model-connection"));
+    edges.push({
+      id: nanoid(),
+      source: modelNode.id,
+      target: teamNode.id,
+      sourceHandle: `${modelNode.id}-model-output-handle`,
+      targetHandle: `${teamNode.id}-model-input-handle`,
+      type: "model-connection",
+    });
   }
 
   // Add participants (agents)
@@ -110,11 +124,21 @@ export const convertTeamConfigToGraph = (
       index,
       config.participants.length
     );
-    const agentNode = createNode("agent", position, participant);
+    const agentNode = createNode("agent", position, {
+      ...participant,
+      // tools: [], // Clear tools as we'll rebuild from edges
+    });
     nodes.push(agentNode);
 
     // Connect to team
-    edges.push(createEdge(teamNode.id, agentNode.id, "agent-connection"));
+    edges.push({
+      id: nanoid(),
+      source: teamNode.id,
+      target: agentNode.id,
+      sourceHandle: `${teamNode.id}-agent-output-handle`,
+      targetHandle: `${agentNode.id}-agent-input-handle`,
+      type: "agent-connection",
+    });
 
     // Add agent's model client if present
     if (participant.model_client) {
@@ -128,9 +152,14 @@ export const convertTeamConfigToGraph = (
         participant.model_client.model
       );
       nodes.push(agentModelNode);
-      edges.push(
-        createEdge(agentModelNode.id, agentNode.id, "model-connection")
-      );
+      edges.push({
+        id: nanoid(),
+        source: agentModelNode.id,
+        target: agentNode.id,
+        sourceHandle: `${agentModelNode.id}-model-output-handle`,
+        targetHandle: `${agentNode.id}-model-input-handle`,
+        type: "model-connection",
+      });
     }
 
     // Add agent's tools
@@ -144,20 +173,33 @@ export const convertTeamConfigToGraph = (
         tool
       );
       nodes.push(toolNode);
-      edges.push(createEdge(toolNode.id, agentNode.id, "tool-connection"));
+      edges.push({
+        id: nanoid(),
+        source: toolNode.id,
+        target: agentNode.id,
+        sourceHandle: `${toolNode.id}-tool-output-handle`,
+        targetHandle: `${agentNode.id}-tool-input-handle`,
+        type: "tool-connection",
+      });
     });
   });
 
+  // Add termination condition if present
   if (config?.termination_condition) {
     const terminationNode = createNode(
       "termination",
-      { x: 600, y: 50 }, // Adjust position as needed
+      { x: 600, y: 50 },
       config.termination_condition
     );
     nodes.push(terminationNode);
-    edges.push(
-      createEdge(terminationNode.id, teamNode.id, "termination-connection")
-    );
+    edges.push({
+      id: nanoid(),
+      source: terminationNode.id,
+      target: teamNode.id,
+      sourceHandle: `${terminationNode.id}-termination-output-handle`,
+      targetHandle: `${teamNode.id}-termination-input-handle`,
+      type: "termination-connection",
+    });
   }
 
   return { nodes, edges };
@@ -171,17 +213,48 @@ export const getLayoutedElements = (
   edges: CustomEdge[]
 ) => {
   const g = new dagre.graphlib.Graph();
+  const calculateRank = (node: CustomNode) => {
+    if (node.data.type === "model") {
+      // Check if this model is connected to a team or agent
+      const isTeamModel = edges.some(
+        (e) =>
+          e.source === node.id &&
+          nodes.find((n) => n.id === e.target)?.data.type === "team"
+      );
+      return isTeamModel ? 0 : 2;
+    }
+
+    switch (node.data.type) {
+      case "team":
+        return 1;
+      case "agent":
+        return 3;
+      case "tool":
+        return 4;
+      case "termination":
+        return 1; // Same rank as team
+      default:
+        return 0;
+    }
+  };
+
   g.setGraph({
-    rankdir: "LR", // Left to right layout
-    nodesep: 200, // Vertical spacing between nodes
-    ranksep: 200, // Horizontal spacing between nodes
-    align: "DL", // Down-left alignment
+    rankdir: "LR",
+    nodesep: 250,
+    ranksep: 150,
+    ranker: "network-simplex", // or "tight-tree" depending on needs
+    align: "DL",
   });
   g.setDefaultEdgeLabel(() => ({}));
 
   // Add nodes to the graph with their dimensions
   nodes.forEach((node) => {
-    g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT });
+    const rank = calculateRank(node);
+    g.setNode(node.id, {
+      width: NODE_WIDTH,
+      height: NODE_HEIGHT,
+      rank,
+    });
   });
 
   // Add edges to the graph
@@ -205,4 +278,20 @@ export const getLayoutedElements = (
   });
 
   return { nodes: layoutedNodes, edges };
+};
+
+export const getNodeConnections = (nodeId: string, edges: CustomEdge[]) => {
+  return {
+    modelClient:
+      edges.find((e) => e.target === nodeId && e.type === "model-connection")
+        ?.source || null,
+
+    tools: edges
+      .filter((e) => e.target === nodeId && e.type === "tool-connection")
+      .map((e) => e.source),
+
+    participants: edges
+      .filter((e) => e.source === nodeId && e.type === "agent-connection")
+      .map((e) => e.target),
+  };
 };

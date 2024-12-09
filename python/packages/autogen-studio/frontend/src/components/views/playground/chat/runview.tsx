@@ -15,7 +15,11 @@ import AgentFlow from "./agentflow/agentflow";
 import { RenderMessage } from "./rendermessage";
 import InputRequestView from "./inputrequest";
 import { Tooltip } from "antd";
-import { LoadingDots, TruncatableText } from "../../shared/atoms";
+import {
+  getRelativeTimeString,
+  LoadingDots,
+  TruncatableText,
+} from "../../shared/atoms";
 
 interface RunViewProps {
   run: Run;
@@ -113,12 +117,12 @@ const RunView: React.FC<RunViewProps> = ({
   };
 
   return (
-    <div className="space-y-6 mt-6 mr-2 ">
+    <div className="space-y-6  mr-2 ">
       {/* Run Header */}
       <div
         className={`${
-          isFirstRun ? "mb-2" : "mt-8"
-        } mb-4 pt-2 border-t border-dashed border-secondary`}
+          isFirstRun ? "mb-2" : "mt-4"
+        } mb-4 pb-2 pt-2 border-b border-dashed border-secondary`}
       >
         <div className="text-xs text-secondary">
           <Tooltip
@@ -130,7 +134,10 @@ const RunView: React.FC<RunViewProps> = ({
               </div>
             }
           >
-            <span className="cursor-help">Run ...{run.id.slice(-6)}</span>
+            <span className="cursor-help">
+              Run ...{run.id.slice(-6)} |{" "}
+              {getRelativeTimeString(run?.created_at || "")}{" "}
+            </span>
           </Tooltip>
           {!isFirstRun && (
             <>
@@ -181,7 +188,7 @@ const RunView: React.FC<RunViewProps> = ({
             {/* Final Response */}
             {run.status !== "awaiting_input" && run.status !== "active" && (
               <div className="text-sm break-all">
-                <div className="text-xs bg-tertiary mb-1 text-secondary -mt-2 border rounded p-2">
+                <div className="text-xs bg-tertiary mb-1 text-secondary border-secondary -mt-2 bdorder rounded p-2">
                   Stop reason: {run.team_result?.task_result?.stop_reason}
                 </div>
 
@@ -200,14 +207,14 @@ const RunView: React.FC<RunViewProps> = ({
           {/* Thread Section */}
           <div className="">
             {run.messages.length > 0 && (
-              <div className="mt-2 pl-4 border-l-2 border-secondary/30">
+              <div className="mt-2 pl-4 border-secondary rounded-b border-l-2 border-secondary/30">
                 <div className="flex pt-2">
                   <div className="flex-1">
                     <button
                       onClick={() => setIsExpanded(!isExpanded)}
                       className="flex items-center gap-1 text-sm text-secondary hover:text-primary transition-colors"
                     >
-                      <MessageSquare size={16} /> Agent discussion [
+                      <MessageSquare size={16} /> Agent steps [
                       <span className="text-accent text-xs">
                         {isExpanded ? (
                           <span>

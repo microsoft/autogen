@@ -6,10 +6,11 @@ import { SessionEditorProps } from "./types";
 import { Team } from "../../../types/datamodel";
 import { teamAPI } from "../team/api";
 import { appContext } from "../../../../hooks/provider";
+import { Link } from "gatsby";
 
 type FieldType = {
   name: string;
-  team_id?: string;
+  team_id?: number;
 };
 
 export const SessionEditor: React.FC<SessionEditorProps> = ({
@@ -109,8 +110,9 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           <Input />
         </Form.Item>
 
-        <div className="space-y-2">
+        <div className="space-y-2   w-full">
           <Form.Item<FieldType>
+            className="w-full"
             label="Team"
             name="team_id"
             rules={[{ required: true, message: "Please select a team" }]}
@@ -134,6 +136,11 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
             />
           </Form.Item>
         </div>
+
+        <div className="text-sm text-accent -mt-4">
+          <Link to="/build">view all teams</Link>
+        </div>
+
         {hasNoTeams && (
           <div className="flex border p-1 rounded -mt-2 mb-4 items-center gap-1.5 text-sm text-yellow-600">
             <TriangleAlertIcon className="h-4 w-4" />
