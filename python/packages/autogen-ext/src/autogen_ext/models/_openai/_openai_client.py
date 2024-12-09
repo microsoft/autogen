@@ -28,7 +28,9 @@ from autogen_core import (
     FunctionCall,
     Image,
 )
-from autogen_core.components.models import (
+from autogen_core.components.tools import Tool, ToolSchema
+from autogen_core.logging import LLMCallEvent
+from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     ChatCompletionTokenLogprob,
@@ -41,8 +43,6 @@ from autogen_core.components.models import (
     TopLogprob,
     UserMessage,
 )
-from autogen_core.components.tools import Tool, ToolSchema
-from autogen_core.logging import LLMCallEvent
 from openai import AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
     ChatCompletion,
@@ -916,7 +916,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
         .. code-block:: python
 
             from autogen_ext.models import OpenAIChatCompletionClient
-            from autogen_core.components.models import UserMessage
+            from autogen_core.models import UserMessage
 
             openai_client = OpenAIChatCompletionClient(
                 model="gpt-4o-2024-08-06",
