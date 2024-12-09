@@ -1,8 +1,8 @@
 from typing import List
 
 import pytest
-from autogen_core.components.model_context import BufferedChatCompletionContext, HeadAndTailChatCompletionContext
 from autogen_core.components.models import AssistantMessage, LLMMessage, UserMessage
+from autogen_core.model_context import BufferedChatCompletionContext, HeadAndTailChatCompletionContext
 
 
 @pytest.mark.asyncio

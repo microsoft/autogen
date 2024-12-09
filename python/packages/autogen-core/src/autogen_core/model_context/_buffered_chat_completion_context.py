@@ -1,6 +1,6 @@
 from typing import Any, List, Mapping
 
-from ..models import FunctionExecutionResultMessage, LLMMessage
+from ..components.models import FunctionExecutionResultMessage, LLMMessage
 from ._chat_completion_context import ChatCompletionContext
 
 
