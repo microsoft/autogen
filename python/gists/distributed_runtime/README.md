@@ -68,17 +68,17 @@ Very first step in the distributed runtime is to spin up the host so it listens 
 
 ```python
 # host.py
+import asyncio
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntimeHost
 
 async def main(host_address: str):
-    host = ... # TODO: create a new GrpcWorkerAgentRuntimeHost and start it
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
 
     print(f"Host started at {host_address}")
     await host.stop_when_signal()
 
 
-if __name__ == "__main__":
-    asyncio.run(main(host_address="localhost:5000"))
-
+asyncio.run(main(host_address="localhost:5000"))
 ```
 
 ### Exercise 2: Play with AssistantAgent
@@ -91,6 +91,8 @@ If you already have a azure deployment of a chat completion model, you can just 
 **Note**: You need to have azure clie installed and run `az login` to authenticate once. For more information, check [Authenticate to Azure using Azure CLI](https://learn.microsoft.com/en-us/cli/azure/authenticate-azure-cli)
 
 ```python
+from autogen_ext.models import AzureOpenAIChatCompletionClient
+
 client_config = {
     "model": "gpt-4o",
     "azure_endpoint": "https://{your-custom-endpoint}.openai.azure.com",
@@ -104,36 +106,66 @@ client_config = {
 model_client = AzureOpenAIChatCompletionClient(**client_config)
 ```
 
-#### Using Azure OpenAI Client
+#### Using OpenAI Client
 
 If you want to use your OpenAI Token, you can alternatively initialize `model_client` using:
 
 ```python
+from autogen_ext.models import OpenAIChatCompletionClient
+
 model_client = OpenAIChatCompletionClient(
           model="gpt-4o",
           # api_key = "your_openai_api_key"
           )
 ```
 
-#### Verify your agent chat!
+#### Verify your agent chat
 
 ```python
-model_client = ... # TODO: Replace with one of the client instantiation methods above
+import asyncio
+from autogen_core import CancellationToken
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.messages import TextMessage
 
-agent = AssistantAgent(name="assistant", model_client=model_client)
+async def main() -> None:
+    model_client = ... # TODO: Replace with one of the client instantiation methods above
 
-response = await agent.on_messages(
-    [TextMessage(content="Tell me two sentences about NeurIPS 2024!", source="user")], CancellationToken()
-)
-print(response)
+    agent = AssistantAgent(name="assistant", model_client=model_client)
+
+    response = await agent.on_messages(
+        [TextMessage(content="Tell me two sentences about NeurIPS 2024!", source="user")], CancellationToken()
+    )
+    print(response)
+
+asyncio.run(main())
 ```
 
 ### Exercise 3: Create a Wrapper Agent around assistant agent to leverage topic subscriptions
 
-`RoutedAgent` is the base class from the `autogen-core` package that we would use to implement the topic subscription. Develop the file in a way that it can be run as `python agent.py host_address agent_name agent_system_message`
+`RoutedAgent` is the base class from the `autogen-core` package that we would use to implement the topic subscription. Develop the file in a way that it can be run as `python agent.py host_address agent_name agent_system_message`.
+You should develop the message handler using the assistant agent.
 
 ```python
 # agent.py
+import asyncio
+from typing import List
+
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.messages import TextMessage
+from autogen_core import (
+    DefaultTopicId,
+    MessageContext,
+    RoutedAgent,
+    TypeSubscription,
+    message_handler,
+    try_get_known_serializers_for_type,
+)
+from autogen_core.components.models import (
+    LLMMessage,
+)
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
+
+
 class AssistantAgentWrapper(RoutedAgent):
 
     def __init__(
@@ -151,29 +183,55 @@ class AssistantAgentWrapper(RoutedAgent):
     async def handle_message(self, message: TextMessage, ctx: MessageContext) -> None:
         ... # TODO: Make proper call to agent, retreive results and publish it in the message
         await self.publish_message(
-                TextMessage(content = "...", source = "..."),
+                # TODO: Create a message with the response from the agent.
                 topic_id=DefaultTopicId(type="conversation_topic"),
             )
 
 
-agent_runtime = GrpcWorkerAgentRuntime(host_address=host_address)
-agent_runtime.add_message_serializer(get_serializers([TextMessage]))  # Add Message Serializer for TextMessage
+async def main(
+    host_address: str,
+    agent_name: str,
+    agent_system_message: str,
+):
+    agent_runtime = GrpcWorkerAgentRuntime(host_address=host_address)
+    agent_runtime.add_message_serializer(try_get_known_serializers_for_type(TextMessage))  # type: ignore[arg-type]
 
-agent_runtime.start()
+    print(f"Starting Agent with ID: {agent_name}")
 
-agent_type = await AssistantAgentWrapper.register(
-    agent_runtime,
-    agent_name,
-    lambda: AssistantAgentWrapper(
-        description=agent_system_message,
-        group_chat_topic_type="conversation_topic",
-        agent=AssistantAgent(name=agent_name, system_message=agent_system_message, model_client=model_client),
-    ),
-)
+    # Start the worker runtime.
+    agent_runtime.start()
 
-# Note: Register agent to the conversation_topic so it can receive messages
-await agent_runtime.add_subscription(TypeSubscription(topic_type="conversation_topic", agent_type=agent_type.type))
+    agent_type = await AssistantAgentWrapper.register(
+        agent_runtime,
+        agent_name,
+        lambda: AssistantAgentWrapper(
+            description=agent_system_message,
+            group_chat_topic_type="conversation_topic",
+            agent=AssistantAgent(
+                name=agent_name,
+                system_message=agent_system_message,
+                model_client=# TODO: Create a model client
+            ),
+        ),
+    )
 
+    # Note: Register agent to the conversation_topic so it can receive messages
+    await agent_runtime.add_subscription(TypeSubscription(topic_type="conversation_topic", agent_type=agent_type.type))
+
+    # Publish a message to the agent start the conversation.
+    await agent_runtime.publish_message(
+        TextMessage(
+            content="Please write a short story about the gingerbread in halloween!", source="editor_agent"
+        ),
+        topic_id=DefaultTopicId(type="conversation_topic"),
+    )
+    await asyncio.sleep(1)
+
+    await agent_runtime.stop_when_signal()
+
+# Entry point, run the main function.
+# TODO: use argparse to parse the command line arguments.
+asyncio.run(main(host_address="localhost:5000", agent_name="writer_agent", agent_system_message="You are a one sentence Writer and provide one sentence content each time"))
 ```
 
 ### Excercise 4: Run two agents at the same time
@@ -184,14 +242,14 @@ At this step, you need to make sure the following sets of commands (each in a se
 # First terminal
 python3 host.py "localhost:5000"
 
-# Second terminal
+# Second terminal, run first agent
 python3 agent.py "localhost:5000" editor_agent "You are an Editor. You just provide feedback on the message you receive."
 
-# Third terminal
+# Third terminal, run second agent
 python3 agent.py "localhost:5000" writer_agent "You are a one sentence Writer and provide one sentence content each time"
 ```
 
-Make sure agent.py publishes a user message to initiate the conversation.
+Make sure only one of the agent publishes a user message to initiate the conversation.
 
 ### Excercise 5: Develop the UI Agent
 
