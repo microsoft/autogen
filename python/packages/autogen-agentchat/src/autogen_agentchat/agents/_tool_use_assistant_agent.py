@@ -2,10 +2,10 @@ import logging
 import warnings
 from typing import Any, Awaitable, Callable, List
 
-from autogen_core.components.tools import Tool
 from autogen_core.models import (
     ChatCompletionClient,
 )
+from autogen_core.tools import Tool
 
 from .. import EVENT_LOGGER_NAME
 from ._assistant_agent import AssistantAgent

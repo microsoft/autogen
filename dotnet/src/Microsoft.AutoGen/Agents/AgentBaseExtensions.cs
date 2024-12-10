@@ -2,6 +2,8 @@
 // AgentBaseExtensions.cs
 
 using System.Diagnostics;
+using Google.Protobuf.Collections;
+using static Microsoft.AutoGen.Abstractions.CloudEvent.Types;
 
 namespace Microsoft.AutoGen.Agents;
 
@@ -55,6 +57,11 @@ public static class AgentBaseExtensions
         }
 
         return activity;
+    }
+
+    public static Activity? ExtractActivity(this AgentBase agent, string activityName, MapField<string, CloudEventAttributeValue> metadata)
+    {
+        return ExtractActivity(agent, activityName, metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.CeString));
     }
 
     /// <summary>
