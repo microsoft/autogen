@@ -51,7 +51,7 @@ async def main() -> None:
     Main function to run the video agent.
     """
     # Define an agent
-    video_agent = AssistantAgent(
+    agent = AssistantAgent(
         name="VideoSurferAgent",
         model_client=OpenAIChatCompletionClient(
           model="gpt-4o-mini",
@@ -60,7 +60,7 @@ async def main() -> None:
         )
 
     # Define a team, with max_turns=1 to limit the agent to run for a single turn.
-    agent_team = RoundRobinGroupChat([video_agent], max_turns=1)
+    agent_team = RoundRobinGroupChat([agent], max_turns=1)
 
     # Run the user-agent interaction in a loop.
     while True:
@@ -81,7 +81,7 @@ Note that AutoGen uses the Python async API. Here is a link to [async programmin
 Modify the system message to describe your video surfer agent's roles and responsibilities.
 
 ```python
-  ...
+  # ...
   SYSTEM_MESSAGE="custom system message"
   video_agent = AssistantAgent(
         name="VideoSurferAgent",
@@ -91,7 +91,8 @@ Modify the system message to describe your video surfer agent's roles and respon
           ),
         system_message=SYSTEM_MESSAGE
         )
-  ...
+
+  # ...
 ```
 
 ### Exercise 2: Add a new action
@@ -118,7 +119,7 @@ def get_video_length(video_path: str) -> str:
     return f"The video is {duration:.2f} seconds long."
 
 
-  ...
+  # ...
   SYSTEM_MESSAGE="custom system message"
   video_agent = AssistantAgent(
       name="VideoSurferAgent",
@@ -129,7 +130,8 @@ def get_video_length(video_path: str) -> str:
       system_message=SYSTEM_MESSAGE,
       tools=[get_video_length],
    )
-  ...
+
+  # ...
 
 ```
 
@@ -154,9 +156,9 @@ def tool1(...)
 def tool2(...)
     ...
 
-    ...
+    # ...
     tools=[get_video_length, tool1, tool2, ...],
-    ...
+    # ...
 ```
 
 ### Exercise 4: Create an agent team
