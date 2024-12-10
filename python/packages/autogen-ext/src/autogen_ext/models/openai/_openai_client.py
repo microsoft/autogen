@@ -28,7 +28,8 @@ from autogen_core import (
     FunctionCall,
     Image,
 )
-from autogen_core.components.models import (
+from autogen_core.logging import LLMCallEvent
+from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     ChatCompletionTokenLogprob,
@@ -41,8 +42,7 @@ from autogen_core.components.models import (
     TopLogprob,
     UserMessage,
 )
-from autogen_core.components.tools import Tool, ToolSchema
-from autogen_core.logging import LLMCallEvent
+from autogen_core.tools import Tool, ToolSchema
 from openai import AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
     ChatCompletion,
@@ -909,14 +909,14 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
 
         .. code-block:: bash
 
-            pip install 'autogen-ext[openai]==0.4.0.dev9'
+            pip install 'autogen-ext[openai]==0.4.0.dev8'
 
     The following code snippet shows how to use the client with an OpenAI model:
 
         .. code-block:: python
 
-            from autogen_ext.models import OpenAIChatCompletionClient
-            from autogen_core.components.models import UserMessage
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_core.models import UserMessage
 
             openai_client = OpenAIChatCompletionClient(
                 model="gpt-4o-2024-08-06",
@@ -931,7 +931,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
 
         .. code-block:: python
 
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
 
             custom_model_client = OpenAIChatCompletionClient(
                 model="custom-model-name",
@@ -989,7 +989,7 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
 
         .. code-block:: bash
 
-            pip install 'autogen-ext[openai,azure]==0.4.0.dev9'
+            pip install 'autogen-ext[openai,azure]==0.4.0.dev8'
 
     To use the client, you need to provide your deployment id, Azure Cognitive Services endpoint,
     api version, and model capabilities.
@@ -1000,7 +1000,7 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
 
         .. code-block:: python
 
-            from autogen_ext.models import AzureOpenAIChatCompletionClient
+            from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
             from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
             # Create the token provider
