@@ -59,8 +59,6 @@ public abstract class Agent : IDisposable
         AddImplicitSubscriptionsAsync().AsTask().Wait();
         Completion = Start();
     }
-    internal Task Completion { get; }
-
     private async ValueTask AddImplicitSubscriptionsAsync()
     {
         var topicTypes = new List<string>

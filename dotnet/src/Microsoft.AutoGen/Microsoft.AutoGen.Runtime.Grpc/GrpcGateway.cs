@@ -27,6 +27,9 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
     // RPC
     private readonly ConcurrentDictionary<(GrpcWorkerConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
+    private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
+    private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
+    private readonly ISubscriptionsGrain _subscriptions;
 
     public int WorkersCount => _workers.Count;
 
@@ -38,6 +41,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         _clusterClient = clusterClient;
         _reference = clusterClient.CreateObjectReference<IGateway>(this);
         _gatewayRegistry = clusterClient.GetGrain<IRegistryGrain>(0);
+        _subscriptions = clusterClient.GetGrain<ISubscriptionsGrain>(0);
+
     }
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
@@ -127,8 +132,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         completion.SetResult(response);
     }
 
-<<<<<<< HEAD:dotnet/src/Microsoft.AutoGen/Microsoft.AutoGen.Runtime.Grpc/GrpcGateway.cs
-=======
     // agentype:rpc_request={requesting_agent_id}
     // {genttype}:rpc_response={request_id}
     private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, AddSubscriptionRequest request)
@@ -220,7 +223,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
->>>>>>> 79c5aaa1 (WriteAsync must be awaited (#4491)):dotnet/src/Microsoft.AutoGen/Agents/Services/Grpc/GrpcGateway.cs
     private async ValueTask DispatchRequestAsync(GrpcWorkerConnection connection, RpcRequest request)
     {
         var requestId = request.RequestId;
@@ -243,15 +245,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             return await gateway.InvokeRequest(request).ConfigureAwait(true);
         });
         //}
-    }
-
-    private async ValueTask DispatchEventAsync(CloudEvent evt)
-    {
-        await BroadcastEvent(evt).ConfigureAwait(false);
-        /*
-        var topic = _clusterClient.GetStreamProvider("agents").GetStream<Event>(StreamId.Create(evt.Namespace, evt.Type));
-        await topic.OnNextAsync(evt.ToEvent());
-        */
     }
 
     public async ValueTask<RegisterAgentTypeResponse> RegisterAgentTypeAsync(RegisterAgentTypeRequest request)
