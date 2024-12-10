@@ -320,6 +320,12 @@ public abstract class Agent : IDisposable
             activity,
             item.Type, cancellationToken).ConfigureAwait(false);
     }
+    public async ValueTask PublishMessageAsync<T>(T message, string? source = null, CancellationToken token = default) where T : IMessage
+    {
+        var src = string.IsNullOrWhiteSpace(source) ? this.AgentId.Key : source;
+        var evt = message.ToCloudEvent(src);
+        await PublishEventAsync(evt, token).ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Calls the handler for a cloud event.
