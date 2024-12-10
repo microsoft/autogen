@@ -171,6 +171,8 @@ public abstract class AgentBase : IAgentBase, IHandle
                 }
             }
         };
+
+        // TODO: Should this be async?
         _runtime.SendMessageAsync(message).AsTask().Wait();
 
         return new List<string> { topic };

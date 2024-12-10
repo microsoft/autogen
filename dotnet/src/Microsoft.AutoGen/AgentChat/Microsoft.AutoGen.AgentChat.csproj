@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+		<TargetFramework>net8.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<PackageId>AutoGen.AgentChat</PackageId>
+		<PackageProjectUrl>https://github.com/microsoft/autogen</PackageProjectUrl>
+		<Authors>Microsoft</Authors>
+		<Description>AutoGen agents and teams library</Description>
+		<Tags>ai-agents;event-driven-agents;agent-team</Tags>
+  </PropertyGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="../Abstractions/Microsoft.AutoGen.Abstractions.csproj" />
+		<ProjectReference Include="../Agents/Microsoft.AutoGen.Agents.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Microsoft.Extensions.AI" />
+	  <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+	  <!--<PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />-->
+	  <!-- <PackageReference Include="Microsoft.Extensions.Logging" /> -->
+	</ItemGroup>
+
+</Project>

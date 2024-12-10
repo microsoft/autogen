@@ -1,0 +1,10 @@
+syntax = "proto3";
+
+package agents;
+
+option csharp_namespace = "Microsoft.AutoGen.AgentChat.Abstractions";
+
+// This should really, properly, live in AgentChat
+message TodoMessages {
+    string TODO = 1;
+}
