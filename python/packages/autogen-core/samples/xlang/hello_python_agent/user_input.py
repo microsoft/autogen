@@ -31,6 +31,10 @@ class UserProxy(RoutedAgent):
             await self.publish_message(NewMessageReceived(message=response), topic_id=DefaultTopicId())
         elif isinstance(message, Output):
             logger.info(message.message)
+        elif isinstance(message, ConversationClosed):
+            logger.info("Conversation closed. Goodbye!")
+        elif isinstance(message, NewMessageReceived):
+            logger.info(f"New message received: {message.message}")
         else:
             pass
 
