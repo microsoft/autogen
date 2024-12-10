@@ -1,7 +1,7 @@
 from typing import Any, Dict, List, TypedDict, Union
 
 from autogen_core import FunctionCall, Image
-from autogen_core.components.models import FunctionExecutionResult
+from autogen_core.models import FunctionExecutionResult
 
 UserContent = Union[str, List[Union[str, Image]]]
 AssistantContent = Union[str, List[FunctionCall]]

@@ -61,6 +61,26 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    - name: Set up Python 
+      uses: actions/setup-python@v5
+      with:
+        python-version: 3.11
+    - name: Install jupyter and ipykernel
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install jupyter
+        python -m pip install ipykernel
+    - name: list available kernels
+      run: |
+        python -m jupyter kernelspec list
+    - uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+    - run: uv sync --locked --all-extras
+      working-directory: ./python
+    - name: Prepare python venv
+      run: |
+        source ${{ github.workspace }}/python/.venv/bin/activate
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3

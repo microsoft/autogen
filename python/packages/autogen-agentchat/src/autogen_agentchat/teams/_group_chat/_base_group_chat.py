@@ -200,7 +200,7 @@ class BaseGroupChat(Team, ABC):
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.conditions import MaxMessageTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
             async def main() -> None:
@@ -231,7 +231,7 @@ class BaseGroupChat(Team, ABC):
             from autogen_agentchat.conditions import MaxMessageTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_core import CancellationToken
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
             async def main() -> None:
@@ -298,7 +298,7 @@ class BaseGroupChat(Team, ABC):
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.conditions import MaxMessageTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
             async def main() -> None:
@@ -332,7 +332,7 @@ class BaseGroupChat(Team, ABC):
             from autogen_agentchat.ui import Console
             from autogen_agentchat.teams import RoundRobinGroupChat
             from autogen_core import CancellationToken
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
             async def main() -> None:
@@ -465,7 +465,7 @@ class BaseGroupChat(Team, ABC):
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.conditions import MaxMessageTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
             async def main() -> None:

@@ -51,7 +51,7 @@ class ACADynamicSessionsCodeExecutor(CodeExecutor):
 
         .. code-block:: bash
 
-            pip install 'autogen-ext[azure]==0.4.0.dev9'
+            pip install 'autogen-ext[azure]==0.4.0.dev10'
 
     .. caution::
 

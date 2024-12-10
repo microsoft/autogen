@@ -1,8 +1,9 @@
-from typing import Optional, Type
+from typing import Optional, Type, cast
 
 import pytest
 from autogen_core import CancellationToken
-from autogen_ext.tools import LangChainToolAdapter  # type: ignore
+from autogen_core.tools import Tool
+from autogen_ext.tools.langchain import LangChainToolAdapter  # type: ignore
 from langchain_core.callbacks.manager import AsyncCallbackManagerForToolRun, CallbackManagerForToolRun
 from langchain_core.tools import BaseTool as LangChainTool
 from langchain_core.tools import tool  # pyright: ignore
@@ -46,7 +47,7 @@ async def test_langchain_tool_adapter() -> None:
     langchain_tool = add  # type: ignore
 
     # Create an adapter
-    adapter = LangChainToolAdapter(langchain_tool)  # type: ignore
+    adapter = cast(Tool, LangChainToolAdapter(langchain_tool))  # type: ignore
 
     # Test schema generation
     schema = adapter.schema

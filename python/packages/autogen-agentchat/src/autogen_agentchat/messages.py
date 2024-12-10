@@ -1,7 +1,7 @@
 from typing import List, Literal
 
 from autogen_core import FunctionCall, Image
-from autogen_core.components.models import FunctionExecutionResult, RequestUsage
+from autogen_core.models import FunctionExecutionResult, RequestUsage
 from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import Annotated
 
