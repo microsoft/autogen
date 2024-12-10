@@ -28,6 +28,7 @@ file-surfer = ["markitdown>=0.0.1a2"]
 web-surfer = [
     "playwright>=1.48.0",
     "pillow>=11.0.0",
+    "markitdown>=0.0.1a2",
 ]
 magentic-one = [
     "markitdown>=0.0.1a2",
