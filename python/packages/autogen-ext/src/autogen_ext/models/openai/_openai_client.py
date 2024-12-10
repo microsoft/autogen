@@ -43,9 +43,6 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_core.tools import Tool, ToolSchema
-from pydantic import BaseModel
-from typing_extensions import Unpack
-
 from openai import AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
     ChatCompletion,
@@ -66,6 +63,8 @@ from openai.types.chat import (
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_chunk import Choice as ChunkChoice
 from openai.types.shared_params import FunctionDefinition, FunctionParameters
+from pydantic import BaseModel
+from typing_extensions import Unpack
 
 from . import _model_info
 from .config import AzureOpenAIClientConfiguration, OpenAIClientConfiguration
