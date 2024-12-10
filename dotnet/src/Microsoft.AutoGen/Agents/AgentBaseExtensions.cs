@@ -61,7 +61,7 @@ public static class AgentBaseExtensions
 
     public static Activity? ExtractActivity(this AgentBase agent, string activityName, MapField<string, CloudEventAttributeValue> metadata)
     {
-       return ExtractActivity(agent, activityName, metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.CeString));
+        return ExtractActivity(agent, activityName, metadata.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.CeString));
     }
 
     /// <summary>

@@ -2,11 +2,10 @@
 // AgentRuntime.cs
 
 using System.Diagnostics;
-using Microsoft.AutoGen.Abstractions;
-using static Microsoft.AutoGen.Abstractions.CloudEvent.Types;
-using Microsoft.Extensions.Logging;
-
 using Google.Protobuf.Collections;
+using Microsoft.AutoGen.Abstractions;
+using Microsoft.Extensions.Logging;
+using static Microsoft.AutoGen.Abstractions.CloudEvent.Types;
 
 namespace Microsoft.AutoGen.Agents;
 
@@ -51,7 +50,7 @@ internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger
     }
     public void Update(CloudEvent cloudEvent, Activity? activity = null)
     {
-        DistributedContextPropagator.Inject(activity, cloudEvent.Attributes, static (carrier, key, value) => 
+        DistributedContextPropagator.Inject(activity, cloudEvent.Attributes, static (carrier, key, value) =>
         ((MapField<string, CloudEventAttributeValue>)carrier!)[key].CeString = value);
     }
     public async ValueTask SendResponseAsync(RpcRequest request, RpcResponse response, CancellationToken cancellationToken = default)
