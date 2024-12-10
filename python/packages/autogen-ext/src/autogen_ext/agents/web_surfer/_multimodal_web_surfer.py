@@ -103,7 +103,7 @@ class MultimodalWebSurfer(BaseChatAgent):
             import asyncio
             from autogen_agentchat.ui import Console
             from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 
 
