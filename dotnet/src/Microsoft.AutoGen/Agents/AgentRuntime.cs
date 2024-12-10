@@ -46,7 +46,18 @@ internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger
     }
     public void Update(RpcRequest request, Activity? activity = null)
     {
-        DistributedContextPropagator.Inject(activity, request.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
+        DistributedContextPropagator.Inject(activity, request.Metadata, static (carrier, key, value) =>
+        {
+            var metadata = (IDictionary<string, string>)carrier!;
+            if (metadata.TryGetValue(key, out _))
+            {
+                metadata[key] = value;
+            }
+            else
+            {
+                metadata.Add(key, value);
+            }
+        });
     }
     public void Update(CloudEvent cloudEvent, Activity? activity = null)
     {
