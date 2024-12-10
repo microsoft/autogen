@@ -130,6 +130,12 @@ def get_video_length(video_path: str) -> str:
 
 ```
 
+Need a video to experiment with? Download one from [here](https://www.microsoft.com/en-us/research/uploads/prod/2024/11/citations_m1.mp4) and optionally rename it to `video.mp4` (for consistency with the tutorial), or run the following from the command line:
+
+```shell
+curl -o video.mp4 https://www.microsoft.com/en-us/research/uploads/prod/2024/11/citations_m1.mp4
+```
+
 ### Exercise 3: Add more actions of your choice
 
 Now add any other tools of your choice. For example, you can try adding a tool that allows video surfer to transcribe the audio in the video, or a tool that allows the video surfer to caption the contents of the video a given timestamp.
