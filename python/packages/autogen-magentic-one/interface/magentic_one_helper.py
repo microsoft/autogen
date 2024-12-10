@@ -20,7 +20,7 @@ from autogen_magentic_one.agents.orchestrator import LedgerOrchestrator
 from autogen_magentic_one.agents.user_proxy import UserProxy
 from autogen_magentic_one.messages import BroadcastMessage
 from autogen_magentic_one.utils import LogHandler, create_completion_client_from_env
-from autogen_core.components.models import UserMessage
+from autogen_core.models import UserMessage
 from threading import Lock
 
 
