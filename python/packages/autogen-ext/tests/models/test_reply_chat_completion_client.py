@@ -13,7 +13,7 @@ from autogen_core import (
     message_handler,
 )
 from autogen_core.models import ChatCompletionClient, CreateResult, SystemMessage, UserMessage
-from autogen_ext.models.reply import ReplayChatCompletionClient
+from autogen_ext.models.replay import ReplayChatCompletionClient
 
 
 @dataclass
