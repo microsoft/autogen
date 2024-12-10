@@ -56,10 +56,11 @@ public abstract class Agent : IDisposable
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<Agent>();
         // get all Handle<T> methods
         _handlersByMessageType = new(GetType().GetHandlersLookupTable());
-        AddImplicitSubscriptionsAsync().AsTask().Wait();
+        /* TODO disable for now
+        AddImplicitSubscriptionsAsync().AsTask().Wait();*/
         Completion = Start();
     }
-    private async ValueTask AddImplicitSubscriptionsAsync()
+ /* TODO disable for now   private async ValueTask AddImplicitSubscriptionsAsync()
     {
         var topicTypes = new List<string>
         {
@@ -82,7 +83,8 @@ public abstract class Agent : IDisposable
                 }
             };
             // explicitly wait for this to complete
-            await _runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).ConfigureAwait(true);
+            //TODO temp disable
+            //await _runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).ConfigureAwait(true);
         }
 
         // using reflection, find all methods that Handle<T> and subscribe to the topic T
@@ -97,7 +99,7 @@ public abstract class Agent : IDisposable
             }
         }
 
-    }
+    }*/
 
     /// <summary>
     /// Starts the message pump for the agent.

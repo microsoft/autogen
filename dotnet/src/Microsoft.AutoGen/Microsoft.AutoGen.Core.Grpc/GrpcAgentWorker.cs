@@ -255,7 +255,7 @@ public sealed class GrpcAgentWorker(
         }
     }
     // new is intentional
-    public new async ValueTask SendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
+    public async ValueTask SendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
     {
         await WriteChannelAsync(new Message { Response = response }, cancellationToken).ConfigureAwait(false);
     }
