@@ -24,7 +24,7 @@ from autogen_core._closure_agent import ClosureContext
 
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
-from ...messages import AgentMessage, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
+from ...messages import AgentMessage, ChatMessage, TextMessage
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import GroupChatMessage, GroupChatReset, GroupChatStart, GroupChatTermination
@@ -368,7 +368,7 @@ class BaseGroupChat(Team, ABC):
         """
 
         # Create the first chat message if the task is a string or a chat message.
-        first_chat_message: ChatMessage | None = None
+        first_chat_message: ChatMessage | List[ChatMessage] | None = None
         if task is None:
             pass
         elif isinstance(task, str):
@@ -378,11 +378,10 @@ class BaseGroupChat(Team, ABC):
         elif isinstance(task, list):
             if not task:
                 raise ValueError("Task list cannot be empty")
-            if not all(
-                get_origin(ChatMessage) is Annotated and msg.__class__ in get_args(ChatMessage)[0].__args__
-                for msg in task
-            ):
-                raise ValueError("All messages in task list must be valid ChatMessage types")
+            # Validate all messages in the list
+            for msg in task:
+                if not (isinstance(msg, TextMessage) or isinstance(msg, get_args(ChatMessage)[0].__args__)):
+                    raise ValueError("All messages in task list must be valid ChatMessage types")
             first_chat_message = task[0]
             # Queue remaining messages for processing
             for msg in task[1:]:
@@ -413,7 +412,10 @@ class BaseGroupChat(Team, ABC):
             # The group chat manager will start the group chat by relaying the message to the participants
             # and the closure agent.
             if first_chat_message is not None:
-                messages = [first_chat_message]
+                if isinstance(first_chat_message, list):
+                    messages = first_chat_message
+                else:
+                    messages = [first_chat_message]
             else:
                 messages = None
             await self._runtime.send_message(
