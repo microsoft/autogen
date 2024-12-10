@@ -43,8 +43,6 @@ from autogen_core.models import (
     TopLogprob,
     UserMessage,
 )
-from autogen_core.components.tools import Tool, ToolSchema
-from autogen_core.logging import LLMCallEvent
 from pydantic import BaseModel
 from typing_extensions import Unpack
 
@@ -893,64 +891,64 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
     """Chat completion client for OpenAI hosted models.
 
-    You can also use this client for OpenAI-compatible ChatCompletion endpoints.
-    **Using this client for non-OpenAI models is not tested or guaranteed.**
+        You can also use this client for OpenAI-compatible ChatCompletion endpoints.
+        **Using this client for non-OpenAI models is not tested or guaranteed.**
 
-    For non-OpenAI models, please first take a look at our `community extensions <https://microsoft.github.io/autogen/dev/user-guide/extensions-user-guide/index.html>`_
-    for additional model clients.
+        For non-OpenAI models, please first take a look at our `community extensions <https://microsoft.github.io/autogen/dev/user-guide/extensions-user-guide/index.html>`_
+        for additional model clients.
 
-    Args:
-        model (str): The model to use. **Required.**
-        api_key (str): The API key to use. **Required if 'OPENAI_API_KEY' is not found in the environment variables.**
-        timeout (optional, int): The timeout for the request in seconds.
-        max_retries (optional, int): The maximum number of retries to attempt.
-        organization_id (optional, str): The organization ID to use.
-        base_url (optional, str): The base URL to use. **Required if the model is not hosted on OpenAI.**
-        model_capabilities (optional, ModelCapabilities): The capabilities of the model. **Required if the model name is not a valid OpenAI model.**
+        Args:
+            model (str): The model to use. **Required.**
+            api_key (str): The API key to use. **Required if 'OPENAI_API_KEY' is not found in the environment variables.**
+            timeout (optional, int): The timeout for the request in seconds.
+            max_retries (optional, int): The maximum number of retries to attempt.
+            organization_id (optional, str): The organization ID to use.
+            base_url (optional, str): The base URL to use. **Required if the model is not hosted on OpenAI.**
+            model_capabilities (optional, ModelCapabilities): The capabilities of the model. **Required if the model name is not a valid OpenAI model.**
 
-    To use this client, you must install the `openai` extension:
+        To use this client, you must install the `openai` extension:
 
-        .. code-block:: bash
+            .. code-block:: bash
 
-            pip install 'autogen-ext[openai]==0.4.0.dev8'
+                pip install 'autogen-ext[openai]==0.4.0.dev8'
 
-    The following code snippet shows how to use the client with an OpenAI model:
+        The following code snippet shows how to use the client with an OpenAI model:
 
-        .. code-block:: python
+            .. code-block:: python
 
-<<<<<<< HEAD:python/packages/autogen-ext/src/autogen_ext/models/openai/_openai_client.py
-            from autogen_ext.models.openai import OpenAIChatCompletionClient
-            from autogen_core.components.models import UserMessage
-=======
-            from autogen_ext.models import OpenAIChatCompletionClient
-            from autogen_core.models import UserMessage
->>>>>>> main:python/packages/autogen-ext/src/autogen_ext/models/_openai/_openai_client.py
+    <<<<<<< HEAD:python/packages/autogen-ext/src/autogen_ext/models/openai/_openai_client.py
+                from autogen_ext.models.openai import OpenAIChatCompletionClient
+                from autogen_core.components.models import UserMessage
+    =======
+                from autogen_ext.models import OpenAIChatCompletionClient
+                from autogen_core.models import UserMessage
+    >>>>>>> main:python/packages/autogen-ext/src/autogen_ext/models/_openai/_openai_client.py
 
-            openai_client = OpenAIChatCompletionClient(
-                model="gpt-4o-2024-08-06",
-                # api_key="sk-...", # Optional if you have an OPENAI_API_KEY environment variable set.
-            )
+                openai_client = OpenAIChatCompletionClient(
+                    model="gpt-4o-2024-08-06",
+                    # api_key="sk-...", # Optional if you have an OPENAI_API_KEY environment variable set.
+                )
 
-            result = await openai_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
-            print(result)
+                result = await openai_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
+                print(result)
 
 
-    To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model capabilities:
+        To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model capabilities:
 
-        .. code-block:: python
+            .. code-block:: python
 
-            from autogen_ext.models.openai import OpenAIChatCompletionClient
+                from autogen_ext.models.openai import OpenAIChatCompletionClient
 
-            custom_model_client = OpenAIChatCompletionClient(
-                model="custom-model-name",
-                base_url="https://custom-model.com/reset/of/the/path",
-                api_key="placeholder",
-                model_capabilities={
-                    "vision": True,
-                    "function_calling": True,
-                    "json_output": True,
-                },
-            )
+                custom_model_client = OpenAIChatCompletionClient(
+                    model="custom-model-name",
+                    base_url="https://custom-model.com/reset/of/the/path",
+                    api_key="placeholder",
+                    model_capabilities={
+                        "vision": True,
+                        "function_calling": True,
+                        "json_output": True,
+                    },
+                )
 
     """
 

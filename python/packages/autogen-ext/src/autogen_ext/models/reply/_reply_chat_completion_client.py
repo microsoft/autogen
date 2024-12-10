@@ -18,97 +18,97 @@ logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 class ReplayChatCompletionClient:
     """
-    A mock chat completion client that replays predefined responses using an index-based approach.
+        A mock chat completion client that replays predefined responses using an index-based approach.
 
-    This class simulates a chat completion client by replaying a predefined list of responses. It supports both single completion and streaming responses. The responses can be either strings or CreateResult objects. The client now uses an index-based approach to access the responses, allowing for resetting the state.
+        This class simulates a chat completion client by replaying a predefined list of responses. It supports both single completion and streaming responses. The responses can be either strings or CreateResult objects. The client now uses an index-based approach to access the responses, allowing for resetting the state.
 
-    .. note::
-        The responses can be either strings or CreateResult objects.
+        .. note::
+            The responses can be either strings or CreateResult objects.
 
-    Args:
-        chat_completions (Sequence[Union[str, CreateResult]]): A list of predefined responses to replay.
+        Args:
+            chat_completions (Sequence[Union[str, CreateResult]]): A list of predefined responses to replay.
 
-    Raises:
-        ValueError("No more mock responses available"): If the list of provided outputs are exhausted.
+        Raises:
+            ValueError("No more mock responses available"): If the list of provided outputs are exhausted.
 
-    Examples:
+        Examples:
 
-    Simple chat completion client to return pre-defined responses.
+        Simple chat completion client to return pre-defined responses.
 
-        .. code-block:: python
+            .. code-block:: python
 
-            from autogen_ext.models.reply import ReplayChatCompletionClient
-            from autogen_core.models import UserMessage
-
-
-            async def example():
-                chat_completions = [
-                    "Hello, how can I assist you today?",
-                    "I'm happy to help with any questions you have.",
-                    "Is there anything else I can assist you with?",
-                ]
-                client = ReplayChatCompletionClient(chat_completions)
-                messages = [UserMessage(content="What can you do?", source="user")]
-                response = await client.create(messages)
-                print(response.content)  # Output: "Hello, how can I assist you today?"
-
-    Simple streaming chat completion client to return pre-defined responses
-
-        .. code-block:: python
-
-            import asyncio
-<<<<<<< HEAD:python/packages/autogen-ext/src/autogen_ext/models/reply/_reply_chat_completion_client.py
-            from autogen_ext.models.reply import ReplayChatCompletionClient
-            from autogen_core.components.models import UserMessage
-=======
-            from autogen_ext.models import ReplayChatCompletionClient
-            from autogen_core.models import UserMessage
->>>>>>> main:python/packages/autogen-ext/src/autogen_ext/models/_reply_chat_completion_client.py
+                from autogen_ext.models.reply import ReplayChatCompletionClient
+                from autogen_core.models import UserMessage
 
 
-            async def example():
-                chat_completions = [
-                    "Hello, how can I assist you today?",
-                    "I'm happy to help with any questions you have.",
-                    "Is there anything else I can assist you with?",
-                ]
-                client = ReplayChatCompletionClient(chat_completions)
-                messages = [UserMessage(content="What can you do?", source="user")]
+                async def example():
+                    chat_completions = [
+                        "Hello, how can I assist you today?",
+                        "I'm happy to help with any questions you have.",
+                        "Is there anything else I can assist you with?",
+                    ]
+                    client = ReplayChatCompletionClient(chat_completions)
+                    messages = [UserMessage(content="What can you do?", source="user")]
+                    response = await client.create(messages)
+                    print(response.content)  # Output: "Hello, how can I assist you today?"
 
-                async for token in client.create_stream(messages):
-                    print(token, end="")  # Output: "Hello, how can I assist you today?"
+        Simple streaming chat completion client to return pre-defined responses
 
-                async for token in client.create_stream(messages):
-                    print(token, end="")  # Output: "I'm happy to help with any questions you have."
+            .. code-block:: python
+
+                import asyncio
+    <<<<<<< HEAD:python/packages/autogen-ext/src/autogen_ext/models/reply/_reply_chat_completion_client.py
+                from autogen_ext.models.reply import ReplayChatCompletionClient
+                from autogen_core.components.models import UserMessage
+    =======
+                from autogen_ext.models import ReplayChatCompletionClient
+                from autogen_core.models import UserMessage
+    >>>>>>> main:python/packages/autogen-ext/src/autogen_ext/models/_reply_chat_completion_client.py
+
+
+                async def example():
+                    chat_completions = [
+                        "Hello, how can I assist you today?",
+                        "I'm happy to help with any questions you have.",
+                        "Is there anything else I can assist you with?",
+                    ]
+                    client = ReplayChatCompletionClient(chat_completions)
+                    messages = [UserMessage(content="What can you do?", source="user")]
+
+                    async for token in client.create_stream(messages):
+                        print(token, end="")  # Output: "Hello, how can I assist you today?"
+
+                    async for token in client.create_stream(messages):
+                        print(token, end="")  # Output: "I'm happy to help with any questions you have."
+
+                    asyncio.run(example())
+
+        Using `.reset` to reset the chat client state
+
+            .. code-block:: python
+
+                import asyncio
+                from autogen_ext.models import ReplayChatCompletionClient
+                from autogen_core.models import UserMessage
+
+
+                async def example():
+                    chat_completions = [
+                        "Hello, how can I assist you today?",
+                    ]
+                    client = ReplayChatCompletionClient(chat_completions)
+                    messages = [UserMessage(content="What can you do?", source="user")]
+                    response = await client.create(messages)
+                    print(response.content)  # Output: "Hello, how can I assist you today?"
+
+                    response = await client.create(messages)  # Raises ValueError("No more mock responses available")
+
+                    client.reset()  # Reset the client state (current index of message and token usages)
+                    response = await client.create(messages)
+                    print(response.content)  # Output: "Hello, how can I assist you today?" again
+
 
                 asyncio.run(example())
-
-    Using `.reset` to reset the chat client state
-
-        .. code-block:: python
-
-            import asyncio
-            from autogen_ext.models import ReplayChatCompletionClient
-            from autogen_core.models import UserMessage
-
-
-            async def example():
-                chat_completions = [
-                    "Hello, how can I assist you today?",
-                ]
-                client = ReplayChatCompletionClient(chat_completions)
-                messages = [UserMessage(content="What can you do?", source="user")]
-                response = await client.create(messages)
-                print(response.content)  # Output: "Hello, how can I assist you today?"
-
-                response = await client.create(messages)  # Raises ValueError("No more mock responses available")
-
-                client.reset()  # Reset the client state (current index of message and token usages)
-                response = await client.create(messages)
-                print(response.content)  # Output: "Hello, how can I assist you today?" again
-
-
-            asyncio.run(example())
 
     """
 
