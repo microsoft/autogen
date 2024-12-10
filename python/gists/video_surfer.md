@@ -184,7 +184,7 @@ async def main() -> None:
     )
 
     # Define a team
-    agent_team = MagenticOneGroupChat([user_proxy_agent, video_agent], model_client=model_client,)
+    agent_team = MagenticOneGroupChat([user_proxy_agent, video_agent], model_client=model_client)
 
     # Run the team and stream messages to the console
     stream = agent_team.run_stream(task="Answer any questions the user asks about video.mp4.")
