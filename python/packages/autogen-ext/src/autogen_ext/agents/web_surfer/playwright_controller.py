@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import os
+import io
 import random
 from typing import Any, Callable, Dict, Optional, Tuple, Union, cast
 
@@ -14,6 +15,9 @@ from ._types import (
     interactiveregion_from_dict,
     visualviewport_from_dict,
 )
+
+# TODO: Fix unfollowed import
+from markitdown import FileConversionException, MarkItDown, UnsupportedFormatException  # type: ignore
 
 
 class PlaywrightController:
@@ -55,6 +59,7 @@ class PlaywrightController:
         self.to_resize_viewport = to_resize_viewport
         self._page_script: str = ""
         self.last_cursor_position: Tuple[float, float] = (0.0, 0.0)
+        self._markdown_converter: Optional[MarkItDown] = None
 
         # Read page_script
         with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
@@ -420,7 +425,7 @@ class PlaywrightController:
         else:
             await page.mouse.move(box["x"] + box["width"] / 2, box["y"] + box["height"] / 2)
 
-    async def fill_id(self, page: Page, identifier: str, value: str) -> None:
+    async def fill_id(self, page: Page, identifier: str, value: str, press_enter: bool = True) -> None:
         """
         Fill the element with the given identifier with the specified value.
 
@@ -464,7 +469,8 @@ class PlaywrightController:
                 await target.fill(value)
             except PlaywrightError:
                 await target.press_sequentially(value)
-        await target.press("Enter")
+        if press_enter:
+            await target.press("Enter")
 
         if self.animate_actions:
             await self.remove_cursor_box(page, identifier)
@@ -530,6 +536,9 @@ class PlaywrightController:
         Returns:
             str: The markdown content of the page.
         """
-        # TODO: replace with mdconvert
         assert page is not None
-        return await self.get_webpage_text(page, n_lines=1000)
+        if self._markdown_converter is None:
+            self._markdown_converter = MarkItDown()
+        html = await page.evaluate("document.documentElement.outerHTML;")
+        res = self._markdown_converter.convert_stream(io.StringIO(html), file_extension=".html", url=page.url)  # type: ignore
+        return res.text_content  # type: ignore
