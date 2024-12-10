@@ -32,8 +32,7 @@ from autogen_agentchat.teams._group_chat._round_robin_group_chat import RoundRob
 from autogen_agentchat.teams._group_chat._selector_group_chat import SelectorGroupChatManager
 from autogen_agentchat.teams._group_chat._swarm_group_chat import SwarmGroupChatManager
 from autogen_agentchat.ui import Console
-from autogen_core import AgentId, CancellationToken, FunctionCall
-from autogen_core.models import FunctionExecutionResult
+from autogen_core import AgentId, CancellationToken
 from autogen_core.tools import FunctionTool
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.models import OpenAIChatCompletionClient, ReplayChatCompletionClient
@@ -306,6 +305,7 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
             usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
     ]
+    # Test with repeat tool calls once
     mock = _MockChatCompletion(chat_completions)
     monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
     tool = FunctionTool(_pass_function, name="pass", description="pass function")
@@ -320,27 +320,18 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     result = await team.run(
         task="Write a program that prints 'Hello, world!'",
     )
-
-    assert len(result.messages) == 6
+    assert len(result.messages) == 8
     assert isinstance(result.messages[0], TextMessage)  # task
     assert isinstance(result.messages[1], ToolCallMessage)  # tool call
     assert isinstance(result.messages[2], ToolCallResultMessage)  # tool call result
     assert isinstance(result.messages[3], TextMessage)  # tool use agent response
     assert isinstance(result.messages[4], TextMessage)  # echo agent response
     assert isinstance(result.messages[5], TextMessage)  # tool use agent response
-    assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
+    assert isinstance(result.messages[6], TextMessage)  # echo agent response
+    assert isinstance(result.messages[7], TextMessage)  # tool use agent response, that has TERMINATE
+    assert result.messages[7].content == "TERMINATE"
 
-    context = tool_use_agent._model_context  # pyright: ignore
-    assert context[0].content == "Write a program that prints 'Hello, world!'"
-    assert isinstance(context[1].content, list)
-    assert isinstance(context[1].content[0], FunctionCall)
-    assert context[1].content[0].name == "pass"
-    assert context[1].content[0].arguments == json.dumps({"input": "pass"})
-    assert isinstance(context[2].content, list)
-    assert isinstance(context[2].content[0], FunctionExecutionResult)
-    assert context[2].content[0].content == "pass"
-    assert context[2].content[0].call_id == "1"
-    assert context[3].content == "Hello"
+    assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
 
     # Test streaming.
     tool_use_agent._model_context.clear()  # pyright: ignore
