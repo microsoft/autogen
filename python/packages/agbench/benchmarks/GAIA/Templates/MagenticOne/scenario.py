@@ -8,18 +8,18 @@ from openai import AzureOpenAI
 
 from typing import List
 
-from autogen_core.base import AgentId, AgentProxy, TopicId
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.application.logging import EVENT_LOGGER_NAME
-from autogen_core.components.models import (
+from autogen_core import AgentId, AgentProxy, TopicId
+from autogen_core import SingleThreadedAgentRuntime
+from autogen_core import EVENT_LOGGER_NAME
+from autogen_core.models import (
     ChatCompletionClient,
     ModelCapabilities,
     UserMessage,
     LLMMessage,
 )
-from autogen_core.components import DefaultSubscription, DefaultTopicId
-from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
-from autogen_core.components.models import AssistantMessage
+from autogen_core import DefaultSubscription, DefaultTopicId
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_core.models import AssistantMessage
 
 from autogen_magentic_one.markdown_browser import MarkdownConverter, UnsupportedFormatException
 from autogen_magentic_one.agents.coder import Coder, Executor

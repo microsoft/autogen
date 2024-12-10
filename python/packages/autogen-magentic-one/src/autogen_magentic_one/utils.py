@@ -5,9 +5,9 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Any, Dict, List, Literal
 
-from autogen_core.application.logging.events import LLMCallEvent
-from autogen_core.components import Image
-from autogen_core.components.models import (
+from autogen_core import Image
+from autogen_core.logging import LLMCallEvent
+from autogen_core.models import (
     ChatCompletionClient,
     ModelCapabilities,
 )

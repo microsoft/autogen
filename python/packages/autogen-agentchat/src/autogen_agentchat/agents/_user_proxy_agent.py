@@ -2,7 +2,8 @@ import asyncio
 from inspect import iscoroutinefunction
 from typing import Awaitable, Callable, List, Optional, Sequence, Union, cast
 
-from autogen_core.base import CancellationToken
+from aioconsole import ainput  # type: ignore
+from autogen_core import CancellationToken
 
 from ..base import Response
 from ..messages import ChatMessage, HandoffMessage, TextMessage
@@ -12,6 +13,15 @@ from ._base_chat_agent import BaseChatAgent
 SyncInputFunc = Callable[[str], str]
 AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
 InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
+
+
+# TODO: ainput doesn't seem to play nicely with jupyter.
+#       No input window appears in this case.
+async def cancellable_input(prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
+    task: asyncio.Task[str] = asyncio.create_task(ainput(prompt))  # type: ignore
+    if cancellation_token is not None:
+        cancellation_token.link_future(task)
+    return await task
 
 
 class UserProxyAgent(BaseChatAgent):
@@ -28,18 +38,75 @@ class UserProxyAgent(BaseChatAgent):
 
         Using :class:`UserProxyAgent` puts a running team in a temporary blocked
         state until the user responds. So it is important to time out the user input
-        function and cancel using the :class:`~autogen_core.base.CancellationToken` if the user does not respond.
+        function and cancel using the :class:`~autogen_core.CancellationToken` if the user does not respond.
         The input function should also handle exceptions and return a default response if needed.
 
         For typical use cases that involve
         slow human responses, it is recommended to use termination conditions
-        such as :class:`~autogen_agentchat.task.HandoffTermination` or :class:`~autogen_agentchat.task.SourceMatchTermination`
+        such as :class:`~autogen_agentchat.conditions.HandoffTermination` or :class:`~autogen_agentchat.conditions.SourceMatchTermination`
         to stop the running team and return the control to the application.
         You can run the team again with the user input. This way, the state of the team
         can be saved and restored when the user responds.
 
         See `Pause for User Input <https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/teams.html#pause-for-user-input>`_ for more information.
 
+    Example:
+        Simple usage case::
+
+            import asyncio
+            from autogen_core import CancellationToken
+            from autogen_agentchat.agents import UserProxyAgent
+            from autogen_agentchat.messages import TextMessage
+
+
+            async def simple_user_agent():
+                agent = UserProxyAgent("user_proxy")
+                response = await asyncio.create_task(
+                    agent.on_messages(
+                        [TextMessage(content="What is your name? ", source="user")],
+                        cancellation_token=CancellationToken(),
+                    )
+                )
+                print(f"Your name is {response.chat_message.content}")
+
+    Example:
+        Cancellable usage case::
+
+            import asyncio
+            from typing import Any
+            from autogen_core import CancellationToken
+            from autogen_agentchat.agents import UserProxyAgent
+            from autogen_agentchat.messages import TextMessage
+
+
+            token = CancellationToken()
+            agent = UserProxyAgent("user_proxy")
+
+
+            async def timeout(delay: float):
+                await asyncio.sleep(delay)
+
+
+            def cancellation_callback(task: asyncio.Task[Any]):
+                token.cancel()
+
+
+            async def cancellable_user_agent():
+                try:
+                    timeout_task = asyncio.create_task(timeout(3))
+                    timeout_task.add_done_callback(cancellation_callback)
+                    agent_task = asyncio.create_task(
+                        agent.on_messages(
+                            [TextMessage(content="What is your name? ", source="user")],
+                            cancellation_token=CancellationToken(),
+                        )
+                    )
+                    response = await agent_task
+                    print(f"Your name is {response.chat_message.content}")
+                except Exception as e:
+                    print(f"Exception: {e}")
+                except BaseException as e:
+                    print(f"BaseException: {e}")
     """
 
     def __init__(
@@ -51,7 +118,7 @@ class UserProxyAgent(BaseChatAgent):
     ) -> None:
         """Initialize the UserProxyAgent."""
         super().__init__(name=name, description=description)
-        self.input_func = input_func or input
+        self.input_func = input_func or cancellable_input
         self._is_async = iscoroutinefunction(self.input_func)
 
     @property

@@ -5,8 +5,8 @@ import cv2
 import ffmpeg
 import numpy as np
 import whisper
-from autogen_core.components import Image as AGImage
-from autogen_core.components.models import (
+from autogen_core import Image as AGImage
+from autogen_core.models import (
     ChatCompletionClient,
     UserMessage,
 )

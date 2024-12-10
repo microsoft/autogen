@@ -1,10 +1,9 @@
 import json
 import logging
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Mapping
 
-from autogen_core.base import AgentId, CancellationToken, MessageContext
-from autogen_core.components import DefaultTopicId, Image, event, rpc
-from autogen_core.components.models import (
+from autogen_core import AgentId, CancellationToken, DefaultTopicId, Image, MessageContext, event, rpc
+from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
@@ -13,7 +12,17 @@ from autogen_core.components.models import (
 
 from .... import TRACE_LOGGER_NAME
 from ....base import Response, TerminationCondition
-from ....messages import AgentMessage, ChatMessage, MultiModalMessage, StopMessage, TextMessage
+from ....messages import (
+    AgentMessage,
+    ChatMessage,
+    HandoffMessage,
+    MultiModalMessage,
+    StopMessage,
+    TextMessage,
+    ToolCallMessage,
+    ToolCallResultMessage,
+)
+from ....state import MagenticOneOrchestratorState
 from .._base_group_chat_manager import BaseGroupChatManager
 from .._events import (
     GroupChatAgentResponse,
@@ -157,12 +166,11 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:  # type: ignore
-        self._message_thread.append(message.agent_response.chat_message)
         delta: List[AgentMessage] = []
         if message.agent_response.inner_messages is not None:
             for inner_message in message.agent_response.inner_messages:
-                self._message_thread.append(inner_message)
                 delta.append(inner_message)
+        self._message_thread.append(message.agent_response.chat_message)
         delta.append(message.agent_response.chat_message)
 
         if self._termination_condition is not None:
@@ -178,6 +186,28 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     async def validate_group_state(self, message: ChatMessage | None) -> None:
         pass
+
+    async def save_state(self) -> Mapping[str, Any]:
+        state = MagenticOneOrchestratorState(
+            message_thread=list(self._message_thread),
+            current_turn=self._current_turn,
+            task=self._task,
+            facts=self._facts,
+            plan=self._plan,
+            n_rounds=self._n_rounds,
+            n_stalls=self._n_stalls,
+        )
+        return state.model_dump()
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        orchestrator_state = MagenticOneOrchestratorState.model_validate(state)
+        self._message_thread = orchestrator_state.message_thread
+        self._current_turn = orchestrator_state.current_turn
+        self._task = orchestrator_state.task
+        self._facts = orchestrator_state.facts
+        self._plan = orchestrator_state.plan
+        self._n_rounds = orchestrator_state.n_rounds
+        self._n_stalls = orchestrator_state.n_stalls
 
     async def select_speaker(self, thread: List[AgentMessage]) -> str:
         """Not used in this orchestrator, we select next speaker in _orchestrate_step."""
@@ -396,7 +426,12 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         """Convert the message thread to a context for the model."""
         context: List[LLMMessage] = []
         for m in self._message_thread:
-            if m.source == self._name:
+            if isinstance(m, ToolCallMessage | ToolCallResultMessage):
+                # Ignore tool call messages.
+                continue
+            elif isinstance(m, StopMessage | HandoffMessage):
+                context.append(UserMessage(content=m.content, source=m.source))
+            elif m.source == self._name:
                 assert isinstance(m, TextMessage)
                 context.append(AssistantMessage(content=m.content, source=m.source))
             else:

@@ -6,13 +6,13 @@ from datetime import datetime
 import json
 from dataclasses import asdict
 
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.application.logging import EVENT_LOGGER_NAME
-from autogen_core.base import AgentId, AgentProxy
-from autogen_core.components import DefaultTopicId
-from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
-from autogen_ext.code_executor.docker_executor import DockerCommandLineCodeExecutor
-from autogen_core.components.code_executor import CodeBlock
+from autogen_core import SingleThreadedAgentRuntime
+from autogen_core import EVENT_LOGGER_NAME
+from autogen_core import AgentId, AgentProxy
+from autogen_core import DefaultTopicId
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
+from autogen_core.code_executor import CodeBlock
 from autogen_magentic_one.agents.coder import Coder, Executor
 from autogen_magentic_one.agents.file_surfer import FileSurfer
 from autogen_magentic_one.agents.multimodal_web_surfer import MultimodalWebSurfer
@@ -20,7 +20,7 @@ from autogen_magentic_one.agents.orchestrator import LedgerOrchestrator
 from autogen_magentic_one.agents.user_proxy import UserProxy
 from autogen_magentic_one.messages import BroadcastMessage
 from autogen_magentic_one.utils import LogHandler, create_completion_client_from_env
-from autogen_core.components.models import UserMessage
+from autogen_core.models import UserMessage
 from threading import Lock
 
 

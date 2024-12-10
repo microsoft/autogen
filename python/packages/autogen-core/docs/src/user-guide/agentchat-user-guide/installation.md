@@ -7,7 +7,7 @@ myst:
 
 # Installation
 
-## Create a virtual environment (optional)
+## Create a Virtual Environment (optional)
 
 When installing AgentChat locally, we recommend using a virtual environment for the installation. This will ensure that the dependencies for AgentChat are isolated from the rest of your system.
 
@@ -55,13 +55,13 @@ conda deactivate
 
 ``````
 
-## Intall the AgentChat package using pip
+## Install Using pip
 
 Install the `autogen-agentchat` package using pip:
 
 ```bash
 
-pip install 'autogen-agentchat==0.4.0.dev8'
+pip install 'autogen-agentchat==0.4.0.dev9'
 ```
 
 ```{note}
@@ -74,7 +74,7 @@ To use the OpenAI and Azure OpenAI models, you need to install the following
 extensions:
 
 ```bash
-pip install 'autogen-ext[openai]==0.4.0.dev8'
+pip install 'autogen-ext[openai]==0.4.0.dev9'
 ```
 
 ## Install Docker for Code Execution

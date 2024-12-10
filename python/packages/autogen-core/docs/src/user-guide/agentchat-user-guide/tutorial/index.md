@@ -7,11 +7,7 @@ myst:
 
 # Tutorial
 
-Tutorial to get started with AgentChat.
-
-```{include} ../warning.md
-
-```
+Get started with AgentChat through this comprehensive tutorial.
 
 ::::{grid} 2 2 2 3
 :gutter: 3
@@ -20,6 +16,12 @@ Tutorial to get started with AgentChat.
 :link: ./models.html
 
 Setting up model clients for agents and teams.
+:::
+
+:::{grid-item-card} {fas}`message;pst-color-primary` Messages
+:link: ./messages.html
+
+Understanding different types of messages.
 :::
 
 :::{grid-item-card} {fas}`users;pst-color-primary` Agents
@@ -52,6 +54,12 @@ A dynamic team that uses handoffs to pass tasks between agents.
 How to build custom agents.
 :::
 
+:::{grid-item-card} {fas}`database;pst-color-primary` State Management
+:link: ./state.html
+
+How to manage state in agents and teams.
+:::
+
 ::::
 
 ```{toctree}
@@ -59,10 +67,12 @@ How to build custom agents.
 :hidden:
 
 models
+messages
 agents
 teams
 selector-group-chat
 swarm
 termination
 custom-agents
+state
 ```
