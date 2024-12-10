@@ -129,7 +129,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         assert message is not None and message.messages is not None
 
         # Validate the group state given the start message.
-        await self.validate_group_state(message.messages[0])
+        await self.validate_group_state([message.messages[0]])
 
         # Log the start message.
         await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
@@ -185,7 +185,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 return
         await self._orchestrate_step(ctx.cancellation_token)
 
-    async def validate_group_state(self, message: ChatMessage | None) -> None:
+    async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
         pass
 
     async def save_state(self) -> Mapping[str, Any]:

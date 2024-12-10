@@ -1,10 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, List, Mapping, Sequence, get_args, get_origin
-
-try:
-    from typing import Annotated
-except ImportError:
-    from typing_extensions import Annotated
+from typing import Any, AsyncGenerator, List, Mapping, Sequence, get_args
 
 from autogen_core import CancellationToken
 
@@ -12,9 +7,6 @@ from ..base import ChatAgent, Response, TaskResult
 from ..messages import (
     AgentMessage,
     ChatMessage,
-    HandoffMessage,
-    MultiModalMessage,
-    StopMessage,
     TextMessage,
 )
 from ..state import BaseState
@@ -84,12 +76,12 @@ class BaseChatAgent(ChatAgent, ABC):
             output_messages.append(text_msg)
         elif isinstance(task, list):
             for msg in task:
-                if get_origin(ChatMessage) is Annotated and msg.__class__ in get_args(ChatMessage)[0].__args__:
+                if isinstance(msg, get_args(ChatMessage)[0]):
                     input_messages.append(msg)
                     output_messages.append(msg)
                 else:
                     raise ValueError(f"Invalid message type in list: {type(msg)}")
-        elif get_origin(ChatMessage) is Annotated and task.__class__ in get_args(ChatMessage)[0].__args__:
+        elif isinstance(task, get_args(ChatMessage)[0]):
             input_messages.append(task)
             output_messages.append(task)
         else:
@@ -121,13 +113,13 @@ class BaseChatAgent(ChatAgent, ABC):
             yield text_msg
         elif isinstance(task, list):
             for msg in task:
-                if get_origin(ChatMessage) is Annotated and msg.__class__ in get_args(ChatMessage)[0].__args__:
+                if isinstance(msg, get_args(ChatMessage)[0]):
                     input_messages.append(msg)
                     output_messages.append(msg)
                     yield msg
                 else:
                     raise ValueError(f"Invalid message type in list: {type(msg)}")
-        elif get_origin(ChatMessage) is Annotated and task.__class__ in get_args(ChatMessage)[0].__args__:
+        elif isinstance(task, get_args(ChatMessage)[0]):
             input_messages.append(task)
             output_messages.append(task)
             yield task

@@ -1036,7 +1036,7 @@ async def test_round_robin_group_chat_with_message_list() -> None:
     team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
 
     # Create a list of messages
-    messages = [
+    messages: List[ChatMessage] = [
         TextMessage(content="Message 1", source="user"),
         TextMessage(content="Message 2", source="user"),
         TextMessage(content="Message 3", source="user"),
@@ -1067,7 +1067,7 @@ async def test_round_robin_group_chat_with_message_list() -> None:
 
     # Test with invalid message list
     with pytest.raises(ValueError, match="All messages in task list must be valid ChatMessage types"):
-        await team.run(task=["not a message"])
+        await team.run(task=["not a message"])  # type: ignore[list-item]  # intentionally testing invalid input
 
     # Test with empty message list
     with pytest.raises(ValueError, match="Task list cannot be empty"):

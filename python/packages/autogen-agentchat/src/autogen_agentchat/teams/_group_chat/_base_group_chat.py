@@ -2,12 +2,7 @@ import asyncio
 import logging
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Callable, List, Mapping, get_args, get_origin
-
-try:
-    from typing import Annotated
-except ImportError:
-    from typing_extensions import Annotated
+from typing import Any, AsyncGenerator, Callable, List, Mapping, get_args
 
 from autogen_core import (
     AgentId,
@@ -373,15 +368,16 @@ class BaseGroupChat(Team, ABC):
             pass
         elif isinstance(task, str):
             first_chat_message = TextMessage(content=task, source="user")
-        elif get_origin(ChatMessage) is Annotated and task.__class__ in get_args(ChatMessage)[0].__args__:
+        elif isinstance(task, get_args(ChatMessage)[0]):
             first_chat_message = task
         elif isinstance(task, list):
             if not task:
                 raise ValueError("Task list cannot be empty")
-            # Validate all messages in the list
-            for msg in task:
-                if not (isinstance(msg, TextMessage) or isinstance(msg, get_args(ChatMessage)[0].__args__)):
-                    raise ValueError("All messages in task list must be valid ChatMessage types")
+            if not all(
+                isinstance(msg, get_args(ChatMessage)[0])
+                for msg in task
+            ):
+                raise ValueError("All messages in task list must be valid ChatMessage types")
             first_chat_message = task[0]
             # Queue remaining messages for processing
             for msg in task[1:]:
