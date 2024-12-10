@@ -30,6 +30,9 @@ pip install "autogen-agentchat==0.4.0.dev9" "autogen-ext[openai,video-surfer]==0
 
 This will install the high-level API for agents built using `autogen-core`.
 
+> [!WARNING]  
+> Python 3.13 on Apple Silicon will fail due to a torch wheel not being available. Use 3.10-3.12 in this case. 
+
 ## A hello world example with `AssistantAgent`
 
 Run the script below. You'll need an OpenAI API key.
@@ -40,7 +43,7 @@ import asyncio
 from autogen_agentchat.ui import Console
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
-from autogen_ext.models import OpenAIChatCompletionClient
+from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
 async def main() -> None:
