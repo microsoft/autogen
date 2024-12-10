@@ -1,8 +1,8 @@
 from typing import AsyncGenerator, List, Sequence
 
 from autogen_core import CancellationToken, Image
-from autogen_core.components.models import ChatCompletionClient
-from autogen_core.components.models._types import SystemMessage
+from autogen_core.models import ChatCompletionClient
+from autogen_core.models._types import SystemMessage
 
 from autogen_agentchat.base import Response
 
@@ -40,7 +40,7 @@ class SocietyOfMindAgent(BaseChatAgent):
 
         import asyncio
         from autogen_agentchat.agents import AssistantAgent, SocietyOfMindAgent
-        from autogen_ext.models import OpenAIChatCompletionClient
+        from autogen_ext.models.openai import OpenAIChatCompletionClient
         from autogen_agentchat.teams import RoundRobinGroupChat
         from autogen_agentchat.conditions import MaxMessageTermination
 

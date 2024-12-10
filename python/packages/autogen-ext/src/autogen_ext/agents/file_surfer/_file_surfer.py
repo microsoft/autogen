@@ -10,7 +10,7 @@ from autogen_agentchat.messages import (
     TextMessage,
 )
 from autogen_core import CancellationToken, FunctionCall
-from autogen_core.components.models import (
+from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,

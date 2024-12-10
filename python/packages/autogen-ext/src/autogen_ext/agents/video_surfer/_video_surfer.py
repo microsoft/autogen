@@ -1,8 +1,8 @@
 from typing import Any, Awaitable, Callable, List, Optional
 
 from autogen_agentchat.agents import AssistantAgent
-from autogen_core.components.models import ChatCompletionClient
-from autogen_core.components.tools import Tool
+from autogen_core.models import ChatCompletionClient
+from autogen_core.tools import Tool
 
 from .tools import (
     extract_audio,
@@ -42,7 +42,7 @@ class VideoSurfer(AssistantAgent):
             from autogen_agentchat.ui import Console
             from autogen_agentchat.conditions import TextMentionTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_ext.agents.video_surfer import VideoSurfer
 
             async def main() -> None:
@@ -76,7 +76,7 @@ class VideoSurfer(AssistantAgent):
             from autogen_agentchat.ui import Console
             from autogen_agentchat.teams import MagenticOneGroupChat
             from autogen_agentchat.agents import UserProxyAgent
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_ext.agents.video_surfer import VideoSurfer
 
             async def main() -> None:

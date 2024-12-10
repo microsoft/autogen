@@ -1,6 +1,6 @@
 from typing import Dict
 
-from autogen_core.components.models import ModelCapabilities
+from autogen_core.models import ModelCapabilities
 
 # Based on: https://platform.openai.com/docs/models/continuous-model-upgrades
 # This is a moving target, so correctness is checked by the model value returned by openai against expected values at runtime``

@@ -1,8 +1,8 @@
-autogen\_core.components.models
+autogen\_core.models
 ===============================
 
 
-.. automodule:: autogen_core.components.models
+.. automodule:: autogen_core.models
    :members:
    :undoc-members:
    :show-inheritance:

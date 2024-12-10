@@ -1,6 +1,6 @@
 from typing import Awaitable, Callable, Dict, List, Literal, Optional, Union
 
-from autogen_core.components.models import ModelCapabilities
+from autogen_core.models import ModelCapabilities
 from typing_extensions import Required, TypedDict
 
 

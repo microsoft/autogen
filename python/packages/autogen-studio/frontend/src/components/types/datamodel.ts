@@ -114,9 +114,11 @@ export type ModelTypes = "OpenAIChatCompletionClient";
 export type AgentTypes =
   | "AssistantAgent"
   | "CodingAssistantAgent"
-  | "MultimodalWebSurfer";
+  | "MultimodalWebSurfer"
+  | "FileSurfer"
+  | "MagenticOneCoderAgent";
 
-export type TeamTypes = "RoundRobinGroupChat" | "SelectorGroupChat";
+export type TeamTypes = "RoundRobinGroupChat" | "SelectorGroupChat" | "MagenticOneGroupChat";
 
 // class ComponentType(str, Enum):
 //     TEAM = "team"

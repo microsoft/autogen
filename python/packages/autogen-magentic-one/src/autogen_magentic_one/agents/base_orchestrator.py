@@ -3,7 +3,7 @@ import time
 from typing import List, Optional
 
 from autogen_core import EVENT_LOGGER_NAME, AgentProxy, CancellationToken, MessageContext
-from autogen_core.components.models import AssistantMessage, LLMMessage, UserMessage
+from autogen_core.models import AssistantMessage, LLMMessage, UserMessage
 
 from ..messages import BroadcastMessage, OrchestrationEvent, RequestReplyMessage, ResetMessage
 from ..utils import message_content_to_str
