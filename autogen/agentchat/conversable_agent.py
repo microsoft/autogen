@@ -1,4 +1,5 @@
 import asyncio
+import contextvars
 import copy
 import functools
 import inspect
@@ -1486,6 +1487,7 @@ class ConversableAgent(LLMAgent):
     ) -> Tuple[bool, Union[str, Dict, None]]:
         """Generate a reply using autogen.oai asynchronously."""
         iostream = IOStream.get_default()
+        parent_context = contextvars.copy_context()
 
         def _generate_oai_reply(
             self, iostream: IOStream, *args: Any, **kwargs: Any
@@ -1495,7 +1497,7 @@ class ConversableAgent(LLMAgent):
 
         return await asyncio.get_event_loop().run_in_executor(
             None,
-            functools.partial(
+            lambda: parent_context.run(
                 _generate_oai_reply, self=self, iostream=iostream, messages=messages, sender=sender, config=config
             ),
         )
