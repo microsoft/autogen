@@ -129,7 +129,7 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     assert isinstance(result.messages[2], ToolCallResultMessage)
     assert result.messages[2].models_usage is None
     assert isinstance(result.messages[3], TextMessage)
-    assert result.messages[3].content == 'Tool calls:\n_pass_function({"input": "task"}) = pass'
+    assert result.messages[3].content == 'pass'
     assert result.messages[3].models_usage is None
 
     # Test streaming.

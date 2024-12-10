@@ -62,7 +62,7 @@ class AssistantAgent(BaseChatAgent):
 
     * If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
     * When the model returns tool calls, they will be executed right away:
-        - When `reflect_on_tool_use` is False (default), the tool call results are returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
+        - When `reflect_on_tool_use` is False (default), the tool call results are returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. `tool_call_summary_format` can be used to customize the tool call summary.
         - When `reflect_on_tool_use` is True, the another model inference is made using the tool calls and results, and the text response is returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
 
     Hand off behavior:
@@ -77,7 +77,15 @@ class AssistantAgent(BaseChatAgent):
         not call its methods concurrently.
 
     .. note::
-        Furthermore, if multiple handoffs are detected, only the first handoff is executed.
+        By default, the tool call results are returned as response when tool calls are made.
+        So it is recommended to pay attention to the formatting of the tools return values,
+        especially if another agent is expecting them in a specific format.
+        Use `tool_call_summary_format` to customize the tool call summary, if needed.
+
+    .. note::
+        If multiple handoffs are detected, only the first handoff is executed.
+
+
 
     Args:
         name (str): The name of the agent.
@@ -91,6 +99,12 @@ class AssistantAgent(BaseChatAgent):
         system_message (str, optional): The system message for the model.
         reflect_on_tool_use (bool, optional): If `True`, the agent will make another model inference using the tool call and result
             to generate a response. If `False`, the tool call result will be returned as the response. Defaults to `False`.
+        tool_call_summary_format (str, optional): The format string used to create a tool call summary for every tool call result.
+            Defaults to "{result}".
+            When `reflect_on_tool_use` is `False`, a concatenation of all the tool call summaries, separated by a new line character ('\\n')
+            will be returned as the response.
+            Available variables: `{tool_name}`, `{arguments}`, `{result}`.
+            For example, `"{tool_name}: {result}"` will create a summary like `"tool_name: result"`.
 
     Raises:
         ValueError: If tool names are not unique.
@@ -208,6 +222,7 @@ class AssistantAgent(BaseChatAgent):
         system_message: str
         | None = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
         reflect_on_tool_use: bool = False,
+        tool_call_summary_format: str = "{result}",
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client
@@ -259,6 +274,7 @@ class AssistantAgent(BaseChatAgent):
             )
         self._model_context: List[LLMMessage] = []
         self._reflect_on_tool_use = reflect_on_tool_use
+        self._tool_call_summary_format = tool_call_summary_format
         self._is_running = False
 
     @property
@@ -352,9 +368,16 @@ class AssistantAgent(BaseChatAgent):
             )
         else:
             # Return tool call result as the response.
-            tool_call_summary = "Tool calls:"
+            tool_call_summaries : List[str] = []
             for i in range(len(tool_call_msg.content)):
-                tool_call_summary += f"\n{tool_call_msg.content[i].name}({tool_call_msg.content[i].arguments}) = {tool_call_result_msg.content[i].content}"
+                tool_call_summaries.append(
+                    self._tool_call_summary_format.format(
+                        tool_name=tool_call_msg.content[i].name,
+                        arguments=tool_call_msg.content[i].arguments,
+                        result=tool_call_result_msg.content[i].content,
+                    ),
+                )
+            tool_call_summary = "\n".join(tool_call_summaries)
             yield Response(
                 chat_message=TextMessage(content=tool_call_summary, source=self.name),
                 inner_messages=inner_messages,
