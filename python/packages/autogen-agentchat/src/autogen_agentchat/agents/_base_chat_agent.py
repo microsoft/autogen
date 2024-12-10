@@ -1,5 +1,10 @@
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, List, Mapping, Sequence
+from typing import Any, AsyncGenerator, List, Mapping, Sequence, get_args, get_origin
+
+try:
+    from typing import Annotated
+except ImportError:
+    from typing_extensions import Annotated
 
 from autogen_core import CancellationToken
 
@@ -79,12 +84,12 @@ class BaseChatAgent(ChatAgent, ABC):
             output_messages.append(text_msg)
         elif isinstance(task, list):
             for msg in task:
-                if isinstance(msg, (TextMessage, MultiModalMessage, StopMessage, HandoffMessage)):
+                if get_origin(ChatMessage) is Annotated and msg.__class__ in get_args(ChatMessage)[0].__args__:
                     input_messages.append(msg)
                     output_messages.append(msg)
                 else:
                     raise ValueError(f"Invalid message type in list: {type(msg)}")
-        elif isinstance(task, (TextMessage, MultiModalMessage, StopMessage, HandoffMessage)):
+        elif get_origin(ChatMessage) is Annotated and task.__class__ in get_args(ChatMessage)[0].__args__:
             input_messages.append(task)
             output_messages.append(task)
         else:
@@ -116,13 +121,13 @@ class BaseChatAgent(ChatAgent, ABC):
             yield text_msg
         elif isinstance(task, list):
             for msg in task:
-                if isinstance(msg, (TextMessage, MultiModalMessage, StopMessage, HandoffMessage)):
+                if get_origin(ChatMessage) is Annotated and msg.__class__ in get_args(ChatMessage)[0].__args__:
                     input_messages.append(msg)
                     output_messages.append(msg)
                     yield msg
                 else:
                     raise ValueError(f"Invalid message type in list: {type(msg)}")
-        elif isinstance(task, (TextMessage, MultiModalMessage, StopMessage, HandoffMessage)):
+        elif get_origin(ChatMessage) is Annotated and task.__class__ in get_args(ChatMessage)[0].__args__:
             input_messages.append(task)
             output_messages.append(task)
             yield task
