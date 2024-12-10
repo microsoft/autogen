@@ -12,7 +12,7 @@ from typing_extensions import (
 )
 
 from .. import CancellationToken
-from ..components.tools import Tool, ToolSchema
+from ..tools import Tool, ToolSchema
 from ._types import CreateResult, LLMMessage, RequestUsage
 
 

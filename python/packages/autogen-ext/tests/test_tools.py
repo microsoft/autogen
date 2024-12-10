@@ -2,7 +2,7 @@ from typing import Optional, Type, cast
 
 import pytest
 from autogen_core import CancellationToken
-from autogen_core.components.tools import Tool
+from autogen_core.tools import Tool
 from autogen_ext.tools.langchain import LangChainToolAdapter  # type: ignore
 from langchain_core.callbacks.manager import AsyncCallbackManagerForToolRun, CallbackManagerForToolRun
 from langchain_core.tools import BaseTool as LangChainTool
