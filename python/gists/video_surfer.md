@@ -50,13 +50,16 @@ async def main() -> None:
     """
     Main function to run the video agent.
     """
+    # Create a client
+    model_client=OpenAIChatCompletionClient(
+        model="gpt-4o-mini",
+        # api_key = "your_openai_api_key"
+        )
+
     # Define an agent
     agent = AssistantAgent(
         name="MyAgent",
-        model_client=OpenAIChatCompletionClient(
-          model="gpt-4o-mini",
-          # api_key = "your_openai_api_key"
-          )
+        model_client=model_client,
         )
 
     # Define a team, with max_turns=1 to limit the agent to run for a single turn.
@@ -85,10 +88,7 @@ Modify the system message to describe your video surfer agent's roles and respon
   SYSTEM_MESSAGE="You are a helpful AI agent that can answer questions about video files."
   video_agent = AssistantAgent(
         name="VideoSurferAgent",
-        model_client=OpenAIChatCompletionClient(
-          model="gpt-4o-mini",
-          # api_key = "your_openai_api_key"
-          ),
+        model_client=model_client,
         system_message=SYSTEM_MESSAGE
         )
 
@@ -135,10 +135,7 @@ def get_video_length(video_path: str) -> str:
   SYSTEM_MESSAGE="custom system message"
   video_agent = AssistantAgent(
       name="VideoSurferAgent",
-      model_client=OpenAIChatCompletionClient(
-        model="gpt-4o-mini",
-        # api_key = "your_openai_api_key"
-        ),
+      model_client=model_client,
       system_message=SYSTEM_MESSAGE,
       tools=[get_video_length],
    )
