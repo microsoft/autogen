@@ -474,7 +474,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         self._last_download = None
         if isinstance(message, str):
             # Answer directly
-            self.inner_messages.append(AgentMessage(content=message, source=self.name))
+            self.inner_messages.append(TextMessage(content=message, source=self.name))
             return message
         elif isinstance(message, list):
             # Take an action
@@ -504,7 +504,7 @@ class MultimodalWebSurfer(BaseChatAgent):
                 message=f"{name}( {json.dumps(args)} )",
             )
         )
-        self.inner_messages.append(AgentMessage(content=f"{name}( {json.dumps(args)} )", source=self.name))
+        self.inner_messages.append(TextMessage(content=f"{name}( {json.dumps(args)} )", source=self.name))
 
         if name == "visit_url":
             url = args.get("url")

@@ -7,8 +7,6 @@ from typing import Any, AsyncGenerator, List
 
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
-from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.base import Handoff, TaskResult
 from autogen_agentchat.messages import (
     HandoffMessage,
     MultiModalMessage,
@@ -16,17 +14,15 @@ from autogen_agentchat.messages import (
     ToolCallMessage,
     ToolCallResultMessage,
 )
-from autogen_core import Image
 from autogen_core.components.tools import FunctionTool
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
-from autogen_ext.models import OpenAIChatCompletionClient
+from autogen_ext.models.openai import OpenAIChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall, Function
 from openai.types.completion_usage import CompletionUsage
-from playwright.async_api import async_playwright
 from pydantic import BaseModel
 
 
@@ -69,44 +65,9 @@ logger.addHandler(FileLogHandler("test_websurfer_agent.log"))
 
 
 @pytest.mark.asyncio
-async def test_multimodal_websurfer_initialization() -> None:
-    model_client = OpenAIChatCompletionClient(model="gpt-4o-2024-08-06", api_key="")
-    agent = MultimodalWebSurfer(name="TestWebSurfer", model_client=model_client)
-    assert agent.name == "TestWebSurfer"
-    assert agent._model_client == model_client
-
-
-@pytest.mark.asyncio
-async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_run_websurfer(monkeypatch: pytest.MonkeyPatch) -> None:
     model = "gpt-4o-2024-05-13"
     chat_completions = [
-        ChatCompletion(
-            id="id1",
-            choices=[
-                Choice(
-                    finish_reason="tool_calls",
-                    index=0,
-                    message=ChatCompletionMessage(
-                        content=None,
-                        tool_calls=[
-                            ChatCompletionMessageToolCall(
-                                id="1",
-                                type="function",
-                                function=Function(
-                                    name="_pass_function",
-                                    arguments=json.dumps({"input": "task"}),
-                                ),
-                            )
-                        ],
-                        role="assistant",
-                    ),
-                )
-            ],
-            created=0,
-            model=model,
-            object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
-        ),
         ChatCompletion(
             id="id2",
             choices=[
@@ -121,7 +82,22 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
             id="id2",
             choices=[
                 Choice(
-                    finish_reason="stop", index=0, message=ChatCompletionMessage(content="TERMINATE", role="assistant")
+                    finish_reason="tool_calls",
+                    index=0,
+                    message=ChatCompletionMessage(
+                        content=None,
+                        tool_calls=[
+                            ChatCompletionMessageToolCall(
+                                id="1",
+                                type="function",
+                                function=Function(
+                                    name="sleep",
+                                    arguments=json.dumps({"reasoning": "sleep is important"}),
+                                ),
+                            )
+                        ],
+                        role="assistant",
+                    ),
                 )
             ],
             created=0,
@@ -132,8 +108,45 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     ]
     mock = _MockChatCompletion(chat_completions)
     monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
-    agent = AssistantAgent(
-        "tool_use_agent",
-        model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+    agent = MultimodalWebSurfer(
+        "WebSurfer", model_client=OpenAIChatCompletionClient(model=model, api_key=""), use_ocr=False
     )
-    await agent.run(task="task")
+    # Before lazy init
+    assert agent._name == "WebSurfer"
+    assert agent._playwright is None
+    # After lazy init
+    result = await agent.run(task="task")
+    assert agent._playwright is not None
+    assert agent._page is not None
+    # now check result object
+    assert len(result.messages) == 3
+    # user message
+    assert isinstance(result.messages[0], TextMessage)
+    assert result.messages[0].models_usage is None
+    # inner message
+    assert isinstance(result.messages[1], TextMessage)
+    # final return
+    assert isinstance(result.messages[2], TextMessage)
+    assert result.messages[2].models_usage is not None
+    assert result.messages[2].models_usage.completion_tokens == 5
+    assert result.messages[2].models_usage.prompt_tokens == 10
+    assert result.messages[2].content == "Hello"
+    # check internal web surfer state
+    assert len(agent._chat_history) == 2
+    assert agent._chat_history[0].content == "task"
+    assert agent._chat_history[1].content == "Hello"
+    url_after_no_tool = agent._page.url  # type: ignore
+
+    # run again
+    result = await agent.run(task="task")
+    assert len(result.messages) == 3
+    assert isinstance(result.messages[2], MultiModalMessage)
+    assert (
+        result.messages[2]
+        .content[0]
+        .startswith(
+            "I am waiting a short period of time before taking further action.\n\n Here is a screenshot of the webpage: [Search - Microsoft Bing](https://www.bing.com/)"
+        )
+    )
+    url_after_sleep = agent._page.url  # type: ignore
+    assert url_after_no_tool == url_after_sleep

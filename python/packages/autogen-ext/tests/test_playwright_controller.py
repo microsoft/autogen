@@ -50,7 +50,7 @@ async def test_playwright_controller_click_id() -> None:
 
         controller = PlaywrightController()
         rects = await controller.get_interactive_rects(page)
-        click_me_id = 0
+        click_me_id = ""
         for rect in rects:
             if rects[rect]["aria_name"] == "Click Me":
                 click_me_id = str(rect)
@@ -68,7 +68,7 @@ async def test_playwright_controller_fill_id() -> None:
         page = await context.new_page()
         await page.set_content(FAKE_HTML)
         rects = await PlaywrightController().get_interactive_rects(page)
-        input_box_id = 0
+        input_box_id = ""
         for rect in rects:
             if rects[rect]["tag_name"] == "input, type=text":
                 input_box_id = str(rect)
