@@ -15,23 +15,23 @@ class Handoff(BaseModel):
     target: str
     """The name of the target agent to handoff to."""
 
-    description: str = Field(default=None)
+    description: str = Field(default="")
     """The description of the handoff such as the condition under which it should happen and the target agent's ability.
     If not provided, it is generated from the target agent's name."""
 
-    name: str = Field(default=None)
+    name: str = Field(default="")
     """The name of this handoff configuration. If not provided, it is generated from the target agent's name."""
 
-    message: str = Field(default=None)
+    message: str = Field(default="")
     """The message to the target agent.
     If not provided, it is generated from the target agent's name."""
 
     @model_validator(mode="before")
     @classmethod
     def set_defaults(cls, values: Dict[str, Any]) -> Dict[str, Any]:
-        if values.get("description") is None:
+        if not values.get("description"):
             values["description"] = f"Handoff to {values['target']}."
-        if values.get("name") is None:
+        if not values.get("name"):
             values["name"] = f"transfer_to_{values['target']}".lower()
         else:
             name = values["name"]
@@ -40,7 +40,7 @@ class Handoff(BaseModel):
             # Check if name is a valid identifier.
             if not name.isidentifier():
                 raise ValueError(f"Handoff name must be a valid identifier: {values['name']}")
-        if values.get("message") is None:
+        if not values.get("message"):
             values["message"] = (
                 f"Transferred to {values['target']}, adopting the role of {values['target']} immediately."
             )

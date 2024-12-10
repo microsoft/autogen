@@ -121,7 +121,7 @@ class AssistantAgent(BaseChatAgent):
 
             import asyncio
             from autogen_core import CancellationToken
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.messages import TextMessage
 
@@ -149,7 +149,7 @@ class AssistantAgent(BaseChatAgent):
         .. code-block:: python
 
             import asyncio
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.messages import TextMessage
             from autogen_agentchat.ui import Console
@@ -183,7 +183,7 @@ class AssistantAgent(BaseChatAgent):
 
             import asyncio
             from autogen_core import CancellationToken
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.messages import TextMessage
 
