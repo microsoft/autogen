@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-ext"
-version = "0.4.0.dev10"
+version = "0.4.0.dev11"
 license = {file = "LICENSE-CODE"}
 description = "AutoGen extensions library"
 readme = "README.md"
@@ -15,7 +15,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "autogen-core==0.4.0.dev10",
+    "autogen-core==0.4.0.dev11",
 ]
 
 
@@ -24,18 +24,23 @@ langchain = ["langchain_core~= 0.3.3"]
 azure = ["azure-core", "azure-identity"]
 docker = ["docker~=7.0"]
 openai = ["openai>=1.3", "aiofiles"]
-file-surfer = ["markitdown>=0.0.1a2"]
+file-surfer = [
+    "autogen-agentchat==0.4.0.dev11",
+    "markitdown>=0.0.1a2",
+]
 web-surfer = [
+    "autogen-agentchat==0.4.0.dev11",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
 ]
 magentic-one = [
+    "autogen-agentchat==0.4.0.dev11",
     "markitdown>=0.0.1a2",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
 ]
 video-surfer = [
-    "autogen-agentchat==0.4.0.dev10",
+    "autogen-agentchat==0.4.0.dev11",
     "opencv-python>=4.5",
     "ffmpeg-python",
     "openai-whisper",
