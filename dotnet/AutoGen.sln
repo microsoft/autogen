@@ -66,6 +66,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Runtime.G
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Integration.Tests", "test\Microsoft.AutoGen.Integration.Tests\Microsoft.AutoGen.Integration.Tests.csproj", "{D04C6153-8EAF-4E54-9852-52CEC1BE8D31}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Backend", "samples\Hello\Backend\Backend.csproj", "{2EFC0156-0342-41DA-BD43-C6C05FECBC58}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -152,6 +154,10 @@ Global
 		{D04C6153-8EAF-4E54-9852-52CEC1BE8D31}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D04C6153-8EAF-4E54-9852-52CEC1BE8D31}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D04C6153-8EAF-4E54-9852-52CEC1BE8D31}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2EFC0156-0342-41DA-BD43-C6C05FECBC58}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2EFC0156-0342-41DA-BD43-C6C05FECBC58}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2EFC0156-0342-41DA-BD43-C6C05FECBC58}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2EFC0156-0342-41DA-BD43-C6C05FECBC58}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -179,6 +185,7 @@ Global
 		{FCCE32DE-8162-47F3-835D-2EF78D4381C3} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 		{8881C07D-5B57-4D7A-81D2-65A727315A2F} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 		{D04C6153-8EAF-4E54-9852-52CEC1BE8D31} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
+		{2EFC0156-0342-41DA-BD43-C6C05FECBC58} = {7EB336C2-7C0A-4BC8-80C6-A3173AB8DC45}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93384647-528D-46C8-922C-8DB36A382F0B}

@@ -19,5 +19,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\HelloAgent\HelloAgent.csproj" />
+    <ProjectReference Include="..\Backend\Backend.csproj" />
   </ItemGroup>
 </Project>
