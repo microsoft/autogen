@@ -29,8 +29,8 @@ python/autogen_core
 python/autogen_core.code_executor
 python/autogen_core.models
 python/autogen_core.model_context
-python/autogen_core.components.tools
-python/autogen_core.components.tool_agent
+python/autogen_core.tools
+python/autogen_core.tool_agent
 python/autogen_core.exceptions
 python/autogen_core.logging
 ```

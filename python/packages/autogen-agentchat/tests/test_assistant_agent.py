@@ -15,7 +15,7 @@ from autogen_agentchat.messages import (
     ToolCallResultMessage,
 )
 from autogen_core import Image
-from autogen_core.components.tools import FunctionTool
+from autogen_core.tools import FunctionTool
 from autogen_ext.models import OpenAIChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice

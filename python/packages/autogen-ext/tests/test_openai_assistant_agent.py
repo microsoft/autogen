@@ -5,7 +5,7 @@ from typing import List, Literal, Optional, Union
 import pytest
 from autogen_agentchat.messages import TextMessage
 from autogen_core import CancellationToken
-from autogen_core.components.tools._base import BaseTool, Tool
+from autogen_core.tools._base import BaseTool, Tool
 from autogen_ext.agents.openai import OpenAIAssistantAgent
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from openai import AsyncAzureOpenAI

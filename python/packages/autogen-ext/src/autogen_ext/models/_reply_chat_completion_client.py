@@ -4,7 +4,6 @@ import logging
 from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union
 
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken
-from autogen_core.components.tools import Tool, ToolSchema
 from autogen_core.models import (
     ChatCompletionClient,
     CreateResult,
@@ -12,6 +11,7 @@ from autogen_core.models import (
     ModelCapabilities,
     RequestUsage,
 )
+from autogen_core.tools import Tool, ToolSchema
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 

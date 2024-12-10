@@ -15,9 +15,9 @@ from autogen_core import (
     DefaultTopicId,
     SingleThreadedAgentRuntime,
 )
-from autogen_core.components.tools import FunctionTool
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import SystemMessage
+from autogen_core.tools import FunctionTool
 from chess import BLACK, SQUARE_NAMES, WHITE, Board, Move
 from chess import piece_name as get_piece_name
 from common.agents._chat_completion_agent import ChatCompletionAgent
