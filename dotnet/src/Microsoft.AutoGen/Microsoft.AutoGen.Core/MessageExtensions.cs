@@ -12,13 +12,15 @@ namespace Microsoft.AutoGen.Core;
 /// </summary>
 public static class MessageExtensions
 {
+    private const string PROTO_DATA_CONTENT_TYPE = "application/x-protobuf";
+
     /// <summary>
     /// Converts a message to a CloudEvent.
     /// </summary>
     /// <typeparam name="T">The type of the message.</typeparam>
     /// <param name="message">The message to convert.</param>
     /// <param name="source">The source of the event.</param>
-    /// <returns>A CloudEvent representing the message.</returns>
+    /// <returns>A CloudEvent representing the message.</returns>    private const string PROTO_DATA_CONTENT_TYPE = "application/x-protobuf";
     public static CloudEvent ToCloudEvent<T>(this T message, string source) where T : IMessage
     {
         return new CloudEvent
@@ -26,7 +28,8 @@ public static class MessageExtensions
             ProtoData = Any.Pack(message),
             Type = message.Descriptor.FullName,
             Source = source,
-            Id = Guid.NewGuid().ToString()
+            Id = Guid.NewGuid().ToString(),
+            Attributes = { { "datacontenttype", new CloudEvent.Types.CloudEventAttributeValue { CeString = PROTO_DATA_CONTENT_TYPE } } }
         };
     }
 

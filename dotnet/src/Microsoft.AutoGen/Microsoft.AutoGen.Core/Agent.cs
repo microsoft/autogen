@@ -56,7 +56,7 @@ public abstract class Agent : IDisposable
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<Agent>();
         // get all Handle<T> methods
         _handlersByMessageType = new(GetType().GetHandlersLookupTable());
-            AddImplicitSubscriptionsAsync().AsTask().Wait();
+        AddImplicitSubscriptionsAsync().AsTask().Wait();
         Completion = Start();
     }
     internal Task Completion { get; }
@@ -100,6 +100,7 @@ public abstract class Agent : IDisposable
         }
 
     }
+
     /// <summary>
     /// Starts the message pump for the agent.
     /// </summary>
