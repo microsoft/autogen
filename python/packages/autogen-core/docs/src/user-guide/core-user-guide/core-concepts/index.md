@@ -8,7 +8,6 @@ and the system architecture.
 
 agent-and-multi-agent-application
 architecture
-api-layers
 application-stack
 agent-identity-and-lifecycle
 topic-and-subscription

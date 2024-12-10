@@ -9,7 +9,7 @@ from _utils import get_serializers, load_config, set_all_log_levels
 from autogen_core import (
     TypeSubscription,
 )
-from autogen_core.application import WorkerAgentRuntime
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
 from chainlit import Message  # type: ignore [reportAttributeAccessIssue]
 from rich.console import Console
 from rich.markdown import Markdown
@@ -36,7 +36,7 @@ async def send_cl_stream(msg: MessageChunk) -> None:
 
 async def main(config: AppConfig):
     set_all_log_levels(logging.ERROR)
-    ui_agent_runtime = WorkerAgentRuntime(host_address=config.host.address)
+    ui_agent_runtime = GrpcWorkerAgentRuntime(host_address=config.host.address)
 
     ui_agent_runtime.add_message_serializer(get_serializers([RequestToSpeak, GroupChatMessage, MessageChunk]))  # type: ignore[arg-type]
 

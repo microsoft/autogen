@@ -37,19 +37,19 @@ from autogen_core import (
     FunctionCall,
     MessageContext,
     RoutedAgent,
+    SingleThreadedAgentRuntime,
     message_handler,
     type_subscription,
 )
-from autogen_core.application import SingleThreadedAgentRuntime
 from autogen_core.base.intervention import DefaultInterventionHandler
-from autogen_core.components.model_context import BufferedChatCompletionContext
-from autogen_core.components.models import (
+from autogen_core.model_context import BufferedChatCompletionContext
+from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     SystemMessage,
     UserMessage,
 )
-from autogen_core.components.tools import BaseTool
+from autogen_core.tools import BaseTool
 from common.types import TextMessage
 from common.utils import get_chat_completion_client_from_envs
 from pydantic import BaseModel, Field
@@ -160,12 +160,14 @@ class SchedulingAssistantAgent(RoutedAgent):
         self._name = name
         self._model_client = model_client
         self._system_messages = [
-            SystemMessage(f"""
+            SystemMessage(
+                content=f"""
 I am a helpful AI assistant that helps schedule meetings.
 If there are missing parameters, I will ask for them.
 
 Today's date is {datetime.datetime.now().strftime("%Y-%m-%d")}
-""")
+"""
+            )
         ]
 
     @message_handler

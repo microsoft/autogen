@@ -1,13 +1,10 @@
-import logging
-from typing import Callable, List
+from typing import Any, Callable, List, Mapping
 
-from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TerminationCondition
 from ...messages import AgentMessage, ChatMessage, HandoffMessage
+from ...state import SwarmManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
-
-event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class SwarmGroupChatManager(BaseGroupChatManager):
@@ -77,6 +74,20 @@ class SwarmGroupChatManager(BaseGroupChatManager):
                 return self._current_speaker
         return self._current_speaker
 
+    async def save_state(self) -> Mapping[str, Any]:
+        state = SwarmManagerState(
+            message_thread=list(self._message_thread),
+            current_turn=self._current_turn,
+            current_speaker=self._current_speaker,
+        )
+        return state.model_dump()
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        swarm_state = SwarmManagerState.model_validate(state)
+        self._message_thread = list(swarm_state.message_thread)
+        self._current_turn = swarm_state.current_turn
+        self._current_speaker = swarm_state.current_speaker
+
 
 class Swarm(BaseGroupChat):
     """A group chat team that selects the next speaker based on handoff message only.
@@ -97,7 +108,7 @@ class Swarm(BaseGroupChat):
         .. code-block:: python
 
             import asyncio
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import Swarm
             from autogen_agentchat.conditions import MaxMessageTermination
@@ -132,7 +143,7 @@ class Swarm(BaseGroupChat):
         .. code-block:: python
 
             import asyncio
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import Swarm
             from autogen_agentchat.conditions import HandoffTermination, MaxMessageTermination

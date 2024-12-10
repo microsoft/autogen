@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, List, Sequence
+from typing import Any, AsyncGenerator, List, Mapping, Sequence
 
 from autogen_core import CancellationToken
 
 from ..base import ChatAgent, Response, TaskResult
 from ..messages import AgentMessage, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
+from ..state import BaseState
 
 
 class BaseChatAgent(ChatAgent, ABC):
@@ -117,3 +118,11 @@ class BaseChatAgent(ChatAgent, ABC):
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Resets the agent to its initialization state."""
         ...
+
+    async def save_state(self) -> Mapping[str, Any]:
+        """Export state. Default implementation for stateless agents."""
+        return BaseState().model_dump()
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        """Restore agent from saved state. Default implementation for stateless agents."""
+        BaseState.model_validate(state)

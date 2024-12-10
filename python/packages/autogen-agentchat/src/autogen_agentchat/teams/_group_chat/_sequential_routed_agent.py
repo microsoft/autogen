@@ -35,7 +35,7 @@ class FIFOLock:
 
 
 class SequentialRoutedAgent(RoutedAgent):
-    """A subclass of :class:`autogen_core.components.RoutedAgent` that ensures
+    """A subclass of :class:`autogen_core.RoutedAgent` that ensures
     messages are handled sequentially in the order they arrive."""
 
     def __init__(self, description: str) -> None:

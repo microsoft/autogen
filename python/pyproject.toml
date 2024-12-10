@@ -26,6 +26,7 @@ dev-dependencies = [
 autogen-core = { workspace = true }
 autogen-ext = { workspace = true }
 autogen-agentchat = { workspace = true }
+autogen-test-utils = { workspace = true }
 
 [tool.ruff]
 line-length = 120
@@ -66,7 +67,6 @@ include = ["src", "tests", "samples"]
 typeCheckingMode = "strict"
 reportUnnecessaryIsInstance = false
 reportMissingTypeStubs = false
-exclude = ["src/autogen_core/application/protos"]
 
 [tool.poe.tasks]
 fmt = "python run_task_in_pkgs_if_exist.py fmt"
@@ -78,8 +78,15 @@ test = "python run_task_in_pkgs_if_exist.py test"
 
 check = ["fmt", "lint", "pyright", "mypy", "test"]
 
-gen-proto = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/src/autogen_core/application/protos --grpc_python_out=./packages/autogen-core/src/autogen_core/application/protos --mypy_out=./packages/autogen-core/src/autogen_core/application/protos --mypy_grpc_out=./packages/autogen-core/src/autogen_core/application/protos --proto_path ../protos/ agent_worker.proto --proto_path ../protos/ cloudevent.proto"
-
-gen-test-proto = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/tests/protos --grpc_python_out=./packages/autogen-core/tests/protos --mypy_out=./packages/autogen-core/tests/protos --mypy_grpc_out=./packages/autogen-core/tests/protos --proto_path ./packages/autogen-core/tests/protos serialization_test.proto"
+gen-proto = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --grpc_python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_grpc_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --proto_path ../protos/ agent_worker.proto --proto_path ../protos/ cloudevent.proto"
 
 gen-proto-samples = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/samples/protos --grpc_python_out=./packages/autogen-core/samples/protos --mypy_out=./packages/autogen-core/samples/protos --mypy_grpc_out=./packages/autogen-core/samples/protos --proto_path ../protos/ agent_events.proto"
+
+
+teasdst = { cmd = "sphinx-build docs/src docs/build" }
+
+[[tool.poe.tasks.gen-test-proto.sequence]]
+cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/tests/protos --grpc_python_out=./packages/autogen-core/tests/protos --mypy_out=./packages/autogen-core/tests/protos --mypy_grpc_out=./packages/autogen-core/tests/protos --proto_path ./packages/autogen-core/tests/protos serialization_test.proto"
+
+[[tool.poe.tasks.gen-test-proto.sequence]]
+cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/tests/protos --grpc_python_out=./packages/autogen-ext/tests/protos --mypy_out=./packages/autogen-ext/tests/protos --mypy_grpc_out=./packages/autogen-ext/tests/protos --proto_path ./packages/autogen-core/tests/protos serialization_test.proto"

@@ -3,7 +3,7 @@ import time
 from typing import List, Optional, Tuple
 
 from autogen_core import CancellationToken, FunctionCall, default_subscription
-from autogen_core.components.models import (
+from autogen_core.models import (
     ChatCompletionClient,
     SystemMessage,
     UserMessage,
@@ -23,9 +23,11 @@ class FileSurfer(BaseWorker):
     DEFAULT_DESCRIPTION = "An agent that can handle local files."
 
     DEFAULT_SYSTEM_MESSAGES = [
-        SystemMessage("""
+        SystemMessage(
+            content="""
         You are a helpful AI Assistant.
-        When given a user query, use available functions to help the user with their request."""),
+        When given a user query, use available functions to help the user with their request."""
+        ),
     ]
 
     def __init__(

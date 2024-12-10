@@ -2,8 +2,7 @@ import asyncio
 import logging
 
 from _semantic_router_components import FinalResult, TerminationMessage, UserProxyMessage, WorkerAgentMessage
-from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, message_handler
-from autogen_core.application.logging import TRACE_LOGGER_NAME
+from autogen_core import TRACE_LOGGER_NAME, DefaultTopicId, MessageContext, RoutedAgent, message_handler
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(f"{TRACE_LOGGER_NAME}.workers")

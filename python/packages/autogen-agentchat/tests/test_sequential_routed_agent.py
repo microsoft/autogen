@@ -5,8 +5,14 @@ from typing import List
 
 import pytest
 from autogen_agentchat.teams._group_chat._sequential_routed_agent import SequentialRoutedAgent
-from autogen_core import AgentId, DefaultTopicId, MessageContext, default_subscription, message_handler
-from autogen_core.application import SingleThreadedAgentRuntime
+from autogen_core import (
+    AgentId,
+    DefaultTopicId,
+    MessageContext,
+    SingleThreadedAgentRuntime,
+    default_subscription,
+    message_handler,
+)
 
 
 @dataclass

@@ -104,7 +104,7 @@ def message_handler(
     - The method must have exactly 3 arguments:
         1. `self`
         2. `message`: The message to be handled, this must be type-hinted with the message type that it is intended to handle.
-        3. `ctx`: A :class:`autogen_core.base.MessageContext` object.
+        3. `ctx`: A :class:`autogen_core.MessageContext` object.
     - The method must be type hinted with what message types it can return as a response, or it can return `None` if it does not return anything.
 
     Handlers can handle more than one message type by accepting a Union of the message types. It can also return more than one message type by returning a Union of the message types.
@@ -224,7 +224,7 @@ def event(
     - The method must have exactly 3 arguments:
         1. `self`
         2. `message`: The event message to be handled, this must be type-hinted with the message type that it is intended to handle.
-        3. `ctx`: A :class:`autogen_core.base.MessageContext` object.
+        3. `ctx`: A :class:`autogen_core.MessageContext` object.
     - The method must return `None`.
 
     Handlers can handle more than one message type by accepting a Union of the message types.
@@ -344,7 +344,7 @@ def rpc(
     - The method must have exactly 3 arguments:
         1. `self`
         2. `message`: The message to be handled, this must be type-hinted with the message type that it is intended to handle.
-        3. `ctx`: A :class:`autogen_core.base.MessageContext` object.
+        3. `ctx`: A :class:`autogen_core.MessageContext` object.
     - The method must be type hinted with what message types it can return as a response, or it can return `None` if it does not return anything.
 
     Handlers can handle more than one message type by accepting a Union of the message types. It can also return more than one message type by returning a Union of the message types.

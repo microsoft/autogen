@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import AsyncGenerator, List, Protocol, Sequence, runtime_checkable
+from typing import Any, AsyncGenerator, List, Mapping, Protocol, Sequence, runtime_checkable
 
 from autogen_core import CancellationToken
 
@@ -53,4 +53,12 @@ class ChatAgent(TaskRunner, Protocol):
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Resets the agent to its initialization state."""
+        ...
+
+    async def save_state(self) -> Mapping[str, Any]:
+        """Save agent state for later restoration"""
+        ...
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        """Restore agent from saved state"""
         ...

@@ -11,7 +11,7 @@ from autogen_core import (
     message_handler,
     try_get_known_serializers_for_type,
 )
-from autogen_core.application import WorkerAgentRuntime
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
 
 
 @dataclass
@@ -72,7 +72,7 @@ class GreeterAgent(RoutedAgent):
 
 
 async def main() -> None:
-    runtime = WorkerAgentRuntime(host_address="localhost:50051")
+    runtime = GrpcWorkerAgentRuntime(host_address="localhost:50051")
     runtime.start()
     for t in [AskToGreet, Greeting, ReturnedGreeting, Feedback, ReturnedFeedback]:
         runtime.add_message_serializer(try_get_known_serializers_for_type(t))
