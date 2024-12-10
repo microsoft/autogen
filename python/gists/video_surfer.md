@@ -25,7 +25,7 @@ While this exercise is designed to be self-sufficient, at any time feel free to 
 Create a python virtual environment. Please feel free to use a virtual environment manager of your choice (e.g., `venv` or `conda`). Once you have created the virtual environment, please install the `agentchat` package using:
 
 ```bash
-pip install "autogen-agentchat==0.4.0.dev9" "autogen-ext[openai,video-surfer]==0.4.0.dev9"
+pip install "autogen-agentchat==0.4.0.dev10" "autogen-ext[openai]==0.4.0.dev10"
 ```
 
 This will install the high-level API for agents built using `autogen-core`.
@@ -52,7 +52,7 @@ async def main() -> None:
     """
     # Define an agent
     agent = AssistantAgent(
-        name="VideoSurferAgent",
+        name="MyAgent",
         model_client=OpenAIChatCompletionClient(
           model="gpt-4o-mini",
           # api_key = "your_openai_api_key"
@@ -82,7 +82,7 @@ Modify the system message to describe your video surfer agent's roles and respon
 
 ```python
   # ...
-  SYSTEM_MESSAGE="custom system message"
+  SYSTEM_MESSAGE="You are a helpful AI agent that can answer questions about video files."
   video_agent = AssistantAgent(
         name="VideoSurferAgent",
         model_client=OpenAIChatCompletionClient(
@@ -99,7 +99,19 @@ Modify the system message to describe your video surfer agent's roles and respon
 
 Give your video surfer agent tools that can be used to perform specific actions. In this case, add an action that allows the video surfer to compute the length of a video.
 
+First, install some new dependencies:
+
+```bash
+pip install opencv-python
+```
+
+Then add the following to your script:
+
+
 ```python
+import cv2
+
+# ...
 
 def get_video_length(video_path: str) -> str:
     """
@@ -118,8 +130,8 @@ def get_video_length(video_path: str) -> str:
 
     return f"The video is {duration:.2f} seconds long."
 
+# ...
 
-  # ...
   SYSTEM_MESSAGE="custom system message"
   video_agent = AssistantAgent(
       name="VideoSurferAgent",
@@ -131,7 +143,7 @@ def get_video_length(video_path: str) -> str:
       tools=[get_video_length],
    )
 
-  # ...
+# ...
 
 ```
 
