@@ -329,14 +329,21 @@ $functions"""
             import asyncio_atexit
 
             import docker
-            from docker.errors import ImageNotFound
+            from docker.errors import DockerException, ImageNotFound
         except ImportError as e:
             raise RuntimeError(
                 "Missing dependecies for DockerCommandLineCodeExecutor. Please ensure the autogen-ext package was installed with the 'docker' extra."
             ) from e
 
         # Start a container from the image, read to exec commands later
-        client = docker.from_env()
+        try:
+            client = docker.from_env()
+        except DockerException as e:
+            if "FileNotFoundError" in str(e):
+                raise RuntimeError("Failed to connect to Docker. Please ensure Docker is installed and running.") from e
+            raise
+        except Exception as e:
+            raise RuntimeError(f"Unexpected error while connecting to Docker: {str(e)}") from e
 
         # Check if the image exists
         try:
