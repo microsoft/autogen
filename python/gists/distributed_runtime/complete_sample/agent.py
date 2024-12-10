@@ -13,10 +13,10 @@ from autogen_core import (
     message_handler,
     try_get_known_serializers_for_type,
 )
-from autogen_core.components.models import (
+from autogen_core.models import (
     LLMMessage,
 )
-from autogen_ext.models import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 

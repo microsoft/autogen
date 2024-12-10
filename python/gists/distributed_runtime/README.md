@@ -91,7 +91,7 @@ If you already have a azure deployment of a chat completion model, you can just 
 **Note**: You need to have azure clie installed and run `az login` to authenticate once. For more information, check [Authenticate to Azure using Azure CLI](https://learn.microsoft.com/en-us/cli/azure/authenticate-azure-cli)
 
 ```python
-from autogen_ext.models import AzureOpenAIChatCompletionClient
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
 
 client_config = {
     "model": "gpt-4o",
@@ -111,7 +111,7 @@ model_client = AzureOpenAIChatCompletionClient(**client_config)
 If you want to use your OpenAI Token, you can alternatively initialize `model_client` using:
 
 ```python
-from autogen_ext.models import OpenAIChatCompletionClient
+from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 model_client = OpenAIChatCompletionClient(
           model="gpt-4o",
@@ -160,9 +160,7 @@ from autogen_core import (
     message_handler,
     try_get_known_serializers_for_type,
 )
-from autogen_core.components.models import (
-    LLMMessage,
-)
+from autogen_core.models import LLMMessage
 from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
 
 
