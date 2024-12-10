@@ -45,8 +45,9 @@ python/autogen_ext.agents.web_surfer
 python/autogen_ext.agents.file_surfer
 python/autogen_ext.agents.video_surfer
 python/autogen_ext.agents.video_surfer.tools
-python/autogen_ext.models
-python/autogen_ext.tools
+python/autogen_ext.models.openai
+python/autogen_ext.models.replay
+python/autogen_ext.tools.langchain
 python/autogen_ext.code_executors.local
 python/autogen_ext.code_executors.docker
 python/autogen_ext.code_executors.azure

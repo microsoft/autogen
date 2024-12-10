@@ -23,7 +23,7 @@ dependencies = [
     "pydantic-settings",
     "fastapi",
     "typer",
-    "uvicorn", 
+    "uvicorn",
     "aiofiles",
     "python-dotenv",
     "websockets",
@@ -33,9 +33,9 @@ dependencies = [
     "alembic",
     "loguru",
     "pyyaml",
-    "autogen-core==0.4.0.dev9",
-    "autogen-agentchat==0.4.0.dev9",
-    "autogen-ext==0.4.0.dev9"
+    "autogen-core==0.4.0.dev10",
+    "autogen-agentchat==0.4.0.dev10",
+    "autogen-ext==0.4.0.dev10"
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
 
@@ -79,8 +79,8 @@ include = [
     "autogenstudio/**"
 ]
 
-[tool.ruff.lint] 
-ignore = ["B008"] 
+[tool.ruff.lint]
+ignore = ["B008"]
 
 
 [tool.poe.tasks]
