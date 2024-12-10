@@ -4,8 +4,8 @@ from typing import Annotated, List
 import pytest
 from autogen_core import CancellationToken
 from autogen_core._function_utils import get_typed_signature
-from autogen_core.components.tools import BaseTool, FunctionTool
-from autogen_core.components.tools._base import ToolSchema
+from autogen_core.tools import BaseTool, FunctionTool
+from autogen_core.tools._base import ToolSchema
 from pydantic import BaseModel, Field, model_serializer
 from pydantic_core import PydanticUndefined
 
