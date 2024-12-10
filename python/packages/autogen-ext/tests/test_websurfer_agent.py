@@ -1,20 +1,15 @@
 import asyncio
 import json
 import logging
-import sys
 from datetime import datetime
 from typing import Any, AsyncGenerator, List
 
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.messages import (
-    HandoffMessage,
     MultiModalMessage,
     TextMessage,
-    ToolCallMessage,
-    ToolCallResultMessage,
 )
-from autogen_core.components.tools import FunctionTool
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
@@ -112,12 +107,12 @@ async def test_run_websurfer(monkeypatch: pytest.MonkeyPatch) -> None:
         "WebSurfer", model_client=OpenAIChatCompletionClient(model=model, api_key=""), use_ocr=False
     )
     # Before lazy init
-    assert agent._name == "WebSurfer"
-    assert agent._playwright is None
+    assert agent._name == "WebSurfer"  # pyright: ignore[reportPrivateUsage]
+    assert agent._playwright is None  # pyright: ignore[reportPrivateUsage]
     # After lazy init
     result = await agent.run(task="task")
-    assert agent._playwright is not None
-    assert agent._page is not None
+    assert agent._playwright is not None  # pyright: ignore[reportPrivateUsage]
+    assert agent._page is not None  # pyright: ignore[reportPrivateUsage]
     # now check result object
     assert len(result.messages) == 3
     # user message
@@ -132,21 +127,21 @@ async def test_run_websurfer(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.messages[2].models_usage.prompt_tokens == 10
     assert result.messages[2].content == "Hello"
     # check internal web surfer state
-    assert len(agent._chat_history) == 2
-    assert agent._chat_history[0].content == "task"
-    assert agent._chat_history[1].content == "Hello"
-    url_after_no_tool = agent._page.url  # type: ignore
+    assert len(agent._chat_history) == 2  # pyright: ignore[reportPrivateUsage]
+    assert agent._chat_history[0].content == "task"  # pyright: ignore[reportPrivateUsage]
+    assert agent._chat_history[1].content == "Hello"  # pyright: ignore[reportPrivateUsage]
+    url_after_no_tool = agent._page.url  # pyright: ignore[reportPrivateUsage]
 
     # run again
     result = await agent.run(task="task")
     assert len(result.messages) == 3
     assert isinstance(result.messages[2], MultiModalMessage)
     assert (
-        result.messages[2]
-        .content[0]
-        .startswith(
+        result.messages[2]  # type: ignore
+        .content[0]  # type: ignore
+        .startswith(  # type: ignore
             "I am waiting a short period of time before taking further action.\n\n Here is a screenshot of the webpage: [Search - Microsoft Bing](https://www.bing.com/)"
         )
-    )
+    )  # type: ignore
     url_after_sleep = agent._page.url  # type: ignore
     assert url_after_no_tool == url_after_sleep

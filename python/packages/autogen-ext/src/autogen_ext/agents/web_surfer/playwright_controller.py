@@ -58,7 +58,7 @@ class PlaywrightController:
         self.to_resize_viewport = to_resize_viewport
         self._page_script: str = ""
         self.last_cursor_position: Tuple[float, float] = (0.0, 0.0)
-        self._markdown_converter: Optional[MarkItDown] = None
+        self._markdown_converter: Optional[MarkItDown] | None = None
 
         # Read page_script
         with open(os.path.join(os.path.abspath(os.path.dirname(__file__)), "page_script.js"), "rt") as fh:
