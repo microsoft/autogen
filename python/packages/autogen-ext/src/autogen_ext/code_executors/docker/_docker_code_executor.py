@@ -59,7 +59,7 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
 
         .. code-block:: bash
 
-            pip install 'autogen-ext[docker]==0.4.0.dev10'
+            pip install 'autogen-ext[docker]==0.4.0.dev11'
 
 
     The executor first saves each code block in a file in the working
