@@ -28,7 +28,6 @@ from autogen_core import (
     FunctionCall,
     Image,
 )
-from autogen_core.components.tools import Tool, ToolSchema
 from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
     AssistantMessage,
@@ -43,6 +42,7 @@ from autogen_core.models import (
     TopLogprob,
     UserMessage,
 )
+from autogen_core.tools import Tool, ToolSchema
 from openai import AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
     ChatCompletion,

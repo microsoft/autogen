@@ -33,7 +33,7 @@ from autogen_agentchat.teams._group_chat._selector_group_chat import SelectorGro
 from autogen_agentchat.teams._group_chat._swarm_group_chat import SwarmGroupChatManager
 from autogen_agentchat.ui import Console
 from autogen_core import AgentId, CancellationToken
-from autogen_core.components.tools import FunctionTool
+from autogen_core.tools import FunctionTool
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.models import OpenAIChatCompletionClient, ReplayChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions

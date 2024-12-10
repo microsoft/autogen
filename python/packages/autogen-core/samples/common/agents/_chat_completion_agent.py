@@ -11,7 +11,6 @@ from autogen_core import (
     RoutedAgent,
     message_handler,
 )
-from autogen_core.components.tools import Tool
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import (
     AssistantMessage,
@@ -21,6 +20,7 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
+from autogen_core.tools import Tool
 
 from ..types import (
     FunctionCallMessage,
