@@ -97,7 +97,7 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
                 Choice(
                     finish_reason="stop",
                     index=0,
-                    message=ChatCompletionMessage(content="Hello", role="assistant"),
+                    message=ChatCompletionMessage(content="pass", role="assistant"),
                 )
             ],
             created=0,
@@ -147,14 +147,14 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.messages[3].models_usage is None
 
     # Test streaming.
-    mock._curr_index = 0  # pyright: ignore
+    mock.curr_index = 0  # Reset the mock
     index = 0
     async for message in agent.run_stream(task="task"):
         if isinstance(message, TaskResult):
             assert message == result
         else:
             assert message == result.messages[index]
-        index += 1
+            index += 1
 
     # Test state saving and loading.
     state = await agent.save_state()
