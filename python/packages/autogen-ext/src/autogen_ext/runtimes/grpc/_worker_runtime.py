@@ -626,11 +626,38 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             agent = await self._get_agent(agent_id)
             with MessageHandlerContext.populate_context(agent.id):
 
+                def stringify_attributes(
+                    attributes: Mapping[str, cloudevent_pb2.CloudEvent.CloudEventAttributeValue],
+                ) -> Mapping[str, str]:
+                    result: Dict[str, str] = {}
+                    for key, value in attributes.items():
+                        item = None
+                        match value.WhichOneof("attr"):
+                            case "ce_boolean":
+                                item = str(value.ce_boolean)
+                            case "ce_integer":
+                                item = str(value.ce_integer)
+                            case "ce_string":
+                                item = value.ce_string
+                            case "ce_bytes":
+                                item = str(value.ce_bytes)
+                            case "ce_uri":
+                                item = value.ce_uri
+                            case "ce_uri_ref":
+                                item = value.ce_uri_ref
+                            case "ce_timestamp":
+                                item = str(value.ce_timestamp)
+                            case _:
+                                raise ValueError("Unknown attribute kind")
+                        result[key] = item
+
+                    return result
+
                 async def send_message(agent: Agent, message_context: MessageContext) -> Any:
                     with self._trace_helper.trace_block(
                         "process",
                         agent.id,
-                        parent=event.metadata,
+                        parent=stringify_attributes(event.attributes),
                         extraAttributes={"message_type": message_type},
                     ):
                         await agent.on_message(message, ctx=message_context)
