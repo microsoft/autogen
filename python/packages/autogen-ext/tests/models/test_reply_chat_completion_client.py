@@ -13,7 +13,7 @@ from autogen_core import (
     message_handler,
 )
 from autogen_core.models import ChatCompletionClient, CreateResult, SystemMessage, UserMessage
-from autogen_ext.models import ReplayChatCompletionClient
+from autogen_ext.models.replay import ReplayChatCompletionClient
 
 
 @dataclass
@@ -48,7 +48,7 @@ class LLMAgentWithDefaultSubscription(LLMAgent): ...
 
 
 @pytest.mark.asyncio
-async def test_reply_chat_completion_client() -> None:
+async def test_replay_chat_completion_client() -> None:
     num_messages = 5
     messages = [f"Message {i}" for i in range(num_messages)]
     reply_model_client = ReplayChatCompletionClient(messages)
@@ -61,7 +61,7 @@ async def test_reply_chat_completion_client() -> None:
 
 
 @pytest.mark.asyncio
-async def test_reply_chat_completion_client_create_stream() -> None:
+async def test_replay_chat_completion_client_create_stream() -> None:
     num_messages = 5
     messages = [f"Message {i}" for i in range(num_messages)]
     reply_model_client = ReplayChatCompletionClient(messages)
@@ -155,7 +155,7 @@ async def test_token_count_logics() -> None:
 
 
 @pytest.mark.asyncio
-async def test_reply_chat_completion_client_reset() -> None:
+async def test_replay_chat_completion_client_reset() -> None:
     """Test that reset functionality properly resets the client state."""
     messages = ["First message", "Second message", "Third message"]
     client = ReplayChatCompletionClient(messages)

@@ -5,7 +5,7 @@ import pytest
 from autogen_agentchat.agents import AssistantAgent, SocietyOfMindAgent
 from autogen_agentchat.conditions import MaxMessageTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
-from autogen_ext.models import OpenAIChatCompletionClient
+from autogen_ext.models.openai import OpenAIChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk

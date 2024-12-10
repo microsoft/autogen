@@ -15,9 +15,9 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_core.tools import BaseTool, FunctionTool
-from autogen_ext.models import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
-from autogen_ext.models._openai._model_info import resolve_model
-from autogen_ext.models._openai._openai_client import calculate_vision_tokens, convert_tools
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
+from autogen_ext.models.openai._model_info import resolve_model
+from autogen_ext.models.openai._openai_client import calculate_vision_tokens, convert_tools
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, ChoiceDelta
@@ -275,9 +275,7 @@ async def test_openai_chat_completion_client_count_tokens(monkeypatch: pytest.Mo
     tools = [FunctionTool(tool1, description="example tool 1"), FunctionTool(tool2, description="example tool 2")]
 
     mockcalculate_vision_tokens = MagicMock()
-    monkeypatch.setattr(
-        "autogen_ext.models._openai._openai_client.calculate_vision_tokens", mockcalculate_vision_tokens
-    )
+    monkeypatch.setattr("autogen_ext.models.openai._openai_client.calculate_vision_tokens", mockcalculate_vision_tokens)
 
     num_tokens = client.count_tokens(messages, tools=tools)
     assert num_tokens

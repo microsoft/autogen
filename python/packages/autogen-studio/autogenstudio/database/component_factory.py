@@ -13,7 +13,7 @@ from autogen_core.tools import FunctionTool
 from autogen_ext.agents.file_surfer import FileSurfer
 from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
-from autogen_ext.models import OpenAIChatCompletionClient
+from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 from ..datamodel.types import (
     AgentConfig,

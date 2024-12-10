@@ -1,14 +1,12 @@
-from ._openai._openai_client import (
+from ._openai_client import (
     AzureOpenAIChatCompletionClient,
     OpenAIChatCompletionClient,
 )
-from ._openai.config import AzureOpenAIClientConfiguration, OpenAIClientConfiguration
-from ._reply_chat_completion_client import ReplayChatCompletionClient
+from .config import AzureOpenAIClientConfiguration, OpenAIClientConfiguration
 
 __all__ = [
     "AzureOpenAIClientConfiguration",
     "AzureOpenAIChatCompletionClient",
     "OpenAIClientConfiguration",
     "OpenAIChatCompletionClient",
-    "ReplayChatCompletionClient",
 ]

@@ -9,7 +9,7 @@ from autogen_core.models import (
     LLMMessage,
     UserMessage,
 )
-from autogen_ext.models import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from typing_extensions import Literal
 

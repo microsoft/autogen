@@ -18,7 +18,7 @@ from autogen_agentchat.teams import (
 )
 from autogen_agentchat.teams._group_chat._magentic_one._magentic_one_orchestrator import MagenticOneOrchestrator
 from autogen_core import AgentId, CancellationToken
-from autogen_ext.models import ReplayChatCompletionClient
+from autogen_ext.models.replay import ReplayChatCompletionClient
 from utils import FileLogHandler
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
