@@ -25,7 +25,7 @@ While this exercise is designed to be self-sufficient, at any time feel free to 
 Create a python virtual environment. Please feel free to use a virtual environment manager of your choice (e.g., `venv` or `conda`). Once you have created the virtual environment, please install the `agentchat` package using:
 
 ```bash
-pip install "autogen-agentchat==0.4.0.dev10" "autogen-ext[openai]==0.4.0.dev10"
+pip install "autogen-agentchat==0.4.0.dev11" "autogen-ext[openai]==0.4.0.dev11"
 ```
 
 This will install the high-level API for agents built using `autogen-core`.
@@ -172,32 +172,33 @@ def tool2(...)
 
 ### Exercise 4: Create an agent team
 
-Now create a multi-agent team consisting of the a user (using the UserProxyAgent) and the MagenticOneGroupChat, a powerful agent that orchestrates other agents and solve tasks by planning and tracking progress via ledgers.
+Now create a multi-agent team consisting of the video surfer, and Yoda! 
 
 ```python
-from autogen_agentchat.teams import MagenticOneGroupChat
-from autogen_agentchat.agents import UserProxyAgent
-
 async def main() -> None:
     """
     Main function to run the video agent.
     """
 
-    # Define an agent
-    video_agent = AssistantAgent(
-        ...  # your arguments
+    # ...
+
+    yoda = AssistantAgent(
+        name="YodaAgent",
+        model_client=model_client,
+        system_message = "Explain answers to the user, but speak as if you are Yoda"
         )
 
-    user_proxy_agent = UserProxyAgent(
-        name="User"
-    )
+    # Define a team, increasing max_turns to max_turns=2
+    agent_team = RoundRobinGroupChat([agent, yoda], max_turns=2)
 
-    # Define a team
-    agent_team = MagenticOneGroupChat([user_proxy_agent, video_agent], model_client=model_client)
-
-    # Run the team and stream messages to the console
-    stream = agent_team.run_stream(task="Answer any questions the user asks about video.mp4.")
-    await Console(stream)
+    # Run the user-agent interaction in a loop.
+    while True:
+        user_input = input("Enter a message (type 'exit' to leave): ")
+        if user_input.strip().lower() == "exit":
+            break
+        # Run the team and stream messages to the console
+        stream = agent_team.run_stream(task=user_input)
+        await Console(stream)
 
 asyncio.run(main())
 ```
