@@ -5,7 +5,6 @@ import warnings
 from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List, Mapping, Sequence
 
 from autogen_core import CancellationToken, FunctionCall
-from autogen_core.components.tools import FunctionTool, Tool
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -15,6 +14,7 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
+from autogen_core.tools import FunctionTool, Tool
 from typing_extensions import deprecated
 
 from .. import EVENT_LOGGER_NAME

@@ -5,7 +5,7 @@ import inspect
 from typing import TYPE_CHECKING, Any, Callable, Dict, Type, cast
 
 from autogen_core import CancellationToken
-from autogen_core.components.tools import BaseTool
+from autogen_core.tools import BaseTool
 from pydantic import BaseModel, Field, create_model
 
 if TYPE_CHECKING:

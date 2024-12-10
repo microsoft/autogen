@@ -9,10 +9,10 @@ from typing import Mapping
 
 import pytest
 from autogen_core import AgentId, AgentProxy, FunctionCall, SingleThreadedAgentRuntime
-from autogen_core.components.tools._base import ToolSchema
 from autogen_core.models import (
     UserMessage,
 )
+from autogen_core.tools._base import ToolSchema
 from autogen_magentic_one.agents.multimodal_web_surfer import MultimodalWebSurfer
 from autogen_magentic_one.agents.multimodal_web_surfer.tool_definitions import (
     TOOL_PAGE_DOWN,
