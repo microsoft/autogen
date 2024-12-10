@@ -1,10 +1,12 @@
 import asyncio
 import base64
-import os
 import io
+import os
 import random
 from typing import Any, Callable, Dict, Optional, Tuple, Union, cast
 
+# TODO: Fix unfollowed import
+from markitdown import MarkItDown  # type: ignore
 from playwright._impl._errors import Error as PlaywrightError
 from playwright._impl._errors import TimeoutError
 from playwright.async_api import Download, Page
@@ -15,9 +17,6 @@ from ._types import (
     interactiveregion_from_dict,
     visualviewport_from_dict,
 )
-
-# TODO: Fix unfollowed import
-from markitdown import FileConversionException, MarkItDown, UnsupportedFormatException  # type: ignore
 
 
 class PlaywrightController:

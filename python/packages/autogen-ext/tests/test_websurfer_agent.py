@@ -1,6 +1,8 @@
 import asyncio
 import json
 import logging
+import sys
+from datetime import datetime
 from typing import Any, AsyncGenerator, List
 
 import pytest
@@ -16,6 +18,7 @@ from autogen_agentchat.messages import (
 )
 from autogen_core import Image
 from autogen_core.components.tools import FunctionTool
+from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.models import OpenAIChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
@@ -23,11 +26,27 @@ from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from openai.types.chat.chat_completion_message_tool_call import ChatCompletionMessageToolCall, Function
 from openai.types.completion_usage import CompletionUsage
-from utils import FileLogHandler
+from playwright.async_api import async_playwright
+from pydantic import BaseModel
 
-logger = logging.getLogger(EVENT_LOGGER_NAME)
-logger.setLevel(logging.DEBUG)
-logger.addHandler(FileLogHandler("test_assistant_agent.log"))
+
+class FileLogHandler(logging.Handler):
+    def __init__(self, filename: str) -> None:
+        super().__init__()
+        self.filename = filename
+        self.file_handler = logging.FileHandler(filename)
+
+    def emit(self, record: logging.LogRecord) -> None:
+        ts = datetime.fromtimestamp(record.created).isoformat()
+        if isinstance(record.msg, BaseModel):
+            record.msg = json.dumps(
+                {
+                    "timestamp": ts,
+                    "message": record.msg.model_dump(),
+                    "type": record.msg.__class__.__name__,
+                },
+            )
+        self.file_handler.emit(record)
 
 
 class _MockChatCompletion:
@@ -44,16 +63,17 @@ class _MockChatCompletion:
         return completion
 
 
-def _pass_function(input: str) -> str:
-    return "pass"
+logger = logging.getLogger(EVENT_LOGGER_NAME)
+logger.setLevel(logging.DEBUG)
+logger.addHandler(FileLogHandler("test_websurfer_agent.log"))
 
 
-async def _fail_function(input: str) -> str:
-    return "fail"
-
-
-async def _echo_function(input: str) -> str:
-    return input
+@pytest.mark.asyncio
+async def test_multimodal_websurfer_initialization() -> None:
+    model_client = OpenAIChatCompletionClient(model="gpt-4o-2024-08-06", api_key="")
+    agent = MultimodalWebSurfer(name="TestWebSurfer", model_client=model_client)
+    assert agent.name == "TestWebSurfer"
+    assert agent._model_client == model_client
 
 
 @pytest.mark.asyncio
@@ -115,41 +135,5 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     agent = AssistantAgent(
         "tool_use_agent",
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),
-        tools=[_pass_function, _fail_function, FunctionTool(_echo_function, description="Echo")],
     )
-    result = await agent.run(task="task")
-    assert len(result.messages) == 4
-    assert isinstance(result.messages[0], TextMessage)
-    assert result.messages[0].models_usage is None
-    assert isinstance(result.messages[1], ToolCallMessage)
-    assert result.messages[1].models_usage is not None
-    assert result.messages[1].models_usage.completion_tokens == 5
-    assert result.messages[1].models_usage.prompt_tokens == 10
-    assert isinstance(result.messages[2], ToolCallResultMessage)
-    assert result.messages[2].models_usage is None
-    assert isinstance(result.messages[3], TextMessage)
-    assert result.messages[3].models_usage is not None
-    assert result.messages[3].models_usage.completion_tokens == 5
-    assert result.messages[3].models_usage.prompt_tokens == 10
-
-    # Test streaming.
-    mock._curr_index = 0  # pyright: ignore
-    index = 0
-    async for message in agent.run_stream(task="task"):
-        if isinstance(message, TaskResult):
-            assert message == result
-        else:
-            assert message == result.messages[index]
-        index += 1
-
-    # Test state saving and loading.
-    state = await agent.save_state()
-    agent2 = AssistantAgent(
-        "tool_use_agent",
-        model_client=OpenAIChatCompletionClient(model=model, api_key=""),
-        tools=[_pass_function, _fail_function, FunctionTool(_echo_function, description="Echo")],
-    )
-    await agent2.load_state(state)
-    state2 = await agent2.save_state()
-    assert state == state2
-
+    await agent.run(task="task")

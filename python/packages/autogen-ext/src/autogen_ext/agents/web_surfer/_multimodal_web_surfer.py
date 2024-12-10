@@ -9,37 +9,35 @@ import time
 import traceback
 from typing import (
     Any,
+    AsyncGenerator,
     BinaryIO,
     Dict,
     List,
     Optional,
     Sequence,
     cast,
-    AsyncGenerator,
 )
-
 from urllib.parse import quote_plus
 
 import aiofiles
 import PIL.Image
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import ChatMessage, MultiModalMessage, TextMessage, AgentMessage
+from autogen_agentchat.messages import AgentMessage, ChatMessage, MultiModalMessage, TextMessage
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, FunctionCall
 from autogen_core import Image as AGImage
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
+    RequestUsage,
     SystemMessage,
     UserMessage,
-    RequestUsage,
 )
 from PIL import Image
 from playwright.async_api import BrowserContext, Download, Page, Playwright, async_playwright
 
 from ._events import WebSurferEvent
-from .playwright_controller import PlaywrightController
 from ._prompts import WEB_SURFER_OCR_PROMPT, WEB_SURFER_QA_PROMPT, WEB_SURFER_QA_SYSTEM_MESSAGE, WEB_SURFER_TOOL_PROMPT
 from ._set_of_mark import add_set_of_mark
 from ._tool_definitions import (
@@ -57,6 +55,7 @@ from ._tool_definitions import (
 )
 from ._types import InteractiveRegion, UserContent
 from ._utils import message_content_to_str
+from .playwright_controller import PlaywrightController
 
 
 class MultimodalWebSurfer(BaseChatAgent):
@@ -475,7 +474,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         self._last_download = None
         if isinstance(message, str):
             # Answer directly
-            self.inner_messages.append(AssistantMessage(content=message, source=self.name))
+            self.inner_messages.append(AgentMessage(content=message, source=self.name))
             return message
         elif isinstance(message, list):
             # Take an action
@@ -505,7 +504,7 @@ class MultimodalWebSurfer(BaseChatAgent):
                 message=f"{name}( {json.dumps(args)} )",
             )
         )
-        self.inner_messages.append(AssistantMessage(content=f"{name}( {json.dumps(args)} )", source=self.name))
+        self.inner_messages.append(AgentMessage(content=f"{name}( {json.dumps(args)} )", source=self.name))
 
         if name == "visit_url":
             url = args.get("url")
