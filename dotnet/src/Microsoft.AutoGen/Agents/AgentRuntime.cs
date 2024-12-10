@@ -51,7 +51,17 @@ internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger
     public void Update(CloudEvent cloudEvent, Activity? activity = null)
     {
         DistributedContextPropagator.Inject(activity, cloudEvent.Attributes, static (carrier, key, value) =>
-        ((MapField<string, CloudEventAttributeValue>)carrier!)[key].CeString = value);
+        {
+            var mapField = (MapField<string, CloudEventAttributeValue>)carrier!;
+            if (mapField.TryGetValue(key, out var ceValue))
+            {
+                mapField[key] = new CloudEventAttributeValue { CeString = value };
+            }
+            else
+            {
+                mapField.Add(key, new CloudEventAttributeValue { CeString = value });
+            }
+        });
     }
     public async ValueTask SendResponseAsync(RpcRequest request, RpcResponse response, CancellationToken cancellationToken = default)
     {
