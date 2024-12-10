@@ -5,7 +5,7 @@ from uuid import uuid4
 
 from _types import GroupChatMessage, MessageChunk, RequestToSpeak, UIAgentConfig
 from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, message_handler
-from autogen_core.components.models import (
+from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,

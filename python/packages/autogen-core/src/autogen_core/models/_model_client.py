@@ -11,7 +11,7 @@ from typing_extensions import (
     Union,
 )
 
-from ... import CancellationToken
+from .. import CancellationToken
 from ..tools import Tool, ToolSchema
 from ._types import CreateResult, LLMMessage, RequestUsage
 

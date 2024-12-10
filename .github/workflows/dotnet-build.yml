@@ -76,12 +76,18 @@ jobs:
     - name: list available kernels
       run: |
         python -m jupyter kernelspec list
-    - name: Setup .NET
+    - uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+    - run: uv sync --locked --all-extras
+      working-directory: ./python
+    - name: Prepare python venv
+      run: |
+        source ${{ github.workspace }}/python/.venv/bin/activate
+    - name: Setup .NET 8.0
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
-    - name: Install .NET Aspire workload
-      run: dotnet workload install aspire
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
@@ -96,7 +102,57 @@ jobs:
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: Unit Test
-      run: dotnet test --no-build -bl --configuration Release
+      run: dotnet test --no-build -bl --configuration Release --filter type=!integration
+  
+  integration-test:
+    strategy:
+      fail-fast: true 
+      matrix:
+        os: [ ubuntu-latest]
+        version: [ net8.0 ]
+    needs: build
+    defaults:
+      run:
+        working-directory: dotnet
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+          lfs: true
+    - uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    - run: uv sync --locked --all-extras
+      working-directory: ./python
+    - name: Prepare python venv
+      run: |
+        source ${{ github.workspace }}/python/.venv/bin/activate
+    - name: Setup .NET 9.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+    - name: Install Temp Global.JSON
+      run: |
+        echo "{\"sdk\": {\"version\": \"9.0.101\"}}" > global.json
+    - name: Install .NET Aspire workload
+      run: dotnet workload install aspire
+    - name: Install dev certs
+      run:  dotnet --version && dotnet dev-certs https --trust
+    - name: Restore dependencies
+      run: |
+        dotnet restore -bl
+    - name: Build
+      run: |
+        echo "Build AutoGen"
+        dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
+    - name: Integration Test
+      run: dotnet --version && dotnet test --no-build -bl --configuration Release --filter type=integration
+    - name: Restore the global.json
+      run: rm global.json && git checkout -- global.json
+
   aot-test: # this make sure the AutoGen.Core is aot compatible
     strategy:
       fail-fast: false  # ensures the entire test matrix is run, even if one permutation fails
@@ -147,9 +203,17 @@ jobs:
     - name: list available kernels
       run: |
         python -m jupyter kernelspec list
-    - name: Setup .NET
+    - uses: astral-sh/setup-uv@v3
+      with:
+        enable-cache: true
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Setup .NET 8.0
       uses: actions/setup-dotnet@v4
       with:
+        dotnet-version: '8.0.x'
         global-json-file: dotnet/global.json
     - name: Restore dependencies
       run: |
@@ -159,7 +223,7 @@ jobs:
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: OpenAI Test
-      run: dotnet test --no-build -bl --configuration Release
+      run: dotnet test --no-build -bl --configuration Release --filter type!=integration
       env:
         AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
         AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
