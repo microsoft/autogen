@@ -368,7 +368,7 @@ class AssistantAgent(BaseChatAgent):
             )
         else:
             # Return tool call result as the response.
-            tool_call_summaries : List[str] = []
+            tool_call_summaries: List[str] = []
             for i in range(len(tool_call_msg.content)):
                 tool_call_summaries.append(
                     self._tool_call_summary_format.format(
