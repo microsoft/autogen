@@ -2,8 +2,10 @@
 // RuntimeContext.cs
 
 using System.Diagnostics;
+using Google.Protobuf.Collections;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Logging;
+using static Microsoft.AutoGen.Abstractions.CloudEvent.Types;
 
 namespace Microsoft.AutoGen.Core;
 
@@ -58,23 +60,44 @@ public sealed class RuntimeContext(AgentId agentId, IAgentWorker worker, ILogger
     }
 
     /// <summary>
-    /// Updates the request metadata with the current activity context.
+    /// Updates the dcp with metadata from the current request
     /// </summary>
     /// <param name="request">The request to update.</param>
     /// <param name="activity">The current activity context.</param>
     public void Update(RpcRequest request, Activity? activity = null)
     {
-        DistributedContextPropagator.Inject(activity, request.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
+        DistributedContextPropagator.Inject(activity, request.Metadata, static (carrier, key, value) =>
+        {
+            var metadata = (IDictionary<string, string>)carrier!;
+            if (metadata.TryGetValue(key, out _))
+            {
+                metadata[key] = value;
+            }
+            else
+            {
+                metadata.Add(key, value);
+            }
+        });
     }
-
     /// <summary>
-    /// Updates the cloud event metadata with the current activity context.
+    /// Updates the dcp with metadata from the current cloud event
     /// </summary>
-    /// <param name="cloudEvent">The cloud event to update.</param>
+    /// <param name="cloudEvent">The request to update.</param>
     /// <param name="activity">The current activity context.</param>
     public void Update(CloudEvent cloudEvent, Activity? activity = null)
     {
-        DistributedContextPropagator.Inject(activity, cloudEvent.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
+        DistributedContextPropagator.Inject(activity, cloudEvent.Attributes, static (carrier, key, value) =>
+        {
+            var mapField = (MapField<string, CloudEventAttributeValue>)carrier!;
+            if (mapField.TryGetValue(key, out var ceValue))
+            {
+                mapField[key] = new CloudEventAttributeValue { CeString = value };
+            }
+            else
+            {
+                mapField.Add(key, new CloudEventAttributeValue { CeString = value });
+            }
+        });
     }
 
     /// <summary>
