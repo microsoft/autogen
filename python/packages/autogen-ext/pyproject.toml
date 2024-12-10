@@ -32,6 +32,7 @@ web-surfer = [
     "autogen-agentchat==0.4.0.dev11",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
+    "markitdown>=0.0.1a2",
 ]
 magentic-one = [
     "autogen-agentchat==0.4.0.dev11",
@@ -77,7 +78,11 @@ testpaths = ["tests"]
 include = "../../shared_tasks.toml"
 
 [tool.poe.tasks]
-test = "pytest -n auto"
+test.sequence = [
+    "playwright install",
+    "pytest -n auto",
+]
+test.default_item_type = "cmd"
 mypy = "mypy --config-file ../../pyproject.toml --exclude src/autogen_ext/runtimes/grpc/protos --exclude tests/protos src tests"
 
 [tool.mypy]
