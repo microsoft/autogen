@@ -4,7 +4,7 @@ from typing import List, Literal, Optional, Union
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
-from ... import FunctionCall, Image
+from .. import FunctionCall, Image
 
 
 class SystemMessage(BaseModel):

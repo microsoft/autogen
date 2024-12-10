@@ -14,7 +14,7 @@ from urllib.parse import quote_plus  # parse_qs, quote, unquote, urlparse, urlun
 import aiofiles
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, FunctionCall, default_subscription
 from autogen_core import Image as AGImage
-from autogen_core.components.models import (
+from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
