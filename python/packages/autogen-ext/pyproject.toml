@@ -78,10 +78,11 @@ testpaths = ["tests"]
 include = "../../shared_tasks.toml"
 
 [tool.poe.tasks]
-test = [
+test.sequence = [
     "playwright install",
-    "pytest -n auto"
+    "pytest -n auto",
 ]
+test.default_item_type = "cmd"
 mypy = "mypy --config-file ../../pyproject.toml --exclude src/autogen_ext/runtimes/grpc/protos --exclude tests/protos src tests"
 
 [tool.mypy]
