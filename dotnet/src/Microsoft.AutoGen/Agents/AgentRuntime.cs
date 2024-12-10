@@ -2,8 +2,10 @@
 // AgentRuntime.cs
 
 using System.Diagnostics;
+using Google.Protobuf.Collections;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.Logging;
+using static Microsoft.AutoGen.Abstractions.CloudEvent.Types;
 
 namespace Microsoft.AutoGen.Agents;
 
@@ -28,13 +30,38 @@ internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger
             out var traceState);
         return (traceParent, traceState);
     }
+    public (string?, string?) GetTraceIdAndState(MapField<string, CloudEventAttributeValue> metadata)
+    {
+        DistributedContextPropagator.ExtractTraceIdAndState(metadata,
+            static (object? carrier, string fieldName, out string? fieldValue, out IEnumerable<string>? fieldValues) =>
+            {
+                var metadata = (MapField<string, CloudEventAttributeValue>)carrier!;
+                fieldValues = null;
+                metadata.TryGetValue(fieldName, out var ceValue);
+                fieldValue = ceValue?.CeString;
+            },
+            out var traceParent,
+            out var traceState);
+        return (traceParent, traceState);
+    }
     public void Update(RpcRequest request, Activity? activity = null)
     {
         DistributedContextPropagator.Inject(activity, request.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
     }
     public void Update(CloudEvent cloudEvent, Activity? activity = null)
     {
-        DistributedContextPropagator.Inject(activity, cloudEvent.Metadata, static (carrier, key, value) => ((IDictionary<string, string>)carrier!)[key] = value);
+        DistributedContextPropagator.Inject(activity, cloudEvent.Attributes, static (carrier, key, value) =>
+        {
+            var mapField = (MapField<string, CloudEventAttributeValue>)carrier!;
+            if (mapField.TryGetValue(key, out var ceValue))
+            {
+                mapField[key] = new CloudEventAttributeValue { CeString = value };
+            }
+            else
+            {
+                mapField.Add(key, new CloudEventAttributeValue { CeString = value });
+            }
+        });
     }
     public async ValueTask SendResponseAsync(RpcRequest request, RpcResponse response, CancellationToken cancellationToken = default)
     {
@@ -69,6 +96,19 @@ internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger
             var metadata = (IDictionary<string, string>)carrier!;
             fieldValues = null;
             metadata.TryGetValue(fieldName, out fieldValue);
+        });
+
+        return baggage as IDictionary<string, string> ?? new Dictionary<string, string>();
+    }
+
+    public IDictionary<string, string> ExtractMetadata(MapField<string, CloudEventAttributeValue> metadata)
+    {
+        var baggage = DistributedContextPropagator.ExtractBaggage(metadata, static (object? carrier, string fieldName, out string? fieldValue, out IEnumerable<string>? fieldValues) =>
+        {
+            var metadata = (MapField<string, CloudEventAttributeValue>)carrier!;
+            fieldValues = null;
+            metadata.TryGetValue(fieldName, out var ceValue);
+            fieldValue = ceValue?.CeString;
         });
 
         return baggage as IDictionary<string, string> ?? new Dictionary<string, string>();

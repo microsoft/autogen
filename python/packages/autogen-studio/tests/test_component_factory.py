@@ -4,7 +4,7 @@ from typing import List
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat, MagenticOneGroupChat
 from autogen_agentchat.conditions import MaxMessageTermination, StopMessageTermination, TextMentionTermination
-from autogen_core.components.tools import FunctionTool
+from autogen_core.tools import FunctionTool
 
 from autogenstudio.datamodel.types import (
     AgentConfig,

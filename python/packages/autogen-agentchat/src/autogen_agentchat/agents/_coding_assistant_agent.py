@@ -1,6 +1,6 @@
 import warnings
 
-from autogen_core.components.models import (
+from autogen_core.models import (
     ChatCompletionClient,
 )
 

@@ -4,14 +4,14 @@ import logging
 from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union
 
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken
-from autogen_core.components.models import (
+from autogen_core.models import (
     ChatCompletionClient,
     CreateResult,
     LLMMessage,
     ModelCapabilities,
     RequestUsage,
 )
-from autogen_core.components.tools import Tool, ToolSchema
+from autogen_core.tools import Tool, ToolSchema
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 
@@ -37,8 +37,8 @@ class ReplayChatCompletionClient:
 
         .. code-block:: python
 
-            from autogen_ext.models import ReplayChatCompletionClient
-            from autogen_core.components.models import UserMessage
+            from autogen_ext.models.replay import ReplayChatCompletionClient
+            from autogen_core.models import UserMessage
 
 
             async def example():
@@ -57,8 +57,8 @@ class ReplayChatCompletionClient:
         .. code-block:: python
 
             import asyncio
-            from autogen_ext.models import ReplayChatCompletionClient
-            from autogen_core.components.models import UserMessage
+            from autogen_ext.models.replay import ReplayChatCompletionClient
+            from autogen_core.models import UserMessage
 
 
             async def example():
@@ -83,8 +83,8 @@ class ReplayChatCompletionClient:
         .. code-block:: python
 
             import asyncio
-            from autogen_ext.models import ReplayChatCompletionClient
-            from autogen_core.components.models import UserMessage
+            from autogen_ext.models.replay import ReplayChatCompletionClient
+            from autogen_core.models import UserMessage
 
 
             async def example():

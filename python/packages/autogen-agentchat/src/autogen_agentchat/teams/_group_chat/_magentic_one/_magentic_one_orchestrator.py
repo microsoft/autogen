@@ -3,7 +3,7 @@ import logging
 from typing import Any, Dict, List, Mapping
 
 from autogen_core import AgentId, CancellationToken, DefaultTopicId, Image, MessageContext, event, rpc
-from autogen_core.components.models import (
+from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
@@ -166,12 +166,11 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:  # type: ignore
-        self._message_thread.append(message.agent_response.chat_message)
         delta: List[AgentMessage] = []
         if message.agent_response.inner_messages is not None:
             for inner_message in message.agent_response.inner_messages:
-                self._message_thread.append(inner_message)
                 delta.append(inner_message)
+        self._message_thread.append(message.agent_response.chat_message)
         delta.append(message.agent_response.chat_message)
 
         if self._termination_condition is not None:

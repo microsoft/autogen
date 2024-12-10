@@ -4,8 +4,8 @@ import re
 from typing import Dict, List
 
 from autogen_core import AgentProxy
-from autogen_core.components.model_context import ChatCompletionContext
-from autogen_core.components.models import ChatCompletionClient, SystemMessage, UserMessage
+from autogen_core.model_context import ChatCompletionContext
+from autogen_core.models import ChatCompletionClient, SystemMessage, UserMessage
 
 
 async def select_speaker(context: ChatCompletionContext, client: ChatCompletionClient, agents: List[AgentProxy]) -> int:
