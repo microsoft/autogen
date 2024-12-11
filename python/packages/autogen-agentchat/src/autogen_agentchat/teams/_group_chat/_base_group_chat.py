@@ -373,10 +373,7 @@ class BaseGroupChat(Team, ABC):
         elif isinstance(task, list):
             if not task:
                 raise ValueError("Task list cannot be empty")
-            if not all(
-                isinstance(msg, get_args(ChatMessage)[0])
-                for msg in task
-            ):
+            if not all(isinstance(msg, get_args(ChatMessage)[0]) for msg in task):
                 raise ValueError("All messages in task list must be valid ChatMessage types")
             first_chat_message = task[0]
             # Queue remaining messages for processing
