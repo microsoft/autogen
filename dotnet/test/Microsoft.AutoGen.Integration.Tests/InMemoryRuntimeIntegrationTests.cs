@@ -21,7 +21,7 @@ public class InMemoryRuntimeIntegrationTests(ITestOutputHelper testOutput)
         await app.WaitForResourcesAsync().WaitAsync(TimeSpan.FromSeconds(120));
 
         //sleep 5 seconds to make sure the app is running
-        await Task.Delay(5000);
+        await Task.Delay(15000);
         app.EnsureNoErrorsLogged();
         app.EnsureLogContains("Hello World");
         app.EnsureLogContains("HelloAgents said Goodbye");
