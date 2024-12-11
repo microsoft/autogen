@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IAgentWorker.cs
-
 namespace Microsoft.AutoGen.Abstractions;
 
 public interface IAgentWorker

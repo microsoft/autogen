@@ -42,7 +42,6 @@ from autogen_core import (
     type_subscription,
 )
 from autogen_core.base.intervention import DefaultInterventionHandler
-from autogen_core.components.tools import BaseTool
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import (
     AssistantMessage,
@@ -50,6 +49,7 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
+from autogen_core.tools import BaseTool
 from common.types import TextMessage
 from common.utils import get_chat_completion_client_from_envs
 from pydantic import BaseModel, Field
