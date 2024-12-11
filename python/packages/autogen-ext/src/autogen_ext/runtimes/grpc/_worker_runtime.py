@@ -299,7 +299,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                 await self._read_task
             except asyncio.CancelledError:
                 pass
-    
+
     async def stop_when_shutdown(self) -> None:
         """Stop the runtime when Ctrl+C or SIGTERM is received."""
         try:
@@ -313,7 +313,9 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
 
         # check if it's running on linux or windows
         if sys.platform == "win32":
-            raise NotImplementedError("Signal handling is not supported on Windows. Please use stop_when_shutdown instead.")
+            raise NotImplementedError(
+                "Signal handling is not supported on Windows. Please use stop_when_shutdown instead."
+            )
         loop = asyncio.get_running_loop()
         shutdown_event = asyncio.Event()
 

@@ -63,7 +63,7 @@ async def main() -> None:
         topic_id=DefaultTopicId("agents.Output", "HelloAgents/python"),
         sender=AgentId("HelloAgents", "python"),
     )
-    
+
     await runtime.stop_when_shutdown()
 
 
