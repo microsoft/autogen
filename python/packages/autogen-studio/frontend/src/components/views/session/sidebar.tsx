@@ -7,7 +7,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
-import type { Session } from "../../../types/datamodel";
+import type { Session } from "../../types/datamodel";
 import { getRelativeTimeString } from "../atoms";
 
 interface SidebarProps {
@@ -95,7 +95,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      <div className="my-4 flex text-sm ">Recents</div>
+      <div className="py-2 flex text-sm text-secondary">Recents</div>
 
       {/* no sessions found */}
 

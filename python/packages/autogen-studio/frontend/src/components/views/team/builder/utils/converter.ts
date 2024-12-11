@@ -8,7 +8,7 @@ import {
   ToolConfig,
   ComponentTypes,
   TerminationConfig,
-} from "../../../../../types/datamodel";
+} from "../../../../types/datamodel";
 
 interface ConversionResult {
   nodes: CustomNode[];

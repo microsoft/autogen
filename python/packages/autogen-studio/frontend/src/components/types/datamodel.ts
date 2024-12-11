@@ -113,7 +113,9 @@ export interface TaskResult {
   stop_reason?: string;
 }
 
-export type ModelTypes = "OpenAIChatCompletionClient";
+export type ModelTypes =
+  | "OpenAIChatCompletionClient"
+  | "AzureOpenAIChatCompletionClient";
 
 export type AgentTypes =
   | "AssistantAgent"
@@ -151,18 +153,32 @@ export type ComponentTypes =
   | "termination";
 
 export type ComponentConfigTypes =
-  | TeamConfig
+  | TeamConfigTypes
   | AgentConfig
-  | ModelConfig
+  | ModelConfigTypes
   | ToolConfig
-  | TerminationConfig;
+  | TerminationConfigTypes;
 
-export interface ModelConfig extends BaseConfig {
+export interface BaseModelConfig extends BaseConfig {
   model: string;
   model_type: ModelTypes;
   api_key?: string;
   base_url?: string;
 }
+
+export interface AzureOpenAIModelConfig extends BaseModelConfig {
+  model_type: "AzureOpenAIChatCompletionClient";
+  azure_deployment: string;
+  api_version: string;
+  azure_endpoint: string;
+  azure_ad_token_provider: string;
+}
+
+export interface OpenAIModelConfig extends BaseModelConfig {
+  model_type: "OpenAIChatCompletionClient";
+}
+
+export type ModelConfigTypes = AzureOpenAIModelConfig | OpenAIModelConfig;
 
 export interface ToolConfig extends BaseConfig {
   name: string;
@@ -174,27 +190,73 @@ export interface AgentConfig extends BaseConfig {
   name: string;
   agent_type: AgentTypes;
   system_message?: string;
-  model_client?: ModelConfig;
+  model_client?: ModelConfigTypes;
   tools?: ToolConfig[];
   description?: string;
 }
-export interface TerminationConfig extends BaseConfig {
+// export interface TerminationConfig extends BaseConfig {
+//   termination_type: TerminationTypes;
+//   max_messages?: number;
+//   text?: string;
+// }
+
+export interface BaseTerminationConfig extends BaseConfig {
   termination_type: TerminationTypes;
-  max_messages?: number;
-  text?: string;
 }
 
-export interface TeamConfig extends BaseConfig {
+export interface MaxMessageTerminationConfig extends BaseTerminationConfig {
+  termination_type: "MaxMessageTermination";
+  max_messages: number;
+}
+
+export interface TextMentionTerminationConfig extends BaseTerminationConfig {
+  termination_type: "TextMentionTermination";
+  text: string;
+}
+
+export interface CombinationTerminationConfig extends BaseTerminationConfig {
+  termination_type: "CombinationTermination";
+  operator: "and" | "or";
+  conditions: TerminationConfigTypes[];
+}
+
+export type TerminationConfigTypes =
+  | MaxMessageTerminationConfig
+  | TextMentionTerminationConfig
+  | CombinationTerminationConfig;
+
+// export interface TeamConfig extends BaseConfig {
+//   name: string;
+//   participants: AgentConfig[];
+//   team_type: TeamTypes;
+//   model_client?: ModelConfig;
+//   termination_condition?: TerminationConfig;
+//   selector_prompt?: string;
+// }
+
+export interface BaseTeamConfig extends BaseConfig {
   name: string;
   participants: AgentConfig[];
   team_type: TeamTypes;
-  model_client?: ModelConfig;
-  termination_condition?: TerminationConfig;
-  selector_prompt?: string;
+  termination_condition?: TerminationConfigTypes;
 }
 
+export interface RoundRobinGroupChatConfig extends BaseTeamConfig {
+  team_type: "RoundRobinGroupChat";
+}
+
+export interface SelectorGroupChatConfig extends BaseTeamConfig {
+  team_type: "SelectorGroupChat";
+  selector_prompt: string;
+  model_client: ModelConfigTypes;
+}
+
+export type TeamConfigTypes =
+  | RoundRobinGroupChatConfig
+  | SelectorGroupChatConfig;
+
 export interface Team extends DBModel {
-  config: TeamConfig;
+  config: TeamConfigTypes;
 }
 
 export interface TeamResult {

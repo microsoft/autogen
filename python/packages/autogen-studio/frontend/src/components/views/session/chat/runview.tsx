@@ -9,8 +9,9 @@ import {
   GroupIcon,
   ChevronDown,
   ChevronUp,
+  Bot,
 } from "lucide-react";
-import { Run, Message, TeamConfig } from "../../../types/datamodel";
+import { Run, Message, TeamConfigTypes } from "../../../types/datamodel";
 import AgentFlow from "./agentflow/agentflow";
 import { RenderMessage } from "./rendermessage";
 import InputRequestView from "./inputrequest";
@@ -19,11 +20,11 @@ import {
   getRelativeTimeString,
   LoadingDots,
   TruncatableText,
-} from "../../shared/atoms";
+} from "../../atoms";
 
 interface RunViewProps {
   run: Run;
-  teamConfig?: TeamConfig;
+  teamConfig?: TeamConfigTypes;
   onInputResponse?: (response: string) => void;
   onCancel?: () => void;
   isFirstRun?: boolean;
@@ -162,7 +163,7 @@ const RunView: React.FC<RunViewProps> = ({
       <div className="flex flex-col items-start">
         <div className="flex items-center gap-2 mb-1">
           <div className="p-1.5 rounded bg-secondary text-primary">
-            <GroupIcon size={20} />
+            <Bot size={20} />
           </div>
           <span className="text-sm font-medium text-primary">Agent Team</span>
         </div>

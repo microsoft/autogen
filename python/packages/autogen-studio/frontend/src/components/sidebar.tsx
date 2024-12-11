@@ -139,12 +139,12 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
                     onClick={() => handleNavClick(item)}
                     className={classNames(
                       // Base styles
-                      "group flex gap-x-3 rounded-md p-2 text-sm font-medium",
+                      "group flex gap-x-3 rounded-md mr-2  p-2 text-sm font-medium",
                       !showFull && "justify-center",
                       // Color states
                       isActive
-                        ? "bg-secondary/50 text-accent"
-                        : "text-secondary hover:bg-secondary/50 hover:text-accent"
+                        ? "bg-tertiary text-accent "
+                        : "text-secondary hover:bg-tertiary hover:text-accent"
                     )}
                   >
                     <IconComponent

@@ -9,7 +9,7 @@ import {
   PanelLeftOpen,
   Calendar,
 } from "lucide-react";
-import type { Team } from "../../../types/datamodel";
+import type { Team } from "../../types/datamodel";
 import { getRelativeTimeString } from "../atoms";
 
 interface TeamSidebarProps {
@@ -86,19 +86,24 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
       </div>
 
       {/* Create Team Button */}
-      <div className="my-4 px-2">
-        <Button
-          type="primary"
-          className="w-full"
-          icon={<Plus className="w-4 h-4" />}
-          onClick={onCreateTeam}
-        >
-          New Team
-        </Button>
+
+      <div className="my-4 flex text-sm  ">
+        <div className=" mr-2 w-full">
+          <Tooltip title="Create new session">
+            <Button
+              type="primary"
+              className="w-full"
+              icon={<Plus className="w-4 h-4" />}
+              onClick={onCreateTeam}
+            >
+              New Team
+            </Button>
+          </Tooltip>
+        </div>
       </div>
 
       {/* Section Label */}
-      <div className="px-4 py-2 text-sm text-secondary">Recent Teams</div>
+      <div className="py-2 text-sm text-secondary">Recents</div>
 
       {/* Teams List */}
       {isLoading ? (

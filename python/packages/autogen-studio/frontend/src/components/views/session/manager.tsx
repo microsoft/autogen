@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useState, useContext } from "react";
 import { message } from "antd";
-import { useConfigStore } from "../../../../hooks/store";
-import { appContext } from "../../../../hooks/provider";
+import { useConfigStore } from "../../../hooks/store";
+import { appContext } from "../../../hooks/provider";
 import { sessionAPI } from "./api";
 import { SessionEditor } from "./editor";
-import type { Session } from "../../../types/datamodel";
-import ChatView from "../../playground/chat/chat";
+import type { Session } from "../../types/datamodel";
+import ChatView from "./chat/chat";
 import { Sidebar } from "./sidebar";
 
 export const SessionManager: React.FC = () => {
@@ -19,6 +19,7 @@ export const SessionManager: React.FC = () => {
     }
     return true; // Default value during SSR
   });
+  const [messageApi, contextHolder] = message.useMessage();
 
   const { user } = useContext(appContext);
   const { session, setSession, sessions, setSessions } = useConfigStore();
@@ -41,7 +42,7 @@ export const SessionManager: React.FC = () => {
       }
     } catch (error) {
       console.error("Error fetching sessions:", error);
-      message.error("Error loading sessions");
+      messageApi.error("Error loading sessions");
     } finally {
       setIsLoading(false);
     }
@@ -69,7 +70,7 @@ export const SessionManager: React.FC = () => {
       setIsEditorOpen(false);
       setEditingSession(undefined);
     } catch (error) {
-      message.error("Error saving session");
+      messageApi.error("Error saving session");
       console.error(error);
     }
   };
@@ -84,10 +85,10 @@ export const SessionManager: React.FC = () => {
       if (session?.id === sessionId || sessions.length === 0) {
         setSession(sessions[0] || null);
       }
-      message.success("Session deleted");
+      messageApi.success("Session deleted");
     } catch (error) {
       console.error("Error deleting session:", error);
-      message.error("Error deleting session");
+      messageApi.error("Error deleting session");
     }
   };
 
@@ -100,7 +101,7 @@ export const SessionManager: React.FC = () => {
       setSession(data);
     } catch (error) {
       console.error("Error loading session:", error);
-      message.error("Error loading session");
+      messageApi.error("Error loading session");
     } finally {
       setIsLoading(false);
     }
@@ -112,6 +113,7 @@ export const SessionManager: React.FC = () => {
 
   return (
     <div className="relative flex h-full w-full">
+      {contextHolder}
       <div
         className={`absolute left-0 top-0 h-full transition-all duration-200 ease-in-out ${
           isSidebarOpen ? "w-64" : "w-12"

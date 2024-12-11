@@ -35,9 +35,9 @@ module.exports = {
         secondary: "var(--color-border-secondary)",
       },
       ringColor: {
-        accent: "var(--color-ring-accent)",
-        primary: "var(--color-ring-primary)",
-        secondary: "var(--color-ring-secondary)",
+        accent: "var(--color-text-accent)",
+        primary: "var(--color-text-primary)",
+        secondary: "var(--color-text-secondary)",
       },
     },
   },

@@ -1,4 +1,4 @@
-import type { Team, TeamConfig } from "../../../types/datamodel";
+import type { Team, TeamConfigTypes } from "../../types/datamodel";
 
 export interface TeamEditorProps {
   team?: Team;
@@ -16,7 +16,7 @@ export interface TeamListProps {
   isLoading?: boolean;
 }
 
-export const defaultTeamConfig: TeamConfig = {
+export const defaultTeamConfig: TeamConfigTypes = {
   version: "1.0.0",
   component_type: "team",
   name: "default_team",
@@ -38,7 +38,7 @@ export const defaultTeamConfig: TeamConfig = {
   termination_condition: {
     component_type: "termination",
     termination_type: "MaxMessageTermination",
-    max_messages: 10,
+    max_messages: 3,
   },
 };
 

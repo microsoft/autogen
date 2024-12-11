@@ -15,16 +15,17 @@ import {
   Brain,
   Timer,
   Trash2Icon,
+  Edit,
 } from "lucide-react";
 import { NodeData, CustomNode } from "../types";
 import {
   AgentConfig,
-  TeamConfig,
-  ModelConfig,
+  TeamConfigTypes,
+  ModelConfigTypes,
   ToolConfig,
-  TerminationConfig,
+  TerminationConfigTypes,
   ComponentTypes,
-} from "../../../../../types/datamodel";
+} from "../../../../types/datamodel";
 import { useDroppable } from "@dnd-kit/core";
 import { TruncatableText } from "../../../atoms";
 import { useTeamBuilderStore } from "../store";
@@ -82,6 +83,7 @@ interface BaseNodeProps extends NodeProps<CustomNode> {
   headerContent?: React.ReactNode;
   descriptionContent?: React.ReactNode;
   className?: string;
+  onEditClick?: (id: string) => void;
 }
 
 const BaseNode: React.FC<BaseNodeProps> = ({
@@ -94,9 +96,10 @@ const BaseNode: React.FC<BaseNodeProps> = ({
   headerContent,
   descriptionContent,
   className,
+  onEditClick,
 }) => {
   const removeNode = useTeamBuilderStore((state) => state.removeNode);
-  // const id = useTeamBuilderStore((state) => state.selectedNodeId);
+  const setSelectedNode = useTeamBuilderStore((state) => state.setSelectedNode);
   const showDelete = data.type !== "team";
 
   return (
@@ -121,17 +124,28 @@ const BaseNode: React.FC<BaseNodeProps> = ({
             <span className="text-xs px-2 py-1 bg-gray-200 rounded text-gray-700">
               {data.type}
             </span>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setSelectedNode(id);
+              }}
+              className="p-1 hover:bg-secondary rounded"
+            >
+              <Edit className="w-4 h-4 text-accent" />
+            </button>
             {showDelete && (
-              <button
-                onClick={(e) => {
-                  console.log("remove node", id);
-                  e.stopPropagation();
-                  if (id) removeNode(id);
-                }}
-                className="p-1 hover:bg-red-100 rounded"
-              >
-                <Trash2Icon className="w-4 h-4 text-red-500" />
-              </button>
+              <>
+                <button
+                  onClick={(e) => {
+                    console.log("remove node", id);
+                    e.stopPropagation();
+                    if (id) removeNode(id);
+                  }}
+                  className="p-1 hover:bg-red-100 rounded"
+                >
+                  <Trash2Icon className="w-4 h-4 text-red-500" />
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -176,8 +190,9 @@ const ConnectionBadge: React.FC<{
 
 // Team Node
 export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
-  const config = props.data.config as TeamConfig;
-  const hasModel = !!config.model_client;
+  const config = props.data.config as TeamConfigTypes;
+  const hasModel =
+    config.team_type === "SelectorGroupChat" && !!config.model_client;
   const participantCount = config.participants?.length || 0;
 
   return (
@@ -198,37 +213,40 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
       descriptionContent={
         <div>
           <div>Type: {config.team_type}</div>
-          {config.selector_prompt && (
-            <div className="mt-1 text-xs">
-              Selector:{" "}
-              <TruncatableText
-                content={config.selector_prompt}
-                textThreshold={150}
-              />
-            </div>
-          )}
+          {config.team_type === "SelectorGroupChat" &&
+            config.selector_prompt && (
+              <div className="mt-1 text-xs">
+                Selector:{" "}
+                <TruncatableText
+                  content={config.selector_prompt}
+                  textThreshold={150}
+                />
+              </div>
+            )}
         </div>
       }
     >
-      <NodeSection title="Model">
-        <Handle
-          type="target"
-          position={Position.Left}
-          id={`${props.id}-model-input-handle`}
-          className="my-left-handle"
-        />
+      {config.team_type === "SelectorGroupChat" && (
+        <NodeSection title="Model">
+          <Handle
+            type="target"
+            position={Position.Left}
+            id={`${props.id}-model-input-handle`}
+            className="my-left-handle"
+          />
 
-        <div className="relative">
-          {config.model_client && (
-            <div className="text-sm">{config.model_client.model}</div>
-          )}
-          <DroppableZone id={`${props.id}-model-zone`} accepts={["model"]}>
-            <div className="text-secondary text-xs my-1 text-center">
-              Drop model here
-            </div>
-          </DroppableZone>
-        </div>
-      </NodeSection>
+          <div className="relative">
+            {hasModel && (
+              <div className="text-sm">{config.model_client.model}</div>
+            )}
+            <DroppableZone id={`${props.id}-model-zone`} accepts={["model"]}>
+              <div className="text-secondary text-xs my-1 text-center">
+                Drop model here
+              </div>
+            </DroppableZone>
+          </div>
+        </NodeSection>
+      )}
 
       <NodeSection
         title={
@@ -392,7 +410,7 @@ export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
 
 // Model Node
 export const ModelNode: React.FC<NodeProps<CustomNode>> = (props) => {
-  const config = props.data.config as ModelConfig;
+  const config = props.data.config as ModelConfigTypes;
 
   return (
     <BaseNode
@@ -453,7 +471,7 @@ export const ToolNode: React.FC<NodeProps<CustomNode>> = (props) => {
 
 // First, let's add the Termination Node component
 export const TerminationNode: React.FC<NodeProps<CustomNode>> = (props) => {
-  const config = props.data.config as TerminationConfig;
+  const config = props.data.config as TerminationConfigTypes;
 
   return (
     <BaseNode
@@ -470,15 +488,12 @@ export const TerminationNode: React.FC<NodeProps<CustomNode>> = (props) => {
 
       <NodeSection title="Configuration">
         <div className="text-sm">
-          {config.max_messages && (
+          {config.termination_type === "MaxMessageTermination" && (
             <div>Max Messages: {config.max_messages}</div>
           )}
-          {/* {config.max_tokens && (
-            <div>Max Tokens: {config.max_tokens}</div>
+          {config.termination_type === "TextMentionTermination" && (
+            <div>Text: {config.text}</div>
           )}
-          {config.content_check && (
-            <div>Content Check: {config.content_check}</div>
-          )} */}
         </div>
       </NodeSection>
     </BaseNode>

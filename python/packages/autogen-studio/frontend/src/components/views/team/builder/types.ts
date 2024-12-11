@@ -1,9 +1,5 @@
 import { Node, Edge } from "@xyflow/react";
-import {
-  TeamConfig,
-  ComponentConfigTypes,
-  ComponentTypes,
-} from "../../../../types/datamodel";
+import { ComponentConfigTypes, ComponentTypes } from "../../../types/datamodel";
 
 interface NodeConnections {
   modelClient: string | null;
@@ -62,7 +58,7 @@ export interface NodeComponentProps {
   onClick: () => void;
 }
 
-export interface PropertyEditorProps {
+export interface NodeEditorProps {
   node: CustomNode | null;
   onUpdate: (updates: Partial<NodeData>) => void;
 }

@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useState, useContext } from "react";
-import { Button, message } from "antd";
+import { Button, message, Modal } from "antd";
 import { ChevronRight } from "lucide-react";
-import { appContext } from "../../../../hooks/provider";
+import { appContext } from "../../../hooks/provider";
 import { teamAPI } from "./api";
 import { TeamSidebar } from "./sidebar";
-import type { Team } from "../../../types/datamodel";
+import type { Team } from "../../types/datamodel";
 import { defaultTeam } from "./types";
 import { TeamBuilder } from "./builder/builder";
 
@@ -20,6 +20,8 @@ export const TeamManager: React.FC = () => {
   });
 
   const { user } = useContext(appContext);
+  const [messageApi, contextHolder] = message.useMessage();
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   // Persist sidebar state
   useEffect(() => {
@@ -76,13 +78,33 @@ export const TeamManager: React.FC = () => {
   const handleSelectTeam = async (selectedTeam: Team) => {
     if (!user?.email || !selectedTeam.id) return;
 
+    if (hasUnsavedChanges) {
+      Modal.confirm({
+        title: "Unsaved Changes",
+        content: "You have unsaved changes. Do you want to discard them?",
+        okText: "Discard",
+        cancelText: "Go Back",
+        onOk: () => {
+          switchToTeam(selectedTeam.id);
+        },
+        // onCancel - do nothing, user stays on current team
+      });
+    } else {
+      await switchToTeam(selectedTeam.id);
+    }
+  };
+
+  // Modify switchToTeam to take the id directly
+  const switchToTeam = async (teamId: number | undefined) => {
+    if (!teamId || !user?.email) return;
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      const data = await teamAPI.getTeam(selectedTeam.id, user.email);
+      const data = await teamAPI.getTeam(teamId, user.email!); // We can assert user.email exists since we checked above
       setCurrentTeam(data);
-      window.history.pushState({}, "", `?teamId=${selectedTeam.id}`);
+      window.history.pushState({}, "", `?teamId=${teamId}`);
     } catch (error) {
       console.error("Error loading team:", error);
+      messageApi.error("Failed to load team");
     } finally {
       setIsLoading(false);
     }
@@ -97,10 +119,10 @@ export const TeamManager: React.FC = () => {
       if (currentTeam?.id === teamId) {
         setCurrentTeam(null);
       }
-      message.success("Team deleted");
+      messageApi.success("Team deleted");
     } catch (error) {
       console.error("Error deleting team:", error);
-      message.error("Error deleting team");
+      messageApi.error("Error deleting team");
     }
   };
 
@@ -108,16 +130,25 @@ export const TeamManager: React.FC = () => {
     const newTeam = Object.assign({}, defaultTeam);
     newTeam.config.name = "new_team_" + new Date().getTime();
     setCurrentTeam(newTeam);
+    // also save it to db
+
+    handleSaveTeam(newTeam);
   };
 
   const handleSaveTeam = async (teamData: Partial<Team>) => {
     if (!user?.email) return;
 
     try {
-      console.log("teamData", teamData);
-      const savedTeam = await teamAPI.createTeam(teamData, user.email);
+      const sanitizedTeamData = {
+        ...teamData,
+        created_at: undefined, // Remove these fields
+        updated_at: undefined, // Let server handle timestamps
+      };
 
-      message.success(
+      console.log("teamData", sanitizedTeamData);
+      const savedTeam = await teamAPI.createTeam(sanitizedTeamData, user.email);
+
+      messageApi.success(
         `Team ${teamData.id ? "updated" : "created"} successfully`
       );
 
@@ -138,6 +169,7 @@ export const TeamManager: React.FC = () => {
 
   return (
     <div className="relative flex h-full w-full">
+      {contextHolder}
       {/* Sidebar */}
       <div
         className={`absolute left-0 top-0 h-full transition-all duration-200 ease-in-out ${
@@ -184,7 +216,11 @@ export const TeamManager: React.FC = () => {
 
           {/* Content Area */}
           {currentTeam ? (
-            <TeamBuilder team={currentTeam} onChange={handleSaveTeam} />
+            <TeamBuilder
+              team={currentTeam}
+              onChange={handleSaveTeam}
+              onDirtyStateChange={setHasUnsavedChanges}
+            />
           ) : (
             <div className="flex items-center justify-center h-[calc(100vh-120px)] text-secondary">
               Select a team from the sidebar or create a new one

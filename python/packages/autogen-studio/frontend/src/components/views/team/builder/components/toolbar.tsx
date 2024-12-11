@@ -70,7 +70,11 @@ export const TeamBuilderToolbar: React.FC<TeamBuilderToolbarProps> = ({
   ];
 
   return (
-    <div className="absolute top-2 right-2 bg-secondary   hover:bg-secondary rounded  shadow-sm z-50">
+    <div
+      className={`${
+        isFullscreen ? "fixed top-6 right-6" : "absolute top-2 right-2"
+      } bg-secondary hover:bg-secondary rounded shadow-sm min-w-[200px] z-[60]`}
+    >
       <div className="p-1 flex items-center gap-1">
         {!isJsonMode && (
           <>
@@ -142,10 +146,8 @@ export const TeamBuilderToolbar: React.FC<TeamBuilderToolbarProps> = ({
           <Dropdown
             menu={{ items: menuItems }}
             trigger={["click"]}
-            getPopupContainer={(triggerNode) =>
-              triggerNode.parentNode as HTMLElement
-            }
-            overlayStyle={{ zIndex: 1000 }}
+            overlayStyle={{ zIndex: 1001 }}
+            placement="bottomRight"
           >
             <Button
               type="text"

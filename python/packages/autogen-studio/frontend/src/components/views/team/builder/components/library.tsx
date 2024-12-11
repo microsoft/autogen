@@ -19,7 +19,7 @@ import {
   ModelConfig,
   TerminationConfig,
   ToolConfig,
-} from "../../../../../types/datamodel";
+} from "../../../../types/datamodel";
 import Sider from "antd/es/layout/Sider";
 
 // Types

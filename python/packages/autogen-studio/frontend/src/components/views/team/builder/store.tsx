@@ -8,14 +8,14 @@ import {
 } from "./types";
 import { nanoid } from "nanoid";
 import {
-  TeamConfig,
+  TeamConfigTypes,
   AgentConfig,
-  ModelConfig,
+  ModelConfigTypes,
   ToolConfig,
   ComponentTypes,
   ComponentConfigTypes,
-  TerminationConfig,
-} from "../../../../types/datamodel";
+  TerminationConfigTypes,
+} from "../../../types/datamodel";
 import {
   convertTeamConfigToGraph,
   getLayoutedElements,
@@ -23,7 +23,7 @@ import {
 
 const MAX_HISTORY = 50;
 
-const isTeamConfig = (config: any): config is TeamConfig => {
+const isTeamConfig = (config: any): config is TeamConfigTypes => {
   return "team_type" in config;
 };
 
@@ -31,7 +31,7 @@ const isAgentConfig = (config: any): config is AgentConfig => {
   return "agent_type" in config;
 };
 
-const isModelConfig = (config: any): config is ModelConfig => {
+const isModelConfig = (config: any): config is ModelConfigTypes => {
   return "model_type" in config;
 };
 
@@ -39,7 +39,7 @@ const isToolConfig = (config: any): config is ToolConfig => {
   return "tool_type" in config;
 };
 
-const isTerminationConfig = (config: any): config is TerminationConfig => {
+const isTerminationConfig = (config: any): config is TerminationConfigTypes => {
   return "termination_type" in config;
 };
 
@@ -49,7 +49,7 @@ export interface TeamBuilderState {
   selectedNodeId: string | null;
   history: Array<{ nodes: CustomNode[]; edges: CustomEdge[] }>;
   currentHistoryIndex: number;
-  originalConfig: TeamConfig | null;
+  originalConfig: TeamConfigTypes | null;
   addNode: (
     type: ComponentTypes,
     position: Position,
@@ -69,8 +69,8 @@ export interface TeamBuilderState {
   redo: () => void;
 
   // Sync with JSON
-  syncToJson: () => TeamConfig | null;
-  loadFromJson: (config: TeamConfig) => GraphState;
+  syncToJson: () => TeamConfigTypes | null;
+  loadFromJson: (config: TeamConfigTypes) => GraphState;
   layoutNodes: () => void;
   resetHistory: () => void;
 }
@@ -79,7 +79,7 @@ const buildTeamConfig = (
   teamNode: CustomNode,
   nodes: CustomNode[],
   edges: CustomEdge[]
-): TeamConfig | null => {
+): TeamConfigTypes | null => {
   if (!isTeamConfig(teamNode.data.config)) return null;
 
   const config = { ...teamNode.data.config };
@@ -90,8 +90,23 @@ const buildTeamConfig = (
   );
   if (modelEdge) {
     const modelNode = nodes.find((n) => n.id === modelEdge.source);
-    if (modelNode && isModelConfig(modelNode.data.config)) {
+    if (
+      modelNode &&
+      isModelConfig(modelNode.data.config) &&
+      config.team_type === "SelectorGroupChat"
+    ) {
       config.model_client = modelNode.data.config;
+    }
+  }
+
+  // Add termination connection handling
+  const terminationEdge = edges.find(
+    (e) => e.target === teamNode.id && e.type === "termination-connection"
+  );
+  if (terminationEdge) {
+    const terminationNode = nodes.find((n) => n.id === terminationEdge.source);
+    if (terminationNode && isTerminationConfig(terminationNode.data.config)) {
+      config.termination_condition = terminationNode.data.config;
     }
   }
 
@@ -222,7 +237,11 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
             });
 
             // Update config
-            if (isTeamConfig(targetNode.data.config) && isModelConfig(config)) {
+            if (
+              isTeamConfig(targetNode.data.config) &&
+              isModelConfig(config) &&
+              targetNode.data.config.team_type === "SelectorGroupChat"
+            ) {
               targetNode.data.config.model_client = config;
             } else if (
               isAgentConfig(targetNode.data.config) &&
@@ -336,19 +355,74 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
     });
   },
 
-  updateNode: (nodeId: string, updates: Partial<ComponentConfigTypes>) => {
+  updateNode: (nodeId: string, updates: Partial<NodeData>) => {
     set((state) => {
-      const newNodes = state.nodes.map((node) =>
-        node.id === nodeId
-          ? {
-              ...node,
-              data: {
-                ...node.data,
-                config: { ...node.data.config, ...updates },
-              },
+      const newNodes = state.nodes.map((node) => {
+        if (node.id !== nodeId) return node;
+
+        // Update the node with new data
+        const updatedNode = {
+          ...node,
+          data: {
+            ...node.data,
+            ...updates,
+            // Update label based on config type
+            label: (() => {
+              const config = { ...node.data.config, ...updates.config };
+              if (isTeamConfig(config)) return config.name || "Team";
+              if (isAgentConfig(config)) return config.name || "Agent";
+              if (isModelConfig(config)) return config.model || "Model";
+              if (isToolConfig(config)) return config.name || "Tool";
+              if (isTerminationConfig(config))
+                return config.termination_type || "Termination";
+              return node.data.label;
+            })(),
+          },
+        };
+
+        return updatedNode;
+      });
+
+      // Update related nodes' configs
+      const updatedNode = newNodes.find((n) => n.id === nodeId);
+      if (!updatedNode) return state;
+
+      // If an agent was updated, update its parent team's participants
+      if (updatedNode.data.type === "agent") {
+        const teamEdge = state.edges.find(
+          (e) => e.type === "agent-connection" && e.target === nodeId
+        );
+        if (teamEdge) {
+          newNodes.forEach((node) => {
+            if (node.id === teamEdge.source && isTeamConfig(node.data.config)) {
+              const agentConfig = updatedNode.data.config as AgentConfig;
+              node.data.config.participants = node.data.config.participants.map(
+                (p) => (p.name === agentConfig.name ? agentConfig : p)
+              );
             }
-          : node
-      );
+          });
+        }
+      }
+
+      // If a tool was updated, update its parent agent's tools
+      if (updatedNode.data.type === "tool") {
+        const agentEdge = state.edges.find(
+          (e) => e.type === "tool-connection" && e.source === nodeId
+        );
+        if (agentEdge) {
+          newNodes.forEach((node) => {
+            if (
+              node.id === agentEdge.target &&
+              isAgentConfig(node.data.config)
+            ) {
+              const toolConfig = updatedNode.data.config as ToolConfig;
+              node.data.config.tools = node.data.config.tools?.map((t) =>
+                t.name === toolConfig.name ? toolConfig : t
+              );
+            }
+          });
+        }
+      }
 
       return {
         nodes: newNodes,
@@ -570,7 +644,7 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
     });
   },
 
-  loadFromJson: (config: TeamConfig) => {
+  loadFromJson: (config: TeamConfigTypes) => {
     const { nodes, edges } = convertTeamConfigToGraph(config);
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
       nodes,
