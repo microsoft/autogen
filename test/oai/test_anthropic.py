@@ -50,10 +50,10 @@ def anthropic_client():
 @pytest.mark.skipif(skip, reason=reason)
 def test_initialization_missing_api_key():
     os.environ.pop("ANTHROPIC_API_KEY", None)
-    os.environ.pop("AWS_ACCESS_KEY", None)
-    os.environ.pop("AWS_SECRET_KEY", None)
+    os.environ.pop("AWS_ACCESS_KEY_ID", None)
+    os.environ.pop("AWS_SECRET_ACCESS_KEY", None)
     os.environ.pop("AWS_SESSION_TOKEN", None)
-    os.environ.pop("AWS_REGION", None)
+    os.environ.pop("AWS_DEFAULT_REGION", None)
     with pytest.raises(ValueError, match="API key or AWS credentials are required to use the Anthropic API."):
         AnthropicClient()
 
