@@ -63,12 +63,8 @@ async def main() -> None:
         topic_id=DefaultTopicId("agents.Output", "HelloAgents/python"),
         sender=AgentId("HelloAgents", "python"),
     )
-
-    try:
-        await runtime._read_task
-    except KeyboardInterrupt:
-        print("KeyboardInterrupt")
-        await runtime.stop()
+    
+    await runtime.stop_when_shutdown()
 
 
 if __name__ == "__main__":

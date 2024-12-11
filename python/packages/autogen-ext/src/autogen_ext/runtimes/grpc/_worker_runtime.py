@@ -298,6 +298,14 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                 await self._read_task
             except asyncio.CancelledError:
                 pass
+    
+    async def stop_when_shutdown(self) -> None:
+        """Stop the runtime when Ctrl+C or SIGTERM is received."""
+        try:
+            await self._read_task
+        except KeyboardInterrupt:
+            logger.info("Received exit signal, shutting down gracefully...")
+            await self.stop()
 
     async def stop_when_signal(self, signals: Sequence[signal.Signals] = (signal.SIGTERM, signal.SIGINT)) -> None:
         """Stop the runtime when a signal is received."""
