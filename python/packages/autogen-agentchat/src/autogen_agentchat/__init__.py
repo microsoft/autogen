@@ -1,3 +1,8 @@
+"""
+This module provides the main entry point for the autogen_agentchat package.
+It includes logger names for trace and event logs, and retrieves the package version.
+"""
+
 import importlib.metadata
 
 TRACE_LOGGER_NAME = "autogen_agentchat"
