@@ -1,5 +1,5 @@
-import { Team, AgentConfig } from "../../../types/datamodel";
-import { getServerUrl } from "../../../utils";
+import { Team, AgentConfig } from "../../types/datamodel";
+import { getServerUrl } from "../../utils";
 
 export class TeamAPI {
   private getBaseUrl(): string {

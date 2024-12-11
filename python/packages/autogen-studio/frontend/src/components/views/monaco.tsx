@@ -7,12 +7,14 @@ export const MonacoEditor = ({
   language,
   onChange,
   minimap = true,
+  className,
 }: {
   value: string;
   onChange?: (value: string) => void;
   editorRef: any;
   language: string;
   minimap?: boolean;
+  className?: string;
 }) => {
   const [isEditorReady, setIsEditorReady] = useState(false);
   const onEditorDidMount = (editor: any, monaco: any) => {
@@ -20,7 +22,7 @@ export const MonacoEditor = ({
     setIsEditorReady(true);
   };
   return (
-    <div id="monaco-editor" className="h-full rounded">
+    <div id="monaco-editor" className={`h-full rounded ${className}`}>
       <Editor
         height="100%"
         className="h-full rounded"

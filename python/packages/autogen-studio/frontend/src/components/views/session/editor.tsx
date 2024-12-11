@@ -1,15 +1,16 @@
 import React, { useContext, useEffect, useState } from "react";
-import { Modal, Form, Input, message, Button, Select, Spin } from "antd";
+import { Modal, Form, message, Input, Button, Select, Spin } from "antd";
 import { TriangleAlertIcon } from "lucide-react";
 import type { FormProps } from "antd";
 import { SessionEditorProps } from "./types";
-import { Team } from "../../../types/datamodel";
+import { Team } from "../../types/datamodel";
 import { teamAPI } from "../team/api";
-import { appContext } from "../../../../hooks/provider";
+import { appContext } from "../../../hooks/provider";
+import { Link } from "gatsby";
 
 type FieldType = {
   name: string;
-  team_id?: string;
+  team_id?: number;
 };
 
 export const SessionEditor: React.FC<SessionEditorProps> = ({
@@ -22,6 +23,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(false);
   const { user } = useContext(appContext);
+  const [messageApi, contextHolder] = message.useMessage();
 
   // Fetch teams when modal opens
   useEffect(() => {
@@ -33,7 +35,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           const teamsData = await teamAPI.listTeams(userId);
           setTeams(teamsData);
         } catch (error) {
-          message.error("Failed to load teams");
+          messageApi.error("Error loading teams");
           console.error("Error loading teams:", error);
         } finally {
           setLoading(false);
@@ -62,12 +64,12 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
         ...values,
         id: session?.id,
       });
-      message.success(
+      messageApi.success(
         `Session ${session ? "updated" : "created"} successfully`
       );
     } catch (error) {
       if (error instanceof Error) {
-        message.error(error.message);
+        messageApi.error(error.message);
       }
     }
   };
@@ -75,7 +77,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   const onFinishFailed: FormProps<FieldType>["onFinishFailed"] = (
     errorInfo
   ) => {
-    message.error("Please check the form for errors");
+    messageApi.error("Please check the form for errors");
     console.error("Form validation failed:", errorInfo);
   };
 
@@ -90,6 +92,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
       className="text-primary"
       forceRender
     >
+      {contextHolder}
       <Form
         form={form}
         name="session-form"
@@ -109,8 +112,9 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           <Input />
         </Form.Item>
 
-        <div className="space-y-2">
+        <div className="space-y-2   w-full">
           <Form.Item<FieldType>
+            className="w-full"
             label="Team"
             name="team_id"
             rules={[{ required: true, message: "Please select a team" }]}
@@ -134,6 +138,11 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
             />
           </Form.Item>
         </div>
+
+        <div className="text-sm text-accent ">
+          <Link to="/build">view all teams</Link>
+        </div>
+
         {hasNoTeams && (
           <div className="flex border p-1 rounded -mt-2 mb-4 items-center gap-1.5 text-sm text-yellow-600">
             <TriangleAlertIcon className="h-4 w-4" />

@@ -1,16 +1,6 @@
 import React, { useEffect, useRef } from "react";
-import {
-  StopCircle,
-  SendHorizontal,
-  Loader2,
-  Clock,
-  AlertTriangle,
-  MessageSquare,
-  CheckCircle,
-} from "lucide-react";
-import { ThreadState, TIMEOUT_CONFIG } from "./types";
-import { RenderMessage } from "./rendermessage";
-import LoadingDots from "../../shared/atoms";
+import { SendHorizontal, Loader2, Clock } from "lucide-react";
+import { TIMEOUT_CONFIG } from "./types";
 
 interface InputRequestProps {
   prompt: string;
