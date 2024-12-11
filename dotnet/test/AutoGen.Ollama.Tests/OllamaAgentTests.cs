@@ -6,6 +6,7 @@ using AutoGen.Core;
 using AutoGen.Ollama.Extension;
 using AutoGen.Tests;
 using FluentAssertions;
+using Xunit;
 
 namespace AutoGen.Ollama.Tests;
 
@@ -49,7 +50,7 @@ public class OllamaAgentTests
         result.Should().BeOfType<MessageEnvelope<ChatResponse>>();
         result.From.Should().Be(ollamaAgent.Name);
 
-        string jsonContent = ((MessageEnvelope<ChatResponse>)result).Content.Message!.Value;
+        string jsonContent = ((MessageEnvelope<ChatResponse>)result).Content.Message!.Value ?? string.Empty;
         bool isValidJson = IsValidJsonMessage(jsonContent);
         isValidJson.Should().BeTrue();
     }
@@ -195,6 +196,66 @@ public class OllamaAgentTests
         update.TotalDuration.Should().BeGreaterThan(0);
     }
 
+    [Fact]
+    public async Task GenerateReplyAsync_ReturnsValidToolMessage()
+    {
+        var host = @" http://localhost:11434";
+        var modelName = "llama3.1";
+
+        var ollamaAgent = BuildOllamaAgent(host, modelName, [OllamaTestUtils.WeatherTool]);
+        var message = new Message("user", "What is the weather today?");
+        var messages = new IMessage[] { MessageEnvelope.Create(message, from: modelName) };
+
+        var result = await ollamaAgent.GenerateReplyAsync(messages);
+
+        result.Should().BeOfType<MessageEnvelope<ChatResponse>>();
+        var chatResponse = ((MessageEnvelope<ChatResponse>)result).Content;
+        chatResponse.Message.Should().BeOfType<Message>();
+        chatResponse.Message.Should().NotBeNull();
+        var toolCall = chatResponse.Message!.ToolCalls!.First();
+        toolCall.Function.Should().NotBeNull();
+        toolCall.Function!.Name.Should().Be("get_current_weather");
+        toolCall.Function!.Arguments.Should().ContainKey("location");
+        toolCall.Function!.Arguments!["location"].Should().Be("San Francisco, CA");
+        toolCall.Function!.Arguments!.Should().ContainKey("format");
+        toolCall.Function!.Arguments!["format"].Should().BeOneOf("celsius", "fahrenheit");
+    }
+
+    [Fact]
+    public async Task OllamaAgentFunctionCallMessageTest()
+    {
+        var host = @" http://localhost:11434";
+        var modelName = "llama3.1";
+
+        var weatherFunctionArguments = """
+                                       {
+                                           "city": "Philadelphia",
+                                           "date": "6/14/2024"
+                                       }
+                                       """;
+
+        var function = new OllamaTestFunctionCalls();
+        var functionCallResult = await function.GetWeatherReportWrapper(weatherFunctionArguments);
+        var toolCall = new ToolCall(function.WeatherReportFunctionContract.Name!, weatherFunctionArguments)
+        {
+            ToolCallId = "get_weather",
+            Result = functionCallResult,
+        };
+
+        var ollamaAgent = BuildOllamaAgent(host, modelName, [OllamaTestUtils.WeatherTool]).RegisterMessageConnector();
+        IMessage[] chatHistory = [
+            new TextMessage(Role.User, "what's the weather in Philadelphia?"),
+            new ToolCallMessage([toolCall], from: "assistant"),
+            new ToolCallResultMessage([toolCall], from: "user"),
+        ];
+
+        var reply = await ollamaAgent.SendAsync(chatHistory: chatHistory);
+
+        reply.Should().BeOfType<TextMessage>();
+        reply.GetContent().Should().Contain("Philadelphia");
+        reply.GetContent().Should().Contain("sunny");
+    }
+
     private static bool IsValidJsonMessage(string input)
     {
         try
@@ -213,12 +274,12 @@ public class OllamaAgentTests
         }
     }
 
-    private static OllamaAgent BuildOllamaAgent(string host, string modelName)
+    private static OllamaAgent BuildOllamaAgent(string host, string modelName, Tool[]? tools = null)
     {
         var httpClient = new HttpClient
         {
             BaseAddress = new Uri(host)
         };
-        return new OllamaAgent(httpClient, "TestAgent", modelName);
+        return new OllamaAgent(httpClient, "TestAgent", modelName, tools: tools);
     }
 }
