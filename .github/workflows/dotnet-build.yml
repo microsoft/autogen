@@ -132,8 +132,8 @@ jobs:
         dotnet-version: '9.0.x'
     - name: Install .NET Aspire workload
       run: dotnet workload install aspire
-    - name: Install dev certs
-      run:  dotnet --version && dotnet dev-certs https --trust
+    - name: Check dev certs
+      run:  dotnet --version && dotnet dev-certs https --check
     - name: Restore dependencies
       run: |
         dotnet restore -bl
