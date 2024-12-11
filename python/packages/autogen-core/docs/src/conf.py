@@ -104,6 +104,11 @@ html_theme_options = {
             "icon": "fa-brands fa-twitter",
         },
         {
+            "name": "Discord",
+            "url": "https://aka.ms/autogen-discord",
+            "icon": "fa-brands fa-discord",
+        },
+        {
             "name": "GitHub",
             "url": "https://github.com/microsoft/autogen",
             "icon": "fa-brands fa-github",
