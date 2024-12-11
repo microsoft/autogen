@@ -29,7 +29,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         )
         self._next_speaker_index = 0
 
-    async def validate_group_state(self, message: ChatMessage | None) -> None:
+    async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
         pass
 
     async def reset(self) -> None:

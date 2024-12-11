@@ -1,10 +1,14 @@
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, List, Mapping, Sequence
+from typing import Any, AsyncGenerator, List, Mapping, Sequence, get_args
 
 from autogen_core import CancellationToken
 
 from ..base import ChatAgent, Response, TaskResult
-from ..messages import AgentMessage, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
+from ..messages import (
+    AgentMessage,
+    ChatMessage,
+    TextMessage,
+)
 from ..state import BaseState
 
 
@@ -45,8 +49,9 @@ class BaseChatAgent(ChatAgent, ABC):
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[AgentMessage | Response, None]:
         """Handles incoming messages and returns a stream of messages and
-        and the final item is the response. The base implementation in :class:`BaseChatAgent`
-        simply calls :meth:`on_messages` and yields the messages in the response."""
+        and the final item is the response. The base implementation in
+        :class:`BaseChatAgent` simply calls :meth:`on_messages` and yields
+        the messages in the response."""
         response = await self.on_messages(messages, cancellation_token)
         for inner_message in response.inner_messages or []:
             yield inner_message
@@ -55,7 +60,7 @@ class BaseChatAgent(ChatAgent, ABC):
     async def run(
         self,
         *,
-        task: str | ChatMessage | None = None,
+        task: str | ChatMessage | List[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the agent with the given task and return the result."""
@@ -69,7 +74,14 @@ class BaseChatAgent(ChatAgent, ABC):
             text_msg = TextMessage(content=task, source="user")
             input_messages.append(text_msg)
             output_messages.append(text_msg)
-        elif isinstance(task, TextMessage | MultiModalMessage | StopMessage | HandoffMessage):
+        elif isinstance(task, list):
+            for msg in task:
+                if isinstance(msg, get_args(ChatMessage)[0]):
+                    input_messages.append(msg)
+                    output_messages.append(msg)
+                else:
+                    raise ValueError(f"Invalid message type in list: {type(msg)}")
+        elif isinstance(task, get_args(ChatMessage)[0]):
             input_messages.append(task)
             output_messages.append(task)
         else:
@@ -83,7 +95,7 @@ class BaseChatAgent(ChatAgent, ABC):
     async def run_stream(
         self,
         *,
-        task: str | ChatMessage | None = None,
+        task: str | ChatMessage | List[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
         """Run the agent with the given task and return a stream of messages
@@ -99,7 +111,15 @@ class BaseChatAgent(ChatAgent, ABC):
             input_messages.append(text_msg)
             output_messages.append(text_msg)
             yield text_msg
-        elif isinstance(task, TextMessage | MultiModalMessage | StopMessage | HandoffMessage):
+        elif isinstance(task, list):
+            for msg in task:
+                if isinstance(msg, get_args(ChatMessage)[0]):
+                    input_messages.append(msg)
+                    output_messages.append(msg)
+                    yield msg
+                else:
+                    raise ValueError(f"Invalid message type in list: {type(msg)}")
+        elif isinstance(task, get_args(ChatMessage)[0]):
             input_messages.append(task)
             output_messages.append(task)
             yield task

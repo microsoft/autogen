@@ -2,7 +2,7 @@ import asyncio
 import logging
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Callable, List, Mapping
+from typing import Any, AsyncGenerator, Callable, List, Mapping, get_args
 
 from autogen_core import (
     AgentId,
@@ -19,7 +19,7 @@ from autogen_core._closure_agent import ClosureContext
 
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
-from ...messages import AgentMessage, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
+from ...messages import AgentMessage, ChatMessage, TextMessage
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import GroupChatMessage, GroupChatReset, GroupChatStart, GroupChatTermination
@@ -146,11 +146,18 @@ class BaseGroupChat(Team, ABC):
             message: GroupChatStart | GroupChatMessage | GroupChatTermination,
             ctx: MessageContext,
         ) -> None:
-            event_logger.info(message.message)
-            if isinstance(message, GroupChatTermination):
+            """Collect output messages from the group chat."""
+            if isinstance(message, GroupChatStart):
+                if message.messages is not None:
+                    for msg in message.messages:
+                        event_logger.info(msg)
+                        await self._output_message_queue.put(msg)
+            elif isinstance(message, GroupChatMessage):
+                event_logger.info(message.message)
+                await self._output_message_queue.put(message.message)
+            elif isinstance(message, GroupChatTermination):
+                event_logger.info(message.message)
                 self._stop_reason = message.message.content
-                return
-            await self._output_message_queue.put(message.message)
 
         await ClosureAgent.register_closure(
             runtime,
@@ -165,7 +172,7 @@ class BaseGroupChat(Team, ABC):
     async def run(
         self,
         *,
-        task: str | ChatMessage | None = None,
+        task: str | ChatMessage | List[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the team and return the result. The base implementation uses
@@ -173,7 +180,7 @@ class BaseGroupChat(Team, ABC):
         Once the team is stopped, the termination condition is reset.
 
         Args:
-            task (str | ChatMessage | None): The task to run the team with.
+            task (str | ChatMessage | List[ChatMessage] | None): The task to run the team with. Can be a string, a single :class:`ChatMessage` , or a list of :class:`ChatMessage`.
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
@@ -264,7 +271,7 @@ class BaseGroupChat(Team, ABC):
     async def run_stream(
         self,
         *,
-        task: str | ChatMessage | None = None,
+        task: str | ChatMessage | List[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
@@ -272,7 +279,7 @@ class BaseGroupChat(Team, ABC):
         team is stopped, the termination condition is reset.
 
         Args:
-            task (str | ChatMessage | None): The task to run the team with.
+            task (str | ChatMessage | List[ChatMessage] | None): The task to run the team with. Can be a string, a single :class:`ChatMessage` , or a list of :class:`ChatMessage`.
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
@@ -356,13 +363,22 @@ class BaseGroupChat(Team, ABC):
         """
 
         # Create the first chat message if the task is a string or a chat message.
-        first_chat_message: ChatMessage | None = None
+        first_chat_message: ChatMessage | List[ChatMessage] | None = None
         if task is None:
             pass
         elif isinstance(task, str):
             first_chat_message = TextMessage(content=task, source="user")
-        elif isinstance(task, TextMessage | MultiModalMessage | StopMessage | HandoffMessage):
+        elif isinstance(task, get_args(ChatMessage)[0]):
             first_chat_message = task
+        elif isinstance(task, list):
+            if not task:
+                raise ValueError("Task list cannot be empty")
+            if not all(isinstance(msg, get_args(ChatMessage)[0]) for msg in task):
+                raise ValueError("All messages in task list must be valid ChatMessage types")
+            first_chat_message = task[0]
+            # Queue remaining messages for processing
+            for msg in task[1:]:
+                await self._output_message_queue.put(msg)
         else:
             raise ValueError(f"Invalid task type: {type(task)}")
 
@@ -388,8 +404,15 @@ class BaseGroupChat(Team, ABC):
             # Run the team by sending the start message to the group chat manager.
             # The group chat manager will start the group chat by relaying the message to the participants
             # and the closure agent.
+            if first_chat_message is not None:
+                if isinstance(first_chat_message, list):
+                    messages = first_chat_message
+                else:
+                    messages = [first_chat_message]
+            else:
+                messages = None
             await self._runtime.send_message(
-                GroupChatStart(message=first_chat_message),
+                GroupChatStart(messages=messages),
                 recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
                 cancellation_token=cancellation_token,
             )

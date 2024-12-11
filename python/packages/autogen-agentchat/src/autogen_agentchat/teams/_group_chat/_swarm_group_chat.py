@@ -29,16 +29,19 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         )
         self._current_speaker = participant_topic_types[0]
 
-    async def validate_group_state(self, message: ChatMessage | None) -> None:
-        """Validate the start message for the group chat."""
-        # Check if the start message is a handoff message.
-        if isinstance(message, HandoffMessage):
-            if message.target not in self._participant_topic_types:
-                raise ValueError(
-                    f"The target {message.target} is not one of the participants {self._participant_topic_types}. "
-                    "If you are resuming Swarm with a new HandoffMessage make sure to set the target to a valid participant as the target."
-                )
-            return
+    async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
+        """Validate the start messages for the group chat."""
+        # Check if any of the start messages is a handoff message.
+        if messages:
+            for message in messages:
+                if isinstance(message, HandoffMessage):
+                    if message.target not in self._participant_topic_types:
+                        raise ValueError(
+                            f"The target {message.target} is not one of the participants {self._participant_topic_types}. "
+                            "If you are resuming Swarm with a new HandoffMessage make sure to set the target to a valid participant as the target."
+                        )
+                    return
+
         # Check if there is a handoff message in the thread that is not targeting a valid participant.
         for existing_message in reversed(self._message_thread):
             if isinstance(existing_message, HandoffMessage):
