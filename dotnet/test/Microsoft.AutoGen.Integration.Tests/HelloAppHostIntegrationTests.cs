@@ -42,8 +42,8 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
                 await app.WaitForResource(ResourceName, TargetState).WaitAsync(timeout);
             }
         }
-        //sleep 5 seconds to make sure the app is running
-        await Task.Delay(5000);
+        //sleep 15 seconds to make sure the app is running
+        await Task.Delay(15000);
         app.EnsureNoErrorsLogged();
         app.EnsureLogContains("HelloAgents said Goodbye");
         app.EnsureLogContains("Wild Hello from Python!");

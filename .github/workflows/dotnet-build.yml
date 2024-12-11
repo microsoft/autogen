@@ -84,10 +84,10 @@ jobs:
     - name: Prepare python venv
       run: |
         source ${{ github.workspace }}/python/.venv/bin/activate
-    - name: Setup .NET 8.0
+    - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x'
+        global-json-file: dotnet/global.json
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
@@ -108,8 +108,7 @@ jobs:
     strategy:
       fail-fast: true 
       matrix:
-        os: [ ubuntu-latest]
-        version: [ net8.0 ]
+        os: [ ubuntu-latest, windows-latest ]
     needs: build
     defaults:
       run:
@@ -134,9 +133,6 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '9.0.x'
-    - name: Install Temp Global.JSON
-      run: |
-        echo "{\"sdk\": {\"version\": \"9.0.101\"}}" > global.json
     - name: Install .NET Aspire workload
       run: dotnet workload install aspire
     - name: Install dev certs
@@ -149,9 +145,9 @@ jobs:
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: Integration Test
-      run: dotnet --version && dotnet test --no-build -bl --configuration Release --filter type=integration
-    - name: Restore the global.json
-      run: rm global.json && git checkout -- global.json
+      run: |
+        dotnet --version
+        dotnet test --no-build -bl --configuration Release --filter type=integration
 
   aot-test: # this make sure the AutoGen.Core is aot compatible
     strategy:
