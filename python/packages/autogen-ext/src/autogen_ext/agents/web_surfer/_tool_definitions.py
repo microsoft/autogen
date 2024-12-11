@@ -1,6 +1,6 @@
 from typing import Any, Dict
 
-from autogen_core.components.tools._base import ParametersSchema, ToolSchema
+from autogen_core.tools._base import ParametersSchema, ToolSchema
 
 
 def _load_tool(tooldef: Dict[str, Any]) -> ToolSchema:
