@@ -29,6 +29,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\samples\Hello\Hello.AppHost\Hello.AppHost.csproj" />
+    <ProjectReference Include="..\..\samples\Hello\HelloAgent\HelloAgent.csproj" />
+    <ProjectReference Include="..\Microsoft.AutoGen.Integration.Tests.AppHosts\HelloAgent.AppHost\HelloAgent.AppHost.csproj" />
   </ItemGroup>
 
   <!-- Properties, Items, and targets to ensure Python apps are initialized -->
