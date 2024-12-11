@@ -1,5 +1,5 @@
 """
-This module initializes the UI components for the package.
+This module implements utility classes for formatting/printing agent messages.
 """
 from ._console import Console
 
