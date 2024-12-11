@@ -133,7 +133,7 @@ jobs:
     - name: Install .NET Aspire workload
       run: dotnet workload install aspire
     - name: Check dev certs
-      run:  dotnet --version && dotnet dev-certs https --check
+      run:  dotnet --version && dotnet dev-certs https --check --trust
     - name: Restore dependencies
       run: |
         dotnet restore -bl
