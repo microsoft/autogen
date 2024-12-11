@@ -139,7 +139,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
           </Form.Item>
         </div>
 
-        <div className="text-sm text-accent -mt-4">
+        <div className="text-sm text-accent ">
           <Link to="/build">view all teams</Link>
         </div>
 
