@@ -70,6 +70,7 @@ async def main() -> None:
         print("KeyboardInterrupt")
         await runtime.stop()
 
+
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     agnext_logger.setLevel(logging.DEBUG)
