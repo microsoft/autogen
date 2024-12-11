@@ -1,6 +1,6 @@
 """
 This module initializes various pre-defined agents provided by the package.
-The BaseChatAgent class is the base class for all agents, and the other agents.
+BaseChatAgent is the base class for all agents in AgentChat.
 """
 
 from ._assistant_agent import AssistantAgent, Handoff  # type: ignore
