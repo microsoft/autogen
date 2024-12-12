@@ -366,9 +366,6 @@ dependencies = [
 [package.metadata]
 requires-dist = [{ name = "autogen-core", editable = "packages/autogen-core" }]
 
-[package.metadata.requires-dev]
-dev = []
-
 [[package]]
 name = "autogen-core"
 version = "0.4.0.dev11"
@@ -656,9 +653,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "autogen-core", editable = "packages/autogen-core" }]
-
-[package.metadata.requires-dev]
-dev = []
 
 [[package]]
 name = "autogenstudio"
