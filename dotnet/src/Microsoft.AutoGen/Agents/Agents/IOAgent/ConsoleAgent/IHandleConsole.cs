@@ -8,7 +8,6 @@ namespace Microsoft.AutoGen.Agents;
 
 public interface IHandleConsole : IHandle<Output>, IHandle<Input>
 {
-    string Route { get; }
     AgentId AgentId { get; }
     ValueTask PublishMessageAsync<T>(T message, string? source = null, CancellationToken token = default) where T : IMessage;
 
