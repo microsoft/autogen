@@ -3,7 +3,7 @@
 
 using Microsoft.AutoGen.Contracts;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Runtime.Grpc;
 
 internal sealed class RegistryGrain : Grain, IRegistryGrain
 {

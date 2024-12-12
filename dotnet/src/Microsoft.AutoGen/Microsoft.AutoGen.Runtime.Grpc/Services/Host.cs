@@ -4,7 +4,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Runtime.Grpc;
 
 public static class Host
 {

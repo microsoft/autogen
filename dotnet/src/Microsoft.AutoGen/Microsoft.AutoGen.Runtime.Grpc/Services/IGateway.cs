@@ -2,7 +2,7 @@
 // IGateway.cs
 using Microsoft.AutoGen.Contracts;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Runtime.Grpc;
 
 public interface IGateway : IGrainObserver
 {

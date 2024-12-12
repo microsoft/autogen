@@ -7,7 +7,7 @@ using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Runtime.Grpc;
 
 public sealed class GrpcGateway : BackgroundService, IGateway
 {
