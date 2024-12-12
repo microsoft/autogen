@@ -28,7 +28,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
     {
         var appHostName = testEndpoints.AppHost!;
         var appHostPath = $"{appHostName}.dll";
-        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);    
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
 
         await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
