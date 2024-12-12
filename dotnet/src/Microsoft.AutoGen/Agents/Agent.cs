@@ -23,7 +23,6 @@ public abstract class Agent : IHandle
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     private readonly IAgentRuntime _runtime;
 
-
     protected internal ILogger<Agent> _logger;
     public IAgentRuntime Context => _runtime;
     protected readonly EventTypes EventTypes;
@@ -245,7 +244,6 @@ public abstract class Agent : IHandle
                 self._pendingRequests.AddOrUpdate(request.RequestId, _ => completion, (_, __) => completion);
 
                 await state.Item1.Context!.SendRequestAsync(state.Item1, state.request, ct).ConfigureAwait(false);
-
 
                 await completion.Task.ConfigureAwait(false);
             },
