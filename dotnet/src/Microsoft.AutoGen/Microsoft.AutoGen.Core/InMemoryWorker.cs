@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentWorker.cs
+// InMemoryWorker.cs
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
@@ -14,11 +14,11 @@ namespace Microsoft.AutoGen.Core;
 /// <summary>
 /// Represents a worker that manages agents and handles messages.
 /// </summary>
-public class AgentWorker : IHostedService, IAgentWorker
+public class InMemoryWorker : IHostedService, IAgentWorker
 {
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
     private readonly ConcurrentDictionary<(string Type, string Key), Agent> _agents = new();
-    private readonly ILogger<AgentWorker> _logger;
+    private readonly ILogger<InMemoryWorker> _logger;
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
     private readonly ConcurrentDictionary<string, (Agent Agent, string OriginalRequestId)> _pendingClientRequests = new();
@@ -31,18 +31,18 @@ public class AgentWorker : IHostedService, IAgentWorker
     private readonly object _channelLock = new();
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="AgentWorker"/> class.
+    /// Initializes a new instance of the <see cref="InMemoryWorker"/> class.
     /// </summary>
     /// <param name="hostApplicationLifetime">The application lifetime.</param>
     /// <param name="serviceProvider">The service provider.</param>
     /// <param name="configuredAgentTypes">The configured agent types.</param>
     /// <param name="logger">The logger.</param>
     /// <param name="distributedContextPropagator">The distributed context propagator.</param>
-    public AgentWorker(
+    public InMemoryWorker(
         IHostApplicationLifetime hostApplicationLifetime,
         IServiceProvider serviceProvider,
         [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
-        ILogger<AgentWorker> logger,
+        ILogger<InMemoryWorker> logger,
         DistributedContextPropagator distributedContextPropagator)
     {
         _logger = logger;
@@ -123,7 +123,7 @@ public class AgentWorker : IHostedService, IAgentWorker
                         var item = msg.CloudEvent;
                         foreach (var (typeName, _) in _agentTypes)
                         {
-                            var agentToInvoke = GetOrActivateAgent(new AgentId { Type = typeName, Key = item.Source });
+                            var agentToInvoke = GetOrActivateAgent(new AgentId { Type = typeName, Key = item.GetSubject() });
                             agentToInvoke.ReceiveMessage(msg);
                         }
                         break;

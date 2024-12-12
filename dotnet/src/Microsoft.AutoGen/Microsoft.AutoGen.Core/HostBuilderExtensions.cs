@@ -49,7 +49,7 @@ public static class HostBuilderExtensions
     /// <returns>The updated host application builder.</returns>
     public static IHostApplicationBuilder AddInMemoryWorker(this IHostApplicationBuilder builder)
     {
-        builder.Services.AddSingleton<IAgentWorker, AgentWorker>();
+        builder.Services.AddSingleton<IAgentWorker, InMemoryWorker>();
         return builder;
     }
 
