@@ -6,7 +6,6 @@ using FluentAssertions;
 using Google.Protobuf.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AutoGen.Contracts;
-using Microsoft.AutoGen.Runtime.Grpc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -109,7 +108,6 @@ public sealed class InMemoryAgentRuntimeFixture : IDisposable
         // step 1: create in-memory agent runtime
         // step 2: register TestAgent to that agent runtime
         builder
-            .AddAgentService(local: true, useGrpc: false)
             .AddAgentWorker()
             .AddAgent<TestAgent>(nameof(TestAgent));
 
