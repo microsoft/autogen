@@ -18,8 +18,5 @@
 	  <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
 	  <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
 	  <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-	    <PrivateAssets>all</PrivateAssets>
-	  </PackageReference>
 	</ItemGroup>
 </Project>
