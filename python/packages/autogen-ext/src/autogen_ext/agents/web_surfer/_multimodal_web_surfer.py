@@ -74,8 +74,8 @@ class MultimodalWebSurfer(BaseChatAgent):
         4) The agent makes a call to the :attr:`model_client` with the SOM screenshot, history of messages, and the list of available tools.
             - If the model returns a string, the agent returns the string as the final response.
             - If the model returns a list of tool calls, the agent executes the tool calls with :meth:`_execute_tool` using :attr:`_playwright_controller`.
-                - The agent returns a final response which includes a screenshot of the page, page metadata, description of the action taken and the inner text of the webpage.
-        - If at any point the agent encounters an error, it returns the error message as the final response.
+            - The agent returns a final response which includes a screenshot of the page, page metadata, description of the action taken and the inner text of the webpage.
+        5) If at any point the agent encounters an error, it returns the error message as the final response.
 
 
     .. note::
