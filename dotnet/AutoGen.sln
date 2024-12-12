@@ -134,6 +134,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Agents.Te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Integration.Tests", "test\Microsoft.AutoGen.Integration.Tests\Microsoft.AutoGen.Integration.Tests.csproj", "{D04C6153-8EAF-4E54-9852-52CEC1BE8D31}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloAgent.AppHost", "test\Microsoft.AutoGen.Integration.Tests.AppHosts\HelloAgent.AppHost\HelloAgent.AppHost.csproj", "{99D7766B-076F-4E6F-A8D2-3DF1DAFA2599}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -348,6 +350,10 @@ Global
 		{D04C6153-8EAF-4E54-9852-52CEC1BE8D31}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D04C6153-8EAF-4E54-9852-52CEC1BE8D31}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D04C6153-8EAF-4E54-9852-52CEC1BE8D31}.Release|Any CPU.Build.0 = Release|Any CPU
+		{99D7766B-076F-4E6F-A8D2-3DF1DAFA2599}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{99D7766B-076F-4E6F-A8D2-3DF1DAFA2599}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{99D7766B-076F-4E6F-A8D2-3DF1DAFA2599}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{99D7766B-076F-4E6F-A8D2-3DF1DAFA2599}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -409,6 +415,7 @@ Global
 		{65059914-5527-4A00-9308-9FAF23D5E85A} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{394FDAF8-74F9-4977-94A5-3371737EB774} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 		{D04C6153-8EAF-4E54-9852-52CEC1BE8D31} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
+		{99D7766B-076F-4E6F-A8D2-3DF1DAFA2599} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93384647-528D-46C8-922C-8DB36A382F0B}
