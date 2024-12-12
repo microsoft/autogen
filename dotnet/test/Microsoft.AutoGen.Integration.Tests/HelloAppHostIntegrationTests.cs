@@ -2,7 +2,6 @@
 // HelloAppHostIntegrationTests.cs
 
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
 
 namespace Microsoft.AutoGen.Integration.Tests;
