@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ReflectionHelper.cs
-using Google.Protobuf.Reflection;
-using Google.Protobuf;
 using System.Reflection;
+using Google.Protobuf;
+using Google.Protobuf.Reflection;
 
 namespace Microsoft.AutoGen.Agents;
 public sealed class ReflectionHelper
@@ -23,7 +23,7 @@ public sealed class ReflectionHelper
         }
         return false;
     }
-        public static EventTypes GetAgentsMetadata(params Assembly[] assemblies)
+    public static EventTypes GetAgentsMetadata(params Assembly[] assemblies)
     {
         var interfaceType = typeof(IMessage);
         var pairs = assemblies

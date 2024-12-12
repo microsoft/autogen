@@ -13,7 +13,7 @@ public static class Host
         var builder = WebApplication.CreateBuilder();
         builder.AddServiceDefaults();
         builder.AddAgentService(useGrpc: useGrpc);
-        
+
         var app = builder.Build();
         app.MapAgentService(local, useGrpc);
         app.MapDefaultEndpoints();
