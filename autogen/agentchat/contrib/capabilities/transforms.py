@@ -96,7 +96,7 @@ class MessageHistoryLimiter:
             if remaining_count == 1:
                 # If there's only 1 slot left and it's a 'tools' message, ignore it.
                 if messages[i].get("role") != "tool":
-                    truncated_messages.insert(1, messages[i])
+                    truncated_messages.insert(1 if self._keep_first_message else 0, messages[i])
 
             remaining_count -= 1
             if remaining_count == 0:
