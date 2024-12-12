@@ -2,8 +2,9 @@
 // IAgentRuntime.cs
 
 using System.Diagnostics;
+using Microsoft.AutoGen.Abstractions;
 
-namespace Microsoft.AutoGen.Abstractions;
+namespace Microsoft.AutoGen.Agents;
 
 public interface IAgentRuntime
 {

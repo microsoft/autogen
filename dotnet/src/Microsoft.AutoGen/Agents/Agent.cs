@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Agent.cs
 
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Reflection;
 using System.Text;
@@ -12,12 +13,12 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public abstract class Agent : Agent, IHandle
+public abstract class Agent : IDisposable, IHandle
 {
     public static readonly ActivitySource s_source = new("AutoGen.Agent");
     public AgentId AgentId => _runtime.AgentId;
     private readonly object _lock = new();
-    private readonly Dictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = [];
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = [];
 
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     private readonly IAgentRuntime _runtime;
@@ -235,18 +236,15 @@ public abstract class Agent : Agent, IHandle
         activity?.SetTag("peer.service", target.ToString());
 
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        _runtime.Update(request, activity);
+        Context!.Update(request, activity);
         await this.InvokeWithActivityAsync(
-            static async ((Agent Agent, RpcRequest Request, TaskCompletionSource<RpcResponse>) state, CancellationToken ct) =>
+            static async (state, ct) =>
             {
                 var (self, request, completion) = state;
 
-                lock (self._lock)
-                {
-                    self._pendingRequests[request.RequestId] = completion;
-                }
+                self._pendingRequests.AddOrUpdate(request.RequestId, _ => completion, (_, __) => completion);
 
-                await state.Agent._runtime.SendRequestAsync(state.Agent, state.Request).ConfigureAwait(false);
+                await state.Item1.Context!.SendRequestAsync(state.Item1, state.request, ct).ConfigureAwait(false);
 
                 await completion.Task.ConfigureAwait(false);
             },
@@ -344,5 +342,10 @@ public abstract class Agent : Agent, IHandle
     public async ValueTask PublishEventAsync(string topic, IMessage evt, CancellationToken cancellationToken = default)
     {
         await PublishEventAsync(evt.ToCloudEvent(topic), cancellationToken).ConfigureAwait(false);
+    }
+
+    public void Dispose()
+    {
+        throw new NotImplementedException();
     }
 }
