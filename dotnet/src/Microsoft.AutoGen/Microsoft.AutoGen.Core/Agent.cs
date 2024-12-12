@@ -332,9 +332,9 @@ public abstract class Agent : IDisposable
     {
         // Only send the event to the handler if the agent type is handling that type
         // foreach of the keys in the EventTypes.EventsMap[] if it contains the item.type
-
+        var key = item.Attributes["subject"].CeString;
         if (EventTypes.CheckIfTypeHandles(GetType(), item.Type) &&
-                 item.Source == AgentId.Key)
+                 key == AgentId.Key)
         {
             var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
             var eventType = EventTypes.GetEventTypeByName(item.Type) ?? throw new InvalidOperationException($"Type not found on event type {item.Type}");
