@@ -35,7 +35,7 @@ dependencies = [
     "pyyaml",
     "autogen-core==0.4.0.dev11",
     "autogen-agentchat==0.4.0.dev11",
-    "autogen-ext==0.4.0.dev11"
+    "autogen-ext[magentic-one]==0.4.0.dev11"
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
 
