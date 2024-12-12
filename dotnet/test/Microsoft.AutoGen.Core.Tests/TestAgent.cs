@@ -8,6 +8,7 @@ using Tests.Events;
 
 namespace Microsoft.AutoGen.Core.Tests;
 
+[TopicSubscription("default")]
 public class TestAgent([FromKeyedServices("EventTypes")] EventTypes eventTypes, ILogger<Agent>? logger = null)
     : Agent(eventTypes, logger)
     , IHandle<GoodBye>

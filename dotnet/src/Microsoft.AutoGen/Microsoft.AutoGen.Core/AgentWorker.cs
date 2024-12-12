@@ -58,7 +58,7 @@ public class AgentWorker : IHostedService, IAgentWorker
         foreach (var (typeName, _) in _agentTypes)
         {
             if (typeName == nameof(Client)) { continue; }
-            var agent = GetOrActivateAgent(new AgentId { Type = typeName, Key = cloudEvent.Source });
+            var agent = GetOrActivateAgent(new AgentId { Type = typeName, Key = cloudEvent.GetSubject() });
             agent.ReceiveMessage(new Message { CloudEvent = cloudEvent });
         }
     }

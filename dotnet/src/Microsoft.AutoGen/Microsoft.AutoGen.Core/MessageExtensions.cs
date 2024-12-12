@@ -53,6 +53,12 @@ public static class MessageExtensions
     }
 
     /// <summary>
+    public static string GetSubject(this CloudEvent cloudEvent)
+    {
+        return cloudEvent.Attributes["subject"].CeString;
+    }
+
+    /// <summary>
     /// Converts a state to an AgentState.
     /// </summary>
     /// <typeparam name="T">The type of the state.</typeparam>

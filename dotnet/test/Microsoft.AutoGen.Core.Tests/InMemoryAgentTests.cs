@@ -36,7 +36,7 @@ public partial class InMemoryAgentTests(InMemoryAgentRuntimeFixture fixture)
         var client = _fixture.AppHost.Services.GetRequiredService<Client>();
         Agent.Initialize(context, client);
         var evt = new TextMessage { Message = $"wow{agentId.Key}", Source = nameof(Agent_Handles_Event) };
-        await client.PublishEventAsync(evt, agentId.Key,"topicType", CancellationToken.None);
+        await client.PublishEventAsync(evt, agentId.Key, "default", CancellationToken.None);
 
         // wait for 10 seconds
         var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
