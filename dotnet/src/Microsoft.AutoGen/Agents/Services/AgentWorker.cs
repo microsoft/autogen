@@ -196,8 +196,8 @@ public class AgentWorker :
         {
             if (_agentTypes.TryGetValue(agentId.Type, out var agentType))
             {
-                var context = new AgentRuntime(agentId, this, _serviceProvider.GetRequiredService<ILogger<AgentBase>>(), _distributedContextPropagator);
-                agent = (AgentBase)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, context);
+                var context = new AgentRuntime(agentId, this, _serviceProvider.GetRequiredService<ILogger<Agent>>(), _distributedContextPropagator);
+                agent = (Agent)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, context);
                 _agents.TryAdd((agentId.Type, agentId.Key), agent);
             }
             else

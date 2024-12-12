@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentBase.cs
+// Agent.cs
 
 using System.Diagnostics;
 using System.Reflection;
@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public abstract class AgentBase : IAgentBase, IHandle
+public abstract class Agent : IAgentBase, IHandle
 {
     public static readonly ActivitySource s_source = new("AutoGen.Agent");
     public AgentId AgentId => _runtime.AgentId;
@@ -23,19 +23,19 @@ public abstract class AgentBase : IAgentBase, IHandle
     private readonly IAgentRuntime _runtime;
     public string Route { get; set; } = "base";
 
-    protected internal ILogger<AgentBase> _logger;
+    protected internal ILogger<Agent> _logger;
     public IAgentRuntime Context => _runtime;
     protected readonly EventTypes EventTypes;
 
-    protected AgentBase(
+    protected Agent(
         IAgentRuntime runtime,
         EventTypes eventTypes,
-        ILogger<AgentBase>? logger = null)
+        ILogger<Agent>? logger = null)
     {
         _runtime = runtime;
         runtime.AgentInstance = this;
         this.EventTypes = eventTypes;
-        _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<AgentBase>();
+        _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<Agent>();
         AddImplicitSubscriptionsAsync().AsTask().Wait();
         Completion = Start();
     }
@@ -133,7 +133,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                 {
                     var activity = this.ExtractActivity(msg.CloudEvent.Type, msg.CloudEvent.Attributes);
                     await this.InvokeWithActivityAsync(
-                        static ((AgentBase Agent, CloudEvent Item) state, CancellationToken _) => state.Agent.CallHandler(state.Item),
+                        static ((Agent Agent, CloudEvent Item) state, CancellationToken _) => state.Agent.CallHandler(state.Item),
                         (this, msg.CloudEvent),
                         activity,
                         msg.CloudEvent.Type, cancellationToken).ConfigureAwait(false);
@@ -143,7 +143,7 @@ public abstract class AgentBase : IAgentBase, IHandle
                 {
                     var activity = this.ExtractActivity(msg.Request.Method, msg.Request.Metadata);
                     await this.InvokeWithActivityAsync(
-                        static ((AgentBase Agent, RpcRequest Request) state, CancellationToken ct) => state.Agent.OnRequestCoreAsync(state.Request, ct),
+                        static ((Agent Agent, RpcRequest Request) state, CancellationToken ct) => state.Agent.OnRequestCoreAsync(state.Request, ct),
                         (this, msg.Request),
                         activity,
                         msg.Request.Method, cancellationToken).ConfigureAwait(false);
@@ -237,7 +237,7 @@ public abstract class AgentBase : IAgentBase, IHandle
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
         _runtime.Update(request, activity);
         await this.InvokeWithActivityAsync(
-            static async ((AgentBase Agent, RpcRequest Request, TaskCompletionSource<RpcResponse>) state, CancellationToken ct) =>
+            static async ((Agent Agent, RpcRequest Request, TaskCompletionSource<RpcResponse>) state, CancellationToken ct) =>
             {
                 var (self, request, completion) = state;
 
@@ -273,7 +273,7 @@ public abstract class AgentBase : IAgentBase, IHandle
         // TODO: fix activity
         _runtime.Update(item, activity);
         await this.InvokeWithActivityAsync(
-            static async ((AgentBase Agent, CloudEvent Event) state, CancellationToken ct) =>
+            static async ((Agent Agent, CloudEvent Event) state, CancellationToken ct) =>
             {
                 await state.Agent._runtime.PublishEventAsync(state.Event).ConfigureAwait(false);
             },

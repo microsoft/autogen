@@ -9,12 +9,12 @@ using static Microsoft.AutoGen.Abstractions.CloudEvent.Types;
 
 namespace Microsoft.AutoGen.Agents;
 
-internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger<AgentBase> logger, DistributedContextPropagator distributedContextPropagator) : IAgentRuntime
+internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger<Agent> logger, DistributedContextPropagator distributedContextPropagator) : IAgentRuntime
 {
     private readonly IAgentWorker worker = worker;
 
     public AgentId AgentId { get; } = agentId;
-    public ILogger<AgentBase> Logger { get; } = logger;
+    public ILogger<Agent> Logger { get; } = logger;
     public IAgentBase? AgentInstance { get; set; }
     private DistributedContextPropagator DistributedContextPropagator { get; } = distributedContextPropagator;
     public (string?, string?) GetTraceIdAndState(IDictionary<string, string> metadata)

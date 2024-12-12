@@ -18,7 +18,7 @@ public static class HostBuilderExtensions
     private const string _defaultAgentServiceAddress = "https://localhost:53071";
 
     public static IHostApplicationBuilder AddAgent<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TAgent>(this IHostApplicationBuilder builder, string typeName) where TAgent : AgentBase
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TAgent>(this IHostApplicationBuilder builder, string typeName) where TAgent : Agent
     {
         builder.Services.AddKeyedSingleton("AgentTypes", (sp, key) => Tuple.Create(typeName, typeof(TAgent)));
 
@@ -60,7 +60,7 @@ public static class HostBuilderExtensions
 
             var eventsMap = AppDomain.CurrentDomain.GetAssemblies()
                                     .SelectMany(assembly => assembly.GetTypes())
-                                    .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase)) && !type.IsAbstract)
+                                    .Where(type => type != null && ReflectionHelper.IsSubclassOfGeneric(type, typeof(Agent)) && !type.IsAbstract)
                                     .Select(t => (t, t.GetInterfaces()
                                                   .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
                                                   .Select(i => (GetMessageDescriptor(i.GetGenericArguments().First())?.FullName ?? "")).ToHashSet()))
@@ -68,7 +68,7 @@ public static class HostBuilderExtensions
             // if the assembly contains any interfaces of type IHandler, then add all the methods of the interface to the eventsMap
             var handlersMap = AppDomain.CurrentDomain.GetAssemblies()
                                     .SelectMany(assembly => assembly.GetTypes())
-                                    .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase)) && !type.IsAbstract)
+                                    .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(Agent)) && !type.IsAbstract)
                                     .Select(t => (t, t.GetMethods()
                                                   .Where(m => m.Name == "Handle")
                                                   .Select(m => (GetMessageDescriptor(m.GetParameters().First().ParameterType)?.FullName ?? "")).ToHashSet()))
@@ -76,7 +76,7 @@ public static class HostBuilderExtensions
             // get interfaces implemented by the agent and get the methods of the interface if they are named Handle
             var ifaceHandlersMap = AppDomain.CurrentDomain.GetAssemblies()
                                     .SelectMany(assembly => assembly.GetTypes())
-                                    .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase)) && !type.IsAbstract)
+                                    .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(Agent)) && !type.IsAbstract)
                                     .Select(t => t.GetInterfaces()
                                                   .Select(i => (t, i, i.GetMethods()
                                                   .Where(m => m.Name == "Handle")
@@ -151,7 +151,7 @@ public sealed class AgentTypes(Dictionary<string, Type> types)
     {
         var agents = AppDomain.CurrentDomain.GetAssemblies()
                                 .SelectMany(assembly => assembly.GetTypes())
-                                .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(AgentBase))
+                                .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(Agent))
                                     && !type.IsAbstract
                                     && !type.Name.Equals(nameof(Client)))
                                 .ToDictionary(type => type.Name, type => type);
@@ -169,7 +169,7 @@ public sealed class EventTypes(TypeRegistry typeRegistry, Dictionary<string, Typ
 public sealed class AgentApplicationBuilder(IHostApplicationBuilder builder)
 {
     public AgentApplicationBuilder AddAgent<
-        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TAgent>(string typeName) where TAgent : AgentBase
+        [DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicConstructors)] TAgent>(string typeName) where TAgent : Agent
     {
         builder.Services.AddKeyedSingleton("AgentTypes", (sp, key) => Tuple.Create(typeName, typeof(TAgent)));
         return this;
