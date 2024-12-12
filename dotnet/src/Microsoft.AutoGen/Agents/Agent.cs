@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentBase.cs
+// Agent.cs
 
 using System.Diagnostics;
 using System.Reflection;
