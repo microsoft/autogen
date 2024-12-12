@@ -9,7 +9,7 @@ using static Microsoft.AutoGen.Contracts.CloudEvent.Types;
 
 namespace Microsoft.AutoGen.Agents;
 
-internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger<Agent> logger, DistributedContextPropagator distributedContextPropagator) : IAgentRuntime
+public sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger<Agent> logger, DistributedContextPropagator distributedContextPropagator) : IAgentRuntime
 {
     private readonly IAgentWorker worker = worker;
 

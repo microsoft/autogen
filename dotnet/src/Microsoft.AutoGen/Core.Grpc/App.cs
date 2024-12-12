@@ -1,12 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // App.cs
+using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AutoGen.Agents;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
-namespace Microsoft.AutoGen.Runtime.Grpc;
+namespace Microsoft.AutoGen.Core.Grpc;
 
 public static class AgentsApp
 {
@@ -17,19 +20,11 @@ public static class AgentsApp
     public static async ValueTask<WebApplication> StartAsync(WebApplicationBuilder? builder = null, AgentTypes? agentTypes = null, bool local = false)
     {
         builder ??= WebApplication.CreateBuilder();
-        if (local)
-        {
-            // start the server runtime
-            builder.AddLocalAgentService(useGrpc: false);
-        }
-        builder.AddAgentWorker(local: local)
+        builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
+        builder.AddAgentWorker()
             .AddAgents(agentTypes);
         builder.AddServiceDefaults();
         var app = builder.Build();
-        if (local)
-        {
-            app.MapAgentService(local: true, useGrpc: false);
-        }
         app.MapDefaultEndpoints();
         Host = app;
         await app.StartAsync().ConfigureAwait(false);
