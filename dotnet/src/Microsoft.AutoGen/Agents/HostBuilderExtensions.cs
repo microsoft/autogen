@@ -31,20 +31,11 @@ public static class HostBuilderExtensions
         return builder;
     }
 
-    public static IHostApplicationBuilder AddAgentWorker(this IHostApplicationBuilder builder, string? agentServiceAddress = null, bool local = false)
+    public static IHostApplicationBuilder AddAgentWorker(this IHostApplicationBuilder builder, string? agentServiceAddress = null)
     {
         agentServiceAddress ??= builder.Configuration["AGENT_HOST"] ?? _defaultAgentServiceAddress;
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-
-        // if !local, then add the gRPC client
-        if (!local)
-        {
-            builder.AddGrpcAgentWorker(agentServiceAddress);
-        }
-        else
-        {
-            builder.Services.AddSingleton<IAgentWorker, AgentWorker>();
-        }
+        builder.Services.AddSingleton<IAgentWorker, AgentWorker>();
         builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<IAgentWorker>());
         builder.Services.AddKeyedSingleton("EventTypes", (sp, key) =>
         {

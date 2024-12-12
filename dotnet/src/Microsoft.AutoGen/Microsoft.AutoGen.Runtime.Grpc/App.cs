@@ -1,14 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // App.cs
-using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Runtime.Grpc;
 
 public static class AgentsApp
 {
@@ -16,15 +14,22 @@ public static class AgentsApp
     public static WebApplication? Host { get; private set; }
 
     [MemberNotNull(nameof(Host))]
-    public static async ValueTask<WebApplication> StartAsync(WebApplicationBuilder? builder = null, AgentTypes? agentTypes = null)
+    public static async ValueTask<WebApplication> StartAsync(WebApplicationBuilder? builder = null, AgentTypes? agentTypes = null, bool local = false)
     {
         builder ??= WebApplication.CreateBuilder();
-        builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-        builder.AddAgentWorker()
+        if (local)
+        {
+            // start the server runtime
+            builder.AddLocalAgentService(useGrpc: false);
+        }
+        builder.AddAgentWorker(local: local)
             .AddAgents(agentTypes);
         builder.AddServiceDefaults();
         var app = builder.Build();
-
+        if (local)
+        {
+            app.MapAgentService(local: true, useGrpc: false);
+        }
         app.MapDefaultEndpoints();
         Host = app;
         await app.StartAsync().ConfigureAwait(false);
@@ -39,7 +44,7 @@ public static class AgentsApp
     {
         if (Host == null)
         {
-            await StartAsync(builder, agents).ConfigureAwait(false);
+            await StartAsync(builder, agents, local);
         }
         var client = Host.Services.GetRequiredService<Client>() ?? throw new InvalidOperationException("Host not started");
         await client.PublishEventAsync(topic, message, new CancellationToken()).ConfigureAwait(true);
@@ -51,7 +56,7 @@ public static class AgentsApp
         {
             throw new InvalidOperationException("Host not started");
         }
-        await Host.StopAsync().ConfigureAwait(true);
+        await Host.StopAsync();
     }
 
     private static IHostApplicationBuilder AddAgents(this IHostApplicationBuilder builder, AgentTypes? agentTypes)
