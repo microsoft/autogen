@@ -4,7 +4,7 @@
 using System.Collections.Concurrent;
 using FluentAssertions;
 using Google.Protobuf.Reflection;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;

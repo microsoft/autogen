@@ -2,7 +2,7 @@
 // Program.cs
 
 using Hello;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Agents;
 
 // send a message to the agent

@@ -3,9 +3,9 @@
 
 using System.Diagnostics;
 using Google.Protobuf.Collections;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Logging;
-using static Microsoft.AutoGen.Abstractions.CloudEvent.Types;
+using static Microsoft.AutoGen.Contracts.CloudEvent.Types;
 
 namespace Microsoft.AutoGen.Agents;
 

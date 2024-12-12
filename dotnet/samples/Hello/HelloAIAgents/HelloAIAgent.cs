@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // HelloAIAgent.cs
 
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Agents;
 using Microsoft.Extensions.AI;
 

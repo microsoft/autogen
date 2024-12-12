@@ -2,7 +2,7 @@
 // IHandleConsole.cs
 
 using Google.Protobuf;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Agents;
 

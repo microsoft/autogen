@@ -5,7 +5,7 @@ using System.Text.Json;
 using DevTeam;
 using DevTeam.Backend;
 using DevTeam.Shared;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Agents;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;

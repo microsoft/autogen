@@ -8,7 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 using Google.Protobuf;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;

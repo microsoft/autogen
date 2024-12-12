@@ -2,7 +2,7 @@
 // Client.cs
 
 using System.Diagnostics;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 

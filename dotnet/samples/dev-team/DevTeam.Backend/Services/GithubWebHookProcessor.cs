@@ -3,7 +3,7 @@
 
 using System.Globalization;
 using DevTeam.Shared;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Agents;
 using Octokit.Webhooks;
 using Octokit.Webhooks.Events;
