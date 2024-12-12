@@ -11,18 +11,15 @@ namespace Microsoft.AutoGen.Runtime.Grpc;
 
 public static class AgentWorkerHostingExtensions
 {
-    public static WebApplicationBuilder AddAgentService(this WebApplicationBuilder builder, bool local = false, bool useGrpc = true)
+    public static WebApplicationBuilder AddAgentService(this WebApplicationBuilder builder)
     {
-        builder.AddOrleans(local);
+        builder.AddOrleans();
 
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
 
-        if (useGrpc)
-        {
-            builder.Services.AddGrpc();
-            builder.Services.AddSingleton<GrpcGateway>();
-            builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<GrpcGateway>());
-        }
+        builder.Services.AddGrpc();
+        builder.Services.AddSingleton<GrpcGateway>();
+        builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<GrpcGateway>());
 
         return builder;
     }
