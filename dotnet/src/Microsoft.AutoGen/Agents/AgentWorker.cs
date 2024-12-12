@@ -35,7 +35,7 @@ public class AgentWorker :
     IHostApplicationLifetime hostApplicationLifetime,
     IServiceProvider serviceProvider,
     [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
-    ILogger<GrpcAgentWorker> logger,
+    ILogger<AgentWorker> logger,
     DistributedContextPropagator distributedContextPropagator)
     {
         _logger = logger;
