@@ -1,14 +1,18 @@
-from ._openai._openai_client import (
-    AzureOpenAIChatCompletionClient,
-    OpenAIChatCompletionClient,
-)
-from ._openai.config import AzureOpenAIClientConfiguration, OpenAIClientConfiguration
-from ._reply_chat_completion_client import ReplayChatCompletionClient
+from typing_extensions import deprecated
 
-__all__ = [
-    "AzureOpenAIClientConfiguration",
-    "AzureOpenAIChatCompletionClient",
-    "OpenAIClientConfiguration",
-    "OpenAIChatCompletionClient",
-    "ReplayChatCompletionClient",
-]
+from .openai import AzureOpenAIChatCompletionClient as AzureOpenAIChatCompletionClientAlias
+from .openai import OpenAIChatCompletionClient as OpenAIChatCompletionClientAlias
+
+
+@deprecated(
+    "autogen_ext.models.OpenAIChatCompletionClient moved to autogen_ext.models.openai.OpenAIChatCompletionClient. This alias will be removed in 0.4.0."
+)
+class OpenAIChatCompletionClient(OpenAIChatCompletionClientAlias):
+    pass
+
+
+@deprecated(
+    "autogen_ext.models.AzureOpenAIChatCompletionClient moved to autogen_ext.models.openai.AzureOpenAIChatCompletionClient. This alias will be removed in 0.4.0."
+)
+class AzureOpenAIChatCompletionClient(AzureOpenAIChatCompletionClientAlias):
+    pass

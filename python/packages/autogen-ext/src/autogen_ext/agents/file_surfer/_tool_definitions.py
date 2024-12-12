@@ -1,4 +1,4 @@
-from autogen_core.components.tools import ParametersSchema, ToolSchema
+from autogen_core.tools import ParametersSchema, ToolSchema
 
 TOOL_OPEN_PATH = ToolSchema(
     name="open_path",
