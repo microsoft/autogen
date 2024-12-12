@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentBaseExtensions.cs
+// AgentExtensions.cs
 
 using System.Diagnostics;
 using Google.Protobuf.Collections;

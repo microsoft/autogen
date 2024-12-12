@@ -25,8 +25,8 @@ public sealed class GrpcAgentWorker(
 {
     private readonly object _channelLock = new();
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
-    private readonly ConcurrentDictionary<(string Type, string Key), IAgentBase> _agents = new();
-    private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingRequests = new();
+    private readonly ConcurrentDictionary<(string Type, string Key), Agent> _agents = new();
+    private readonly ConcurrentDictionary<string, (Agent Agent, string OriginalRequestId)> _pendingRequests = new();
     private readonly Channel<(Message Message, TaskCompletionSource WriteCompletionSource)> _outboundMessagesChannel = Channel.CreateBounded<(Message, TaskCompletionSource)>(new BoundedChannelOptions(1024)
     {
         AllowSynchronousContinuations = true,
@@ -187,7 +187,7 @@ public sealed class GrpcAgentWorker(
             item.WriteCompletionSource.TrySetCanceled();
         }
     }
-    private IAgentBase GetOrActivateAgent(AgentId agentId)
+    private Agent GetOrActivateAgent(AgentId agentId)
     {
         if (!_agents.TryGetValue((agentId.Type, agentId.Key), out var agent))
         {
@@ -275,7 +275,7 @@ public sealed class GrpcAgentWorker(
         await WriteChannelAsync(new Message { Response = response }, cancellationToken).ConfigureAwait(false);
     }
     // new is intentional
-    public new async ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
+    public new async ValueTask SendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         var requestId = Guid.NewGuid().ToString();
         _pendingRequests[requestId] = (agent, request.RequestId);

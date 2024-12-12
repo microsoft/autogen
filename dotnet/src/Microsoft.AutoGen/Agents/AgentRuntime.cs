@@ -15,7 +15,7 @@ internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger
 
     public AgentId AgentId { get; } = agentId;
     public ILogger<Agent> Logger { get; } = logger;
-    public IAgentBase? AgentInstance { get; set; }
+    public Agent? AgentInstance { get; set; }
     private DistributedContextPropagator DistributedContextPropagator { get; } = distributedContextPropagator;
     public (string?, string?) GetTraceIdAndState(IDictionary<string, string> metadata)
     {
@@ -79,7 +79,7 @@ internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger
         response.RequestId = request.RequestId;
         await worker.SendResponseAsync(response, cancellationToken).ConfigureAwait(false);
     }
-    public async ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask SendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         await worker.SendRequestAsync(agent, request, cancellationToken).ConfigureAwait(false);
     }

@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentBase.cs
+// Agent.cs
 
 using System.Diagnostics;
 using System.Reflection;
@@ -12,7 +12,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public abstract class Agent : IAgentBase, IHandle
+public abstract class Agent : Agent, IHandle
 {
     public static readonly ActivitySource s_source = new("AutoGen.Agent");
     public AgentId AgentId => _runtime.AgentId;

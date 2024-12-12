@@ -16,11 +16,11 @@ public class AgentWorker :
      IAgentWorker
 {
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
-    private readonly ConcurrentDictionary<(string Type, string Key), IAgentBase> _agents = new();
+    private readonly ConcurrentDictionary<(string Type, string Key), Agent> _agents = new();
     private readonly ILogger<AgentWorker> _logger;
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
-    private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingClientRequests = new();
+    private readonly ConcurrentDictionary<string, (Agent Agent, string OriginalRequestId)> _pendingClientRequests = new();
     private readonly CancellationTokenSource _shutdownCts;
     private readonly IServiceProvider _serviceProvider;
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes;
@@ -54,7 +54,7 @@ public class AgentWorker :
             agent.ReceiveMessage(new Message { CloudEvent = cloudEvent });
         }
     }
-    public async ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask SendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         var requestId = Guid.NewGuid().ToString();
         _pendingClientRequests[requestId] = (agent, request.RequestId);
@@ -190,7 +190,7 @@ public class AgentWorker :
         {
         }
     }
-    private IAgentBase GetOrActivateAgent(AgentId agentId)
+    private Agent GetOrActivateAgent(AgentId agentId)
     {
         if (!_agents.TryGetValue((agentId.Type, agentId.Key), out var agent))
         {
