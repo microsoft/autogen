@@ -3,7 +3,6 @@
 
 using System.Globalization;
 using System.Text;
-using Microsoft.AutoGen.Abstractions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Memory;

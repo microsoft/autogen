@@ -2,7 +2,6 @@
 // InferenceAgent.cs
 
 using Google.Protobuf;
-using Microsoft.AutoGen.Abstractions;
 using Microsoft.Extensions.AI;
 namespace Microsoft.AutoGen.Agents;
 public abstract class InferenceAgent<T>(
