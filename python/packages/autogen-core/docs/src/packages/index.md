@@ -83,7 +83,7 @@ Extras:
 A generalist multi-agent softbot utilizing five agents to tackle intricate tasks involving multi-step planning and real-world actions.
 
 ```{note}
-Not yet available on PyPI.
+Not yet available on PyPI. Please install from source.
 ```
 
 [{fab}`github;pst-color-primary` Source](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-magentic-one)
