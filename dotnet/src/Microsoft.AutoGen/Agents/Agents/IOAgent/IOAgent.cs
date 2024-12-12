@@ -5,7 +5,7 @@ using Microsoft.AutoGen.Abstractions;
 
 namespace Microsoft.AutoGen.Agents;
 
-public abstract class IOAgent : AgentBase
+public abstract class IOAgent : Agent
 {
     public string _route = "base";
     protected IOAgent(IAgentRuntime context, EventTypes eventTypes) : base(context, eventTypes)
