@@ -2,6 +2,7 @@
 // HelloAppHostIntegrationTests.cs
 
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 using Xunit.Abstractions;
 
 namespace Microsoft.AutoGen.Integration.Tests;
@@ -29,6 +30,8 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         var appHostName = testEndpoints.AppHost!;
         var appHostPath = $"{appHostName}.dll";
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
+        // configure appHost Aspire.Hosting.ApplicationModel.ResourceNotificationService to set log level to debug
+        ((ISiloBuilder)appHost).ConfigureLogging(builder => builder.AddFilter("Aspire.Hosting.ApplicationModel.ResourceNotificationService", LogLevel.Debug));
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
 
         await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
