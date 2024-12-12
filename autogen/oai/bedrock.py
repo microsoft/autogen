@@ -58,16 +58,16 @@ class BedrockClient:
         self._aws_profile_name = kwargs.get("aws_profile_name", None)
 
         if not self._aws_access_key:
-            self._aws_access_key = os.getenv("AWS_ACCESS_KEY")
+            self._aws_access_key = os.getenv("AWS_ACCESS_KEY_ID")
 
         if not self._aws_secret_key:
-            self._aws_secret_key = os.getenv("AWS_SECRET_KEY")
+            self._aws_secret_key = os.getenv("AWS_SECRET_ACCESS_KEY")
 
         if not self._aws_session_token:
             self._aws_session_token = os.getenv("AWS_SESSION_TOKEN")
 
         if not self._aws_region:
-            self._aws_region = os.getenv("AWS_REGION")
+            self._aws_region = os.getenv("AWS_DEFAULT_REGION")
 
         if self._aws_region is None:
             raise ValueError("Region is required to use the Amazon Bedrock API.")
