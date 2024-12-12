@@ -7,7 +7,7 @@ using Microsoft.AutoGen.Core;
 namespace DevTeam.Backend.Agents.ProductManager;
 
 [TopicSubscription("devteam")]
-public class ProductManager([FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<ProductManager> logger)
+public class ProductManager([FromKeyedServices("EventTypes")] AgentsMetadata typeRegistry, ILogger<ProductManager> logger)
     : AiAgent<ProductManagerState>(typeRegistry, logger), IManageProducts,
     IHandle<ReadmeChainClosed>,
     IHandle<ReadmeRequested>

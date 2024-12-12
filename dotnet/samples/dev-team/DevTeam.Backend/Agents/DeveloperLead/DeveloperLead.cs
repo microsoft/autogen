@@ -7,7 +7,7 @@ using Microsoft.AutoGen.Core;
 namespace DevTeam.Backend.Agents.DeveloperLead;
 
 [TopicSubscription("devteam")]
-public class DeveloperLead([FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<DeveloperLead> logger)
+public class DeveloperLead([FromKeyedServices("EventTypes")] AgentsMetadata typeRegistry, ILogger<DeveloperLead> logger)
     : AiAgent<DeveloperLeadState>(typeRegistry, logger), ILeadDevelopers,
     IHandle<DevPlanRequested>,
     IHandle<DevPlanChainClosed>

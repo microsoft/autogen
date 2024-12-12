@@ -151,7 +151,7 @@ public class GrpcGatewayServiceTests
         response.Should().NotBeNull();
     }
 
-    private RegisterAgentTypeRequest CreateRegistrationRequest(EventTypes eventTypes, Type type, string requestId)
+    private RegisterAgentTypeRequest CreateRegistrationRequest(AgentsMetadata eventTypes, Type type, string requestId)
     {
         var registration = new RegisterAgentTypeRequest
         {

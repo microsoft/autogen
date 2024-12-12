@@ -7,7 +7,7 @@ namespace DevTeam.Agents;
 
 public class AiAgent<T> : Agent
 {
-    public AiAgent(EventTypes eventTypes, ILogger<AiAgent<T>> logger) : base(eventTypes, logger)
+    public AiAgent(AgentsMetadata eventTypes, ILogger<AiAgent<T>> logger) : base(eventTypes, logger)
     {
     }
 

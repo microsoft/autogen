@@ -11,7 +11,7 @@ namespace Microsoft.AutoGen.Core;
 /// </summary>
 /// <param name="eventTypes">The event types associated with the client.</param>
 /// <param name="logger">The logger instance for logging client activities.</param>
-public sealed class Client([FromKeyedServices("EventTypes")] EventTypes eventTypes, ILogger<Client> logger)
+public sealed class Client([FromKeyedServices("EventTypes")] AgentsMetadata eventTypes, ILogger<Client> logger)
     : Agent(eventTypes, logger)
 {
 }

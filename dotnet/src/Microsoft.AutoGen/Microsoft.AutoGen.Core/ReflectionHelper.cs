@@ -39,8 +39,8 @@ public static class ReflectionHelper
     /// Gets the metadata for agents from the specified assemblies.
     /// </summary>
     /// <param name="assemblies">The assemblies to scan for agent metadata.</param>
-    /// <returns>An <see cref="EventTypes"/> object containing the agent metadata.</returns>
-    public static EventTypes GetAgentsMetadata(params Assembly[] assemblies)
+    /// <returns>An <see cref="AgentsMetadata"/> object containing the agent metadata.</returns>
+    public static AgentsMetadata GetAgentsMetadata(params Assembly[] assemblies)
     {
         var interfaceType = typeof(IMessage);
         var pairs = assemblies
@@ -65,7 +65,7 @@ public static class ReflectionHelper
                                .Where(type => IsSubclassOfGeneric(type, typeof(Agent)) && !type.IsAbstract)
                                .Select(t => (t, t.GetCustomAttributes<TopicSubscriptionAttribute>().Select(a => a.Topic).ToHashSet()))
                                .ToDictionary(item => item.t, item => item.Item2);
-        return new EventTypes(typeRegistry, types, eventsMap, topicsMap);
+        return new AgentsMetadata(typeRegistry, types, eventsMap, topicsMap);
     }
 
     /// <summary>

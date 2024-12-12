@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// EventTypes.cs
+// AgentsMetadata.cs
 
 using System.Collections.Concurrent;
 using Google.Protobuf.Reflection;
@@ -9,15 +9,15 @@ namespace Microsoft.AutoGen.Core;
 /// <summary>
 /// Represents a collection of event types and their associated metadata.
 /// </summary>
-public sealed class EventTypes
+public sealed class AgentsMetadata
 {
     /// <summary>
-    /// Initializes a new instance of the <see cref="EventTypes"/> class.
+    /// Initializes a new instance of the <see cref="AgentsMetadata"/> class.
     /// </summary>
     /// <param name="typeRegistry">The type registry containing protobuf type information.</param>
     /// <param name="types">A dictionary mapping event names to their corresponding types.</param>
     /// <param name="eventsMap">A dictionary mapping types to a set of event names associated with those types.</param>
-    public EventTypes(TypeRegistry typeRegistry, Dictionary<string, Type> types, Dictionary<Type, HashSet<string>> eventsMap, Dictionary<Type, HashSet<string>> topicsMap)
+    public AgentsMetadata(TypeRegistry typeRegistry, Dictionary<string, Type> types, Dictionary<Type, HashSet<string>> eventsMap, Dictionary<Type, HashSet<string>> topicsMap)
     {
         TypeRegistry = typeRegistry;
         _types = new(types);

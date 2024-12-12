@@ -7,7 +7,7 @@ using Microsoft.AutoGen.Core;
 namespace DevTeam.Backend.Agents.Developer;
 
 [TopicSubscription("devteam")]
-public class Dev([FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<Dev> logger)
+public class Dev([FromKeyedServices("EventTypes")] AgentsMetadata typeRegistry, ILogger<Dev> logger)
     : AiAgent<DeveloperState>(typeRegistry, logger), IDevelopApps,
     IHandle<CodeGenerationRequested>,
     IHandle<CodeChainClosed>

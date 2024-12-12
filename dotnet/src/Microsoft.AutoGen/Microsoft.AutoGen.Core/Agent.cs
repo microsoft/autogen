@@ -43,13 +43,13 @@ public abstract class Agent : IDisposable
     internal Task? Completion { get; private set; }
 
     protected internal ILogger<Agent> _logger;
-    protected readonly EventTypes EventTypes;
+    protected readonly AgentsMetadata EventTypes;
     private readonly ConcurrentDictionary<Type, MethodInfo> _handlersByMessageType;
     private readonly CancellationTokenSource _agentCancelationSource = new();
 
    
     protected Agent(
-        EventTypes eventTypes,
+        AgentsMetadata eventTypes,
         ILogger<Agent>? logger = null)
     {
         EventTypes = eventTypes;

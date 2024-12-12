@@ -10,7 +10,7 @@ using Tests.Events;
 namespace Microsoft.AutoGen.Runtime.Grpc.Tests;
 
 [TopicSubscription("gh-gh-gh")]
-public class PBAgent([FromKeyedServices("EventTypes")] EventTypes eventTypes, ILogger<Agent>? logger = null)
+public class PBAgent([FromKeyedServices("EventTypes")] AgentsMetadata eventTypes, ILogger<Agent>? logger = null)
     : Agent(eventTypes, logger)
     , IHandle<NewMessageReceived>
     , IHandle<GoodBye>
@@ -31,7 +31,7 @@ public class PBAgent([FromKeyedServices("EventTypes")] EventTypes eventTypes, IL
 }
 
 [TopicSubscription("gh-gh-gh")]
-public class GMAgent([FromKeyedServices("EventTypes")] EventTypes eventTypes, ILogger<Agent>? logger = null)
+public class GMAgent([FromKeyedServices("EventTypes")] AgentsMetadata eventTypes, ILogger<Agent>? logger = null)
     : Agent(eventTypes, logger)
     , IHandle<Hello>
 {
