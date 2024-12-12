@@ -362,23 +362,20 @@ class BaseGroupChat(Team, ABC):
 
         """
 
-        # Create the first chat message if the task is a string or a chat message.
-        first_chat_message: ChatMessage | List[ChatMessage] | None = None
+        # Create the messages list if the task is a string or a chat message.
+        messages: List[ChatMessage] | None = None
         if task is None:
             pass
         elif isinstance(task, str):
-            first_chat_message = TextMessage(content=task, source="user")
+            messages = [TextMessage(content=task, source="user")]
         elif isinstance(task, get_args(ChatMessage)[0]):
-            first_chat_message = task
+            messages = [task]  # type: ignore
         elif isinstance(task, list):
             if not task:
                 raise ValueError("Task list cannot be empty")
             if not all(isinstance(msg, get_args(ChatMessage)[0]) for msg in task):
                 raise ValueError("All messages in task list must be valid ChatMessage types")
-            first_chat_message = task[0]
-            # Queue remaining messages for processing
-            for msg in task[1:]:
-                await self._output_message_queue.put(msg)
+            messages = task
         else:
             raise ValueError(f"Invalid task type: {type(task)}")
 
@@ -404,13 +401,10 @@ class BaseGroupChat(Team, ABC):
             # Run the team by sending the start message to the group chat manager.
             # The group chat manager will start the group chat by relaying the message to the participants
             # and the closure agent.
-            if first_chat_message is not None:
-                if isinstance(first_chat_message, list):
-                    messages = first_chat_message
-                else:
-                    messages = [first_chat_message]
-            else:
-                messages = None
+            if messages is not None:
+                if not isinstance(messages, list):
+                    messages = [messages]
+
             await self._runtime.send_message(
                 GroupChatStart(messages=messages),
                 recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),

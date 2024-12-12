@@ -1046,13 +1046,11 @@ async def test_round_robin_group_chat_with_message_list() -> None:
     result = await team.run(task=messages)
 
     # Verify the messages were processed in order
-    assert len(result.messages) == 6  # All initial messages + echoes until termination
-    assert result.messages[0].content == "Message 2"  # Second message from queue
-    assert result.messages[1].content == "Message 3"  # Third message from queue
-    assert result.messages[2].content == "Message 1"  # First message (processed first)
+    assert len(result.messages) == 4  # Initial messages + echo until termination
+    assert result.messages[0].content == "Message 1"  # First message
+    assert result.messages[1].content == "Message 2"  # Second message
+    assert result.messages[2].content == "Message 3"  # Third message
     assert result.messages[3].content == "Message 1"  # Echo from first agent
-    assert result.messages[4].content == "Message 1"  # Echo from second agent
-    assert result.messages[5].content == "Message 1"  # Echo from first agent (before termination)
     assert result.stop_reason == "Maximum number of messages 4 reached, current message count: 4"
 
     # Test with streaming
@@ -1067,7 +1065,7 @@ async def test_round_robin_group_chat_with_message_list() -> None:
 
     # Test with invalid message list
     with pytest.raises(ValueError, match="All messages in task list must be valid ChatMessage types"):
-        await team.run(task=["not a message"])  # type: ignore[list-item]  # intentionally testing invalid input
+        await team.run(task=["not a message"])  # type: ignore[list-item, arg-type]  # intentionally testing invalid input
 
     # Test with empty message list
     with pytest.raises(ValueError, match="Task list cannot be empty"):
