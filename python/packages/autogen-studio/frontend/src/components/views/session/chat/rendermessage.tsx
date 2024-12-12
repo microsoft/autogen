@@ -6,7 +6,7 @@ import {
   FunctionExecutionResult,
   ImageContent,
 } from "../../../types/datamodel";
-import { ClickableImage, TruncatableText } from "../../shared/atoms";
+import { ClickableImage, TruncatableText } from "../../atoms";
 
 const TEXT_THRESHOLD = 400;
 const JSON_THRESHOLD = 800;

@@ -15,6 +15,7 @@ import {
   ReactFlowProvider,
   NodeChange,
   applyNodeChanges,
+  MiniMap,
 } from "@xyflow/react";
 import Dagre from "@dagrejs/dagre";
 import "@xyflow/react/dist/style.css";
@@ -22,7 +23,7 @@ import AgentNode from "./agentnode";
 import {
   AgentMessageConfig,
   AgentConfig,
-  TeamConfig,
+  TeamConfigTypes,
   Run,
 } from "../../../../types/datamodel";
 import { CustomEdge, CustomEdgeData } from "./edge";
@@ -31,7 +32,7 @@ import { AgentFlowToolbar } from "./toolbar";
 import { EdgeMessageModal } from "./edgemessagemodal";
 
 interface AgentFlowProps {
-  teamConfig: TeamConfig;
+  teamConfig: TeamConfigTypes;
   run: Run;
 }
 
@@ -564,6 +565,7 @@ const AgentFlow: React.FC<AgentFlowProps> = ({ teamConfig, run }) => {
 
       <ReactFlow {...reactFlowProps}>
         {settings.showGrid && <Background />}
+        {settings.showMiniMap && <MiniMap />}
         <div className="absolute top-0 right-0 z-50">
           <AgentFlowToolbar {...toolbarProps} />
         </div>

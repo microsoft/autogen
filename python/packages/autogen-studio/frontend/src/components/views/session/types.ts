@@ -1,4 +1,4 @@
-import type { Session } from "../../../types/datamodel";
+import type { Session } from "../../types/datamodel";
 
 export interface SessionEditorProps {
   session?: Session;
