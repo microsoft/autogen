@@ -376,8 +376,6 @@ class BaseGroupChat(Team, ABC):
             if not all(isinstance(msg, get_args(ChatMessage)[0]) for msg in task):
                 raise ValueError("All messages in task list must be valid ChatMessage types")
             messages = task
-        else:
-            raise ValueError(f"Invalid task type: {type(task)}")
 
         if self._is_running:
             raise ValueError("The team is already running, it cannot run again until it is stopped.")
@@ -401,10 +399,6 @@ class BaseGroupChat(Team, ABC):
             # Run the team by sending the start message to the group chat manager.
             # The group chat manager will start the group chat by relaying the message to the participants
             # and the closure agent.
-            if messages is not None:
-                if not isinstance(messages, list):
-                    messages = [messages]
-
             await self._runtime.send_message(
                 GroupChatStart(messages=messages),
                 recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
