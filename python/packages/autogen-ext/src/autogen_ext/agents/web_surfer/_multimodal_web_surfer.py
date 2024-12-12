@@ -64,7 +64,19 @@ class MultimodalWebSurfer(BaseChatAgent):
 
     It launches a chromium browser and allows the playwright to interact with the web browser and can perform a variety of actions. The browser is launched on the first call to the agent and is reused for subsequent calls.
 
-    It must be used with a multimodal model client that supports tool calling, ideally GPT-4o currently.
+    It must be used with a multimodal model client that supports function/tool calling, ideally GPT-4o currently.
+
+
+    When :meth:`on_messages` or :meth:`on_messages_stream` is called, the following occurs:
+        1) If this is the first call, the browser is initialized and the page is loaded. This is done in :meth:`_lazy_init`.
+        2) The method :meth:`_generate_reply` is called, which then creates the final response as below.
+        3) The agent takes a screenshot of the page, extracts the interactive elements, and prepares a set-of-mark screenshot with bounding boxes around the interactive elements.
+        4) The agent makes a call to the :attr:`model_client` with the SOM screenshot, history of messages, and the list of available tools.
+            - If the model returns a string, the agent returns the string as the final response.
+            - If the model returns a list of tool calls, the agent executes the tool calls with :meth:`_execute_tool` using :attr:`_playwright_controller`.
+                - The agent returns a final response which includes a screenshot of the page, page metadata, description of the action taken and the inner text of the webpage.
+        - If at any point the agent encounters an error, it returns the error message as the final response.
+
 
     .. note::
         Please note that using the MultimodalWebSurfer involves interacting with a digital world designed for humans, which carries inherent risks.
@@ -73,7 +85,7 @@ class MultimodalWebSurfer(BaseChatAgent):
 
     Args:
         name (str): The name of the agent.
-        model_client (ChatCompletionClient): The model client used by the agent.
+        model_client (ChatCompletionClient): The model client used by the agent. Must be multimodal and support function calling.
         downloads_folder (str, optional): The folder where downloads are saved. Defaults to None, no downloads are saved.
         description (str, optional): The description of the agent. Defaults to MultimodalWebSurfer.DEFAULT_DESCRIPTION.
         debug_dir (str, optional): The directory where debug information is saved. Defaults to None.
@@ -93,9 +105,8 @@ class MultimodalWebSurfer(BaseChatAgent):
 
     Example usage:
 
-    The following example demonstrates how to create an video surfing agent with
-    a model client and generate a response to a simple query about a local video
-    called video.mp4.
+    The following example demonstrates how to create a web surfing agent with
+    a model client and run it for multiple turns.
 
         .. code-block:: python
 
@@ -170,6 +181,12 @@ class MultimodalWebSurfer(BaseChatAgent):
             raise ValueError(
                 "Cannot save screenshots without a debug directory. Set it using the 'debug_dir' parameter. The debug directory is created if it does not exist."
             )
+        if model_client.capabilities["function_calling"] is False:
+            raise ValueError(
+                "The model does not support function calling. MultimodalWebSurfer requires a model that supports function calling."
+            )
+        if model_client.capabilities["vision"] is False:
+            raise ValueError("The model is not multimodal. MultimodalWebSurfer requires a multimodal model.")
         self._model_client = model_client
         self.headless = headless
         self.browser_channel = browser_channel
@@ -340,7 +357,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         self.inner_messages: List[AgentMessage] = []
         self.model_usage: List[RequestUsage] = []
         try:
-            content = await self.__generate_reply(cancellation_token=cancellation_token)
+            content = await self._generate_reply(cancellation_token=cancellation_token)
             self._chat_history.append(AssistantMessage(content=message_content_to_str(content), source=self.name))
             final_usage = RequestUsage(
                 prompt_tokens=sum([u.prompt_tokens for u in self.model_usage]),
@@ -362,7 +379,7 @@ class MultimodalWebSurfer(BaseChatAgent):
             self._chat_history.append(AssistantMessage(content=content, source=self.name))
             yield Response(chat_message=TextMessage(content=content, source=self.name))
 
-    async def __generate_reply(self, cancellation_token: CancellationToken) -> UserContent:
+    async def _generate_reply(self, cancellation_token: CancellationToken) -> UserContent:
         """Generates the actual reply. First calls the LLM to figure out which tool to use, then executes the tool."""
 
         # Lazy init, initialize the browser and the page on the first generate reply only

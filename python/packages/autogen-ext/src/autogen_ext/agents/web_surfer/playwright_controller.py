@@ -6,7 +6,10 @@ import random
 from typing import Any, Callable, Dict, Optional, Tuple, Union, cast
 
 # TODO: Fix unfollowed import
-from markitdown import MarkItDown  # type: ignore
+try:
+    from markitdown import MarkItDown  # type: ignore
+except ImportError:
+    MarkItDown = None
 from playwright._impl._errors import Error as PlaywrightError
 from playwright._impl._errors import TimeoutError
 from playwright.async_api import Download, Page
@@ -536,8 +539,11 @@ class PlaywrightController:
             str: The markdown content of the page.
         """
         assert page is not None
-        if self._markdown_converter is None:
+        if self._markdown_converter is None and MarkItDown is not None:
             self._markdown_converter = MarkItDown()
-        html = await page.evaluate("document.documentElement.outerHTML;")
-        res = self._markdown_converter.convert_stream(io.StringIO(html), file_extension=".html", url=page.url)  # type: ignore
-        return res.text_content  # type: ignore
+            html = await page.evaluate("document.documentElement.outerHTML;")
+            res = self._markdown_converter.convert_stream(io.StringIO(html), file_extension=".html", url=page.url)  # type: ignore
+            assert hasattr(res, "text_content") and isinstance(res.text_content, str)
+            return res.text_content
+        else:
+            return await self.get_webpage_text(page, n_lines=200)
