@@ -1,29 +1,31 @@
 import * as React from "react";
 import { message } from "antd";
 import { getServerUrl } from "../../../utils";
-import { SessionManager } from "../../shared/session/manager";
 import { IStatus } from "../../../types/app";
 import {
   Run,
   Message,
   WebSocketMessage,
-  TeamConfig,
+  TeamConfigTypes,
   AgentMessageConfig,
   RunStatus,
   TeamResult,
+  Session,
 } from "../../../types/datamodel";
-import { useConfigStore } from "../../../../hooks/store";
 import { appContext } from "../../../../hooks/provider";
 import ChatInput from "./chatinput";
-import TeamManager from "../../shared/team/manager";
-import { teamAPI } from "../../shared/team/api";
-import { sessionAPI } from "../../shared/session/api";
+import { teamAPI } from "../../team/api";
+import { sessionAPI } from "../api";
 import RunView from "./runview";
 import { TIMEOUT_CONFIG } from "./types";
-
+import { ChevronRight, MessagesSquare } from "lucide-react";
 const logo = require("../../../../images/landing/welcome.svg").default;
 
-export default function ChatView() {
+interface ChatViewProps {
+  session: Session | null;
+}
+
+export default function ChatView({ session }: ChatViewProps) {
   const serverUrl = getServerUrl();
   const [loading, setLoading] = React.useState(false);
   const [error, setError] = React.useState<IStatus | null>({
@@ -34,16 +36,19 @@ export default function ChatView() {
   // Core state
   const [existingRuns, setExistingRuns] = React.useState<Run[]>([]);
   const [currentRun, setCurrentRun] = React.useState<Run | null>(null);
+  const [messageApi, contextHolder] = message.useMessage();
 
   const chatContainerRef = React.useRef<HTMLDivElement | null>(null);
 
   // Context and config
   const { user } = React.useContext(appContext);
-  const { session, sessions } = useConfigStore();
+  // const { session, sessions } = useConfigStore();
   const [activeSocket, setActiveSocket] = React.useState<WebSocket | null>(
     null
   );
-  const [teamConfig, setTeamConfig] = React.useState<TeamConfig | null>(null);
+  const [teamConfig, setTeamConfig] = React.useState<TeamConfigTypes | null>(
+    null
+  );
 
   const inputTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const activeSocketRef = React.useRef<WebSocket | null>(null);
@@ -71,7 +76,7 @@ export default function ChatView() {
       setExistingRuns(response.runs);
     } catch (error) {
       console.error("Error loading session runs:", error);
-      message.error("Failed to load chat history");
+      messageApi.error("Failed to load chat history");
     }
   };
 
@@ -87,9 +92,16 @@ export default function ChatView() {
   // Load team config
   React.useEffect(() => {
     if (session?.team_id && user?.email) {
-      teamAPI.getTeam(session.team_id, user.email).then((team) => {
-        setTeamConfig(team.config);
-      });
+      teamAPI
+        .getTeam(session.team_id, user.email)
+        .then((team) => {
+          setTeamConfig(team.config);
+        })
+        .catch((error) => {
+          console.error("Error loading team config:", error);
+          messageApi.error("Failed to load team config");
+          setTeamConfig(null);
+        });
     }
   }, [session]);
 
@@ -470,14 +482,17 @@ export default function ChatView() {
   };
 
   return (
-    <div className="text-primary h-[calc(100vh-195px)] bg-primary relative rounded flex-1 scroll">
-      <div className="flex gap-4 w-full">
-        <div className="flex-1">
-          <SessionManager />
-        </div>
-        <TeamManager />
+    <div className="text-primary h-[calc(100vh-165px)] bg-primary relative rounded flex-1 scroll">
+      {contextHolder}
+      <div className="flex pt-2 items-center gap-2  text-sm">
+        <span className="text-primary font-medium"> Sessions</span>
+        {session && (
+          <>
+            <ChevronRight className="w-4 h-4 text-secondary" />
+            <span className="text-secondary">{session.name}</span>
+          </>
+        )}
       </div>
-
       <div className="flex flex-col h-full">
         <div
           ref={chatContainerRef}
@@ -487,44 +502,71 @@ export default function ChatView() {
             {" "}
             <span className="  inline-block h-6"></span>{" "}
           </div>
-          {sessions !== null && sessions?.length === 0 ? (
-            <div className="flex h-[calc(100%-100px)] flex-col items-center justify-center w-full">
-              <div className="mt-4 text-sm text-secondary text-center">
-                <img src={logo} alt="Welcome" className="w-72 h-72 mb-4" />
-                Welcome! Create a session to get started!
-              </div>
-            </div>
-          ) : (
-            <>
-              {teamConfig && (
-                <>
-                  {/* Existing Runs */}
-                  {existingRuns.map((run, index) => (
-                    <RunView
-                      teamConfig={teamConfig}
-                      key={run.id + "-review-" + index}
-                      run={run}
-                      isFirstRun={index === 0}
-                    />
-                  ))}
+          <>
+            {teamConfig && (
+              <>
+                {/* Existing Runs */}
+                {existingRuns.map((run, index) => (
+                  <RunView
+                    teamConfig={teamConfig}
+                    key={run.id + "-review-" + index}
+                    run={run}
+                    isFirstRun={index === 0}
+                  />
+                ))}
 
-                  {/* Current Run */}
-                  {currentRun && (
-                    <RunView
-                      run={currentRun}
-                      teamConfig={teamConfig}
-                      onInputResponse={handleInputResponse}
-                      onCancel={handleCancel}
-                      isFirstRun={existingRuns.length === 0}
-                    />
-                  )}
-                </>
-              )}
-            </>
-          )}
+                {/* Current Run */}
+                {currentRun && (
+                  <RunView
+                    run={currentRun}
+                    teamConfig={teamConfig}
+                    onInputResponse={handleInputResponse}
+                    onCancel={handleCancel}
+                    isFirstRun={existingRuns.length === 0}
+                  />
+                )}
+
+                {/* No existing runs */}
+
+                {!currentRun && existingRuns.length === 0 && (
+                  <div className="flex items-center justify-center h-[80%]">
+                    <div className="text-center">
+                      <MessagesSquare
+                        strokeWidth={1}
+                        className="w-64 h-64 mb-4 inline-block"
+                      />
+                      <div className="  font-medium mb-2">Start a new task</div>
+                      <div className="text-secondary text-sm">
+                        Enter a task to get started
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </>
+            )}
+
+            {/* No team config */}
+            {!teamConfig && (
+              <div className="flex items-center justify-center h-[80%]">
+                <div className="text-center  ">
+                  <MessagesSquare
+                    strokeWidth={1}
+                    className="w-64 h-64 mb-4 inline-block"
+                  />
+                  <div className="  font-medium mb-2">
+                    No team configuration found for this session (may have been
+                    deleted).{" "}
+                  </div>
+                  <div className="text-secondary text-sm">
+                    Add a team to the session to get started.
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         </div>
 
-        {session && (
+        {session && teamConfig && (
           <div className="flex-shrink-0">
             <ChatInput
               onSubmit={runTask}
