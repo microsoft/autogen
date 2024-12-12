@@ -19,17 +19,25 @@ public static class MessageExtensions
     /// </summary>
     /// <typeparam name="T">The type of the message.</typeparam>
     /// <param name="message">The message to convert.</param>
-    /// <param name="source">The source of the event.</param>
-    /// <returns>A CloudEvent representing the message.</returns>    private const string PROTO_DATA_CONTENT_TYPE = "application/x-protobuf";
-    public static CloudEvent ToCloudEvent<T>(this T message, string source) where T : IMessage
+    /// <param name="key">The key of the event, maps to the Topic Type</param>
+    /// <param name="topic">The topic of the event, </param>
+    /// <returns>A CloudEvent representing the message.</returns>
+    public static CloudEvent ToCloudEvent<T>(this T message, string key, string topic) where T : IMessage
     {
         return new CloudEvent
         {
             ProtoData = Any.Pack(message),
             Type = message.Descriptor.FullName,
-            Source = source,
+            Source = topic,
             Id = Guid.NewGuid().ToString(),
-            Attributes = { { "datacontenttype", new CloudEvent.Types.CloudEventAttributeValue { CeString = PROTO_DATA_CONTENT_TYPE } } }
+            Attributes = {
+                {
+                    "datacontenttype", new CloudEvent.Types.CloudEventAttributeValue { CeString = PROTO_DATA_CONTENT_TYPE }
+                },
+                {
+                    "subject", new CloudEvent.Types.CloudEventAttributeValue { CeString = key }
+                }
+            }
         };
     }
 

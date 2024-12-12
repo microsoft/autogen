@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ProductManager.cs
 
-using DevTeam.Shared;
+using DevTeam.Agents;
 using Microsoft.AutoGen.Core;
 
-namespace DevTeam.Agents;
+namespace DevTeam.Backend.Agents.ProductManager;
 
 [TopicSubscription("devteam")]
 public class ProductManager([FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<ProductManager> logger)
@@ -20,7 +20,7 @@ public class ProductManager([FromKeyedServices("EventTypes")] EventTypes typeReg
         {
             Readme = lastReadme
         };
-        await PublishEventAsync(evt);
+        await PublishEventAsync(evt, topic: "devteam");
     }
 
     public async Task Handle(ReadmeRequested item, CancellationToken cancellationToken = default)
@@ -33,7 +33,7 @@ public class ProductManager([FromKeyedServices("EventTypes")] EventTypes typeReg
             Repo = item.Repo,
             IssueNumber = item.IssueNumber
         };
-        await PublishEventAsync(evt);
+        await PublishEventAsync(evt, topic: "devteam");
     }
 
     public async Task<string> CreateReadme(string ask)

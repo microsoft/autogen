@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // DeveloperPrompts.cs
 
-namespace DevTeam.Agents;
+namespace DevTeam.Backend.Agents.Developer;
 public static class DeveloperSkills
 {
     public const string Implement = """

@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // DeveloperLead.cs
 
-using DevTeam.Shared;
+using DevTeam.Agents;
 using Microsoft.AutoGen.Core;
 
-namespace DevTeam.Agents;
+namespace DevTeam.Backend.Agents.DeveloperLead;
 
 [TopicSubscription("devteam")]
 public class DeveloperLead([FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<DeveloperLead> logger)
@@ -22,7 +22,7 @@ public class DeveloperLead([FromKeyedServices("EventTypes")] EventTypes typeRegi
             IssueNumber = item.IssueNumber,
             Plan = plan
         };
-        await PublishEventAsync(evt);
+        await PublishEventAsync(evt, topic: "devteam");
     }
 
     public async Task Handle(DevPlanChainClosed item, CancellationToken cancellationToken = default)
@@ -33,7 +33,7 @@ public class DeveloperLead([FromKeyedServices("EventTypes")] EventTypes typeRegi
         {
             Plan = lastPlan
         };
-        await PublishEventAsync(evt);
+        await PublishEventAsync(evt, topic: "devteam");
     }
     public async Task<string> CreatePlan(string ask)
     {

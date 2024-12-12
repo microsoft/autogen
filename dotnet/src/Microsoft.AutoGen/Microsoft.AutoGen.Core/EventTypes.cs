@@ -17,11 +17,12 @@ public sealed class EventTypes
     /// <param name="typeRegistry">The type registry containing protobuf type information.</param>
     /// <param name="types">A dictionary mapping event names to their corresponding types.</param>
     /// <param name="eventsMap">A dictionary mapping types to a set of event names associated with those types.</param>
-    public EventTypes(TypeRegistry typeRegistry, Dictionary<string, Type> types, Dictionary<Type, HashSet<string>> eventsMap)
+    public EventTypes(TypeRegistry typeRegistry, Dictionary<string, Type> types, Dictionary<Type, HashSet<string>> eventsMap, Dictionary<Type, HashSet<string>> topicsMap)
     {
         TypeRegistry = typeRegistry;
         _types = new(types);
         _eventsMap = new(eventsMap);
+        _topicsMap = new(topicsMap);
     }
 
     /// <summary>
@@ -32,6 +33,7 @@ public sealed class EventTypes
     private ConcurrentDictionary<string, Type> _types;
 
     private ConcurrentDictionary<Type, HashSet<string>> _eventsMap;
+    private ConcurrentDictionary<Type, HashSet<string>> _topicsMap;
 
     /// <summary>
     /// Checks if a given type handles a specific event name.
@@ -67,6 +69,15 @@ public sealed class EventTypes
         if (_eventsMap.TryGetValue(agent, out var events))
         {
             return events;
+        }
+        return null;
+    }
+
+    public HashSet<string>? GetTopicsForAgent(Type agent)
+    {
+        if (_topicsMap.TryGetValue(agent, out var topics))
+        {
+            return topics;
         }
         return null;
     }

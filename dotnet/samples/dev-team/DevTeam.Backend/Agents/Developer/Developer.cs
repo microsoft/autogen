@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Developer.cs
 
-using DevTeam.Shared;
+using DevTeam.Agents;
 using Microsoft.AutoGen.Core;
 
-namespace DevTeam.Agents;
+namespace DevTeam.Backend.Agents.Developer;
 
 [TopicSubscription("devteam")]
 public class Dev([FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<Dev> logger)
@@ -22,7 +22,8 @@ public class Dev([FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILog
             IssueNumber = item.IssueNumber,
             Code = code
         };
-        await PublishEventAsync(evt);
+        // TODO: Read the Topic from the agent metadata
+        await PublishEventAsync(evt, topic: "devteam");
     }
 
     public async Task Handle(CodeChainClosed item, CancellationToken cancellationToken = default)
@@ -33,7 +34,7 @@ public class Dev([FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILog
         {
             Code = lastCode
         };
-        await PublishEventAsync(evt);
+        await PublishEventAsync(evt, topic: "devteam");
     }
 
     public async Task<string> GenerateCode(string ask)
@@ -51,8 +52,6 @@ public class Dev([FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILog
             return "";
         }
     }
-
-   
 }
 
 public interface IDevelopApps

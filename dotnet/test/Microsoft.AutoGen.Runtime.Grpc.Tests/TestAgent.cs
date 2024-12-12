@@ -9,6 +9,7 @@ using Tests.Events;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Tests;
 
+[TopicSubscription("gh-gh-gh")]
 public class PBAgent([FromKeyedServices("EventTypes")] EventTypes eventTypes, ILogger<Agent>? logger = null)
     : Agent(eventTypes, logger)
     , IHandle<NewMessageReceived>
@@ -29,6 +30,7 @@ public class PBAgent([FromKeyedServices("EventTypes")] EventTypes eventTypes, IL
     public static ConcurrentDictionary<string, object> ReceivedMessages { get; private set; } = new();
 }
 
+[TopicSubscription("gh-gh-gh")]
 public class GMAgent([FromKeyedServices("EventTypes")] EventTypes eventTypes, ILogger<Agent>? logger = null)
     : Agent(eventTypes, logger)
     , IHandle<Hello>

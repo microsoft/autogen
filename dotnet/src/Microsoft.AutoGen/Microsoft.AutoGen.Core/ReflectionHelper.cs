@@ -60,7 +60,12 @@ public static class ReflectionHelper
                                               .Select(i => GetMessageDescriptor(i.GetGenericArguments().First())?.FullName ?? "").ToHashSet()))
                                 .ToDictionary(item => item.t, item => item.Item2);
 
-        return new EventTypes(typeRegistry, types, eventsMap);
+        var topicsMap = assemblies
+                               .SelectMany(assembly => assembly.GetTypes())
+                               .Where(type => IsSubclassOfGeneric(type, typeof(Agent)) && !type.IsAbstract)
+                               .Select(t => (t, t.GetCustomAttributes<TopicSubscriptionAttribute>().Select(a => a.Topic).ToHashSet()))
+                               .ToDictionary(item => item.t, item => item.Item2);
+        return new EventTypes(typeRegistry, types, eventsMap, topicsMap);
     }
 
     /// <summary>

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // PMPrompts.cs
 
-namespace DevTeam.Agents;
+namespace DevTeam.Backend.Agents.ProductManager;
 public static class PMSkills
 {
     public const string BootstrapProject = """

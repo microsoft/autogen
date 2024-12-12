@@ -22,13 +22,17 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     internal readonly ConcurrentDictionary<GrpcWorkerConnection, GrpcWorkerConnection> _workers = new();
     internal readonly ConcurrentDictionary<string, GrpcWorkerConnection> _workersByConnection = new();
     private readonly ConcurrentDictionary<string, HashSet<string>> _agentsToEventsMap = new();
+    private readonly ConcurrentDictionary<string, HashSet<string>> _agentsToTopicsMap = new();
+    private readonly ConcurrentDictionary<string, HashSet<string>> _topicToAgentTypesMap = new();
+    private readonly ConcurrentDictionary<string, HashSet<string>> _eventsToAgentTypesMap = new();
+    
 
     // The mapping from agent id to worker process.
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
     // RPC
     private readonly ConcurrentDictionary<(GrpcWorkerConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
-    private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
-    private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
+    //private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
+    //private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
     private readonly ISubscriptionsGrain _subscriptions;
 
     public int WorkersCount => _workers.Count;
@@ -134,35 +138,35 @@ public sealed class GrpcGateway : BackgroundService, IGateway
 
     // agentype:rpc_request={requesting_agent_id}
     // {genttype}:rpc_response={request_id}
-    private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, AddSubscriptionRequest request)
-    {
-        var topic = "";
-        var agentType = "";
-        if (request.Subscription.TypePrefixSubscription is not null)
-        {
-            topic = request.Subscription.TypePrefixSubscription.TopicTypePrefix;
-            agentType = request.Subscription.TypePrefixSubscription.AgentType;
-        }
-        else if (request.Subscription.TypeSubscription is not null)
-        {
-            topic = request.Subscription.TypeSubscription.TopicType;
-            agentType = request.Subscription.TypeSubscription.AgentType;
-        }
-        _subscriptionsByAgentType[agentType] = request.Subscription;
-        _subscriptionsByTopic.GetOrAdd(topic, _ => []).Add(agentType);
-        await _subscriptions.SubscribeAsync(topic, agentType);
-        //var response = new AddSubscriptionResponse { RequestId = request.RequestId, Error = "", Success = true };
-        Message response = new()
-        {
-            AddSubscriptionResponse = new()
-            {
-                RequestId = request.RequestId,
-                Error = "",
-                Success = true
-            }
-        };
-        await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
-    }
+    //private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, AddSubscriptionRequest request)
+    //{
+    //    var topic = "";
+    //    var agentType = "";
+    //    if (request.Subscription.TypePrefixSubscription is not null)
+    //    {
+    //        topic = request.Subscription.TypePrefixSubscription.TopicTypePrefix;
+    //        agentType = request.Subscription.TypePrefixSubscription.AgentType;
+    //    }
+    //    else if (request.Subscription.TypeSubscription is not null)
+    //    {
+    //        topic = request.Subscription.TypeSubscription.TopicType;
+    //        agentType = request.Subscription.TypeSubscription.AgentType;
+    //    }
+    //    _subscriptionsByAgentType[agentType] = request.Subscription;
+    //    _subscriptionsByTopic.GetOrAdd(topic, _ => []).Add(agentType);
+    //    await _subscriptions.SubscribeAsync(topic, agentType);
+    //    //var response = new AddSubscriptionResponse { RequestId = request.RequestId, Error = "", Success = true };
+    //    Message response = new()
+    //    {
+    //        AddSubscriptionResponse = new()
+    //        {
+    //            RequestId = request.RequestId,
+    //            Error = "",
+    //            Success = true
+    //        }
+    //    };
+    //    await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
+    //}
     private async ValueTask RegisterAgentTypeAsync(GrpcWorkerConnection connection, RegisterAgentTypeRequest msg)
     {
         connection.AddSupportedType(msg.Type);
@@ -182,47 +186,21 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     }
     private async ValueTask DispatchEventAsync(CloudEvent evt)
     {
-        // get the event type and then send to all agents that are subscribed to that event type
-        var eventType = evt.Type;
-        // ensure that we get agentTypes as an async enumerable list - try to get the value of agentTypes by topic and then cast it to an async enumerable list
-        if (_subscriptionsByTopic.TryGetValue(eventType, out var agentTypes))
+        var subscribedAgents = _topicToAgentTypesMap.TryGetValue(evt.Source, out var agentsSubscribedTopic) ? agentsSubscribedTopic : new HashSet<string>();
+        var handlingAgents = _eventsToAgentTypesMap.TryGetValue(evt.Type, out var agentsHandleEvent) ? agentsHandleEvent : new HashSet<string>();
+        var targetAgents = subscribedAgents.Intersect(handlingAgents);
+
+        var tasks = new List<Task>();
+        foreach (var (key, connection) in _supportedAgentTypes)
         {
-            await DispatchEventToAgentsAsync(agentTypes, evt);
-        }
-        // instead of an exact match, we can also check for a prefix match where key starts with the eventType
-        else if (_subscriptionsByTopic.Keys.Any(key => key.StartsWith(eventType)))
-        {
-            _subscriptionsByTopic.Where(
-                kvp => kvp.Key.StartsWith(eventType))
-                .SelectMany(kvp => kvp.Value)
-                .Distinct()
-                .ToList()
-                .ForEach(async agentType =>
-                {
-                    await DispatchEventToAgentsAsync(new List<string> { agentType }, evt).ConfigureAwait(false);
-                });
-        }
-        else
-        {
-            // log that no agent types were found
-            _logger.LogWarning("No agent types found for event type {EventType}.", eventType);
-        }
-    }
-    private async ValueTask DispatchEventToAgentsAsync(IEnumerable<string> agentTypes, CloudEvent evt)
-    {
-        var tasks = new List<Task>(agentTypes.Count());
-        foreach (var agentType in agentTypes)
-        {
-            if (_supportedAgentTypes.TryGetValue(agentType, out var connections))
+            if(targetAgents.Contains(key))
             {
-                foreach (var connection in connections)
-                {
-                    tasks.Add(this.SendMessageAsync(connection, evt));
-                }
+                tasks.Add(SendMessageAsync(connection[0], evt, default));
             }
         }
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
+
     private async ValueTask DispatchRequestAsync(GrpcWorkerConnection connection, RpcRequest request)
     {
         var requestId = request.RequestId;
@@ -255,7 +233,20 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             connection.AddSupportedType(request.Type);
             _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
             _agentsToEventsMap.TryAdd(request.Type, new HashSet<string>(request.Events));
+            _agentsToTopicsMap.TryAdd(request.Type, new HashSet<string>(request.Topics));
 
+            // construct the inverse map for topics and agent types
+            foreach(var topic in request.Topics)
+            {
+                _topicToAgentTypesMap.GetOrAdd(topic, _ => new HashSet<string>()).Add(request.Type);
+            }
+
+            // construct the inverse map for events and agent types
+            foreach (var evt in request.Events)
+            {
+                _eventsToAgentTypesMap.GetOrAdd(evt, _ => new HashSet<string>()).Add(request.Type);
+            }
+           
             await _gatewayRegistry.RegisterAgentType(request.Type, _reference).ConfigureAwait(true);
             return new RegisterAgentTypeResponse
             {

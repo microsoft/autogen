@@ -40,12 +40,4 @@ builder.AddProject<Projects.DevTeam_Backend>("backend")
 //TODO: add this to the config in backend
 //.WithEnvironment("", acaSessionsEndpoint);
 
-builder.AddProject<Projects.DevTeam_Agents>("dev-agents")
-    .WithEnvironment("AGENT_HOST", $"{agentHostHttps.Property(EndpointProperty.Url)}")
-    .WithEnvironment("Qdrant__Endpoint", $"{qdrant.Resource.HttpEndpoint.Property(EndpointProperty.Url)}")
-    .WithEnvironment("Qdrant__ApiKey", $"{qdrant.Resource.ApiKeyParameter.Value}")
-    .WithEnvironment("Qdrant__VectorSize", "1536")
-    .WithEnvironment("OpenAI__Key", builder.Configuration["OpenAI:Key"])
-    .WithEnvironment("OpenAI__Endpoint", builder.Configuration["OpenAI:Endpoint"]);
-
 builder.Build().Run();

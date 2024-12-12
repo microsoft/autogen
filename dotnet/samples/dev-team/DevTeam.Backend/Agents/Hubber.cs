@@ -2,12 +2,10 @@
 // Hubber.cs
 
 using System.Text.Json;
-using DevTeam;
-using DevTeam.Backend;
-using DevTeam.Shared;
+using DevTeam.Backend.Services;
 using Microsoft.AutoGen.Core;
 
-namespace Microsoft.AI.DevTeam;
+namespace DevTeam.Backend.Agents;
 
 public class Hubber([FromKeyedServices("EventTypes")] EventTypes typeRegistry, IManageGithub ghService)
     : Agent(typeRegistry),
@@ -59,7 +57,7 @@ public class Hubber([FromKeyedServices("EventTypes")] EventTypes typeRegistry, I
         }
     }
 
-    public async Task Handle(ReadmeStored item, CancellationToken cancellationToken = default   )
+    public async Task Handle(ReadmeStored item, CancellationToken cancellationToken = default)
     {
         var branch = $"sk-{item.ParentNumber}";
         await CommitToBranch(item.Org, item.Repo, item.ParentNumber, item.IssueNumber, "output", branch);

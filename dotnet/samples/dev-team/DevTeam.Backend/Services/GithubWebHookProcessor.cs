@@ -2,7 +2,6 @@
 // GithubWebHookProcessor.cs
 
 using System.Globalization;
-using DevTeam.Shared;
 using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Core;
 using Octokit.Webhooks;
@@ -11,7 +10,7 @@ using Octokit.Webhooks.Events.IssueComment;
 using Octokit.Webhooks.Events.Issues;
 using Octokit.Webhooks.Models;
 
-namespace DevTeam.Backend;
+namespace DevTeam.Backend.Services;
 
 public sealed class GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logger, AgentWorker client) : WebhookEventProcessor
 {
@@ -43,7 +42,7 @@ public sealed class GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logge
                 return;
             }
 
-            long? parentNumber = labels.TryGetValue("Parent", out string? value) ? long.Parse(value) : null;
+            long? parentNumber = labels.TryGetValue("Parent", out var value) ? long.Parse(value) : null;
             var skillName = labels.Keys.Where(k => k != "Parent").FirstOrDefault();
 
             if (skillName == null)
@@ -116,9 +115,9 @@ public sealed class GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logge
 
         var evt = (skillName, functionName) switch
         {
-            ("PM", "Readme") => new ReadmeChainClosed { }.ToCloudEvent(subject),
-            ("DevLead", "Plan") => new DevPlanChainClosed { }.ToCloudEvent(subject),
-            ("Developer", "Implement") => new CodeChainClosed { }.ToCloudEvent(subject),
+            ("PM", "Readme") => new ReadmeChainClosed { }.ToCloudEvent(subject, "devteam"),
+            ("DevLead", "Plan") => new DevPlanChainClosed { }.ToCloudEvent(subject, "devteam"),
+            ("Developer", "Implement") => new CodeChainClosed { }.ToCloudEvent(subject, "devteam"),
             _ => new CloudEvent() // TODO: default event
         };
 
@@ -134,10 +133,10 @@ public sealed class GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logge
 
             var evt = (skillName, functionName) switch
             {
-                ("Do", "It") => new NewAsk { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo }.ToCloudEvent(subject),
-                ("PM", "Readme") => new ReadmeRequested { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo }.ToCloudEvent(subject),
-                ("DevLead", "Plan") => new DevPlanRequested { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo }.ToCloudEvent(subject),
-                ("Developer", "Implement") => new CodeGenerationRequested { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo }.ToCloudEvent(subject),
+                ("Do", "It") => new NewAsk { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo }.ToCloudEvent(subject, "devteam"),
+                ("PM", "Readme") => new ReadmeRequested { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo }.ToCloudEvent(subject, "devteam"),
+                ("DevLead", "Plan") => new DevPlanRequested { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo }.ToCloudEvent(subject, "devteam"),
+                ("Developer", "Implement") => new CodeGenerationRequested { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo }.ToCloudEvent(subject, "devteam"),
                 _ => new CloudEvent()
             };
             await _client.PublishEventAsync(evt);

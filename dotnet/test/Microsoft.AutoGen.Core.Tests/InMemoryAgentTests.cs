@@ -20,7 +20,7 @@ public partial class InMemoryAgentTests(InMemoryAgentRuntimeFixture fixture)
     public async Task ItInvokeRightHandlerTestAsync()
     {
         var context = _fixture.CreateContext(new AgentId { Type = "", Key = "" });
-        var agent = new TestAgent(new EventTypes(TypeRegistry.Empty, [], []));
+        var agent = new TestAgent(new EventTypes(TypeRegistry.Empty, [], [], []));
         Agent.Initialize(context, agent);
         await agent.Handle(new TextMessage { Source = "test", Message = "Wow" }, CancellationToken.None);
 
@@ -36,7 +36,7 @@ public partial class InMemoryAgentTests(InMemoryAgentRuntimeFixture fixture)
         var client = _fixture.AppHost.Services.GetRequiredService<Client>();
         Agent.Initialize(context, client);
         var evt = new TextMessage { Message = $"wow{agentId.Key}", Source = nameof(Agent_Handles_Event) };
-        await client.PublishEventAsync(evt, agentId.Key, CancellationToken.None);
+        await client.PublishEventAsync(evt, agentId.Key,"topicType", CancellationToken.None);
 
         // wait for 10 seconds
         var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));

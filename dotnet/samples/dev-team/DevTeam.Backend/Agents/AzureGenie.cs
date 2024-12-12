@@ -1,10 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AzureGenie.cs
 
-using DevTeam.Backend;
-using DevTeam.Shared;
+using DevTeam.Backend.Services;
 using Microsoft.AutoGen.Core;
-namespace Microsoft.AI.DevTeam;
+namespace DevTeam.Backend.Agents;
 
 public class AzureGenie([FromKeyedServices("EventTypes")] EventTypes typeRegistry, IManageAzure azureService)
     : Agent(typeRegistry),

@@ -53,7 +53,7 @@ public class GrpcGatewayServiceTests
         await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), connectionId), client.CallContext);
         await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(GMAgent), connectionId), client.CallContext);
 
-        var inputEvent = new NewMessageReceived { Message = $"Start-{connectionId}" }.ToCloudEvent("gh-gh-gh");
+        var inputEvent = new NewMessageReceived { Message = $"Start-{connectionId}" }.ToCloudEvent("gh-gh-gh", "gh-gh-gh");
 
         client.AddMessage(new Message { CloudEvent = inputEvent });
         var newMessageReceived = await client.ReadNext();
@@ -61,7 +61,7 @@ public class GrpcGatewayServiceTests
         newMessageReceived.CloudEvent.Source.Should().Be("gh-gh-gh");
 
         // Simulate an agent, by publishing a new message in the request stream
-        var helloEvent = new Hello { Message = $"Hello test-{connectionId}" }.ToCloudEvent("gh-gh-gh");
+        var helloEvent = new Hello { Message = $"Hello test-{connectionId}" }.ToCloudEvent("gh-gh-gh", "gh-gh-gh");
         client.AddMessage(new Message { CloudEvent = helloEvent });
 
         var helloMessageReceived = await client.ReadNext();
@@ -159,6 +159,7 @@ public class GrpcGatewayServiceTests
             RequestId = requestId
         };
         registration.Events.AddRange(eventTypes.GetEventsForAgent(type)?.ToList());
+        registration.Topics.AddRange(eventTypes.GetTopicsForAgent(type)?.ToList());
 
         return registration;
     }

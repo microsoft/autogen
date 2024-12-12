@@ -288,13 +288,14 @@ public abstract class Agent : IDisposable
     /// </summary>
     /// <typeparam name="T">The type of the message.</typeparam>
     /// <param name="event">The message to publish.</param>
-    /// <param name="source">The source of the message.</param>
+    /// <param name="key">The source of the message.</param>
     /// <param name="token">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async ValueTask PublishEventAsync<T>(T @event, string? source = null, CancellationToken token = default) where T : IMessage
+    public async ValueTask PublishEventAsync<T>(T @event, string? topic = null, string? key = null, CancellationToken token = default ) where T : IMessage
     {
-        var src = string.IsNullOrWhiteSpace(source) ? AgentId.Key : source;
-        var evt = @event.ToCloudEvent(src);
+        var k = string.IsNullOrWhiteSpace(key) ? AgentId.Key : key;
+        var topicType = string.IsNullOrWhiteSpace(topic) ? "default" : topic;
+        var evt = @event.ToCloudEvent(k, topicType);
         await PublishEventAsync(evt, token).ConfigureAwait(false);
     }
 
@@ -319,12 +320,6 @@ public abstract class Agent : IDisposable
             (this, item),
             activity,
             item.Type, cancellationToken).ConfigureAwait(false);
-    }
-    public async ValueTask PublishMessageAsync<T>(T message, string? source = null, CancellationToken token = default) where T : IMessage
-    {
-        var src = string.IsNullOrWhiteSpace(source) ? this.AgentId.Key : source;
-        var evt = message.ToCloudEvent(src);
-        await PublishEventAsync(evt, token).ConfigureAwait(false);
     }
 
     /// <summary>
