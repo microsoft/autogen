@@ -8,6 +8,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Contracts\Microsoft.AutoGen.Contracts.csproj" />
+		<ProjectReference Include="..\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj" />
   </ItemGroup>
 
   <ItemGroup>

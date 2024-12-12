@@ -12,14 +12,8 @@ public static class Host
     {
         var builder = WebApplication.CreateBuilder();
         builder.AddServiceDefaults();
-        if (local)
-        {
-            builder.AddLocalAgentService(useGrpc: useGrpc);
-        }
-        else
-        {
-            builder.AddAgentService(useGrpc: useGrpc);
-        }
+        builder.AddAgentService(useGrpc: useGrpc);
+        
         var app = builder.Build();
         app.MapAgentService(local, useGrpc);
         app.MapDefaultEndpoints();
