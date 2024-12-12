@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentBaseTests.cs
+// AgentTests.cs
 
 using System.Collections.Concurrent;
 using FluentAssertions;
@@ -10,12 +10,12 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
-using static Microsoft.AutoGen.Agents.Tests.AgentBaseTests;
+using static Microsoft.AutoGen.Agents.Tests.AgentTests;
 
 namespace Microsoft.AutoGen.Agents.Tests;
 
 [Collection(ClusterFixtureCollection.Name)]
-public class AgentBaseTests(InMemoryAgentRuntimeFixture fixture)
+public class AgentTests(InMemoryAgentRuntimeFixture fixture)
 {
     private readonly InMemoryAgentRuntimeFixture _fixture = fixture;
 
