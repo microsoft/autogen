@@ -3,7 +3,7 @@
 
 using System.Text.Json;
 using Hello.Events;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 
 // send a message to the agent

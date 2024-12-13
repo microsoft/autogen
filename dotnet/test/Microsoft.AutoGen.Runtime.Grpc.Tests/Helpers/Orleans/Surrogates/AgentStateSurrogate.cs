@@ -2,7 +2,7 @@
 // AgentStateSurrogate.cs
 
 using Google.Protobuf;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Orleans.Surrogates;
 

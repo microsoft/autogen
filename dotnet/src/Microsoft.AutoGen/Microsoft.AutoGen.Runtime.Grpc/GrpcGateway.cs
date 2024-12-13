@@ -3,19 +3,19 @@
 
 using System.Collections.Concurrent;
 using Grpc.Core;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
 
-public sealed class GrpcGateway : BackgroundService
+public sealed class GrpcGateway : BackgroundService, IGateway
 {
     private static readonly TimeSpan s_agentResponseTimeout = TimeSpan.FromSeconds(30);
     private readonly ILogger<GrpcGateway> _logger;
     private readonly IClusterClient _clusterClient;
     private readonly IRegistryGrain _gatewayRegistry;
-    //private readonly IGateway _reference;
+    private readonly IGateway _reference;
 
     // The agents supported by each worker process.
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
@@ -35,7 +35,7 @@ public sealed class GrpcGateway : BackgroundService
     {
         _logger = logger;
         _clusterClient = clusterClient;
-        //_reference = clusterClient.CreateObjectReference<IGateway>(this);
+        _reference = clusterClient.CreateObjectReference<IGateway>(this);
         _gatewayRegistry = clusterClient.GetGrain<IRegistryGrain>(0);
         _subscriptions = clusterClient.GetGrain<ISubscriptionsGrain>(0);
 
@@ -151,7 +151,7 @@ public sealed class GrpcGateway : BackgroundService
         connection.AddSupportedType(msg.Type);
         _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
 
-        await _gatewayRegistry.RegisterAgentType(msg.Type, _reference).ConfigureAwait(true);
+        await _gatewayRegistry.RegisterAgentType(msg, _reference).ConfigureAwait(true);
         Message response = new()
         {
             RegisterAgentTypeResponse = new()
@@ -210,22 +210,8 @@ public sealed class GrpcGateway : BackgroundService
             var connection = _workersByConnection[request.RequestId];
             connection.AddSupportedType(request.Type);
             _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
-            _agentsToEventsMap.TryAdd(request.Type, new HashSet<string>(request.Events));
-            _agentsToTopicsMap.TryAdd(request.Type, new HashSet<string>(request.Topics));
-
-            // construct the inverse map for topics and agent types
-            foreach(var topic in request.Topics)
-            {
-                _topicToAgentTypesMap.GetOrAdd(topic, _ => new HashSet<string>()).Add(request.Type);
-            }
-
-            // construct the inverse map for events and agent types
-            foreach (var evt in request.Events)
-            {
-                _eventsToAgentTypesMap.GetOrAdd(evt, _ => new HashSet<string>()).Add(request.Type);
-            }
            
-            await _gatewayRegistry.RegisterAgentType(request.Type, _reference).ConfigureAwait(true);
+            await _gatewayRegistry.RegisterAgentType(request, _reference).ConfigureAwait(true);
             return new RegisterAgentTypeResponse
             {
                 Success = true,

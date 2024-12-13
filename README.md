@@ -169,7 +169,7 @@ dotnet add <your.csproj> reference <path to your checkout of autogen>/dotnet/src
 Then, define and run your first agent:
 
 ```csharp
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Agents;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;

@@ -3,7 +3,7 @@
 
 using Grpc.Core;
 using Grpc.Net.Client.Configuration;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 

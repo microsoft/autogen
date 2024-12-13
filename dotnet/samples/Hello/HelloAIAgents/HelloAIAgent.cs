@@ -3,7 +3,7 @@
 
 using Hello;
 using Hello.Events;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.AI;
 

@@ -13,7 +13,7 @@ public static class OrleansRuntimeHostingExtenions
     public static WebApplicationBuilder AddOrleans(this WebApplicationBuilder builder, bool inMemory = false)
     {
         builder.Services.AddSerializer(serializer => serializer.AddProtobufSerializer());
-        builder.Services.AddSingleton<IRegistryGrain, RegistryGrain>();
+        builder.Services.AddSingleton<IRegistryGrain, AgentsRegistryGrain>();
 
         // Ensure Orleans is added before the hosted service to guarantee that it starts first.
         //TODO: make all of this configurable

@@ -2,7 +2,7 @@
 // RegisterAgentTypeRequestSurrogate.cs
 
 using Google.Protobuf.Collections;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Orleans.Surrogates;
 

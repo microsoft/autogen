@@ -2,7 +2,7 @@
 // AgentStateGrain.cs
 
 using System.Data;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
 

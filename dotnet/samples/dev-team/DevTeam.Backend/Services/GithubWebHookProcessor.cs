@@ -2,7 +2,7 @@
 // GithubWebHookProcessor.cs
 
 using System.Globalization;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 using Octokit.Webhooks;
 using Octokit.Webhooks.Events;

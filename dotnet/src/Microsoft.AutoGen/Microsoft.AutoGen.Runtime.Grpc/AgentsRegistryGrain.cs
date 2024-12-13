@@ -1,17 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentsRegistryGrain.cs
 
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
-
-public class AgentsRegistryState
-{
-    public Dictionary<string, HashSet<string>> AgentsToEventsMap { get; set; } = [];
-    public Dictionary<string, HashSet<string>> AgentsToTopicsMap { get; set; } = [];
-    public Dictionary<string, HashSet<string>> TopicToAgentTypesMap { get; set; } = [];
-    public Dictionary<string, HashSet<string>> EventsToAgentTypesMap { get; set; } = [];
-}
 internal sealed class AgentsRegistryGrain([PersistentState("state", "AgentStateStore")] IPersistentState<AgentsRegistryState> state) : Grain, IRegistryGrain
 {
     // TODO: use persistent state for some of these or (better) extend Orleans to implement some of this natively.
@@ -72,11 +64,11 @@ internal sealed class AgentsRegistryGrain([PersistentState("state", "AgentStateS
         }
         return ValueTask.CompletedTask;
     }
-    public ValueTask RegisterAgentType(string type, IGateway worker)
+    public ValueTask RegisterAgentType(RegisterAgentTypeRequest registration, IGateway worker)
     {
-        if (!_supportedAgentTypes.TryGetValue(type, out var supportedAgentTypes))
+        if (!_supportedAgentTypes.TryGetValue(registration.Type, out var supportedAgentTypes))
         {
-            supportedAgentTypes = _supportedAgentTypes[type] = [];
+            supportedAgentTypes = _supportedAgentTypes[registration.Type] = [];
         }
 
         if (!supportedAgentTypes.Contains(worker))
@@ -84,7 +76,21 @@ internal sealed class AgentsRegistryGrain([PersistentState("state", "AgentStateS
             supportedAgentTypes.Add(worker);
         }
         var workerState = GetOrAddWorker(worker);
-        workerState.SupportedTypes.Add(type);
+        workerState.SupportedTypes.Add(registration.Type);
+        //_agentsToEventsMap.TryAdd(request.Type, new HashSet<string>(request.Events));
+        //_agentsToTopicsMap.TryAdd(request.Type, new HashSet<string>(request.Topics));
+
+        //// construct the inverse map for topics and agent types
+        //foreach (var topic in request.Topics)
+        //{
+        //    _topicToAgentTypesMap.GetOrAdd(topic, _ => new HashSet<string>()).Add(request.Type);
+        //}
+
+        //// construct the inverse map for events and agent types
+        //foreach (var evt in request.Events)
+        //{
+        //    _eventsToAgentTypesMap.GetOrAdd(evt, _ => new HashSet<string>()).Add(request.Type);
+        //}
         return ValueTask.CompletedTask;
     }
     public ValueTask AddWorker(IGateway worker)

@@ -2,7 +2,7 @@
 // GrpcGatewayServiceTests.cs
 
 using FluentAssertions;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 using Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Grpc;
 using Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Orleans;
