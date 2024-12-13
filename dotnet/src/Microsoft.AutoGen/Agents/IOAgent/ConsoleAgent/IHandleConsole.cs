@@ -3,6 +3,7 @@
 
 using Google.Protobuf;
 using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 
 namespace Microsoft.AutoGen.Agents;
 

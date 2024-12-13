@@ -1,22 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
   <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
 
-
-	<ItemGroup>
+  <ItemGroup>
 		<ProjectReference Include="..\Contracts\Microsoft.AutoGen.Contracts.csproj" />
+		<ProjectReference Include="..\Core\Microsoft.AutoGen.Core.csproj" />
 		<ProjectReference Include="..\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj" />
-	</ItemGroup>
+  </ItemGroup>
 
-	<ItemGroup>
-	  <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
-	  <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-	  <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-	</ItemGroup>
+  <ItemGroup>
+	  <PackageReference Include="Microsoft.SemanticKernel" />
+   	  <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
+  </ItemGroup>
 </Project>

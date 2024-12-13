@@ -5,7 +5,7 @@ using System.Diagnostics;
 using Google.Protobuf.Collections;
 using static Microsoft.AutoGen.Contracts.CloudEvent.Types;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Core;
 
 /// <summary>
 /// Provides extension methods for the <see cref="Agent"/> class.

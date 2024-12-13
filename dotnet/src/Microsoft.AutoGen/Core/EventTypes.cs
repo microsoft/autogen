@@ -2,7 +2,7 @@
 // EventTypes.cs
 using Google.Protobuf.Reflection;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Core;
 public sealed class EventTypes(TypeRegistry typeRegistry, Dictionary<string, Type> types, Dictionary<Type, HashSet<string>> eventsMap)
 {
     public TypeRegistry TypeRegistry { get; } = typeRegistry;

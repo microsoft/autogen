@@ -4,7 +4,7 @@ using System.Reflection;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Core;
 public sealed class ReflectionHelper
 {
     public static bool IsSubclassOfGeneric(Type type, Type genericBaseType)

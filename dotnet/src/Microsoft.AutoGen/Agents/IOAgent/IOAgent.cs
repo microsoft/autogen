@@ -2,7 +2,7 @@
 // IOAgent.cs
 
 using Microsoft.AutoGen.Contracts;
-
+using Microsoft.AutoGen.Core;
 namespace Microsoft.AutoGen.Agents;
 
 public abstract class IOAgent : Agent
