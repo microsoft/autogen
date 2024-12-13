@@ -18,11 +18,14 @@ internal sealed class AgentsRegistryGrain([PersistentState("state", "AgentStateS
         return base.OnActivateAsync(cancellationToken);
     }
 
-    public ValueTask<IEnumerable<string>> GetSubscribedAndHandlingAgents(string topic,string eventType)
+    public ValueTask<List<string>> GetSubscribedAndHandlingAgents(string topic,string eventType)
     {
+        // get all agent types that are subscribed to the topic
         var subscribedAgents = state.State.TopicToAgentTypesMap[topic];
+        // get all agent types that are handling the event
         var handlingAgents = state.State.EventsToAgentTypesMap[eventType];
-        return ValueTask.FromResult(subscribedAgents.Intersect(handlingAgents));
+        // return the intersection of the two sets
+        return new(subscribedAgents.Intersect(handlingAgents).ToList());
     }
     public ValueTask<(IGateway? Worker, bool NewPlacement)> GetOrPlaceAgent(AgentId agentId)
     {
@@ -64,7 +67,7 @@ internal sealed class AgentsRegistryGrain([PersistentState("state", "AgentStateS
         }
         return ValueTask.CompletedTask;
     }
-    public ValueTask RegisterAgentType(RegisterAgentTypeRequest registration, IGateway worker)
+    public async ValueTask RegisterAgentType(RegisterAgentTypeRequest registration, IGateway worker)
     {
         if (!_supportedAgentTypes.TryGetValue(registration.Type, out var supportedAgentTypes))
         {
@@ -75,23 +78,36 @@ internal sealed class AgentsRegistryGrain([PersistentState("state", "AgentStateS
         {
             supportedAgentTypes.Add(worker);
         }
+
         var workerState = GetOrAddWorker(worker);
         workerState.SupportedTypes.Add(registration.Type);
-        //_agentsToEventsMap.TryAdd(request.Type, new HashSet<string>(request.Events));
-        //_agentsToTopicsMap.TryAdd(request.Type, new HashSet<string>(request.Topics));
+        state.State.AgentsToEventsMap[registration.Type] = new HashSet<string>(registration.Events);
+        state.State.AgentsToTopicsMap[registration.Type] = new HashSet<string>(registration.Topics);
 
-        //// construct the inverse map for topics and agent types
-        //foreach (var topic in request.Topics)
-        //{
-        //    _topicToAgentTypesMap.GetOrAdd(topic, _ => new HashSet<string>()).Add(request.Type);
-        //}
+        // construct the inverse map for topics and agent types
+        foreach (var topic in registration.Topics)
+        {
+            if (!state.State.TopicToAgentTypesMap.TryGetValue(topic, out var topicSet))
+            {
+                topicSet = new HashSet<string>();
+                state.State.TopicToAgentTypesMap[topic] = topicSet;
+            }
 
-        //// construct the inverse map for events and agent types
-        //foreach (var evt in request.Events)
-        //{
-        //    _eventsToAgentTypesMap.GetOrAdd(evt, _ => new HashSet<string>()).Add(request.Type);
-        //}
-        return ValueTask.CompletedTask;
+            topicSet.Add(registration.Type);
+        }
+
+        // construct the inverse map for events and agent types
+        foreach (var evt in registration.Events)
+        {
+            if (!state.State.EventsToAgentTypesMap.TryGetValue(evt, out var eventSet))
+            {
+                eventSet = new HashSet<string>();
+                state.State.EventsToAgentTypesMap[evt] = eventSet;
+            }
+
+            eventSet.Add(registration.Type);
+        }
+        await state.WriteStateAsync().ConfigureAwait(false);
     }
     public ValueTask AddWorker(IGateway worker)
     {

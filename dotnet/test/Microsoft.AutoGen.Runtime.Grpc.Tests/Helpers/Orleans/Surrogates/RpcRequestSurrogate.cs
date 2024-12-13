@@ -36,7 +36,7 @@ public sealed class RpcRequestSurrogateConverter :
         Target = surrogate.Target,
         Method = surrogate.Method,
         Payload = surrogate.Payload,
-        // TODO: Add Metadata Metadata = surrogate.Metadata
+        Metadata = { surrogate.Metadata }
     };
 
     public RpcRequestSurrogate ConvertToSurrogate(

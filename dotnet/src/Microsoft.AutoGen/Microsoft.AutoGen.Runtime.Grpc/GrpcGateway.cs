@@ -165,18 +165,25 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     }
     private async ValueTask DispatchEventAsync(CloudEvent evt)
     {
-        var registry = _clusterClient.GetGrain<IRegistryGrain>(0);
-        var targetAgentTypes = await registry.GetSubscribedAndHandlingAgents(evt.Source, evt.Type);
-
-        var tasks = new List<Task>();
-        foreach (var (key, connection) in _supportedAgentTypes)
+        try
         {
-            if(targetAgentTypes.Contains(key))
+            var registry = _clusterClient.GetGrain<IRegistryGrain>(0);
+            var targetAgentTypes = await registry.GetSubscribedAndHandlingAgents(evt.Source, evt.Type);
+
+            var tasks = new List<Task>();
+            foreach (var (key, connection) in _supportedAgentTypes)
             {
-                tasks.Add(SendMessageAsync(connection[0], evt, default));
+                if (targetAgentTypes.Contains(key))
+                {
+                    tasks.Add(SendMessageAsync(connection[0], evt, default));
+                }
             }
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
-        await Task.WhenAll(tasks).ConfigureAwait(false);
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error dispatching event {Event}.", evt);
+        }
     }
 
     private async ValueTask DispatchRequestAsync(GrpcWorkerConnection connection, RpcRequest request)

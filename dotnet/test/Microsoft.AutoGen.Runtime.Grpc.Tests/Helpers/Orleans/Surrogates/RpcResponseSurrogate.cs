@@ -30,7 +30,7 @@ public sealed class RpcResponseurrogateConverter :
         RequestId = surrogate.RequestId,
         Payload = surrogate.Payload,
         Error = surrogate.Error,
-        // TODO: Add Metadata = value.Metadata
+        Metadata = { surrogate.Metadata }
     };
 
     public RpcResponseSurrogate ConvertToSurrogate(

@@ -15,6 +15,8 @@ public struct RegisterAgentTypeRequestSurrogate
     public string Type;
     [Id(2)]
     public RepeatedField<string> Events;
+    [Id(3)]
+    public RepeatedField<string> Topics;
 }
 
 [RegisterConverter]
@@ -22,13 +24,17 @@ public sealed class RegisterAgentTypeRequestSurrogateConverter :
     IConverter<RegisterAgentTypeRequest, RegisterAgentTypeRequestSurrogate>
 {
     public RegisterAgentTypeRequest ConvertFromSurrogate(
-        in RegisterAgentTypeRequestSurrogate surrogate) =>
-        new RegisterAgentTypeRequest()
+        in RegisterAgentTypeRequestSurrogate surrogate)
+    {
+        var request = new RegisterAgentTypeRequest()
         {
             RequestId = surrogate.RequestId,
-            Type = surrogate.Type,
-            // TODO : Map Events
+            Type = surrogate.Type
         };
+        request.Events.Add(surrogate.Events);
+        request.Topics.Add(surrogate.Topics);
+        return request;
+    }
 
     public RegisterAgentTypeRequestSurrogate ConvertToSurrogate(
         in RegisterAgentTypeRequest value) =>
@@ -36,6 +42,7 @@ public sealed class RegisterAgentTypeRequestSurrogateConverter :
         {
             RequestId = value.RequestId,
             Type = value.Type,
-            Events = value.Events
+            Events = value.Events,
+            Topics = value.Topics
         };
 }
