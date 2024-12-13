@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // HelloAIAgent.cs
 
-using Microsoft.AutoGen.Agents;
 using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.AI;
 
 namespace Hello;

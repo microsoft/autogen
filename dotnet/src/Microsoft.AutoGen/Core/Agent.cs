@@ -11,7 +11,7 @@ using Google.Protobuf;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Core;
 
 public abstract class Agent : IHandle
 {

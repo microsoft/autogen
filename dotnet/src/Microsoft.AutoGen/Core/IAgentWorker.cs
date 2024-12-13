@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IAgentWorker.cs
 using Microsoft.AutoGen.Contracts;
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Core;
 
 public interface IAgentWorker
 {

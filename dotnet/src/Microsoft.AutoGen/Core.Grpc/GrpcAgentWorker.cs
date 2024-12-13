@@ -11,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Core;
 
 public sealed class GrpcAgentWorker(
     AgentRpc.AgentRpcClient client,

@@ -7,7 +7,7 @@ using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Logging;
 using static Microsoft.AutoGen.Contracts.CloudEvent.Types;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Core;
 
 public sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger<Agent> logger, DistributedContextPropagator distributedContextPropagator) : IAgentRuntime
 {

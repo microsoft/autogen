@@ -4,6 +4,7 @@
 using System.Text.Json;
 using Microsoft.AutoGen.Agents;
 using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 
 // send a message to the agent
 var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived

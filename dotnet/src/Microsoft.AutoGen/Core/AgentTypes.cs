@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentTypes.cs
 
-namespace Microsoft.AutoGen.Agents
+namespace Microsoft.AutoGen.Core
 ;
 public sealed class AgentTypes(Dictionary<string, Type> types)
 {

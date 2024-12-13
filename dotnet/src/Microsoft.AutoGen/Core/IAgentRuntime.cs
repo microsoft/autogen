@@ -4,7 +4,7 @@
 using System.Diagnostics;
 using Microsoft.AutoGen.Contracts;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Core;
 
 public interface IAgentRuntime
 {

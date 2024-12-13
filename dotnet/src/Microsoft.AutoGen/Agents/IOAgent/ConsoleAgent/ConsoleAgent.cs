@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ConsoleAgent.cs
-
 using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.AutoGen.Agents;

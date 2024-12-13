@@ -18,6 +18,5 @@
     <PackageReference Include="Grpc.AspNetCore" />
     <PackageReference Include="Grpc.Net.ClientFactory" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
-	  <PackageReference Include="Microsoft.SemanticKernel" />
   </ItemGroup>
 </Project>

@@ -11,9 +11,9 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Moq;
 using Xunit;
-using static Microsoft.AutoGen.Agents.Tests.AgentTests;
+using static Microsoft.AutoGen.Core.Tests.AgentTests;
 
-namespace Microsoft.AutoGen.Agents.Tests;
+namespace Microsoft.AutoGen.Core.Tests;
 
 [Collection(ClusterFixtureCollection.Name)]
 public class AgentTests(InMemoryAgentRuntimeFixture fixture)

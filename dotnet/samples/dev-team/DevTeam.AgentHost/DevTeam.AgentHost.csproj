@@ -9,7 +9,7 @@
   </PropertyGroup>
 
    <ItemGroup>
-    <ProjectReference Include="../../../src/Microsoft.AutoGen/Agents/Microsoft.AutoGen.Agents.csproj" />
+    <ProjectReference Include="../../../src/Microsoft.AutoGen/Core/Microsoft.AutoGen.Core.csproj" />
     <ProjectReference Include="../../../src/Microsoft.AutoGen/Runtime.Grpc/Microsoft.AutoGen.Runtime.Grpc.csproj" />
     <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj" />
   </ItemGroup>
