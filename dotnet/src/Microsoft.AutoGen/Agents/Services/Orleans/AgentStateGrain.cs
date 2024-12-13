@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentStateGrain.cs
 
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Agents;
 

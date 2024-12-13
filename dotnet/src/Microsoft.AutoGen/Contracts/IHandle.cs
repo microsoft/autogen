@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IHandle.cs
 
-namespace Microsoft.AutoGen.Abstractions;
+namespace Microsoft.AutoGen.Contracts;
 
 public interface IHandle
 {

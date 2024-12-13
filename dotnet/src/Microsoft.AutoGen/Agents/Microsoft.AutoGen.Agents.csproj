@@ -10,7 +10,7 @@
 
 
 	<ItemGroup>
-		<ProjectReference Include="..\Abstractions\Microsoft.AutoGen.Abstractions.csproj" />
+		<ProjectReference Include="..\Contracts\Microsoft.AutoGen.Contracts.csproj" />
 		<ProjectReference Include="..\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj" />
 	</ItemGroup>
 

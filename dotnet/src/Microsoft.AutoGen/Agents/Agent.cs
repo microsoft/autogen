@@ -8,7 +8,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 using Google.Protobuf;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
@@ -22,7 +22,6 @@ public abstract class Agent : IHandle
 
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     private readonly IAgentRuntime _runtime;
-
     protected internal ILogger<Agent> _logger;
     public IAgentRuntime Context => _runtime;
     protected readonly EventTypes EventTypes;

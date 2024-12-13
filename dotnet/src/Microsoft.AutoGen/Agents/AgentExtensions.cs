@@ -3,7 +3,7 @@
 
 using System.Diagnostics;
 using Google.Protobuf.Collections;
-using static Microsoft.AutoGen.Abstractions.CloudEvent.Types;
+using static Microsoft.AutoGen.Contracts.CloudEvent.Types;
 
 namespace Microsoft.AutoGen.Agents;
 

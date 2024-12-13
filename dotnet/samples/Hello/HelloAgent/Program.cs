@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Program.cs
 
-using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 

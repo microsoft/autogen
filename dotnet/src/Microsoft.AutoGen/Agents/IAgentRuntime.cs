@@ -2,7 +2,7 @@
 // IAgentRuntime.cs
 
 using System.Diagnostics;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Agents;
 

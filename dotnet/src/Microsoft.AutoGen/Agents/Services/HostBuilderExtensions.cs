@@ -6,7 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -61,7 +61,6 @@ public static class HostBuilderExtensions
             var eventsMap = AppDomain.CurrentDomain.GetAssemblies()
                                     .SelectMany(assembly => assembly.GetTypes())
                                     .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(Agent)) && !type.IsAbstract)
-
                                     .Select(t => (t, t.GetInterfaces()
                                                   .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
                                                   .Select(i => (GetMessageDescriptor(i.GetGenericArguments().First())?.FullName ?? "")).ToHashSet()))

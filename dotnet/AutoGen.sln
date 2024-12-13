@@ -80,7 +80,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Agents", "src\Microsoft.AutoGen\Agents\Microsoft.AutoGen.Agents.csproj", "{FD87BD33-4616-460B-AC85-A412BA08BB78}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Abstractions", "src\Microsoft.AutoGen\Abstractions\Microsoft.AutoGen.Abstractions.csproj", "{E0C991D9-0DB8-471C-ADC9-5FB16E2A0106}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Contracts", "src\Microsoft.AutoGen\Contracts\Microsoft.AutoGen.Contracts.csproj", "{E0C991D9-0DB8-471C-ADC9-5FB16E2A0106}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Extensions.SemanticKernel", "src\Microsoft.AutoGen\Extensions\SemanticKernel\Microsoft.AutoGen.Extensions.SemanticKernel.csproj", "{952827D4-8D4C-4327-AE4D-E8D25811EF35}"
 EndProject
