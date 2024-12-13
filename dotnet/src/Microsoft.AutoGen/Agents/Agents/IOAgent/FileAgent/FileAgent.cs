@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // FileAgent.cs
 
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 

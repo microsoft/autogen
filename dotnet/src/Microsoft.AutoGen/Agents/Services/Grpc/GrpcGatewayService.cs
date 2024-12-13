@@ -2,7 +2,7 @@
 // GrpcGatewayService.cs
 
 using Grpc.Core;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Agents;
 

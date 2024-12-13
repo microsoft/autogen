@@ -3,7 +3,7 @@
 
 using System.Collections.Concurrent;
 using Grpc.Core;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 

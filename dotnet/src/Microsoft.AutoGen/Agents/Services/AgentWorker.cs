@@ -4,7 +4,7 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Threading.Channels;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -16,11 +16,11 @@ public class AgentWorker :
      IAgentWorker
 {
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
-    private readonly ConcurrentDictionary<(string Type, string Key), IAgentBase> _agents = new();
+    private readonly ConcurrentDictionary<(string Type, string Key), Agent> _agents = new();
     private readonly ILogger<AgentWorker> _logger;
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
-    private readonly ConcurrentDictionary<string, (IAgentBase Agent, string OriginalRequestId)> _pendingClientRequests = new();
+    private readonly ConcurrentDictionary<string, (Agent Agent, string OriginalRequestId)> _pendingClientRequests = new();
     private readonly CancellationTokenSource _shutdownCts;
     private readonly IServiceProvider _serviceProvider;
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes;
@@ -54,7 +54,7 @@ public class AgentWorker :
             agent.ReceiveMessage(new Message { CloudEvent = cloudEvent });
         }
     }
-    public async ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask SendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         var requestId = Guid.NewGuid().ToString();
         _pendingClientRequests[requestId] = (agent, request.RequestId);
@@ -190,14 +190,14 @@ public class AgentWorker :
         {
         }
     }
-    private IAgentBase GetOrActivateAgent(AgentId agentId)
+    private Agent GetOrActivateAgent(AgentId agentId)
     {
         if (!_agents.TryGetValue((agentId.Type, agentId.Key), out var agent))
         {
             if (_agentTypes.TryGetValue(agentId.Type, out var agentType))
             {
-                var context = new AgentRuntime(agentId, this, _serviceProvider.GetRequiredService<ILogger<AgentBase>>(), _distributedContextPropagator);
-                agent = (AgentBase)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, context);
+                var context = new AgentRuntime(agentId, this, _serviceProvider.GetRequiredService<ILogger<Agent>>(), _distributedContextPropagator);
+                agent = (Agent)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, context);
                 _agents.TryAdd((agentId.Type, agentId.Key), agent);
             }
             else

@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IOAgent.cs
 
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Agents;
 
-public abstract class IOAgent : AgentBase
+public abstract class IOAgent : Agent
 {
     public string _route = "base";
     protected IOAgent(IAgentRuntime context, EventTypes eventTypes) : base(context, eventTypes)

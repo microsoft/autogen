@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Program.cs
 
-using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -19,7 +19,7 @@ namespace Hello
     [TopicSubscription("agents")]
     public class HelloAgent(
         IAgentRuntime context, IHostApplicationLifetime hostApplicationLifetime,
-        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
+        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : Agent(
             context,
             typeRegistry),
             ISayHello,

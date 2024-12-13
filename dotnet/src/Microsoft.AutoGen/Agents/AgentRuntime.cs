@@ -3,19 +3,19 @@
 
 using System.Diagnostics;
 using Google.Protobuf.Collections;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Logging;
-using static Microsoft.AutoGen.Abstractions.CloudEvent.Types;
+using static Microsoft.AutoGen.Contracts.CloudEvent.Types;
 
 namespace Microsoft.AutoGen.Agents;
 
-internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger<AgentBase> logger, DistributedContextPropagator distributedContextPropagator) : IAgentRuntime
+internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger<Agent> logger, DistributedContextPropagator distributedContextPropagator) : IAgentRuntime
 {
     private readonly IAgentWorker worker = worker;
 
     public AgentId AgentId { get; } = agentId;
-    public ILogger<AgentBase> Logger { get; } = logger;
-    public IAgentBase? AgentInstance { get; set; }
+    private ILogger<Agent> Logger { get; } = logger;
+    public Agent? AgentInstance { get; set; }
     private DistributedContextPropagator DistributedContextPropagator { get; } = distributedContextPropagator;
     public (string?, string?) GetTraceIdAndState(IDictionary<string, string> metadata)
     {
@@ -79,7 +79,7 @@ internal sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger
         response.RequestId = request.RequestId;
         await worker.SendResponseAsync(response, cancellationToken).ConfigureAwait(false);
     }
-    public async ValueTask SendRequestAsync(IAgentBase agent, RpcRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask SendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         await worker.SendRequestAsync(agent, request, cancellationToken).ConfigureAwait(false);
     }

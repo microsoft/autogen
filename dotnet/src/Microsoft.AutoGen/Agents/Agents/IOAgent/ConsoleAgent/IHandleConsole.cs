@@ -2,13 +2,12 @@
 // IHandleConsole.cs
 
 using Google.Protobuf;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Agents;
 
 public interface IHandleConsole : IHandle<Output>, IHandle<Input>
 {
-    string Route { get; }
     AgentId AgentId { get; }
     ValueTask PublishMessageAsync<T>(T message, string? source = null, CancellationToken token = default) where T : IMessage;
 
