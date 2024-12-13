@@ -13,7 +13,7 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;
 
-public abstract class Agent : IDisposable, IHandle
+public abstract class Agent : IHandle
 {
     public static readonly ActivitySource s_source = new("AutoGen.Agent");
     public AgentId AgentId => _runtime.AgentId;
@@ -22,8 +22,6 @@ public abstract class Agent : IDisposable, IHandle
 
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     private readonly IAgentRuntime _runtime;
-    public string Route { get; set; } = "base";
-
     protected internal ILogger<Agent> _logger;
     public IAgentRuntime Context => _runtime;
     protected readonly EventTypes EventTypes;
@@ -342,10 +340,5 @@ public abstract class Agent : IDisposable, IHandle
     public async ValueTask PublishEventAsync(string topic, IMessage evt, CancellationToken cancellationToken = default)
     {
         await PublishEventAsync(evt.ToCloudEvent(topic), cancellationToken).ConfigureAwait(false);
-    }
-
-    public void Dispose()
-    {
-        throw new NotImplementedException();
     }
 }
