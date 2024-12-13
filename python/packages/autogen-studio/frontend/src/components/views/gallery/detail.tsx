@@ -20,7 +20,7 @@ import type { Gallery } from "./types";
 import { useGalleryStore } from "./store";
 import { MonacoEditor } from "../monaco";
 import { ComponentConfigTypes } from "../../types/datamodel";
-import { TruncatableText } from "../atoms";
+import { getRelativeTimeString, TruncatableText } from "../atoms";
 
 const ComponentGrid: React.FC<{
   title: string;
@@ -221,12 +221,18 @@ export const GalleryDetail: React.FC<GalleryDetailProps> = ({
           <Tooltip
             title={
               getLastSyncTime(gallery.id)
-                ? `Last synced: ${getLastSyncTime(gallery.id)}`
+                ? `Last synced: ${getRelativeTimeString(
+                    getLastSyncTime(gallery.id) || ""
+                  )}`
                 : "Never synced"
             }
           >
             <Button
-              icon={<RefreshCw className={isSyncing ? "animate-spin" : ""} />}
+              icon={
+                <RefreshCw
+                  className={(isSyncing ? "animate-spin" : "") + " w-4 h-4"}
+                />
+              }
               loading={isSyncing}
               onClick={handleSync}
             >

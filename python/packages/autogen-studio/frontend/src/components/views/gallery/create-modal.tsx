@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import { Modal, Tabs, Input, Button, Alert, Upload } from "antd";
 import { Globe, Upload as UploadIcon, Code } from "lucide-react";
 import { MonacoEditor } from "../monaco";
-import type { UploadFile, UploadProps } from "antd";
+import type { InputRef, UploadFile, UploadProps } from "antd";
 import { Gallery } from "./types";
 import { defaultGallery } from "./utils";
 
@@ -84,6 +84,8 @@ export const GalleryCreateModal: React.FC<GalleryCreateModalProps> = ({
     onChange: handleFileUpload,
   };
 
+  const inputRef = useRef<InputRef>(null);
+
   const items = [
     {
       key: "url",
@@ -95,10 +97,30 @@ export const GalleryCreateModal: React.FC<GalleryCreateModalProps> = ({
       children: (
         <div className="space-y-4">
           <Input
+            ref={inputRef}
             placeholder="Enter gallery URL..."
             value={url}
             onChange={(e) => setUrl(e.target.value)}
           />
+          <div className="text-xs">
+            Sample
+            <a
+              role="button"
+              onClick={(e) => {
+                setUrl(
+                  "https://raw.githubusercontent.com/victordibia/multiagent-systems-with-autogen/refs/heads/main/research/components/gallery/base.json"
+                );
+                e.preventDefault();
+              }}
+              href="https://raw.githubusercontent.com/victordibia/multiagent-systems-with-autogen/refs/heads/main/research/components/gallery/base.json"
+              target="_blank"
+              rel="noreferrer"
+              className="text-accent"
+            >
+              {" "}
+              gallery.json{" "}
+            </a>
+          </div>
           <Button
             type="primary"
             onClick={handleUrlImport}
