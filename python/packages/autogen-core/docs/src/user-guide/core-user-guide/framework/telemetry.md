@@ -48,7 +48,7 @@ Now you can send the trace_provider when creating your runtime:
 # for single threaded runtime
 single_threaded_runtime = SingleThreadedAgentRuntime(tracer_provider=tracer_provider)
 # or for worker runtime
-worker_runtime = WorkerAgentRuntime(tracer_provider=tracer_provider)
+worker_runtime = GrpcWorkerAgentRuntime(tracer_provider=tracer_provider)
 ```
 
 And that's it! Your application is now instrumented with open telemetry. You can now view your telemetry data in your telemetry backend.
@@ -65,5 +65,5 @@ tracer_provider = trace.get_tracer_provider()
 # for single threaded runtime
 single_threaded_runtime = SingleThreadedAgentRuntime(tracer_provider=tracer_provider)
 # or for worker runtime
-worker_runtime = WorkerAgentRuntime(tracer_provider=tracer_provider)
+worker_runtime = GrpcWorkerAgentRuntime(tracer_provider=tracer_provider)
 ```

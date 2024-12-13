@@ -3,10 +3,8 @@ import json
 from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union
 
 import pytest
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, CancellationToken
-from autogen_core.components import FunctionCall
-from autogen_core.components.models import (
+from autogen_core import AgentId, CancellationToken, FunctionCall, SingleThreadedAgentRuntime
+from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     CreateResult,
@@ -17,14 +15,14 @@ from autogen_core.components.models import (
     RequestUsage,
     UserMessage,
 )
-from autogen_core.components.tool_agent import (
+from autogen_core.tool_agent import (
     InvalidToolArgumentsException,
     ToolAgent,
     ToolExecutionException,
     ToolNotFoundException,
     tool_agent_caller_loop,
 )
-from autogen_core.components.tools import FunctionTool, Tool, ToolSchema
+from autogen_core.tools import FunctionTool, Tool, ToolSchema
 
 
 def _pass_function(input: str) -> str:
@@ -43,7 +41,8 @@ async def _async_sleep_function(input: str) -> str:
 @pytest.mark.asyncio
 async def test_tool_agent() -> None:
     runtime = SingleThreadedAgentRuntime()
-    await runtime.register(
+    await ToolAgent.register(
+        runtime,
         "tool_agent",
         lambda: ToolAgent(
             description="Tool agent",
@@ -143,7 +142,8 @@ async def test_caller_loop() -> None:
     client = MockChatCompletionClient()
     tools: List[Tool] = [FunctionTool(_pass_function, name="pass", description="Pass function")]
     runtime = SingleThreadedAgentRuntime()
-    await runtime.register(
+    await ToolAgent.register(
+        runtime,
         "tool_agent",
         lambda: ToolAgent(
             description="Tool agent",

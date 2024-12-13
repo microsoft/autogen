@@ -51,7 +51,7 @@ class CodeLinter(Builder):
 
     def write_doc(self, docname: str, doctree: nodes.Node) -> None:
         path_prefix: str = self.app.config.code_lint_path_prefix
-        supported_languages = set(["python"])
+        supported_languages = set(["python", "default"])
 
         if not docname.startswith(path_prefix):
             return

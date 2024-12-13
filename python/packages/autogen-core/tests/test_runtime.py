@@ -1,24 +1,18 @@
-import asyncio
 import logging
 
 import pytest
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import (
+from autogen_core import (
     AgentId,
     AgentInstantiationContext,
     AgentType,
-    Subscription,
-    SubscriptionInstantiationContext,
-    TopicId,
-    try_get_known_serializers_for_type,
-)
-from autogen_core.components import (
     DefaultTopicId,
+    SingleThreadedAgentRuntime,
+    TopicId,
     TypeSubscription,
+    try_get_known_serializers_for_type,
     type_subscription,
 )
-from opentelemetry.sdk.trace import TracerProvider
-from test_utils import (
+from autogen_test_utils import (
     CascadingAgent,
     CascadingMessageType,
     LoopbackAgent,
@@ -26,7 +20,8 @@ from test_utils import (
     MessageType,
     NoopAgent,
 )
-from test_utils.telemetry_test_utils import TestExporter, get_test_tracer_provider
+from autogen_test_utils.telemetry_test_utils import TestExporter, get_test_tracer_provider
+from opentelemetry.sdk.trace import TracerProvider
 
 test_exporter = TestExporter()
 
@@ -146,82 +141,9 @@ async def test_register_receives_publish_cascade() -> None:
 async def test_register_factory_explicit_name() -> None:
     runtime = SingleThreadedAgentRuntime()
 
-    await runtime.register("name", LoopbackAgent, lambda: [TypeSubscription("default", "name")])
-    runtime.start()
-    agent_id = AgentId("name", key="default")
-    topic_id = TopicId("default", "default")
-    await runtime.publish_message(MessageType(), topic_id=topic_id)
+    await LoopbackAgent.register(runtime, "name", LoopbackAgent)
+    await runtime.add_subscription(TypeSubscription("default", "name"))
 
-    await runtime.stop_when_idle()
-
-    # Agent in default namespace should have received the message
-    long_running_agent = await runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent)
-    assert long_running_agent.num_calls == 1
-
-    # Agent in other namespace should not have received the message
-    other_long_running_agent: LoopbackAgent = await runtime.try_get_underlying_agent_instance(
-        AgentId("name", key="other"), type=LoopbackAgent
-    )
-    assert other_long_running_agent.num_calls == 0
-
-
-@pytest.mark.asyncio
-async def test_register_factory_context_var_name() -> None:
-    runtime = SingleThreadedAgentRuntime()
-
-    await runtime.register(
-        "name", LoopbackAgent, lambda: [TypeSubscription("default", SubscriptionInstantiationContext.agent_type().type)]
-    )
-    runtime.start()
-    agent_id = AgentId("name", key="default")
-    topic_id = TopicId("default", "default")
-    await runtime.publish_message(MessageType(), topic_id=topic_id)
-
-    await runtime.stop_when_idle()
-
-    # Agent in default namespace should have received the message
-    long_running_agent = await runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent)
-    assert long_running_agent.num_calls == 1
-
-    # Agent in other namespace should not have received the message
-    other_long_running_agent: LoopbackAgent = await runtime.try_get_underlying_agent_instance(
-        AgentId("name", key="other"), type=LoopbackAgent
-    )
-    assert other_long_running_agent.num_calls == 0
-
-
-@pytest.mark.asyncio
-async def test_register_factory_async() -> None:
-    runtime = SingleThreadedAgentRuntime()
-
-    async def sub_factory() -> list[Subscription]:
-        await asyncio.sleep(0.1)
-        return [TypeSubscription("default", SubscriptionInstantiationContext.agent_type().type)]
-
-    await runtime.register("name", LoopbackAgent, sub_factory)
-    runtime.start()
-    agent_id = AgentId("name", key="default")
-    topic_id = TopicId("default", "default")
-    await runtime.publish_message(MessageType(), topic_id=topic_id)
-
-    await runtime.stop_when_idle()
-
-    # Agent in default namespace should have received the message
-    long_running_agent = await runtime.try_get_underlying_agent_instance(agent_id, type=LoopbackAgent)
-    assert long_running_agent.num_calls == 1
-
-    # Agent in other namespace should not have received the message
-    other_long_running_agent: LoopbackAgent = await runtime.try_get_underlying_agent_instance(
-        AgentId("name", key="other"), type=LoopbackAgent
-    )
-    assert other_long_running_agent.num_calls == 0
-
-
-@pytest.mark.asyncio
-async def test_register_factory_direct_list() -> None:
-    runtime = SingleThreadedAgentRuntime()
-
-    await runtime.register("name", LoopbackAgent, [TypeSubscription("default", "name")])
     runtime.start()
     agent_id = AgentId("name", key="default")
     topic_id = TopicId("default", "default")

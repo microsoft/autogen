@@ -17,9 +17,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@ant-design/charts": "^2.2.3",
-    "@ant-design/plots": "^2.2.2",
     "@dagrejs/dagre": "^1.1.4",
+    "@dnd-kit/core": "^6.2.0",
     "@headlessui/react": "^2.2.0",
     "@heroicons/react": "^2.0.18",
     "@mdx-js/react": "^3.1.0",
@@ -38,7 +37,7 @@
     "gatsby-source-filesystem": "^5.14.0",
     "gatsby-transformer-sharp": "^5.14.0",
     "install": "^0.13.0",
-    "lucide-react": "^0.456.0",
+    "lucide-react": "^0.460.0",
     "postcss": "^8.4.49",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",

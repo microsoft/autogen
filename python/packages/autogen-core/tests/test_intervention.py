@@ -1,9 +1,8 @@
 import pytest
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId
-from autogen_core.base.exceptions import MessageDroppedException
+from autogen_core import AgentId, SingleThreadedAgentRuntime
 from autogen_core.base.intervention import DefaultInterventionHandler, DropMessage
-from test_utils import LoopbackAgent, MessageType
+from autogen_core.exceptions import MessageDroppedException
+from autogen_test_utils import LoopbackAgent, MessageType
 
 
 @pytest.mark.asyncio
@@ -18,7 +17,7 @@ async def test_intervention_count_messages() -> None:
 
     handler = DebugInterventionHandler()
     runtime = SingleThreadedAgentRuntime(intervention_handlers=[handler])
-    await runtime.register("name", LoopbackAgent)
+    await LoopbackAgent.register(runtime, "name", LoopbackAgent)
     loopback = AgentId("name", key="default")
     runtime.start()
 
@@ -42,7 +41,7 @@ async def test_intervention_drop_send() -> None:
     handler = DropSendInterventionHandler()
     runtime = SingleThreadedAgentRuntime(intervention_handlers=[handler])
 
-    await runtime.register("name", LoopbackAgent)
+    await LoopbackAgent.register(runtime, "name", LoopbackAgent)
     loopback = AgentId("name", key="default")
     runtime.start()
 
@@ -66,7 +65,7 @@ async def test_intervention_drop_response() -> None:
     handler = DropResponseInterventionHandler()
     runtime = SingleThreadedAgentRuntime(intervention_handlers=[handler])
 
-    await runtime.register("name", LoopbackAgent)
+    await LoopbackAgent.register(runtime, "name", LoopbackAgent)
     loopback = AgentId("name", key="default")
     runtime.start()
 
@@ -90,7 +89,7 @@ async def test_intervention_raise_exception_on_send() -> None:
     handler = ExceptionInterventionHandler()
     runtime = SingleThreadedAgentRuntime(intervention_handlers=[handler])
 
-    await runtime.register("name", LoopbackAgent)
+    await LoopbackAgent.register(runtime, "name", LoopbackAgent)
     loopback = AgentId("name", key="default")
     runtime.start()
 
@@ -117,7 +116,7 @@ async def test_intervention_raise_exception_on_respond() -> None:
     handler = ExceptionInterventionHandler()
     runtime = SingleThreadedAgentRuntime(intervention_handlers=[handler])
 
-    await runtime.register("name", LoopbackAgent)
+    await LoopbackAgent.register(runtime, "name", LoopbackAgent)
     loopback = AgentId("name", key="default")
     runtime.start()
     with pytest.raises(InterventionException):

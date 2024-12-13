@@ -161,7 +161,6 @@ cython_debug/
 
 .ruff_cache/
 
-/docs/src/reference/python
 .DS_Store
 
 # Generated log files

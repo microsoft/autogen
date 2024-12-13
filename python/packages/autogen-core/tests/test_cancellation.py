@@ -2,9 +2,15 @@ import asyncio
 from dataclasses import dataclass
 
 import pytest
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, AgentInstantiationContext, CancellationToken, MessageContext
-from autogen_core.components import RoutedAgent, message_handler
+from autogen_core import (
+    AgentId,
+    AgentInstantiationContext,
+    CancellationToken,
+    MessageContext,
+    RoutedAgent,
+    SingleThreadedAgentRuntime,
+    message_handler,
+)
 
 
 @dataclass
@@ -59,7 +65,7 @@ class NestingLongRunningAgent(RoutedAgent):
 async def test_cancellation_with_token() -> None:
     runtime = SingleThreadedAgentRuntime()
 
-    await runtime.register("long_running", LongRunningAgent)
+    await LongRunningAgent.register(runtime, "long_running", LongRunningAgent)
     agent_id = AgentId("long_running", key="default")
     token = CancellationToken()
     response = asyncio.create_task(runtime.send_message(MessageType(), recipient=agent_id, cancellation_token=token))
@@ -85,8 +91,9 @@ async def test_cancellation_with_token() -> None:
 async def test_nested_cancellation_only_outer_called() -> None:
     runtime = SingleThreadedAgentRuntime()
 
-    await runtime.register("long_running", LongRunningAgent)
-    await runtime.register(
+    await LongRunningAgent.register(runtime, "long_running", LongRunningAgent)
+    await NestingLongRunningAgent.register(
+        runtime,
         "nested",
         lambda: NestingLongRunningAgent(AgentId("long_running", key=AgentInstantiationContext.current_agent_id().key)),
     )
@@ -119,8 +126,9 @@ async def test_nested_cancellation_only_outer_called() -> None:
 async def test_nested_cancellation_inner_called() -> None:
     runtime = SingleThreadedAgentRuntime()
 
-    await runtime.register("long_running", LongRunningAgent)
-    await runtime.register(
+    await LongRunningAgent.register(runtime, "long_running", LongRunningAgent)
+    await NestingLongRunningAgent.register(
+        runtime,
         "nested",
         lambda: NestingLongRunningAgent(AgentId("long_running", key=AgentInstantiationContext.current_agent_id().key)),
     )

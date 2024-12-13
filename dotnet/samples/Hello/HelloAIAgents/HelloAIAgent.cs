@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // HelloAIAgent.cs
 
-using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Agents;
+using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.AI;
 
 namespace Hello;
-[TopicSubscription("HelloAgents")]
+[TopicSubscription("agents")]
 public class HelloAIAgent(
     IAgentRuntime context,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry,

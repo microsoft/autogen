@@ -2,15 +2,17 @@
 import os
 from pathlib import Path
 from typing import Dict
-from pydantic import BaseModel
-from loguru import logger
+
 from dotenv import load_dotenv
+from loguru import logger
+from pydantic import BaseModel
 
 from .config import Settings
 
 
 class _AppPaths(BaseModel):
     """Internal model representing all application paths"""
+
     app_root: Path
     static_root: Path
     user_files: Path
@@ -47,9 +49,7 @@ class AppInitializer:
         """Generate database URI based on settings or environment"""
         if db_uri := os.getenv("AUTOGENSTUDIO_DATABASE_URI"):
             return db_uri
-        return self.settings.DATABASE_URI.replace(
-            "./", str(app_root) + "/"
-        )
+        return self.settings.DATABASE_URI.replace("./", str(app_root) + "/")
 
     def _init_paths(self) -> _AppPaths:
         """Initialize and return AppPaths instance"""
@@ -60,14 +60,13 @@ class AppInitializer:
             user_files=app_root / "files" / "user",
             ui_root=self._app_path / "ui",
             config_dir=app_root / self.settings.CONFIG_DIR,
-            database_uri=self._get_database_uri(app_root)
+            database_uri=self._get_database_uri(app_root),
         )
 
     def _create_directories(self) -> None:
         """Create all required directories"""
         self.app_root.mkdir(parents=True, exist_ok=True)
-        dirs = [self.static_root, self.user_files,
-                self.ui_root, self.config_dir]
+        dirs = [self.static_root, self.user_files, self.ui_root, self.config_dir]
         for path in dirs:
             path.mkdir(parents=True, exist_ok=True)
 

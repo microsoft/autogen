@@ -1,10 +1,10 @@
-from typing import Any, List
+from typing import Any, List, Mapping
 
-from autogen_core.base import MessageContext
-from autogen_core.components import DefaultTopicId, event, rpc
+from autogen_core import DefaultTopicId, MessageContext, event, rpc
 
 from ...base import ChatAgent, Response
 from ...messages import ChatMessage
+from ...state import ChatAgentContainerState
 from ._events import GroupChatAgentResponse, GroupChatMessage, GroupChatRequestPublish, GroupChatReset, GroupChatStart
 from ._sequential_routed_agent import SequentialRoutedAgent
 
@@ -71,7 +71,18 @@ class ChatAgentContainer(SequentialRoutedAgent):
         await self.publish_message(
             GroupChatAgentResponse(agent_response=response),
             topic_id=DefaultTopicId(type=self._parent_topic_type),
+            cancellation_token=ctx.cancellation_token,
         )
 
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
         raise ValueError(f"Unhandled message in agent container: {type(message)}")
+
+    async def save_state(self) -> Mapping[str, Any]:
+        agent_state = await self._agent.save_state()
+        state = ChatAgentContainerState(agent_state=agent_state, message_buffer=list(self._message_buffer))
+        return state.model_dump()
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        container_state = ChatAgentContainerState.model_validate(state)
+        self._message_buffer = list(container_state.message_buffer)
+        await self._agent.load_state(container_state.agent_state)

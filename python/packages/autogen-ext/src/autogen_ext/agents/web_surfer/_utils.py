@@ -1,6 +1,6 @@
 from typing import List
 
-from autogen_core.components import Image
+from autogen_core import Image
 
 from ._types import AssistantContent, FunctionExecutionContent, SystemContent, UserContent
 

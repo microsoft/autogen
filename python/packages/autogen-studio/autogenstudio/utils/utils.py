@@ -10,7 +10,6 @@ from typing import Any, Dict, List, Tuple, Union
 from dotenv import load_dotenv
 from loguru import logger
 
-
 from ..datamodel import Model
 from ..version import APP_NAME
 
@@ -153,8 +152,7 @@ def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir:
     for root, dirs, files in os.walk(source_dir):
         # Update directories and files to exclude those to be ignored
         dirs[:] = [d for d in dirs if d not in ignore_files]
-        files[:] = [f for f in files if f not in ignore_files and os.path.splitext(f)[
-            1] not in ignore_extensions]
+        files[:] = [f for f in files if f not in ignore_files and os.path.splitext(f)[1] not in ignore_extensions]
 
         for file in files:
             file_path = os.path.join(root, file)
@@ -163,9 +161,7 @@ def get_modified_files(start_timestamp: float, end_timestamp: float, source_dir:
             # Verify if the file was modified within the given timestamp range
             if start_timestamp <= file_mtime <= end_timestamp:
                 file_relative_path = (
-                    "files/user" +
-                    file_path.split(
-                        "files/user", 1)[1] if "files/user" in file_path else ""
+                    "files/user" + file_path.split("files/user", 1)[1] if "files/user" in file_path else ""
                 )
                 file_type = get_file_type(file_path)
 
@@ -253,41 +249,27 @@ def sanitize_model(model: Model):
         model = model.model_dump()
     valid_keys = ["model", "base_url", "api_key", "api_type", "api_version"]
     # only add key if value is not None
-    sanitized_model = {k: v for k, v in model.items() if (
-        v is not None and v != "") and k in valid_keys}
+    sanitized_model = {k: v for k, v in model.items() if (v is not None and v != "") and k in valid_keys}
     return sanitized_model
 
 
-def test_model(model: Model):
-    """
-    Test the model endpoint by sending a simple message to the model and returning the response.
-    """
+class Version:
+    def __init__(self, ver_str: str):
+        try:
+            # Split into major.minor.patch
+            self.major, self.minor, self.patch = map(int, ver_str.split("."))
+        except (ValueError, AttributeError) as err:
+            raise ValueError(f"Invalid version format: {ver_str}. Expected: major.minor.patch") from err
 
-    print("Testing model", model)
+    def __str__(self):
+        return f"{self.major}.{self.minor}.{self.patch}"
 
+    def __eq__(self, other):
+        if isinstance(other, str):
+            other = Version(other)
+        return (self.major, self.minor, self.patch) == (other.major, other.minor, other.patch)
 
-# def summarize_chat_history(task: str, messages: List[Dict[str, str]], client: ModelClient):
-#     """
-#     Summarize the chat history using the model endpoint and returning the response.
-#     """
-#     summarization_system_prompt = f"""
-#     You are a helpful assistant that is able to review the chat history between a set of agents (userproxy agents, assistants etc) as they try to address a given TASK and provide a summary. Be SUCCINCT but also comprehensive enough to allow others (who cannot see the chat history) understand and recreate the solution.
-
-#     The task requested by the user is:
-#     ===
-#     {task}
-#     ===
-#     The summary should focus on extracting the actual solution to the task from the chat history (assuming the task was addressed) such that any other agent reading the summary will understand what the actual solution is. Use a neutral tone and DO NOT directly mention the agents. Instead only focus on the actions that were carried out (e.g. do not say 'assistant agent generated some code visualization code ..'  instead say say 'visualization code was generated ..'. The answer should be framed as a response to the user task. E.g. if the task is "What is the height of the Eiffel tower", the summary should be "The height of the Eiffel Tower is ...").
-#     """
-#     summarization_prompt = [
-#         {
-#             "role": "system",
-#             "content": summarization_system_prompt,
-#         },
-#         {
-#             "role": "user",
-#             "content": f"Summarize the following chat history. {str(messages)}",
-#         },
-#     ]
-#     response = client.create(messages=summarization_prompt, cache_seed=None)
-#     return response.choices[0].message.content
+    def __gt__(self, other):
+        if isinstance(other, str):
+            other = Version(other)
+        return (self.major, self.minor, self.patch) > (other.major, other.minor, other.patch)

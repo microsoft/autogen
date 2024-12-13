@@ -1,14 +1,14 @@
 # api/deps.py
-from typing import Optional
-from fastapi import Depends, HTTPException, status
 import logging
 from contextlib import contextmanager
+from typing import Optional
 
-from ..database import DatabaseManager
-from .managers.connection import WebSocketManager
+from fastapi import Depends, HTTPException, status
+
+from ..database import ConfigurationManager, DatabaseManager
 from ..teammanager import TeamManager
 from .config import settings
-from ..database import ConfigurationManager
+from .managers.connection import WebSocketManager
 
 logger = logging.getLogger(__name__)
 
@@ -25,17 +25,16 @@ def get_db_context():
     """Provide a transactional scope around a series of operations."""
     if not _db_manager:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database manager not initialized"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database manager not initialized"
         )
     try:
         yield _db_manager
     except Exception as e:
         logger.error(f"Database operation failed: {str(e)}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database operation failed"
-        )
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database operation failed"
+        ) from e
+
 
 # Dependency providers
 
@@ -44,8 +43,7 @@ async def get_db() -> DatabaseManager:
     """Dependency provider for database manager"""
     if not _db_manager:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Database manager not initialized"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database manager not initialized"
         )
     return _db_manager
 
@@ -54,8 +52,7 @@ async def get_websocket_manager() -> WebSocketManager:
     """Dependency provider for connection manager"""
     if not _websocket_manager:
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Connection manager not initialized"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Connection manager not initialized"
         )
     return _websocket_manager
 
@@ -63,11 +60,9 @@ async def get_websocket_manager() -> WebSocketManager:
 async def get_team_manager() -> TeamManager:
     """Dependency provider for team manager"""
     if not _team_manager:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Team manager not initialized"
-        )
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Team manager not initialized")
     return _team_manager
+
 
 # Authentication dependency
 
@@ -83,6 +78,7 @@ async def get_current_user(
     # Implement your user authentication here
     return "user_id"  # Replace with actual user identification
 
+
 # Manager initialization and cleanup
 
 
@@ -94,20 +90,16 @@ async def init_managers(database_uri: str, config_dir: str, app_root: str) -> No
 
     try:
         # Initialize database manager
-        _db_manager = DatabaseManager(
-            engine_uri=database_uri, auto_upgrade=settings.UPGRADE_DATABASE, base_dir=app_root)
-        _db_manager.create_db_and_tables()
+        _db_manager = DatabaseManager(engine_uri=database_uri, base_dir=app_root)
+        _db_manager.initialize_database(auto_upgrade=settings.UPGRADE_DATABASE)
 
         # init default team config
 
         _team_config_manager = ConfigurationManager(db_manager=_db_manager)
-        import_result = await _team_config_manager.import_directory(
-            config_dir, settings.DEFAULT_USER_ID, check_exists=True)
+        await _team_config_manager.import_directory(config_dir, settings.DEFAULT_USER_ID, check_exists=True)
 
         # Initialize connection manager
-        _websocket_manager = WebSocketManager(
-            db_manager=_db_manager
-        )
+        _websocket_manager = WebSocketManager(db_manager=_db_manager)
         logger.info("Connection manager initialized")
 
         # Initialize team manager
@@ -149,6 +141,7 @@ async def cleanup_managers() -> None:
 
     logger.info("All managers cleaned up")
 
+
 # Utility functions for dependency management
 
 
@@ -157,19 +150,17 @@ def get_manager_status() -> dict:
     return {
         "database_manager": _db_manager is not None,
         "websocket_manager": _websocket_manager is not None,
-        "team_manager": _team_manager is not None
+        "team_manager": _team_manager is not None,
     }
+
 
 # Combined dependencies
 
 
 async def get_managers():
     """Get all managers in one dependency"""
-    return {
-        "db": await get_db(),
-        "connection": await get_websocket_manager(),
-        "team": await get_team_manager()
-    }
+    return {"db": await get_db(), "connection": await get_websocket_manager(), "team": await get_team_manager()}
+
 
 # Error handling for manager operations
 
@@ -183,19 +174,21 @@ class ManagerOperationError(Exception):
         self.detail = detail
         super().__init__(f"{manager_name} failed during {operation}: {detail}")
 
+
 # Dependency for requiring specific managers
 
 
 def require_managers(*manager_names: str):
     """Decorator to require specific managers for a route"""
+
     async def dependency():
         status = get_manager_status()
-        missing = [name for name in manager_names if not status.get(
-            f"{name}_manager")]
+        missing = [name for name in manager_names if not status.get(f"{name}_manager")]
         if missing:
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"Required managers not available: {', '.join(missing)}"
+                detail=f"Required managers not available: {', '.join(missing)}",
             )
         return True
+
     return Depends(dependency)

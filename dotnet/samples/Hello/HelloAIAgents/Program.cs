@@ -2,8 +2,9 @@
 // Program.cs
 
 using Hello;
-using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
+using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 
 // send a message to the agent
 var builder = WebApplication.CreateBuilder();
@@ -30,7 +31,7 @@ await app.WaitForShutdownAsync();
 
 namespace Hello
 {
-    [TopicSubscription("HelloAgents")]
+    [TopicSubscription("agents")]
     public class HelloAgent(
         IAgentRuntime context,
         [FromKeyedServices("EventTypes")] EventTypes typeRegistry,

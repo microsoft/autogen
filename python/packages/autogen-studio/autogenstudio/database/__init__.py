@@ -1,3 +1,3 @@
-from .db_manager import DatabaseManager
-from .component_factory import ComponentFactory, Component
+from .component_factory import Component, ComponentFactory
 from .config_manager import ConfigurationManager
+from .db_manager import DatabaseManager

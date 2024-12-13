@@ -18,4 +18,5 @@ local-llms-ollama-litellm
 instrumenting
 topic-subscription-scenarios
 structured-output-agent
+llm-usage-logger
 ```

@@ -3,10 +3,18 @@ from dataclasses import dataclass
 from typing import Callable, cast
 
 import pytest
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, MessageContext, TopicId
-from autogen_core.components import RoutedAgent, TypeSubscription, event, message_handler, rpc
-from test_utils import LoopbackAgent
+from autogen_core import (
+    AgentId,
+    MessageContext,
+    RoutedAgent,
+    SingleThreadedAgentRuntime,
+    TopicId,
+    TypeSubscription,
+    event,
+    message_handler,
+    rpc,
+)
+from autogen_test_utils import LoopbackAgent
 
 
 @dataclass
@@ -37,7 +45,8 @@ class CounterAgent(RoutedAgent):
 async def test_routed_agent(caplog: pytest.LogCaptureFixture) -> None:
     runtime = SingleThreadedAgentRuntime()
     with caplog.at_level(logging.INFO):
-        await runtime.register("loopback", LoopbackAgent, lambda: [TypeSubscription("default", "loopback")])
+        await LoopbackAgent.register(runtime, "loopback", LoopbackAgent)
+        await runtime.add_subscription(TypeSubscription("default", "loopback"))
         runtime.start()
         await runtime.publish_message(UnhandledMessageType(), topic_id=TopicId("default", "default"))
         await runtime.stop_when_idle()
@@ -47,7 +56,8 @@ async def test_routed_agent(caplog: pytest.LogCaptureFixture) -> None:
 @pytest.mark.asyncio
 async def test_message_handler_router() -> None:
     runtime = SingleThreadedAgentRuntime()
-    await runtime.register("counter", CounterAgent, lambda: [TypeSubscription("default", "counter")])
+    await CounterAgent.register(runtime, "counter", CounterAgent)
+    await runtime.add_subscription(TypeSubscription("default", "counter"))
     agent_id = AgentId(type="counter", key="default")
 
     # Send a broadcast message.
@@ -94,7 +104,7 @@ class RoutedAgentMessageCustomMatch(RoutedAgent):
 @pytest.mark.asyncio
 async def test_routed_agent_message_matching() -> None:
     runtime = SingleThreadedAgentRuntime()
-    await runtime.register("message_match", RoutedAgentMessageCustomMatch)
+    await RoutedAgentMessageCustomMatch.register(runtime, "message_match", RoutedAgentMessageCustomMatch)
     agent_id = AgentId(type="message_match", key="default")
 
     agent = await runtime.try_get_underlying_agent_instance(agent_id, type=RoutedAgentMessageCustomMatch)
@@ -134,7 +144,8 @@ class EventAgent(RoutedAgent):
 @pytest.mark.asyncio
 async def test_event() -> None:
     runtime = SingleThreadedAgentRuntime()
-    await runtime.register("counter", EventAgent, lambda: [TypeSubscription("default", "counter")])
+    await EventAgent.register(runtime, "counter", EventAgent)
+    await runtime.add_subscription(TypeSubscription("default", "counter"))
     agent_id = AgentId(type="counter", key="default")
 
     # Send a broadcast message.
@@ -181,7 +192,8 @@ class RPCAgent(RoutedAgent):
 @pytest.mark.asyncio
 async def test_rpc() -> None:
     runtime = SingleThreadedAgentRuntime()
-    await runtime.register("counter", RPCAgent, lambda: [TypeSubscription("default", "counter")])
+    await RPCAgent.register(runtime, "counter", RPCAgent)
+    await runtime.add_subscription(TypeSubscription("default", "counter"))
     agent_id = AgentId(type="counter", key="default")
 
     # Send an RPC message.

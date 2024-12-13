@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import AsyncGenerator, Protocol, Sequence
 
-from autogen_core.base import CancellationToken
+from autogen_core import CancellationToken
 
 from ..messages import AgentMessage, ChatMessage
 

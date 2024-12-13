@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package agents;
 
-option csharp_namespace = "Microsoft.AutoGen.Abstractions";
+option csharp_namespace = "Microsoft.AutoGen.Contracts";
 
 import "cloudevent.proto";
 import "google/protobuf/any.proto";
@@ -117,12 +117,11 @@ message Message {
     oneof message {
         RpcRequest request = 1;
         RpcResponse response = 2;
-        Event event = 3;
+        io.cloudevents.v1.CloudEvent cloudEvent = 3;
         RegisterAgentTypeRequest registerAgentTypeRequest = 4;
         RegisterAgentTypeResponse registerAgentTypeResponse = 5;
         AddSubscriptionRequest addSubscriptionRequest = 6;
         AddSubscriptionResponse addSubscriptionResponse = 7;
-        cloudevent.CloudEvent cloudEvent = 8;
     }
 }
 
