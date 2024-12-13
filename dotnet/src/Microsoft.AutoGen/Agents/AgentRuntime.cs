@@ -14,7 +14,7 @@ public sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger<A
     private readonly IAgentWorker worker = worker;
 
     public AgentId AgentId { get; } = agentId;
-    public ILogger<Agent> Logger { get; } = logger;
+    private ILogger<Agent> Logger { get; } = logger;
     public Agent? AgentInstance { get; set; }
     private DistributedContextPropagator DistributedContextPropagator { get; } = distributedContextPropagator;
     public (string?, string?) GetTraceIdAndState(IDictionary<string, string> metadata)
