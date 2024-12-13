@@ -9,30 +9,22 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
 
-public sealed class GrpcGateway : BackgroundService, IGateway
+public sealed class GrpcGateway : BackgroundService
 {
     private static readonly TimeSpan s_agentResponseTimeout = TimeSpan.FromSeconds(30);
     private readonly ILogger<GrpcGateway> _logger;
     private readonly IClusterClient _clusterClient;
     private readonly IRegistryGrain _gatewayRegistry;
-    private readonly IGateway _reference;
+    //private readonly IGateway _reference;
 
     // The agents supported by each worker process.
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
     internal readonly ConcurrentDictionary<GrpcWorkerConnection, GrpcWorkerConnection> _workers = new();
     internal readonly ConcurrentDictionary<string, GrpcWorkerConnection> _workersByConnection = new();
-    private readonly ConcurrentDictionary<string, HashSet<string>> _agentsToEventsMap = new();
-    private readonly ConcurrentDictionary<string, HashSet<string>> _agentsToTopicsMap = new();
-    private readonly ConcurrentDictionary<string, HashSet<string>> _topicToAgentTypesMap = new();
-    private readonly ConcurrentDictionary<string, HashSet<string>> _eventsToAgentTypesMap = new();
-    
-
     // The mapping from agent id to worker process.
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
     // RPC
     private readonly ConcurrentDictionary<(GrpcWorkerConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
-    //private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
-    //private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
     private readonly ISubscriptionsGrain _subscriptions;
 
     public int WorkersCount => _workers.Count;
@@ -43,7 +35,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         _logger = logger;
         _clusterClient = clusterClient;
-        _reference = clusterClient.CreateObjectReference<IGateway>(this);
+        //_reference = clusterClient.CreateObjectReference<IGateway>(this);
         _gatewayRegistry = clusterClient.GetGrain<IRegistryGrain>(0);
         _subscriptions = clusterClient.GetGrain<ISubscriptionsGrain>(0);
 
@@ -88,19 +80,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         
         await completion.Task;
         return connectionId;
-    }
-
-    public async ValueTask BroadcastEvent(CloudEvent evt)
-    {
-        var tasks = new List<Task>();
-        foreach (var (key, connection) in _supportedAgentTypes)
-        {
-            if (_agentsToEventsMap.TryGetValue(key, out var events) && events.Contains(evt.Type))
-            {
-                tasks.Add(SendMessageAsync(connection[0], evt, default));
-            }
-        }
-        await Task.WhenAll(tasks).ConfigureAwait(false);
     }
     //intetionally not static so can be called by some methods implemented in base class
     internal async Task SendMessageAsync(GrpcWorkerConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
@@ -186,14 +165,13 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     }
     private async ValueTask DispatchEventAsync(CloudEvent evt)
     {
-        var subscribedAgents = _topicToAgentTypesMap.TryGetValue(evt.Source, out var agentsSubscribedTopic) ? agentsSubscribedTopic : new HashSet<string>();
-        var handlingAgents = _eventsToAgentTypesMap.TryGetValue(evt.Type, out var agentsHandleEvent) ? agentsHandleEvent : new HashSet<string>();
-        var targetAgents = subscribedAgents.Intersect(handlingAgents);
+        var registry = _clusterClient.GetGrain<IRegistryGrain>(0);
+        var targetAgentTypes = await registry.GetSubscribedAndHandlingAgents(evt.Source, evt.Type);
 
         var tasks = new List<Task>();
         foreach (var (key, connection) in _supportedAgentTypes)
         {
-            if(targetAgents.Contains(key))
+            if(targetAgentTypes.Contains(key))
             {
                 tasks.Add(SendMessageAsync(connection[0], evt, default));
             }

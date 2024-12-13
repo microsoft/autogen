@@ -13,4 +13,5 @@ public interface IRegistryGrain : IGrainWithIntegerKey
     ValueTask AddWorker(IGateway worker);
     ValueTask UnregisterAgentType(string type, IGateway worker);
     ValueTask<IGateway?> GetCompatibleWorker(string type);
+    ValueTask<IEnumerable<string>> GetSubscribedAndHandlingAgents(string topic, string eventType);
 }

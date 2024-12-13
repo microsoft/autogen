@@ -1,11 +1,18 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// RegistryGrain.cs
+// AgentsRegistryGrain.cs
 
 using Microsoft.AutoGen.Abstractions;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
 
-internal sealed class RegistryGrain : Grain, IRegistryGrain
+public class AgentsRegistryState
+{
+    public Dictionary<string, HashSet<string>> AgentsToEventsMap { get; set; } = [];
+    public Dictionary<string, HashSet<string>> AgentsToTopicsMap { get; set; } = [];
+    public Dictionary<string, HashSet<string>> TopicToAgentTypesMap { get; set; } = [];
+    public Dictionary<string, HashSet<string>> EventsToAgentTypesMap { get; set; } = [];
+}
+internal sealed class AgentsRegistryGrain([PersistentState("state", "AgentStateStore")] IPersistentState<AgentsRegistryState> state) : Grain, IRegistryGrain
 {
     // TODO: use persistent state for some of these or (better) extend Orleans to implement some of this natively.
     private readonly Dictionary<IGateway, WorkerState> _workerStates = new();
@@ -17,6 +24,13 @@ internal sealed class RegistryGrain : Grain, IRegistryGrain
     {
         this.RegisterGrainTimer(static state => state.PurgeInactiveWorkers(), this, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
         return base.OnActivateAsync(cancellationToken);
+    }
+
+    public ValueTask<IEnumerable<string>> GetSubscribedAndHandlingAgents(string topic,string eventType)
+    {
+        var subscribedAgents = state.State.TopicToAgentTypesMap[topic];
+        var handlingAgents = state.State.EventsToAgentTypesMap[eventType];
+        return ValueTask.FromResult(subscribedAgents.Intersect(handlingAgents));
     }
     public ValueTask<(IGateway? Worker, bool NewPlacement)> GetOrPlaceAgent(AgentId agentId)
     {
