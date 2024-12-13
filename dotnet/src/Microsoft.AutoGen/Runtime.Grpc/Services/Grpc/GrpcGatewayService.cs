@@ -4,7 +4,7 @@
 using Grpc.Core;
 using Microsoft.AutoGen.Contracts;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Runtime.Grpc;
 
 // gRPC service which handles communication between the agent worker and the cluster.
 internal sealed class GrpcGatewayService : AgentRpc.AgentRpcBase

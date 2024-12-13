@@ -6,7 +6,6 @@ using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
-using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -31,20 +30,11 @@ public static class HostBuilderExtensions
         return builder;
     }
 
-    public static IHostApplicationBuilder AddAgentWorker(this IHostApplicationBuilder builder, string? agentServiceAddress = null, bool local = false)
+    public static IHostApplicationBuilder AddAgentWorker(this IHostApplicationBuilder builder, string? agentServiceAddress = null)
     {
         agentServiceAddress ??= builder.Configuration["AGENT_HOST"] ?? _defaultAgentServiceAddress;
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-
-        // if !local, then add the gRPC client
-        if (!local)
-        {
-            builder.AddGrpcAgentWorker(agentServiceAddress);
-        }
-        else
-        {
-            builder.Services.AddSingleton<IAgentWorker, AgentWorker>();
-        }
+        builder.Services.AddSingleton<IAgentWorker, AgentWorker>();
         builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<IAgentWorker>());
         builder.Services.AddKeyedSingleton("EventTypes", (sp, key) =>
         {
@@ -125,47 +115,6 @@ public static class HostBuilderExtensions
         return property?.GetValue(null) as MessageDescriptor;
     }
 }
-public sealed class ReflectionHelper
-{
-    public static bool IsSubclassOfGeneric(Type type, Type genericBaseType)
-    {
-        while (type != null && type != typeof(object))
-        {
-            if (genericBaseType == (type.IsGenericType ? type.GetGenericTypeDefinition() : type))
-            {
-                return true;
-            }
-            if (type.BaseType == null)
-            {
-                return false;
-            }
-            type = type.BaseType;
-        }
-        return false;
-    }
-}
-public sealed class AgentTypes(Dictionary<string, Type> types)
-{
-    public Dictionary<string, Type> Types { get; } = types;
-    public static AgentTypes? GetAgentTypesFromAssembly()
-    {
-        var agents = AppDomain.CurrentDomain.GetAssemblies()
-                                .SelectMany(assembly => assembly.GetTypes())
-                                .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(Agent))
-                                    && !type.IsAbstract
-                                    && !type.Name.Equals(nameof(Client)))
-                                .ToDictionary(type => type.Name, type => type);
-
-        return new AgentTypes(agents);
-    }
-}
-public sealed class EventTypes(TypeRegistry typeRegistry, Dictionary<string, Type> types, Dictionary<Type, HashSet<string>> eventsMap)
-{
-    public TypeRegistry TypeRegistry { get; } = typeRegistry;
-    public Dictionary<string, Type> Types { get; } = types;
-    public Dictionary<Type, HashSet<string>> EventsMap { get; } = eventsMap;
-}
-
 public sealed class AgentApplicationBuilder(IHostApplicationBuilder builder)
 {
     public AgentApplicationBuilder AddAgent<

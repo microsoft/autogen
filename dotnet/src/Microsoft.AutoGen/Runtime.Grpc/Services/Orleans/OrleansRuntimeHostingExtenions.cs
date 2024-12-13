@@ -9,16 +9,11 @@ using Microsoft.Extensions.Hosting;
 using Orleans.Configuration;
 using Orleans.Serialization;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Runtime.Grpc;
 
 public static class OrleansRuntimeHostingExtenions
 {
-    public static WebApplicationBuilder AddOrleans(this WebApplicationBuilder builder, bool local = false)
-    {
-        return builder.AddOrleans(local);
-    }
-
-    public static IHostApplicationBuilder AddOrleans(this IHostApplicationBuilder builder, bool local = false)
+    public static WebApplicationBuilder AddOrleans(this WebApplicationBuilder builder)
     {
         builder.Services.AddSerializer(serializer => serializer.AddProtobufSerializer());
         builder.Services.AddSingleton<IRegistryGrain, RegistryGrain>();
@@ -28,7 +23,7 @@ public static class OrleansRuntimeHostingExtenions
         builder.UseOrleans((siloBuilder) =>
         {
             // Development mode or local mode uses in-memory storage and streams
-            if (builder.Environment.IsDevelopment() || local)
+            if (builder.Environment.IsDevelopment())
             {
                 siloBuilder.UseLocalhostClustering()
                        .AddMemoryStreams("StreamProvider")

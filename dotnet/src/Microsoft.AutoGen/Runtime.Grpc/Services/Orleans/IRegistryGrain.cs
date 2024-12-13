@@ -2,7 +2,7 @@
 // IRegistryGrain.cs
 using Microsoft.AutoGen.Contracts;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Runtime.Grpc;
 
 public interface IRegistryGrain : IGrainWithIntegerKey
 {

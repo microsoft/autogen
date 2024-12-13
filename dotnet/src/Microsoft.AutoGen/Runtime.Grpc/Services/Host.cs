@@ -4,7 +4,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Hosting;
 
-namespace Microsoft.AutoGen.Agents;
+namespace Microsoft.AutoGen.Runtime.Grpc;
 
 public static class Host
 {
@@ -12,14 +12,8 @@ public static class Host
     {
         var builder = WebApplication.CreateBuilder();
         builder.AddServiceDefaults();
-        if (local)
-        {
-            builder.AddLocalAgentService(useGrpc: useGrpc);
-        }
-        else
-        {
-            builder.AddAgentService(useGrpc: useGrpc);
-        }
+        builder.AddAgentService();
+
         var app = builder.Build();
         app.MapAgentService(local, useGrpc);
         app.MapDefaultEndpoints();

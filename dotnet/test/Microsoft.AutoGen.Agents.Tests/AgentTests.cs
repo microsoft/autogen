@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using FluentAssertions;
 using Google.Protobuf.Reflection;
+using Microsoft.AspNetCore.Builder;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -102,13 +103,12 @@ public sealed class InMemoryAgentRuntimeFixture : IDisposable
 {
     public InMemoryAgentRuntimeFixture()
     {
-        var builder = Microsoft.Extensions.Hosting.Host.CreateApplicationBuilder();
+        var builder = WebApplication.CreateBuilder();
 
         // step 1: create in-memory agent runtime
         // step 2: register TestAgent to that agent runtime
         builder
-            .AddAgentService(local: true, useGrpc: false)
-            .AddAgentWorker(local: true)
+            .AddAgentWorker()
             .AddAgent<TestAgent>(nameof(TestAgent));
 
         AppHost = builder.Build();
