@@ -99,6 +99,10 @@ const Layout = ({
 
         <ConfigProvider
           theme={{
+            token: {
+              borderRadius: 4,
+              colorBgBase: darkMode === "dark" ? "#05080C" : "#ffffff",
+            },
             algorithm:
               darkMode === "dark"
                 ? theme.darkAlgorithm

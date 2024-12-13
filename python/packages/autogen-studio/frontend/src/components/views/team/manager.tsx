@@ -126,9 +126,7 @@ export const TeamManager: React.FC = () => {
     }
   };
 
-  const handleCreateTeam = () => {
-    const newTeam = Object.assign({}, defaultTeam);
-    newTeam.config.name = "new_team_" + new Date().getTime();
+  const handleCreateTeam = (newTeam: Team) => {
     setCurrentTeam(newTeam);
     // also save it to db
 
@@ -191,7 +189,7 @@ export const TeamManager: React.FC = () => {
 
       {/* Main Content */}
       <div
-        className={`flex-1 transition-all duration-200 ${
+        className={`flex-1 transition-all -mr-6 duration-200 ${
           isSidebarOpen ? "ml-64" : "ml-12"
         }`}
       >

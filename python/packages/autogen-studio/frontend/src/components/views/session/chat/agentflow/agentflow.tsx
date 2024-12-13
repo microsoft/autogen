@@ -23,7 +23,7 @@ import AgentNode from "./agentnode";
 import {
   AgentMessageConfig,
   AgentConfig,
-  TeamConfigTypes,
+  TeamConfig,
   Run,
 } from "../../../../types/datamodel";
 import { CustomEdge, CustomEdgeData } from "./edge";
@@ -32,7 +32,7 @@ import { AgentFlowToolbar } from "./toolbar";
 import { EdgeMessageModal } from "./edgemessagemodal";
 
 interface AgentFlowProps {
-  teamConfig: TeamConfigTypes;
+  teamConfig: TeamConfig;
   run: Run;
 }
 

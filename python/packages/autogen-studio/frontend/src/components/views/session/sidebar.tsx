@@ -105,45 +105,54 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <div className="overflow-y-auto   h-[calc(100%-150px)]">
         {sessions.map((s) => (
-          <div
-            key={s.id}
-            className={`group flex items-center justify-between p-2 py-1 text-sm cursor-pointer hover:bg-tertiary ${
-              currentSession?.id === s.id
-                ? "border-l-2 border-accent bg-tertiary"
-                : ""
-            }`}
-            onClick={() => onSelectSession(s)}
-          >
-            <span className="truncate text-sm flex-1">{s.name}</span>
-            <span className="ml-2 truncate text-xs text-secondary flex-1">
-              {getRelativeTimeString(s.updated_at || "")}
-            </span>
-            <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-              <Tooltip title="Edit session">
-                <Button
-                  type="text"
-                  size="small"
-                  className="p-0 min-w-[24px] h-6"
-                  icon={<Edit className="w-4 h-4" />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onEditSession(s);
-                  }}
-                />
-              </Tooltip>
-              <Tooltip title="Delete session">
-                <Button
-                  type="text"
-                  size="small"
-                  className="p-0 min-w-[24px] h-6"
-                  danger
-                  icon={<Trash2 className="w-4 h-4  text-red-500" />}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    if (s.id) onDeleteSession(s.id);
-                  }}
-                />
-              </Tooltip>
+          <div key={s.id} className="relative">
+            <div
+              className={`bg-accent absolute top-1 left-0.5 z-50 h-[calc(100%-8px)]
+               w-1 bg-opacity-80  rounded ${
+                 currentSession?.id === s.id ? "bg-accent" : "bg-tertiary"
+               }`}
+            >
+              {" "}
+            </div>
+            <div
+              className={`group ml-1 flex items-center justify-between rounded-l p-2 py-1 text-sm cursor-pointer hover:bg-tertiary ${
+                currentSession?.id === s.id
+                  ? "  border-accent bg-secondary"
+                  : ""
+              }`}
+              onClick={() => onSelectSession(s)}
+            >
+              <span className="truncate text-sm flex-1">{s.name}</span>
+              <span className="ml-2 truncate text-xs text-secondary flex-1">
+                {getRelativeTimeString(s.updated_at || "")}
+              </span>
+              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Tooltip title="Edit session">
+                  <Button
+                    type="text"
+                    size="small"
+                    className="p-0 min-w-[24px] h-6"
+                    icon={<Edit className="w-4 h-4" />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onEditSession(s);
+                    }}
+                  />
+                </Tooltip>
+                <Tooltip title="Delete session">
+                  <Button
+                    type="text"
+                    size="small"
+                    className="p-0 min-w-[24px] h-6"
+                    danger
+                    icon={<Trash2 className="w-4 h-4  text-red-500" />}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (s.id) onDeleteSession(s.id);
+                    }}
+                  />
+                </Tooltip>
+              </div>
             </div>
           </div>
         ))}
