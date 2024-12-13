@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IHandle.cs
 
-<<<<<<<< HEAD:dotnet/src/Microsoft.AutoGen/Agents/IHandle.cs
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// IHandle.cs
+
+<<<<<<<< HEAD:dotnet / src / Microsoft.AutoGen / Agents / IHandle.cs
 namespace Microsoft.AutoGen.Agents;
 ========
 namespace Microsoft.AutoGen.Contracts;

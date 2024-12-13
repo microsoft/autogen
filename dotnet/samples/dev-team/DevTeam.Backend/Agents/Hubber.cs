@@ -6,7 +6,6 @@ using DevTeam;
 using DevTeam.Backend;
 using DevTeam.Shared;
 using Microsoft.AutoGen.Agents;
-using Microsoft.AutoGen.Contracts;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
 
