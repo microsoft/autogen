@@ -8,7 +8,7 @@ namespace Microsoft.AutoGen.Agents;
 public abstract class IOAgent : Agent
 {
     public string _route = "base";
-    protected IOAgent(IAgentRuntime context, EventTypes eventTypes) : base(context, eventTypes)
+    protected IOAgent(EventTypes eventTypes) : base(eventTypes)
     {
     }
     public virtual async Task Handle(Input item)

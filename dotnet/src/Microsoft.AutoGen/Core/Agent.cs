@@ -13,35 +13,41 @@ using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Core;
-
-public abstract class Agent : IDisposable, IHandle
+/// <summary>
+/// Represents the base class for an agent in the AutoGen system.
+/// </summary>
+public abstract class Agent
 {
-    public static readonly ActivitySource s_source = new("AutoGen.Agent");
-    public AgentId AgentId => _runtime.AgentId;
     private readonly object _lock = new();
     private readonly ConcurrentDictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = [];
 
-    private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
-    private readonly IAgentRuntime _runtime;
-    public string Route { get; set; } = "base";
+    /// <summary>
+    /// The activity source for tracing.
+    /// </summary>
+    public static readonly ActivitySource s_source = new("Microsoft.AutoGen.Core.Agent");
 
+    /// <summary>
+    /// Gets the unique identifier of the agent.
+    /// </summary>
+    public AgentId AgentId => Runtime!.AgentId;
+    private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     protected internal ILogger<Agent> _logger;
-    public IAgentRuntime Context => _runtime;
+    public IAgentRuntime? Runtime { get; private set; }
+    private readonly ConcurrentDictionary<Type, MethodInfo> _handlersByMessageType;
+    internal Task Completion { get; private set; }
+
     protected readonly EventTypes EventTypes;
 
     protected Agent(
-        IAgentRuntime runtime,
         EventTypes eventTypes,
         ILogger<Agent>? logger = null)
     {
-        _runtime = runtime;
-        runtime.AgentInstance = this;
-        this.EventTypes = eventTypes;
+        EventTypes = eventTypes;
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<Agent>();
+        _handlersByMessageType = new(GetType().GetHandlersLookupTable());
         AddImplicitSubscriptionsAsync().AsTask().Wait();
         Completion = Start();
     }
-    internal Task Completion { get; }
 
     private async ValueTask AddImplicitSubscriptionsAsync()
     {
@@ -66,7 +72,7 @@ public abstract class Agent : IDisposable, IHandle
                 }
             };
             // explicitly wait for this to complete
-            await _runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).ConfigureAwait(true);
+            await Runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).ConfigureAwait(true);
         }
 
         // using reflection, find all methods that Handle<T> and subscribe to the topic T
@@ -82,13 +88,18 @@ public abstract class Agent : IDisposable, IHandle
         }
 
     }
+    
+    /// <summary>
+    /// Starts the message pump for the agent.
+    /// </summary>
+    /// <returns>A task representing the asynchronous operation.</returns>
     internal Task Start()
     {
         var didSuppress = false;
-        if (!ExecutionContext.IsFlowSuppressed())
+        if (!ExecutionRuntime.IsFlowSuppressed())
         {
             didSuppress = true;
-            ExecutionContext.SuppressFlow();
+            ExecutionRuntime.SuppressFlow();
         }
 
         try
@@ -99,7 +110,7 @@ public abstract class Agent : IDisposable, IHandle
         {
             if (didSuppress)
             {
-                ExecutionContext.RestoreFlow();
+                ExecutionRuntime.RestoreFlow();
             }
         }
     }
@@ -173,18 +184,18 @@ public abstract class Agent : IDisposable, IHandle
                 }
             }
         };
-        _runtime.SendMessageAsync(message).AsTask().Wait();
+        Runtime.SendMessageAsync(message).AsTask().Wait();
 
         return new List<string> { topic };
     }
     public async Task StoreAsync(AgentState state, CancellationToken cancellationToken = default)
     {
-        await _runtime.StoreAsync(state, cancellationToken).ConfigureAwait(false);
+        await Runtime.StoreAsync(state, cancellationToken).ConfigureAwait(false);
         return;
     }
     public async Task<T> ReadAsync<T>(AgentId agentId, CancellationToken cancellationToken = default) where T : IMessage, new()
     {
-        var agentstate = await _runtime.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
+        var agentstate = await Runtime.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
         return agentstate.FromAgentState<T>();
     }
     private void OnResponseCore(RpcResponse response)
@@ -207,13 +218,13 @@ public abstract class Agent : IDisposable, IHandle
 
         try
         {
-            response = await HandleRequest(request).ConfigureAwait(false);
+            response = await HandleRequestAsync(request).ConfigureAwait(false);
         }
         catch (Exception ex)
         {
             response = new RpcResponse { Error = ex.Message };
         }
-        await _runtime.SendResponseAsync(request, response, cancellationToken).ConfigureAwait(false);
+        await Runtime.SendResponseAsync(request, response, cancellationToken).ConfigureAwait(false);
     }
 
     protected async Task<RpcResponse> RequestAsync(AgentId target, string method, Dictionary<string, string> parameters)
@@ -233,11 +244,11 @@ public abstract class Agent : IDisposable, IHandle
             }
         };
 
-        var activity = s_source.StartActivity($"Call '{method}'", ActivityKind.Client, Activity.Current?.Context ?? default);
+        var activity = s_source.StartActivity($"Call '{method}'", ActivityKind.Client, Activity.Current?.Runtime ?? default);
         activity?.SetTag("peer.service", target.ToString());
 
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        Context!.Update(request, activity);
+        Runtime!.Update(request, activity);
         await this.InvokeWithActivityAsync(
             static async (state, ct) =>
             {
@@ -245,7 +256,7 @@ public abstract class Agent : IDisposable, IHandle
 
                 self._pendingRequests.AddOrUpdate(request.RequestId, _ => completion, (_, __) => completion);
 
-                await state.Item1.Context!.SendRequestAsync(state.Item1, state.request, ct).ConfigureAwait(false);
+                await state.Item1.Runtime!.SendRequestAsync(state.Item1, state.request, ct).ConfigureAwait(false);
 
                 await completion.Task.ConfigureAwait(false);
             },
@@ -266,15 +277,15 @@ public abstract class Agent : IDisposable, IHandle
 
     public async ValueTask PublishEventAsync(CloudEvent item, CancellationToken cancellationToken = default)
     {
-        var activity = s_source.StartActivity($"PublishEventAsync '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
+        var activity = s_source.StartActivity($"PublishEventAsync '{item.Type}'", ActivityKind.Client, Activity.Current?.Runtime ?? default);
         activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
 
         // TODO: fix activity
-        _runtime.Update(item, activity);
+        Runtime.Update(item, activity);
         await this.InvokeWithActivityAsync(
             static async ((Agent Agent, CloudEvent Event) state, CancellationToken ct) =>
             {
-                await state.Agent._runtime.PublishEventAsync(state.Event).ConfigureAwait(false);
+                await state.Agent.Runtime.PublishEventAsync(state.Event).ConfigureAwait(false);
             },
             (this, item),
             activity,
@@ -320,7 +331,7 @@ public abstract class Agent : IDisposable, IHandle
         return Task.CompletedTask;
     }
 
-    public Task<RpcResponse> HandleRequest(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
+    public Task<RpcResponse> HandleRequestAsync(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
 
     //TODO: should this be async and cancellable?
     public virtual Task HandleObject(object item)
@@ -343,10 +354,5 @@ public abstract class Agent : IDisposable, IHandle
     public async ValueTask PublishEventAsync(string topic, IMessage evt, CancellationToken cancellationToken = default)
     {
         await PublishEventAsync(evt.ToCloudEvent(topic), cancellationToken).ConfigureAwait(false);
-    }
-
-    public void Dispose()
-    {
-        throw new NotImplementedException();
     }
 }
