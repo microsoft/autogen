@@ -153,9 +153,12 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         {headerContent}
       </div>
 
-      {descriptionContent && (
+      {data.config.description && (
         <div className="px-3 py-2 border-b text-sm text-gray-600">
-          {descriptionContent}
+          <TruncatableText
+            content={data.config.description}
+            textThreshold={150}
+          />
         </div>
       )}
 

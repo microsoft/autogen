@@ -27,16 +27,21 @@ export const defaultGallery = {
     teams: [
       {
         component_type: "team",
+        description:
+          "A team with an assistant agent and a user agent to enable human-in-loop task completion in a round-robin fashion",
         name: "huma_in_loop_team",
         participants: [
           {
             component_type: "agent",
+            description:
+              "An assistant agent that can help users complete tasks",
             name: "assistant_agent",
             agent_type: "AssistantAgent",
             system_message:
               "You are a helpful assistant. Solve tasks carefully. You also have a calculator tool which you can use if needed. When the task is done respond with TERMINATE.",
             model_client: {
               component_type: "model",
+              description: "A GPT-4o mini model",
               model: "gpt-4o-mini",
               model_type: "OpenAIChatCompletionClient",
             },
@@ -54,6 +59,7 @@ export const defaultGallery = {
           },
           {
             component_type: "agent",
+            description: "A user agent that is driven by a human user",
             name: "user_agent",
             agent_type: "UserProxyAgent",
             tools: [],
@@ -61,17 +67,22 @@ export const defaultGallery = {
         ],
         team_type: "RoundRobinGroupChat",
         termination_condition: {
+          description:
+            "Terminate the conversation when the user mentions 'TERMINATE' or after 10 messages",
           component_type: "termination",
           termination_type: "CombinationTermination",
           operator: "or",
           conditions: [
             {
               component_type: "termination",
+              description:
+                "Terminate the conversation when the user mentions 'TERMINATE'",
               termination_type: "TextMentionTermination",
               text: "TERMINATE",
             },
             {
               component_type: "termination",
+              description: "Terminate the conversation after 10 messages",
               termination_type: "MaxMessageTermination",
               max_messages: 10,
             },
@@ -83,12 +94,14 @@ export const defaultGallery = {
       agents: [
         {
           component_type: "agent",
+          description: "An assistant agent that can help users complete tasks",
           name: "assistant_agent",
           agent_type: "AssistantAgent",
           system_message:
             "You are a helpful assistant. Solve tasks carefully. You also have a calculator tool which you can use if needed. When the task is done respond with TERMINATE.",
           model_client: {
             component_type: "model",
+            description: "A GPT-4o mini model",
             model: "gpt-4o-mini",
             model_type: "OpenAIChatCompletionClient",
           },
@@ -106,6 +119,7 @@ export const defaultGallery = {
         } as AssistantAgentConfig,
         {
           component_type: "agent",
+          description: "A user agent that is driven by a human user",
           name: "user_agent",
           agent_type: "UserProxyAgent",
           tools: [],
@@ -114,6 +128,7 @@ export const defaultGallery = {
       models: [
         {
           component_type: "model",
+          description: "A GPT-4o mini model",
           model: "gpt-4o-mini",
           model_type: "OpenAIChatCompletionClient",
         } as OpenAIModelConfig,
@@ -140,26 +155,34 @@ export const defaultGallery = {
       terminations: [
         {
           component_type: "termination",
+          description:
+            "Terminate the conversation when the user mentions 'TERMINATE'",
           termination_type: "TextMentionTermination",
           text: "TERMINATE",
         } as TextMentionTerminationConfig,
         {
           component_type: "termination",
+          description: "Terminate the conversation after 10 messages",
           termination_type: "MaxMessageTermination",
           max_messages: 10,
         } as MaxMessageTerminationConfig,
         {
           component_type: "termination",
+          description:
+            "Terminate the conversation when the user mentions 'TERMINATE' or after 10 messages",
           termination_type: "CombinationTermination",
           operator: "or",
           conditions: [
             {
               component_type: "termination",
+              description:
+                "Terminate the conversation when the user mentions 'TERMINATE'",
               termination_type: "TextMentionTermination",
               text: "TERMINATE",
             },
             {
               component_type: "termination",
+              description: "Terminate the conversation after 10 messages",
               termination_type: "MaxMessageTermination",
               max_messages: 10,
             },

@@ -12,10 +12,69 @@ import {
   Brain,
   Timer,
   Save,
+  ChevronUp,
+  ChevronDown,
+  Edit,
 } from "lucide-react";
 import type { Gallery } from "./types";
 import { useGalleryStore } from "./store";
 import { MonacoEditor } from "../monaco";
+import { ComponentConfigTypes } from "../../types/datamodel";
+import { TruncatableText } from "../atoms";
+
+const ComponentGrid: React.FC<{
+  title: string;
+  icon: React.ReactNode;
+  items: ComponentConfigTypes[];
+}> = ({ title, icon, items }) => {
+  const [isExpanded, setIsExpanded] = useState(true);
+
+  return (
+    <div className="bg-tertiary rounded    p-2">
+      <div
+        className="flex items-center justify-between cursor-pointer mb-2"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-2">
+          <span className="text-primary">{icon}</span>
+          <span className="text-sm capitalize">
+            {items.length} {items.length === 1 ? title : `${title}s`}
+          </span>
+        </div>
+        {isExpanded ? (
+          <ChevronUp className="w-4 h-4 text-primary" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-primary" />
+        )}
+      </div>
+
+      <div
+        className={`space-y-2 transition-all duration-200 ${
+          isExpanded ? "max-h-[500px]" : "max-h-0"
+        } overflow-hidden`}
+      >
+        {items.map((item, idx) => (
+          <div
+            key={idx}
+            className="bg-secondary rounded p-3 hover:bg-tertiary transition-colors"
+          >
+            <div className="text-sm font-medium truncate">
+              {item.component_type}
+            </div>
+            {item.description && (
+              <p className="text-xs text-primary mt-1 ">
+                <TruncatableText
+                  content={item.description}
+                  textThreshold={150}
+                />
+              </p>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
 
 interface GalleryDetailProps {
   gallery: Gallery;
@@ -73,37 +132,37 @@ export const GalleryDetail: React.FC<GalleryDetailProps> = ({
     }
   };
 
-  const stats = [
+  const gridItems = [
     {
       icon: <Users className="w-4 h-4" />,
       title: "team",
-      count: gallery.items.teams.length,
+      items: gallery.items.teams,
     },
     {
       icon: <Bot className="w-4 h-4" />,
       title: "agent",
-      count: gallery.items.components.agents.length,
+      items: gallery.items.components.agents,
     },
     {
       icon: <Wrench className="w-4 h-4" />,
       title: "tool",
-      count: gallery.items.components.tools.length,
+      items: gallery.items.components.tools,
     },
     {
       icon: <Brain className="w-4 h-4" />,
       title: "model",
-      count: gallery.items.components.models.length,
+      items: gallery.items.components.models,
     },
     {
       icon: <Timer className="w-4 h-4" />,
       title: "termination",
-      count: gallery.items.components.terminations.length,
+      items: gallery.items.components.terminations,
     },
   ];
 
   return (
     <div className="space-y-6">
-      {/* Banner Section */}
+      {/* Banner Section - Kept unchanged */}
       <div className="relative h-72 rounded bg-secondary overflow-hidden">
         <img
           src="/images/bg/layeredbg.svg"
@@ -156,59 +215,57 @@ export const GalleryDetail: React.FC<GalleryDetailProps> = ({
         </div>
       </div>
 
-      {/* Actions Bar */}
-      <div className="flex justify-between items-center">
-        <div className="flex gap-2 items-center">
-          <div className="text-sm text-gray-600 flex flex-wrap gap-x-6 gap-y-2">
-            {stats.map(({ icon, title, count }) => (
-              <div key={title} className="flex items-center gap-2">
-                <span className="text-gray-500">{icon}</span>
-                <span>
-                  {count} {count === 1 ? title : `${title}s`}
-                </span>
-              </div>
-            ))}
-          </div>
-        </div>
-        <div className="flex gap-2">
-          {gallery.url && (
-            <Tooltip
-              title={
-                getLastSyncTime(gallery.id)
-                  ? `Last synced: ${getLastSyncTime(gallery.id)}`
-                  : "Never synced"
-              }
-            >
-              <Button
-                icon={<RefreshCw className={isSyncing ? "animate-spin" : ""} />}
-                loading={isSyncing}
-                onClick={handleSync}
-              >
-                Sync
-              </Button>
-            </Tooltip>
-          )}
-          {!isEditing ? (
+      {/* Action Buttons */}
+      <div className="flex justify-end gap-2">
+        {gallery.url && (
+          <Tooltip
+            title={
+              getLastSyncTime(gallery.id)
+                ? `Last synced: ${getLastSyncTime(gallery.id)}`
+                : "Never synced"
+            }
+          >
             <Button
-              icon={<Edit2 className="w-4 h-4" />}
-              onClick={() => setIsEditing(true)}
+              icon={<RefreshCw className={isSyncing ? "animate-spin" : ""} />}
+              loading={isSyncing}
+              onClick={handleSync}
             >
-              Edit
+              Sync
             </Button>
-          ) : (
-            <>
-              <Button
-                icon={<X className="w-4 h-4" />}
-                onClick={() => setIsEditing(false)}
-              >
-                Cancel
-              </Button>
-              <Button type="primary" onClick={handleSave}>
-                Save Changes
-              </Button>
-            </>
-          )}
-        </div>
+          </Tooltip>
+        )}
+        {!isEditing ? (
+          <Button
+            icon={<Edit className="w-4 h-4" />}
+            onClick={() => setIsEditing(true)}
+          >
+            Edit
+          </Button>
+        ) : (
+          <>
+            <Button
+              icon={<X className="w-4 h-4" />}
+              onClick={() => setIsEditing(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="primary" onClick={handleSave}>
+              Save Changes
+            </Button>
+          </>
+        )}
+      </div>
+
+      {/* Grid Layout */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        {gridItems.map((item) => (
+          <ComponentGrid
+            key={item.title}
+            title={item.title}
+            icon={item.icon}
+            items={item.items}
+          />
+        ))}
       </div>
 
       {/* Editor Section */}
@@ -222,15 +279,11 @@ export const GalleryDetail: React.FC<GalleryDetailProps> = ({
               Edit Gallery Configuration
             </h3>
             <div className="inline-flex gap-2">
-              {/* <Button
-                icon={<RefreshCw className="w-4 h-4 " />}
-                onClick={handleSync}
-              ></Button> */}
               <Tooltip title="Save Changes">
                 <Button
-                  icon={<Save className="w-4 h-4 " />}
+                  icon={<Save className="w-4 h-4" />}
                   onClick={handleSave}
-                ></Button>
+                />
               </Tooltip>
               <Tooltip title="Cancel Editing">
                 <Button

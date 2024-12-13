@@ -98,6 +98,7 @@ export interface SessionRuns {
 export interface BaseConfig {
   component_type: string;
   version?: string;
+  description?: string;
 }
 
 export interface WebSocketMessage {
