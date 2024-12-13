@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Runtime.Grpc\Microsoft.AutoGen.Runtime.Grpc.csproj" />
+    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\AgentHost\Microsoft.AutoGen.AgentHost.csproj" />
   </ItemGroup>
   <PropertyGroup>
     <OutputType>Exe</OutputType>
