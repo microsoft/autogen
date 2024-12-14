@@ -4,6 +4,7 @@
 using DevTeam.Shared;
 using Microsoft.AutoGen.Agents;
 using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
 
