@@ -20,16 +20,16 @@ import "@xyflow/react/dist/style.css";
 import { Button, Layout, message, Modal, Switch, Tooltip } from "antd";
 import { Cable, Code2, Save } from "lucide-react";
 import { useTeamBuilderStore } from "./store";
-import { ComponentLibrary } from "./components/library";
+import { ComponentLibrary } from "./library";
 import { ComponentTypes, Team } from "../../../types/datamodel";
 import { CustomNode, CustomEdge, DragItem } from "./types";
-import { edgeTypes, nodeTypes } from "./components/nodes";
+import { edgeTypes, nodeTypes } from "./nodes";
 
 // import builder css
 import "./builder.css";
-import TeamBuilderToolbar from "./components/toolbar";
+import TeamBuilderToolbar from "./toolbar";
 import { MonacoEditor } from "../../monaco";
-import { NodeEditor } from "./components/node-editor";
+import { NodeEditor } from "./node-editor";
 
 const { Sider, Content } = Layout;
 

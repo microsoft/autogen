@@ -9,6 +9,7 @@ import {
   Bot,
   PanelLeftClose,
   PanelLeftOpen,
+  GalleryHorizontalEnd,
 } from "lucide-react";
 import Icon from "./icons";
 
@@ -25,16 +26,22 @@ interface INavItem {
 
 const navigation: INavItem[] = [
   {
+    name: "Team Builder",
+    href: "/build",
+    icon: Bot,
+    breadcrumbs: [{ name: "Team Builder", href: "/build", current: true }],
+  },
+  {
     name: "Playground",
     href: "/",
     icon: MessagesSquare,
     breadcrumbs: [{ name: "Playground", href: "/", current: true }],
   },
   {
-    name: "Agent Teams",
-    href: "/build",
-    icon: Bot,
-    breadcrumbs: [{ name: "Build", href: "/build", current: true }],
+    name: "Gallery",
+    href: "/gallery",
+    icon: GalleryHorizontalEnd,
+    breadcrumbs: [{ name: "Gallery", href: "/gallery", current: true }],
   },
 ];
 
@@ -134,29 +141,37 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
                 const IconComponent = item.icon;
 
                 const navLink = (
-                  <Link
-                    to={item.href}
-                    onClick={() => handleNavClick(item)}
-                    className={classNames(
-                      // Base styles
-                      "group flex gap-x-3 rounded-md mr-2  p-2 text-sm font-medium",
-                      !showFull && "justify-center",
-                      // Color states
-                      isActive
-                        ? "bg-tertiary text-accent "
-                        : "text-secondary hover:bg-tertiary hover:text-accent"
+                  <div className="relative">
+                    {isActive && (
+                      <div className="bg-accent absolute top-1 left-0.5 z-50 h-8 w-1 bg-opacity-80  rounded">
+                        {" "}
+                      </div>
                     )}
-                  >
-                    <IconComponent
+                    <Link
+                      to={item.href}
+                      onClick={() => handleNavClick(item)}
                       className={classNames(
-                        "h-6 w-6 shrink-0",
+                        // Base styles
+                        "group  ml-1 flex gap-x-3 rounded-md mr-2  p-2 text-sm font-medium",
+                        !showFull && "justify-center",
+                        // Color states
                         isActive
-                          ? "text-accent"
-                          : "text-secondary group-hover:text-accent"
+                          ? "bg-secondary text-primary "
+                          : "text-secondary hover:bg-tertiary hover:text-accent"
                       )}
-                    />
-                    {showFull && item.name}
-                  </Link>
+                    >
+                      {" "}
+                      <IconComponent
+                        className={classNames(
+                          "h-6 w-6 shrink-0",
+                          isActive
+                            ? "text-accent"
+                            : "text-secondary group-hover:text-accent"
+                        )}
+                      />
+                      {showFull && item.name}
+                    </Link>
+                  </div>
                 );
 
                 return (

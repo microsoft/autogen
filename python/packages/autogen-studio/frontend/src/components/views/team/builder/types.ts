@@ -1,13 +1,6 @@
 import { Node, Edge } from "@xyflow/react";
 import { ComponentConfigTypes, ComponentTypes } from "../../../types/datamodel";
 
-interface NodeConnections {
-  modelClient: string | null;
-  tools: string[];
-  participants: string[];
-  termination: string | null;
-}
-
 export interface NodeData extends Record<string, unknown> {
   label: string;
   type: ComponentTypes;

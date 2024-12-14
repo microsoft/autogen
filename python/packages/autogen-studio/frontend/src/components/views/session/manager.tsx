@@ -37,7 +37,11 @@ export const SessionManager: React.FC = () => {
       setIsLoading(true);
       const data = await sessionAPI.listSessions(user.email);
       setSessions(data);
-      if (!session && data.length > 0) {
+
+      // Only set first session if there's no sessionId in URL
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get("sessionId");
+      if (!session && data.length > 0 && !sessionId) {
         setSession(data[0]);
       }
     } catch (error) {
@@ -47,6 +51,31 @@ export const SessionManager: React.FC = () => {
       setIsLoading(false);
     }
   }, [user?.email, setSessions, session, setSession]);
+
+  // Handle initial URL params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get("sessionId");
+
+    if (sessionId && !session) {
+      handleSelectSession({ id: parseInt(sessionId) } as Session);
+    }
+  }, []);
+
+  // Handle browser back/forward
+  useEffect(() => {
+    const handleLocationChange = () => {
+      const params = new URLSearchParams(window.location.search);
+      const sessionId = params.get("sessionId");
+
+      if (!sessionId && session) {
+        setSession(null);
+      }
+    };
+
+    window.addEventListener("popstate", handleLocationChange);
+    return () => window.removeEventListener("popstate", handleLocationChange);
+  }, [session]);
 
   const handleSaveSession = async (sessionData: Partial<Session>) => {
     if (!user?.email) return;
@@ -80,10 +109,10 @@ export const SessionManager: React.FC = () => {
 
     try {
       const response = await sessionAPI.deleteSession(sessionId, user.email);
-      console.log("response", response);
       setSessions(sessions.filter((s) => s.id !== sessionId));
       if (session?.id === sessionId || sessions.length === 0) {
         setSession(sessions[0] || null);
+        window.history.pushState({}, "", window.location.pathname); // Clear URL params
       }
       messageApi.success("Session deleted");
     } catch (error) {
@@ -98,10 +127,28 @@ export const SessionManager: React.FC = () => {
     try {
       setIsLoading(true);
       const data = await sessionAPI.getSession(selectedSession.id, user.email);
+      if (!data) {
+        // Session not found
+        messageApi.error("Session not found");
+        window.history.pushState({}, "", window.location.pathname); // Clear URL
+        if (sessions.length > 0) {
+          setSession(sessions[0]); // Fall back to first session
+        } else {
+          setSession(null);
+        }
+        return;
+      }
       setSession(data);
+      window.history.pushState({}, "", `?sessionId=${selectedSession.id}`);
     } catch (error) {
       console.error("Error loading session:", error);
       messageApi.error("Error loading session");
+      window.history.pushState({}, "", window.location.pathname); // Clear invalid URL
+      if (sessions.length > 0) {
+        setSession(sessions[0]); // Fall back to first session
+      } else {
+        setSession(null);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -130,11 +177,12 @@ export const SessionManager: React.FC = () => {
             setIsEditorOpen(true);
           }}
           onDeleteSession={handleDeleteSession}
+          isLoading={isLoading}
         />
       </div>
 
       <div
-        className={`flex-1 transition-all duration-200 ${
+        className={`flex-1 transition-all -mr-4 duration-200 ${
           isSidebarOpen ? "ml-64" : "ml-12"
         }`}
       >

@@ -5,7 +5,16 @@ from typing import Any, Callable, Dict, Optional, Union
 from uuid import UUID
 
 from autogen_agentchat.base._task import TaskResult
-from autogen_agentchat.messages import AgentMessage, ChatMessage, MultiModalMessage, TextMessage
+from autogen_agentchat.messages import (
+    AgentMessage,
+    ChatMessage,
+    HandoffMessage,
+    MultiModalMessage,
+    StopMessage,
+    TextMessage,
+    ToolCallMessage,
+    ToolCallResultMessage,
+)
 from autogen_core import CancellationToken
 from autogen_core import Image as AGImage
 from fastapi import WebSocket, WebSocketDisconnect
@@ -91,16 +100,22 @@ class WebSocketManager:
                 if formatted_message:
                     await self._send_message(run_id, formatted_message)
 
-                    # Save message if it's a content message
-                    if isinstance(message, TextMessage):
-                        await self._save_message(run_id, message)
-                    elif isinstance(message, MultiModalMessage):
+                    # Save messages by concrete type
+                    if isinstance(
+                        message,
+                        (
+                            TextMessage,
+                            MultiModalMessage,
+                            StopMessage,
+                            HandoffMessage,
+                            ToolCallMessage,
+                            ToolCallResultMessage,
+                        ),
+                    ):
                         await self._save_message(run_id, message)
                     # Capture final result if it's a TeamResult
                     elif isinstance(message, TeamResult):
                         final_result = message.model_dump()
-                    elif isinstance(message, (AgentMessage, ChatMessage)):
-                        await self._save_message(run_id, message)
             if not cancellation_token.is_cancelled() and run_id not in self._closed_connections:
                 if final_result:
                     await self._update_run(run_id, RunStatus.COMPLETE, team_result=final_result)
@@ -301,19 +316,20 @@ class WebSocketManager:
                 ]
                 return {"type": "message", "data": message_dump}
 
-            elif isinstance(message, TextMessage):
-                return {"type": "message", "data": message.model_dump()}
-
             elif isinstance(message, TeamResult):
                 return {
                     "type": "result",
                     "data": message.model_dump(),
                     "status": "complete",
                 }
-            elif isinstance(message, (AgentMessage, ChatMessage)):
+
+            elif isinstance(
+                message, (TextMessage, StopMessage, HandoffMessage, ToolCallMessage, ToolCallResultMessage)
+            ):
                 return {"type": "message", "data": message.model_dump()}
 
             return None
+
         except Exception as e:
             logger.error(f"Message formatting error: {e}")
             return None
