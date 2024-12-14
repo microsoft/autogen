@@ -8,7 +8,6 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
-
 public static class AgentWorkerHostingExtensions
 {
     public static WebApplicationBuilder AddAgentService(this WebApplicationBuilder builder)
