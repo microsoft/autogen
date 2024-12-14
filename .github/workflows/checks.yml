@@ -17,6 +17,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
         with:
+          version: "0.5.8"
           enable-cache: true
       - uses: actions/setup-python@v5
         with:
@@ -35,6 +36,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
         with:
+          version: "0.5.8"
           enable-cache: true
       - uses: actions/setup-python@v5
         with:
@@ -63,6 +65,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
         with:
+          version: "0.5.8"
           enable-cache: true
       - uses: actions/setup-python@v5
         with:
@@ -91,6 +94,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
         with:
+          version: "0.5.8"
           enable-cache: true
       - uses: actions/setup-python@v5
         with:
@@ -117,6 +121,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
         with:
+          version: "0.5.8"
           enable-cache: true
       - uses: actions/setup-python@v5
         with:
@@ -141,6 +146,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
         with:
+          version: "0.5.8"
           enable-cache: true
       - uses: actions/setup-python@v5
         with:
@@ -162,6 +168,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
         with:
+          version: "0.5.8"
           enable-cache: true
       - uses: actions/setup-python@v5
         with:
@@ -180,6 +187,7 @@ jobs:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v3
         with:
+          version: "0.5.8"
           enable-cache: true
       - uses: actions/setup-python@v5
         with:
