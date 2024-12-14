@@ -128,10 +128,10 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             return
         assert message is not None and message.messages is not None
 
-        # Validate the group state given the start message.
-        await self.validate_group_state([message.messages[0]])
+        # Validate the group state given all the messages.
+        await self.validate_group_state(message.messages)
 
-        # Log the start message.
+        # Log the message.
         await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
         # Outer Loop for first time
         # Create the initial task ledger
