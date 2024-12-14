@@ -6,6 +6,7 @@ import {
   Trash2,
   PanelLeftClose,
   PanelLeftOpen,
+  InfoIcon,
 } from "lucide-react";
 import type { Session } from "../../types/datamodel";
 import { getRelativeTimeString } from "../atoms";
@@ -100,7 +101,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* no sessions found */}
 
       {sessions.length === 0 && (
-        <div className="mb-2 text-xs text-secondary">No sessions found</div>
+        <div className="p-2 mr-2 text-center text-secondary text-sm border border-dashed rounded ">
+          <InfoIcon className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
+          No recent sessions found
+        </div>
       )}
 
       <div className="overflow-y-auto   h-[calc(100%-150px)]">
