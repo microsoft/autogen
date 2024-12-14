@@ -340,12 +340,15 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
         newNodes.push(newNode);
       }
 
+      const { nodes: layoutedNodes, edges: layoutedEdges } =
+        getLayoutedElements(newNodes, newEdges);
+
       return {
-        nodes: newNodes,
-        edges: newEdges,
+        nodes: layoutedNodes,
+        edges: layoutedEdges,
         history: [
           ...state.history.slice(0, state.currentHistoryIndex + 1),
-          { nodes: newNodes, edges: newEdges },
+          { nodes: layoutedNodes, edges: layoutedEdges },
         ].slice(-MAX_HISTORY),
         currentHistoryIndex: state.currentHistoryIndex + 1,
       };

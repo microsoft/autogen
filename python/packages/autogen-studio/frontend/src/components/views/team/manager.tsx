@@ -99,7 +99,7 @@ export const TeamManager: React.FC = () => {
     if (!teamId || !user?.email) return;
     setIsLoading(true);
     try {
-      const data = await teamAPI.getTeam(teamId, user.email!); // We can assert user.email exists since we checked above
+      const data = await teamAPI.getTeam(teamId, user.email!);
       setCurrentTeam(data);
       window.history.pushState({}, "", `?teamId=${teamId}`);
     } catch (error) {

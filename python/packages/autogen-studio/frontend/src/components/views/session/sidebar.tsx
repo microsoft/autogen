@@ -7,6 +7,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   InfoIcon,
+  RefreshCcw,
 } from "lucide-react";
 import type { Session } from "../../types/datamodel";
 import { getRelativeTimeString } from "../atoms";
@@ -19,6 +20,7 @@ interface SidebarProps {
   onSelectSession: (session: Session) => void;
   onEditSession: (session?: Session) => void;
   onDeleteSession: (sessionId: number) => void;
+  isLoading?: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -29,6 +31,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectSession,
   onEditSession,
   onDeleteSession,
+  isLoading = false,
 }) => {
   if (!isOpen) {
     return (
@@ -96,11 +99,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      <div className="py-2 flex text-sm text-secondary">Recents</div>
+      <div className="py-2 flex text-sm text-secondary">
+        Recents{" "}
+        {isLoading && (
+          <RefreshCcw className="w-4 h-4 inline-block ml-2 animate-spin" />
+        )}
+      </div>
 
       {/* no sessions found */}
 
-      {sessions.length === 0 && (
+      {!isLoading && sessions.length === 0 && (
         <div className="p-2 mr-2 text-center text-secondary text-sm border border-dashed rounded ">
           <InfoIcon className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
           No recent sessions found

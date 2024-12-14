@@ -26,10 +26,10 @@ interface INavItem {
 
 const navigation: INavItem[] = [
   {
-    name: "Agent Teams",
+    name: "Team Builder",
     href: "/build",
     icon: Bot,
-    breadcrumbs: [{ name: "Build", href: "/build", current: true }],
+    breadcrumbs: [{ name: "Team Builder", href: "/build", current: true }],
   },
   {
     name: "Playground",

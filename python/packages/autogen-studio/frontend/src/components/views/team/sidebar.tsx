@@ -11,6 +11,7 @@ import {
   Copy,
   GalleryHorizontalEnd,
   InfoIcon,
+  RefreshCcw,
 } from "lucide-react";
 import type { Team } from "../../types/datamodel";
 import { getRelativeTimeString } from "../atoms";
@@ -115,13 +116,14 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
       </div>
 
       {/* Section Label */}
-      <div className="py-2 text-sm text-secondary">Recents</div>
+      <div className="py-2 text-sm text-secondary">
+        Recents
+        {isLoading && (
+          <RefreshCcw className="w-4 h-4 inline-block ml-2 animate-spin" />
+        )}
+      </div>
 
       {/* Teams List */}
-
-      {isLoading && (
-        <div className="p-4 text-center text-secondary text-sm">Loading...</div>
-      )}
 
       {!isLoading && teams.length === 0 && (
         <div className="p-2 mr-2 text-center text-secondary text-sm border border-dashed rounded ">
@@ -133,7 +135,12 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
       <div className="scroll overflow-y-auto h-[calc(100%-170px)]">
         <>
           {teams.length > 0 && (
-            <>
+            <div
+              key={"teams_title"}
+              className={` ${
+                isLoading ? "opacity-50 pointer-events-none" : ""
+              }`}
+            >
               {" "}
               {teams.map((team) => (
                 <div key={team.id} className="relative   border-secondary">
@@ -215,7 +222,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                   </div>
                 </div>
               ))}
-            </>
+            </div>
           )}
 
           {/* Gallery Teams Section */}

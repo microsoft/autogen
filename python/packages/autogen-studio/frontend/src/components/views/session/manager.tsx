@@ -177,6 +177,7 @@ export const SessionManager: React.FC = () => {
             setIsEditorOpen(true);
           }}
           onDeleteSession={handleDeleteSession}
+          isLoading={isLoading}
         />
       </div>
 
