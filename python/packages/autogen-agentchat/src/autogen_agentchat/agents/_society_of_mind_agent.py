@@ -47,7 +47,7 @@ class SocietyOfMindAgent(BaseChatAgent):
         from autogen_agentchat.agents import AssistantAgent, SocietyOfMindAgent
         from autogen_ext.models.openai import OpenAIChatCompletionClient
         from autogen_agentchat.teams import RoundRobinGroupChat
-        from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
+        from autogen_agentchat.conditions import TextMentionTermination
 
 
         async def main() -> None:
