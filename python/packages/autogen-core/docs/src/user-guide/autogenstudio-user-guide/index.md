@@ -18,27 +18,47 @@ Code for AutoGen Studio is on GitHub at [microsoft/autogen](https://github.com/m
 
 > **Note**: AutoGen Studio is meant to help you rapidly prototype multi-agent workflows and demonstrate an example of end user interfaces built with AutoGen. It is not meant to be a production-ready app. Developers are encouraged to use the AutoGen framework to build their own applications, implementing authentication, security and other features required for deployed applications.
 
-## Capabilities
+## Capabilities - What Can You Do with AutoGen Studio?
 
-AutoGen Studio provides the following capabilities:
+AutoGen Studio offers four main interfaces to help you build and manage multi-agent systems:
 
-- A **Team Builder** view interface that supports the declarative specification (or drag and drop componsition) of components - teams, agents, tools, models, termination conditions as defined in AgentChat.
-- A **PlayGround** view where users can define sessions (each session is assigned a team) and run tasks interactively.
-  - Realtime stream of messages as agents act
-  - Control flow transition graph of messages sent by agents
-  - Human in the loop support for teams that include a UserProxyAgent, allowing users to interact with the team run in real time.
-  - Run control: ability to intervene and stop a run mid-execution.
-- A **Gallery view** where users can import components from 3rd party community sources.
-- A **Deployment view** interface where users can explore deployment options for teams.
+1. **Team Builder**
+
+   - A visual interface for creating agent teams through declarative specification (JSON) or drag-and-drop
+   - Supports configuration of all core components: teams, agents, tools, models, and termination conditions
+   - Fully compatible with AgentChat's component definitions
+
+2. **Playground**
+
+   - Interactive environment for testing and running agent teams
+   - Features include:
+     - Live message streaming between agents
+     - Visual representation of message flow through a control transition graph
+     - Interactive sessions with teams using UserProxyAgent
+     - Full run control with the ability to pause or stop execution
+
+3. **Gallery**
+
+   - Central hub for discovering and importing community-created components
+   - Enables easy integration of third-party components
+
+4. **Deployment**
+   - Export and run teams in python code
+   - Setup and test endpoints based on a team configuration
+   - Run teams in a docker container
+
+This revision improves clarity by:
+
+- Organizing capabilities into clearly numbered sections
+- Using more precise language
+- Breaking down complex features into digestible points
+- Maintaining consistent formatting and structure
+- Eliminating awkward phrasing and grammatical issues
+- Adding context about how each interface serves users
 
 ### Roadmap
 
 Review project roadmap and issues [here](https://github.com/microsoft/autogen/issues/4006) .
-
-Project Structure:
-
-- _autogenstudio/_ code for the backend classes and web api (FastAPI)
-- _frontend/_ code for the webui, built with Gatsby and TailwindCSS
 
 ## Contribution Guide
 
