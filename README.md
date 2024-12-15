@@ -19,7 +19,7 @@
 **AutoGen** is a framework for creating intelligent multi-agent systems that can act autonomously or work alongside humans.
 
 ### Minimal Python Example
-
+Code for setting up a reflection team of AI agents using AutoGen to collaboratively write and critique a poem about the fall season.
 ```python
 # pip install 'autogen-agentchat==0.4.0.dev11'
 # pip install 'autogen-ext[openai]==0.4.0.dev11'
