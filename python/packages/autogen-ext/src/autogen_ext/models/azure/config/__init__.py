@@ -9,7 +9,7 @@ from azure.ai.inference.models import (
 from azure.core.credentials import AzureKeyCredential
 from azure.core.credentials_async import AsyncTokenCredential
 
-from autogen_core.components.models import ModelCapabilities
+from autogen_core.models import ModelCapabilities
 
 
 class AzureAIClientArguments(TypedDict, total=False):

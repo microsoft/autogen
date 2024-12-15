@@ -26,9 +26,9 @@ from azure.ai.inference.models import (
 )
 from typing_extensions import AsyncGenerator, Union
 
-from autogen_core.base import CancellationToken
-from autogen_core.components import FunctionCall, Image
-from autogen_core.components.models import (
+from autogen_core import CancellationToken
+from autogen_core import FunctionCall, Image
+from autogen_core.models import (
     ChatCompletionClient,
     LLMMessage,
     CreateResult,
@@ -39,8 +39,8 @@ from autogen_core.components.models import (
     AssistantMessage,
     FunctionExecutionResultMessage,
 )
-from autogen_core.components.tools import Tool, ToolSchema
-from autogen_ext.models._azure.config import AzureAIConfig
+from autogen_core.tools import Tool, ToolSchema
+from autogen_ext.models.azure.config import AzureAIConfig
 
 
 def convert_tools(tools: Sequence[Tool | ToolSchema]) -> List[ChatCompletionsToolDefinition]:
@@ -313,10 +313,14 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             # Otherwise, we try to load the tool calls
             if choice.delta.tool_calls is not None:
                 for tool_call_chunk in choice.delta.tool_calls:
-                    idx = tool_call_chunk.id
+                    # print(tool_call_chunk)
+                    if "index" in tool_call_chunk:
+                        idx = tool_call_chunk["index"]
+                    else:
+                        idx = tool_call_chunk.id
                     if idx not in full_tool_calls:
                         full_tool_calls[idx] = FunctionCall(id="", arguments="", name="")
-                    #
+
                     if tool_call_chunk.id is not None:
                         full_tool_calls[idx].id += tool_call_chunk.id
 
@@ -331,6 +335,9 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
         if finish_reason is None:
             raise ValueError("No stop reason found")
+
+        if choice and choice.finish_reason is CompletionsFinishReason.TOOL_CALLS:
+            finish_reason = "function_calls"
 
         content: Union[str, List[FunctionCall]]
 
