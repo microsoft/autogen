@@ -18,7 +18,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Button, Layout, message, Modal, Switch, Tooltip } from "antd";
-import { Cable, Code2, Save } from "lucide-react";
+import { Cable, Code2, Download, Save } from "lucide-react";
 import { useTeamBuilderStore } from "./store";
 import { ComponentLibrary } from "./library";
 import { ComponentTypes, Team } from "../../../types/datamodel";
@@ -292,6 +292,24 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
           </span>
         </div>
         <div>
+          <Tooltip title="Download Team Configuration">
+            <Button
+              type="text"
+              icon={<Download size={18} />}
+              className="p-1.5 hover:bg-primary/10 rounded-md text-primary/75 hover:text-primary"
+              onClick={() => {
+                const json = JSON.stringify(syncToJson(), null, 2);
+                const blob = new Blob([json], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement("a");
+                a.href = url;
+                a.download = "team-config.json";
+                a.click();
+                URL.revokeObjectURL(url);
+              }}
+            />
+          </Tooltip>
+
           <Tooltip title="Save Changes">
             <Button
               type="text"
