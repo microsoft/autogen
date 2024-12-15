@@ -13,7 +13,7 @@ The expected usage behavior is that developers use the provided Team Builder int
 
 ## Building an Agent Team
 
-AutoGen Studio is tied very closely with all of the component abstractions provided by AutoGen AgentChat. This includes - {py:class}`~autogen_agentchat.teams`, {py:class}`~autogen_agentchat.agents`, {py:class}`~autogen_core.models`, {py:class}`~autogen_core.tools`, {py:class}`~autogen_agentchat.base.TerminationCondition`.
+AutoGen Studio is tied very closely with all of the component abstractions provided by AutoGen AgentChat. This includes - {py:class}`~autogen_agentchat.teams`, {py:class}`~autogen_agentchat.agents`, {py:class}`~autogen_core.models`, {py:class}`~autogen_core.tools`, {py:class}`~autogen_agentchat.conditions`.
 
 Users can define these components in the Team Builder interface either via a declarative specification or by dragging and dropping components from a component library.
 
