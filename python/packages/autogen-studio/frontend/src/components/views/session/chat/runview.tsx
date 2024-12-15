@@ -11,7 +11,7 @@ import {
   ChevronUp,
   Bot,
 } from "lucide-react";
-import { Run, Message, TeamConfigTypes } from "../../../types/datamodel";
+import { Run, Message, TeamConfig } from "../../../types/datamodel";
 import AgentFlow from "./agentflow/agentflow";
 import { RenderMessage } from "./rendermessage";
 import InputRequestView from "./inputrequest";
@@ -24,7 +24,7 @@ import {
 
 interface RunViewProps {
   run: Run;
-  teamConfig?: TeamConfigTypes;
+  teamConfig?: TeamConfig;
   onInputResponse?: (response: string) => void;
   onCancel?: () => void;
   isFirstRun?: boolean;

@@ -1,4 +1,4 @@
-import type { Team, TeamConfigTypes } from "../../types/datamodel";
+import type { Team, TeamConfig } from "../../types/datamodel";
 
 export interface TeamEditorProps {
   team?: Team;
@@ -16,7 +16,7 @@ export interface TeamListProps {
   isLoading?: boolean;
 }
 
-export const defaultTeamConfig: TeamConfigTypes = {
+export const defaultTeamConfig: TeamConfig = {
   version: "1.0.0",
   component_type: "team",
   name: "default_team",

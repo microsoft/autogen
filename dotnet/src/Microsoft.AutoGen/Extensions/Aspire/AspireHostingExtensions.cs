@@ -17,7 +17,7 @@ namespace Microsoft.Extensions.Hosting;
 // To learn more about using this project, see https://aka.ms/dotnet/aspire/service-defaults
 public static class AspireHostingExtensions
 {
-    public static IHostApplicationBuilder AddServiceDefaults(this IHostApplicationBuilder builder)
+    public static WebApplicationBuilder AddServiceDefaults(this WebApplicationBuilder builder)
     {
         builder.ConfigureOpenTelemetry();
 

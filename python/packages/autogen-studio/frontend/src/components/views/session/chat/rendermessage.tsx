@@ -45,7 +45,7 @@ const RenderMultiModal: React.FC<{ content: (string | ImageContent)[] }> = ({
 const RenderToolCall: React.FC<{ content: FunctionCall[] }> = ({ content }) => (
   <div className="space-y-2">
     {content.map((call) => (
-      <div key={call.id} className="border rounded p-2">
+      <div key={call.id} className="border border-secondary rounded p-2">
         <div className="font-medium">Function: {call.name}</div>
         <TruncatableText
           content={JSON.stringify(JSON.parse(call.arguments), null, 2)}
@@ -66,7 +66,7 @@ const RenderToolResult: React.FC<{ content: FunctionExecutionResult[] }> = ({
         <div className="font-medium">Result ID: {result.call_id}</div>
         <TruncatableText
           content={result.content}
-          className="text-sm mt-1 bg-secondary p-2 border rounded scroll overflow-x-scroll"
+          className="text-sm mt-1 bg-secondary p-2 border border-secondary rounded scroll overflow-x-scroll"
         />
       </div>
     ))}
