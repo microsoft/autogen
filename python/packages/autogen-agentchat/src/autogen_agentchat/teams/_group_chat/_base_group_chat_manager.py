@@ -70,24 +70,28 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             # Stop the group chat.
             return
 
-        # Validate the group state given the start message.
-        await self.validate_group_state(message.message)
+        # Validate the group state given the start messages
+        await self.validate_group_state(message.messages)
 
-        if message.message is not None:
-            # Log the start message.
-            await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
-
-            # Relay the start message to the participants.
+        if message.messages is not None:
+            # Log all messages at once
             await self.publish_message(
-                message, topic_id=DefaultTopicId(type=self._group_topic_type), cancellation_token=ctx.cancellation_token
+                GroupChatStart(messages=message.messages), topic_id=DefaultTopicId(type=self._output_topic_type)
             )
 
-            # Append the user message to the message thread.
-            self._message_thread.append(message.message)
+            # Relay all messages at once to participants
+            await self.publish_message(
+                GroupChatStart(messages=message.messages),
+                topic_id=DefaultTopicId(type=self._group_topic_type),
+                cancellation_token=ctx.cancellation_token,
+            )
 
-            # Check if the conversation should be terminated.
+            # Append all messages to thread
+            self._message_thread.extend(message.messages)
+
+            # Check termination condition after processing all messages
             if self._termination_condition is not None:
-                stop_message = await self._termination_condition([message.message])
+                stop_message = await self._termination_condition(message.messages)
                 if stop_message is not None:
                     await self.publish_message(
                         GroupChatTermination(message=stop_message),
@@ -97,7 +101,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
                     await self._termination_condition.reset()
                     return
 
-        # Select a speaker to start the conversation.
+        # Select a speaker to start/continue the conversation
         speaker_topic_type_future = asyncio.ensure_future(self.select_speaker(self._message_thread))
         # Link the select speaker future to the cancellation token.
         ctx.cancellation_token.link_future(speaker_topic_type_future)
@@ -166,8 +170,13 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         await self.reset()
 
     @abstractmethod
-    async def validate_group_state(self, message: ChatMessage | None) -> None:
-        """Validate the state of the group chat given the start message. This is executed when the group chat manager receives a GroupChatStart event."""
+    async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
+        """Validate the state of the group chat given the start messages.
+        This is executed when the group chat manager receives a GroupChatStart event.
+
+        Args:
+            messages: A list of chat messages to validate, or None if no messages are provided.
+        """
         ...
 
     @abstractmethod
