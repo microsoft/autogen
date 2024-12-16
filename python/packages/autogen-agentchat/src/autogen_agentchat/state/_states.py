@@ -79,3 +79,10 @@ class MagenticOneOrchestratorState(BaseGroupChatManagerState):
     n_rounds: int = Field(default=0)
     n_stalls: int = Field(default=0)
     type: str = Field(default="MagenticOneOrchestratorState")
+
+
+class SocietyOfMindAgentState(BaseState):
+    """State for a Society of Mind agent."""
+
+    inner_team_state: Mapping[str, Any] = Field(default_factory=dict)
+    type: str = Field(default="SocietyOfMindAgentState")

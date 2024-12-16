@@ -16,26 +16,27 @@ import {
   Timer,
   Trash2Icon,
   Edit,
+  Bot,
 } from "lucide-react";
-import { NodeData, CustomNode } from "../types";
+import { NodeData, CustomNode } from "./types";
 import {
   AgentConfig,
-  TeamConfigTypes,
-  ModelConfigTypes,
+  TeamConfig,
+  ModelConfig,
   ToolConfig,
-  TerminationConfigTypes,
+  TerminationConfig,
   ComponentTypes,
-} from "../../../../types/datamodel";
+} from "../../../types/datamodel";
 import { useDroppable } from "@dnd-kit/core";
-import { TruncatableText } from "../../../atoms";
-import { useTeamBuilderStore } from "../store";
+import { TruncatableText } from "../../atoms";
+import { useTeamBuilderStore } from "./store";
 
 // Icon mapping for different node types
 const iconMap: Record<NodeData["type"], LucideIcon> = {
   team: Users,
-  agent: Brain,
+  agent: Bot,
   tool: Wrench,
-  model: Settings,
+  model: Brain,
   termination: Timer,
 };
 
@@ -152,9 +153,12 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         {headerContent}
       </div>
 
-      {descriptionContent && (
+      {data.config.description && (
         <div className="px-3 py-2 border-b text-sm text-gray-600">
-          {descriptionContent}
+          <TruncatableText
+            content={data.config.description}
+            textThreshold={150}
+          />
         </div>
       )}
 
@@ -190,7 +194,7 @@ const ConnectionBadge: React.FC<{
 
 // Team Node
 export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
-  const config = props.data.config as TeamConfigTypes;
+  const config = props.data.config as TeamConfig;
   const hasModel =
     config.team_type === "SelectorGroupChat" && !!config.model_client;
   const participantCount = config.participants?.length || 0;
@@ -410,7 +414,7 @@ export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
 
 // Model Node
 export const ModelNode: React.FC<NodeProps<CustomNode>> = (props) => {
-  const config = props.data.config as ModelConfigTypes;
+  const config = props.data.config as ModelConfig;
 
   return (
     <BaseNode
@@ -471,7 +475,7 @@ export const ToolNode: React.FC<NodeProps<CustomNode>> = (props) => {
 
 // First, let's add the Termination Node component
 export const TerminationNode: React.FC<NodeProps<CustomNode>> = (props) => {
-  const config = props.data.config as TerminationConfigTypes;
+  const config = props.data.config as TerminationConfig;
 
   return (
     <BaseNode

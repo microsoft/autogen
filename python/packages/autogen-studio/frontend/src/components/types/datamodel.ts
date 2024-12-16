@@ -98,6 +98,7 @@ export interface SessionRuns {
 export interface BaseConfig {
   component_type: string;
   version?: string;
+  description?: string;
 }
 
 export interface WebSocketMessage {
@@ -119,7 +120,6 @@ export type ModelTypes =
 
 export type AgentTypes =
   | "AssistantAgent"
-  | "CodingAssistantAgent"
   | "UserProxyAgent"
   | "MultimodalWebSurfer"
   | "FileSurfer"
@@ -132,12 +132,6 @@ export type TeamTypes =
   | "SelectorGroupChat"
   | "MagenticOneGroupChat";
 
-// class ComponentType(str, Enum):
-//     TEAM = "team"
-//     AGENT = "agent"
-//     MODEL = "model"
-//     TOOL = "tool"
-//     TERMINATION = "termination"
 export type TerminationTypes =
   | "MaxMessageTermination"
   | "StopMessageTermination"
@@ -153,11 +147,11 @@ export type ComponentTypes =
   | "termination";
 
 export type ComponentConfigTypes =
-  | TeamConfigTypes
+  | TeamConfig
   | AgentConfig
-  | ModelConfigTypes
+  | ModelConfig
   | ToolConfig
-  | TerminationConfigTypes;
+  | TerminationConfig;
 
 export interface BaseModelConfig extends BaseConfig {
   model: string;
@@ -178,22 +172,57 @@ export interface OpenAIModelConfig extends BaseModelConfig {
   model_type: "OpenAIChatCompletionClient";
 }
 
-export type ModelConfigTypes = AzureOpenAIModelConfig | OpenAIModelConfig;
+export type ModelConfig = AzureOpenAIModelConfig | OpenAIModelConfig;
 
-export interface ToolConfig extends BaseConfig {
+export interface BaseToolConfig extends BaseConfig {
   name: string;
   description: string;
   content: string;
   tool_type: ToolTypes;
 }
-export interface AgentConfig extends BaseConfig {
+
+export interface PythonFunctionToolConfig extends BaseToolConfig {
+  tool_type: "PythonFunction";
+}
+
+export type ToolConfig = PythonFunctionToolConfig;
+
+export interface BaseAgentConfig extends BaseConfig {
   name: string;
   agent_type: AgentTypes;
   system_message?: string;
-  model_client?: ModelConfigTypes;
+  model_client?: ModelConfig;
   tools?: ToolConfig[];
   description?: string;
 }
+
+export interface AssistantAgentConfig extends BaseAgentConfig {
+  agent_type: "AssistantAgent";
+}
+
+export interface UserProxyAgentConfig extends BaseAgentConfig {
+  agent_type: "UserProxyAgent";
+}
+
+export interface MultimodalWebSurferAgentConfig extends BaseAgentConfig {
+  agent_type: "MultimodalWebSurfer";
+}
+
+export interface FileSurferAgentConfig extends BaseAgentConfig {
+  agent_type: "FileSurfer";
+}
+
+export interface MagenticOneCoderAgentConfig extends BaseAgentConfig {
+  agent_type: "MagenticOneCoderAgent";
+}
+
+export type AgentConfig =
+  | AssistantAgentConfig
+  | UserProxyAgentConfig
+  | MultimodalWebSurferAgentConfig
+  | FileSurferAgentConfig
+  | MagenticOneCoderAgentConfig;
+
 // export interface TerminationConfig extends BaseConfig {
 //   termination_type: TerminationTypes;
 //   max_messages?: number;
@@ -217,28 +246,19 @@ export interface TextMentionTerminationConfig extends BaseTerminationConfig {
 export interface CombinationTerminationConfig extends BaseTerminationConfig {
   termination_type: "CombinationTermination";
   operator: "and" | "or";
-  conditions: TerminationConfigTypes[];
+  conditions: TerminationConfig[];
 }
 
-export type TerminationConfigTypes =
+export type TerminationConfig =
   | MaxMessageTerminationConfig
   | TextMentionTerminationConfig
   | CombinationTerminationConfig;
-
-// export interface TeamConfig extends BaseConfig {
-//   name: string;
-//   participants: AgentConfig[];
-//   team_type: TeamTypes;
-//   model_client?: ModelConfig;
-//   termination_condition?: TerminationConfig;
-//   selector_prompt?: string;
-// }
 
 export interface BaseTeamConfig extends BaseConfig {
   name: string;
   participants: AgentConfig[];
   team_type: TeamTypes;
-  termination_condition?: TerminationConfigTypes;
+  termination_condition?: TerminationConfig;
 }
 
 export interface RoundRobinGroupChatConfig extends BaseTeamConfig {
@@ -248,15 +268,13 @@ export interface RoundRobinGroupChatConfig extends BaseTeamConfig {
 export interface SelectorGroupChatConfig extends BaseTeamConfig {
   team_type: "SelectorGroupChat";
   selector_prompt: string;
-  model_client: ModelConfigTypes;
+  model_client: ModelConfig;
 }
 
-export type TeamConfigTypes =
-  | RoundRobinGroupChatConfig
-  | SelectorGroupChatConfig;
+export type TeamConfig = RoundRobinGroupChatConfig | SelectorGroupChatConfig;
 
 export interface Team extends DBModel {
-  config: TeamConfigTypes;
+  config: TeamConfig;
 }
 
 export interface TeamResult {

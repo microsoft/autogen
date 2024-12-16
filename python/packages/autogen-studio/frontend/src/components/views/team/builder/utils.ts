@@ -1,5 +1,5 @@
 import dagre from "@dagrejs/dagre";
-import { CustomNode, CustomEdge } from "../types";
+import { CustomNode, CustomEdge } from "./types";
 import { nanoid } from "nanoid";
 import {
   TeamConfig,
@@ -8,7 +8,7 @@ import {
   ToolConfig,
   ComponentTypes,
   TerminationConfig,
-} from "../../../../types/datamodel";
+} from "../../../types/datamodel";
 
 interface ConversionResult {
   nodes: CustomNode[];
@@ -100,7 +100,7 @@ export const convertTeamConfigToGraph = (
   nodes.push(teamNode);
 
   // Add model client if present
-  if (config.model_client) {
+  if (config.team_type === "SelectorGroupChat" && config.model_client) {
     const modelNode = createNode(
       "model",
       { x: 200, y: 50 },

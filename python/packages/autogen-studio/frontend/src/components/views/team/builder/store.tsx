@@ -8,22 +8,19 @@ import {
 } from "./types";
 import { nanoid } from "nanoid";
 import {
-  TeamConfigTypes,
+  TeamConfig,
   AgentConfig,
-  ModelConfigTypes,
+  ModelConfig,
   ToolConfig,
   ComponentTypes,
   ComponentConfigTypes,
-  TerminationConfigTypes,
+  TerminationConfig,
 } from "../../../types/datamodel";
-import {
-  convertTeamConfigToGraph,
-  getLayoutedElements,
-} from "./utils/converter";
+import { convertTeamConfigToGraph, getLayoutedElements } from "./utils";
 
 const MAX_HISTORY = 50;
 
-const isTeamConfig = (config: any): config is TeamConfigTypes => {
+const isTeamConfig = (config: any): config is TeamConfig => {
   return "team_type" in config;
 };
 
@@ -31,7 +28,7 @@ const isAgentConfig = (config: any): config is AgentConfig => {
   return "agent_type" in config;
 };
 
-const isModelConfig = (config: any): config is ModelConfigTypes => {
+const isModelConfig = (config: any): config is ModelConfig => {
   return "model_type" in config;
 };
 
@@ -39,7 +36,7 @@ const isToolConfig = (config: any): config is ToolConfig => {
   return "tool_type" in config;
 };
 
-const isTerminationConfig = (config: any): config is TerminationConfigTypes => {
+const isTerminationConfig = (config: any): config is TerminationConfig => {
   return "termination_type" in config;
 };
 
@@ -49,7 +46,7 @@ export interface TeamBuilderState {
   selectedNodeId: string | null;
   history: Array<{ nodes: CustomNode[]; edges: CustomEdge[] }>;
   currentHistoryIndex: number;
-  originalConfig: TeamConfigTypes | null;
+  originalConfig: TeamConfig | null;
   addNode: (
     type: ComponentTypes,
     position: Position,
@@ -69,8 +66,8 @@ export interface TeamBuilderState {
   redo: () => void;
 
   // Sync with JSON
-  syncToJson: () => TeamConfigTypes | null;
-  loadFromJson: (config: TeamConfigTypes) => GraphState;
+  syncToJson: () => TeamConfig | null;
+  loadFromJson: (config: TeamConfig) => GraphState;
   layoutNodes: () => void;
   resetHistory: () => void;
 }
@@ -79,7 +76,7 @@ const buildTeamConfig = (
   teamNode: CustomNode,
   nodes: CustomNode[],
   edges: CustomEdge[]
-): TeamConfigTypes | null => {
+): TeamConfig | null => {
   if (!isTeamConfig(teamNode.data.config)) return null;
 
   const config = { ...teamNode.data.config };
@@ -343,12 +340,15 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
         newNodes.push(newNode);
       }
 
+      const { nodes: layoutedNodes, edges: layoutedEdges } =
+        getLayoutedElements(newNodes, newEdges);
+
       return {
-        nodes: newNodes,
-        edges: newEdges,
+        nodes: layoutedNodes,
+        edges: layoutedEdges,
         history: [
           ...state.history.slice(0, state.currentHistoryIndex + 1),
-          { nodes: newNodes, edges: newEdges },
+          { nodes: layoutedNodes, edges: layoutedEdges },
         ].slice(-MAX_HISTORY),
         currentHistoryIndex: state.currentHistoryIndex + 1,
       };
@@ -644,7 +644,7 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
     });
   },
 
-  loadFromJson: (config: TeamConfigTypes) => {
+  loadFromJson: (config: TeamConfig) => {
     const { nodes, edges } = convertTeamConfigToGraph(config);
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
       nodes,

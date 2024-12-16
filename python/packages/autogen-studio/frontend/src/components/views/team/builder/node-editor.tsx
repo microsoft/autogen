@@ -1,15 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { Drawer, Button, Space, message, Select, Input } from "antd";
-import { NodeEditorProps } from "../types";
-import { useTeamBuilderStore } from "../store";
+import { NodeEditorProps } from "./types";
+import { useTeamBuilderStore } from "./store";
 import {
-  TeamConfigTypes,
+  TeamConfig,
   ComponentTypes,
   TeamTypes,
   ModelTypes,
   SelectorGroupChatConfig,
   RoundRobinGroupChatConfig,
-  ModelConfigTypes,
+  ModelConfig,
   AzureOpenAIModelConfig,
   OpenAIModelConfig,
   ComponentConfigTypes,
@@ -17,12 +17,12 @@ import {
   ToolConfig,
   AgentTypes,
   ToolTypes,
-  TerminationConfigTypes,
+  TerminationConfig,
   TerminationTypes,
   MaxMessageTerminationConfig,
   TextMentionTerminationConfig,
   CombinationTerminationConfig,
-} from "../../../../types/datamodel";
+} from "../../../types/datamodel";
 
 const { TextArea } = Input;
 
@@ -32,7 +32,7 @@ interface EditorProps<T> {
   disabled?: boolean;
 }
 
-const TeamEditor: React.FC<EditorProps<TeamConfigTypes>> = ({
+const TeamEditor: React.FC<EditorProps<TeamConfig>> = ({
   value,
   onChange,
   disabled,
@@ -119,7 +119,7 @@ const TeamEditor: React.FC<EditorProps<TeamConfigTypes>> = ({
   );
 };
 
-const ModelEditor: React.FC<EditorProps<ModelConfigTypes>> = ({
+const ModelEditor: React.FC<EditorProps<ModelConfig>> = ({
   value,
   onChange,
   disabled,
@@ -358,7 +358,7 @@ const ToolEditor: React.FC<EditorProps<ToolConfig>> = ({
   );
 };
 
-const TerminationEditor: React.FC<EditorProps<TerminationConfigTypes>> = ({
+const TerminationEditor: React.FC<EditorProps<TerminationConfig>> = ({
   value,
   onChange,
   disabled,
@@ -413,7 +413,7 @@ const TerminationEditor: React.FC<EditorProps<TerminationConfigTypes>> = ({
 
   const handleUpdateCondition = (
     index: number,
-    newCondition: TerminationConfigTypes
+    newCondition: TerminationConfig
   ) => {
     if (value.termination_type === "CombinationTermination") {
       const newConditions = [...value.conditions];
@@ -632,7 +632,7 @@ export const NodeEditor: React.FC<NodeEditorProps> = ({ node, onUpdate }) => {
 function validateConfig(config: ComponentConfigTypes): void {
   switch (config.component_type) {
     case "team": {
-      const teamConfig = config as TeamConfigTypes;
+      const teamConfig = config as TeamConfig;
       if ("selector_prompt" in teamConfig) {
         // Type guard for SelectorGroupChatConfig
         if (!teamConfig.selector_prompt) {
@@ -646,7 +646,7 @@ function validateConfig(config: ComponentConfigTypes): void {
     }
 
     case "model":
-      const modelConfig = config as ModelConfigTypes;
+      const modelConfig = config as ModelConfig;
       if ("AzureOpenAIChatCompletionClient" in modelConfig) {
         const azureConfig = config as AzureOpenAIModelConfig;
         if (
