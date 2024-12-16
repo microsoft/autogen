@@ -27,4 +27,5 @@ logging
 telemetry
 command-line-code-executors
 distributed-agent-runtime
+component-config
 ```

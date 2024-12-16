@@ -1,8 +1,11 @@
+from __future__ import annotations
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from autogen_core import BaseAgent, DefaultTopicId, MessageContext, RoutedAgent, default_subscription, message_handler
-
+from autogen_core._component_config import ComponentConfig, ComponentLoader, ComponentModel
+from pydantic import BaseModel
+from autogen_core import Component
 
 @dataclass
 class MessageType: ...
@@ -58,3 +61,39 @@ class NoopAgent(BaseAgent):
 
     async def on_message_impl(self, message: Any, ctx: MessageContext) -> Any:
         raise NotImplementedError
+
+
+
+class MyInnerConfig(BaseModel):
+    inner_message: str
+
+
+class MyInnerComponent(Component("custom", MyInnerConfig)):
+    def __init__(self, inner_message: str):
+        self.inner_message = inner_message
+
+    def _to_config(self) -> MyInnerConfig:
+        return MyInnerConfig(inner_message=self.inner_message)
+
+    @classmethod
+    def _from_config(cls, config: MyInnerConfig) -> MyInnerComponent:
+        return cls(inner_message=config.inner_message)
+
+class MyOuterConfig(BaseModel):
+    outer_message: str
+    inner_class: ComponentModel
+
+
+class MyOuterComponent(Component("custom", MyOuterConfig)):
+    def __init__(self, outer_message: str, inner_class: MyInnerComponent):
+        self.outer_message = outer_message
+        self.inner_class = inner_class
+
+    def _to_config(self) -> MyOuterConfig:
+        inner_component_config = self.inner_class.dump_component()
+        return MyOuterConfig(outer_message=self.outer_message, inner_class=inner_component_config)
+
+    @classmethod
+    def _from_config(cls, config: MyOuterConfig) -> MyOuterComponent:
+        inner = MyInnerComponent.load_component(config.inner_class)
+        return cls(outer_message=config.outer_message, inner_class=inner)
