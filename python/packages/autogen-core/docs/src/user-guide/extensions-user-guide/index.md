@@ -13,7 +13,6 @@ myst:
 
 discover
 create-your-own
-azure-container-code-executor
 ```
 
 ```{toctree}
