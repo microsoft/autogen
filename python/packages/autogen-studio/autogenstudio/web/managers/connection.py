@@ -276,7 +276,8 @@ class WebSocketManager:
         if run_id not in self._closed_connections:
             error_result = TeamResult(
                 task_result=TaskResult(
-                    messages=[TextMessage(source="system", content=str(error))], stop_reason="error"
+                    messages=[TextMessage(source="system", content=str(error))],
+                    stop_reason="An error occurred while processing this run",
                 ),
                 usage="",
                 duration=0,
