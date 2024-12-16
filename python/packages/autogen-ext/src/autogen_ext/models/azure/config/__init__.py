@@ -8,8 +8,9 @@ from azure.ai.inference.models import (
 
 from azure.core.credentials import AzureKeyCredential
 from azure.core.credentials_async import AsyncTokenCredential
-
 from autogen_core.models import ModelCapabilities
+
+GITHUB_MODELS_ENDPOINT = "https://models.inference.ai.azure.com"
 
 
 class AzureAIClientArguments(TypedDict, total=False):
@@ -18,7 +19,7 @@ class AzureAIClientArguments(TypedDict, total=False):
     model_capabilities: ModelCapabilities
 
 
-class AzureAIRequestArguments(TypedDict, total=False):
+class AzureAICreateArguments(TypedDict, total=False):
     frequency_penalty: Optional[float]
     presence_penalty: Optional[float]
     temperature: Optional[float]
@@ -33,5 +34,5 @@ class AzureAIRequestArguments(TypedDict, total=False):
     model_extras: Optional[Dict[str, Any]]
 
 
-class AzureAIConfig(AzureAIClientArguments, AzureAIRequestArguments):
+class AzureAIChatCompletionClientConfig(AzureAIClientArguments, AzureAICreateArguments):
     pass
