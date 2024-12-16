@@ -27,4 +27,5 @@ handoffs
 mixture-of-agents
 multi-agent-debate
 reflection
+code-execution-groupchat
 ```
