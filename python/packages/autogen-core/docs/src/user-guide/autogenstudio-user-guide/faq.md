@@ -45,17 +45,17 @@ Have a local model server like Ollama, vLLM or LMStudio that provide an OpenAI c
 
 ```json
 {
-        "model": "TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
-        "model_type": "OpenAIChatCompletionClient",
-        "base_url": "http://localhost:1234/v1",
-        "api_version": "1.0",
-        "component_type": "model",
-        "model_capabilities": {
-            "vision": False,
-            "function_calling": False,
-            "json_output": False
-        }
-      }
+  "model": "TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
+  "model_type": "OpenAIChatCompletionClient",
+  "base_url": "http://localhost:1234/v1",
+  "api_version": "1.0",
+  "component_type": "model",
+  "model_capabilities": {
+    "vision": false,
+    "function_calling": false,
+    "json_output": false
+  }
+}
 ```
 
 ```{caution}
