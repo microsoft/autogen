@@ -114,7 +114,7 @@ class MultimodalWebSurferAgentConfig(BaseAgentConfig):
     agent_type: AgentTypes = AgentTypes.MULTIMODAL_WEBSURFER
     model_client: ModelConfig
     headless: bool = True
-    logs_dir: str = "logs"
+    logs_dir: str = None
     to_save_screenshots: bool = False
     use_ocr: bool = False
     animate_actions: bool = False
