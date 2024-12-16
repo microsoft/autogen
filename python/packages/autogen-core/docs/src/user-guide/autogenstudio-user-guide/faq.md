@@ -41,19 +41,25 @@ An example of the azure openai model client is shown below:
 }
 ```
 
-Have a local model server like Ollama or vLLM that provide an OpenAI compliant endpoint? You can use that as well.
+Have a local model server like Ollama, vLLM or LMStudio that provide an OpenAI compliant endpoint? You can use that as well.
 
 ```json
 {
-  "model": "gpt-4o-mini",
-  "model_type": "OpenAIChatCompletionClient",
-  "api_key": "your-api-key",
-  "base_url": "http://localhost:8000"
-}
+        "model": "TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
+        "model_type": "OpenAIChatCompletionClient",
+        "base_url": "http://localhost:1234/v1",
+        "api_version": "1.0",
+        "component_type": "model",
+        "model_capabilities": {
+            "vision": False,
+            "function_calling": False,
+            "json_output": False
+        }
+      }
 ```
 
 ```{caution}
-It is important that the model name be set to a valid OpenAI model name e.g., `gpt-4o-mini` to ensure the OpenAI client can be used. See model client documentation for more details.
+It is important that you add the `model_capabilities` field to the model client specification for custom models. This is used by the framework instantiate and use the model correctly.
 ```
 
 ## Q: The server starts but I can't access the UI
