@@ -53,7 +53,7 @@ Have a local model server like Ollama or vLLM that provide an OpenAI compliant e
 ```
 
 ```{caution}
-It is important that the model name be set `gpt-40-mini` (or a valid OpenAI model) for now to ensure the OpenAI client can be used.
+It is important that the model name be set to a valid OpenAI model name e.g., `gpt-4o-mini` to ensure the OpenAI client can be used. See model client documentation for more details.
 ```
 
 ## Q: The server starts but I can't access the UI
