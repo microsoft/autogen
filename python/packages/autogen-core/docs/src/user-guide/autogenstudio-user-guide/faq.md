@@ -13,8 +13,48 @@ A: You can specify the directory where files are stored by setting the `--appdir
 
 ## Q: Can I use other models with AutoGen Studio?
 
-Yes. AutoGen standardizes on the openai model api format, and you can use any api server that offers an openai compliant endpoint. In the AutoGen Studio UI, each agent has an `model_client` field where you can input your model endpoint details including `model`, `api key`, `base url`, `model type` and `api version`. For Azure OpenAI models, you can find these details in the Azure portal. Note that for Azure OpenAI, the `model name` is the deployment id or engine, and the `model type` is "azure".
-For other OSS models, we recommend using a server such as vllm, LMStudio, Ollama, to instantiate an openai compliant endpoint.
+Yes. AutoGen standardizes on the openai model api format, and you can use any api server that offers an openai compliant endpoint.
+
+AutoGen Studio is based on declaritive specifications which applies to models as well. Agents can include a model_client field which specifies the model endpoint details including `model`, `api_key`, `base_url`, `model type`.
+
+An example of the openai model client is shown below:
+
+```json
+{
+  "model": "gpt-4o-mini",
+  "model_type": "OpenAIChatCompletionClient",
+  "api_key": "your-api-key"
+}
+```
+
+An example of the azure openai model client is shown below:
+
+```json
+{
+  "model": "gpt-4o-mini",
+  "model_type": "AzureOpenAIChatCompletionClient",
+  "azure_deployment": "gpt-4o-mini",
+  "api_version": "2024-02-15-preview",
+  "azure_endpoint": "https://your-endpoint.openai.azure.com/",
+  "api_key": "your-api-key",
+  "component_type": "model"
+}
+```
+
+Have a local model server like Ollama or vLLM that provide an OpenAI compliant endpoint? You can use that as well.
+
+```json
+{
+  "model": "gpt-4o-mini",
+  "model_type": "OpenAIChatCompletionClient",
+  "api_key": "your-api-key",
+  "base_url": "http://localhost:8000"
+}
+```
+
+```{caution}
+It is important that the model name be set `gpt-40-mini` (or a valid OpenAI model) for now to ensure the OpenAI client can be used.
+```
 
 ## Q: The server starts but I can't access the UI
 
