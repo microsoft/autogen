@@ -56,7 +56,7 @@ Currently, there are three main APIs your application can target:
 
 - [Core](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/index.html)
 - [AgentChat](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/index.html)
-- [Extensions](https://microsoft.github.io/autogen/dev/reference/python/autogen_ext/autogen_ext.html)
+- [Extensions](https://microsoft.github.io/autogen/dev/user-guide/extensions-user-guide/index.html)
 
 ## Core
 
