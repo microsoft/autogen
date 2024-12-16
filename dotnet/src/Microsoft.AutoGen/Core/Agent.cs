@@ -29,10 +29,10 @@ public abstract class Agent
     /// <summary>
     /// Gets the unique identifier of the agent.
     /// </summary>
-    public AgentId AgentId => Runtime!.AgentId;
+    public AgentId AgentId => Messenger.AgentId;
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     protected internal ILogger<Agent> _logger;
-    public IAgentRuntime? Runtime { get; private set; }
+    public AgentMessenger Messenger { get; private set; }
     private readonly ConcurrentDictionary<Type, MethodInfo> _handlersByMessageType;
     internal Task Completion { get; private set; }
 
@@ -45,6 +45,7 @@ public abstract class Agent
         EventTypes = eventTypes;
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<Agent>();
         _handlersByMessageType = new(GetType().GetHandlersLookupTable());
+        Messenger = new AgentMessenger(agentId, this, _serviceProvider.GetRequiredService<ILogger<Agent>>(), _distributedContextPropagator);
         AddImplicitSubscriptionsAsync().AsTask().Wait();
         Completion = Start();
     }

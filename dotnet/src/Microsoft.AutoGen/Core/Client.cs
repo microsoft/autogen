@@ -9,6 +9,6 @@ using Microsoft.Extensions.Logging;
 namespace Microsoft.AutoGen.Core;
 public sealed class Client(IAgentWorker runtime, DistributedContextPropagator distributedContextPropagator,
     [FromKeyedServices("EventTypes")] EventTypes eventTypes, ILogger<Client> logger)
-    : Agent(new AgentRuntime(new AgentId("client", Guid.NewGuid().ToString()), runtime, logger, distributedContextPropagator), eventTypes)
+    : Agent(new AgentMessenger(new AgentId("client", Guid.NewGuid().ToString()), runtime, logger, distributedContextPropagator), eventTypes)
 {
 }

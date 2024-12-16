@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentRuntime.cs
+// AgentMessenger.cs
 
 using System.Diagnostics;
 using Google.Protobuf.Collections;
@@ -9,7 +9,7 @@ using static Microsoft.AutoGen.Contracts.CloudEvent.Types;
 
 namespace Microsoft.AutoGen.Core;
 
-public sealed class AgentRuntime(AgentId agentId, IAgentWorker worker, ILogger<Agent> logger, DistributedContextPropagator distributedContextPropagator) : IAgentRuntime
+public sealed class AgentMessenger(AgentId agentId, IAgentWorker worker, ILogger<Agent> logger, DistributedContextPropagator distributedContextPropagator)
 {
     private readonly IAgentWorker worker = worker;
 
