@@ -54,9 +54,12 @@ from ..utils.utils import Version
 
 logger = logging.getLogger(__name__)
 
-TeamComponent = Union[RoundRobinGroupChat, SelectorGroupChat, MagenticOneGroupChat]
-AgentComponent = Union[AssistantAgent, MultimodalWebSurfer, UserProxyAgent, FileSurfer, MagenticOneCoderAgent]
-ModelComponent = Union[OpenAIChatCompletionClient, AzureOpenAIChatCompletionClient]
+TeamComponent = Union[RoundRobinGroupChat,
+                      SelectorGroupChat, MagenticOneGroupChat]
+AgentComponent = Union[AssistantAgent, MultimodalWebSurfer,
+                       UserProxyAgent, FileSurfer, MagenticOneCoderAgent]
+ModelComponent = Union[OpenAIChatCompletionClient,
+                       AzureOpenAIChatCompletionClient]
 ToolComponent = Union[FunctionTool]  # Will grow with more tool types
 TerminationComponent = Union[
     MaxMessageTermination,
@@ -70,7 +73,8 @@ TerminationComponent = Union[
     StopMessageTermination,
 ]
 
-Component = Union[TeamComponent, AgentComponent, ModelComponent, ToolComponent, TerminationComponent]
+Component = Union[TeamComponent, AgentComponent,
+                  ModelComponent, ToolComponent, TerminationComponent]
 
 ReturnType = Literal["object", "dict", "config"]
 
@@ -151,7 +155,8 @@ class ComponentFactory:
 
             handler = handlers.get(config.component_type)
             if not handler:
-                raise ValueError(f"Unknown component type: {config.component_type}")
+                raise ValueError(
+                    f"Unknown component type: {config.component_type}")
 
             return await handler(config)
 
@@ -175,7 +180,8 @@ class ComponentFactory:
                         component = await self.load(path, return_type=return_type)
                         components.append(component)
                     except Exception as e:
-                        logger.info(f"Failed to load component: {str(e)}, {path}")
+                        logger.info(
+                            f"Failed to load component: {str(e)}, {path}")
 
             return components
         except Exception as e:
@@ -243,9 +249,11 @@ class ComponentFactory:
         try:
             if config.termination_type == TerminationTypes.COMBINATION:
                 if not config.conditions or len(config.conditions) < 2:
-                    raise ValueError("Combination termination requires at least 2 conditions")
+                    raise ValueError(
+                        "Combination termination requires at least 2 conditions")
                 if not config.operator:
-                    raise ValueError("Combination termination requires an operator (and/or)")
+                    raise ValueError(
+                        "Combination termination requires an operator (and/or)")
 
                 # Load first two conditions
                 conditions = [await self.load_termination(cond) for cond in config.conditions[:2]]
@@ -260,7 +268,8 @@ class ComponentFactory:
 
             elif config.termination_type == TerminationTypes.MAX_MESSAGES:
                 if config.max_messages is None:
-                    raise ValueError("max_messages parameter required for MaxMessageTermination")
+                    raise ValueError(
+                        "max_messages parameter required for MaxMessageTermination")
                 return MaxMessageTermination(max_messages=config.max_messages)
 
             elif config.termination_type == TerminationTypes.STOP_MESSAGE:
@@ -268,15 +277,18 @@ class ComponentFactory:
 
             elif config.termination_type == TerminationTypes.TEXT_MENTION:
                 if not config.text:
-                    raise ValueError("text parameter required for TextMentionTermination")
+                    raise ValueError(
+                        "text parameter required for TextMentionTermination")
                 return TextMentionTermination(text=config.text)
 
             else:
-                raise ValueError(f"Unsupported termination type: {config.termination_type}")
+                raise ValueError(
+                    f"Unsupported termination type: {config.termination_type}")
 
         except Exception as e:
             logger.error(f"Failed to create termination condition: {str(e)}")
-            raise ValueError(f"Termination condition creation failed: {str(e)}") from e
+            raise ValueError(
+                f"Termination condition creation failed: {str(e)}") from e
 
     async def load_team(self, config: TeamConfig, input_func: Optional[Callable] = None) -> TeamComponent:
         """Create team instance from configuration."""
@@ -298,7 +310,8 @@ class ComponentFactory:
             elif config.team_type == TeamTypes.SELECTOR:
                 model_client = await self.load(config.model_client)
                 if not model_client:
-                    raise ValueError("SelectorGroupChat requires a model_client")
+                    raise ValueError(
+                        "SelectorGroupChat requires a model_client")
                 selector_prompt = config.selector_prompt if config.selector_prompt else DEFAULT_SELECTOR_PROMPT
                 return SelectorGroupChat(
                     participants=participants,
@@ -309,7 +322,8 @@ class ComponentFactory:
             elif config.team_type == TeamTypes.MAGENTIC_ONE:
                 model_client = await self.load(config.model_client)
                 if not model_client:
-                    raise ValueError("MagenticOneGroupChat requires a model_client")
+                    raise ValueError(
+                        "MagenticOneGroupChat requires a model_client")
                 return MagenticOneGroupChat(
                     participants=participants,
                     model_client=model_client,
@@ -326,21 +340,19 @@ class ComponentFactory:
     async def load_agent(self, config: AgentConfig, input_func: Optional[Callable] = None) -> AgentComponent:
         """Create agent instance from configuration."""
 
-        system_message = config.system_message if config.system_message else "You are a helpful assistant"
+        model_client = None
+        system_message = None
+        tools = []
+        if hasattr(config, "system_message") and config.system_message:
+            system_message = config.system_message
+        if hasattr(config, "model_client") and config.model_client:
+            model_client = await self.load(config.model_client)
+        if hasattr(config, "tools") and config.tools:
+            for tool_config in config.tools:
+                tool = await self.load(tool_config)
+                tools.append(tool)
 
         try:
-            # Load model client if specified
-            model_client = None
-            if config.model_client:
-                model_client = await self.load(config.model_client)
-
-            # Load tools if specified
-            tools = []
-            if config.tools:
-                for tool_config in config.tools:
-                    tool = await self.load(tool_config)
-                    tools.append(tool)
-
             if config.agent_type == AgentTypes.USERPROXY:
                 return UserProxyAgent(
                     name=config.name,
@@ -379,7 +391,8 @@ class ComponentFactory:
                     model_client=model_client,
                 )
             else:
-                raise ValueError(f"Unsupported agent type: {config.agent_type}")
+                raise ValueError(
+                    f"Unsupported agent type: {config.agent_type}")
 
         except Exception as e:
             logger.error(f"Failed to create agent {config.name}: {str(e)}")
@@ -418,7 +431,8 @@ class ComponentFactory:
                 self._model_cache[cache_key] = model
                 return model
             else:
-                raise ValueError(f"Unsupported model type: {config.model_type}")
+                raise ValueError(
+                    f"Unsupported model type: {config.model_type}")
 
         except Exception as e:
             logger.error(f"Failed to create model {config.model}: {str(e)}")
@@ -439,7 +453,8 @@ class ComponentFactory:
 
             if config.tool_type == ToolTypes.PYTHON_FUNCTION:
                 tool = FunctionTool(
-                    name=config.name, description=config.description, func=self._func_from_string(config.content)
+                    name=config.name, description=config.description, func=self._func_from_string(
+                        config.content)
                 )
                 self._tool_cache[cache_key] = tool
                 return tool
@@ -484,7 +499,8 @@ class ComponentFactory:
         """Check if version is supported for component type."""
         try:
             version = Version(ver)
-            supported = [Version(v) for v in self.SUPPORTED_VERSIONS[component_type]]
+            supported = [Version(v)
+                         for v in self.SUPPORTED_VERSIONS[component_type]]
             return any(version == v for v in supported)
         except ValueError:
             return False
