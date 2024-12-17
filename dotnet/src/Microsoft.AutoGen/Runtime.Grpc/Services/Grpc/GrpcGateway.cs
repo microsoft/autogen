@@ -100,6 +100,67 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             };
         }
     }
+    public async ValueTask<AddSubscriptionResponse> AddSubscriptionAsync(AddSubscriptionRequest request)
+    {
+        try
+        {
+            await _gatewayRegistry.SubscribeAsync(request).ConfigureAwait(true);
+            return new AddSubscriptionResponse
+            {
+                Success = true,
+                RequestId = request.RequestId
+            };
+        }
+        catch (Exception ex)
+        {
+            return new AddSubscriptionResponse
+            {
+                Success = false,
+                RequestId = request.RequestId,
+                Error = ex.Message
+            };
+        }
+    }
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                await _gatewayRegistry.AddWorker(_reference);
+            }
+            catch (Exception exception)
+            {
+                _logger.LogWarning(exception, "Error adding worker to registry.");
+            }
+            await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
+        }
+        try
+        {
+            await _gatewayRegistry.RemoveWorker(_reference);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "Error removing worker from registry.");
+        }
+    }
+    internal async Task<string> ConnectToWorkerProcess(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
+    {
+        _logger.LogInformation("Received new connection from {Peer}.", context.Peer);
+        var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
+        var connectionId = Guid.NewGuid().ToString();
+        _workers[workerProcess] = workerProcess;
+        _workersByConnection[connectionId] = workerProcess;
+
+        var completion = new TaskCompletionSource<Task>();
+        var _ = Task.Run(() =>
+        {
+            completion.SetResult(workerProcess.Connect());
+        });
+        
+        await completion.Task;
+        return connectionId;
+    }
     public async ValueTask BroadcastEvent(CloudEvent evt)
     {
         var tasks = new List<Task>(_workers.Count);
@@ -125,29 +186,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
         // Complete the request.
         completion.SetResult(response);
-    }
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        while (!stoppingToken.IsCancellationRequested)
-        {
-            try
-            {
-                await _gatewayRegistry.AddWorker(_reference);
-            }
-            catch (Exception exception)
-            {
-                _logger.LogWarning(exception, "Error adding worker to registry.");
-            }
-            await Task.Delay(TimeSpan.FromSeconds(15), stoppingToken);
-        }
-        try
-        {
-            await _gatewayRegistry.RemoveWorker(_reference);
-        }
-        catch (Exception exception)
-        {
-            _logger.LogWarning(exception, "Error removing worker from registry.");
-        }
     }
     //new is intentional...
     internal async Task OnReceivedMessageAsync(GrpcWorkerConnection connection, Message message)
@@ -309,13 +347,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             await connection.ResponseStream.WriteAsync(new Message { Response = new RpcResponse { RequestId = request.RequestId, Error = ex.Message } }).ConfigureAwait(false);
         }
     }
-    internal Task ConnectToWorkerProcess(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
-    {
-        _logger.LogInformation("Received new connection from {Peer}.", context.Peer);
-        var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
-        _workers[workerProcess] = workerProcess;
-        return workerProcess.Completion;
-    }
+
     internal void OnRemoveWorkerProcess(GrpcWorkerConnection workerProcess)
     {
         _workers.TryRemove(workerProcess, out _);
