@@ -1,8 +1,13 @@
 # mypy: disable-error-code="no-any-unimported,misc"
+import os
+from typing import cast
+
 import pandas as pd
 import tiktoken
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
+from autogen_ext.models.openai._openai_client import OpenAIChatCompletionClient
 from pydantic import BaseModel, Field
 
 from graphrag.query.indexer_adapters import (
@@ -11,12 +16,15 @@ from graphrag.query.indexer_adapters import (
     read_indexer_text_units,
 )
 from graphrag.query.llm.base import BaseLLM, BaseTextEmbedding
+from graphrag.query.llm.oai.embedding import OpenAIEmbedding
+from graphrag.query.llm.oai.typing import OpenaiApiType
 from graphrag.query.structured_search.local_search.mixed_context import LocalSearchMixedContext
 from graphrag.query.structured_search.local_search.search import LocalSearch
 from graphrag.vector_stores.lancedb import LanceDBVectorStore
 
-from ._config import LocalContextConfig, SearchConfig
+from ._config import EmbeddingConfig, LocalContextConfig, SearchConfig
 from ._config import LocalDataConfig as DataConfig
+from ._model_adapter import GraphragOpenAiModelAdapter
 
 _default_context_config = LocalContextConfig()
 _default_search_config = SearchConfig()
@@ -118,3 +126,47 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
         result = await self._search_engine.asearch(args.query)  # type: ignore
         assert isinstance(result.response, str), "Expected response to be a string"
         return LocalSearchToolReturn(answer=result.response)
+
+    @classmethod
+    def from_config(
+        cls,
+        openai_client: AzureOpenAIChatCompletionClient | OpenAIChatCompletionClient,
+        data_config: DataConfig,
+        embedding_config: EmbeddingConfig,
+        context_config: LocalContextConfig = _default_context_config,
+        search_config: SearchConfig = _default_search_config,
+    ) -> "LocalSearchTool":
+        """Create a LocalSearchTool instance from configuration.
+
+        Args:
+            openai_client: The Azure OpenAI client to use
+            data_config: Configuration for data sources
+            embedding_config: Configuration for the embedding model
+            context_config: Configuration for context building
+            search_config: Configuration for search operations
+
+        Returns:
+            An initialized LocalSearchTool instance
+        """
+        llm_adapter = GraphragOpenAiModelAdapter(openai_client)
+        token_encoder = tiktoken.encoding_for_model(llm_adapter.model_name)
+
+        embedder = OpenAIEmbedding(
+            model=embedding_config.model,
+            api_base=embedding_config.api_base,
+            deployment_name=embedding_config.deployment_name,
+            api_version=embedding_config.api_version,
+            api_type=cast(OpenaiApiType, embedding_config.api_type),
+            azure_ad_token_provider=embedding_config.azure_ad_token_provider,
+            max_retries=embedding_config.max_retries,
+            request_timeout=embedding_config.request_timeout,
+        )
+
+        return cls(
+            token_encoder=token_encoder,
+            llm=llm_adapter,
+            embedder=embedder,
+            data_config=data_config,
+            context_config=context_config,
+            search_config=search_config,
+        )

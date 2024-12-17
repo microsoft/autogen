@@ -10,10 +10,9 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.models.openai._openai_client import AzureOpenAIChatCompletionClient
 
 from graphrag.query.llm.base import BaseLLM, BaseLLMCallback
-
-from graphrag.query.llm.base import BaseLLM
 
 
 class GraphragOpenAiModelAdapter(BaseLLM):
@@ -21,7 +20,7 @@ class GraphragOpenAiModelAdapter(BaseLLM):
     Adapts an autogen OpenAIChatCompletionClient to a graphrag-compatible LLM interface.
     """
 
-    def __init__(self, client: OpenAIChatCompletionClient):
+    def __init__(self, client: OpenAIChatCompletionClient | AzureOpenAIChatCompletionClient):
         self._client = client
 
     @property

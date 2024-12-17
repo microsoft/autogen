@@ -3,6 +3,7 @@ import pandas as pd
 import tiktoken
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
 from pydantic import BaseModel, Field
 
 from graphrag.query.indexer_adapters import (
@@ -17,6 +18,7 @@ from graphrag.query.structured_search.global_search.search import GlobalSearch
 from ._config import GlobalContextConfig as ContextConfig
 from ._config import GlobalDataConfig as DataConfig
 from ._config import MapReduceConfig
+from ._model_adapter import GraphragOpenAiModelAdapter
 
 _default_context_config = ContextConfig()
 _default_mapreduce_config = MapReduceConfig()
@@ -111,3 +113,33 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
         result = await self._search_engine.asearch(args.query)
         assert isinstance(result.response, str), "Expected response to be a string"
         return GlobalSearchToolReturn(answer=result.response)
+
+    @classmethod
+    def from_config(
+        cls,
+        openai_client: AzureOpenAIChatCompletionClient,
+        data_config: DataConfig,
+        context_config: ContextConfig = _default_context_config,
+        mapreduce_config: MapReduceConfig = _default_mapreduce_config,
+    ) -> "GlobalSearchTool":
+        """Create a GlobalSearchTool instance from configuration.
+
+        Args:
+            openai_client: The Azure OpenAI client to use
+            data_config: Configuration for data sources
+            context_config: Configuration for context building
+            mapreduce_config: Configuration for map-reduce operations
+
+        Returns:
+            An initialized GlobalSearchTool instance
+        """
+        llm_adapter = GraphragOpenAiModelAdapter(openai_client)
+        token_encoder = tiktoken.encoding_for_model(llm_adapter.model_name)
+
+        return cls(
+            token_encoder=token_encoder,
+            llm=llm_adapter,
+            data_config=data_config,
+            context_config=context_config,
+            mapreduce_config=mapreduce_config,
+        )
