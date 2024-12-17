@@ -20,7 +20,7 @@ public sealed class GrpcGatewayService : AgentRpc.AgentRpcBase
         {
             var connectionId = await Gateway.ConnectToWorkerProcess(requestStream, responseStream, context).ConfigureAwait(true);
             // Generate a response with the connectionId, to be used in subsequent RPC requests to the service
-            await responseStream.WriteAsync(new Message { Response = new RpcResponse { RequestId = connectionId } });
+            await responseStream.WriteAsync(new Message { OpenChannelResponse = new OpenChannelResponse { ConnectionId = connectionId, Success = true } });
         }
         catch
         {
@@ -37,7 +37,7 @@ public sealed class GrpcGatewayService : AgentRpc.AgentRpcBase
         return new GetStateResponse { AgentState = state };
     }
 
-    public override async Task<SaveStateResponse> SaveState(AgentState request, ServerCallContext context)
+    public override async Task<SaveStateResponse> SaveState(Contracts.AgentState request, ServerCallContext context)
     {
         await Gateway.StoreAsync(request);
         return new SaveStateResponse
@@ -46,15 +46,13 @@ public sealed class GrpcGatewayService : AgentRpc.AgentRpcBase
         };
     }
 
-    public override Task<AddSubscriptionResponse> AddSubscription(AddSubscriptionRequest request, ServerCallContext context)
+    public override async Task<AddSubscriptionResponse> AddSubscription(AddSubscriptionRequest request, ServerCallContext context)
     {
-        // TODO: This should map to Orleans Streaming explicit api
-        return base.AddSubscription(request, context);
+        return await Gateway.AddSubscriptionAsync(request);
     }
 
     public override async Task<RegisterAgentTypeResponse> RegisterAgent(RegisterAgentTypeRequest request, ServerCallContext context)
     {
-        // TODO: This should add the agent to registry
         return await Gateway.RegisterAgentTypeAsync(request);
     }
 }

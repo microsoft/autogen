@@ -4,7 +4,7 @@
 using Google.Protobuf.Collections;
 using Microsoft.AutoGen.Contracts;
 
-namespace Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Orleans.Surrogates;
+namespace Microsoft.AutoGen.Runtime.Grpc.Orleans.Surrogates;
 
 [GenerateSerializer]
 public struct RegisterAgentTypeRequestSurrogate

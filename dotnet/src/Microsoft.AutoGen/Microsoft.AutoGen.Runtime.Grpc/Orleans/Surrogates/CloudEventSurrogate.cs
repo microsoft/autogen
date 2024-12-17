@@ -5,7 +5,7 @@ using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 using Microsoft.AutoGen.Contracts;
 
-namespace Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Orleans.Surrogates;
+namespace Microsoft.AutoGen.Runtime.Grpc.Orleans.Surrogates;
 
 // TODO: Add the rest of the properties
 [GenerateSerializer]
@@ -30,7 +30,7 @@ public sealed class CloudEventSurrogateConverter :
         new CloudEvent
         {
             TextData = surrogate.TextData,
-            BinaryData = surrogate.BinaryData ,
+            BinaryData = surrogate.BinaryData,
             Id = surrogate.Id
         };
 

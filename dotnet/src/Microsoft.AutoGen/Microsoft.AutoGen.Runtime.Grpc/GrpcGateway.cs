@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using Grpc.Core;
 using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Runtime.Grpc.Abstractions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
@@ -14,7 +15,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private static readonly TimeSpan s_agentResponseTimeout = TimeSpan.FromSeconds(30);
     private readonly ILogger<GrpcGateway> _logger;
     private readonly IClusterClient _clusterClient;
-    private readonly IRegistryGrain _gatewayRegistry;
+    private readonly IGrainRegistry _gatewayRegistry;
     private readonly IGateway _reference;
 
     // The agents supported by each worker process.
@@ -25,7 +26,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
     // RPC
     private readonly ConcurrentDictionary<(GrpcWorkerConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
-    private readonly ISubscriptionsGrain _subscriptions;
 
     public int WorkersCount => _workers.Count;
 
@@ -36,10 +36,97 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         _logger = logger;
         _clusterClient = clusterClient;
         _reference = clusterClient.CreateObjectReference<IGateway>(this);
-        _gatewayRegistry = clusterClient.GetGrain<IRegistryGrain>(0);
-        _subscriptions = clusterClient.GetGrain<ISubscriptionsGrain>(0);
+        _gatewayRegistry = clusterClient.GetGrain<IGrainRegistry>(0);
 
     }
+    public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request)
+    {
+        var agentId = (request.Target.Type, request.Target.Key);
+        if (!_agentDirectory.TryGetValue(agentId, out var connection) || connection.Completion?.IsCompleted == true)
+        {
+            // Activate the agent on a compatible worker process.
+            if (_supportedAgentTypes.TryGetValue(request.Target.Type, out var workers))
+            {
+                connection = workers[Random.Shared.Next(workers.Count)];
+                _agentDirectory[agentId] = connection;
+            }
+            else
+            {
+                return new(new RpcResponse { Error = "Agent not found." });
+            }
+        }
+        // Proxy the request to the agent.
+        var originalRequestId = request.RequestId;
+        var newRequestId = Guid.NewGuid().ToString();
+        var completion = _pendingRequests[(connection, newRequestId)] = new(TaskCreationOptions.RunContinuationsAsynchronously);
+        request.RequestId = newRequestId;
+        await connection.ResponseStream.WriteAsync(new Message { Request = request }).ConfigureAwait(false);
+        // Wait for the response and send it back to the caller.
+        var response = await completion.Task.WaitAsync(s_agentResponseTimeout);
+        response.RequestId = originalRequestId;
+        return response;
+    }
+
+    public async ValueTask StoreAsync(Contracts.AgentState value)
+    {
+        var agentState = _clusterClient.GetGrain<IAgentGrain>($"{value.AgentId.Type}:{value.AgentId.Key}");
+        await agentState.WriteStateAsync(value, value.ETag);
+    }
+
+    public async ValueTask<Contracts.AgentState> ReadAsync(AgentId agentId)
+    {
+        var agentState = _clusterClient.GetGrain<IAgentGrain>($"{agentId.Type}:{agentId.Key}");
+        return await agentState.ReadStateAsync();
+    }
+
+    public async ValueTask<RegisterAgentTypeResponse> RegisterAgentTypeAsync(RegisterAgentTypeRequest request)
+    {
+        try
+        {
+            var connection = _workersByConnection[request.RequestId];
+            connection.AddSupportedType(request.Type);
+            _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
+
+            await _gatewayRegistry.RegisterAgentType(request, _reference).ConfigureAwait(true);
+            return new RegisterAgentTypeResponse
+            {
+                Success = true,
+                RequestId = request.RequestId
+            };
+        }
+        catch (Exception ex)
+        {
+            return new RegisterAgentTypeResponse
+            {
+                Success = false,
+                RequestId = request.RequestId,
+                Error = ex.Message
+            };
+        }
+    }
+
+    public async ValueTask<AddSubscriptionResponse> AddSubscriptionAsync(AddSubscriptionRequest request)
+    {
+        try
+        {
+            await _gatewayRegistry.SubscribeAsync(request).ConfigureAwait(true);
+            return new AddSubscriptionResponse
+            {
+                Success = true,
+                RequestId = request.RequestId
+            };
+        }
+        catch (Exception ex)
+        {
+            return new AddSubscriptionResponse
+            {
+                Success = false,
+                RequestId = request.RequestId,
+                Error = ex.Message
+            };
+        }
+    }
+
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         while (!stoppingToken.IsCancellationRequested)
@@ -81,6 +168,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         await completion.Task;
         return connectionId;
     }
+
     //intetionally not static so can be called by some methods implemented in base class
     internal async Task SendMessageAsync(GrpcWorkerConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
@@ -115,8 +203,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         completion.SetResult(response);
     }
 
-    // agentype:rpc_request={requesting_agent_id}
-    // {genttype}:rpc_response={request_id}
+    //// agentype:rpc_request={requesting_agent_id}
+    //// {genttype}:rpc_response={request_id}
     //private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, AddSubscriptionRequest request)
     //{
     //    var topic = "";
@@ -146,6 +234,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     //    };
     //    await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
     //}
+
     private async ValueTask RegisterAgentTypeAsync(GrpcWorkerConnection connection, RegisterAgentTypeRequest msg)
     {
         connection.AddSupportedType(msg.Type);
@@ -167,7 +256,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         try
         {
-            var registry = _clusterClient.GetGrain<IRegistryGrain>(0);
+
+            var registry = _clusterClient.GetGrain<IGrainRegistry>(0);
             var targetAgentTypes = await registry.GetSubscribedAndHandlingAgents(evt.Source, evt.Type);
 
             var tasks = new List<Task>();
@@ -210,32 +300,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         //}
     }
 
-    public async ValueTask<RegisterAgentTypeResponse> RegisterAgentTypeAsync(RegisterAgentTypeRequest request)
-    {
-        try
-        {
-            var connection = _workersByConnection[request.RequestId];
-            connection.AddSupportedType(request.Type);
-            _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
-           
-            await _gatewayRegistry.RegisterAgentType(request, _reference).ConfigureAwait(true);
-            return new RegisterAgentTypeResponse
-            {
-                Success = true,
-                RequestId = request.RequestId
-            };
-        }
-        catch (Exception ex)
-        {
-            return new RegisterAgentTypeResponse
-            {
-                Success = false,
-                RequestId = request.RequestId,
-                Error = ex.Message
-            };
-        }
-    }
-
     // TODO: consider adding this back for backwards compatibility
     //private async ValueTask RegisterAgentTypeAsync(GrpcWorkerConnection connection, RegisterAgentTypeRequest msg)
     //{
@@ -254,18 +318,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         {
             await connection.ResponseStream.WriteAsync(new Message { Response = new RpcResponse { RequestId = request.RequestId, Error = ex.Message } }).ConfigureAwait(false);
         }
-    }
-
-    public async ValueTask StoreAsync(AgentState value)
-    {
-        var agentState = _clusterClient.GetGrain<IAgentGrain>($"{value.AgentId.Type}:{value.AgentId.Key}");
-        await agentState.WriteStateAsync(value, value.ETag);
-    }
-
-    public async ValueTask<AgentState> ReadAsync(AgentId agentId)
-    {
-        var agentState = _clusterClient.GetGrain<IAgentGrain>($"{agentId.Type}:{agentId.Key}");
-        return await agentState.ReadStateAsync();
     }
 
     internal void OnRemoveWorkerProcess(GrpcWorkerConnection workerProcess)
@@ -289,38 +341,5 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
     }
 
-    public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request, CancellationToken cancellationToken = default)
-    {
-        var agentId = (request.Target.Type, request.Target.Key);
-        if (!_agentDirectory.TryGetValue(agentId, out var connection) || connection.Completion?.IsCompleted == true)
-        {
-            // Activate the agent on a compatible worker process.
-            if (_supportedAgentTypes.TryGetValue(request.Target.Type, out var workers))
-            {
-                connection = workers[Random.Shared.Next(workers.Count)];
-                _agentDirectory[agentId] = connection;
-            }
-            else
-            {
-                return new(new RpcResponse { Error = "Agent not found." });
-            }
-        }
-        // Proxy the request to the agent.
-        var originalRequestId = request.RequestId;
-        var newRequestId = Guid.NewGuid().ToString();
-        var completion = _pendingRequests[(connection, newRequestId)] = new(TaskCreationOptions.RunContinuationsAsynchronously);
-        request.RequestId = newRequestId;
-        await connection.ResponseStream.WriteAsync(new Message { Request = request }, cancellationToken).ConfigureAwait(false);
-        // Wait for the response and send it back to the caller.
-        var response = await completion.Task.WaitAsync(s_agentResponseTimeout);
-        response.RequestId = originalRequestId;
-        return response;
-    }
-
-   
-
-    public ValueTask<RpcResponse> InvokeRequest(RpcRequest request)
-    {
-        throw new NotImplementedException();
-    }
+    
 }

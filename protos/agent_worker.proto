@@ -88,6 +88,12 @@ message AddSubscriptionResponse {
     optional string error = 3;
 }
 
+message OpenChannelResponse {
+    string connection_id = 1;
+    bool success = 2;
+    optional string error = 3;
+}
+
 service AgentRpc {
     rpc OpenChannel (stream Message) returns (stream Message);
     rpc GetState(AgentId) returns (GetStateResponse);
@@ -126,5 +132,6 @@ message Message {
         RegisterAgentTypeResponse registerAgentTypeResponse = 5;
         AddSubscriptionRequest addSubscriptionRequest = 6;
         AddSubscriptionResponse addSubscriptionResponse = 7;
+        OpenChannelResponse openChannelResponse = 8;
     }
 }

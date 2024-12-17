@@ -48,7 +48,7 @@ public class GrpcGatewayServiceTests
         await service.OpenChannel(client.RequestStream, client.ResponseStream, client.CallContext);
         var responseMessage = await client.ReadNext();
 
-        var connectionId = responseMessage!.Response.RequestId;
+        var connectionId = responseMessage!.OpenChannelResponse.ConnectionId;
 
         await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), connectionId), client.CallContext);
         await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(GMAgent), connectionId), client.CallContext);
@@ -83,7 +83,7 @@ public class GrpcGatewayServiceTests
         await service.OpenChannel(client.RequestStream, client.ResponseStream, client.CallContext);
         var responseMessage = await client.ReadNext();
 
-        var connectionId = responseMessage!.Response.RequestId;
+        var connectionId = responseMessage!.OpenChannelResponse.ConnectionId;
 
         await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), connectionId), client.CallContext);
         await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(GMAgent), connectionId), client.CallContext);
@@ -104,7 +104,7 @@ public class GrpcGatewayServiceTests
         await service.OpenChannel(client.RequestStream, client.ResponseStream, client.CallContext);
         var responseMessage = await client.ReadNext();
 
-        var connectionId = responseMessage!.Response.RequestId;
+        var connectionId = responseMessage!.OpenChannelResponse.ConnectionId;
 
         var response = await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), connectionId), client.CallContext);
         response.Success.Should().BeTrue();

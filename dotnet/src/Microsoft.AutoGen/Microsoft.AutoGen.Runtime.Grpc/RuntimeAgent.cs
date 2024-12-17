@@ -1,15 +1,15 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentStateGrain.cs
+// RuntimeAgent.cs
 
 using System.Data;
-using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Runtime.Grpc.Abstractions;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
 
-internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore")] IPersistentState<AgentState> state) : Grain, IAgentGrain
+internal sealed class RuntimeAgent([PersistentState("state", "AgentStateStore")] IPersistentState<Contracts.AgentState> state) : Grain, IAgentGrain
 {
     /// <inheritdoc />
-    public async ValueTask<string> WriteStateAsync(AgentState newState, string eTag/*, CancellationToken cancellationToken = default*/)
+    public async ValueTask<string> WriteStateAsync(Contracts.AgentState newState, string eTag/*, CancellationToken cancellationToken = default*/)
     {
         // etags for optimistic concurrency control
         // if the Etag is null, its a new state
@@ -30,14 +30,8 @@ internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore
     }
 
     /// <inheritdoc />
-    public ValueTask<AgentState> ReadStateAsync(/*CancellationToken cancellationToken = default*/)
+    public ValueTask<Contracts.AgentState> ReadStateAsync(/*CancellationToken cancellationToken = default*/)
     {
         return ValueTask.FromResult(state.State);
     }
-}
-
-internal interface IAgentGrain : IGrainWithStringKey
-{
-    ValueTask<AgentState> ReadStateAsync();
-    ValueTask<string> WriteStateAsync(AgentState state, string eTag);
 }

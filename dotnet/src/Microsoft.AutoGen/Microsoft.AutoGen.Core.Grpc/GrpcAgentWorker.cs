@@ -42,6 +42,7 @@ public sealed class GrpcAgentWorker(
     private AsyncDuplexStreamingCall<Message, Message>? _channel;
     private Task? _readTask;
     private Task? _writeTask;
+    private string? connectionId;
 
     public void Dispose()
     {
@@ -66,6 +67,9 @@ public sealed class GrpcAgentWorker(
                     {
                         case Message.MessageOneofCase.Request:
                             GetOrActivateAgent(message.Request.Target).ReceiveMessage(message);
+                            break;
+                        case Message.MessageOneofCase.OpenChannelResponse:
+                            connectionId = message.OpenChannelResponse.ConnectionId;
                             break;
                         case Message.MessageOneofCase.Response:
                             if (!_pendingRequests.TryRemove(message.Response.RequestId, out var request))
@@ -206,7 +210,7 @@ public sealed class GrpcAgentWorker(
             var response = await _client.RegisterAgentAsync(new RegisterAgentTypeRequest
             {
                 Type = type,
-                RequestId = Guid.NewGuid().ToString(),
+                RequestId = connectionId,
                 Topics = { topicTypes },
                 //StateType = state?.Name,
                 Events = { events }

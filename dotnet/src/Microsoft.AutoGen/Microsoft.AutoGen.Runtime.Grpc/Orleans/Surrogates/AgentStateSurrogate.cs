@@ -4,7 +4,7 @@
 using Google.Protobuf;
 using Microsoft.AutoGen.Contracts;
 
-namespace Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Orleans.Surrogates;
+namespace Microsoft.AutoGen.Runtime.Grpc.Orleans.Surrogates;
 
 [GenerateSerializer]
 public struct AgentStateSurrogate
@@ -28,15 +28,19 @@ public sealed class AgentStateSurrogateConverter :
     IConverter<AgentState, AgentStateSurrogate>
 {
     public AgentState ConvertFromSurrogate(
-        in AgentStateSurrogate surrogate) =>
-        new AgentState
+        in AgentStateSurrogate surrogate)
         {
-            TextData = surrogate.TextData,
-            BinaryData = surrogate.BinaryData,
-            AgentId = surrogate.AgentId,
-           // ProtoData = surrogate.ProtoData,
-            ETag = surrogate.Etag
-        };
+            var agentState = new AgentState
+            {
+                AgentId = surrogate.AgentId,
+                BinaryData = surrogate.BinaryData,
+                TextData = surrogate.TextData,
+                ETag = surrogate.Etag
+            };
+            //agentState.ProtoData = surrogate.ProtoData;
+            return agentState;
+        }
+        
 
     public AgentStateSurrogate ConvertToSurrogate(
         in AgentState value) =>

@@ -3,13 +3,14 @@
 
 using Microsoft.AutoGen.Contracts;
 
-namespace Microsoft.AutoGen.Runtime.Grpc;
+namespace Microsoft.AutoGen.Runtime.Grpc.Abstractions;
 
 public interface IGateway : IGrainObserver
 {
     ValueTask<RpcResponse> InvokeRequest(RpcRequest request);
     //ValueTask BroadcastEvent(CloudEvent evt);
-    ValueTask StoreAsync(AgentState value);
-    ValueTask<AgentState> ReadAsync(AgentId agentId);
+    ValueTask StoreAsync(Contracts.AgentState value);
+    ValueTask<Contracts.AgentState> ReadAsync(AgentId agentId);
     ValueTask<RegisterAgentTypeResponse> RegisterAgentTypeAsync(RegisterAgentTypeRequest request);
+    ValueTask<AddSubscriptionResponse> AddSubscriptionAsync(AddSubscriptionRequest request);
 }
