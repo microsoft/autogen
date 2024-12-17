@@ -24,6 +24,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     internal readonly ConcurrentDictionary<string, GrpcWorkerConnection> _workersByConnection = new();
     private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
     private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
+    private readonly ISubscriptionsGrain _subscriptions;
 
     // The mapping from agent id to worker process.
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
@@ -36,6 +37,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         _clusterClient = clusterClient;
         _reference = clusterClient.CreateObjectReference<IGateway>(this);
         _gatewayRegistry = clusterClient.GetGrain<IRegistryGrain>(0);
+        _subscriptions = clusterClient.GetGrain<ISubscriptionsGrain>(0);
     }
     public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request, CancellationToken cancellationToken = default)
     {
@@ -161,33 +163,10 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         await completion.Task;
         return connectionId;
     }
-    public async ValueTask BroadcastEvent(CloudEvent evt)
+    internal async Task SendMessageAsync(GrpcWorkerConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
-        var tasks = new List<Task>(_workers.Count);
-        foreach (var (_, connection) in _supportedAgentTypes)
-        {
-
-            tasks.Add(this.SendMessageAsync((IConnection)connection[0], evt, default));
-        }
-        await Task.WhenAll(tasks).ConfigureAwait(false);
+        await connection.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);
     }
-    //intetionally not static so can be called by some methods implemented in base class
-    public async Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
-    {
-        var queue = (GrpcWorkerConnection)connection;
-        await queue.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);
-    }
-    private void DispatchResponse(GrpcWorkerConnection connection, RpcResponse response)
-    {
-        if (!_pendingRequests.TryRemove((connection, response.RequestId), out var completion))
-        {
-            _logger.LogWarning("Received response for unknown request.");
-            return;
-        }
-        // Complete the request.
-        completion.SetResult(response);
-    }
-    //new is intentional...
     internal async Task OnReceivedMessageAsync(GrpcWorkerConnection connection, Message message)
     {
         _logger.LogInformation("Received message {Message} from connection {Connection}.", message, connection);
@@ -214,13 +193,133 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                 break;
         };
     }
-    private async ValueTask RespondBadRequestAsync(GrpcWorkerConnection connection, string error)
+    private void DispatchResponse(GrpcWorkerConnection connection, RpcResponse response)
+    {
+        if (!_pendingRequests.TryRemove((connection, response.RequestId), out var completion))
+        {
+            _logger.LogWarning("Received response for unknown request id: {RequestId}.", response.RequestId);   
+            return;
+        }
+        // Complete the request.
+        completion.SetResult(response);
+    }
+    private async ValueTask RegisterAgentTypeAsync(GrpcWorkerConnection connection, RegisterAgentTypeRequest msg)
+    {
+        connection.AddSupportedType(msg.Type);
+        _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
+
+        await _gatewayRegistry.RegisterAgentType(msg, _reference).ConfigureAwait(true);
+        Message response = new()
+        {
+            RegisterAgentTypeResponse = new()
+            {
+                RequestId = msg.RequestId,
+                Error = "",
+                Success = true
+            }
+        };
+        await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
+    }
+    private async ValueTask DispatchEventAsync(CloudEvent evt)
+    {
+
+        var registry = _clusterClient.GetGrain<IRegistryGrain>(0);
+        //intentionally blocking
+        var targetAgentTypes = await registry.GetSubscribedAndHandlingAgents(evt.Source, evt.Type).ConfigureAwait(true);
+        if (targetAgentTypes.Count == 0)
+        {
+            _logger.LogWarning("No agents found registered for event {Event}.", evt);
+        }
+        else
+        {
+            await DispatchEventToAgentsAsync(targetAgentTypes, evt).ConfigureAwait(false);
+        }
+        // alternate path    
+        // get the event type and then send to all agents that are subscribed to that event type
+        var eventType = evt.Type;
+        // ensure that we get agentTypes as an async enumerable list - try to get the value of agentTypes by topic and then cast it to an async enumerable list
+        if (_subscriptionsByTopic.TryGetValue(eventType, out var agentTypes))
+        {
+            await DispatchEventToAgentsAsync(agentTypes, evt: evt).ConfigureAwait(false);
+        }
+        // instead of an exact match, we can also check for a prefix match where key starts with the eventType
+        else if (_subscriptionsByTopic.Keys.Any(key => key.StartsWith(eventType)))
+        {
+            _subscriptionsByTopic.Where(
+                kvp => kvp.Key.StartsWith(eventType))
+                .SelectMany(kvp => kvp.Value)
+                .Distinct()
+                .ToList()
+                .ForEach(async agentType =>
+                {
+                    await DispatchEventToAgentsAsync(new List<string> { agentType }, evt).ConfigureAwait(false);
+                });
+        }
+        else
+        {
+            // log that no agent types were found
+            _logger.LogWarning("No agent types found for event type {EventType}.", eventType);
+        }
+    }
+    private async ValueTask DispatchRequestAsync(GrpcWorkerConnection connection, RpcRequest request)
+    {
+        var requestId = request.RequestId;
+        if (request.Target is null)
+        {
+            throw new InvalidOperationException($"Request message is missing a target. Message: '{request}'.");
+        }
+        await InvokeRequestDelegate(connection, request, async request =>
+        {
+            var (gateway, isPlacement) = await _gatewayRegistry.GetOrPlaceAgent(request.Target);
+            if (gateway is null)
+            {
+                return new RpcResponse { Error = "Agent not found and no compatible gateways were found." };
+            }
+            if (isPlacement)
+            {
+                // TODO// Activate the worker: load state
+            }
+            // Forward the message to the gateway and return the result.
+            return await gateway.InvokeRequest(request).ConfigureAwait(true);
+        }).ConfigureAwait(false);
+    }
+    private static async Task InvokeRequestDelegate(GrpcWorkerConnection connection, RpcRequest request, Func<RpcRequest, Task<RpcResponse>> func)
+    {
+        try
+        {
+            var response = await func(request);
+            response.RequestId = request.RequestId;
+            await connection.ResponseStream.WriteAsync(new Message { Response = response }).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            await connection.ResponseStream.WriteAsync(new Message { Response = new RpcResponse { RequestId = request.RequestId, Error = ex.Message } }).ConfigureAwait(false);
+        }
+    }
+    internal void OnRemoveWorkerProcess(GrpcWorkerConnection workerProcess)
+    {
+        _workers.TryRemove(workerProcess, out _);
+        var types = workerProcess.GetSupportedTypes();
+        foreach (var type in types)
+        {
+            if (_supportedAgentTypes.TryGetValue(type, out var supported))
+            {
+                supported.Remove(workerProcess);
+            }
+        }
+        // Any agents activated on that worker are also gone.
+        foreach (var pair in _agentDirectory)
+        {
+            if (pair.Value == workerProcess)
+            {
+                ((IDictionary<(string Type, string Key), GrpcWorkerConnection>)_agentDirectory).Remove(pair);
+            }
+        }
+    }
+    private static async ValueTask RespondBadRequestAsync(GrpcWorkerConnection connection, string error)
     {
         throw new RpcException(new Status(StatusCode.InvalidArgument, error));
     }
-
-    // agentype:rpc_request={requesting_agent_id}
-    // {genttype}:rpc_response={request_id}
     private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, AddSubscriptionRequest request)
     {
         var topic = "";
@@ -250,51 +349,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         };
         await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
     }
-    private async ValueTask RegisterAgentTypeAsync(GrpcWorkerConnection connection, RegisterAgentTypeRequest msg)
-    {
-        connection.AddSupportedType(msg.Type);
-        _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
 
-        await _gatewayRegistry.RegisterAgentType(msg.Type, _reference).ConfigureAwait(true);
-        Message response = new()
-        {
-            RegisterAgentTypeResponse = new()
-            {
-                RequestId = msg.RequestId,
-                Error = "",
-                Success = true
-            }
-        };
-        await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
-    }
-    private async ValueTask DispatchEventAsync(CloudEvent evt)
-    {
-        // get the event type and then send to all agents that are subscribed to that event type
-        var eventType = evt.Type;
-        // ensure that we get agentTypes as an async enumerable list - try to get the value of agentTypes by topic and then cast it to an async enumerable list
-        if (_subscriptionsByTopic.TryGetValue(eventType, out var agentTypes))
-        {
-            await DispatchEventToAgentsAsync(agentTypes, evt);
-        }
-        // instead of an exact match, we can also check for a prefix match where key starts with the eventType
-        else if (_subscriptionsByTopic.Keys.Any(key => key.StartsWith(eventType)))
-        {
-            _subscriptionsByTopic.Where(
-                kvp => kvp.Key.StartsWith(eventType))
-                .SelectMany(kvp => kvp.Value)
-                .Distinct()
-                .ToList()
-                .ForEach(async agentType =>
-                {
-                    await DispatchEventToAgentsAsync(new List<string> { agentType }, evt).ConfigureAwait(false);
-                });
-        }
-        else
-        {
-            // log that no agent types were found
-            _logger.LogWarning("No agent types found for event type {EventType}.", eventType);
-        }
-    }
     private async ValueTask DispatchEventToAgentsAsync(IEnumerable<string> agentTypes, CloudEvent evt)
     {
         var tasks = new List<Task>(agentTypes.Count());
@@ -310,71 +365,28 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
-    private async ValueTask DispatchRequestAsync(GrpcWorkerConnection connection, RpcRequest request)
-    {
-        var requestId = request.RequestId;
-        if (request.Target is null)
-        {
-            throw new InvalidOperationException($"Request message is missing a target. Message: '{request}'.");
-        }
-        await InvokeRequestDelegate(connection, request, async request =>
-        {
-            var (gateway, isPlacement) = await _gatewayRegistry.GetOrPlaceAgent(request.Target);
-            if (gateway is null)
-            {
-                return new RpcResponse { Error = "Agent not found and no compatible gateways were found." };
-            }
-            if (isPlacement)
-            {
-                // TODO// Activate the worker: load state
-            }
-            // Forward the message to the gateway and return the result.
-            return await gateway.InvokeRequest(request).ConfigureAwait(true);
-        });
-        //}
-    }
 
-    private static async Task InvokeRequestDelegate(GrpcWorkerConnection connection, RpcRequest request, Func<RpcRequest, Task<RpcResponse>> func)
-    {
-        try
-        {
-            var response = await func(request);
-            response.RequestId = request.RequestId;
-            await connection.ResponseStream.WriteAsync(new Message { Response = response }).ConfigureAwait(false);
-        }
-        catch (Exception ex)
-        {
-            await connection.ResponseStream.WriteAsync(new Message { Response = new RpcResponse { RequestId = request.RequestId, Error = ex.Message } }).ConfigureAwait(false);
-        }
-    }
-
-    internal void OnRemoveWorkerProcess(GrpcWorkerConnection workerProcess)
-    {
-        _workers.TryRemove(workerProcess, out _);
-        var types = workerProcess.GetSupportedTypes();
-        foreach (var type in types)
-        {
-            if (_supportedAgentTypes.TryGetValue(type, out var supported))
-            {
-                supported.Remove(workerProcess);
-            }
-        }
-        // Any agents activated on that worker are also gone.
-        foreach (var pair in _agentDirectory)
-        {
-            if (pair.Value == workerProcess)
-            {
-                ((IDictionary<(string Type, string Key), GrpcWorkerConnection>)_agentDirectory).Remove(pair);
-            }
-        }
-    }
     async ValueTask<RpcResponse> IGateway.InvokeRequest(RpcRequest request)
     {
         return await this.InvokeRequest(request).ConfigureAwait(false);
     }
+    public async ValueTask BroadcastEvent(CloudEvent evt)
+    {
+        var tasks = new List<Task>(_workers.Count);
+        foreach (var (_, connection) in _supportedAgentTypes)
+        {
 
+            tasks.Add(this.SendMessageAsync((IConnection)connection[0], evt, default));
+        }
+        await Task.WhenAll(tasks).ConfigureAwait(false);
+    }
     Task IGateway.SendMessageAsync(IConnection connection, CloudEvent cloudEvent)
     {
         return this.SendMessageAsync(connection, cloudEvent);
+    }
+        public async Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
+    {
+        var queue = (GrpcWorkerConnection)connection;
+        await queue.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);
     }
 }
