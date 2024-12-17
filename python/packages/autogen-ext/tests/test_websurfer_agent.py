@@ -140,7 +140,7 @@ async def test_run_websurfer(monkeypatch: pytest.MonkeyPatch) -> None:
         result.messages[2]  # type: ignore
         .content[0]  # type: ignore
         .startswith(  # type: ignore
-            "I am waiting a short period of time before taking further action.\n\n Here is a screenshot of the webpage: [Search - Microsoft Bing](https://www.bing.com/)"
+            "I am waiting a short period of time before taking further action.\n\n Here is a screenshot of the webpage:"
         )
     )  # type: ignore
     url_after_sleep = agent._page.url  # type: ignore

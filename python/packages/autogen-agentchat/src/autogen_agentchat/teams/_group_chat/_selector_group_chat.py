@@ -54,7 +54,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._allow_repeated_speaker = allow_repeated_speaker
         self._selector_func = selector_func
 
-    async def validate_group_state(self, message: ChatMessage | None) -> None:
+    async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
         pass
 
     async def reset(self) -> None:
