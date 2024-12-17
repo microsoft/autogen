@@ -8,11 +8,11 @@ using Microsoft.Extensions.AI;
 namespace Hello;
 [TopicSubscription("agents")]
 public class HelloAIAgent(
-    IAgentRuntime context,
+    IAgentWorker worker,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
     IHostApplicationLifetime hostApplicationLifetime,
     IChatClient client) : HelloAgent(
-        context,
+        worker,
         typeRegistry,
         hostApplicationLifetime),
         IHandle<NewMessageReceived>

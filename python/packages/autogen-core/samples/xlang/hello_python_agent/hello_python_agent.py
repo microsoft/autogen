@@ -42,11 +42,11 @@ async def main() -> None:
 
     agnext_logger.info("2")
 
-    await UserProxy.register(runtime, "HelloAgents", lambda: UserProxy())
-    await runtime.add_subscription(DefaultSubscription(agent_type="HelloAgents"))
-    await runtime.add_subscription(TypeSubscription(topic_type="agents.NewMessageReceived", agent_type="HelloAgents"))
-    await runtime.add_subscription(TypeSubscription(topic_type="agents.ConversationClosed", agent_type="HelloAgents"))
-    await runtime.add_subscription(TypeSubscription(topic_type="agents.Output", agent_type="HelloAgents"))
+    await UserProxy.register(runtime, "HelloAgent", lambda: UserProxy())
+    await runtime.add_subscription(DefaultSubscription(agent_type="HelloAgent"))
+    await runtime.add_subscription(TypeSubscription(topic_type="agents.NewMessageReceived", agent_type="HelloAgent"))
+    await runtime.add_subscription(TypeSubscription(topic_type="agents.ConversationClosed", agent_type="HelloAgent"))
+    await runtime.add_subscription(TypeSubscription(topic_type="agents.Output", agent_type="HelloAgent"))
     agnext_logger.info("3")
 
     new_message = NewMessageReceived(message="from Python!")
