@@ -23,6 +23,7 @@ Code for setting up a reflection team of AI agents using AutoGen to collaborativ
 ```python
 # pip install 'autogen-agentchat==0.4.0.dev11'
 # pip install 'autogen-ext[openai]==0.4.0.dev11'
+import asyncio
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
