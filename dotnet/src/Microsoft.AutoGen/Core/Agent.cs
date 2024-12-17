@@ -90,7 +90,7 @@ public abstract class Agent
         }
 
     }
-    
+
     /// <summary>
     /// Starts the message pump for the agent.
     /// </summary>

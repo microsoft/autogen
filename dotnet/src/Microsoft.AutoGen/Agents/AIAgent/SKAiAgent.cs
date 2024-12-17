@@ -13,7 +13,7 @@ public abstract class SKAiAgent<T>(
     ISemanticTextMemory memory,
     Kernel kernel,
     EventTypes typeRegistry) : Agent(
-        worker, 
+        worker,
         typeRegistry) where T : class, new()
 {
     protected AgentState<T> _state = new();
