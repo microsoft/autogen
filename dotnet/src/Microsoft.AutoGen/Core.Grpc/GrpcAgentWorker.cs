@@ -37,7 +37,6 @@ public sealed class GrpcAgentWorker(
     private readonly IServiceProvider _serviceProvider = serviceProvider;
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes = configuredAgentTypes;
     private readonly ILogger<GrpcAgentWorker> _logger = logger;
-    private readonly DistributedContextPropagator _distributedContextPropagator = distributedContextPropagator;
     private readonly CancellationTokenSource _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
     private AsyncDuplexStreamingCall<Message, Message>? _channel;
     private Task? _readTask;
