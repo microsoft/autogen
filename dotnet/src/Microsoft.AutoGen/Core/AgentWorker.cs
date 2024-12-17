@@ -2,20 +2,17 @@
 // AgentWorker.cs
 
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Threading.Channels;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Core;
 
 public class AgentWorker(
 IHostApplicationLifetime hostApplicationLifetime,
 IServiceProvider serviceProvider,
-[FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
-DistributedContextPropagator distributedContextPropagator) :
+[FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes) :
      IHostedService,
      IAgentWorker
 {
@@ -29,7 +26,6 @@ DistributedContextPropagator distributedContextPropagator) :
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes = configuredAgentTypes;
     private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
     private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
-    private readonly DistributedContextPropagator _distributedContextPropagator = distributedContextPropagator;
     private readonly CancellationTokenSource _shutdownCancellationToken = new();
     private Task? _mailboxTask;
     private readonly object _channelLock = new();
@@ -186,8 +182,8 @@ DistributedContextPropagator distributedContextPropagator) :
         {
             if (_agentTypes.TryGetValue(agentId.Type, out var agentType))
             {
-                var context = new AgentMessenger(agentId, this, _serviceProvider.GetRequiredService<ILogger<Agent>>(), _distributedContextPropagator);
-                agent = (Agent)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, context);
+                //var context = new AgentMessenger(agentId, this, _serviceProvider.GetRequiredService<ILogger<Agent>>(), _distributedContextPropagator);
+                agent = (Agent)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, this);
                 _agents.TryAdd((agentId.Type, agentId.Key), agent);
             }
             else

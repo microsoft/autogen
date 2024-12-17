@@ -23,12 +23,12 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
     [Fact]
     public async Task ItInvokeRightHandlerTestAsync()
     {
-        var mockContext = new Mock<AgentMessenger>();
+        //var mockContext = new Mock<AgentMessenger>();
         var mockWorker = new Mock<IAgentWorker>();
-        mockContext.SetupGet(x => x.AgentId).Returns(new AgentId("test", "test"));
+        //mockContext.SetupGet(x => x.AgentId).Returns(new AgentId("test", "test"));
         // mock SendMessageAsync
-        mockContext.Setup(x => x.SendMessageAsync(It.IsAny<Message>(), It.IsAny<CancellationToken>()))
-            .Returns(new ValueTask());
+        //mockContext.Setup(x => x.SendMessageAsync(It.IsAny<Message>(), It.IsAny<CancellationToken>()))
+        //    .Returns(new ValueTask());
         var agent = new TestAgent(mockWorker.Object, new EventTypes(TypeRegistry.Empty, [], []), new Logger<Agent>(new LoggerFactory()));
 
         await agent.HandleObject("hello world");
