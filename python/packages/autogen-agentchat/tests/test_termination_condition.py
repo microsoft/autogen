@@ -13,7 +13,7 @@ from autogen_agentchat.conditions import (
     TokenUsageTermination,
 )
 from autogen_agentchat.messages import HandoffMessage, StopMessage, TextMessage
-from autogen_core.components.models import RequestUsage
+from autogen_core.models import RequestUsage
 
 
 @pytest.mark.asyncio

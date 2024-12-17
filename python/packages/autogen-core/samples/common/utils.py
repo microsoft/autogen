@@ -1,7 +1,7 @@
 import os
 from typing import Any, List, Optional, Union
 
-from autogen_core.components.models import (
+from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     FunctionExecutionResult,
@@ -9,7 +9,7 @@ from autogen_core.components.models import (
     LLMMessage,
     UserMessage,
 )
-from autogen_ext.models import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from typing_extensions import Literal
 

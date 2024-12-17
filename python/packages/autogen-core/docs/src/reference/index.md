@@ -27,10 +27,10 @@ python/autogen_agentchat.state
 
 python/autogen_core
 python/autogen_core.code_executor
-python/autogen_core.components.models
-python/autogen_core.components.model_context
-python/autogen_core.components.tools
-python/autogen_core.components.tool_agent
+python/autogen_core.models
+python/autogen_core.model_context
+python/autogen_core.tools
+python/autogen_core.tool_agent
 python/autogen_core.exceptions
 python/autogen_core.logging
 ```
@@ -39,12 +39,18 @@ python/autogen_core.logging
 :hidden:
 :caption: AutoGen Extensions
 
+python/autogen_ext.agents.magentic_one
+python/autogen_ext.agents.openai
 python/autogen_ext.agents.web_surfer
 python/autogen_ext.agents.file_surfer
 python/autogen_ext.agents.video_surfer
 python/autogen_ext.agents.video_surfer.tools
-python/autogen_ext.models
-python/autogen_ext.tools
+python/autogen_ext.models.openai
+python/autogen_ext.models.replay
+python/autogen_ext.tools.langchain
+python/autogen_ext.code_executors.local
+python/autogen_ext.code_executors.docker
+python/autogen_ext.code_executors.azure
 python/autogen_ext.runtimes.grpc
 ```
 

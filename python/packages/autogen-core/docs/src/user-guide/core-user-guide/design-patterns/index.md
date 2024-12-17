@@ -21,9 +21,11 @@ group chat for task decomposition, and reflection for robustness.
 :maxdepth: 1
 
 concurrent-agents
+sequential-workflow
 group-chat
 handoffs
 mixture-of-agents
 multi-agent-debate
 reflection
+code-execution-groupchat
 ```

@@ -27,5 +27,5 @@ include = ["src"]
 include = "../../shared_tasks.toml"
 
 [tool.poe.tasks]
-
+mypy = "mypy --config-file $POE_ROOT/../../pyproject.toml src"
 test = "true"

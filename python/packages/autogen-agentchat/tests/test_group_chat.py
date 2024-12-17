@@ -32,11 +32,11 @@ from autogen_agentchat.teams._group_chat._round_robin_group_chat import RoundRob
 from autogen_agentchat.teams._group_chat._selector_group_chat import SelectorGroupChatManager
 from autogen_agentchat.teams._group_chat._swarm_group_chat import SwarmGroupChatManager
 from autogen_agentchat.ui import Console
-from autogen_core import AgentId, CancellationToken, FunctionCall
-from autogen_core.components.models import FunctionExecutionResult
-from autogen_core.components.tools import FunctionTool
+from autogen_core import AgentId, CancellationToken
+from autogen_core.tools import FunctionTool
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_ext.models import OpenAIChatCompletionClient, ReplayChatCompletionClient
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.models.replay import ReplayChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
@@ -306,6 +306,7 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
             usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
         ),
     ]
+    # Test with repeat tool calls once
     mock = _MockChatCompletion(chat_completions)
     monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
     tool = FunctionTool(_pass_function, name="pass", description="pass function")
@@ -320,27 +321,18 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     result = await team.run(
         task="Write a program that prints 'Hello, world!'",
     )
-
-    assert len(result.messages) == 6
+    assert len(result.messages) == 8
     assert isinstance(result.messages[0], TextMessage)  # task
     assert isinstance(result.messages[1], ToolCallMessage)  # tool call
     assert isinstance(result.messages[2], ToolCallResultMessage)  # tool call result
     assert isinstance(result.messages[3], TextMessage)  # tool use agent response
     assert isinstance(result.messages[4], TextMessage)  # echo agent response
     assert isinstance(result.messages[5], TextMessage)  # tool use agent response
-    assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
+    assert isinstance(result.messages[6], TextMessage)  # echo agent response
+    assert isinstance(result.messages[7], TextMessage)  # tool use agent response, that has TERMINATE
+    assert result.messages[7].content == "TERMINATE"
 
-    context = tool_use_agent._model_context  # pyright: ignore
-    assert context[0].content == "Write a program that prints 'Hello, world!'"
-    assert isinstance(context[1].content, list)
-    assert isinstance(context[1].content[0], FunctionCall)
-    assert context[1].content[0].name == "pass"
-    assert context[1].content[0].arguments == json.dumps({"input": "pass"})
-    assert isinstance(context[2].content, list)
-    assert isinstance(context[2].content[0], FunctionExecutionResult)
-    assert context[2].content[0].content == "pass"
-    assert context[2].content[0].call_id == "1"
-    assert context[3].content == "Hello"
+    assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
 
     # Test streaming.
     tool_use_agent._model_context.clear()  # pyright: ignore
@@ -1033,3 +1025,48 @@ async def test_swarm_with_handoff_termination() -> None:
     assert result.messages[1].content == "Transferred to second_agent."
     assert result.messages[2].content == "Transferred to third_agent."
     assert result.messages[3].content == "Transferred to non_existing_agent."
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_with_message_list() -> None:
+    # Create a simple team with echo agents
+    agent1 = _EchoAgent("Agent1", "First agent")
+    agent2 = _EchoAgent("Agent2", "Second agent")
+    termination = MaxMessageTermination(4)  # Stop after 4 messages
+    team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
+
+    # Create a list of messages
+    messages: List[ChatMessage] = [
+        TextMessage(content="Message 1", source="user"),
+        TextMessage(content="Message 2", source="user"),
+        TextMessage(content="Message 3", source="user"),
+    ]
+
+    # Run the team with the message list
+    result = await team.run(task=messages)
+
+    # Verify the messages were processed in order
+    assert len(result.messages) == 4  # Initial messages + echo until termination
+    assert result.messages[0].content == "Message 1"  # First message
+    assert result.messages[1].content == "Message 2"  # Second message
+    assert result.messages[2].content == "Message 3"  # Third message
+    assert result.messages[3].content == "Message 1"  # Echo from first agent
+    assert result.stop_reason == "Maximum number of messages 4 reached, current message count: 4"
+
+    # Test with streaming
+    await team.reset()
+    index = 0
+    async for message in team.run_stream(task=messages):
+        if isinstance(message, TaskResult):
+            assert message == result
+        else:
+            assert message == result.messages[index]
+            index += 1
+
+    # Test with invalid message list
+    with pytest.raises(ValueError, match="All messages in task list must be valid ChatMessage types"):
+        await team.run(task=["not a message"])  # type: ignore[list-item, arg-type]  # intentionally testing invalid input
+
+    # Test with empty message list
+    with pytest.raises(ValueError, match="Task list cannot be empty"):
+        await team.run(task=[])

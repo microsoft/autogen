@@ -16,6 +16,7 @@ export interface IAgentFlowSettings {
   showGrid: boolean;
   showTokens: boolean;
   showMessages: boolean;
+  showMiniMap?: boolean;
   // Add any other settings we want to persist
 }
 
@@ -63,6 +64,7 @@ const DEFAULT_AGENT_FLOW_SETTINGS: IAgentFlowSettings = {
   showGrid: true,
   showTokens: true,
   showMessages: true,
+  showMiniMap: false,
 };
 
 export const useConfigStore = create<IConfigState>()(

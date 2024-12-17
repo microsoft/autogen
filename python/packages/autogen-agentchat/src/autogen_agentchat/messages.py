@@ -1,7 +1,13 @@
+"""
+This module defines various message types used for agent-to-agent communication.
+Each message type inherits from the BaseMessage class and includes specific fields
+relevant to the type of message being sent.
+"""
+
 from typing import List, Literal
 
 from autogen_core import FunctionCall, Image
-from autogen_core.components.models import FunctionExecutionResult, RequestUsage
+from autogen_core.models import FunctionExecutionResult, RequestUsage
 from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import Annotated
 

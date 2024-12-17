@@ -105,7 +105,7 @@ body {
   border: grey;
 }
 
-.ant-modal-content {
+/* .ant-modal-content {
   @apply dark:bg-primary dark:text-primary;
 }
 .ant-modal-footer {
@@ -118,7 +118,7 @@ body {
 .ant-modal-title,
 .ant-modal-header {
   @apply bg-primary text-primary;
-}
+} */
 a:hover {
   @apply text-accent;
 }

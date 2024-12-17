@@ -2,7 +2,15 @@ import React from "react";
 import { Link } from "gatsby";
 import { useConfigStore } from "../hooks/store";
 import { Tooltip } from "antd";
-import { Settings, MessagesSquare } from "lucide-react";
+import {
+  Settings,
+  MessagesSquare,
+  Blocks,
+  Bot,
+  PanelLeftClose,
+  PanelLeftOpen,
+  GalleryHorizontalEnd,
+} from "lucide-react";
 import Icon from "./icons";
 
 interface INavItem {
@@ -18,10 +26,22 @@ interface INavItem {
 
 const navigation: INavItem[] = [
   {
+    name: "Team Builder",
+    href: "/build",
+    icon: Bot,
+    breadcrumbs: [{ name: "Team Builder", href: "/build", current: true }],
+  },
+  {
     name: "Playground",
     href: "/",
     icon: MessagesSquare,
     breadcrumbs: [{ name: "Playground", href: "/", current: true }],
+  },
+  {
+    name: "Gallery",
+    href: "/gallery",
+    icon: GalleryHorizontalEnd,
+    breadcrumbs: [{ name: "Gallery", href: "/gallery", current: true }],
   },
 ];
 
@@ -51,9 +71,9 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
   const showFull = isMobile || isExpanded;
 
   const handleNavClick = (item: INavItem) => {
-    if (!isExpanded) {
-      setSidebarState({ isExpanded: true });
-    }
+    // if (!isExpanded) {
+    //   setSidebarState({ isExpanded: true });
+    // }
     setHeader({
       title: item.name,
       breadcrumbs: item.breadcrumbs,
@@ -121,29 +141,37 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
                 const IconComponent = item.icon;
 
                 const navLink = (
-                  <Link
-                    to={item.href}
-                    onClick={() => handleNavClick(item)}
-                    className={classNames(
-                      // Base styles
-                      "group flex gap-x-3 rounded-md p-2 text-sm font-medium",
-                      !showFull && "justify-center",
-                      // Color states
-                      isActive
-                        ? "bg-secondary/50 text-accent"
-                        : "text-secondary hover:bg-secondary/50 hover:text-accent"
+                  <div className="relative">
+                    {isActive && (
+                      <div className="bg-accent absolute top-1 left-0.5 z-50 h-8 w-1 bg-opacity-80  rounded">
+                        {" "}
+                      </div>
                     )}
-                  >
-                    <IconComponent
+                    <Link
+                      to={item.href}
+                      onClick={() => handleNavClick(item)}
                       className={classNames(
-                        "h-6 w-6 shrink-0",
+                        // Base styles
+                        "group  ml-1 flex gap-x-3 rounded-md mr-2  p-2 text-sm font-medium",
+                        !showFull && "justify-center",
+                        // Color states
                         isActive
-                          ? "text-accent"
-                          : "text-secondary group-hover:text-accent"
+                          ? "bg-secondary text-primary "
+                          : "text-secondary hover:bg-tertiary hover:text-accent"
                       )}
-                    />
-                    {showFull && item.name}
-                  </Link>
+                    >
+                      {" "}
+                      <IconComponent
+                        className={classNames(
+                          "h-6 w-6 shrink-0",
+                          isActive
+                            ? "text-accent"
+                            : "text-secondary group-hover:text-accent"
+                        )}
+                      />
+                      {showFull && item.name}
+                    </Link>
+                  </div>
                 );
 
                 return (
@@ -165,11 +193,53 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
           <li
             className={classNames(
               "mt-auto -mx-2 mb-4",
-              !showFull && "flex justify-center"
+              !showFull && "flex flex-col items-center gap-1"
             )}
           >
             {!showFull && !isMobile ? (
-              <Tooltip title="Settings" placement="right">
+              <>
+                <Tooltip title="Settings" placement="right">
+                  <Link
+                    to="/settings"
+                    onClick={() =>
+                      setHeader({
+                        title: "Settings",
+                        breadcrumbs: [
+                          {
+                            name: "Settings",
+                            href: "/settings",
+                            current: true,
+                          },
+                        ],
+                      })
+                    }
+                    className="group flex gap-x-3 rounded-md p-2 text-sm font-medium text-primary hover:text-accent hover:bg-secondary justify-center"
+                  >
+                    <Settings className="h-6 w-6 shrink-0 text-secondary group-hover:text-accent" />
+                  </Link>
+                </Tooltip>
+                <div className="hidden md:block">
+                  <Tooltip
+                    title={isExpanded ? "Close Sidebar" : "Open Sidebar"}
+                    placement="right"
+                  >
+                    <button
+                      onClick={() =>
+                        setSidebarState({ isExpanded: !isExpanded })
+                      }
+                      className="p-2 rounded-md hover:bg-secondary hover:text-accent text-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-opacity-50"
+                    >
+                      {isExpanded ? (
+                        <PanelLeftClose strokeWidth={1.5} className="h-6 w-6" />
+                      ) : (
+                        <PanelLeftOpen strokeWidth={1.5} className="h-6 w-6" />
+                      )}
+                    </button>
+                  </Tooltip>
+                </div>
+              </>
+            ) : (
+              <div className="flex items-center gap-2">
                 <Link
                   to="/settings"
                   onClick={() =>
@@ -180,31 +250,24 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
                       ],
                     })
                   }
-                  className={classNames(
-                    "group flex gap-x-3 rounded-md p-2 text-sm font-medium",
-                    "text-primary hover:text-accent hover:bg-secondary",
-                    !showFull && "justify-center"
-                  )}
+                  className="group flex flex-1 gap-x-3 rounded-md p-2 text-sm font-medium text-primary hover:text-accent hover:bg-secondary"
                 >
                   <Settings className="h-6 w-6 shrink-0 text-secondary group-hover:text-accent" />
+                  {showFull && "Settings"}
                 </Link>
-              </Tooltip>
-            ) : (
-              <Link
-                to="/settings"
-                onClick={() =>
-                  setHeader({
-                    title: "Settings",
-                    breadcrumbs: [
-                      { name: "Settings", href: "/settings", current: true },
-                    ],
-                  })
-                }
-                className="group flex gap-x-3 rounded-md p-2 text-sm font-medium text-primary hover:text-accent hover:bg-secondary"
-              >
-                <Settings className="h-6 w-6 shrink-0 text-secondary group-hover:text-accent" />
-                {showFull && "Settings"}
-              </Link>
+                <div className="hidden md:block">
+                  <button
+                    onClick={() => setSidebarState({ isExpanded: !isExpanded })}
+                    className="p-2 rounded-md hover:bg-secondary hover:text-accent text-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-opacity-50"
+                  >
+                    {isExpanded ? (
+                      <PanelLeftClose strokeWidth={1.5} className="h-6 w-6" />
+                    ) : (
+                      <PanelLeftOpen strokeWidth={1.5} className="h-6 w-6" />
+                    )}
+                  </button>
+                </div>
+              </div>
             )}
           </li>
         </ul>
