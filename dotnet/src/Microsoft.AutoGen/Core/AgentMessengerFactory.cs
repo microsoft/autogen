@@ -6,7 +6,7 @@ using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Core;
-public static class AgentMessengerFactory
+public class AgentMessengerFactory(IAgentWorker worker, DistributedContextPropagator distributedContextPropagator, ILogger<Agent> logger)
 {
     public static AgentMessenger Create(AgentId agentId, IAgentWorker worker, ILogger<Agent> logger, DistributedContextPropagator distributedContextPropagator)
     {

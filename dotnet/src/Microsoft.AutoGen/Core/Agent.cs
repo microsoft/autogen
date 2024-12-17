@@ -29,7 +29,7 @@ public abstract class Agent
     /// <summary>
     /// Gets the unique identifier of the agent.
     /// </summary>
-    public AgentId AgentId => Messenger.AgentId;
+    public AgentId AgentId => new AgentId(this.GetType().Name, new Guid().ToString());
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     protected internal ILogger<Agent> _logger;
     public AgentMessenger Messenger { get; private set; }
@@ -38,14 +38,14 @@ public abstract class Agent
 
     protected readonly EventTypes EventTypes;
 
-    protected Agent(
+    protected Agent(IAgentWorker worker,
         EventTypes eventTypes,
         ILogger<Agent>? logger = null)
     {
         EventTypes = eventTypes;
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<Agent>();
         _handlersByMessageType = new(GetType().GetHandlersLookupTable());
-        Messenger = new AgentMessenger(agentId, this, _serviceProvider.GetRequiredService<ILogger<Agent>>(), _distributedContextPropagator);
+        Messenger = AgentMessengerFactory.Create(AgentId, worker, _logger, DistributedContextPropagator.Current);
         AddImplicitSubscriptionsAsync().AsTask().Wait();
         Completion = Start();
     }
@@ -73,7 +73,7 @@ public abstract class Agent
                 }
             };
             // explicitly wait for this to complete
-            await Runtime.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).ConfigureAwait(true);
+            await Messenger.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).ConfigureAwait(true);
         }
 
         // using reflection, find all methods that Handle<T> and subscribe to the topic T
@@ -185,18 +185,18 @@ public abstract class Agent
                 }
             }
         };
-        Runtime.SendMessageAsync(message).AsTask().Wait();
+        Messenger.SendMessageAsync(message).AsTask().Wait();
 
         return new List<string> { topic };
     }
     public async Task StoreAsync(AgentState state, CancellationToken cancellationToken = default)
     {
-        await Runtime.StoreAsync(state, cancellationToken).ConfigureAwait(false);
+        await Messenger.StoreAsync(state, cancellationToken).ConfigureAwait(false);
         return;
     }
     public async Task<T> ReadAsync<T>(AgentId agentId, CancellationToken cancellationToken = default) where T : IMessage, new()
     {
-        var agentstate = await Runtime.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
+        var agentstate = await Messenger.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
         return agentstate.FromAgentState<T>();
     }
     private void OnResponseCore(RpcResponse response)
@@ -225,7 +225,7 @@ public abstract class Agent
         {
             response = new RpcResponse { Error = ex.Message };
         }
-        await Runtime.SendResponseAsync(request, response, cancellationToken).ConfigureAwait(false);
+        await Messenger.SendResponseAsync(request, response, cancellationToken).ConfigureAwait(false);
     }
 
     protected async Task<RpcResponse> RequestAsync(AgentId target, string method, Dictionary<string, string> parameters)
@@ -245,11 +245,11 @@ public abstract class Agent
             }
         };
 
-        var activity = s_source.StartActivity($"Call '{method}'", ActivityKind.Client, Activity.Current?.Runtime ?? default);
+        var activity = s_source.StartActivity($"Call '{method}'", ActivityKind.Client, Activity.Current?.Messenger ?? default);
         activity?.SetTag("peer.service", target.ToString());
 
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        Runtime!.Update(request, activity);
+        Messenger!.Update(request, activity);
         await this.InvokeWithActivityAsync(
             static async (state, ct) =>
             {
@@ -257,7 +257,7 @@ public abstract class Agent
 
                 self._pendingRequests.AddOrUpdate(request.RequestId, _ => completion, (_, __) => completion);
 
-                await state.Item1.Runtime!.SendRequestAsync(state.Item1, state.request, ct).ConfigureAwait(false);
+                await state.Item1.Messenger!.SendRequestAsync(state.Item1, state.request, ct).ConfigureAwait(false);
 
                 await completion.Task.ConfigureAwait(false);
             },
@@ -278,15 +278,15 @@ public abstract class Agent
 
     public async ValueTask PublishEventAsync(CloudEvent item, CancellationToken cancellationToken = default)
     {
-        var activity = s_source.StartActivity($"PublishEventAsync '{item.Type}'", ActivityKind.Client, Activity.Current?.Runtime ?? default);
+        var activity = s_source.StartActivity($"PublishEventAsync '{item.Type}'", ActivityKind.Client, Activity.Current?.Messenger ?? default);
         activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
 
         // TODO: fix activity
-        Runtime.Update(item, activity);
+        Messenger.Update(item, activity);
         await this.InvokeWithActivityAsync(
             static async ((Agent Agent, CloudEvent Event) state, CancellationToken ct) =>
             {
-                await state.Agent.Runtime.PublishEventAsync(state.Event).ConfigureAwait(false);
+                await state.Agent.Messenger.PublishEventAsync(state.Event).ConfigureAwait(false);
             },
             (this, item),
             activity,

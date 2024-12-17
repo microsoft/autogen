@@ -11,39 +11,29 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Core;
 
-public class AgentWorker :
+public class AgentWorker(
+IHostApplicationLifetime hostApplicationLifetime,
+IServiceProvider serviceProvider,
+[FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
+DistributedContextPropagator distributedContextPropagator) :
      IHostedService,
      IAgentWorker
 {
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
     private readonly ConcurrentDictionary<(string Type, string Key), Agent> _agents = new();
-    private readonly ILogger<AgentWorker> _logger;
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
     private readonly ConcurrentDictionary<string, (Agent Agent, string OriginalRequestId)> _pendingClientRequests = new();
-    private readonly CancellationTokenSource _shutdownCts;
-    private readonly IServiceProvider _serviceProvider;
-    private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes;
+    private readonly CancellationTokenSource _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
+    private readonly IServiceProvider _serviceProvider = serviceProvider;
+    private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes = configuredAgentTypes;
     private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
     private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
-    private readonly DistributedContextPropagator _distributedContextPropagator;
+    private readonly DistributedContextPropagator _distributedContextPropagator = distributedContextPropagator;
     private readonly CancellationTokenSource _shutdownCancellationToken = new();
     private Task? _mailboxTask;
     private readonly object _channelLock = new();
 
-    public AgentWorker(
-    IHostApplicationLifetime hostApplicationLifetime,
-    IServiceProvider serviceProvider,
-    [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
-    ILogger<AgentWorker> logger,
-    DistributedContextPropagator distributedContextPropagator)
-    {
-        _logger = logger;
-        _serviceProvider = serviceProvider;
-        _configuredAgentTypes = configuredAgentTypes;
-        _distributedContextPropagator = distributedContextPropagator;
-        _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
-    }
     // this is the in-memory version - we just pass the message directly to the agent(s) that handle this type of event
     public async ValueTask PublishEventAsync(CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
