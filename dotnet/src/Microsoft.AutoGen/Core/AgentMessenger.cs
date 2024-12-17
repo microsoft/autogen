@@ -4,18 +4,14 @@
 using System.Diagnostics;
 using Google.Protobuf.Collections;
 using Microsoft.AutoGen.Contracts;
-using Microsoft.Extensions.Logging;
 using static Microsoft.AutoGen.Contracts.CloudEvent.Types;
 
 namespace Microsoft.AutoGen.Core;
 
-public sealed class AgentMessenger(AgentId agentId, IAgentWorker worker, ILogger<Agent> logger, DistributedContextPropagator distributedContextPropagator)
+public sealed class AgentMessenger(IAgentWorker worker, DistributedContextPropagator distributedContextPropagator)
 {
     private readonly IAgentWorker worker = worker;
 
-    public AgentId AgentId { get; } = agentId;
-    private ILogger<Agent> Logger { get; } = logger;
-    public Agent? AgentInstance { get; set; }
     private DistributedContextPropagator DistributedContextPropagator { get; } = distributedContextPropagator;
     public (string?, string?) GetTraceIdAndState(IDictionary<string, string> metadata)
     {

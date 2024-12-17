@@ -46,7 +46,7 @@ public abstract class Agent
         AgentId = new AgentId(this.GetType().Name, new Guid().ToString());
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<Agent>();
         _handlersByMessageType = new(GetType().GetHandlersLookupTable());
-        Messenger = AgentMessengerFactory.Create(AgentId, worker, _logger, DistributedContextPropagator.Current);
+        Messenger = AgentMessengerFactory.Create(worker, DistributedContextPropagator.Current);
         AddImplicitSubscriptionsAsync().AsTask().Wait();
         Completion = Start();
     }
