@@ -99,7 +99,7 @@ export const TeamManager: React.FC = () => {
     if (!teamId || !user?.email) return;
     setIsLoading(true);
     try {
-      const data = await teamAPI.getTeam(teamId, user.email!); // We can assert user.email exists since we checked above
+      const data = await teamAPI.getTeam(teamId, user.email!);
       setCurrentTeam(data);
       window.history.pushState({}, "", `?teamId=${teamId}`);
     } catch (error) {
@@ -126,9 +126,7 @@ export const TeamManager: React.FC = () => {
     }
   };
 
-  const handleCreateTeam = () => {
-    const newTeam = Object.assign({}, defaultTeam);
-    newTeam.config.name = "new_team_" + new Date().getTime();
+  const handleCreateTeam = (newTeam: Team) => {
     setCurrentTeam(newTeam);
     // also save it to db
 
@@ -191,7 +189,7 @@ export const TeamManager: React.FC = () => {
 
       {/* Main Content */}
       <div
-        className={`flex-1 transition-all duration-200 ${
+        className={`flex-1 transition-all -mr-6 duration-200 ${
           isSidebarOpen ? "ml-64" : "ml-12"
         }`}
       >
@@ -222,7 +220,7 @@ export const TeamManager: React.FC = () => {
               onDirtyStateChange={setHasUnsavedChanges}
             />
           ) : (
-            <div className="flex items-center justify-center h-[calc(100vh-120px)] text-secondary">
+            <div className="flex items-center   justify-center h-[calc(100vh-190px)] text-secondary">
               Select a team from the sidebar or create a new one
             </div>
           )}

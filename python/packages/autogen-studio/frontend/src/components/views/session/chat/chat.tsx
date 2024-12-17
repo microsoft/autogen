@@ -6,7 +6,7 @@ import {
   Run,
   Message,
   WebSocketMessage,
-  TeamConfigTypes,
+  TeamConfig,
   AgentMessageConfig,
   RunStatus,
   TeamResult,
@@ -46,9 +46,7 @@ export default function ChatView({ session }: ChatViewProps) {
   const [activeSocket, setActiveSocket] = React.useState<WebSocket | null>(
     null
   );
-  const [teamConfig, setTeamConfig] = React.useState<TeamConfigTypes | null>(
-    null
-  );
+  const [teamConfig, setTeamConfig] = React.useState<TeamConfig | null>(null);
 
   const inputTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const activeSocketRef = React.useRef<WebSocket | null>(null);
@@ -83,6 +81,7 @@ export default function ChatView({ session }: ChatViewProps) {
   React.useEffect(() => {
     if (session?.id) {
       loadSessionRuns();
+      setCurrentRun(null);
     } else {
       setExistingRuns([]);
       setCurrentRun(null);
@@ -99,7 +98,7 @@ export default function ChatView({ session }: ChatViewProps) {
         })
         .catch((error) => {
           console.error("Error loading team config:", error);
-          messageApi.error("Failed to load team config");
+          // messageApi.error("Failed to load team config");
           setTeamConfig(null);
         });
     }

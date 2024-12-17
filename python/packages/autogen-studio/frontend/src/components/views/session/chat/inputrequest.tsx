@@ -123,7 +123,7 @@ const InputRequestView: React.FC<InputRequestProps> = ({
           onChange={handleInputChange}
           onKeyDown={handleKeyDown}
           disabled={disabled || isSubmitting}
-          className="flex-1 px-3 py-2 rounded bg-background border border-secondary focus:border-accent focus:ring-1 focus:ring-accent outline-none disabled:opacity-50"
+          className="text-primary flex-1 px-3 py-2 rounded bg-tertiary border border-secondary focus:border-accent focus:ring-1 focus:ring-accent outline-none disabled:opacity-50"
           placeholder={
             disabled
               ? "Input timeout - please restart the conversation"
