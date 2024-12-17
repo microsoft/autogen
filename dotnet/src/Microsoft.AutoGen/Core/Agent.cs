@@ -97,10 +97,10 @@ public abstract class Agent
     internal Task Start()
     {
         var didSuppress = false;
-        if (!ExecutionRuntime.IsFlowSuppressed())
+        if (!ExecutionContext.IsFlowSuppressed())
         {
             didSuppress = true;
-            ExecutionRuntime.SuppressFlow();
+            ExecutionContext.SuppressFlow();
         }
 
         try
@@ -111,7 +111,7 @@ public abstract class Agent
         {
             if (didSuppress)
             {
-                ExecutionRuntime.RestoreFlow();
+                ExecutionContext.RestoreFlow();
             }
         }
     }
