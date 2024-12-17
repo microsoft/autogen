@@ -2,7 +2,7 @@
 // EventExtensions.cs
 
 using System.Globalization;
-using Microsoft.AutoGen.Abstractions;
+using Microsoft.AutoGen.Contracts;
 
 namespace DevTeam;
 

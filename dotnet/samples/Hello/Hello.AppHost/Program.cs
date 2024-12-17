@@ -4,7 +4,7 @@
 using Microsoft.Extensions.Hosting;
 
 var builder = DistributedApplication.CreateBuilder(args);
-var backend = builder.AddProject<Projects.Backend>("backend").WithExternalHttpEndpoints();
+var backend = builder.AddProject<Projects.Microsoft_Autogen_AgentHost>("backend").WithExternalHttpEndpoints();
 var client = builder.AddProject<Projects.HelloAgent>("HelloAgentsDotNET")
     .WithReference(backend)
     .WithEnvironment("AGENT_HOST", backend.GetEndpoint("https"))
