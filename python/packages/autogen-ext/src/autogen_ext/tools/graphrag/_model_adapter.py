@@ -2,8 +2,6 @@ import asyncio
 import json
 from typing import Any, List, Optional, Union
 
-from graphrag.query.llm.base import BaseLLM
-
 from autogen_ext.models.openai._openai_client import (
     AssistantMessage,
     CreateResult,
@@ -11,6 +9,8 @@ from autogen_ext.models.openai._openai_client import (
     SystemMessage,
     UserMessage,
 )
+
+from graphrag.query.llm.base import BaseLLM
 
 
 class GraphragOpenAiModelAdapter(BaseLLM):

@@ -1,5 +1,3 @@
-# tool_global_search.py
-
 import json
 from typing import Any
 
@@ -7,6 +5,9 @@ import pandas as pd
 import tiktoken
 from autogen_core import CancellationToken
 from autogen_core.components.tools import BaseTool
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from pydantic import BaseModel, Field
+
 from graphrag.query.indexer_adapters import (
     read_indexer_communities,
     read_indexer_entities,
@@ -14,45 +15,11 @@ from graphrag.query.indexer_adapters import (
 )
 from graphrag.query.structured_search.global_search.community_context import GlobalCommunityContext
 from graphrag.query.structured_search.global_search.search import GlobalSearch
-from pydantic import BaseModel, Field
 
-from autogen_ext.models.openai import OpenAIChatCompletionClient
-
+from ._config import GlobalContextConfig, GlobalDataConfig, MapReduceConfig
 from ._model_adapter import GraphragOpenAiModelAdapter
 
-
-class DataConfig(BaseModel):
-    input_dir: str
-    community_table: str = "create_final_communities"
-    community_report_table: str = "create_final_community_reports"
-    entity_table: str = "create_final_nodes"
-    entity_embedding_table: str = "create_final_entities"
-    community_level: int = 2
-
-
-class ContextConfig(BaseModel):
-    use_community_summary: bool = False
-    shuffle_data: bool = True
-    include_community_rank: bool = True
-    min_community_rank: int = 0
-    community_rank_name: str = "rank"
-    include_community_weight: bool = True
-    community_weight_name: str = "occurrence weight"
-    normalize_community_weight: bool = True
-    max_data_tokens: int = 12000
-
-
-class MapReduceConfig(BaseModel):
-    map_max_tokens: int = 1000
-    map_temperature: float = 0.0
-    reduce_max_tokens: int = 2000
-    reduce_temperature: float = 0.0
-    allow_general_knowledge: bool = False
-    json_mode: bool = False
-    response_type: str = "multiple paragraphs"
-
-
-_default_context_config = ContextConfig()
+_default_context_config = GlobalContextConfig()
 _default_mapreduce_config = MapReduceConfig()
 
 
@@ -64,8 +31,8 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, str]):
     def __init__(
         self,
         openai_client: OpenAIChatCompletionClient,
-        data_config: DataConfig,
-        context_config: ContextConfig = _default_context_config,
+        data_config: GlobalDataConfig,
+        context_config: GlobalContextConfig = _default_context_config,
         mapreduce_config: MapReduceConfig = _default_mapreduce_config,
     ):
         super().__init__(

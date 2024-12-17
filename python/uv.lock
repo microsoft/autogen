@@ -571,7 +571,7 @@ requires-dist = [
     { name = "azure-identity", marker = "extra == 'azure'" },
     { name = "docker", marker = "extra == 'docker'", specifier = "~=7.0" },
     { name = "ffmpeg-python", marker = "extra == 'video-surfer'" },
-    { name = "graphrag", marker = "extra == 'graphrag'", specifier = "==0.9.0" },
+    { name = "graphrag", marker = "extra == 'graphrag'", specifier = "==1.0.0" },
     { name = "grpcio", marker = "extra == 'grpc'", specifier = "~=1.62.0" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = "~=0.3.3" },
     { name = "markitdown", marker = "extra == 'file-surfer'", specifier = ">=0.0.1a2" },
@@ -1569,7 +1569,7 @@ wheels = [
 
 [[package]]
 name = "graphrag"
-version = "0.9.0"
+version = "1.0.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "aiofiles" },
@@ -1604,9 +1604,9 @@ dependencies = [
     { name = "typing-extensions" },
     { name = "umap-learn" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c9/3b/dbfa89d3ef6b6cead6e66a5ce12dd16874a7ccc361ca02e18e01a74c7723/graphrag-0.9.0.tar.gz", hash = "sha256:1e556d66e66bb73b791a65487bfb11f0a49f6b885c6749727f2a2e9e95d2b95a", size = 206120 }
+sdist = { url = "https://files.pythonhosted.org/packages/9d/42/6eb76d6cccb354ad02255f6532e5ac0108240fe0ad340920110c3e5d11c4/graphrag-1.0.0.tar.gz", hash = "sha256:0c18ece25c9e5be39f9f5b72ff69ecb2346132d78b84f85680f55539e6e1fcae", size = 204948 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/80/6b/0664cd877468385350beedefa24b19a0628104eb12b4f32f4f9d63df2c45/graphrag-0.9.0-py3-none-any.whl", hash = "sha256:2cc7dcdd56e367f71e3a34c291a70c883b0321b3f4a17edb6aff478311f16019", size = 369359 },
+    { url = "https://files.pythonhosted.org/packages/aa/4a/ca61e3adf930f46e2be1f1529d7d0ea41f128adb8abf75fe1eab9daf0cc2/graphrag-1.0.0-py3-none-any.whl", hash = "sha256:a1b47b6cdd8a860a318bcef7d0a7f0fd3531de1f68e9c41c634578721b9f7655", size = 364553 },
 ]
 
 [[package]]

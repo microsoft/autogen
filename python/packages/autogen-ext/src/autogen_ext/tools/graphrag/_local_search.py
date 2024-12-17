@@ -1,55 +1,29 @@
-# tool_local_search.py
-
-import json
-from typing import Any
+import os
 
 import pandas as pd
 import tiktoken
 from autogen_core import CancellationToken
-from autogen_core.components.tools import BaseTool
-from graphrag.model.entity import Entity
-from graphrag.model.relationship import Relationship
-from graphrag.model.text_unit import TextUnit
+from autogen_core.tools import BaseTool
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+# from graphrag.query.input.loaders.dfs import store_entity_semantic_embeddings
+from pydantic import BaseModel, Field
+
 from graphrag.query.indexer_adapters import (
     read_indexer_entities,
     read_indexer_relationships,
     read_indexer_text_units,
 )
+from graphrag.query.llm.oai.embedding import OpenAIEmbedding
 from graphrag.query.structured_search.local_search.mixed_context import LocalSearchMixedContext
 from graphrag.query.structured_search.local_search.search import LocalSearch
-from pydantic import BaseModel, Field
+from graphrag.vector_stores.lancedb import LanceDBVectorStore
 
-from autogen_ext.models.openai import OpenAIChatCompletionClient
-
+from ._config import BaseSearchConfig, EmbeddingConfig, LocalContextConfig, LocalDataConfig
 from ._model_adapter import GraphragOpenAiModelAdapter
 
-
-class DataConfig(BaseModel):
-    input_dir: str
-    entity_table: str = "create_final_nodes"
-    entity_embedding_table: str = "create_final_entities"
-    relationship_table: str = "create_final_edges"
-    text_unit_table: str = "create_final_text_units"
-
-
-class ContextConfig(BaseModel):
-    text_unit_prop: float = 0.5
-    community_prop: float = 0.25
-    include_entity_rank: bool = True
-    rank_description: str = "number of relationships"
-    include_relationship_weight: bool = True
-    relationship_ranking_attribute: str = "rank"
-    max_data_tokens: int = 8000
-
-
-class SearchConfig(BaseModel):
-    max_tokens: int = 1500
-    temperature: float = 0.0
-    response_type: str = "multiple paragraphs"
-
-
-_default_context_config = ContextConfig()
-_default_search_config = SearchConfig()
+_default_context_config = LocalContextConfig()
+_default_search_config = BaseSearchConfig()
 
 
 class LocalSearchToolArgs(BaseModel):
@@ -60,9 +34,10 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, str]):
     def __init__(
         self,
         openai_client: OpenAIChatCompletionClient,
-        data_config: DataConfig,
-        context_config: ContextConfig = _default_context_config,
-        search_config: SearchConfig = _default_search_config,
+        data_config: LocalDataConfig,
+        embedding_config: EmbeddingConfig,
+        context_config: LocalContextConfig = _default_context_config,
+        search_config: BaseSearchConfig = _default_search_config,
     ):
         super().__init__(
             args_type=LocalSearchToolArgs,
@@ -70,8 +45,22 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, str]):
             name="local_search_tool",
             description="Perform a local search with given parameters using graphrag.",
         )
-        # Use the adapter
+        # Use the adapter for LLM
         self._llm_adapter = GraphragOpenAiModelAdapter(openai_client)
+
+        # Create text embedder using OpenAI client config
+        self._text_embedder = OpenAIEmbedding(
+            api_key=embedding_config.api_key,
+            api_base=embedding_config.api_base,
+            azure_ad_token_provider=embedding_config.azure_ad_token_provider,
+            api_version=embedding_config.api_version,
+            api_type=embedding_config.api_type,
+            model=embedding_config.model,
+            encoding_name=embedding_config.encoding_name,
+            max_tokens=embedding_config.max_tokens,
+            max_retries=embedding_config.max_retries,
+            request_timeout=embedding_config.request_timeout,
+        )
 
         # Set up token encoder
         model_name = self._llm_adapter._client._raw_config["model"]
@@ -84,15 +73,25 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, str]):
         text_unit_df = pd.read_parquet(f"{data_config.input_dir}/{data_config.text_unit_table}.parquet")
 
         # Read data using indexer adapters
-        entities = read_indexer_entities(entity_df, entity_embedding_df)
+        entities = read_indexer_entities(entity_df, entity_embedding_df, community_level=data_config.community_level)
         relationships = read_indexer_relationships(relationship_df)
         text_units = read_indexer_text_units(text_unit_df)
+        # Set up vector store for entity embeddings
+        description_embedding_store = LanceDBVectorStore(
+            collection_name="default-entity-description",
+        )
+        description_embedding_store.connect(db_uri=os.path.join(data_config.input_dir, "lancedb"))
+        # entity_embedding_table = table = description_embedding_store.db_connection.open_table('default-entity-description').to_pandas()
+        # breakpoint()
+        # entity_description_embeddings = store_entity_semantic_embeddings(
+        #     entities=entities, vectorstore=description_embedding_store
+        # )
 
         # Set up context builder
         context_builder = LocalSearchMixedContext(
             entities=entities,
-            entity_text_embeddings=entity_embedding_df,
-            text_embedder=self._llm_adapter,
+            entity_text_embeddings=description_embedding_store,
+            text_embedder=self._text_embedder,
             text_units=text_units,
             relationships=relationships,
             token_encoder=token_encoder,
