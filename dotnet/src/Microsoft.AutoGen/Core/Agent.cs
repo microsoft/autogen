@@ -29,7 +29,7 @@ public abstract class Agent
     /// <summary>
     /// Gets the unique identifier of the agent.
     /// </summary>
-    public AgentId AgentId => new AgentId(this.GetType().Name, new Guid().ToString());
+    public AgentId AgentId { get; private set; }
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     protected internal ILogger<Agent> _logger;
     public AgentMessenger Messenger { get; private set; }
@@ -43,6 +43,7 @@ public abstract class Agent
         ILogger<Agent>? logger = null)
     {
         EventTypes = eventTypes;
+        AgentId = new AgentId(this.GetType().Name, new Guid().ToString());
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<Agent>();
         _handlersByMessageType = new(GetType().GetHandlersLookupTable());
         Messenger = AgentMessengerFactory.Create(AgentId, worker, _logger, DistributedContextPropagator.Current);
@@ -245,7 +246,7 @@ public abstract class Agent
             }
         };
 
-        var activity = s_source.StartActivity($"Call '{method}'", ActivityKind.Client, Activity.Current?.Messenger ?? default);
+        var activity = s_source.StartActivity($"Call '{method}'", ActivityKind.Client, Activity.Current?.Context ?? default);
         activity?.SetTag("peer.service", target.ToString());
 
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -278,7 +279,7 @@ public abstract class Agent
 
     public async ValueTask PublishEventAsync(CloudEvent item, CancellationToken cancellationToken = default)
     {
-        var activity = s_source.StartActivity($"PublishEventAsync '{item.Type}'", ActivityKind.Client, Activity.Current?.Messenger ?? default);
+        var activity = s_source.StartActivity($"PublishEventAsync '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
         activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
 
         // TODO: fix activity

@@ -5,12 +5,10 @@ using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 namespace Microsoft.AutoGen.Agents;
 
-public abstract class IOAgent : Agent
+public abstract class IOAgent(IAgentWorker worker, EventTypes eventTypes) : Agent(worker, eventTypes)
 {
     public string _route = "base";
-    protected IOAgent(EventTypes eventTypes) : base(eventTypes)
-    {
-    }
+
     public virtual async Task Handle(Input item)
     {
 

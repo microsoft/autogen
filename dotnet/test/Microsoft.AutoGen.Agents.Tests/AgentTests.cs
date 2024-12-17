@@ -23,12 +23,13 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
     [Fact]
     public async Task ItInvokeRightHandlerTestAsync()
     {
-        var mockContext = new Mock<IAgentRuntime>();
+        var mockContext = new Mock<AgentMessenger>();
+        var mockWorker = new Mock<IAgentWorker>();
         mockContext.SetupGet(x => x.AgentId).Returns(new AgentId("test", "test"));
         // mock SendMessageAsync
         mockContext.Setup(x => x.SendMessageAsync(It.IsAny<Message>(), It.IsAny<CancellationToken>()))
             .Returns(new ValueTask());
-        var agent = new TestAgent(mockContext.Object, new EventTypes(TypeRegistry.Empty, [], []), new Logger<Agent>(new LoggerFactory()));
+        var agent = new TestAgent(mockWorker.Object, new EventTypes(TypeRegistry.Empty, [], []), new Logger<Agent>(new LoggerFactory()));
 
         await agent.HandleObject("hello world");
         await agent.HandleObject(42);
@@ -65,9 +66,9 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
     public class TestAgent : Agent, IHandle<string>, IHandle<int>, IHandle<TextMessage>
     {
         public TestAgent(
-            IAgentRuntime context,
+            IAgentWorker worker,
             [FromKeyedServices("EventTypes")] EventTypes eventTypes,
-            Logger<Agent>? logger = null) : base(context, eventTypes, logger)
+            Logger<Agent>? logger = null) : base(worker, eventTypes, logger)
         {
         }
 
