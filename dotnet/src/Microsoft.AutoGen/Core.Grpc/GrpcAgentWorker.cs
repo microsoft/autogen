@@ -2,7 +2,6 @@
 // GrpcAgentWorker.cs
 
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Reflection;
 using System.Threading.Channels;
 using Grpc.Core;
@@ -18,8 +17,7 @@ public sealed class GrpcAgentWorker(
     IHostApplicationLifetime hostApplicationLifetime,
     IServiceProvider serviceProvider,
     [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
-    ILogger<GrpcAgentWorker> logger,
-    DistributedContextPropagator distributedContextPropagator) :
+    ILogger<GrpcAgentWorker> logger) :
     IHostedService, IDisposable, IAgentWorker
 {
     private readonly object _channelLock = new();
