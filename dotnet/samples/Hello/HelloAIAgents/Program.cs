@@ -33,8 +33,10 @@ namespace Hello
 {
     [TopicSubscription("agents")]
     public class HelloAgent(
+        IAgentWorker worker,
         [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
         IHostApplicationLifetime hostApplicationLifetime) : ConsoleAgent(
+            worker,
             typeRegistry),
             ISayHello,
             IHandle<NewMessageReceived>,

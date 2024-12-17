@@ -186,9 +186,9 @@ await app.WaitForShutdownAsync();
 
 [TopicSubscription("agents")]
 public class HelloAgent(
-    IAgentContext context,
+    IAgentContext worker,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : ConsoleAgent(
-        context,
+        worker,
         typeRegistry),
         ISayHello,
         IHandle<NewMessageReceived>,

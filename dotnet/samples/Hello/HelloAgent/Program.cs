@@ -18,9 +18,9 @@ namespace Hello
 {
     [TopicSubscription("agents")]
     public class HelloAgent(
-        IAgentRuntime context, IHostApplicationLifetime hostApplicationLifetime,
+        IAgentWorker worker, IHostApplicationLifetime hostApplicationLifetime,
         [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : Agent(
-            context,
+            worker,
             typeRegistry),
             ISayHello,
             IHandleConsole,
