@@ -23,7 +23,8 @@ dev-dependencies = [
 ]
 
 override-dependencies = [
-    "tenacity==9.0.0"
+    "tenacity==9.0.0",
+    "pydantic==2.9.2",
 ]
 
 [tool.uv.sources]
