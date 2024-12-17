@@ -45,6 +45,7 @@
     <PackageVersion Include="MartinCostello.Logging.XUnit" Version="0.4.0" />
     <PackageVersion Include="Microsoft.AspNetCore.App" Version="8.0.4" />
     <PackageVersion Include="Microsoft.AspNetCore.OpenApi" Version="8.0.8" />
+    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="8.0.11" />
     <PackageVersion Include="Microsoft.ApplicationInsights.AspNetCore" Version="2.22.0" />
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.AI" Version="$(MicrosoftExtensionsAIVersion)" />
@@ -83,6 +84,7 @@
     <PackageVersion Include="Microsoft.Orleans.Server" Version="$(MicrosoftOrleans)" />
     <PackageVersion Include="Microsoft.Orleans.Streaming" Version="$(MicrosoftOrleans)" />
     <PackageVersion Include="Microsoft.Orleans.Streaming.EventHubs" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.TestingHost" Version="9.0.1" />
     <PackageVersion Include="Microsoft.SemanticKernel" Version="1.29.0" />
     <PackageVersion Include="Microsoft.SemanticKernel.Agents.Core" Version="$(MicrosoftSemanticKernelExperimentalVersion)" />
     <PackageVersion Include="Microsoft.SemanticKernel.Connectors.AzureOpenAI" Version="1.29.0" />
@@ -125,7 +127,6 @@
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageVersion Include="Moq" Version="4.20.72" />
     <PackageVersion Include="Microsoft.PowerShell.SDK" Version="7.4.5" />
-    <PackageVersion Include="Microsoft.AspNetCore.TestHost" Version="8.0.11" />
     <PackageVersion Include="coverlet.collector" Version="6.0.2" />
   </ItemGroup>
 </Project>

@@ -28,8 +28,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
     // RPC
     private readonly ConcurrentDictionary<(GrpcWorkerConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
-    // InMemory Message Queue
-
+    public int WorkersCount => _workers.Count;
     public GrpcGateway(IClusterClient clusterClient, ILogger<GrpcGateway> logger)
     {
         _logger = logger;
