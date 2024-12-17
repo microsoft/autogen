@@ -1,7 +1,13 @@
+"""
+ADAS helper to generate prompt for ADAS meta-agent.
+"""
+# pyright: basic
 import json
 
 import requests
 from github import Github
+from github.Repository import Repository
+from typing import List, Dict, Union
 
 EXAMPLE = {
     "thought": "**Insights:**\nYour insights on what should be the next interesting agent.\n**Overall Idea:**\nyour reasoning and the overall concept behind the agent design.\n**Implementation:**\ndescribe the implementation step by step.",
@@ -13,7 +19,7 @@ EXAMPLE = {
 }
 
 
-def read_github_file(url):
+def read_github_file(url: str) -> Union[str, None]:
     response = requests.get(url)
     if response.status_code == 200:
         return response.text
@@ -21,10 +27,10 @@ def read_github_file(url):
         return None
 
 
-def print_repo_contents(repo, path="", indent=""):
+def print_repo_contents(repo: Repository, path: str = "", indent: str = "") -> List[str]:
     contents = repo.get_contents(path)
     documentation = []
-    for content_file in contents:
+    for content_file in contents: # pyright: ignore [reportGeneralTypeIssues]
         if content_file.type == "dir":
             documentation.extend(print_repo_contents(repo, content_file.path, indent + "│   "))
         else:
@@ -35,7 +41,7 @@ def print_repo_contents(repo, path="", indent=""):
     return documentation
 
 
-def get_autogen_documentation():
+def get_autogen_documentation() -> List[str]:
     repo_name = "microsoft/autogen"
     directory_name = "python/packages/autogen-core/docs/src/user-guide/core-user-guide"
     g = Github()
@@ -63,15 +69,14 @@ COT = {
     import json
     from dataclasses import dataclass
     import sys
-    from autogen_core import SingleThreadedAgentRuntime, DefaultTopicId, RoutedAgent, message_handler, ClosureAgent, ClosureContext, DefaultSubscription
-    from autogen_core.base import AgentId, AgentRuntime, MessageContext
-    from autogen_core.components.models import (
+    from autogen_core import AgentId, AgentRuntime, MessageContext, SingleThreadedAgentRuntime, DefaultTopicId, RoutedAgent, message_handler, ClosureAgent, ClosureContext, DefaultSubscription
+    from autogen_core.models import (
         ChatCompletionClient,
         LLMMessage,
         SystemMessage,
         UserMessage,
     )
-    from autogen_ext.models import AzureOpenAIChatCompletionClient
+    from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
     from typing import List
     from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
@@ -79,6 +84,7 @@ COT = {
 
     # Create an AzureOpenAI model client.
     model_client = AzureOpenAIChatCompletionClient(
+        azure_deployment=model_client_kwargs['azure_deployment'],
         model=model_client_kwargs['model'],
         api_version=model_client_kwargs['api_version'],
         azure_endpoint=model_client_kwargs['azure_endpoint'],
@@ -181,16 +187,15 @@ COT_SC = {
     import json
     from dataclasses import dataclass
     import sys
-    from autogen_core import SingleThreadedAgentRuntime, DefaultTopicId, RoutedAgent, message_handler, ClosureAgent, ClosureContext, DefaultSubscription
-    from autogen_core.base import AgentId, AgentRuntime, MessageContext
-    from autogen_core.components.models import (
+    from autogen_core import AgentId, AgentRuntime, MessageContext, SingleThreadedAgentRuntime, DefaultTopicId, RoutedAgent, message_handler, ClosureAgent, ClosureContext, DefaultSubscription
+    from autogen_core.models import (
         ChatCompletionClient,
         LLMMessage,
         SystemMessage,
         UserMessage,
     )
     from typing import List
-    from autogen_ext.models import AzureOpenAIChatCompletionClient
+    from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
     from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
     token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
@@ -342,16 +347,15 @@ Reflexion = {
     import uuid
     from dataclasses import dataclass
     from typing import Dict, List, Union
-    from autogen_core.base import MessageContext, TopicId, AgentId, AgentRuntime
-    from autogen_core import SingleThreadedAgentRuntime, DefaultTopicId, RoutedAgent, TypeSubscription, DefaultSubscription, ClosureAgent, ClosureContext, message_handler, default_subscription
-    from autogen_core.components.models import (
+    from autogen_core import MessageContext, TopicId, AgentId, AgentRuntime, SingleThreadedAgentRuntime, DefaultTopicId, RoutedAgent, TypeSubscription, DefaultSubscription, ClosureAgent, ClosureContext, message_handler, default_subscription
+    from autogen_core.models import (
         AssistantMessage,
         ChatCompletionClient,
         LLMMessage,
         SystemMessage,
         UserMessage,
     )
-    from autogen_ext.models import AzureOpenAIChatCompletionClient
+    from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
     from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
     token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
@@ -634,16 +638,15 @@ LLM_debate = {
     import uuid
     from dataclasses import dataclass
     from typing import Dict, List, Union
-    from autogen_core.base import MessageContext, TopicId, AgentId, AgentRuntime
-    from autogen_core import SingleThreadedAgentRuntime, RoutedAgent, default_subscription, message_handler, TypeSubscription, ClosureAgent, ClosureContext, DefaultTopicId
-    from autogen_core.components.models import (
+    from autogen_core import MessageContext, TopicId, AgentId, AgentRuntime, SingleThreadedAgentRuntime, RoutedAgent, default_subscription, message_handler, TypeSubscription, ClosureAgent, ClosureContext, DefaultTopicId
+    from autogen_core.models import (
         AssistantMessage,
         ChatCompletionClient,
         LLMMessage,
         SystemMessage,
         UserMessage,
     )
-    from autogen_ext.models import AzureOpenAIChatCompletionClient
+    from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
     from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
     token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
@@ -887,16 +890,15 @@ Tree_of_thought = {
     import logging
     from dataclasses import dataclass
     from typing import List, Dict, Any
-    from autogen_core import SingleThreadedAgentRuntime, default_subscription, RoutedAgent, message_handler, ClosureAgent, ClosureContext, TypeSubscription, DefaultTopicId
-    from autogen_core.base import AgentId, AgentRuntime, MessageContext, TopicId
-    from autogen_core.components.models import (
+    from autogen_core import AgentId, AgentRuntime, MessageContext, TopicId, SingleThreadedAgentRuntime, default_subscription, RoutedAgent, message_handler, ClosureAgent, ClosureContext, TypeSubscription, DefaultTopicId
+    from autogen_core.models import (
         ChatCompletionClient,
         SystemMessage,
         UserMessage,
         AssistantMessage,
         LLMMessage,
     )
-    from autogen_ext.models import AzureOpenAIChatCompletionClient
+    from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
     from azure.identity import DefaultAzureCredential, get_bearer_token_provider
     from autogen_core.application.logging import TRACE_LOGGER_NAME
 
@@ -1692,7 +1694,7 @@ Make sure to return in a WELL-FORMED JSON object. Key and values of all JSON ent
 """
 
 
-def get_init_archive():
+def get_init_archive() -> List[Dict[str, str]]:
     return [
         COT,
         COT_SC,
@@ -1703,7 +1705,7 @@ def get_init_archive():
 
 
 # from typing import tuple
-def get_prompt(current_archive, adaptive=False) -> tuple[str, str]:
+def get_prompt(current_archive: List[Dict[str, str]]) -> tuple[str, str]:
     archive_str = ",\n".join([json.dumps(sol) for sol in current_archive])
     archive_str = f"[{archive_str}]"
     prompt = base.replace("[ARCHIVE]", archive_str)
@@ -1711,8 +1713,8 @@ def get_prompt(current_archive, adaptive=False) -> tuple[str, str]:
     prompt = prompt.replace("[DOCUMENTATION]", json.dumps(DOCUMENTATION))
     return system_prompt, prompt
 
-
-def get_reflexion_prompt(prev_example) -> tuple[str, str, str, str]:
+from typing import Dict
+def get_reflexion_prompt(prev_example: Dict[str, str]) -> tuple[str, str, str, str]:
     prev_example_str = "Here is the previous agent you tried:\n" + json.dumps(prev_example) + "\n\n"
     r1 = (
         Reflexion_prompt_1.replace("[EXAMPLE]", prev_example_str)

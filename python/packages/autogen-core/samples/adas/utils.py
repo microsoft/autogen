@@ -1,11 +1,13 @@
 """
 Benchmark-agnostic utilities
 """
+# pyright: basic
 
 import random
 import string
 
 import numpy as np
+from typing import List
 
 
 def random_id(length=4):
@@ -14,7 +16,7 @@ def random_id(length=4):
     return random_id
 
 
-def bootstrap_confidence_interval(data, num_bootstrap_samples=100000, confidence_level=0.95):
+def bootstrap_confidence_interval(data: List[float], num_bootstrap_samples=100000, confidence_level=0.95) -> str:
     """
     Calculate the bootstrap confidence interval for the mean of 1D accuracy data.
     Also returns the median of the bootstrap means.
@@ -28,7 +30,7 @@ def bootstrap_confidence_interval(data, num_bootstrap_samples=100000, confidence
     - str: Formatted string with 95% confidence interval and median as percentages with one decimal place.
     """
     # Convert data to a numpy array for easier manipulation
-    data = np.array(data)
+    data = np.array(data) # pyright: ignore
 
     # List to store the means of bootstrap samples
     bootstrap_means = []

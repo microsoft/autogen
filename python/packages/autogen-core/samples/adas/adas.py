@@ -5,7 +5,6 @@ This script uses a meta-agent to search for novel agent
 systems. Please read the README.md for more information.
 """
 
-import argparse
 import asyncio
 import importlib
 import json
@@ -14,23 +13,23 @@ import os
 import random
 import time
 import uuid
-from collections import namedtuple
+from argparse import ArgumentParser, Namespace
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Any, Callable, Dict, List, Sequence, Union
 
 import numpy as np
 from adas_prompt import get_init_archive, get_prompt, get_reflexion_prompt
-from autogen_core import DefaultTopicId, RoutedAgent, SingleThreadedAgentRuntime, default_subscription, message_handler
-from autogen_core.base import MessageContext
-from autogen_core.components.models import (
+from autogen_core import DefaultTopicId, RoutedAgent, SingleThreadedAgentRuntime, default_subscription, message_handler, MessageContext
+# from autogen_core.base import MessageContext
+from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
-    SystemMessage,
+    # SystemMessage, # SystemMessage is not allowed in o1-preview API. TODO: Accomodate o1 model
     UserMessage,
 )
-from autogen_ext.models import AzureOpenAIChatCompletionClient
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from pydantic import BaseModel
 from tqdm import tqdm
@@ -39,7 +38,13 @@ from utils import bootstrap_confidence_interval
 logging.basicConfig(level=logging.WARNING)
 logging.getLogger("autogen_core").setLevel(logging.DEBUG)
 
-Info = namedtuple("Info", ["name", "author", "content", "iteration_idx"])
+@dataclass
+class Info:
+    def __init__(self, name: str, author: str, content: str, iteration_idx: int) -> None:
+        self.name = name
+        self.author = author
+        self.content = content
+        self.iteration_idx = iteration_idx
 
 SEARCHING_MODE = True
 
@@ -50,7 +55,7 @@ class ADASTask:
 
 
 class LLMMessageList(BaseModel):
-    llm_message_list: List[LLMMessage]
+    llm_message_list: Sequence[LLMMessage]
 
 
 @dataclass
@@ -63,12 +68,12 @@ class AgentSystem:
         pass
 
 
-def generate_task(input_infos) -> str:
+def generate_task(input_infos: List[Union[Info, tuple[str, str, str, int]]]) -> str:
     # construct input infos text
     input_infos_text = ""
     for input_info in input_infos:
         if isinstance(input_info, Info):
-            (field_name, author, content, iteration_idx) = input_info
+            (field_name, content, iteration_idx) = input_info.name, input_info.content, input_info.iteration_idx
         else:
             continue
 
@@ -83,7 +88,7 @@ def generate_task(input_infos) -> str:
     return prompt
 
 
-def evaluate_forward_fn(arguments, forward_str):
+def evaluate_forward_fn(arguments: Namespace, forward_str: str) -> List[float]:
     # Dynamically import benchmark-specific module given the path to the python file.
     # File must contain load_dataset and compute_metrics functions
     print(f"Loading functions from {arguments.benchmark_specific_utils_file}")
@@ -93,19 +98,20 @@ def evaluate_forward_fn(arguments, forward_str):
 
     # dynamically define forward()
     # modified from https://github.com/luchris429/DiscoPOP/blob/main/scripts/launch_evo.py
-    namespace = {}
+    namespace: Dict[str, Callable[[str, str], str]] = {}
     print(f"forward str {forward_str}")
     exec(forward_str, globals(), namespace)
-    names = list(namespace.keys())
+    names: List[str] = list(namespace.keys())
     if len(names) != 1:
         raise AssertionError(f"{len(names)} things in namespace. Please only provide 1")
-    func = namespace[names[0]]
+    func: Callable[[str, str], str] = namespace[names[0]]
     if not callable(func):
         raise AssertionError(f"{func} is not callable")
     AgentSystem.forward = func
 
     # set seed 0 for valid set
-    examples = module.load_dataset(arguments.data_filename)[1:-1]  # first one and the last one is for few-shot examples
+    # first one and the last one is for few-shot examples
+    examples: List[Dict[str, Any]] = module.load_dataset(arguments.data_filename)[1:-1]
     random.seed(arguments.shuffle_seed)
     random.shuffle(examples)
 
@@ -114,8 +120,8 @@ def evaluate_forward_fn(arguments, forward_str):
     else:
         examples = examples[arguments.valid_size : arguments.valid_size + arguments.test_size] * arguments.n_repeat
 
-    questions = [example["inputs"] for example in examples]
-    answers = [example["targets"] for example in examples]
+    questions: List[str] = [example["inputs"] for example in examples]
+    answers: List[Any] = [example["targets"] for example in examples]
 
     print(f"problem length: {len(examples)}")
     max_workers = min(len(examples), arguments.max_workers) if arguments.multiprocessing else 1
@@ -125,12 +131,12 @@ def evaluate_forward_fn(arguments, forward_str):
         taskInfo = Info("task", "User", q, -1)
         task_queue.append((taskInfo, AgentSystem()))
 
-    def call_forward(agent_task_queue):
+    def call_forward(agent_task_queue: List[tuple[Info, AgentSystem]]) -> str:
         taskInfo, agent = agent_task_queue
         print(f"taskInfo {taskInfo}")
         task = generate_task([taskInfo])
 
-        result = agent.forward(task, arguments.base_agent_model_config)
+        result: str = agent.forward(task, arguments.base_agent_model_config)
         if arguments.thread_sleep:
             print(f"Sleeping for {arguments.thread_sleep}")
             time.sleep(arguments.thread_sleep)
@@ -139,7 +145,7 @@ def evaluate_forward_fn(arguments, forward_str):
     with ThreadPoolExecutor(max_workers=max_workers) as executor:
         results = list(tqdm(executor.map(call_forward, task_queue), total=len(task_queue)))
 
-    acc_list = module.compute_metrics(results, answers)
+    acc_list: List[float] = module.compute_metrics(results, answers)
 
     print(f"f1: {bootstrap_confidence_interval(acc_list)}")
     return acc_list
@@ -149,7 +155,12 @@ def evaluate_forward_fn(arguments, forward_str):
 class ADASAgent(RoutedAgent):
     """An agent that performs ADAS."""
 
-    def __init__(self, model_client: ChatCompletionClient, system_prompt: str, args, archive) -> None:
+    def __init__(self,
+                 model_client: ChatCompletionClient, 
+                 system_prompt: str,
+                 args: Namespace,
+                 archive: List[Dict[str, str]] = [{}]
+                 ) -> None:
         super().__init__("An agent searching agent.")
         self._args = args
         self._archive = archive
@@ -327,7 +338,7 @@ class ADASAgent(RoutedAgent):
                 json.dump(archive, json_file, indent=4)
 
 
-async def main(arguments) -> None:
+async def main(arguments: Namespace) -> None:
     token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
     # Create an AzureOpenAI model client.
     client = AzureOpenAIChatCompletionClient(
@@ -367,7 +378,7 @@ async def main(arguments) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Run ADAS")
+    parser = ArgumentParser(description="Run ADAS")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging.")
     parser.add_argument("--data_filename", type=str, default="dataset/drop_v0_dev.jsonl.gz")
     parser.add_argument("--valid_size", type=int, default=128)

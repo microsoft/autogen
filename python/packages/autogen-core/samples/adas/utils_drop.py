@@ -6,10 +6,10 @@ DROP: A Reading Comprehension Benchmark Requiring Discrete Reasoning Over Paragr
 Dheeru Dua, Yizhong Wang, Pradeep Dasigi, Gabriel Stanovsky, Sameer Singh, Matt Gardner
 https://arxiv.org/abs/1903.00161
 """
+# pyright: basic
 
 import gzip
 import json
-import random
 import re
 import string
 from typing import Any, Dict, List, Set, Tuple, Union
@@ -85,7 +85,7 @@ def _answer_to_bags(answer: Union[str, List[str], Tuple[str, ...]]) -> Tuple[Lis
     return normalized_spans, token_bags
 
 
-def _align_bags(predicted: List[Set[str]], gold: List[Set[str]]) -> List[float]:
+def _align_bags(predicted: List[Set[str]], gold: List[Set[str]]):
     """
     Takes gold and predicted answer sets and first finds the optimal 1-1 alignment
     between them and gets maximum metric values over all the answers.
@@ -99,7 +99,7 @@ def _align_bags(predicted: List[Set[str]], gold: List[Set[str]]) -> List[float]:
 
     max_scores = np.zeros([max(len(gold), len(predicted))])
     for row, column in zip(row_ind, col_ind, strict=False):
-        max_scores[row] = max(max_scores[row], scores[row, column])
+        max_scores[row] = max(max_scores[row], scores[row, column]) # pyright: ignore
     return max_scores
 
 
@@ -152,7 +152,7 @@ def get_drop_metrics(
     f1_per_bag = _align_bags(predicted_bags[1], gold_bags[1])
     f1 = np.mean(f1_per_bag)
     f1 = round(f1, 2)
-    return exact_match, f1
+    return exact_match, f1 # pyright: ignore
 
 
 def answer_json_to_strings(answer: Dict[str, Any]) -> Tuple[Tuple[str, ...], str]:
