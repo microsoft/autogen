@@ -53,14 +53,14 @@ chainlit run app.py
 
 ### Function Definitions
 
-- `start_chat`: Initializes the chat session and sets up the avatar for Claude.
-- `run_team`: Sends the user's query to the Anthropic API and streams the response back to the chat interface.
-- `chat`: Receives messages from the user and passes them to the `call_claude` function.
+- `start_chat`: Initializes the chat session
+- `run_team`: Sends the user's query to the team streams the agent responses back to the chat interface.
+- `chat`: Receives messages from the user and passes them to the `run_team` function.
 
 ## Next Steps (Extra Credit)
 
-In this example, we created a basic AutoGen team with a single agent, Claude. There are a few ways you can extend this example:
+In this example, we created a basic AutoGen team with a single agent in a RoundRobinGroupChat team. There are a few ways you can extend this example:
 
-- Add more agents to the team.
+- Add more [agents](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/agents.html) to the team.
 - Explor custom agents that sent multimodal messages
-- Explore more team types beyond the `RoundRobinGroupChat`.
+- Explore more [team](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/teams.html) types beyond the `RoundRobinGroupChat`.
