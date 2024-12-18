@@ -4,6 +4,19 @@ import { Copy } from "lucide-react";
 import { Guide } from "../types";
 import PythonGuide from "./python";
 import DockerGuide from "./docker";
+import { PrismLight as SyntaxHighlighter } from "react-syntax-highlighter";
+import js from "react-syntax-highlighter/dist/esm/languages/prism/javascript";
+import python from "react-syntax-highlighter/dist/esm/languages/prism/python";
+
+import {
+  dark,
+  oneLight,
+  oneDark,
+  atomDark,
+} from "react-syntax-highlighter/dist/esm/styles/prism";
+
+SyntaxHighlighter.registerLanguage("javascript", js);
+SyntaxHighlighter.registerLanguage("python", python);
 
 interface GuideContentProps {
   guide: Guide;
@@ -38,6 +51,7 @@ interface CodeSectionProps {
   description?: string | React.ReactNode;
   code?: string;
   onCopy: (text: string) => void;
+  language?: string;
 }
 
 export const CodeSection: React.FC<CodeSectionProps> = ({
@@ -45,21 +59,28 @@ export const CodeSection: React.FC<CodeSectionProps> = ({
   description,
   code,
   onCopy,
+  language = "python",
 }) => (
   <section className="mt-6 bg-seco">
     <h2 className="text-md font-semibold mb-3">{title}</h2>
     {description && <p className="  mb-3">{description}</p>}
     {code && (
-      <div className="relative bg-secondary text-sm p-4 rounded">
+      <div className="relative bg-secondary text-sm p-4 rounded overflow-auto scroll">
         <button
           onClick={() => onCopy(code)}
-          className="absolute right-2 top-2 p-2 hover:bg-secondary rounded-md"
+          className="absolute right-2 top-2 p-2  bg-secondary hover:bg-primary rounded-md"
         >
           <Copy className="w-4 h-4 hover:text-accent transition duration-100" />
         </button>
-        <pre className="font-mono   text-sm whitespace-pre overflow-auto scroll rounded pb-2">
+        {/* overflow scroll custom style */}
+        <SyntaxHighlighter
+          className="scroll"
+          language={language}
+          wrapLines={true}
+          style={oneDark}
+        >
           {code}
-        </pre>
+        </SyntaxHighlighter>
       </div>
     )}
   </section>

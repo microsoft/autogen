@@ -39,8 +39,8 @@ RUN pip install -U gunicorn autogenstudio
 
 RUN useradd -m -u 1000 user
 USER user
-ENV HOME=/home/user \
-    PATH=/home/user/.local/bin:$PATH \
+ENV HOME=/home/user 
+    PATH=/home/user/.local/bin:$PATH 
     AUTOGENSTUDIO_APPDIR=/home/user/app
 
 WORKDIR $HOME/app
