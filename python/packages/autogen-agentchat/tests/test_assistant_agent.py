@@ -12,8 +12,8 @@ from autogen_agentchat.messages import (
     HandoffMessage,
     MultiModalMessage,
     TextMessage,
-    ToolCallMessage,
-    ToolCallResultMessage,
+    ToolCallExecutionEvent,
+    ToolCallRequestEvent,
 )
 from autogen_core import Image
 from autogen_core.tools import FunctionTool
@@ -136,11 +136,11 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     assert len(result.messages) == 4
     assert isinstance(result.messages[0], TextMessage)
     assert result.messages[0].models_usage is None
-    assert isinstance(result.messages[1], ToolCallMessage)
+    assert isinstance(result.messages[1], ToolCallRequestEvent)
     assert result.messages[1].models_usage is not None
     assert result.messages[1].models_usage.completion_tokens == 5
     assert result.messages[1].models_usage.prompt_tokens == 10
-    assert isinstance(result.messages[2], ToolCallResultMessage)
+    assert isinstance(result.messages[2], ToolCallExecutionEvent)
     assert result.messages[2].models_usage is None
     assert isinstance(result.messages[3], TextMessage)
     assert result.messages[3].content == "pass"
@@ -235,11 +235,11 @@ async def test_run_with_tools_and_reflection(monkeypatch: pytest.MonkeyPatch) ->
     assert len(result.messages) == 4
     assert isinstance(result.messages[0], TextMessage)
     assert result.messages[0].models_usage is None
-    assert isinstance(result.messages[1], ToolCallMessage)
+    assert isinstance(result.messages[1], ToolCallRequestEvent)
     assert result.messages[1].models_usage is not None
     assert result.messages[1].models_usage.completion_tokens == 5
     assert result.messages[1].models_usage.prompt_tokens == 10
-    assert isinstance(result.messages[2], ToolCallResultMessage)
+    assert isinstance(result.messages[2], ToolCallExecutionEvent)
     assert result.messages[2].models_usage is None
     assert isinstance(result.messages[3], TextMessage)
     assert result.messages[3].content == "Hello"
@@ -323,11 +323,11 @@ async def test_handoffs(monkeypatch: pytest.MonkeyPatch) -> None:
     assert len(result.messages) == 4
     assert isinstance(result.messages[0], TextMessage)
     assert result.messages[0].models_usage is None
-    assert isinstance(result.messages[1], ToolCallMessage)
+    assert isinstance(result.messages[1], ToolCallRequestEvent)
     assert result.messages[1].models_usage is not None
     assert result.messages[1].models_usage.completion_tokens == 43
     assert result.messages[1].models_usage.prompt_tokens == 42
-    assert isinstance(result.messages[2], ToolCallResultMessage)
+    assert isinstance(result.messages[2], ToolCallExecutionEvent)
     assert result.messages[2].models_usage is None
     assert isinstance(result.messages[3], HandoffMessage)
     assert result.messages[3].content == handoff.message

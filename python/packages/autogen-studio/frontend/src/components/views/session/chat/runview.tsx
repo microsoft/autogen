@@ -117,6 +117,9 @@ const RunView: React.FC<RunViewProps> = ({
     }
   };
 
+  const lastResultMessage = run.team_result?.task_result.messages.slice(-1)[0];
+  const lastMessage = run.messages.slice(-1)[0];
+
   return (
     <div className="space-y-6  mr-2 ">
       {/* Run Header */}
@@ -193,14 +196,23 @@ const RunView: React.FC<RunViewProps> = ({
                   Stop reason: {run.team_result?.task_result?.stop_reason}
                 </div>
 
-                <TruncatableText
-                  key={"_" + run.id}
-                  textThreshold={700}
-                  content={
-                    run.messages[run.messages.length - 1]?.config?.content + ""
-                  }
-                  className="break-all"
-                />
+                {lastMessage ? (
+                  <TruncatableText
+                    key={"_" + run.id}
+                    textThreshold={700}
+                    content={
+                      run.messages[run.messages.length - 1]?.config?.content +
+                      ""
+                    }
+                    className="break-all"
+                  />
+                ) : (
+                  <>
+                    {lastResultMessage && (
+                      <RenderMessage message={lastResultMessage} />
+                    )}
+                  </>
+                )}
               </div>
             )}
           </div>
