@@ -95,7 +95,7 @@ ChatMessage = Annotated[TextMessage | MultiModalMessage | StopMessage | HandoffM
 
 
 AgentMessage = Annotated[
-    TextMessage | MultiModalMessage | StopMessage | HandoffMessage | ToolCallMessage | ToolCallResultMessage,
+    TextMessage | MultiModalMessage | StopMessage | HandoffMessage | ToolCallMessage | ToolCallResultMessage | ToolCallResultSummaryMessage,
     Field(discriminator="type"),
 ]
 """All message types."""
@@ -109,6 +109,7 @@ __all__ = [
     "HandoffMessage",
     "ToolCallMessage",
     "ToolCallResultMessage",
+    "ToolCallResultSummaryMessage",
     "ChatMessage",
     "AgentMessage",
 ]
