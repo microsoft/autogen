@@ -4,7 +4,7 @@ Each message type inherits from the BaseMessage class and includes specific fiel
 relevant to the type of message being sent.
 """
 
-from typing import List, Literal
+from typing import Any, List, Literal
 
 from autogen_core import FunctionCall, Image
 from autogen_core.models import FunctionExecutionResult, RequestUsage
@@ -113,7 +113,7 @@ AgentMessage = Annotated[
     TextMessage | MultiModalMessage | StopMessage | HandoffMessage | ToolCallRequestEvent | ToolCallExecutionEvent,
     Field(discriminator="type"),
 ]
-"""All message and event types."""
+"""(Deprecated, will be removed in 0.4.0) All message and event types."""
 
 
 __all__ = [
