@@ -278,7 +278,7 @@ class SelectorGroupChat(BaseGroupChat):
             from autogen_agentchat.teams import SelectorGroupChat
             from autogen_agentchat.conditions import TextMentionTermination
             from autogen_agentchat.ui import Console
-            from autogen_agentchat.messages import AgentEvent | ChatMessage
+            from autogen_agentchat.messages import AgentEvent, ChatMessage
 
 
             async def main() -> None:
