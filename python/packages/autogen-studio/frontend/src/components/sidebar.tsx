@@ -50,6 +50,12 @@ const navigation: INavItem[] = [
     icon: Rocket,
     breadcrumbs: [{ name: "Deploy", href: "/deploy", current: true }],
   },
+  {
+    name: "Webby",
+    href: "/webby",
+    icon: Blocks,
+    breadcrumbs: [{ name: "Webby", href: "/webby", current: true }],
+  },
 ];
 
 const classNames = (...classes: (string | undefined | boolean)[]) => {
