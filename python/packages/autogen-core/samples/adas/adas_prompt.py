@@ -1,13 +1,14 @@
 """
 ADAS helper to generate prompt for ADAS meta-agent.
 """
+
 # pyright: basic
 import json
+from typing import Dict, List, Union
 
 import requests
 from github import Github
 from github.Repository import Repository
-from typing import List, Dict, Union
 
 EXAMPLE = {
     "thought": "**Insights:**\nYour insights on what should be the next interesting agent.\n**Overall Idea:**\nyour reasoning and the overall concept behind the agent design.\n**Implementation:**\ndescribe the implementation step by step.",
@@ -30,7 +31,7 @@ def read_github_file(url: str) -> Union[str, None]:
 def print_repo_contents(repo: Repository, path: str = "", indent: str = "") -> List[str]:
     contents = repo.get_contents(path)
     documentation = []
-    for content_file in contents: # pyright: ignore [reportGeneralTypeIssues]
+    for content_file in contents:  # pyright: ignore [reportGeneralTypeIssues]
         if content_file.type == "dir":
             documentation.extend(print_repo_contents(repo, content_file.path, indent + "│   "))
         else:
@@ -1713,8 +1714,8 @@ def get_prompt(current_archive: List[Dict[str, str]]) -> tuple[str, str]:
     prompt = prompt.replace("[DOCUMENTATION]", json.dumps(DOCUMENTATION))
     return system_prompt, prompt
 
-from typing import Dict
-def get_reflexion_prompt(prev_example: Dict[str, str]) -> tuple[str, str, str, str]:
+
+def get_reflexion_prompt(prev_example: Union[Dict[str, str], None]) -> tuple[str, str, str, str]:
     prev_example_str = "Here is the previous agent you tried:\n" + json.dumps(prev_example) + "\n\n"
     r1 = (
         Reflexion_prompt_1.replace("[EXAMPLE]", prev_example_str)

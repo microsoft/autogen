@@ -6,7 +6,7 @@ This file must contain `compute_metrics` and `load_dataset` functions.
 from typing import Any, Dict, List
 
 
-def compute_metrics(predictions: List[Any], labels: List[Any]) -> List[float]: # pyright: ignore
+def compute_metrics(predictions: List[Any], labels: List[Any]) -> List[float]:  # pyright: ignore
     """
     Calculates the score based on a list of predictions and labels.
 
@@ -21,7 +21,7 @@ def compute_metrics(predictions: List[Any], labels: List[Any]) -> List[float]: #
     pass
 
 
-def load_dataset(file_path: str) -> List[Dict[str, Any]]: # pyright: ignore
+def load_dataset(file_path: str) -> List[Dict[str, Any]]:  # pyright: ignore
     """
     Loads in a dataset, with both input and targets, based on a file path.
     Any preprocessing, such as adding few-shot examples, must be done in this function.

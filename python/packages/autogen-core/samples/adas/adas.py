@@ -5,6 +5,7 @@ This script uses a meta-agent to search for novel agent
 systems. Please read the README.md for more information.
 """
 
+# pyright: basic
 import asyncio
 import importlib
 import json
@@ -20,7 +21,15 @@ from typing import Any, Callable, Dict, List, Sequence, Union
 
 import numpy as np
 from adas_prompt import get_init_archive, get_prompt, get_reflexion_prompt
-from autogen_core import DefaultTopicId, RoutedAgent, SingleThreadedAgentRuntime, default_subscription, message_handler, MessageContext
+from autogen_core import (
+    DefaultTopicId,
+    MessageContext,
+    RoutedAgent,
+    SingleThreadedAgentRuntime,
+    default_subscription,
+    message_handler,
+)
+
 # from autogen_core.base import MessageContext
 from autogen_core.models import (
     AssistantMessage,
@@ -38,6 +47,7 @@ from utils import bootstrap_confidence_interval
 logging.basicConfig(level=logging.WARNING)
 logging.getLogger("autogen_core").setLevel(logging.DEBUG)
 
+
 @dataclass
 class Info:
     def __init__(self, name: str, author: str, content: str, iteration_idx: int) -> None:
@@ -45,6 +55,7 @@ class Info:
         self.author = author
         self.content = content
         self.iteration_idx = iteration_idx
+
 
 SEARCHING_MODE = True
 
@@ -68,7 +79,7 @@ class AgentSystem:
         pass
 
 
-def generate_task(input_infos: List[Union[Info, tuple[str, str, str, int]]]) -> str:
+def generate_task(input_infos: List[Union[Info, Any]]) -> str:
     # construct input infos text
     input_infos_text = ""
     for input_info in input_infos:
@@ -92,8 +103,8 @@ def evaluate_forward_fn(arguments: Namespace, forward_str: str) -> List[float]:
     # Dynamically import benchmark-specific module given the path to the python file.
     # File must contain load_dataset and compute_metrics functions
     print(f"Loading functions from {arguments.benchmark_specific_utils_file}")
-    spec = importlib.util.spec_from_file_location("module_name", arguments.benchmark_specific_utils_file)
-    module = importlib.util.module_from_spec(spec)
+    spec = importlib.util.spec_from_file_location("module_name", arguments.benchmark_specific_utils_file)  # pyright: ignore reportAttributeAccessIssue
+    module = importlib.util.module_from_spec(spec)  # pyright: ignore reportAttributeAccessIssue
     spec.loader.exec_module(module)
 
     # dynamically define forward()
@@ -107,11 +118,11 @@ def evaluate_forward_fn(arguments: Namespace, forward_str: str) -> List[float]:
     func: Callable[[str, str], str] = namespace[names[0]]
     if not callable(func):
         raise AssertionError(f"{func} is not callable")
-    AgentSystem.forward = func
+    AgentSystem.forward = func  # pyright: ignore reportAttributeAccessIssue
 
     # set seed 0 for valid set
     # first one and the last one is for few-shot examples
-    examples: List[Dict[str, Any]] = module.load_dataset(arguments.data_filename)[1:-1]
+    examples: List[Dict[str, Any]] = list(module.load_dataset(arguments.data_filename)[1:-1])
     random.seed(arguments.shuffle_seed)
     random.shuffle(examples)
 
@@ -136,7 +147,7 @@ def evaluate_forward_fn(arguments: Namespace, forward_str: str) -> List[float]:
         print(f"taskInfo {taskInfo}")
         task = generate_task([taskInfo])
 
-        result: str = agent.forward(task, arguments.base_agent_model_config)
+        result: str = agent.forward(task, arguments.base_agent_model_config)  # pyright: ignore reportAttributeAccessIssue
         if arguments.thread_sleep:
             print(f"Sleeping for {arguments.thread_sleep}")
             time.sleep(arguments.thread_sleep)
@@ -155,19 +166,20 @@ def evaluate_forward_fn(arguments: Namespace, forward_str: str) -> List[float]:
 class ADASAgent(RoutedAgent):
     """An agent that performs ADAS."""
 
-    def __init__(self,
-                 model_client: ChatCompletionClient, 
-                 system_prompt: str,
-                 args: Namespace,
-                 archive: List[Dict[str, str]] = [{}]
-                 ) -> None:
+    def __init__(
+        self,
+        model_client: ChatCompletionClient,
+        system_prompt: str,
+        args: Namespace,
+        archive: List[Dict[str, str]] = [{}],
+    ) -> None:
         super().__init__("An agent searching agent.")
         self._args = args
-        self._archive = archive
+        self._archive = archive if archive else [{}]
         self._model_client = model_client
         self._session_memory: Dict[str, List[ADASTask]] = {}
 
-        self._system_messages: List[LLMMessage] = [
+        self._system_messages: Sequence[LLMMessage] = [
             # SystemMessage is not allowed in o1-preview API. TODO: Accomodate o1 model
             # SystemMessage(
             AssistantMessage(
@@ -182,7 +194,7 @@ class ADASAgent(RoutedAgent):
     async def handle_task(self, message: LLMMessageList, ctx: MessageContext) -> LLMResponse:
         print("Meta-Agent making a LLM call...")
         logging.info(f"{self._description} received message: {message}")
-        model_result = await self._model_client.create(self._system_messages + message.llm_message_list)
+        model_result = await self._model_client.create(self._system_messages + message.llm_message_list)  # pyright: ignore reportAttributeAccessIssue
 
         assert isinstance(model_result.content, str)
         print(f"Model client result: {model_result.content}")

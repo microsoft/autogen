@@ -30,7 +30,7 @@ def bootstrap_confidence_interval(data: List[float], num_bootstrap_samples=10000
     - str: Formatted string with 95% confidence interval and median as percentages with one decimal place.
     """
     # Convert data to a numpy array for easier manipulation
-    data = np.array(data) # pyright: ignore
+    data = np.array(data)  # pyright: ignore
 
     # List to store the means of bootstrap samples
     bootstrap_means = []

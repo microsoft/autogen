@@ -99,7 +99,7 @@ def _align_bags(predicted: List[Set[str]], gold: List[Set[str]]):
 
     max_scores = np.zeros([max(len(gold), len(predicted))])
     for row, column in zip(row_ind, col_ind, strict=False):
-        max_scores[row] = max(max_scores[row], scores[row, column]) # pyright: ignore
+        max_scores[row] = max(max_scores[row], scores[row, column])  # pyright: ignore
     return max_scores
 
 
@@ -152,7 +152,7 @@ def get_drop_metrics(
     f1_per_bag = _align_bags(predicted_bags[1], gold_bags[1])
     f1 = np.mean(f1_per_bag)
     f1 = round(f1, 2)
-    return exact_match, f1 # pyright: ignore
+    return exact_match, f1  # pyright: ignore
 
 
 def answer_json_to_strings(answer: Dict[str, Any]) -> Tuple[Tuple[str, ...], str]:
