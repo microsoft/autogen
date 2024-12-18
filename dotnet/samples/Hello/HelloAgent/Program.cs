@@ -18,9 +18,9 @@ namespace Hello
 {
     [TopicSubscription("agents")]
     public class HelloAgent(
-        IAgentRuntime context, IHostApplicationLifetime hostApplicationLifetime,
+        IAgentWorker worker, IHostApplicationLifetime hostApplicationLifetime,
         [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : Agent(
-            context,
+            worker,
             typeRegistry),
             ISayHello,
             IHandleConsole,
@@ -35,7 +35,7 @@ namespace Hello
             await PublishMessageAsync(evt).ConfigureAwait(false);
             var goodbye = new ConversationClosed
             {
-                UserId = this.AgentId.Key,
+                UserId = this.AgentId.Type,
                 UserMessage = "Goodbye"
             };
             await PublishMessageAsync(goodbye).ConfigureAwait(false);

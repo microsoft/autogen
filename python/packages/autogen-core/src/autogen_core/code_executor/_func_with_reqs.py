@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 from importlib.abc import SourceLoader
 from importlib.util import module_from_spec, spec_from_loader
 from textwrap import dedent, indent
-from typing import Any, Callable, Generic, List, Sequence, Set, TypeVar, Union
+from typing import Any, Callable, Generic, List, Sequence, Set, Tuple, TypeVar, Union
 
 from typing_extensions import ParamSpec
 
@@ -21,23 +21,38 @@ def _to_code(func: Union[FunctionWithRequirements[T, P], Callable[P, T], Functio
     if isinstance(func, FunctionWithRequirementsStr):
         return func.func
 
-    code = inspect.getsource(func)
+    if isinstance(func, FunctionWithRequirements):
+        code = inspect.getsource(func.func)
+    else:
+        code = inspect.getsource(func)
     # Strip the decorator
     if code.startswith("@"):
         code = code[code.index("\n") + 1 :]
     return code
 
 
-@dataclass
+@dataclass(frozen=True)
 class Alias:
     name: str
     alias: str
 
 
-@dataclass
+@dataclass(frozen=True)
 class ImportFromModule:
     module: str
-    imports: List[Union[str, Alias]]
+    imports: Tuple[Union[str, Alias], ...]
+
+    ## backward compatibility
+    def __init__(
+        self,
+        module: str,
+        imports: Union[Tuple[Union[str, Alias], ...], List[Union[str, Alias]]],
+    ):
+        object.__setattr__(self, "module", module)
+        if isinstance(imports, list):
+            object.__setattr__(self, "imports", tuple(imports))
+        else:
+            object.__setattr__(self, "imports", imports)
 
 
 Import = Union[str, ImportFromModule, Alias]
