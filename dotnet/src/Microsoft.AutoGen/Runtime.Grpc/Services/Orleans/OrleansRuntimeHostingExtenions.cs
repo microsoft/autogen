@@ -3,6 +3,7 @@
 
 using System.Configuration;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AutoGen.Runtime.Grpc.Abstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
