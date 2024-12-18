@@ -28,6 +28,7 @@ from ..messages import (
     TextMessage,
     ToolCallMessage,
     ToolCallResultMessage,
+    ToolCallResultSummaryMessage,
 )
 from ..state import AssistantAgentState
 from ._base_chat_agent import BaseChatAgent
@@ -62,7 +63,7 @@ class AssistantAgent(BaseChatAgent):
 
     * If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
     * When the model returns tool calls, they will be executed right away:
-        - When `reflect_on_tool_use` is False (default), the tool call results are returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. `tool_call_summary_format` can be used to customize the tool call summary.
+        - When `reflect_on_tool_use` is False (default), the tool call results are returned as a :class:`~autogen_agentchat.messages.ToolCallResultSummaryMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. `tool_call_summary_format` can be used to customize the tool call summary.
         - When `reflect_on_tool_use` is True, the another model inference is made using the tool calls and results, and the text response is returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
 
     Hand off behavior:
@@ -415,7 +416,7 @@ class AssistantAgent(BaseChatAgent):
                 )
             tool_call_summary = "\n".join(tool_call_summaries)
             yield Response(
-                chat_message=TextMessage(content=tool_call_summary, source=self.name),
+                chat_message=ToolCallResultSummaryMessage(content=tool_call_summary, source=self.name),
                 inner_messages=inner_messages,
             )
 
