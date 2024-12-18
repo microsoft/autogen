@@ -20,11 +20,9 @@ else:
 
 @app.get("/predict/{task}")
 async def predict(task: str):
-    response = Response(
-        message="Task successfully completed", status=True, data=None)
+    response = Response(message="Task successfully completed", status=True, data=None)
     try:
-        result_message = await team_manager.run(
-            task=task, team_config=team_file_path)
+        result_message = await team_manager.run(task=task, team_config=team_file_path)
         response.data = result_message
     except Exception as e:
         response.message = str(e)

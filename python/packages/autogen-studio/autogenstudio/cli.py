@@ -48,8 +48,7 @@ def ui(
         port=port,
         workers=workers,
         reload=reload,
-        reload_excludes=["**/alembic/*", "**/alembic.ini",
-                         "**/versions/*"] if reload else None,
+        reload_excludes=["**/alembic/*", "**/alembic.ini", "**/versions/*"] if reload else None,
     )
 
 
@@ -67,7 +66,7 @@ def serve(
     Args:
         team (str): Path to the team json file.
         host (str, optional): Host to run the UI on. Defaults to 127.0.0.1 (localhost).
-        port (int, optional): Port to run the UI on. Defaults to 8084 
+        port (int, optional): Port to run the UI on. Defaults to 8084
         workers (int, optional): Number of workers to run the UI with. Defaults to 1.
         reload (bool, optional): Whether to reload the UI on code changes. Defaults to False.
         docs (bool, optional): Whether to generate API docs. Defaults to False.
