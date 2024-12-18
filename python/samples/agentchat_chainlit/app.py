@@ -32,7 +32,7 @@ async def run_team(query: str):
             msg = cl.Message(content=msg.content, author="Agent Team")
             await msg.send()
         if isinstance(msg, TaskResult):
-            msg = cl.Message(content="Termination condition met.", author="Agent Team")
+            msg = cl.Message(content="Termination condition met. Team and Agents are reset.", author="Agent Team")
             await msg.send()
 
 
