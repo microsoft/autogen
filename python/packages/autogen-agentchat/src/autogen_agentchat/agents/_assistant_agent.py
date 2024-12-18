@@ -221,7 +221,10 @@ class AssistantAgent(BaseChatAgent):
         description: str = "An agent that provides assistance with ability to use tools.",
         system_message: str
         | None = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
+<<<<<<< HEAD
         token_callback: Callable | None = None,
+=======
+>>>>>>> origin/main
         reflect_on_tool_use: bool = False,
         tool_call_summary_format: str = "{result}",
     ):
@@ -376,6 +379,7 @@ class AssistantAgent(BaseChatAgent):
         if self._reflect_on_tool_use:
             # Generate another inference result based on the tool call and result.
             llm_messages = self._system_messages + self._model_context
+<<<<<<< HEAD
 
             # if token_callback is set, use create_stream to get the tokens as they are
             # generated and call the token_callback with the tokens
@@ -394,6 +398,9 @@ class AssistantAgent(BaseChatAgent):
                     llm_messages,
                     cancellation_token=cancellation_token,
                 )
+=======
+            result = await self._model_client.create(llm_messages, cancellation_token=cancellation_token)
+>>>>>>> origin/main
             assert isinstance(result.content, str)
             # Add the response to the model context.
             self._model_context.append(AssistantMessage(content=result.content, source=self.name))
