@@ -171,7 +171,7 @@ class ADASAgent(RoutedAgent):
         model_client: ChatCompletionClient,
         system_prompt: str,
         args: Namespace,
-        archive: List[Dict[str, str]] = [{}],
+        archive=None,
     ) -> None:
         super().__init__("An agent searching agent.")
         self._args = args

@@ -7,8 +7,8 @@ import json
 from typing import Dict, List, Union
 
 import requests
-from github import Github
-from github.Repository import Repository
+from github import Github  # pyright: ignore reportMissingImports
+from github.Repository import Repository  # pyright: ignore reportMissingImports
 
 EXAMPLE = {
     "thought": "**Insights:**\nYour insights on what should be the next interesting agent.\n**Overall Idea:**\nyour reasoning and the overall concept behind the agent design.\n**Implementation:**\ndescribe the implementation step by step.",
