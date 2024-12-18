@@ -14,7 +14,7 @@ from autogen_agentchat.agents import (
 from autogen_agentchat.base import Handoff, Response, TaskResult
 from autogen_agentchat.conditions import HandoffTermination, MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.messages import (
-    AgentMessage,
+    AgentEvent,
     ChatMessage,
     HandoffMessage,
     MultiModalMessage,
@@ -747,7 +747,7 @@ async def test_selector_group_chat_custom_selector(monkeypatch: pytest.MonkeyPat
     agent3 = _EchoAgent("agent3", description="echo agent 3")
     agent4 = _EchoAgent("agent4", description="echo agent 4")
 
-    def _select_agent(messages: Sequence[AgentMessage]) -> str | None:
+    def _select_agent(messages: Sequence[AgentEvent | ChatMessage]) -> str | None:
         if len(messages) == 0:
             return "agent1"
         elif messages[-1].source == "agent1":

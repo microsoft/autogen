@@ -23,7 +23,7 @@ from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
-    AgentMessage,
+    AgentEvent,
     ChatMessage,
     HandoffMessage,
     MultiModalMessage,
@@ -350,7 +350,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentMessage | Response, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         """Handle incoming messages and return a response."""
         await self._ensure_initialized()
 
@@ -362,7 +362,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 await self.handle_text_message(message.content, cancellation_token)
 
         # Inner messages for tool calls
-        inner_messages: List[AgentMessage] = []
+        inner_messages: List[AgentEvent | ChatMessage] = []
 
         # Create and start a run
         run: Run = await cancellation_token.link_future(

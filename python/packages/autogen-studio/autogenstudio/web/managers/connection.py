@@ -6,7 +6,7 @@ from uuid import UUID
 
 from autogen_agentchat.base._task import TaskResult
 from autogen_agentchat.messages import (
-    AgentMessage,
+    AgentEvent,
     ChatMessage,
     HandoffMessage,
     MultiModalMessage,
@@ -141,7 +141,7 @@ class WebSocketManager:
         finally:
             self._cancellation_tokens.pop(run_id, None)
 
-    async def _save_message(self, run_id: UUID, message: Union[AgentMessage, ChatMessage]) -> None:
+    async def _save_message(self, run_id: UUID, message: Union[AgentEvent | ChatMessage, ChatMessage]) -> None:
         """Save a message to the database"""
         run = await self._get_run(run_id)
         if run:

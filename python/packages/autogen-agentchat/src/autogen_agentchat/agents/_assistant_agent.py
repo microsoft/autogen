@@ -21,7 +21,7 @@ from .. import EVENT_LOGGER_NAME
 from ..base import Handoff as HandoffBase
 from ..base import Response
 from ..messages import (
-    AgentMessage,
+    AgentEvent,
     ChatMessage,
     HandoffMessage,
     MultiModalMessage,
@@ -292,7 +292,7 @@ class AssistantAgent(BaseChatAgent):
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentMessage | Response, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         # Add messages to the model context.
         for msg in messages:
             if isinstance(msg, MultiModalMessage) and self._model_client.capabilities["vision"] is False:
@@ -300,7 +300,7 @@ class AssistantAgent(BaseChatAgent):
             self._model_context.append(UserMessage(content=msg.content, source=msg.source))
 
         # Inner messages.
-        inner_messages: List[AgentMessage] = []
+        inner_messages: List[AgentEvent | ChatMessage] = []
 
         # Generate an inference result based on the current model context.
         llm_messages = self._system_messages + self._model_context

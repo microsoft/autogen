@@ -3,14 +3,14 @@ from typing import AsyncGenerator, List, Protocol, Sequence
 
 from autogen_core import CancellationToken
 
-from ..messages import AgentMessage, ChatMessage
+from ..messages import AgentEvent, ChatMessage
 
 
 @dataclass
 class TaskResult:
     """Result of running a task."""
 
-    messages: Sequence[AgentMessage]
+    messages: Sequence[AgentEvent | ChatMessage]
     """Messages produced by the task."""
 
     stop_reason: str | None = None
@@ -38,7 +38,7 @@ class TaskRunner(Protocol):
         *,
         task: str | ChatMessage | List[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None]:
         """Run the task and produces a stream of messages and the final result
         :class:`TaskResult` as the last item in the stream.
 
