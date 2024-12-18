@@ -15,9 +15,9 @@ export const defaultGuides: Guide[] = [
     title: "Docker",
     type: "docker",
   },
-  {
-    id: "cloud-deploy",
-    title: "Cloud",
-    type: "cloud",
-  },
+  // {
+  //   id: "cloud-deploy",
+  //   title: "Cloud",
+  //   type: "cloud",
+  // },
 ];

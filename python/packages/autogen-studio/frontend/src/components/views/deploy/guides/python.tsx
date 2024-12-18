@@ -15,9 +15,7 @@ const PythonGuide: React.FC = () => {
         message="Prerequisites"
         description={
           <ul className="list-disc pl-4 mt-2 space-y-1">
-            <li>Python 3.8 or higher</li>
-            <li>pip package manager</li>
-            <li>Virtual environment (recommended)</li>
+            <li>AutoGen Studio installed</li>
           </ul>
         }
         type="info"

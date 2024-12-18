@@ -13,7 +13,6 @@ const DockerGuide: React.FC = () => {
         description={
           <ul className="list-disc pl-4 mt-2 space-y-1">
             <li>Docker installed on your system</li>
-            <li>Basic knowledge of Docker commands</li>
           </ul>
         }
         type="info"
