@@ -136,7 +136,7 @@ def test_cost_calculation(mock_response):
         choices=[{"message": "Test message 1"}],
         usage={"prompt_tokens": 500, "completion_tokens": 300, "total_tokens": 800},
         cost=None,
-        model="llama3.1-70b",
+        model="llama-3.3-70b",
     )
     calculated_cost = calculate_cerebras_cost(
         response.usage["prompt_tokens"], response.usage["completion_tokens"], response.model
@@ -160,7 +160,7 @@ def test_create_response(mock_chat, cerebras_client):
         MagicMock(finish_reason="stop", message=MagicMock(content="Example Cerebras response", tool_calls=None))
     ]
     mock_cerebras_response.id = "mock_cerebras_response_id"
-    mock_cerebras_response.model = "llama3.1-70b"
+    mock_cerebras_response.model = "llama-3.3-70b"
     mock_cerebras_response.usage = MagicMock(prompt_tokens=10, completion_tokens=20)  # Example token usage
 
     mock_chat.return_value = mock_cerebras_response
@@ -168,7 +168,7 @@ def test_create_response(mock_chat, cerebras_client):
     # Test parameters
     params = {
         "messages": [{"role": "user", "content": "Hello"}, {"role": "assistant", "content": "World"}],
-        "model": "llama3.1-70b",
+        "model": "llama-3.3-70b",
     }
 
     # Call the create method
@@ -179,7 +179,7 @@ def test_create_response(mock_chat, cerebras_client):
         response.choices[0].message.content == "Example Cerebras response"
     ), "Response content should match expected output"
     assert response.id == "mock_cerebras_response_id", "Response ID should match the mocked response ID"
-    assert response.model == "llama3.1-70b", "Response model should match the mocked response model"
+    assert response.model == "llama-3.3-70b", "Response model should match the mocked response model"
     assert response.usage.prompt_tokens == 10, "Response prompt tokens should match the mocked response usage"
     assert response.usage.completion_tokens == 20, "Response completion tokens should match the mocked response usage"
 
@@ -211,7 +211,7 @@ def test_create_response_with_tool_call(mock_chat, cerebras_client):
             )
         ],
         id="mock_cerebras_response_id",
-        model="llama3.1-70b",
+        model="llama-3.3-70b",
         usage=MagicMock(prompt_tokens=10, completion_tokens=20),
     )
 
@@ -239,7 +239,7 @@ def test_create_response_with_tool_call(mock_chat, cerebras_client):
 
     # Call the create method
     response = cerebras_client.create(
-        {"messages": cerebras_messages, "tools": converted_functions, "model": "llama3.1-70b"}
+        {"messages": cerebras_messages, "tools": converted_functions, "model": "llama-3.3-70b"}
     )
 
     # Assertions to check if the functions and content are included in the response

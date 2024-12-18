@@ -35,7 +35,7 @@ from autogen.oai.client_utils import should_hide_tools, validate_parameter
 CEREBRAS_PRICING_1K = {
     # Convert pricing per million to per thousand tokens.
     "llama3.1-8b": (0.10 / 1000, 0.10 / 1000),
-    "llama3.1-70b": (0.60 / 1000, 0.60 / 1000),
+    "llama-3.3-70b": (0.85 / 1000, 1.20 / 1000),
 }
 
 
