@@ -93,6 +93,7 @@ class Parameters(BaseModel):
     type: Literal["object"] = "object"
     properties: Dict[str, JsonSchemaValue]
     required: List[str]
+    additionalProperties: bool = False
 
 
 class Function(BaseModel):
