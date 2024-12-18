@@ -1,7 +1,7 @@
 from typing import Any, Dict
 
-# TODO Why does pylance fail if I import from autogen_core.components.tools instead?
-from autogen_core.components.tools._base import ParametersSchema, ToolSchema
+# TODO Why does pylance fail if I import from autogen_core.tools instead?
+from autogen_core.tools._base import ParametersSchema, ToolSchema
 
 
 def _load_tool(tooldef: Dict[str, Any]) -> ToolSchema:

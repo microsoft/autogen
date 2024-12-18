@@ -2,8 +2,9 @@
 // Program.cs
 
 using System.Text.Json;
-using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
+using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 
 // send a message to the agent
 var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
@@ -17,10 +18,10 @@ namespace Hello
 {
     [TopicSubscription("agents")]
     public class HelloAgent(
-        IAgentRuntime context,
+        IAgentWorker worker,
         IHostApplicationLifetime hostApplicationLifetime,
-        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
-            context,
+        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : Agent(
+            worker,
             typeRegistry),
             IHandleConsole,
             IHandle<NewMessageReceived>,

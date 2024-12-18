@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Any, Callable, Dict, List, Mapping, Sequence
 
-from autogen_core.components.models import ChatCompletionClient, SystemMessage
+from autogen_core.models import ChatCompletionClient, SystemMessage
 
 from ... import TRACE_LOGGER_NAME
 from ...base import ChatAgent, TerminationCondition
@@ -54,7 +54,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._allow_repeated_speaker = allow_repeated_speaker
         self._selector_func = selector_func
 
-    async def validate_group_state(self, message: ChatMessage | None) -> None:
+    async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
         pass
 
     async def reset(self) -> None:
@@ -219,7 +219,7 @@ class SelectorGroupChat(BaseGroupChat):
         .. code-block:: python
 
             import asyncio
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import SelectorGroupChat
             from autogen_agentchat.conditions import TextMentionTermination
@@ -273,7 +273,7 @@ class SelectorGroupChat(BaseGroupChat):
 
             import asyncio
             from typing import Sequence
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import SelectorGroupChat
             from autogen_agentchat.conditions import TextMentionTermination

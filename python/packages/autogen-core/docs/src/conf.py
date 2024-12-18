@@ -99,20 +99,20 @@ html_theme_options = {
     "show_prev_next": False,
     "icon_links": [
         {
-            "name": "Twitter",
-            "url": "https://twitter.com/pyautogen",
-            "icon": "fa-brands fa-twitter",
-        },
-        {
             "name": "GitHub",
             "url": "https://github.com/microsoft/autogen",
             "icon": "fa-brands fa-github",
         },
         {
-            "name": "PyPI",
-            "url": "/autogen/dev/packages",
-            "icon": "fa-custom fa-pypi",
+            "name": "Discord",
+            "url": "https://aka.ms/autogen-discord",
+            "icon": "fa-brands fa-discord",
         },
+        {
+            "name": "Twitter",
+            "url": "https://twitter.com/pyautogen",
+            "icon": "fa-brands fa-twitter",
+        }
     ],
 
     "announcement": 'AutoGen 0.4 is a work in progress. Go <a href="/autogen/0.2/">here</a> to find the 0.2 documentation.',

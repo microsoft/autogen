@@ -8,6 +8,7 @@ from ._states import (
     MagenticOneOrchestratorState,
     RoundRobinManagerState,
     SelectorManagerState,
+    SocietyOfMindAgentState,
     SwarmManagerState,
     TeamState,
 )
@@ -22,4 +23,5 @@ __all__ = [
     "SwarmManagerState",
     "MagenticOneOrchestratorState",
     "TeamState",
+    "SocietyOfMindAgentState",
 ]

@@ -5,6 +5,7 @@
 :hidden:
 
 agentchat-user-guide/index
+autogenstudio-user-guide/index
 core-user-guide/index
 extensions-user-guide/index
 ```
@@ -19,6 +20,18 @@ extensions-user-guide/index
 :class-item: api-card
 :::
 
+:::{grid-item-card} {fas}`people-group;pst-color-primary` <br> AutoGen AgentChat
+:link: autogenstudio-user-guide/index
+:link-type: doc
+:class-item: api-card
+:::
+
+:::{grid-item-card} {fas}`display;pst-color-primary` <br> AutoGen Studio
+:link: autogenstudio-user-guide/index
+:link-type: doc
+:class-item: api-card
+:::
+
 :::{grid-item-card} {fas}`cube;pst-color-primary` <br> AutoGen Core
 :link: core-user-guide/index
 :link-type: doc
@@ -26,7 +39,6 @@ extensions-user-guide/index
 :::
 
 ::::
-
 
 <script type="text/javascript">
     setTimeout(function() {

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
-    <ProjectReference Include="../../../src/Microsoft.AutoGen/Agents/Microsoft.AutoGen.Agents.csproj" />
+    <ProjectReference Include="../../../src/Microsoft.AutoGen/Core/Microsoft.AutoGen.Core.csproj" />
   </ItemGroup>
 
   <PropertyGroup>
