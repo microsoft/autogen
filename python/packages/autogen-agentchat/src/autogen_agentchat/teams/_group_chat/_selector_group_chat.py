@@ -13,8 +13,8 @@ from ...messages import (
     MultiModalMessage,
     StopMessage,
     TextMessage,
-    ToolCallMessage,
-    ToolCallResultMessage,
+    ToolCallExecutionEvent,
+    ToolCallRequestEvent,
 )
 from ...state import SelectorManagerState
 from ._base_group_chat import BaseGroupChat
@@ -95,7 +95,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         # Construct the history of the conversation.
         history_messages: List[str] = []
         for msg in thread:
-            if isinstance(msg, ToolCallMessage | ToolCallResultMessage):
+            if isinstance(msg, ToolCallRequestEvent | ToolCallExecutionEvent):
                 # Ignore tool call messages.
                 continue
             # The agent type must be the same as the topic type, which we use as the agent name.

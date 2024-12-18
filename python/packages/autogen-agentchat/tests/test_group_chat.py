@@ -20,8 +20,8 @@ from autogen_agentchat.messages import (
     MultiModalMessage,
     StopMessage,
     TextMessage,
-    ToolCallMessage,
-    ToolCallResultMessage,
+    ToolCallExecutionEvent,
+    ToolCallRequestEvent,
 )
 from autogen_agentchat.teams import (
     RoundRobinGroupChat,
@@ -323,8 +323,8 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     )
     assert len(result.messages) == 8
     assert isinstance(result.messages[0], TextMessage)  # task
-    assert isinstance(result.messages[1], ToolCallMessage)  # tool call
-    assert isinstance(result.messages[2], ToolCallResultMessage)  # tool call result
+    assert isinstance(result.messages[1], ToolCallRequestEvent)  # tool call
+    assert isinstance(result.messages[2], ToolCallExecutionEvent)  # tool call result
     assert isinstance(result.messages[3], TextMessage)  # tool use agent response
     assert isinstance(result.messages[4], TextMessage)  # echo agent response
     assert isinstance(result.messages[5], TextMessage)  # tool use agent response
@@ -920,8 +920,8 @@ async def test_swarm_handoff_using_tool_calls(monkeypatch: pytest.MonkeyPatch) -
     result = await team.run(task="task")
     assert len(result.messages) == 7
     assert result.messages[0].content == "task"
-    assert isinstance(result.messages[1], ToolCallMessage)
-    assert isinstance(result.messages[2], ToolCallResultMessage)
+    assert isinstance(result.messages[1], ToolCallRequestEvent)
+    assert isinstance(result.messages[2], ToolCallExecutionEvent)
     assert result.messages[3].content == "handoff to agent2"
     assert result.messages[4].content == "Transferred to agent1."
     assert result.messages[5].content == "Hello"

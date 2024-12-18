@@ -26,8 +26,8 @@ from ..messages import (
     HandoffMessage,
     MultiModalMessage,
     TextMessage,
-    ToolCallMessage,
-    ToolCallResultMessage,
+    ToolCallExecutionEvent,
+    ToolCallRequestEvent,
 )
 from ..state import AssistantAgentState
 from ._base_chat_agent import BaseChatAgent
@@ -321,7 +321,7 @@ class AssistantAgent(BaseChatAgent):
 
         # Process tool calls.
         assert isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content)
-        tool_call_msg = ToolCallMessage(content=result.content, source=self.name, models_usage=result.usage)
+        tool_call_msg = ToolCallRequestEvent(content=result.content, source=self.name, models_usage=result.usage)
         event_logger.debug(tool_call_msg)
         # Add the tool call message to the output.
         inner_messages.append(tool_call_msg)
@@ -329,7 +329,7 @@ class AssistantAgent(BaseChatAgent):
 
         # Execute the tool calls.
         results = await asyncio.gather(*[self._execute_tool_call(call, cancellation_token) for call in result.content])
-        tool_call_result_msg = ToolCallResultMessage(content=results, source=self.name)
+        tool_call_result_msg = ToolCallExecutionEvent(content=results, source=self.name)
         event_logger.debug(tool_call_result_msg)
         self._model_context.append(FunctionExecutionResultMessage(content=results))
         inner_messages.append(tool_call_result_msg)

@@ -19,8 +19,8 @@ from ....messages import (
     MultiModalMessage,
     StopMessage,
     TextMessage,
-    ToolCallMessage,
-    ToolCallResultMessage,
+    ToolCallExecutionEvent,
+    ToolCallRequestEvent,
 )
 from ....state import MagenticOneOrchestratorState
 from .._base_group_chat_manager import BaseGroupChatManager
@@ -427,7 +427,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         """Convert the message thread to a context for the model."""
         context: List[LLMMessage] = []
         for m in self._message_thread:
-            if isinstance(m, ToolCallMessage | ToolCallResultMessage):
+            if isinstance(m, ToolCallRequestEvent | ToolCallExecutionEvent):
                 # Ignore tool call messages.
                 continue
             elif isinstance(m, StopMessage | HandoffMessage):

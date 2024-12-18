@@ -12,8 +12,8 @@ from autogen_agentchat.messages import (
     MultiModalMessage,
     StopMessage,
     TextMessage,
-    ToolCallMessage,
-    ToolCallResultMessage,
+    ToolCallRequestEvent,
+    ToolCallExecutionEvent,
 )
 from autogen_core import CancellationToken
 from autogen_core import Image as AGImage
@@ -108,8 +108,8 @@ class WebSocketManager:
                             MultiModalMessage,
                             StopMessage,
                             HandoffMessage,
-                            ToolCallMessage,
-                            ToolCallResultMessage,
+                            ToolCallRequestEvent,
+                            ToolCallExecutionEvent,
                         ),
                     ):
                         await self._save_message(run_id, message)
@@ -325,7 +325,7 @@ class WebSocketManager:
                 }
 
             elif isinstance(
-                message, (TextMessage, StopMessage, HandoffMessage, ToolCallMessage, ToolCallResultMessage)
+                message, (TextMessage, StopMessage, HandoffMessage, ToolCallRequestEvent, ToolCallExecutionEvent)
             ):
                 return {"type": "message", "data": message.model_dump()}
 
