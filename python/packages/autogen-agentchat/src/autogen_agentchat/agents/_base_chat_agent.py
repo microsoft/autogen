@@ -42,7 +42,18 @@ class BaseChatAgent(ChatAgent, ABC):
 
     @abstractmethod
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
-        """Handles incoming messages and returns a response."""
+        """Handles incoming messages and returns a response.
+
+        .. note::
+
+            Agents are stateful and the messages passed to this method should
+            be the new messages since the last call to this method. The agent
+            should maintain its state between calls to this method. For example,
+            if the agent needs to remember the previous messages to respond to
+            the current message, it should store the previous messages in the
+            agent state.
+
+        """
         ...
 
     async def on_messages_stream(
@@ -51,7 +62,18 @@ class BaseChatAgent(ChatAgent, ABC):
         """Handles incoming messages and returns a stream of messages and
         and the final item is the response. The base implementation in
         :class:`BaseChatAgent` simply calls :meth:`on_messages` and yields
-        the messages in the response."""
+        the messages in the response.
+
+        .. note::
+
+            Agents are stateful and the messages passed to this method should
+            be the new messages since the last call to this method. The agent
+            should maintain its state between calls to this method. For example,
+            if the agent needs to remember the previous messages to respond to
+            the current message, it should store the previous messages in the
+            agent state.
+
+        """
         response = await self.on_messages(messages, cancellation_token)
         for inner_message in response.inner_messages or []:
             yield inner_message

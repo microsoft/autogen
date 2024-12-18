@@ -44,6 +44,11 @@ class TeamManager:
                 else:
                     yield message
 
+            # close agent resources
+            for agent in team._participants:
+                if hasattr(agent, "close"):
+                    await agent.close()
+
         except Exception as e:
             raise e
 
@@ -59,5 +64,10 @@ class TeamManager:
 
         team = await self._create_team(team_config, input_func)
         result = await team.run(task=task, cancellation_token=cancellation_token)
+
+        # close agent resources
+        for agent in team._participants:
+            if hasattr(agent, "close"):
+                await agent.close()
 
         return self._create_result(result, start_time)
