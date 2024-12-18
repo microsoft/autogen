@@ -81,6 +81,15 @@ class ToolCallResultMessage(BaseMessage):
     type: Literal["ToolCallResultMessage"] = "ToolCallResultMessage"
 
 
+class ToolCallResultSummaryMessage(BaseMessage):
+    """A message signaling the summary of tool call results."""
+
+    content: str
+    """Summary of the the tool call results."""
+
+    type: Literal["ToolCallResultSummaryMessage"] = "ToolCallResultSummaryMessage"
+
+
 ChatMessage = Annotated[TextMessage | MultiModalMessage | StopMessage | HandoffMessage, Field(discriminator="type")]
 """Messages for agent-to-agent communication."""
 
