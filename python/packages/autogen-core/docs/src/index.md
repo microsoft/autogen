@@ -97,7 +97,10 @@ Get Started
 :maxdepth: 3
 :hidden:
 
-user-guide/index
+user-guide/agentchat-user-guide/index
+Studio <user-guide/autogenstudio-user-guide/index>
+user-guide/core-user-guide/index
+user-guide/extensions-user-guide/index
 packages/index
 reference/index
 ```

@@ -14,7 +14,7 @@ For advanced users, [`autogen-core`](../core-user-guide/index.md)'s event-driven
 programming model provides more flexibility and control over the underlying components.
 
 AgentChat provides intuitive defaults, such as **Agents** with preset
-behaviors and **Teams** with predefined [multi-agent design patterns](../core-user-guide/design-patterns/index.md).
+behaviors and **Teams** with predefined [multi-agent design patterns](../core-user-guide/design-patterns/intro.md).
 
 
 ::::{grid} 2 2 2 2
@@ -51,6 +51,29 @@ Sample code and use cases
 
 installation
 quickstart
-tutorial/index
+```
+
+```{toctree}
+:maxdepth: 1
+:hidden:
+:caption: Tutorial
+
+tutorial/models
+tutorial/messages
+tutorial/agents
+tutorial/teams
+tutorial/selector-group-chat
+tutorial/swarm
+tutorial/termination
+tutorial/custom-agents
+tutorial/state
+```
+
+```{toctree}
+:maxdepth: 1
+:hidden:
+:caption: More
+
 examples/index
 ```
+

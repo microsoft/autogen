@@ -12,9 +12,56 @@ myst:
 :hidden:
 
 quickstart
-core-concepts/index
-framework/index
-design-patterns/index
+```
+
+```{toctree}
+:maxdepth: 1
+:hidden:
+:caption: Core Concepts
+
+core-concepts/agent-and-multi-agent-application
+core-concepts/architecture
+core-concepts/application-stack
+core-concepts/agent-identity-and-lifecycle
+core-concepts/topic-and-subscription
+```
+
+```{toctree}
+:maxdepth: 1
+:hidden:
+:caption: Framework Guide
+
+framework/agent-and-agent-runtime
+framework/message-and-communication
+framework/model-clients
+framework/tools
+framework/logging
+framework/telemetry
+framework/command-line-code-executors
+framework/distributed-agent-runtime
+```
+
+```{toctree}
+:maxdepth: 1
+:hidden:
+:caption: Multi-Agent Design Patterns
+
+design-patterns/intro
+design-patterns/concurrent-agents
+design-patterns/sequential-workflow
+design-patterns/group-chat
+design-patterns/handoffs
+design-patterns/mixture-of-agents
+design-patterns/multi-agent-debate
+design-patterns/reflection
+design-patterns/code-execution-groupchat
+```
+
+```{toctree}
+:maxdepth: 1
+:hidden:
+:caption: More
+
 cookbook/index
 faqs
 ```

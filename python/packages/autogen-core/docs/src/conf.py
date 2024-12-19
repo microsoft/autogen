@@ -88,15 +88,14 @@ html_favicon = "_static/images/logo/favicon-512x512.png"
 
 html_theme_options = {
 
-    "header_links_before_dropdown": 4,
+    "header_links_before_dropdown": 6,
     "navbar_align": "left",
-    "show_nav_level": 4,
     "check_switcher": False,
     # "navbar_start": ["navbar-logo", "version-switcher"],
     # "switcher": {
     #     "json_url": "/_static/switcher.json",
     # },
-    "show_prev_next": False,
+    "show_prev_next": True,
     "icon_links": [
         {
             "name": "GitHub",
@@ -133,6 +132,9 @@ html_theme_options = {
 html_js_files = ["custom-icon.js", "override-switcher-button.js"]
 html_sidebars = {
     "packages/index": [],
+    "user-guide/core-user-guide/**": ["sidebar-nav-bs-core"],
+    "user-guide/agentchat-user-guide/**": ["sidebar-nav-bs-agentchat"],
+    "user-guide/extensions-user-guide/**": ["sidebar-nav-bs-extensions"],
 }
 
 html_context = {
