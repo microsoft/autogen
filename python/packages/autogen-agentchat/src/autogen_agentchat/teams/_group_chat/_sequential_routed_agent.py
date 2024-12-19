@@ -42,9 +42,9 @@ class SequentialRoutedAgent(RoutedAgent):
         super().__init__(description=description)
         self._fifo_lock = FIFOLock()
 
-    async def on_message_impl(self, message: Any, ctx: MessageContext) -> Any | None:
+    async def on_message_impl(self, message: Any, ctx: MessageContext) -> None:
         await self._fifo_lock.acquire()
         try:
-            return await super().on_message_impl(message, ctx)
+            await super().on_message_impl(message, ctx)
         finally:
             self._fifo_lock.release()

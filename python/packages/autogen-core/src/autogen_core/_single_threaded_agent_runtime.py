@@ -6,7 +6,7 @@ import logging
 import threading
 import uuid
 import warnings
-from asyncio import CancelledError, Future, Task
+from asyncio import CancelledError, Task
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -15,24 +15,26 @@ from typing import Any, Awaitable, Callable, Dict, List, Mapping, ParamSpec, Set
 from opentelemetry.trace import TracerProvider
 from typing_extensions import deprecated
 
-from autogen_core._serialization import MessageSerializer, SerializationRegistry
-
-from ._agent import Agent
-from ._agent_id import AgentId
-from ._agent_instantiation import AgentInstantiationContext
-from ._agent_metadata import AgentMetadata
-from ._agent_runtime import AgentRuntime
-from ._agent_type import AgentType
-from ._cancellation_token import CancellationToken
-from ._message_context import MessageContext
-from ._message_handler_context import MessageHandlerContext
+from . import (
+    Agent,
+    AgentId,
+    AgentInstantiationContext,
+    AgentMetadata,
+    AgentRuntime,
+    AgentType,
+    CancellationToken,
+    MessageContext,
+    MessageHandlerContext,
+    Subscription,
+    SubscriptionInstantiationContext,
+    TopicId,
+)
+from ._intervention import DropMessage
+from ._publish_based_rpc import PublishBasedRpcMixin
 from ._runtime_impl_helpers import SubscriptionManager, get_impl
-from ._subscription import Subscription
-from ._subscription_context import SubscriptionInstantiationContext
+from ._serialization import MessageSerializer, SerializationRegistry
 from ._telemetry import EnvelopeMetadata, MessageRuntimeTracingConfig, TraceHelper, get_telemetry_envelope_metadata
-from ._topic import TopicId
-from .base.intervention import DropMessage, InterventionHandler
-from .exceptions import MessageDroppedException
+from .base.intervention import InterventionHandler
 
 logger = logging.getLogger("autogen_core")
 event_logger = logging.getLogger("autogen_core.events")
@@ -53,30 +55,6 @@ class PublishMessageEnvelope:
     topic_id: TopicId
     metadata: EnvelopeMetadata | None = None
     message_id: str
-
-
-@dataclass(kw_only=True)
-class SendMessageEnvelope:
-    """A message envelope for sending a message to a specific agent that can handle
-    the message of the type T."""
-
-    message: Any
-    sender: AgentId | None
-    recipient: AgentId
-    future: Future[Any]
-    cancellation_token: CancellationToken
-    metadata: EnvelopeMetadata | None = None
-
-
-@dataclass(kw_only=True)
-class ResponseMessageEnvelope:
-    """A message envelope for sending a response to a message."""
-
-    message: Any
-    future: Future[Any]
-    sender: AgentId
-    recipient: AgentId | None
-    metadata: EnvelopeMetadata | None = None
 
 
 P = ParamSpec("P")
@@ -164,7 +142,7 @@ def _warn_if_none(value: Any, handler_name: str) -> None:
         )
 
 
-class SingleThreadedAgentRuntime(AgentRuntime):
+class SingleThreadedAgentRuntime(PublishBasedRpcMixin, AgentRuntime):
     def __init__(
         self,
         *,
@@ -172,7 +150,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         tracer_provider: TracerProvider | None = None,
     ) -> None:
         self._tracer_helper = TraceHelper(tracer_provider, MessageRuntimeTracingConfig("SingleThreadedAgentRuntime"))
-        self._message_queue: List[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope] = []
+        self._message_queue: List[PublishMessageEnvelope] = []
         # (namespace, type) -> List[AgentId]
         self._agent_factories: Dict[
             str, Callable[[], Agent | Awaitable[Agent]] | Callable[[AgentRuntime, AgentId], Agent | Awaitable[Agent]]
@@ -188,7 +166,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     @property
     def unprocessed_messages(
         self,
-    ) -> Sequence[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope]:
+    ) -> Sequence[PublishMessageEnvelope]:
         return self._message_queue
 
     @property
@@ -198,56 +176,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     @property
     def _known_agent_names(self) -> Set[str]:
         return set(self._agent_factories.keys())
-
-    # Returns the response of the message
-    async def send_message(
-        self,
-        message: Any,
-        recipient: AgentId,
-        *,
-        sender: AgentId | None = None,
-        cancellation_token: CancellationToken | None = None,
-    ) -> Any:
-        if cancellation_token is None:
-            cancellation_token = CancellationToken()
-
-        # event_logger.info(
-        #     MessageEvent(
-        #         payload=message,
-        #         sender=sender,
-        #         receiver=recipient,
-        #         kind=MessageKind.DIRECT,
-        #         delivery_stage=DeliveryStage.SEND,
-        #     )
-        # )
-
-        with self._tracer_helper.trace_block(
-            "create",
-            recipient,
-            parent=None,
-            extraAttributes={"message_type": type(message).__name__},
-        ):
-            future = asyncio.get_event_loop().create_future()
-            if recipient.type not in self._known_agent_names:
-                future.set_exception(Exception("Recipient not found"))
-
-            content = message.__dict__ if hasattr(message, "__dict__") else message
-            logger.info(f"Sending message of type {type(message).__name__} to {recipient.type}: {content}")
-
-            self._message_queue.append(
-                SendMessageEnvelope(
-                    message=message,
-                    recipient=recipient,
-                    future=future,
-                    cancellation_token=cancellation_token,
-                    sender=sender,
-                    metadata=get_telemetry_envelope_metadata(),
-                )
-            )
-
-            cancellation_token.link_future(future)
-
-            return await future
 
     async def publish_message(
         self,
@@ -305,62 +233,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             if agent_id.type in self._known_agent_names:
                 await (await self._get_agent(agent_id)).load_state(state[str(agent_id)])
 
-    async def _process_send(self, message_envelope: SendMessageEnvelope) -> None:
-        with self._tracer_helper.trace_block("send", message_envelope.recipient, parent=message_envelope.metadata):
-            recipient = message_envelope.recipient
-            # todo: check if recipient is in the known namespaces
-            # assert recipient in self._agents
-
-            try:
-                # TODO use id
-                sender_name = message_envelope.sender.type if message_envelope.sender is not None else "Unknown"
-                logger.info(
-                    f"Calling message handler for {recipient} with message type {type(message_envelope.message).__name__} sent by {sender_name}"
-                )
-                # event_logger.info(
-                #     MessageEvent(
-                #         payload=message_envelope.message,
-                #         sender=message_envelope.sender,
-                #         receiver=recipient,
-                #         kind=MessageKind.DIRECT,
-                #         delivery_stage=DeliveryStage.DELIVER,
-                #     )
-                # )
-                recipient_agent = await self._get_agent(recipient)
-                message_context = MessageContext(
-                    sender=message_envelope.sender,
-                    topic_id=None,
-                    is_rpc=True,
-                    cancellation_token=message_envelope.cancellation_token,
-                    # Will be fixed when send API removed
-                    message_id="NOT_DEFINED_TODO_FIX",
-                )
-                with MessageHandlerContext.populate_context(recipient_agent.id):
-                    response = await recipient_agent.on_message(
-                        message_envelope.message,
-                        ctx=message_context,
-                    )
-            except CancelledError as e:
-                if not message_envelope.future.cancelled():
-                    message_envelope.future.set_exception(e)
-                self._outstanding_tasks.decrement()
-                return
-            except BaseException as e:
-                message_envelope.future.set_exception(e)
-                self._outstanding_tasks.decrement()
-                return
-
-            self._message_queue.append(
-                ResponseMessageEnvelope(
-                    message=response,
-                    future=message_envelope.future,
-                    sender=message_envelope.recipient,
-                    recipient=message_envelope.sender,
-                    metadata=get_telemetry_envelope_metadata(),
-                )
-            )
-            self._outstanding_tasks.decrement()
-
     async def _process_publish(self, message_envelope: PublishMessageEnvelope) -> None:
         with self._tracer_helper.trace_block("publish", message_envelope.topic_id, parent=message_envelope.metadata):
             try:
@@ -390,7 +262,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     message_context = MessageContext(
                         sender=message_envelope.sender,
                         topic_id=message_envelope.topic_id,
-                        is_rpc=False,
                         cancellation_token=message_envelope.cancellation_token,
                         message_id=message_envelope.message_id,
                     )
@@ -417,29 +288,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 self._outstanding_tasks.decrement()
             # TODO if responses are given for a publish
 
-    async def _process_response(self, message_envelope: ResponseMessageEnvelope) -> None:
-        with self._tracer_helper.trace_block("ack", message_envelope.recipient, parent=message_envelope.metadata):
-            content = (
-                message_envelope.message.__dict__
-                if hasattr(message_envelope.message, "__dict__")
-                else message_envelope.message
-            )
-            logger.info(
-                f"Resolving response with message type {type(message_envelope.message).__name__} for recipient {message_envelope.recipient} from {message_envelope.sender.type}: {content}"
-            )
-            # event_logger.info(
-            #     MessageEvent(
-            #         payload=message_envelope.message,
-            #         sender=message_envelope.sender,
-            #         receiver=message_envelope.recipient,
-            #         kind=MessageKind.RESPOND,
-            #         delivery_stage=DeliveryStage.DELIVER,
-            #     )
-            # )
-            self._outstanding_tasks.decrement()
-            if not message_envelope.future.cancelled():
-                message_envelope.future.set_result(message_envelope.message)
-
     async def process_next(self) -> None:
         """Process the next message in the queue."""
 
@@ -449,71 +297,30 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             return
         message_envelope = self._message_queue.pop(0)
 
-        match message_envelope:
-            case SendMessageEnvelope(message=message, sender=sender, recipient=recipient, future=future):
-                if self._intervention_handlers is not None:
-                    for handler in self._intervention_handlers:
-                        with self._tracer_helper.trace_block(
-                            "intercept", handler.__class__.__name__, parent=message_envelope.metadata
-                        ):
-                            try:
-                                temp_message = await handler.on_send(message, sender=sender, recipient=recipient)
-                                _warn_if_none(temp_message, "on_send")
-                            except BaseException as e:
-                                future.set_exception(e)
-                                return
-                            if temp_message is DropMessage or isinstance(temp_message, DropMessage):
-                                future.set_exception(MessageDroppedException())
-                                return
+        message = message_envelope.message
+        sender = message_envelope.sender
 
-                        message_envelope.message = temp_message
-                self._outstanding_tasks.increment()
-                task = asyncio.create_task(self._process_send(message_envelope))
-                self._background_tasks.add(task)
-                task.add_done_callback(self._background_tasks.discard)
-            case PublishMessageEnvelope(
-                message=message,
-                sender=sender,
-            ):
-                if self._intervention_handlers is not None:
-                    for handler in self._intervention_handlers:
-                        with self._tracer_helper.trace_block(
-                            "intercept", handler.__class__.__name__, parent=message_envelope.metadata
-                        ):
-                            try:
-                                temp_message = await handler.on_publish(message, sender=sender)
-                                _warn_if_none(temp_message, "on_publish")
-                            except BaseException as e:
-                                # TODO: we should raise the intervention exception to the publisher.
-                                logger.error(f"Exception raised in in intervention handler: {e}", exc_info=True)
-                                return
-                            if temp_message is DropMessage or isinstance(temp_message, DropMessage):
-                                # TODO log message dropped
-                                return
+        if self._intervention_handlers is not None:
+            for handler in self._intervention_handlers:
+                with self._tracer_helper.trace_block(
+                    "intercept", handler.__class__.__name__, parent=message_envelope.metadata
+                ):
+                    try:
+                        temp_message = await handler.on_publish(message, sender=sender)
+                        _warn_if_none(temp_message, "on_publish")
+                    except BaseException as e:
+                        # TODO: we should raise the intervention exception to the publisher.
+                        logger.error(f"Exception raised in in intervention handler: {e}", exc_info=True)
+                        return
+                    if temp_message is DropMessage or isinstance(temp_message, DropMessage):
+                        # TODO log message dropped
+                        return
 
-                        message_envelope.message = temp_message
-                self._outstanding_tasks.increment()
-                task = asyncio.create_task(self._process_publish(message_envelope))
-                self._background_tasks.add(task)
-                task.add_done_callback(self._background_tasks.discard)
-            case ResponseMessageEnvelope(message=message, sender=sender, recipient=recipient, future=future):
-                if self._intervention_handlers is not None:
-                    for handler in self._intervention_handlers:
-                        try:
-                            temp_message = await handler.on_response(message, sender=sender, recipient=recipient)
-                            _warn_if_none(temp_message, "on_response")
-                        except BaseException as e:
-                            # TODO: should we raise the exception to sender of the response instead?
-                            future.set_exception(e)
-                            return
-                        if temp_message is DropMessage or isinstance(temp_message, DropMessage):
-                            future.set_exception(MessageDroppedException())
-                            return
-                        message_envelope.message = temp_message
-                self._outstanding_tasks.increment()
-                task = asyncio.create_task(self._process_response(message_envelope))
-                self._background_tasks.add(task)
-                task.add_done_callback(self._background_tasks.discard)
+                message_envelope.message = temp_message
+        self._outstanding_tasks.increment()
+        task = asyncio.create_task(self._process_publish(message_envelope))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
 
         # Yield control to the message loop to allow other tasks to run
         await asyncio.sleep(0)

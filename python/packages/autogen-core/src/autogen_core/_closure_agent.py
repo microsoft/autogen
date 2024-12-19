@@ -15,7 +15,7 @@ from ._serialization import try_get_known_serializers_for_type
 from ._subscription import Subscription
 from ._subscription_context import SubscriptionInstantiationContext
 from ._topic import TopicId
-from ._type_helpers import get_types
+from ._type_helpers import AnyType, get_types
 from .exceptions import CantHandleException
 
 T = TypeVar("T")
@@ -73,7 +73,11 @@ class ClosureContext(Protocol):
 
 class ClosureAgent(BaseAgent, ClosureContext):
     def __init__(
-        self, description: str, closure: Callable[[ClosureContext, T, MessageContext], Awaitable[Any]]
+        self,
+        description: str,
+        closure: Callable[[ClosureContext, T, MessageContext], Awaitable[Any]],
+        *,
+        forward_unbound_rpc_responses_to_handler: bool = False,
     ) -> None:
         try:
             runtime = AgentInstantiationContext.current_runtime()
@@ -89,7 +93,7 @@ class ClosureAgent(BaseAgent, ClosureContext):
         handled_types = get_handled_types_from_closure(closure)
         self._expected_types = handled_types
         self._closure = closure
-        super().__init__(description)
+        super().__init__(description, forward_unbound_rpc_responses_to_handler=forward_unbound_rpc_responses_to_handler)
 
     @property
     def metadata(self) -> AgentMetadata:
@@ -109,7 +113,7 @@ class ClosureAgent(BaseAgent, ClosureContext):
         return self._runtime
 
     async def on_message_impl(self, message: Any, ctx: MessageContext) -> Any:
-        if type(message) not in self._expected_types:
+        if AnyType not in self._expected_types and type(message) not in self._expected_types:
             raise CantHandleException(
                 f"Message type {type(message)} not in target types {self._expected_types} of {self.id}"
             )
@@ -130,19 +134,23 @@ class ClosureAgent(BaseAgent, ClosureContext):
         type: str,
         closure: Callable[[ClosureContext, T, MessageContext], Awaitable[Any]],
         *,
-        skip_class_subscriptions: bool = False,
         skip_direct_message_subscription: bool = False,
+        forward_unbound_rpc_responses_to_handler: bool = False,
         description: str = "",
         subscriptions: Callable[[], list[Subscription] | Awaitable[list[Subscription]]] | None = None,
     ) -> AgentType:
         def factory() -> ClosureAgent:
-            return ClosureAgent(description=description, closure=closure)
+            return ClosureAgent(
+                description=description,
+                closure=closure,
+                forward_unbound_rpc_responses_to_handler=forward_unbound_rpc_responses_to_handler,
+            )
 
         agent_type = await cls.register(
             runtime=runtime,
             type=type,
             factory=factory,  # type: ignore
-            skip_class_subscriptions=skip_class_subscriptions,
+            skip_class_subscriptions=True,
             skip_direct_message_subscription=skip_direct_message_subscription,
         )
 

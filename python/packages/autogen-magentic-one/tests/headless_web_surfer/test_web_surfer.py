@@ -216,27 +216,22 @@ async def test_web_surfer_oai() -> None:
             )
         ),
         recipient=web_surfer.id,
-        sender=user_proxy.id,
     )
     await runtime.send_message(
         BroadcastMessage(content=UserMessage(content="Please scroll down.", source="user")),
         recipient=web_surfer.id,
-        sender=user_proxy.id,
     )
     await runtime.send_message(
         BroadcastMessage(content=UserMessage(content="Please scroll up.", source="user")),
         recipient=web_surfer.id,
-        sender=user_proxy.id,
     )
     await runtime.send_message(
         BroadcastMessage(content=UserMessage(content="When was it founded?", source="user")),
         recipient=web_surfer.id,
-        sender=user_proxy.id,
     )
     await runtime.send_message(
         BroadcastMessage(content=UserMessage(content="What's this page about?", source="user")),
         recipient=web_surfer.id,
-        sender=user_proxy.id,
     )
     await runtime.stop_when_idle()
 

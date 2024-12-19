@@ -100,18 +100,6 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
             logger.info(f"Received message from client {client_id}: {message}")
             oneofcase = message.WhichOneof("message")
             match oneofcase:
-                case "request":
-                    request: agent_worker_pb2.RpcRequest = message.request
-                    task = asyncio.create_task(self._process_request(request, client_id))
-                    self._background_tasks.add(task)
-                    task.add_done_callback(self._raise_on_exception)
-                    task.add_done_callback(self._background_tasks.discard)
-                case "response":
-                    response: agent_worker_pb2.RpcResponse = message.response
-                    task = asyncio.create_task(self._process_response(response, client_id))
-                    self._background_tasks.add(task)
-                    task.add_done_callback(self._raise_on_exception)
-                    task.add_done_callback(self._background_tasks.discard)
                 case "cloudEvent":
                     # The proto typing doesnt resolve this one
                     event = cast(cloudevent_pb2.CloudEvent, message.cloudEvent)  # type: ignore
@@ -137,43 +125,6 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
                     logger.warning(f"Received unexpected message type: {oneofcase}")
                 case None:
                     logger.warning("Received empty message")
-
-    async def _process_request(self, request: agent_worker_pb2.RpcRequest, client_id: int) -> None:
-        # Deliver the message to a client given the target agent type.
-        async with self._agent_type_to_client_id_lock:
-            target_client_id = self._agent_type_to_client_id.get(request.target.type)
-        if target_client_id is None:
-            logger.error(f"Agent {request.target.type} not found, failed to deliver message.")
-            return
-        target_send_queue = self._send_queues.get(target_client_id)
-        if target_send_queue is None:
-            logger.error(f"Client {target_client_id} not found, failed to deliver message.")
-            return
-        await target_send_queue.put(agent_worker_pb2.Message(request=request))
-
-        # Create a future to wait for the response from the target.
-        future = asyncio.get_event_loop().create_future()
-        self._pending_responses.setdefault(target_client_id, {})[request.request_id] = future
-
-        # Create a task to wait for the response and send it back to the client.
-        send_response_task = asyncio.create_task(self._wait_and_send_response(future, client_id))
-        self._background_tasks.add(send_response_task)
-        send_response_task.add_done_callback(self._raise_on_exception)
-        send_response_task.add_done_callback(self._background_tasks.discard)
-
-    async def _wait_and_send_response(self, future: Future[agent_worker_pb2.RpcResponse], client_id: int) -> None:
-        response = await future
-        message = agent_worker_pb2.Message(response=response)
-        send_queue = self._send_queues.get(client_id)
-        if send_queue is None:
-            logger.error(f"Client {client_id} not found, failed to send response message.")
-            return
-        await send_queue.put(message)
-
-    async def _process_response(self, response: agent_worker_pb2.RpcResponse, client_id: int) -> None:
-        # Setting the result of the future will send the response back to the original sender.
-        future = self._pending_responses[client_id].pop(response.request_id)
-        future.set_result(response)
 
     async def _process_event(self, event: cloudevent_pb2.CloudEvent) -> None:
         topic_id = TopicId(type=event.type, source=event.source)

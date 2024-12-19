@@ -8,7 +8,6 @@ from ._topic import TopicId
 @dataclass
 class MessageContext:
     sender: AgentId | None
-    topic_id: TopicId | None
-    is_rpc: bool
+    topic_id: TopicId
     cancellation_token: CancellationToken
     message_id: str

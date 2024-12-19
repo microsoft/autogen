@@ -9,12 +9,7 @@ __all__ = [
     "DefaultInterventionHandler",
 ]
 
-
-@final
-class DropMessage: ...
-
-
-InterventionFunction = Callable[[Any], Any | Awaitable[type[DropMessage]]]
+from .._intervention import DropMessage, InterventionFunction
 
 
 class InterventionHandler(Protocol):

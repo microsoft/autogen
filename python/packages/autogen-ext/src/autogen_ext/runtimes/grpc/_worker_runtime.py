@@ -52,6 +52,7 @@ from autogen_core._serialization import (
     SerializationRegistry,
 )
 from autogen_core._telemetry import MessageRuntimeTracingConfig, TraceHelper, get_telemetry_grpc_metadata
+from autogen_core._publish_based_rpc import PublishBasedRpcMixin
 from google.protobuf import any_pb2
 from opentelemetry.trace import TracerProvider
 from typing_extensions import Self, deprecated
@@ -179,7 +180,7 @@ class HostConnection:
         return await self._recv_queue.get()
 
 
-class GrpcWorkerAgentRuntime(AgentRuntime):
+class GrpcWorkerAgentRuntime(PublishBasedRpcMixin, AgentRuntime):
     def __init__(
         self,
         host_address: str,
@@ -239,16 +240,6 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                 match oneofcase:
                     case "registerAgentTypeRequest" | "addSubscriptionRequest":
                         logger.warning(f"Cant handle {oneofcase}, skipping.")
-                    case "request":
-                        task = asyncio.create_task(self._process_request(message.request))
-                        self._background_tasks.add(task)
-                        task.add_done_callback(self._raise_on_exception)
-                        task.add_done_callback(self._background_tasks.discard)
-                    case "response":
-                        task = asyncio.create_task(self._process_response(message.response))
-                        self._background_tasks.add(task)
-                        task.add_done_callback(self._raise_on_exception)
-                        task.add_done_callback(self._background_tasks.discard)
                     case "cloudEvent":
                         # The proto typing doesnt resolve this one
                         cloud_event = cast(cloudevent_pb2.CloudEvent, message.cloudEvent)  # type: ignore
@@ -332,51 +323,6 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             raise RuntimeError("Host connection is not set.")
         with self._trace_helper.trace_block(send_type, recipient, parent=telemetry_metadata):
             await self._host_connection.send(runtime_message)
-
-    async def send_message(
-        self,
-        message: Any,
-        recipient: AgentId,
-        *,
-        sender: AgentId | None = None,
-        cancellation_token: CancellationToken | None = None,
-    ) -> Any:
-        if not self._running:
-            raise ValueError("Runtime must be running when sending message.")
-        if self._host_connection is None:
-            raise RuntimeError("Host connection is not set.")
-        data_type = self._serialization_registry.type_name(message)
-        with self._trace_helper.trace_block(
-            "create", recipient, parent=None, extraAttributes={"message_type": data_type}
-        ):
-            # create a new future for the result
-            future = asyncio.get_event_loop().create_future()
-            request_id = await self._get_new_request_id()
-            self._pending_requests[request_id] = future
-            serialized_message = self._serialization_registry.serialize(
-                message, type_name=data_type, data_content_type=JSON_DATA_CONTENT_TYPE
-            )
-            telemetry_metadata = get_telemetry_grpc_metadata()
-            runtime_message = agent_worker_pb2.Message(
-                request=agent_worker_pb2.RpcRequest(
-                    request_id=request_id,
-                    target=agent_worker_pb2.AgentId(type=recipient.type, key=recipient.key),
-                    source=agent_worker_pb2.AgentId(type=sender.type, key=sender.key) if sender is not None else None,
-                    metadata=telemetry_metadata,
-                    payload=agent_worker_pb2.Payload(
-                        data_type=data_type,
-                        data=serialized_message,
-                        data_content_type=JSON_DATA_CONTENT_TYPE,
-                    ),
-                )
-            )
-
-            # TODO: Find a way to handle timeouts/errors
-            task = asyncio.create_task(self._send_message(runtime_message, "send", recipient, telemetry_metadata))
-            self._background_tasks.add(task)
-            task.add_done_callback(self._raise_on_exception)
-            task.add_done_callback(self._background_tasks.discard)
-            return await future
 
     async def publish_message(
         self,
@@ -477,99 +423,6 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             self._next_request_id += 1
             return str(self._next_request_id)
 
-    async def _process_request(self, request: agent_worker_pb2.RpcRequest) -> None:
-        assert self._host_connection is not None
-        recipient = AgentId(request.target.type, request.target.key)
-        sender: AgentId | None = None
-        if request.HasField("source"):
-            sender = AgentId(request.source.type, request.source.key)
-            logging.info(f"Processing request from {sender} to {recipient}")
-        else:
-            logging.info(f"Processing request from unknown source to {recipient}")
-
-        # Deserialize the message.
-        message = self._serialization_registry.deserialize(
-            request.payload.data,
-            type_name=request.payload.data_type,
-            data_content_type=request.payload.data_content_type,
-        )
-
-        # Get the receiving agent and prepare the message context.
-        rec_agent = await self._get_agent(recipient)
-        message_context = MessageContext(
-            sender=sender,
-            topic_id=None,
-            is_rpc=True,
-            cancellation_token=CancellationToken(),
-            message_id=request.request_id,
-        )
-
-        # Call the receiving agent.
-        try:
-            with MessageHandlerContext.populate_context(rec_agent.id):
-                with self._trace_helper.trace_block(
-                    "process",
-                    rec_agent.id,
-                    parent=request.metadata,
-                    attributes={"request_id": request.request_id},
-                    extraAttributes={"message_type": request.payload.data_type},
-                ):
-                    result = await rec_agent.on_message(message, ctx=message_context)
-        except BaseException as e:
-            response_message = agent_worker_pb2.Message(
-                response=agent_worker_pb2.RpcResponse(
-                    request_id=request.request_id,
-                    error=str(e),
-                    metadata=get_telemetry_grpc_metadata(),
-                ),
-            )
-            # Send the error response.
-            await self._host_connection.send(response_message)
-            return
-
-        # Serialize the result.
-        result_type = self._serialization_registry.type_name(result)
-        serialized_result = self._serialization_registry.serialize(
-            result, type_name=result_type, data_content_type=JSON_DATA_CONTENT_TYPE
-        )
-
-        # Create the response message.
-        response_message = agent_worker_pb2.Message(
-            response=agent_worker_pb2.RpcResponse(
-                request_id=request.request_id,
-                payload=agent_worker_pb2.Payload(
-                    data_type=result_type,
-                    data=serialized_result,
-                    data_content_type=JSON_DATA_CONTENT_TYPE,
-                ),
-                metadata=get_telemetry_grpc_metadata(),
-            )
-        )
-
-        # Send the response.
-        await self._host_connection.send(response_message)
-
-    async def _process_response(self, response: agent_worker_pb2.RpcResponse) -> None:
-        with self._trace_helper.trace_block(
-            "ack",
-            None,
-            parent=response.metadata,
-            attributes={"request_id": response.request_id},
-            extraAttributes={"message_type": response.payload.data_type},
-        ):
-            # Deserialize the result.
-            result = self._serialization_registry.deserialize(
-                response.payload.data,
-                type_name=response.payload.data_type,
-                data_content_type=response.payload.data_content_type,
-            )
-            # Get the future and set the result.
-            future = self._pending_requests.pop(response.request_id)
-            if len(response.error) > 0:
-                future.set_exception(Exception(response.error))
-            else:
-                future.set_result(result)
-
     async def _process_event(self, event: cloudevent_pb2.CloudEvent) -> None:
         event_attributes = event.attributes
         sender: AgentId | None = None
@@ -601,16 +454,6 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         else:
             raise ValueError(f"Unsupported message content type: {message_content_type}")
 
-        # TODO: dont read these values in the runtime
-        topic_type_suffix = topic_id.type.split(":", maxsplit=1)[1] if ":" in topic_id.type else ""
-        is_rpc = topic_type_suffix == _constants.MESSAGE_KIND_VALUE_RPC_REQUEST
-        is_marked_rpc_type = (
-            _constants.MESSAGE_KIND_ATTR in event_attributes
-            and event_attributes[_constants.MESSAGE_KIND_ATTR].ce_string == _constants.MESSAGE_KIND_VALUE_RPC_REQUEST
-        )
-        if is_rpc and not is_marked_rpc_type:
-            warnings.warn("Received RPC request with topic type suffix but not marked as RPC request.", stacklevel=2)
-
         # Send the message to each recipient.
         responses: List[Awaitable[Any]] = []
         for agent_id in recipients:
@@ -619,7 +462,6 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             message_context = MessageContext(
                 sender=sender,
                 topic_id=topic_id,
-                is_rpc=is_rpc,
                 cancellation_token=CancellationToken(),
                 message_id=event.id,
             )

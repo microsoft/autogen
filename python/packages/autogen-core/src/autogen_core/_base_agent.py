@@ -1,12 +1,16 @@
 from __future__ import annotations
 
 import inspect
+import uuid
 import warnings
 from abc import ABC, abstractmethod
+from asyncio import Future
 from collections.abc import Sequence
-from typing import Any, Awaitable, Callable, ClassVar, List, Mapping, Tuple, Type, TypeVar, final
+from typing import Any, Awaitable, Callable, ClassVar, Dict, List, Mapping, Tuple, Type, TypeVar, final
 
 from typing_extensions import Self
+
+from autogen_core._rpc import format_rpc_request_topic, is_rpc_response
 
 from ._agent import Agent
 from ._agent_id import AgentId
@@ -81,7 +85,17 @@ class BaseAgent(ABC, Agent):
         assert self._id is not None
         return AgentMetadata(key=self._id.key, type=self._id.type, description=self._description)
 
-    def __init__(self, description: str) -> None:
+    def __init__(self, description: str, *, forward_unbound_rpc_responses_to_handler: bool = False) -> None:
+        """Base agent that all agents should inherit from. Puts in place assumed common functionality.
+
+        Args:
+            description (str): Description of the agent.
+            forward_unbound_rpc_responses_to_handler (bool, optional): If an rpc request ID is not know to the agent, should the rpc request be forwarded to the handler. Defaults to False.
+
+        Raises:
+            RuntimeError: If the agent is not instantiated within the context of an AgentRuntime.
+            ValueError: If there is an argument type error.
+        """
         try:
             runtime = AgentInstantiationContext.current_runtime()
             id = AgentInstantiationContext.current_agent_id()
@@ -95,6 +109,8 @@ class BaseAgent(ABC, Agent):
         if not isinstance(description, str):
             raise ValueError("Agent description must be a string")
         self._description = description
+        self._pending_rpc_requests: Dict[str, Future[Any]] = {}
+        self._forward_unbound_rpc_responses_to_handler = forward_unbound_rpc_responses_to_handler
 
     @property
     def type(self) -> str:
@@ -108,12 +124,26 @@ class BaseAgent(ABC, Agent):
     def runtime(self) -> AgentRuntime:
         return self._runtime
 
-    @final
-    async def on_message(self, message: Any, ctx: MessageContext) -> Any:
-        return await self.on_message_impl(message, ctx)
-
     @abstractmethod
-    async def on_message_impl(self, message: Any, ctx: MessageContext) -> Any: ...
+    async def on_message_impl(self, message: Any, ctx: MessageContext) -> None: ...
+
+    @final
+    async def on_message(self, message: Any, ctx: MessageContext) -> None:
+        # Intercept RPC responses
+        if (request_id := is_rpc_response(ctx.topic_id.type)) is not None:
+            if request_id in self._pending_rpc_requests:
+                self._pending_rpc_requests[request_id].set_result(message)
+                del self._pending_rpc_requests[request_id]
+            elif self._forward_unbound_rpc_responses_to_handler:
+                await self.on_message_impl(message, ctx)
+            else:
+                warnings.warn(
+                    f"Received RPC response for unknown request {request_id}. To forward unbound rpc responses to the handler, set forward_unbound_rpc_responses_to_handler=True",
+                    stacklevel=2,
+                )
+            return None
+
+        await self.on_message_impl(message, ctx)
 
     async def send_message(
         self,
@@ -126,12 +156,25 @@ class BaseAgent(ABC, Agent):
         if cancellation_token is None:
             cancellation_token = CancellationToken()
 
-        return await self._runtime.send_message(
+        recipient_topic = TopicId(
+            type=format_rpc_request_topic(rpc_recipient_agent_type=recipient.type, rpc_sender_agent_type=self.id.type),
+            source=recipient.key,
+        )
+        request_id = str(uuid.uuid4())
+
+        future = Future[Any]()
+
+        await self._runtime.publish_message(
             message,
             sender=self.id,
-            recipient=recipient,
+            topic_id=recipient_topic,
             cancellation_token=cancellation_token,
+            message_id=request_id,
         )
+
+        self._pending_rpc_requests[request_id] = future
+
+        return future
 
     async def publish_message(
         self,
