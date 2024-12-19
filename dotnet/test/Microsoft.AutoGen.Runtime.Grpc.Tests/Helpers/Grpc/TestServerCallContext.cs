@@ -36,10 +36,10 @@ public class TestServerCallContext : ServerCallContext
         _authContext = new AuthContext(string.Empty, new Dictionary<string, List<AuthProperty>>());
         _userState = new Dictionary<object, object>();
     }
-
+    private static Guid _peerId = Guid.NewGuid();
     protected override string MethodCore => "MethodName";
-    protected override string HostCore => "HostName";
-    protected override string PeerCore => "PeerName";
+    protected override string HostCore => "AutoGen.Tests";
+    protected override string PeerCore => $"PeerName{_peerId}";
     protected override DateTime DeadlineCore { get; }
     protected override Metadata RequestHeadersCore => _requestHeaders;
     protected override CancellationToken CancellationTokenCore => _cancellationToken;

@@ -19,7 +19,7 @@ namespace HelloAgent
 
     [TopicSubscription("HelloAgents")]
     public class HelloAgent( IHostApplicationLifetime hostApplicationLifetime,
-    [FromKeyedServices("EventTypes")] AgentsMetadata typeRegistry) : Agent(
+    [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry) : Agent(
         typeRegistry),
         IHandle<NewMessageReceived>,
         IHandle<ConversationClosed>,

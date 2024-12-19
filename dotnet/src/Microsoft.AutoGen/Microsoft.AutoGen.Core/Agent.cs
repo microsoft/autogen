@@ -290,7 +290,7 @@ public abstract class Agent
     {
         // Only send the event to the handler if the agent type is handling that type
         // foreach of the keys in the EventTypes.EventsMap[] if it contains the item.type
-        var key = item.Attributes["subject"].CeString;
+        var key = item.GetSubject();
         if (EventTypes.CheckIfTypeHandles(GetType(), item.Type) &&
                  key == AgentId.Key)
         {

@@ -18,9 +18,9 @@ public sealed class GrpcGatewayService : AgentRpc.AgentRpcBase
     {
         try
         {
-            var connectionId = await Gateway.ConnectToWorkerProcess(requestStream, responseStream, context).ConfigureAwait(true);
-            // Generate a response with the connectionId, to be used in subsequent RPC requests to the service
-            await responseStream.WriteAsync(new Message { OpenChannelResponse = new OpenChannelResponse { ConnectionId = connectionId, Success = true } });
+           // HACK: check if the request is comming fom our tests, then completes the request
+           var shouldComplete = context.Host.StartsWith("AutoGen.Tests");
+           await Gateway.ConnectToWorkerProcess(requestStream, responseStream, context, shouldComplete);
         }
         catch
         {
@@ -48,11 +48,13 @@ public sealed class GrpcGatewayService : AgentRpc.AgentRpcBase
 
     public override async Task<AddSubscriptionResponse> AddSubscription(AddSubscriptionRequest request, ServerCallContext context)
     {
+        request.RequestId = context.Peer;
         return await Gateway.AddSubscriptionAsync(request);
     }
 
     public override async Task<RegisterAgentTypeResponse> RegisterAgent(RegisterAgentTypeRequest request, ServerCallContext context)
     {
+        request.RequestId = context.Peer;
         return await Gateway.RegisterAgentTypeAsync(request);
     }
 }

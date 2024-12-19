@@ -17,15 +17,6 @@ var agentHost = builder.AddContainer("agent-host", "autogen-host")
 
 var agentHostHttps = agentHost.GetEndpoint("https");
 
-//TODO: pass the right variables - aca environment
-// var environmentId = builder.AddParameter("environmentId");
-// var acaSessions = builder.AddBicepTemplateString(
-//         name: "aca-sessions",
-//         bicepContent: BicepTemplates.Sessions
-//     )
-//     .WithParameter("environmentId", environmentId);
-// var acaSessionsEndpoint = acaSessions.GetOutput("endpoint");
-
 builder.AddProject<Projects.DevTeam_Backend>("backend")
     .WithEnvironment("AGENT_HOST", $"{agentHostHttps.Property(EndpointProperty.Url)}")
     .WithEnvironment("Qdrant__Endpoint", $"{qdrant.Resource.HttpEndpoint.Property(EndpointProperty.Url)}")
@@ -36,7 +27,9 @@ builder.AddProject<Projects.DevTeam_Backend>("backend")
     .WithEnvironment("Github__AppId", builder.Configuration["Github:AppId"])
     .WithEnvironment("Github__InstallationId", builder.Configuration["Github:InstallationId"])
     .WithEnvironment("Github__WebhookSecret", builder.Configuration["Github:WebhookSecret"])
-    .WithEnvironment("Github__AppKey", builder.Configuration["Github:AppKey"]);
+    .WithEnvironment("Github__AppKey", builder.Configuration["Github:AppKey"])
+    .WaitFor(agentHost)
+    .WaitFor(qdrant);
 //TODO: add this to the config in backend
 //.WithEnvironment("", acaSessionsEndpoint);
 

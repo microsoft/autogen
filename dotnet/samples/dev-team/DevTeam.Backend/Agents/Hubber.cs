@@ -7,7 +7,8 @@ using Microsoft.AutoGen.Core;
 
 namespace DevTeam.Backend.Agents;
 
-public class Hubber([FromKeyedServices("EventTypes")] AgentsMetadata typeRegistry, IManageGithub ghService)
+[TopicSubscription(Consts.TopicName)]
+public class Hubber([FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry, IManageGithub ghService)
     : Agent(typeRegistry),
     IHandle<NewAsk>,
     IHandle<ReadmeGenerated>,

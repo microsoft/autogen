@@ -83,8 +83,9 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         try
         {
+
             var connection = _workersByConnection[request.RequestId];
-            connection.AddSupportedType(request.Type);
+            //connection.AddSupportedType(request.Type);
             _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
 
             await _gatewayRegistry.RegisterAgentType(request, _reference).ConfigureAwait(true);
@@ -151,22 +152,27 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
     }
 
-    internal async Task<string> ConnectToWorkerProcess(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
+    internal async Task ConnectToWorkerProcess(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context, bool forceComplete)
     {
         _logger.LogInformation("Received new connection from {Peer}.", context.Peer);
         var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
-        var connectionId = Guid.NewGuid().ToString();
         _workers[workerProcess] = workerProcess;
-        _workersByConnection[connectionId] = workerProcess;
-
-        var completion = new TaskCompletionSource<Task>();
-        var _ = Task.Run(() =>
+        _workersByConnection[context.Peer] = workerProcess;
+        // HACK: Force the method to return if running from tests
+        // TODO: Refactor
+        if(forceComplete)
         {
-            completion.SetResult(workerProcess.Connect());
-        });
-        
-        await completion.Task;
-        return connectionId;
+            var completion = new TaskCompletionSource<Task>();
+            var _ = Task.Run(() =>
+            {
+                completion.SetResult(workerProcess.Connect());
+            });
+            await completion.Task;
+        }
+        else
+        {
+            await workerProcess.Connect();
+        }
     }
 
     //intetionally not static so can be called by some methods implemented in base class
@@ -235,23 +241,23 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     //    await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
     //}
 
-    private async ValueTask RegisterAgentTypeAsync(GrpcWorkerConnection connection, RegisterAgentTypeRequest msg)
-    {
-        connection.AddSupportedType(msg.Type);
-        _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
+    //private async ValueTask RegisterAgentTypeAsync(GrpcWorkerConnection connection, RegisterAgentTypeRequest msg)
+    //{
+    //    connection.AddSupportedType(msg.Type);
+    //    _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
 
-        await _gatewayRegistry.RegisterAgentType(msg, _reference).ConfigureAwait(true);
-        Message response = new()
-        {
-            RegisterAgentTypeResponse = new()
-            {
-                RequestId = msg.RequestId,
-                Error = "",
-                Success = true
-            }
-        };
-        await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
-    }
+    //    await _gatewayRegistry.RegisterAgentType(msg, _reference).ConfigureAwait(true);
+    //    Message response = new()
+    //    {
+    //        RegisterAgentTypeResponse = new()
+    //        {
+    //            RequestId = msg.RequestId,
+    //            Error = "",
+    //            Success = true
+    //        }
+    //    };
+    //    await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
+    //}
     private async ValueTask DispatchEventAsync(CloudEvent evt)
     {
         try

@@ -10,7 +10,7 @@ using Microsoft.Extensions.AI;
 namespace HelloAIAgents;
 [TopicSubscription("HelloAgents")]
 public class HelloAIAgent(
-    [FromKeyedServices("EventTypes")] AgentsMetadata typeRegistry,
+    [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry,
     IHostApplicationLifetime hostApplicationLifetime,
     IChatClient client) : HelloAgent(
         typeRegistry,

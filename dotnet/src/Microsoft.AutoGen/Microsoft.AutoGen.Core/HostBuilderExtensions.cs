@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -63,11 +64,20 @@ public static class HostBuilderExtensions
         var assemblies = AppDomain.CurrentDomain.GetAssemblies();
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
         builder.Services.AddSingleton(sp => (IHostedService)sp.GetRequiredService<IAgentWorker>());
-        builder.Services.AddKeyedSingleton("EventTypes", (sp, key) =>
+        builder.Services.AddKeyedSingleton("AgentsMetadata", (sp, key) =>
         {
             return ReflectionHelper.GetAgentsMetadata(assemblies);
         });
-        builder.Services.AddSingleton<Client>();
+        builder.Services.AddSingleton( (s) => {
+            var agentWorker = s.GetRequiredService<IAgentWorker>();
+            var dctx = s.GetRequiredService<DistributedContextPropagator>();
+            var agentId = new AgentId { Key = "client", Type = ""};
+            var runtimeContext = new RuntimeContext(agentId, agentWorker, default!, dctx);
+            var agentsMetadata = ReflectionHelper.GetAgentsMetadata(typeof(Client).Assembly);
+            var client = new Client(agentsMetadata, default!);
+            Agent.Initialize(runtimeContext, client);
+            return client;
+        });
 
         return builder;
     }

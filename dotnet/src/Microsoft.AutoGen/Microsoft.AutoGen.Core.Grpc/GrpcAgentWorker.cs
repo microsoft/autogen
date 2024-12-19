@@ -26,6 +26,7 @@ public sealed class GrpcAgentWorker(
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
     private readonly ConcurrentDictionary<(string Type, string Key), Agent> _agents = new();
     private readonly ConcurrentDictionary<string, (Agent Agent, string OriginalRequestId)> _pendingRequests = new();
+    private readonly ConcurrentDictionary<string, HashSet<Type>> _agentsForEvent = new();
     private readonly Channel<(Message Message, TaskCompletionSource WriteCompletionSource)> _outboundMessagesChannel = Channel.CreateBounded<(Message, TaskCompletionSource)>(new BoundedChannelOptions(1024)
     {
         AllowSynchronousContinuations = true,
@@ -35,6 +36,7 @@ public sealed class GrpcAgentWorker(
     });
     private readonly AgentRpc.AgentRpcClient _client = client;
     private readonly IServiceProvider _serviceProvider = serviceProvider;
+
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes = configuredAgentTypes;
     private readonly ILogger<GrpcAgentWorker> _logger = logger;
     private readonly DistributedContextPropagator _distributedContextPropagator = distributedContextPropagator;
@@ -42,7 +44,6 @@ public sealed class GrpcAgentWorker(
     private AsyncDuplexStreamingCall<Message, Message>? _channel;
     private Task? _readTask;
     private Task? _writeTask;
-    private string? connectionId;
 
     public void Dispose()
     {
@@ -68,9 +69,6 @@ public sealed class GrpcAgentWorker(
                         case Message.MessageOneofCase.Request:
                             GetOrActivateAgent(message.Request.Target).ReceiveMessage(message);
                             break;
-                        case Message.MessageOneofCase.OpenChannelResponse:
-                            connectionId = message.OpenChannelResponse.ConnectionId;
-                            break;
                         case Message.MessageOneofCase.Response:
                             if (!_pendingRequests.TryRemove(message.Response.RequestId, out var request))
                             {
@@ -83,15 +81,14 @@ public sealed class GrpcAgentWorker(
 
                         case Message.MessageOneofCase.CloudEvent:
 
-                            // HACK: Send the message to an instance of each agent type
-                            // where AgentId = (namespace: event.Namespace, name: agentType)
-                            // i.e, assume each agent type implicitly subscribes to each event.
-
                             var item = message.CloudEvent;
-
-                            foreach (var (typeName, _) in _agentTypes)
+                            if (!_agentsForEvent.TryGetValue(item.Type, out var agents))
                             {
-                                var agent = GetOrActivateAgent(new AgentId { Type = typeName, Key = item.Source });
+                                throw new InvalidOperationException($"This worker can't handle the event type '{item.Type}'.");
+                            }
+                            foreach (var a in agents)
+                            {
+                                var agent = GetOrActivateAgent(new AgentId { Type = a.Name, Key = item.GetSubject() });
                                 agent.ReceiveMessage(message);
                             }
 
@@ -176,6 +173,7 @@ public sealed class GrpcAgentWorker(
             item.WriteCompletionSource.TrySetCanceled();
         }
     }
+
     private Agent GetOrActivateAgent(AgentId agentId)
     {
         if (!_agents.TryGetValue((agentId.Type, agentId.Key), out var agent))
@@ -183,7 +181,8 @@ public sealed class GrpcAgentWorker(
             if (_agentTypes.TryGetValue(agentId.Type, out var agentType))
             {
                 var context = new RuntimeContext(agentId, this, _serviceProvider.GetRequiredService<ILogger<Agent>>(), _distributedContextPropagator);
-                agent = (Agent)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, context);
+                agent = (Agent)ActivatorUtilities.CreateInstance(_serviceProvider, agentType);
+                Agent.Initialize(context, agent);
                 _agents.TryAdd((agentId.Type, agentId.Key), agent);
             }
             else
@@ -199,18 +198,29 @@ public sealed class GrpcAgentWorker(
     {
         if (_agentTypes.TryAdd(type, agentType))
         {
+            // get the events that the agent handles
             var events = agentType.GetInterfaces()
             .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
             .Select(i => ReflectionHelper.GetMessageDescriptor(i.GetGenericArguments().First())?.FullName);
             //var state = agentType.BaseType?.GetGenericArguments().First();
+            // add the agentType to the list of agent types that handle the event
+            foreach (var evt in events)
+            {
+                if (!_agentsForEvent.TryGetValue(evt!, out var agents))
+                {
+                    agents = new HashSet<Type>();
+                    _agentsForEvent[evt!] = agents;
+                }
+
+                agents.Add(agentType);
+            }
+
             var topicTypes = agentType.GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
 
-            // TODO: Reimplement registration as RPC call
             _logger.LogInformation($"{cancellationToken.ToString}"); // TODO: remove this
             var response = await _client.RegisterAgentAsync(new RegisterAgentTypeRequest
             {
                 Type = type,
-                RequestId = connectionId,
                 Topics = { topicTypes },
                 //StateType = state?.Name,
                 Events = { events }

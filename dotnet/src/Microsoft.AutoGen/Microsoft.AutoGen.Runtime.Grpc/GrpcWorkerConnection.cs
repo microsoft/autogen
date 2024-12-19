@@ -49,8 +49,9 @@ internal sealed class GrpcWorkerConnection : IAsyncDisposable
                 ExecutionContext.RestoreFlow();
             }
         }
+        Completion = Task.WhenAll(_readTask, _writeTask);
 
-        return Completion = Task.WhenAll(_readTask, _writeTask);
+        return Completion;
     }
 
     public IAsyncStreamReader<Message> RequestStream { get; }

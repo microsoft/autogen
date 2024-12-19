@@ -5,7 +5,8 @@ using DevTeam.Backend.Services;
 using Microsoft.AutoGen.Core;
 namespace DevTeam.Backend.Agents;
 
-public class AzureGenie([FromKeyedServices("EventTypes")] AgentsMetadata typeRegistry, IManageAzure azureService)
+[TopicSubscription(Consts.TopicName)]
+public class AzureGenie([FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry, IManageAzure azureService)
     : Agent(typeRegistry),
     IHandle<ReadmeCreated>,
     IHandle<CodeCreated>

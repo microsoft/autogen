@@ -22,7 +22,7 @@ public static class GrpcAgentWorkerHostBuilderExtensions
 
                 channelOptions.HttpHandler = new SocketsHttpHandler
                 {
-                    EnableMultipleHttp2Connections = true,
+                    EnableMultipleHttp2Connections = false,
                     KeepAlivePingDelay = TimeSpan.FromSeconds(20),
                     KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
                     KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests

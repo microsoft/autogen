@@ -6,8 +6,8 @@ using Microsoft.AutoGen.Core;
 
 namespace DevTeam.Backend.Agents.Developer;
 
-[TopicSubscription("devteam")]
-public class Dev([FromKeyedServices("EventTypes")] AgentsMetadata typeRegistry, ILogger<Dev> logger)
+[TopicSubscription(Consts.TopicName)]
+public class Dev([FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry, ILogger<Dev> logger)
     : AiAgent<DeveloperState>(typeRegistry, logger), IDevelopApps,
     IHandle<CodeGenerationRequested>,
     IHandle<CodeChainClosed>
@@ -23,7 +23,7 @@ public class Dev([FromKeyedServices("EventTypes")] AgentsMetadata typeRegistry, 
             Code = code
         };
         // TODO: Read the Topic from the agent metadata
-        await PublishEventAsync(evt, topic: "devteam");
+        await PublishEventAsync(evt, topic: Consts.TopicName);
     }
 
     public async Task Handle(CodeChainClosed item, CancellationToken cancellationToken = default)
@@ -34,7 +34,7 @@ public class Dev([FromKeyedServices("EventTypes")] AgentsMetadata typeRegistry, 
         {
             Code = lastCode
         };
-        await PublishEventAsync(evt, topic: "devteam");
+        await PublishEventAsync(evt, topic: Consts.TopicName);
     }
 
     public async Task<string> GenerateCode(string ask)

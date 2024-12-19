@@ -9,7 +9,7 @@ using Tests.Events;
 namespace Microsoft.AutoGen.Core.Tests;
 
 [TopicSubscription("default")]
-public class TestAgent([FromKeyedServices("EventTypes")] AgentsMetadata eventTypes, ILogger<Agent>? logger = null)
+public class TestAgent([FromKeyedServices("AgentsMetadata")] AgentsMetadata eventTypes, ILogger<Agent>? logger = null)
     : Agent(eventTypes, logger)
     , IHandle<GoodBye>
     , IHandle<TextMessage>

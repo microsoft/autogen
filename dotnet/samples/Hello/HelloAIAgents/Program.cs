@@ -32,7 +32,7 @@ namespace Hello
 {
     [TopicSubscription("agents")]
     public class HelloAgent(
-        [FromKeyedServices("EventTypes")] AgentsMetadata typeRegistry,
+        [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry,
         IHostApplicationLifetime hostApplicationLifetime) : Agent(
         typeRegistry),
         IHandle<NewMessageReceived>,

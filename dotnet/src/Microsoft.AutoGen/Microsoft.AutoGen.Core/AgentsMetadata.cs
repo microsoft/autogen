@@ -81,5 +81,18 @@ public sealed class AgentsMetadata
         }
         return null;
     }
+
+    public HashSet<string>? GetAgentTypesForEvent(string eventName)
+    {
+        var agentTypes = new HashSet<string>();
+        foreach (var (type, events) in _eventsMap)
+        {
+            if (events.Contains(eventName))
+            {
+                agentTypes.Add(type.Name);
+            }
+        }
+        return agentTypes;
+    }
 }
 
