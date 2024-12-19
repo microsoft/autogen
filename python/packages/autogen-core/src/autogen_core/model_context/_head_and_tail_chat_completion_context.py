@@ -1,4 +1,4 @@
-from typing import Any, List, Mapping
+from typing import List
 
 from .._types import FunctionCall
 from ..models import AssistantMessage, FunctionExecutionResultMessage, LLMMessage, UserMessage
@@ -13,16 +13,17 @@ class HeadAndTailChatCompletionContext(ChatCompletionContext):
     Args:
         head_size (int): The size of the head.
         tail_size (int): The size of the tail.
+        initial_messages (List[LLMMessage] | None): The initial messages.
     """
 
-    def __init__(self, head_size: int, tail_size: int) -> None:
-        self._messages: List[LLMMessage] = []
+    def __init__(self, head_size: int, tail_size: int, initial_messages: List[LLMMessage] | None = None) -> None:
+        super().__init__(initial_messages)
+        if head_size <= 0:
+            raise ValueError("head_size must be greater than 0.")
+        if tail_size <= 0:
+            raise ValueError("tail_size must be greater than 0.")
         self._head_size = head_size
         self._tail_size = tail_size
-
-    async def add_message(self, message: LLMMessage) -> None:
-        """Add a message to the memory."""
-        self._messages.append(message)
 
     async def get_messages(self) -> List[LLMMessage]:
         """Get at most `head_size` recent messages and `tail_size` oldest messages."""
@@ -51,21 +52,3 @@ class HeadAndTailChatCompletionContext(ChatCompletionContext):
 
         placeholder_messages = [UserMessage(content=f"Skipped {num_skipped} messages.", source="System")]
         return head_messages + placeholder_messages + tail_messages
-
-    async def clear(self) -> None:
-        """Clear the message memory."""
-        self._messages = []
-
-    def save_state(self) -> Mapping[str, Any]:
-        return {
-            "messages": [message for message in self._messages],
-            "head_size": self._head_size,
-            "tail_size": self._tail_size,
-            "placeholder_message": self._placeholder_message,
-        }
-
-    def load_state(self, state: Mapping[str, Any]) -> None:
-        self._messages = state["messages"]
-        self._head_size = state["head_size"]
-        self._tail_size = state["tail_size"]
-        self._placeholder_message = state["placeholder_message"]
