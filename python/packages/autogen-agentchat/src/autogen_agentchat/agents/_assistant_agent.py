@@ -98,7 +98,6 @@ class AssistantAgent(BaseChatAgent):
         If multiple handoffs are detected, only the first handoff is executed.
 
 
-
     Args:
         name (str): The name of the agent.
         model_client (ChatCompletionClient): The model client to use for inference.
@@ -107,8 +106,9 @@ class AssistantAgent(BaseChatAgent):
             allowing it to transfer to other agents by responding with a :class:`HandoffMessage`.
             The transfer is only executed when the team is in :class:`~autogen_agentchat.teams.Swarm`.
             If a handoff is a string, it should represent the target agent's name.
+        model_context (ChatCompletionContext | None, optional): The model context for storing and retrieving :class:`~autogen_core.models.LLMMessage`. It can be preloaded with initial messages. The initial messages will be cleared when the agent is reset.
         description (str, optional): The description of the agent.
-        system_message (str, optional): The system message for the model.
+        system_message (str, optional): The system message for the model. If provided, it will be prepended to the messages in the model context when making an inference. Set to `None` to disable.
         reflect_on_tool_use (bool, optional): If `True`, the agent will make another model inference using the tool call and result
             to generate a response. If `False`, the tool call result will be returned as the response. Defaults to `False`.
         tool_call_summary_format (str, optional): The format string used to create a tool call summary for every tool call result.

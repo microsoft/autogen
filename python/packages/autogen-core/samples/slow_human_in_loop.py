@@ -114,7 +114,7 @@ class SlowUserProxyAgent(RoutedAgent):
         return state_to_save
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
-        await self._model_context.load_state({**state["memory"], "messages": [m for m in state["memory"]["messages"]]})
+        await self._model_context.load_state(state["memory"])
 
 
 class ScheduleMeetingInput(BaseModel):
