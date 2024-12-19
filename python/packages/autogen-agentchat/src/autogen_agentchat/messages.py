@@ -119,7 +119,13 @@ AgentEvent = Annotated[ToolCallRequestEvent | ToolCallExecutionEvent, Field(disc
 
 
 AgentMessage = Annotated[
-    TextMessage | MultiModalMessage | StopMessage | HandoffMessage | ToolCallRequestEvent | ToolCallExecutionEvent | ToolCallSummaryMessage,
+    TextMessage
+    | MultiModalMessage
+    | StopMessage
+    | HandoffMessage
+    | ToolCallRequestEvent
+    | ToolCallExecutionEvent
+    | ToolCallSummaryMessage,
     Field(discriminator="type"),
 ]
 """(Deprecated, will be removed in 0.4.0) All message and event types."""
