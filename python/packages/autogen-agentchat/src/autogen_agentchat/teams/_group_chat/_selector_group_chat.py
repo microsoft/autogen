@@ -7,14 +7,14 @@ from autogen_core.models import ChatCompletionClient, SystemMessage
 from ... import TRACE_LOGGER_NAME
 from ...base import ChatAgent, TerminationCondition
 from ...messages import (
-    AgentMessage,
+    AgentEvent,
     ChatMessage,
     HandoffMessage,
     MultiModalMessage,
     StopMessage,
     TextMessage,
-    ToolCallMessage,
-    ToolCallResultMessage,
+    ToolCallExecutionEvent,
+    ToolCallRequestEvent,
 )
 from ...state import SelectorManagerState
 from ._base_group_chat import BaseGroupChat
@@ -38,7 +38,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         model_client: ChatCompletionClient,
         selector_prompt: str,
         allow_repeated_speaker: bool,
-        selector_func: Callable[[Sequence[AgentMessage]], str | None] | None,
+        selector_func: Callable[[Sequence[AgentEvent | ChatMessage]], str | None] | None,
     ) -> None:
         super().__init__(
             group_topic_type,
@@ -78,7 +78,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._current_turn = selector_state.current_turn
         self._previous_speaker = selector_state.previous_speaker
 
-    async def select_speaker(self, thread: List[AgentMessage]) -> str:
+    async def select_speaker(self, thread: List[AgentEvent | ChatMessage]) -> str:
         """Selects the next speaker in a group chat using a ChatCompletion client,
         with the selector function as override if it returns a speaker name.
 
@@ -95,7 +95,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         # Construct the history of the conversation.
         history_messages: List[str] = []
         for msg in thread:
-            if isinstance(msg, ToolCallMessage | ToolCallResultMessage):
+            if isinstance(msg, ToolCallRequestEvent | ToolCallExecutionEvent):
                 # Ignore tool call messages.
                 continue
             # The agent type must be the same as the topic type, which we use as the agent name.
@@ -204,7 +204,7 @@ class SelectorGroupChat(BaseGroupChat):
             Must contain '{roles}', '{participants}', and '{history}' to be filled in.
         allow_repeated_speaker (bool, optional): Whether to allow the same speaker to be selected
             consecutively. Defaults to False.
-        selector_func (Callable[[Sequence[AgentMessage]], str | None], optional): A custom selector
+        selector_func (Callable[[Sequence[AgentEvent | ChatMessage]], str | None], optional): A custom selector
             function that takes the conversation history and returns the name of the next speaker.
             If provided, this function will be used to override the model to select the next speaker.
             If the function returns None, the model will be used to select the next speaker.
@@ -278,7 +278,7 @@ class SelectorGroupChat(BaseGroupChat):
             from autogen_agentchat.teams import SelectorGroupChat
             from autogen_agentchat.conditions import TextMentionTermination
             from autogen_agentchat.ui import Console
-            from autogen_agentchat.messages import AgentMessage
+            from autogen_agentchat.messages import AgentEvent, ChatMessage
 
 
             async def main() -> None:
@@ -304,7 +304,7 @@ class SelectorGroupChat(BaseGroupChat):
                     system_message="Check the answer and respond with 'Correct!' or 'Incorrect!'",
                 )
 
-                def selector_func(messages: Sequence[AgentMessage]) -> str | None:
+                def selector_func(messages: Sequence[AgentEvent | ChatMessage]) -> str | None:
                     if len(messages) == 1 or messages[-1].content == "Incorrect!":
                         return "Agent1"
                     if messages[-1].source == "Agent1":
@@ -341,7 +341,7 @@ Read the following conversation. Then select the next role from {participants} t
 Read the above conversation. Then select the next role from {participants} to play. Only return the role.
 """,
         allow_repeated_speaker: bool = False,
-        selector_func: Callable[[Sequence[AgentMessage]], str | None] | None = None,
+        selector_func: Callable[[Sequence[AgentEvent | ChatMessage]], str | None] | None = None,
     ):
         super().__init__(
             participants,
