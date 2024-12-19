@@ -6,23 +6,23 @@ import os
 from fastapi import FastAPI
 
 from ..datamodel import Response
-from ..workflowmanager import WorkflowManager
+from ..teammanager import TeamManager
 
 app = FastAPI()
-workflow_file_path = os.environ.get("AUTOGENSTUDIO_WORKFLOW_FILE", None)
+team_file_path = os.environ.get("AUTOGENSTUDIO_TEAM_FILE", None)
 
 
-if workflow_file_path:
-    workflow_manager = WorkflowManager(workflow=workflow_file_path)
+if team_file_path:
+    team_manager = TeamManager()
 else:
-    raise ValueError("Workflow file must be specified")
+    raise ValueError("Team file must be specified")
 
 
 @app.get("/predict/{task}")
 async def predict(task: str):
     response = Response(message="Task successfully completed", status=True, data=None)
     try:
-        result_message = workflow_manager.run(message=task, clear_history=False)
+        result_message = await team_manager.run(task=task, team_config=team_file_path)
         response.data = result_message
     except Exception as e:
         response.message = str(e)

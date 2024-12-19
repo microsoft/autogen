@@ -17,11 +17,11 @@ public abstract class WebAPIAgent : IOAgent,
     private readonly string _url = "/agents/webio";
 
     public WebAPIAgent(
-    IAgentRuntime context,
+    IAgentWorker worker,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
     ILogger<WebAPIAgent> logger,
     string url = "/agents/webio") : base(
-        context,
+        worker,
         typeRegistry)
     {
         _url = url;

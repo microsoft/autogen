@@ -19,7 +19,7 @@ from autogen_core._closure_agent import ClosureContext
 
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
-from ...messages import AgentMessage, ChatMessage, TextMessage
+from ...messages import AgentEvent, ChatMessage, TextMessage
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import GroupChatMessage, GroupChatReset, GroupChatStart, GroupChatTermination
@@ -62,7 +62,7 @@ class BaseGroupChat(Team, ABC):
 
         # Constants for the closure agent to collect the output messages.
         self._stop_reason: str | None = None
-        self._output_message_queue: asyncio.Queue[AgentMessage | None] = asyncio.Queue()
+        self._output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | None] = asyncio.Queue()
 
         # Create a runtime for the team.
         # TODO: The runtime should be created by a managed context.
@@ -273,7 +273,7 @@ class BaseGroupChat(Team, ABC):
         *,
         task: str | ChatMessage | List[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
         of the type :class:`TaskResult` as the last item in the stream. Once the
         team is stopped, the termination condition is reset.
@@ -405,7 +405,7 @@ class BaseGroupChat(Team, ABC):
                 cancellation_token=cancellation_token,
             )
             # Collect the output messages in order.
-            output_messages: List[AgentMessage] = []
+            output_messages: List[AgentEvent | ChatMessage] = []
             # Yield the messsages until the queue is empty.
             while True:
                 message_future = asyncio.ensure_future(self._output_message_queue.get())

@@ -9,7 +9,7 @@ from typing import List, Literal
 from autogen_core import FunctionCall, Image
 from autogen_core.models import FunctionExecutionResult, RequestUsage
 from pydantic import BaseModel, ConfigDict, Field
-from typing_extensions import Annotated
+from typing_extensions import Annotated, deprecated
 
 
 class BaseMessage(BaseModel):
@@ -63,6 +63,7 @@ class HandoffMessage(BaseMessage):
     type: Literal["HandoffMessage"] = "HandoffMessage"
 
 
+@deprecated("Will be removed in 0.4.0, use ToolCallRequestEvent instead.")
 class ToolCallMessage(BaseMessage):
     """A message signaling the use of tools."""
 
@@ -72,6 +73,7 @@ class ToolCallMessage(BaseMessage):
     type: Literal["ToolCallMessage"] = "ToolCallMessage"
 
 
+@deprecated("Will be removed in 0.4.0, use ToolCallExecutionEvent instead.")
 class ToolCallResultMessage(BaseMessage):
     """A message signaling the results of tool calls."""
 
@@ -81,15 +83,37 @@ class ToolCallResultMessage(BaseMessage):
     type: Literal["ToolCallResultMessage"] = "ToolCallResultMessage"
 
 
+class ToolCallRequestEvent(BaseMessage):
+    """An event signaling a request to use tools."""
+
+    content: List[FunctionCall]
+    """The tool calls."""
+
+    type: Literal["ToolCallRequestEvent"] = "ToolCallRequestEvent"
+
+
+class ToolCallExecutionEvent(BaseMessage):
+    """An event signaling the execution of tool calls."""
+
+    content: List[FunctionExecutionResult]
+    """The tool call results."""
+
+    type: Literal["ToolCallExecutionEvent"] = "ToolCallExecutionEvent"
+
+
 ChatMessage = Annotated[TextMessage | MultiModalMessage | StopMessage | HandoffMessage, Field(discriminator="type")]
-"""Messages for agent-to-agent communication."""
+"""Messages for agent-to-agent communication only."""
+
+
+AgentEvent = Annotated[ToolCallRequestEvent | ToolCallExecutionEvent, Field(discriminator="type")]
+"""Events emitted by agents and teams when they work, not used for agent-to-agent communication."""
 
 
 AgentMessage = Annotated[
-    TextMessage | MultiModalMessage | StopMessage | HandoffMessage | ToolCallMessage | ToolCallResultMessage,
+    TextMessage | MultiModalMessage | StopMessage | HandoffMessage | ToolCallRequestEvent | ToolCallExecutionEvent,
     Field(discriminator="type"),
 ]
-"""All message types."""
+"""(Deprecated, will be removed in 0.4.0) All message and event types."""
 
 
 __all__ = [
@@ -98,8 +122,11 @@ __all__ = [
     "MultiModalMessage",
     "StopMessage",
     "HandoffMessage",
+    "ToolCallRequestEvent",
+    "ToolCallExecutionEvent",
     "ToolCallMessage",
     "ToolCallResultMessage",
     "ChatMessage",
+    "AgentEvent",
     "AgentMessage",
 ]

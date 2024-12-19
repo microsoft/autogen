@@ -2,7 +2,6 @@
 // GrpcAgentWorker.cs
 
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Reflection;
 using System.Threading.Channels;
 using Grpc.Core;
@@ -18,8 +17,7 @@ public sealed class GrpcAgentWorker(
     IHostApplicationLifetime hostApplicationLifetime,
     IServiceProvider serviceProvider,
     [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
-    ILogger<GrpcAgentWorker> logger,
-    DistributedContextPropagator distributedContextPropagator) :
+    ILogger<GrpcAgentWorker> logger) :
     IHostedService, IDisposable, IAgentWorker
 {
     private readonly object _channelLock = new();
@@ -37,7 +35,6 @@ public sealed class GrpcAgentWorker(
     private readonly IServiceProvider _serviceProvider = serviceProvider;
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes = configuredAgentTypes;
     private readonly ILogger<GrpcAgentWorker> _logger = logger;
-    private readonly DistributedContextPropagator _distributedContextPropagator = distributedContextPropagator;
     private readonly CancellationTokenSource _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
     private AsyncDuplexStreamingCall<Message, Message>? _channel;
     private Task? _readTask;
@@ -178,8 +175,7 @@ public sealed class GrpcAgentWorker(
         {
             if (_agentTypes.TryGetValue(agentId.Type, out var agentType))
             {
-                var context = new AgentRuntime(agentId, this, _serviceProvider.GetRequiredService<ILogger<Agent>>(), _distributedContextPropagator);
-                agent = (Agent)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, context);
+                agent = (Agent)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, this);
                 _agents.TryAdd((agentId.Type, agentId.Key), agent);
             }
             else

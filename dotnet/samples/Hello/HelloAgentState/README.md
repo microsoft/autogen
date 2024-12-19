@@ -43,9 +43,9 @@ Within that event handler you may optionally *emit* new events, which are then s
 ```csharp
 TopicSubscription("HelloAgents")]
 public class HelloAgent(
-    IAgentContext context,
+    iAgentWorker worker,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : ConsoleAgent(
-        context,
+        worker,
         typeRegistry),
         ISayHello,
         IHandle<NewMessageReceived>,

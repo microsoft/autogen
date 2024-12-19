@@ -1,7 +1,7 @@
 from typing import Any, Callable, List, Mapping
 
 from ...base import ChatAgent, TerminationCondition
-from ...messages import AgentMessage, ChatMessage
+from ...messages import AgentEvent, ChatMessage
 from ...state import RoundRobinManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
@@ -53,7 +53,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         self._current_turn = round_robin_state.current_turn
         self._next_speaker_index = round_robin_state.next_speaker_index
 
-    async def select_speaker(self, thread: List[AgentMessage]) -> str:
+    async def select_speaker(self, thread: List[AgentEvent | ChatMessage]) -> str:
         """Select a speaker from the participants in a round-robin fashion."""
         current_speaker_index = self._next_speaker_index
         self._next_speaker_index = (current_speaker_index + 1) % len(self._participant_topic_types)

@@ -1,7 +1,7 @@
 from typing import Any, Callable, List, Mapping
 
 from ...base import ChatAgent, TerminationCondition
-from ...messages import AgentMessage, ChatMessage, HandoffMessage
+from ...messages import AgentEvent, ChatMessage, HandoffMessage
 from ...state import SwarmManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
@@ -64,7 +64,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             await self._termination_condition.reset()
         self._current_speaker = self._participant_topic_types[0]
 
-    async def select_speaker(self, thread: List[AgentMessage]) -> str:
+    async def select_speaker(self, thread: List[AgentEvent | ChatMessage]) -> str:
         """Select a speaker from the participants based on handoff message.
         Looks for the last handoff message in the thread to determine the next speaker."""
         if len(thread) == 0:

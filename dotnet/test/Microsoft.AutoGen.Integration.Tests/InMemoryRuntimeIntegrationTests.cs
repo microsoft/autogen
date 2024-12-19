@@ -24,7 +24,7 @@ public class InMemoryRuntimeIntegrationTests(ITestOutputHelper testOutput)
         await Task.Delay(15000);
         app.EnsureNoErrorsLogged();
         app.EnsureLogContains("Hello World");
-        app.EnsureLogContains("HelloAgents said Goodbye");
+        app.EnsureLogContains("HelloAgent said Goodbye");
 
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(15));
     }
