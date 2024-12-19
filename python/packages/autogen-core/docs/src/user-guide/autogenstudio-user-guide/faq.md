@@ -52,14 +52,14 @@ Have a local model server like Ollama, vLLM or LMStudio that provide an OpenAI c
   "component_type": "model",
   "model_capabilities": {
     "vision": false,
-    "function_calling": false,
+    "function_calling": true,
     "json_output": false
   }
 }
 ```
 
 ```{caution}
-It is important that you add the `model_capabilities` field to the model client specification for custom models. This is used by the framework instantiate and use the model correctly.
+It is important that you add the `model_capabilities` field to the model client specification for custom models. This is used by the framework instantiate and use the model correctly. Also, the `AssistantAgent` and many other agents in AgentChat require the model to have the `function_calling` capability.
 ```
 
 ## Q: The server starts but I can't access the UI
