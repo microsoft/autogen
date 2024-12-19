@@ -5,6 +5,7 @@ using Hello.Events;
 using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 var local = true;
 if (Environment.GetEnvironmentVariable("AGENT_HOST") != null) { local = false; }
@@ -19,14 +20,15 @@ namespace HelloAgent
 
     [TopicSubscription("HelloAgents")]
     public class HelloAgent( IHostApplicationLifetime hostApplicationLifetime,
-    [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry) : Agent(
-        typeRegistry),
+    [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry, ILogger<HelloAgent> logger) : Agent(
+        typeRegistry, logger),
         IHandle<NewMessageReceived>,
         IHandle<ConversationClosed>,
         IHandle<Shutdown>
     {
         public async Task Handle(NewMessageReceived item, CancellationToken cancellationToken = default)
         {
+            logger.LogInformation($"New message received on Agent with ID:{AgentId.Key}");
             var response = await SayHello(item.Message).ConfigureAwait(false);
             var evt = new Output { Message = response };
             await PublishEventAsync(evt).ConfigureAwait(false);
@@ -40,6 +42,7 @@ namespace HelloAgent
         public async Task Handle(ConversationClosed item, CancellationToken cancellationToken = default)
         {
             var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
+            logger.LogInformation($"Conversation closed on Agent with ID:{AgentId.Key} with message {goodbye}");
             var evt = new Output { Message = goodbye };
             await PublishEventAsync(evt).ConfigureAwait(true);
             if (Environment.GetEnvironmentVariable("STAY_ALIVE_ON_GOODBYE") != "true")
@@ -50,7 +53,7 @@ namespace HelloAgent
 
         public async Task Handle(Shutdown item, CancellationToken cancellationToken = default)
         {
-            Console.WriteLine("Shutting down...");
+            logger.LogInformation("Shutting down...");
             hostApplicationLifetime.StopApplication();
         }
 

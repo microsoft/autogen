@@ -4,6 +4,7 @@
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AutoGen.Core;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using System.Diagnostics.CodeAnalysis;
@@ -14,7 +15,7 @@ public static class AgentsApp
     public static WebApplication? Host { get; private set; }
 
     [MemberNotNull(nameof(Host))]
-    public static async ValueTask<WebApplication> StartAsync(WebApplicationBuilder? builder = null, AgentTypes? agentTypes = null, bool local = false)
+    public static async ValueTask<WebApplication> StartAsync(WebApplicationBuilder? builder = null, AgentTypes? agentTypes = null, bool local = false, bool addChatClient = false)
     {
         builder ??= WebApplication.CreateBuilder();
         if (local)
@@ -24,8 +25,16 @@ public static class AgentsApp
             builder.AddAgentHost();
             builder.AddAgents(agentTypes);
         }
+
+        builder.Configuration.AddEnvironmentVariables();
+        builder.Configuration.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
+
+        if (addChatClient)
+        {
+            builder.AddChatCompletionService("HelloAIAgents");
+        }
        
-        //builder.AddServiceDefaults();
+        builder.AddServiceDefaults();
         var app = builder.Build();
         if (local)
         {
@@ -41,11 +50,11 @@ public static class AgentsApp
         IMessage message,
         WebApplicationBuilder? builder = null,
         AgentTypes? agents = null,
-        bool local = false)
+        bool local = false, bool addChatClient = false)
     {
         if (Host == null)
         {
-            await StartAsync(builder, agents, local);
+            await StartAsync(builder, agents, local, addChatClient);
         }
         var client = Host.Services.GetRequiredService<Client>() ?? throw new InvalidOperationException("Host not started");
         await client.PublishEventAsync(message, topic,"", new CancellationToken()).ConfigureAwait(true);

@@ -180,10 +180,14 @@ public sealed class GrpcAgentWorker(
         {
             if (_agentTypes.TryGetValue(agentId.Type, out var agentType))
             {
-                var context = new RuntimeContext(agentId, this, _serviceProvider.GetRequiredService<ILogger<Agent>>(), _distributedContextPropagator);
-                agent = (Agent)ActivatorUtilities.CreateInstance(_serviceProvider, agentType);
-                Agent.Initialize(context, agent);
-                _agents.TryAdd((agentId.Type, agentId.Key), agent);
+                using (var scope = _serviceProvider.CreateScope())
+                {
+                    var scopedProvider = scope.ServiceProvider;
+                    var context = new RuntimeContext(agentId, this, scopedProvider.GetRequiredService<ILogger<Agent>>(), _distributedContextPropagator);
+                    agent = (Agent)ActivatorUtilities.CreateInstance(scopedProvider, agentType);
+                    Agent.Initialize(context, agent);
+                    _agents.TryAdd((agentId.Type, agentId.Key), agent);
+                }
             }
             else
             {

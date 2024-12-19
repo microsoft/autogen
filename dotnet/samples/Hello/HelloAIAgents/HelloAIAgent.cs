@@ -6,22 +6,21 @@ using Hello.Events;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace HelloAIAgents;
 [TopicSubscription("HelloAgents")]
 public class HelloAIAgent(
     [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry,
-    IHostApplicationLifetime hostApplicationLifetime,
-    IChatClient client) : HelloAgent(
-        typeRegistry,
-        hostApplicationLifetime),
+    IChatClient client, ILogger<HelloAIAgent> logger) : HelloAgent(typeRegistry, logger),
         IHandle<NewMessageReceived>
 {
-    // This Handle supercedes the one in the base class
-    public async Task Handle(NewMessageReceived item)
+    public async Task Handle(NewMessageReceived item, CancellationToken cancellationToken)
     {
         var prompt = "Please write a limerick greeting someone with the name " + item.Message;
         var response = await client.CompleteAsync(prompt);
+        logger.LogInformation($"Response from AI: {response.Message.Text}");
         var evt = new Output { Message = response.Message.Text };
         await PublishEventAsync(evt).ConfigureAwait(false);
 

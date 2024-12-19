@@ -5,6 +5,9 @@ using System.Text.Json;
 using Hello.Events;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 // send a message to the agent
 var local = true;
@@ -21,8 +24,8 @@ namespace HelloAgentState
     [TopicSubscription("HelloAgents")]
     public class HelloAgent(
     IHostApplicationLifetime hostApplicationLifetime,
-    [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry) : Agent(
-        typeRegistry),
+    [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry, ILogger<HelloAgent> logger) : Agent(
+        typeRegistry, logger),
         IHandle<NewMessageReceived>,
         IHandle<ConversationClosed>,
         IHandle<Shutdown>
@@ -30,16 +33,20 @@ namespace HelloAgentState
         private AgentState? State { get; set; }
         public async Task Handle(NewMessageReceived item, CancellationToken cancellationToken = default)
         {
+            logger.LogInformation($"New message received on Agent with ID:{AgentId.Key}");
+
             var response = await SayHello(item.Message).ConfigureAwait(false);
             var evt = new Output
             {
                 Message = response
             };
+            logger.LogInformation($"We said hello to {evt.Message}");
+
             Dictionary<string, string> state = new()
-        {
-            { "data", "We said hello to " + item.Message },
-            { "workflow", "Active" }
-        };
+            {
+                { "data", "We said hello to " + item.Message },
+                { "workflow", "Active" }
+            };
             await StoreAsync(new AgentState
             {
                 AgentId = AgentId,
@@ -65,6 +72,7 @@ namespace HelloAgentState
             {
                 Message = goodbye
             };
+            logger.LogInformation($"We said hello to {evt.Message}");
             await PublishEventAsync(evt).ConfigureAwait(true);
             state["workflow"] = "Complete";
             await StoreAsync(new AgentState
@@ -84,6 +92,7 @@ namespace HelloAgentState
                 workflow = state["workflow"];
                 await Task.Delay(1000).ConfigureAwait(true);
             }
+            logger.LogInformation($"Shutting down...");
             // now we can shut down...
             hostApplicationLifetime.StopApplication();
         }

@@ -4,19 +4,10 @@
 using Hello.Events;
 using HelloAIAgents;
 using Microsoft.AutoGen.Core;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
-// send a message to the agent
-var builder = WebApplication.CreateBuilder();
-// put these in your environment or appsettings.json
-builder.Configuration["HelloAIAgents:ModelType"] = "azureopenai";
-builder.Configuration["HelloAIAgents:LlmModelName"] = "gpt-3.5-turbo";
-Environment.SetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING", "Endpoint=https://TODO.openai.azure.com/;Key=TODO;Deployment=TODO");
-if (Environment.GetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING") == null)
-{
-    throw new InvalidOperationException("AZURE_OPENAI_CONNECTION_STRING not set, try something like AZURE_OPENAI_CONNECTION_STRING = \"Endpoint=https://TODO.openai.azure.com/;Key=TODO;Deployment=TODO\"");
-}
-builder.Configuration["ConectionStrings:HelloAIAgents"] = Environment.GetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING");
-builder.AddChatCompletionService("HelloAIAgents");
 var agentTypes = new AgentTypes(new Dictionary<string, Type>
 {
     { "HelloAIAgents", typeof(HelloAIAgent) }
@@ -24,7 +15,7 @@ var agentTypes = new AgentTypes(new Dictionary<string, Type>
 var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
-}, builder, agentTypes, local: true);
+},null, agentTypes, local: true, addChatClient: true);
 
 await app.WaitForShutdownAsync();
 
@@ -32,48 +23,20 @@ namespace Hello
 {
     [TopicSubscription("agents")]
     public class HelloAgent(
-        [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry,
-        IHostApplicationLifetime hostApplicationLifetime) : Agent(
+        [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry, ILogger<HelloAgent> logger) : Agent(
         typeRegistry),
-        IHandle<NewMessageReceived>,
         IHandle<ConversationClosed>
     {
-        public async Task Handle(NewMessageReceived item, CancellationToken cancellationToken = default)
-        {
-            var response = await SayHello(item.Message).ConfigureAwait(false);
-            var evt = new Output
-            {
-                Message = response
-            };
-            await PublishEventAsync(evt).ConfigureAwait(false);
-            var goodbye = new ConversationClosed
-            {
-                UserId = this.AgentId.Key,
-                UserMessage = "Goodbye"
-            };
-            await PublishEventAsync(goodbye).ConfigureAwait(false);
-        }
         public async Task Handle(ConversationClosed item, CancellationToken cancellationToken = default)
         {
+
             var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
+            logger.LogInformation($"Conversation closed on Agent with ID:{AgentId.Key} with message {goodbye}");
             var evt = new Output
             {
                 Message = goodbye
             };
             await PublishEventAsync(evt).ConfigureAwait(false);
-            //sleep30 seconds
-            await Task.Delay(30000).ConfigureAwait(false);
-            hostApplicationLifetime.StopApplication();
-
         }
-        public async Task<string> SayHello(string ask)
-        {
-            var response = $"\n\n\n\n***************Hello {ask}**********************\n\n\n\n";
-            return response;
-        }
-    }
-    public interface ISayHello
-    {
-        public Task<string> SayHello(string ask);
     }
 }
