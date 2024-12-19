@@ -96,12 +96,12 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         # Construct the history of the conversation.
         history_messages: List[str] = []
         for msg in thread:
-            if isinstance(msg, ToolCallRequestEvent | ToolCallExecutionEvent | ToolCallSummaryMessage):
+            if isinstance(msg, ToolCallRequestEvent | ToolCallExecutionEvent):
                 # Ignore tool call messages.
                 continue
             # The agent type must be the same as the topic type, which we use as the agent name.
             message = f"{msg.source}:"
-            if isinstance(msg, TextMessage | StopMessage | HandoffMessage):
+            if isinstance(msg, TextMessage | StopMessage | HandoffMessage | ToolCallSummaryMessage):
                 message += f" {msg.content}"
             elif isinstance(msg, MultiModalMessage):
                 for item in msg.content:
