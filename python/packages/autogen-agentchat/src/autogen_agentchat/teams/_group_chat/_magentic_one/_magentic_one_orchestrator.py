@@ -428,13 +428,13 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         """Convert the message thread to a context for the model."""
         context: List[LLMMessage] = []
         for m in self._message_thread:
-            if isinstance(m, ToolCallRequestEvent | ToolCallExecutionEvent | ToolCallSummaryMessage):
+            if isinstance(m, ToolCallRequestEvent | ToolCallExecutionEvent):
                 # Ignore tool call messages.
                 continue
             elif isinstance(m, StopMessage | HandoffMessage):
                 context.append(UserMessage(content=m.content, source=m.source))
             elif m.source == self._name:
-                assert isinstance(m, TextMessage)
+                assert isinstance(m, TextMessage | ToolCallSummaryMessage)
                 context.append(AssistantMessage(content=m.content, source=m.source))
             else:
                 assert isinstance(m, TextMessage) or isinstance(m, MultiModalMessage)
