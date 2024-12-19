@@ -1,8 +1,5 @@
 from typing import Any, List, Mapping, Optional
 
-from autogen_core.models import (
-    LLMMessage,
-)
 from pydantic import BaseModel, Field
 
 from ..messages import (
@@ -21,7 +18,7 @@ class BaseState(BaseModel):
 class AssistantAgentState(BaseState):
     """State for an assistant agent."""
 
-    llm_messages: List[LLMMessage] = Field(default_factory=list)
+    llm_context: Mapping[str, Any] = Field(default_factory=lambda: dict([("messages", [])]))
     type: str = Field(default="AssistantAgentState")
 
 
