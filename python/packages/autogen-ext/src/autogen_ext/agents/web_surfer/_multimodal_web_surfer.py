@@ -23,7 +23,7 @@ import aiofiles
 import PIL.Image
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import AgentMessage, ChatMessage, MultiModalMessage, TextMessage
+from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage, TextMessage
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, FunctionCall
 from autogen_core import Image as AGImage
 from autogen_core.models import (
@@ -68,7 +68,7 @@ class MultimodalWebSurfer(BaseChatAgent):
 
 
     When :meth:`on_messages` or :meth:`on_messages_stream` is called, the following occurs:
-        1) If this is the first call, the browser is initialized and the page is loaded. This is done in :meth:`_lazy_init`.
+        1) If this is the first call, the browser is initialized and the page is loaded. This is done in :meth:`_lazy_init`. The browser is only closed when :meth:`close` is called.
         2) The method :meth:`_generate_reply` is called, which then creates the final response as below.
         3) The agent takes a screenshot of the page, extracts the interactive elements, and prepares a set-of-mark screenshot with bounding boxes around the interactive elements.
         4) The agent makes a call to the :attr:`model_client` with the SOM screenshot, history of messages, and the list of available tools.
@@ -131,6 +131,8 @@ class MultimodalWebSurfer(BaseChatAgent):
                 # Run the team and stream messages to the console
                 stream = agent_team.run_stream(task="Navigate to the AutoGen readme on GitHub.")
                 await Console(stream)
+                # Close the browser controlled by the agent
+                await web_surfer_agent.close()
 
 
             asyncio.run(main())
@@ -283,6 +285,21 @@ class MultimodalWebSurfer(BaseChatAgent):
         await self._set_debug_dir(self.debug_dir)
         self.did_lazy_init = True
 
+    async def close(self) -> None:
+        """
+        Close the browser and the page.
+        Should be called when the agent is no longer needed.
+        """
+        if self._page is not None:
+            await self._page.close()
+            self._page = None
+        if self._context is not None:
+            await self._context.close()
+            self._context = None
+        if self._playwright is not None:
+            await self._playwright.stop()
+            self._playwright = None
+
     async def _set_debug_dir(self, debug_dir: str | None) -> None:
         assert self._page is not None
         if self.debug_dir is None:
@@ -348,13 +365,13 @@ class MultimodalWebSurfer(BaseChatAgent):
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentMessage | Response, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         for chat_message in messages:
             if isinstance(chat_message, TextMessage | MultiModalMessage):
                 self._chat_history.append(UserMessage(content=chat_message.content, source=chat_message.source))
             else:
                 raise ValueError(f"Unexpected message in MultiModalWebSurfer: {chat_message}")
-        self.inner_messages: List[AgentMessage] = []
+        self.inner_messages: List[AgentEvent | ChatMessage] = []
         self.model_usage: List[RequestUsage] = []
         try:
             content = await self._generate_reply(cancellation_token=cancellation_token)

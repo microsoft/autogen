@@ -6,14 +6,14 @@ from uuid import UUID
 
 from autogen_agentchat.base._task import TaskResult
 from autogen_agentchat.messages import (
-    AgentMessage,
+    AgentEvent,
     ChatMessage,
     HandoffMessage,
     MultiModalMessage,
     StopMessage,
     TextMessage,
-    ToolCallMessage,
-    ToolCallResultMessage,
+    ToolCallExecutionEvent,
+    ToolCallRequestEvent,
 )
 from autogen_core import CancellationToken
 from autogen_core import Image as AGImage
@@ -108,8 +108,8 @@ class WebSocketManager:
                             MultiModalMessage,
                             StopMessage,
                             HandoffMessage,
-                            ToolCallMessage,
-                            ToolCallResultMessage,
+                            ToolCallRequestEvent,
+                            ToolCallExecutionEvent,
                         ),
                     ):
                         await self._save_message(run_id, message)
@@ -141,7 +141,7 @@ class WebSocketManager:
         finally:
             self._cancellation_tokens.pop(run_id, None)
 
-    async def _save_message(self, run_id: UUID, message: Union[AgentMessage, ChatMessage]) -> None:
+    async def _save_message(self, run_id: UUID, message: Union[AgentEvent | ChatMessage, ChatMessage]) -> None:
         """Save a message to the database"""
         run = await self._get_run(run_id)
         if run:
@@ -276,7 +276,8 @@ class WebSocketManager:
         if run_id not in self._closed_connections:
             error_result = TeamResult(
                 task_result=TaskResult(
-                    messages=[TextMessage(source="system", content=str(error))], stop_reason="error"
+                    messages=[TextMessage(source="system", content=str(error))],
+                    stop_reason="An error occurred while processing this run",
                 ),
                 usage="",
                 duration=0,
@@ -324,7 +325,7 @@ class WebSocketManager:
                 }
 
             elif isinstance(
-                message, (TextMessage, StopMessage, HandoffMessage, ToolCallMessage, ToolCallResultMessage)
+                message, (TextMessage, StopMessage, HandoffMessage, ToolCallRequestEvent, ToolCallExecutionEvent)
             ):
                 return {"type": "message", "data": message.model_dump()}
 
