@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import importlib
 import warnings
-from typing import Any, ClassVar, Generic, Literal, Protocol, Type, cast, overload, runtime_checkable
+from typing import Any, ClassVar, Dict, Generic, Literal, Protocol, Type, cast, overload, runtime_checkable
 
 from pydantic import BaseModel
 from typing_extensions import Self, TypeVar
@@ -25,8 +25,8 @@ class ComponentModel(BaseModel):
     description: str | None
     """Description of the component."""
 
-    config: BaseModel
-    """The config field is passed to a given class's implmentation of :py:meth:`autogen_core.ComponentConfigImpl._from_config` to create a new instance of the component class."""
+    config: dict[str, Any]
+    """The schema validated config field is passed to a given class's implmentation of :py:meth:`autogen_core.ComponentConfigImpl._from_config` to create a new instance of the component class."""
 
 
 def _type_to_provider_str(t: type) -> str:
@@ -76,14 +76,16 @@ ExpectedType = TypeVar("ExpectedType")
 class ComponentLoader:
     @overload
     @classmethod
-    def load_component(cls, model: ComponentModel, expected: None = None) -> Self: ...
+    def load_component(cls, model: ComponentModel | Dict[str, Any], expected: None = None) -> Self: ...
 
     @overload
     @classmethod
-    def load_component(cls, model: ComponentModel, expected: Type[ExpectedType]) -> ExpectedType: ...
+    def load_component(cls, model: ComponentModel | Dict[str, Any], expected: Type[ExpectedType]) -> ExpectedType: ...
 
     @classmethod
-    def load_component(cls, model: ComponentModel, expected: Type[ExpectedType] | None = None) -> Self | ExpectedType:
+    def load_component(
+        cls, model: ComponentModel | Dict[str, Any], expected: Type[ExpectedType] | None = None
+    ) -> Self | ExpectedType:
         """Load a component from a model. Intended to be used with the return type of :py:meth:`autogen_core.ComponentConfig.dump_component`.
 
         Example:
@@ -117,7 +119,12 @@ class ComponentLoader:
 
         # Use global and add further type checks
 
-        output = model.provider.rsplit(".", maxsplit=1)
+        if isinstance(model, dict):
+            loaded_model = ComponentModel(**model)
+        else:
+            loaded_model = model
+
+        output = loaded_model.provider.rsplit(".", maxsplit=1)
         if len(output) != 2:
             raise ValueError("Invalid")
 
@@ -136,7 +143,7 @@ class ComponentLoader:
             raise AttributeError("component_type not defined")
 
         schema = component_class.config_schema
-        validated_config = schema.model_validate(model.config)
+        validated_config = schema.model_validate(loaded_model.config)
 
         # We're allowed to use the private method here
         instance = component_class._from_config(validated_config)  # type: ignore
@@ -160,6 +167,8 @@ class Component(ComponentConfigImpl[ConfigT], ComponentLoader, Generic[ConfigT])
     Example:
 
     .. code-block:: python
+
+        from __future__ import annotations
 
         from pydantic import BaseModel
         from autogen_core import Component
@@ -212,10 +221,11 @@ class Component(ComponentConfigImpl[ConfigT], ComponentLoader, Generic[ConfigT])
         if not hasattr(self, "component_type"):
             raise AttributeError("component_type not defined")
 
+        obj_config = self._to_config().model_dump()
         return ComponentModel(
             provider=provider,
             component_type=self.component_type,
             version=1,
             description=None,
-            config=self._to_config(),
+            config=obj_config,
         )

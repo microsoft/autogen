@@ -1057,7 +1057,7 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[
             if not isinstance(copied_config["azure_ad_token_provider"], AzureTokenProvider):
                 raise ValueError("azure_ad_token_provider must be a AzureTokenProvider to be component serialized")
 
-            copied_config["azure_ad_token_provider"] = copied_config["azure_ad_token_provider"].dump_component()
+            copied_config["azure_ad_token_provider"] = copied_config["azure_ad_token_provider"].dump_component().model_dump()
 
         return ConfigHolder(values=copied_config)
 

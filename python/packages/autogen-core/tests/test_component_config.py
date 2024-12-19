@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 from autogen_core import Component, ComponentLoader, ComponentModel
 from autogen_core._component_config import _type_to_provider_str  # type: ignore
@@ -42,6 +44,22 @@ def test_custom_component_generic_loader() -> None:
     assert comp.__class__ == comp2.__class__
 
 
+def test_custom_component_json() -> None:
+    comp = MyComponent("test")
+    json_str = comp.dump_component().model_dump_json()
+    comp2 = MyComponent.load_component(json.loads(json_str))
+    assert comp.info == comp2.info
+    assert comp.__class__ == comp2.__class__
+
+
+def test_custom_component_generic_loader_json() -> None:
+    comp = MyComponent("test")
+    json_str = comp.dump_component().model_dump_json()
+    comp2 = ComponentLoader.load_component(json.loads(json_str), MyComponent)
+    assert comp.info == comp2.info
+    assert comp.__class__ == comp2.__class__
+
+
 def test_custom_component_incorrect_class() -> None:
     comp = MyComponent("test")
 
@@ -54,6 +72,18 @@ def test_nested_component_diff_module() -> None:
     comp = MyOuterComponent("test", inner_class)
     dumped = comp.dump_component()
     comp2 = MyOuterComponent.load_component(dumped)
+    assert comp.__class__ == comp2.__class__
+    assert comp.outer_message == comp2.outer_message
+    assert comp.inner_class.inner_message == comp2.inner_class.inner_message
+    assert comp.inner_class.__class__ == comp2.inner_class.__class__
+
+
+def test_nested_component_diff_module_json() -> None:
+    inner_class = MyInnerComponent("inner")
+    comp = MyOuterComponent("test", inner_class)
+    dumped = comp.dump_component()
+    json_str = dumped.model_dump_json()
+    comp2 = MyOuterComponent.load_component(json.loads(json_str))
     assert comp.__class__ == comp2.__class__
     assert comp.outer_message == comp2.outer_message
     assert comp.inner_class.inner_message == comp2.inner_class.inner_message
@@ -134,7 +164,7 @@ def test_schema_validation_fails_on_bad_config() -> None:
     class OtherConfig(BaseModel):
         other: str
 
-    config = OtherConfig(other="test")
+    config = OtherConfig(other="test").model_dump()
     model = ComponentModel(
         provider=_type_to_provider_str(MyComponent),
         component_type=MyComponent.component_type,
