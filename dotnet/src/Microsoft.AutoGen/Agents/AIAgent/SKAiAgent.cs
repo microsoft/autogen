@@ -8,18 +8,17 @@ using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Memory;
 
 namespace Microsoft.AutoGen.Agents;
-public abstract class SKAiAgent<T> : Agent where T : class, new()
+public abstract class SKAiAgent<T>(
+    IAgentWorker worker,
+    ISemanticTextMemory memory,
+    Kernel kernel,
+    EventTypes typeRegistry) : Agent(
+        worker,
+        typeRegistry) where T : class, new()
 {
-    protected AgentState<T> _state;
-    protected Kernel _kernel;
-    private readonly ISemanticTextMemory _memory;
-
-    public SKAiAgent(IAgentRuntime context, ISemanticTextMemory memory, Kernel kernel, EventTypes typeRegistry) : base(context, typeRegistry)
-    {
-        _state = new();
-        _memory = memory;
-        _kernel = kernel;
-    }
+    protected AgentState<T> _state = new();
+    protected Kernel _kernel = kernel;
+    private readonly ISemanticTextMemory _memory = memory;
 
     public void AddToHistory(string message, ChatUserType userType) => _state.History.Add(new ChatHistoryItem
     {
