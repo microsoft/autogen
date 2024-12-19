@@ -25,7 +25,7 @@ python/autogen_agentchat.state
 :hidden:
 :caption: AutoGen Core
 
-autogen_core <python/autogen_core>
+python/autogen_core
 python/autogen_core.code_executor
 python/autogen_core.models
 python/autogen_core.model_context

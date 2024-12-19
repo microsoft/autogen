@@ -13,7 +13,6 @@ from typing import (
     List,
     Mapping,
     Optional,
-    Self,
     Sequence,
     Set,
     Type,
@@ -65,8 +64,8 @@ from openai.types.chat import (
 from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_chunk import Choice as ChunkChoice
 from openai.types.shared_params import FunctionDefinition, FunctionParameters
-from pydantic import BaseModel, ConfigDict, TypeAdapter, create_model
-from typing_extensions import Unpack
+from pydantic import BaseModel
+from typing_extensions import Self, Unpack
 
 from autogen_ext.models.openai._azure_token_provider import AzureTokenProvider
 
@@ -974,10 +973,12 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
         self.__dict__.update(state)
         self._client = _openai_client_from_config(state["_raw_config"])
 
+
 class ConfigHolder(BaseModel):
     values: Dict[str, Any]
 
-class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component("model", ConfigHolder)):
+
+class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[ConfigHolder]):
     """Chat completion client for Azure OpenAI hosted models.
 
     Args:
@@ -1025,6 +1026,9 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component(
 
     """
 
+    component_type = "model"
+    config_schema = ConfigHolder
+
     def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
         model_capabilities: Optional[ModelCapabilities] = None
         copied_args = dict(kwargs).copy()
@@ -1046,7 +1050,6 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component(
         self.__dict__.update(state)
         self._client = _azure_openai_client_from_config(state["_raw_config"])
 
-
     def _to_config(self) -> ConfigHolder:
         copied_config = self._raw_config.copy()
 
@@ -1062,6 +1065,8 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component(
     def _from_config(cls, config: ConfigHolder) -> Self:
         copied_config = config.values.copy()
         if "azure_ad_token_provider" in copied_config:
-            copied_config["azure_ad_token_provider"] = AzureTokenProvider.load_component(copied_config["azure_ad_token_provider"])
+            copied_config["azure_ad_token_provider"] = AzureTokenProvider.load_component(
+                copied_config["azure_ad_token_provider"]
+            )
 
         return cls(**copied_config)

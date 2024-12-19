@@ -1,16 +1,17 @@
 from __future__ import annotations
+
 import importlib
-import types
-from typing import Generic, Literal, Protocol, Type, cast, overload, runtime_checkable
+import warnings
+from typing import Any, ClassVar, Generic, Literal, Protocol, Type, cast, overload, runtime_checkable
 
 from pydantic import BaseModel
 from typing_extensions import Self, TypeVar
-
 
 ComponentType = Literal["model", "agent", "tool", "termination", "token_provider"] | str
 ConfigT = TypeVar("ConfigT", bound=BaseModel)
 
 T = TypeVar("T", bound=BaseModel, covariant=True)
+
 
 class ComponentModel(BaseModel):
     """Model class for a component. Contains all information required to instantiate a component."""
@@ -31,8 +32,13 @@ class ComponentModel(BaseModel):
 def _type_to_provider_str(t: type) -> str:
     return f"{t.__module__}.{t.__qualname__}"
 
+
 @runtime_checkable
 class ComponentConfigImpl(Protocol[ConfigT]):
+    # Ideally would be ClassVar[Type[ConfigT]], but this is disallowed https://github.com/python/typing/discussions/1424 (despite being valid in this context)
+    config_schema: Type[ConfigT]
+    component_type: ClassVar[ComponentType]
+
     """The two methods a class must implement to be a component.
 
     Args:
@@ -65,17 +71,16 @@ class ComponentConfigImpl(Protocol[ConfigT]):
 
 
 ExpectedType = TypeVar("ExpectedType")
-class ComponentLoader():
+
+
+class ComponentLoader:
+    @overload
+    @classmethod
+    def load_component(cls, model: ComponentModel, expected: None = None) -> Self: ...
 
     @overload
     @classmethod
-    def load_component(cls, model: ComponentModel, expected: None = None) -> Self:
-        ...
-
-    @overload
-    @classmethod
-    def load_component(cls, model: ComponentModel, expected: Type[ExpectedType]) -> ExpectedType:
-        ...
+    def load_component(cls, model: ComponentModel, expected: Type[ExpectedType]) -> ExpectedType: ...
 
     @classmethod
     def load_component(cls, model: ComponentModel, expected: Type[ExpectedType] | None = None) -> Self | ExpectedType:
@@ -88,7 +93,7 @@ class ComponentLoader():
                 from autogen_core import ComponentModel
                 from autogen_core.models import ChatCompletionClient
 
-                component: ComponentModel = ... # type: ignore
+                component: ComponentModel = ...  # type: ignore
 
                 model_client = ChatCompletionClient.load_component(component)
 
@@ -123,8 +128,18 @@ class ComponentLoader():
         if not isinstance(component_class, ComponentConfigImpl):
             raise TypeError("Invalid component class")
 
+        # We need to check the schema is valid
+        if not hasattr(component_class, "config_schema"):
+            raise AttributeError("config_schema not defined")
+
+        if not hasattr(component_class, "component_type"):
+            raise AttributeError("component_type not defined")
+
+        schema = component_class.config_schema
+        validated_config = schema.model_validate(model.config)
+
         # We're allowed to use the private method here
-        instance = component_class._from_config(model.config) # type: ignore
+        instance = component_class._from_config(validated_config)  # type: ignore
 
         if expected is None and not isinstance(instance, cls):
             raise TypeError("Expected type does not match")
@@ -136,10 +151,49 @@ class ComponentLoader():
             return cast(ExpectedType, instance)
 
 
-class ComponentConfig(ComponentConfigImpl[ConfigT], ComponentLoader, Generic[ConfigT]):
-    _config_schema: Type[ConfigT]
-    _component_type: ComponentType
-    _description: str | None
+class Component(ComponentConfigImpl[ConfigT], ComponentLoader, Generic[ConfigT]):
+    """To create a component class, inherit from this class. Then implement two class variables:
+
+    - :py:attr:`config_schema` - A Pydantic model class which represents the configuration of the component. This is also the type parameter of Component.
+    - :py:attr:`component_type` - What is the logical type of the component.
+
+    Example:
+
+    .. code-block:: python
+
+        from pydantic import BaseModel
+        from autogen_core import Component
+
+
+        class Config(BaseModel):
+            value: str
+
+
+        class MyComponent(Component[Config]):
+            component_type = "custom"
+            config_schema = Config
+
+            def __init__(self, value: str):
+                self.value = value
+
+            def _to_config(self) -> Config:
+                return Config(value=self.value)
+
+            @classmethod
+            def _from_config(cls, config: Config) -> MyComponent:
+                return cls(value=config.value)
+    """
+
+    required_class_vars = ["config_schema", "component_type"]
+
+    def __init_subclass__(cls, **kwargs: Any):
+        super().__init_subclass__(**kwargs)
+
+        for var in cls.required_class_vars:
+            if not hasattr(cls, var):
+                warnings.warn(
+                    f"Class variable '{var}' must be defined in {cls.__name__} to be a valid component", stacklevel=2
+                )
 
     def dump_component(self) -> ComponentModel:
         """Dump the component to a model that can be loaded back in.
@@ -155,72 +209,13 @@ class ComponentConfig(ComponentConfigImpl[ConfigT], ComponentLoader, Generic[Con
         if "<locals>" in provider:
             raise TypeError("Cannot dump component with local class")
 
+        if not hasattr(self, "component_type"):
+            raise AttributeError("component_type not defined")
+
         return ComponentModel(
             provider=provider,
-            component_type=self._component_type,
+            component_type=self.component_type,
             version=1,
-            description=self._description,
+            description=None,
             config=self._to_config(),
         )
-
-    @classmethod
-    def component_config_schema(cls) -> Type[ConfigT]:
-        """Get the configuration schema for the component.
-
-        Returns:
-            Type[ConfigT]: The configuration schema for the component.
-        """
-        return cls._config_schema
-
-    @classmethod
-    def component_type(cls) -> ComponentType:
-        """Logical type of the component.
-
-        Returns:
-            ComponentType: The logical type of the component.
-        """
-        return cls._component_type
-
-
-def Component(
-    component_type: ComponentType, config_schema: type[T], description: str | None = None
-) -> type[ComponentConfig[T]]:
-    """This enables easy creation of Component classes. It provides a type to inherit from to provide the necessary methods to be a component.
-
-    Example:
-
-    .. code-block:: python
-
-        from pydantic import BaseModel
-        from autogen_core import Component
-
-        class Config(BaseModel):
-            value: str
-
-        class MyComponent(Component("custom", Config)):
-            def __init__(self, value: str):
-                self.value = value
-
-            def _to_config(self) -> Config:
-                return Config(value=self.value)
-
-            @classmethod
-            def _from_config(cls, config: Config) -> MyComponent:
-                return cls(value=config.value)
-
-
-    Args:
-        component_type (ComponentType): What is the logical type of the component.
-        config_schema (type[T]): Pydantic model class which represents the configuration of the component.
-        description (str | None, optional): Helpful description of the component. Defaults to None.
-
-    Returns:
-        type[ComponentConfig[T]]: A class to be directly inherited from.
-    """
-    return types.new_class(
-        "Component",
-        (ComponentConfig[T],),
-        exec_body=lambda ns: ns.update(
-            {"_config_schema": config_schema, "_component_type": component_type, "_description": description}
-        ),
-    )

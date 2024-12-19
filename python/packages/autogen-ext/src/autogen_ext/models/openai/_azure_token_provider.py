@@ -1,14 +1,21 @@
-from typing import List, Self
+from typing import List
+
+from autogen_core import Component
 from azure.core.credentials import TokenProvider
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-from autogen_core import Component
 from pydantic import BaseModel
+from typing_extensions import Self
+
 
 class TokenProviderConfig(BaseModel):
     provider_kind: str
     scopes: List[str]
 
-class AzureTokenProvider(Component("token", TokenProviderConfig)):
+
+class AzureTokenProvider(Component[TokenProviderConfig]):
+    component_type = "token_provider"
+    config_schema = TokenProviderConfig
+
     def __init__(self, credential: TokenProvider, *scopes: str):
         self.credential = credential
         self.scopes = list(scopes)
@@ -25,11 +32,10 @@ class AzureTokenProvider(Component("token", TokenProviderConfig)):
         """
 
         if isinstance(self.credential, DefaultAzureCredential):
-            # we are not currently inspecting the chained credentials
+            # NOTE: we are not currently inspecting the chained credentials, so this could result in a loss of information
             return TokenProviderConfig(provider_kind="DefaultAzureCredential", scopes=self.scopes)
         else:
             raise ValueError("Only DefaultAzureCredential is supported")
-
 
     @classmethod
     def _from_config(cls, config: TokenProviderConfig) -> Self:
@@ -46,5 +52,3 @@ class AzureTokenProvider(Component("token", TokenProviderConfig)):
             return cls(DefaultAzureCredential(), *config.scopes)
         else:
             raise ValueError("Only DefaultAzureCredential is supported")
-
-
