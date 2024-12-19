@@ -3,6 +3,8 @@ from typing import Awaitable, Callable, Dict, List, Literal, Optional, Union
 from autogen_core.models import ModelCapabilities
 from typing_extensions import Required, TypedDict
 
+from autogen_ext.models.openai._azure_token_provider import AzureTokenProvider
+
 
 class ResponseFormat(TypedDict):
     type: Literal["text", "json_object"]
@@ -46,7 +48,7 @@ class AzureOpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False)
     azure_deployment: str
     api_version: Required[str]
     azure_ad_token: str
-    azure_ad_token_provider: AsyncAzureADTokenProvider
+    azure_ad_token_provider: AsyncAzureADTokenProvider | AzureTokenProvider
 
 
 __all__ = ["AzureOpenAIClientConfiguration", "OpenAIClientConfiguration"]
