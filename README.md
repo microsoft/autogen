@@ -12,6 +12,8 @@
 
 > [!IMPORTANT]
 >
+> - (12/19/24) Hello! 
+The majority of the AutoGen Team members will be resting and recharging with family and friends over the holiday period. Activity/responses on the project may be delayed during the period of Dec 20-Jan 06. We will be excited to engage with you in the new year!
 > - (12/11/24) We have created a new Discord server for the AutoGen community. Join us at [aka.ms/autogen-discord](https://aka.ms/autogen-discord).
 > - (11/14/24) ⚠️ In response to a number of asks to clarify and distinguish between official AutoGen and its forks that created confusion, we issued a [clarification statement](https://github.com/microsoft/autogen/discussions/4217).
 > - (10/13/24) Interested in the standard AutoGen as a prior user? Find it at the actively-maintained *AutoGen* [0.2 branch](https://github.com/microsoft/autogen/tree/0.2) and `autogen-agentchat~=0.2` PyPi package.
