@@ -1,9 +1,10 @@
 from copy import deepcopy
 from time import monotonic, sleep
-from typing import Any, Callable, Dict, Iterable, List, Literal, Mapping, Set, Tuple, Union
+from typing import Any, Callable, Dict, Iterable, List, Literal, Mapping, Optional, Set, Tuple, Union
 
 import numpy as np
-from pymongo import MongoClient, UpdateOne, errors
+from bson import ObjectId
+from pymongo import InsertOne, MongoClient, UpdateOne, errors
 from pymongo.collection import Collection
 from pymongo.driver_info import DriverInfo
 from pymongo.operations import SearchIndexModel
@@ -115,15 +116,19 @@ class MongoDBAtlasVectorDB(VectorDB):
         start = monotonic()
         while monotonic() - start < self._wait_until_document_ready:
             query_result = _vector_search(
-                embedding_vector=np.array(self.embedding_function(doc["content"])).tolist(),
+                embedding_vector=doc.get("embedding", np.array(self.embedding_function(doc["content"])).tolist()),
                 n_results=1,
                 collection=collection,
                 index_name=index_name,
             )
-            if query_result and query_result[0][0]["_id"] == doc["id"]:
+            if query_result and str(query_result[0][0]["_id"]) == str(doc["id"]):
                 return
             sleep(_DELAY)
-
+        if query_result and float(query_result[0][1]) == 1.0:
+            # Handles edge case where document is uploaded with a specific user-generated ID, then the identical content is uploaded with a hash generated ID.
+            raise TimeoutError(
+                f"""Documents may be ready, but the search has found an identical file with a different ID. Duplicate content may be present. Duplicate ID: {str(query_result[0][0]["_id"])}"""
+            )
         raise TimeoutError(f"Document {self.index_name} is not ready!")
 
     def _get_embedding_size(self):
@@ -275,52 +280,70 @@ class MongoDBAtlasVectorDB(VectorDB):
 
         For large numbers of Documents, insertion is performed in batches.
 
+        Documents are recommended to not have an ID field, as the method will generate Hashed ID's for them.
+
         Args:
-            docs: List[Document] | A list of documents. Each document is a TypedDict `Document`.
+            docs: List[Document] | A list of documents. Each document is a TypedDict `Document`, which may contain an ID. Documents without ID's will have them generated.
             collection_name: str | The name of the collection. Default is None.
             upsert: bool | Whether to update the document if it exists. Default is False.
             batch_size: Number of documents to be inserted in each batch
+            kwargs: Additional keyword arguments. Use `hash_length` to set the length of the hash generated ID's, use `overwrite_ids` to overwrite existing ID's with Hashed Values.
         """
+        hash_length = kwargs.get("hash_length")
+        overwrite_ids = kwargs.get("overwrite_ids", False)
+
+        if any(doc.get("content") is None for doc in docs):
+            raise ValueError("The document content is required.")
+
         if not docs:
             logger.info("No documents to insert.")
             return
 
+        docs = deepcopy(docs)
         collection = self.get_collection(collection_name)
+
+        assert (
+            len({doc.get("id") is not None for doc in docs}) == 1
+        ), "Documents provided must all have ID's or all not have ID's"
+
+        if docs[0].get("id") is None or overwrite_ids:
+            logger.info("No id field in the documents. The documents will be inserted with Hash generated IDs.")
+            content = [doc["content"] for doc in docs]
+            ids = (
+                self.generate_chunk_ids(content, hash_length=hash_length)
+                if hash_length
+                else self.generate_chunk_ids(content)
+            )
+            docs = [{**doc, "id": id} for doc, id in zip(docs, ids)]
+
         if upsert:
             self.update_docs(docs, collection.name, upsert=True)
-        else:
-            # Sanity checking the first document
-            if docs[0].get("content") is None:
-                raise ValueError("The document content is required.")
-            if docs[0].get("id") is None:
-                raise ValueError("The document id is required.")
 
-            input_ids = set()
-            result_ids = set()
-            id_batch = []
-            text_batch = []
-            metadata_batch = []
-            size = 0
-            i = 0
+        else:
+            input_ids, result_ids = set(), set()
+            id_batch, text_batch, metadata_batch, embedding_batch = [], [], [], []
+            size, i = 0, 0
             for doc in docs:
-                id = doc["id"]
-                text = doc["content"]
-                metadata = doc.get("metadata", {})
+                id, text, metadata, embedding = doc["id"], doc["content"], doc.get("metadata", {}), doc.get("embedding")
+
                 id_batch.append(id)
                 text_batch.append(text)
                 metadata_batch.append(metadata)
+                embedding_batch.append(embedding)
+
                 id_size = 1 if isinstance(id, int) else len(id)
                 size += len(text) + len(metadata) + id_size
+
                 if (i + 1) % batch_size == 0 or size >= 47_000_000:
-                    result_ids.update(self._insert_batch(collection, text_batch, metadata_batch, id_batch))
+                    result_ids.update(
+                        self._insert_batch(collection, text_batch, metadata_batch, id_batch, embedding_batch)
+                    )
                     input_ids.update(id_batch)
-                    id_batch = []
-                    text_batch = []
-                    metadata_batch = []
+                    id_batch, text_batch, metadata_batch, embedding_batch = [], [], [], []
                     size = 0
                 i += 1
             if text_batch:
-                result_ids.update(self._insert_batch(collection, text_batch, metadata_batch, id_batch))  # type: ignore
+                result_ids.update(self._insert_batch(collection, text_batch, metadata_batch, id_batch, embedding_batch))
                 input_ids.update(id_batch)
 
             if result_ids != input_ids:
@@ -331,16 +354,24 @@ class MongoDBAtlasVectorDB(VectorDB):
                         in_diff=input_ids.difference(result_ids), out_diff=result_ids.difference(input_ids)
                     )
                 )
+
             if self._wait_until_document_ready and docs:
                 self._wait_for_document(collection, self.index_name, docs[-1])
 
     def _insert_batch(
-        self, collection: Collection, texts: List[str], metadatas: List[Mapping[str, Any]], ids: List[ItemID]
-    ) -> Set[ItemID]:
+        self,
+        collection: Collection,
+        texts: List[str],
+        metadatas: List[Mapping[str, Any]],
+        ids: List[ItemID],
+        embeddings: List[List[float]],
+    ) -> List[ItemID]:
         """Compute embeddings for and insert a batch of Documents into the Collection.
 
         For performance reasons, we chose to call self.embedding_function just once,
         with the hopefully small tradeoff of having recreating Document dicts.
+
+        The embeddings are sense-checked for dimensionality.
 
         Args:
             collection: MongoDB Collection
@@ -354,13 +385,29 @@ class MongoDBAtlasVectorDB(VectorDB):
         n_texts = len(texts)
         if n_texts == 0:
             return []
-        # Embed and create the documents
-        embeddings = self.embedding_function(texts).tolist()
+
+        # Embed and create the missing document embeddings
+        if None in embeddings:
+            to_embed_keys = [i for i, embed in enumerate(embeddings) if embed is None]
+            to_embed = [texts[i] for i in to_embed_keys]
+            new_embeddings = self.embedding_function(to_embed)
+            try:
+                new_embeddings = new_embeddings.tolist()  # attempts one to list method before the other
+            except AttributeError:
+                new_embeddings = new_embeddings.to_list()  # Embedding function may need stricter to_list() definition
+            for i, pos in enumerate(to_embed_keys):
+                embeddings[pos] = new_embeddings[i]
+
+        assert (
+            all(len(embed) == len(embeddings[0]) for embed in embeddings) if embeddings else True
+        ), f"Embedding Vectors are not all equal in length. Sizes: {set([len(embed) for embed in embeddings])}"
+
         assert (
             len(embeddings) == n_texts
         ), f"The number of embeddings produced by self.embedding_function ({len(embeddings)} does not match the number of texts provided to it ({n_texts})."
+
         to_insert = [
-            {"_id": i, "content": t, "metadata": m, "embedding": e}
+            {**({"_id": i} if i is not None else {}), "content": t, "metadata": m, "embedding": e}
             for i, t, m, e in zip(ids, texts, metadatas, embeddings)
         ]
         # insert the documents in MongoDB Atlas
@@ -375,11 +422,11 @@ class MongoDBAtlasVectorDB(VectorDB):
         Uses deepcopy to avoid changing docs.
 
         Args:
-            docs: List[Document] | A list of documents.
+            docs: List[Document] | A list of documents, with ID, to ensure the correct document is updated.
             collection_name: str | The name of the collection. Default is None.
             kwargs: Any | Use upsert=True` to insert documents whose ids are not present in collection.
         """
-
+        docs = [doc for doc in docs if doc.get("id") is not None]
         n_docs = len(docs)
         logger.info(f"Preparing to embed and update {n_docs=}")
         # Compute the embeddings
@@ -390,8 +437,8 @@ class MongoDBAtlasVectorDB(VectorDB):
             doc = deepcopy(docs[i])
             doc["embedding"] = embeddings[i]
             doc["_id"] = doc.pop("id")
-
             all_updates.append(UpdateOne({"_id": doc["_id"]}, {"$set": doc}, upsert=kwargs.get("upsert", False)))
+
         # Perform update in bulk
         collection = self.get_collection(collection_name)
         result = collection.bulk_write(all_updates)
