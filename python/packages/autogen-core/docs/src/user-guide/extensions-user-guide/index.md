@@ -11,6 +11,7 @@ myst:
 :maxdepth: 3
 :hidden:
 
+installation
 discover
 create-your-own
 ```
