@@ -16,7 +16,7 @@ from autogen_core.tools import Tool, ToolSchema
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
-class ReplayChatCompletionClient:
+class ReplayChatCompletionClient(ChatCompletionClient):
     """
     A mock chat completion client that replays predefined responses using an index-based approach.
 

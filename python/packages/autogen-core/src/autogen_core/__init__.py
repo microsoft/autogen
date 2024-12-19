@@ -12,6 +12,13 @@ from ._agent_type import AgentType
 from ._base_agent import BaseAgent
 from ._cancellation_token import CancellationToken
 from ._closure_agent import ClosureAgent, ClosureContext
+from ._component_config import (
+    Component,
+    ComponentConfigImpl,
+    ComponentLoader,
+    ComponentModel,
+    ComponentType,
+)
 from ._constants import (
     EVENT_LOGGER_NAME as EVENT_LOGGER_NAME_ALIAS,
 )
@@ -99,4 +106,9 @@ __all__ = [
     "ROOT_LOGGER_NAME",
     "EVENT_LOGGER_NAME",
     "TRACE_LOGGER_NAME",
+    "Component",
+    "ComponentLoader",
+    "ComponentConfigImpl",
+    "ComponentModel",
+    "ComponentType",
 ]
