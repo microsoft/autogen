@@ -28,6 +28,7 @@ from ..messages import (
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
+    ToolCallSummaryMessage,
 )
 from ..state import AssistantAgentState
 from ._base_chat_agent import BaseChatAgent
@@ -62,7 +63,7 @@ class AssistantAgent(BaseChatAgent):
 
     * If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
     * When the model returns tool calls, they will be executed right away:
-        - When `reflect_on_tool_use` is False (default), the tool call results are returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. `tool_call_summary_format` can be used to customize the tool call summary.
+        - When `reflect_on_tool_use` is False (default), the tool call results are returned as a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. `tool_call_summary_format` can be used to customize the tool call summary.
         - When `reflect_on_tool_use` is True, the another model inference is made using the tool calls and results, and the text response is returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
 
     Hand off behavior:
@@ -221,6 +222,7 @@ class AssistantAgent(BaseChatAgent):
         description: str = "An agent that provides assistance with ability to use tools.",
         system_message: str
         | None = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
+        token_callback: Callable | None = None,
         reflect_on_tool_use: bool = False,
         tool_call_summary_format: str = "{result}",
     ):
@@ -231,6 +233,7 @@ class AssistantAgent(BaseChatAgent):
         else:
             self._system_messages = [SystemMessage(content=system_message)]
         self._tools: List[Tool] = []
+        self._token_callback = token_callback
         if tools is not None:
             if model_client.capabilities["function_calling"] is False:
                 raise ValueError("The model does not support function calling.")
@@ -280,9 +283,12 @@ class AssistantAgent(BaseChatAgent):
     @property
     def produced_message_types(self) -> List[type[ChatMessage]]:
         """The types of messages that the assistant agent produces."""
+        message_types: List[type[ChatMessage]] = [TextMessage]
         if self._handoffs:
-            return [TextMessage, HandoffMessage]
-        return [TextMessage]
+            message_types.append(HandoffMessage)
+        if self._tools:
+            message_types.append(ToolCallSummaryMessage)
+        return message_types
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         async for message in self.on_messages_stream(messages, cancellation_token):
@@ -304,9 +310,26 @@ class AssistantAgent(BaseChatAgent):
 
         # Generate an inference result based on the current model context.
         llm_messages = self._system_messages + self._model_context
-        result = await self._model_client.create(
-            llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
-        )
+
+        # if token_callback is set, use create_stream to get the tokens as they are
+        # generated and call the token_callback with the tokens
+        if self._token_callback is not None:
+            async for result in self._model_client.create_stream(
+                llm_messages,
+                tools=self._tools + self._handoff_tools,
+                cancellation_token=cancellation_token,
+            ):
+                # if the result is a string, it is a token to be streamed back
+                if isinstance(result, str):
+                    await self._token_callback(result)
+                else:
+                    break
+        else:
+            result = await self._model_client.create(
+                llm_messages,
+                tools=self._tools + self._handoff_tools,
+                cancellation_token=cancellation_token,
+            )
 
         # Add the response to the model context.
         self._model_context.append(AssistantMessage(content=result.content, source=self.name))
@@ -357,7 +380,24 @@ class AssistantAgent(BaseChatAgent):
         if self._reflect_on_tool_use:
             # Generate another inference result based on the tool call and result.
             llm_messages = self._system_messages + self._model_context
-            result = await self._model_client.create(llm_messages, cancellation_token=cancellation_token)
+
+            # if token_callback is set, use create_stream to get the tokens as they are
+            # generated and call the token_callback with the tokens
+            if self._token_callback is not None:
+                async for result in self._model_client.create_stream(
+                    llm_messages,
+                    cancellation_token=cancellation_token,
+                ):
+                    # if the result is a string, it is a token to be streamed back
+                    if isinstance(result, str):
+                        await self._token_callback(result)
+                    else:
+                        break
+            else:
+                result = await self._model_client.create(
+                    llm_messages,
+                    cancellation_token=cancellation_token,
+                )
             assert isinstance(result.content, str)
             # Add the response to the model context.
             self._model_context.append(AssistantMessage(content=result.content, source=self.name))
@@ -379,7 +419,7 @@ class AssistantAgent(BaseChatAgent):
                 )
             tool_call_summary = "\n".join(tool_call_summaries)
             yield Response(
-                chat_message=TextMessage(content=tool_call_summary, source=self.name),
+                chat_message=ToolCallSummaryMessage(content=tool_call_summary, source=self.name),
                 inner_messages=inner_messages,
             )
 
