@@ -3,14 +3,13 @@ import uuid
 import warnings
 from typing import Any
 
-from autogen_core.base._rpc import format_rpc_request_topic, format_rpc_response_topic
-from autogen_core.base._topic import TopicId
-
-from ..base._agent_id import AgentId
-from ..base._agent_runtime import AgentRuntime
-from ..base._cancellation_token import CancellationToken
-from ..base._message_context import MessageContext
+from ._agent_id import AgentId
+from ._agent_runtime import AgentRuntime
+from ._cancellation_token import CancellationToken
 from ._closure_agent import ClosureAgent, ClosureContext
+from ._message_context import MessageContext
+from ._rpc import format_rpc_request_topic, format_rpc_response_topic
+from ._topic import TopicId
 
 
 class PublishBasedRpcMixin(AgentRuntime):

@@ -1,4 +1,5 @@
 import logging
+import warnings
 from functools import wraps
 from typing import (
     Any,
@@ -20,7 +21,9 @@ from typing import (
 
 from ._base_agent import BaseAgent
 from ._message_context import MessageContext
+from ._rpc import format_rpc_response_topic, is_rpc_request
 from ._serialization import MessageSerializer, try_get_known_serializers_for_type
+from ._topic import TopicId
 from ._type_helpers import AnyType, get_types
 from .exceptions import CantHandleException
 

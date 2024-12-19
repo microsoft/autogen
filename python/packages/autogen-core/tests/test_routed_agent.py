@@ -2,9 +2,7 @@ import logging
 from dataclasses import dataclass
 from typing import Callable, cast
 
-from autogen_core.base._rpc import is_rpc_request
 import pytest
-
 from autogen_core import (
     AgentId,
     MessageContext,
@@ -16,8 +14,8 @@ from autogen_core import (
     message_handler,
     rpc,
 )
+from autogen_core._rpc import is_rpc_request
 from autogen_test_utils import LoopbackAgent
-
 
 
 @dataclass

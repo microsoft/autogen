@@ -52,7 +52,7 @@ from autogen_core._serialization import (
     SerializationRegistry,
 )
 from autogen_core._telemetry import MessageRuntimeTracingConfig, TraceHelper, get_telemetry_grpc_metadata
-from autogen_core.components._publish_based_rpc import PublishBasedRpcMixin
+from autogen_core._publish_based_rpc import PublishBasedRpcMixin
 from google.protobuf import any_pb2
 from opentelemetry.trace import TracerProvider
 from typing_extensions import Self, deprecated

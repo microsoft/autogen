@@ -6,7 +6,6 @@ from autogen_core import MessageContext
 from autogen_core._routed_agent import RoutedAgent, message_handler
 from autogen_core._serialization import has_nested_base_model
 from autogen_core._type_helpers import AnyType, get_types
-
 from pydantic import BaseModel
 
 

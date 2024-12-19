@@ -15,7 +15,7 @@ from ._serialization import try_get_known_serializers_for_type
 from ._subscription import Subscription
 from ._subscription_context import SubscriptionInstantiationContext
 from ._topic import TopicId
-from ._type_helpers import get_types
+from ._type_helpers import AnyType, get_types
 from .exceptions import CantHandleException
 
 T = TypeVar("T")

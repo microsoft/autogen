@@ -10,7 +10,7 @@ from typing import Any, Awaitable, Callable, ClassVar, Dict, List, Mapping, Tupl
 
 from typing_extensions import Self
 
-from autogen_core.base._rpc import format_rpc_request_topic, is_rpc_response
+from autogen_core._rpc import format_rpc_request_topic, is_rpc_response
 
 from ._agent import Agent
 from ._agent_id import AgentId
@@ -123,7 +123,6 @@ class BaseAgent(ABC, Agent):
     @property
     def runtime(self) -> AgentRuntime:
         return self._runtime
-
 
     @abstractmethod
     async def on_message_impl(self, message: Any, ctx: MessageContext) -> None: ...
