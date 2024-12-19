@@ -256,7 +256,6 @@ class LedgerOrchestrator(BaseOrchestrator):
                         f"Failed to parse ledger information: {ledger_str}",
                     )
                 )
-                raise e
 
         raise ValueError("Failed to parse ledger information after multiple retries.")
 
