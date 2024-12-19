@@ -3,7 +3,7 @@
 
 // namespace DevTeam.Backend;
 
-// public sealed class Sandbox : AgentBase
+// public sealed class Sandbox : Agent
 // {
 //     private const string ReminderName = "SandboxRunReminder";
 //     private readonly IManageAzure _azService;

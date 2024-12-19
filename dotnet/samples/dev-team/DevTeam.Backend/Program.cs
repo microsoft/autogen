@@ -5,7 +5,7 @@ using Azure.Identity;
 using DevTeam.Backend;
 using DevTeam.Options;
 using Microsoft.AI.DevTeam;
-using Microsoft.AutoGen.Agents;
+using Microsoft.AutoGen.Core;
 using Microsoft.AutoGen.Extensions.SemanticKernel;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Options;

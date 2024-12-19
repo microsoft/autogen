@@ -7,36 +7,68 @@ from typing import Callable, Dict, List, Literal, Optional, Union
 import aiofiles
 import yaml
 from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
-from autogen_agentchat.task import MaxMessageTermination, StopMessageTermination, TextMentionTermination
-from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
-from autogen_core.components.tools import FunctionTool
+from autogen_agentchat.conditions import (
+    ExternalTermination,
+    HandoffTermination,
+    MaxMessageTermination,
+    SourceMatchTermination,
+    StopMessageTermination,
+    TextMentionTermination,
+    TimeoutTermination,
+    TokenUsageTermination,
+)
+from autogen_agentchat.teams import MagenticOneGroupChat, RoundRobinGroupChat, SelectorGroupChat
+from autogen_core.tools import FunctionTool
+from autogen_ext.agents.file_surfer import FileSurfer
+from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
-from autogen_ext.models import OpenAIChatCompletionClient
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 
 from ..datamodel.types import (
     AgentConfig,
     AgentTypes,
+    AssistantAgentConfig,
+    AzureOpenAIModelConfig,
+    CombinationTerminationConfig,
     ComponentConfig,
     ComponentConfigInput,
     ComponentTypes,
+    MagenticOneTeamConfig,
+    MaxMessageTerminationConfig,
     ModelConfig,
     ModelTypes,
+    MultimodalWebSurferAgentConfig,
+    OpenAIModelConfig,
+    RoundRobinTeamConfig,
+    SelectorTeamConfig,
     TeamConfig,
     TeamTypes,
     TerminationConfig,
     TerminationTypes,
+    TextMentionTerminationConfig,
     ToolConfig,
     ToolTypes,
+    UserProxyAgentConfig,
 )
 from ..utils.utils import Version
 
 logger = logging.getLogger(__name__)
 
-TeamComponent = Union[RoundRobinGroupChat, SelectorGroupChat]
-AgentComponent = Union[AssistantAgent, MultimodalWebSurfer]
-ModelComponent = Union[OpenAIChatCompletionClient]
+TeamComponent = Union[RoundRobinGroupChat, SelectorGroupChat, MagenticOneGroupChat]
+AgentComponent = Union[AssistantAgent, MultimodalWebSurfer, UserProxyAgent, FileSurfer, MagenticOneCoderAgent]
+ModelComponent = Union[OpenAIChatCompletionClient, AzureOpenAIChatCompletionClient]
 ToolComponent = Union[FunctionTool]  # Will grow with more tool types
-TerminationComponent = Union[MaxMessageTermination, StopMessageTermination, TextMentionTermination]
+TerminationComponent = Union[
+    MaxMessageTermination,
+    StopMessageTermination,
+    TextMentionTermination,
+    TimeoutTermination,
+    ExternalTermination,
+    TokenUsageTermination,
+    HandoffTermination,
+    SourceMatchTermination,
+    StopMessageTermination,
+]
 
 Component = Union[TeamComponent, AgentComponent, ModelComponent, ToolComponent, TerminationComponent]
 
@@ -66,7 +98,7 @@ class ComponentFactory:
     }
 
     def __init__(self):
-        self._model_cache: Dict[str, OpenAIChatCompletionClient] = {}
+        self._model_cache: Dict[str, ModelComponent] = {}
         self._tool_cache: Dict[str, FunctionTool] = {}
         self._last_cache_clear = datetime.now()
 
@@ -151,23 +183,58 @@ class ComponentFactory:
             return components
 
     def _dict_to_config(self, config_dict: dict) -> ComponentConfig:
-        """Convert dictionary to appropriate config type based on component_type"""
+        """Convert dictionary to appropriate config type based on component_type and type discriminator"""
         if "component_type" not in config_dict:
             raise ValueError("component_type is required in configuration")
 
-        config_types = {
-            ComponentTypes.TEAM: TeamConfig,
-            ComponentTypes.AGENT: AgentConfig,
-            ComponentTypes.MODEL: ModelConfig,
+        component_type = ComponentTypes(config_dict["component_type"])
+
+        # Define mapping structure
+        type_mappings = {
+            ComponentTypes.MODEL: {
+                "discriminator": "model_type",
+                ModelTypes.OPENAI.value: OpenAIModelConfig,
+                ModelTypes.AZUREOPENAI.value: AzureOpenAIModelConfig,
+            },
+            ComponentTypes.AGENT: {
+                "discriminator": "agent_type",
+                AgentTypes.ASSISTANT.value: AssistantAgentConfig,
+                AgentTypes.USERPROXY.value: UserProxyAgentConfig,
+                AgentTypes.MULTIMODAL_WEBSURFER.value: MultimodalWebSurferAgentConfig,
+            },
+            ComponentTypes.TEAM: {
+                "discriminator": "team_type",
+                TeamTypes.ROUND_ROBIN.value: RoundRobinTeamConfig,
+                TeamTypes.SELECTOR.value: SelectorTeamConfig,
+                TeamTypes.MAGENTIC_ONE.value: MagenticOneTeamConfig,
+            },
             ComponentTypes.TOOL: ToolConfig,
-            ComponentTypes.TERMINATION: TerminationConfig,  # Add mapping for termination
+            ComponentTypes.TERMINATION: {
+                "discriminator": "termination_type",
+                TerminationTypes.MAX_MESSAGES.value: MaxMessageTerminationConfig,
+                TerminationTypes.TEXT_MENTION.value: TextMentionTerminationConfig,
+                TerminationTypes.COMBINATION.value: CombinationTerminationConfig,
+            },
         }
 
-        component_type = ComponentTypes(config_dict["component_type"])
-        config_class = config_types.get(component_type)
+        mapping = type_mappings.get(component_type)
+        if not mapping:
+            raise ValueError(f"Unknown component type: {component_type}")
+
+        # Handle simple cases (no discriminator)
+        if isinstance(mapping, type):
+            return mapping(**config_dict)
+
+        # Get discriminator field value
+        discriminator = mapping["discriminator"]
+        if discriminator not in config_dict:
+            raise ValueError(f"Missing {discriminator} in configuration")
+
+        type_value = config_dict[discriminator]
+        config_class = mapping.get(type_value)
 
         if not config_class:
-            raise ValueError(f"Unknown component type: {component_type}")
+            raise ValueError(f"Unknown {discriminator}: {type_value}")
 
         return config_class(**config_dict)
 
@@ -220,11 +287,6 @@ class ComponentFactory:
                 agent = await self.load(participant, input_func=input_func)
                 participants.append(agent)
 
-            # Load model client if specified
-            model_client = None
-            if config.model_client:
-                model_client = await self.load(config.model_client)
-
             # Load termination condition if specified
             termination = None
             if config.termination_condition:
@@ -234,6 +296,7 @@ class ComponentFactory:
             if config.team_type == TeamTypes.ROUND_ROBIN:
                 return RoundRobinGroupChat(participants=participants, termination_condition=termination)
             elif config.team_type == TeamTypes.SELECTOR:
+                model_client = await self.load(config.model_client)
                 if not model_client:
                     raise ValueError("SelectorGroupChat requires a model_client")
                 selector_prompt = config.selector_prompt if config.selector_prompt else DEFAULT_SELECTOR_PROMPT
@@ -242,6 +305,16 @@ class ComponentFactory:
                     model_client=model_client,
                     termination_condition=termination,
                     selector_prompt=selector_prompt,
+                )
+            elif config.team_type == TeamTypes.MAGENTIC_ONE:
+                model_client = await self.load(config.model_client)
+                if not model_client:
+                    raise ValueError("MagenticOneGroupChat requires a model_client")
+                return MagenticOneGroupChat(
+                    participants=participants,
+                    model_client=model_client,
+                    termination_condition=termination if termination is not None else None,
+                    max_turns=config.max_turns if config.max_turns is not None else 20,
                 )
             else:
                 raise ValueError(f"Unsupported team type: {config.team_type}")
@@ -252,21 +325,20 @@ class ComponentFactory:
 
     async def load_agent(self, config: AgentConfig, input_func: Optional[Callable] = None) -> AgentComponent:
         """Create agent instance from configuration."""
+
+        model_client = None
+        system_message = None
+        tools = []
+        if hasattr(config, "system_message") and config.system_message:
+            system_message = config.system_message
+        if hasattr(config, "model_client") and config.model_client:
+            model_client = await self.load(config.model_client)
+        if hasattr(config, "tools") and config.tools:
+            for tool_config in config.tools:
+                tool = await self.load(tool_config)
+                tools.append(tool)
+
         try:
-            # Load model client if specified
-            model_client = None
-            if config.model_client:
-                model_client = await self.load(config.model_client)
-
-            system_message = config.system_message if config.system_message else "You are a helpful assistant"
-
-            # Load tools if specified
-            tools = []
-            if config.tools:
-                for tool_config in config.tools:
-                    tool = await self.load(tool_config)
-                    tools.append(tool)
-
             if config.agent_type == AgentTypes.USERPROXY:
                 return UserProxyAgent(
                     name=config.name,
@@ -274,6 +346,8 @@ class ComponentFactory:
                     input_func=input_func,  # Pass through to UserProxyAgent
                 )
             elif config.agent_type == AgentTypes.ASSISTANT:
+                system_message = config.system_message if config.system_message else "You are a helpful assistant"
+
                 return AssistantAgent(
                     name=config.name,
                     description=config.description or "A helpful assistant",
@@ -286,13 +360,22 @@ class ComponentFactory:
                     name=config.name,
                     model_client=model_client,
                     headless=config.headless if config.headless is not None else True,
-                    debug_dir=config.logs_dir if config.logs_dir is not None else "logs",
-                    downloads_folder=config.logs_dir if config.logs_dir is not None else "logs",
+                    debug_dir=config.logs_dir if config.logs_dir is not None else None,
+                    downloads_folder=config.logs_dir if config.logs_dir is not None else None,
                     to_save_screenshots=config.to_save_screenshots if config.to_save_screenshots is not None else False,
                     use_ocr=config.use_ocr if config.use_ocr is not None else False,
                     animate_actions=config.animate_actions if config.animate_actions is not None else False,
                 )
-
+            elif config.agent_type == AgentTypes.FILE_SURFER:
+                return FileSurfer(
+                    name=config.name,
+                    model_client=model_client,
+                )
+            elif config.agent_type == AgentTypes.MAGENTIC_ONE_CODER:
+                return MagenticOneCoderAgent(
+                    name=config.name,
+                    model_client=model_client,
+                )
             else:
                 raise ValueError(f"Unsupported agent type: {config.agent_type}")
 
@@ -310,7 +393,26 @@ class ComponentFactory:
                 return self._model_cache[cache_key]
 
             if config.model_type == ModelTypes.OPENAI:
-                model = OpenAIChatCompletionClient(model=config.model, api_key=config.api_key, base_url=config.base_url)
+                args = {
+                    "model": config.model,
+                    "api_key": config.api_key,
+                    "base_url": config.base_url,
+                }
+
+                if hasattr(config, "model_capabilities") and config.model_capabilities is not None:
+                    args["model_capabilities"] = config.model_capabilities
+
+                model = OpenAIChatCompletionClient(**args)
+                self._model_cache[cache_key] = model
+                return model
+            elif config.model_type == ModelTypes.AZUREOPENAI:
+                model = AzureOpenAIChatCompletionClient(
+                    azure_deployment=config.azure_deployment,
+                    model=config.model,
+                    api_version=config.api_version,
+                    azure_endpoint=config.azure_endpoint,
+                    api_key=config.api_key,
+                )
                 self._model_cache[cache_key] = model
                 return model
             else:

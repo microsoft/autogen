@@ -88,31 +88,30 @@ html_favicon = "_static/images/logo/favicon-512x512.png"
 
 html_theme_options = {
 
-    "header_links_before_dropdown": 4,
+    "header_links_before_dropdown": 6,
     "navbar_align": "left",
-    "show_nav_level": 4,
     "check_switcher": False,
     # "navbar_start": ["navbar-logo", "version-switcher"],
     # "switcher": {
     #     "json_url": "/_static/switcher.json",
     # },
-    "show_prev_next": False,
+    "show_prev_next": True,
     "icon_links": [
-        {
-            "name": "Twitter",
-            "url": "https://twitter.com/pyautogen",
-            "icon": "fa-brands fa-twitter",
-        },
         {
             "name": "GitHub",
             "url": "https://github.com/microsoft/autogen",
             "icon": "fa-brands fa-github",
         },
         {
-            "name": "PyPI",
-            "url": "/autogen/dev/packages",
-            "icon": "fa-custom fa-pypi",
+            "name": "Discord",
+            "url": "https://aka.ms/autogen-discord",
+            "icon": "fa-brands fa-discord",
         },
+        {
+            "name": "Twitter",
+            "url": "https://twitter.com/pyautogen",
+            "icon": "fa-brands fa-twitter",
+        }
     ],
 
     "announcement": 'AutoGen 0.4 is a work in progress. Go <a href="/autogen/0.2/">here</a> to find the 0.2 documentation.',
@@ -133,6 +132,10 @@ html_theme_options = {
 html_js_files = ["custom-icon.js", "override-switcher-button.js"]
 html_sidebars = {
     "packages/index": [],
+    "user-guide/core-user-guide/**": ["sidebar-nav-bs-core"],
+    "user-guide/agentchat-user-guide/**": ["sidebar-nav-bs-agentchat"],
+    "user-guide/extensions-user-guide/**": ["sidebar-nav-bs-extensions"],
+    "user-guide/autogenstudio-user-guide/**": ["sidebar-nav-bs-studio"],
 }
 
 html_context = {
@@ -149,6 +152,7 @@ autodoc_default_options = {
 }
 
 autodoc_pydantic_model_show_config_summary = False
+python_use_unqualified_type_names = True
 
 intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 

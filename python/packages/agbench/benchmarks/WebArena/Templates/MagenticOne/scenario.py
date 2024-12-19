@@ -7,12 +7,12 @@ import nltk
 
 from typing import Any, Dict, List, Tuple, Union
 
-from autogen_core.base import AgentId, AgentProxy, TopicId
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.application.logging import EVENT_LOGGER_NAME
-from autogen_core.components import DefaultSubscription, DefaultTopicId
-from autogen_core.components.code_executor import LocalCommandLineCodeExecutor
-from autogen_core.components.models import (
+from autogen_core import AgentId, AgentProxy, TopicId
+from autogen_core import SingleThreadedAgentRuntime
+from autogen_core import EVENT_LOGGER_NAME
+from autogen_core import DefaultSubscription, DefaultTopicId
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_core.models import (
     ChatCompletionClient,
     UserMessage,
     SystemMessage,
@@ -105,7 +105,7 @@ async def main() -> None:
             task_prompt = task_prompt.replace(k, REPLACEMENTS[k])
         fh.write(task_prompt)
         TASK = json.loads(task_prompt)
-        if TASK["start_url"] == REDDIT: 
+        if TASK["start_url"] == REDDIT:
             TASK["start_url"] = TASK["start_url"] + "/forums/all"
 
     full_task = ""
@@ -127,7 +127,7 @@ async def main() -> None:
         lambda: Coder(
             model_client=client,
             system_messages=[
-                SystemMessage("""You are a general-purpose AI assistant and can handle many questions -- but you don't have access to a web browser. However, the user you are talking to does have a browser, and you can see the screen. Provide short direct instructions to them to take you where you need to go to answer the initial question posed to you.
+                SystemMessage(content="""You are a general-purpose AI assistant and can handle many questions -- but you don't have access to a web browser. However, the user you are talking to does have a browser, and you can see the screen. Provide short direct instructions to them to take you where you need to go to answer the initial question posed to you.
 
 Once the user has taken the final necessary action to complete the task, and you have fully addressed the initial request, reply with the word TERMINATE.""",
                 )
@@ -150,7 +150,7 @@ Once the user has taken the final necessary action to complete the task, and you
 
     # Round-robin orchestrator
     await runtime.register(
-        "round_robin_orc", 
+        "round_robin_orc",
         lambda: RoundRobinOrchestrator(agents=[web_surfer, login_assistant],),
         subscriptions=lambda: [DefaultSubscription()],
     )
@@ -163,7 +163,7 @@ Once the user has taken the final necessary action to complete the task, and you
 
             runtime.start()
             await runtime.publish_message(
-                ResetMessage(), 
+                ResetMessage(),
                 topic_id=DefaultTopicId(),
             )
             await runtime.publish_message(
@@ -192,16 +192,16 @@ Once the user has taken the final necessary action to complete the task, and you
         subscriptions=lambda: [DefaultSubscription()],
     )
     executor = AgentProxy(AgentId("ComputerTerminal", "default"), runtime)
-    
+
     await runtime.register(
         "FileSurfer",
         lambda: FileSurfer(model_client=client),
         subscriptions=lambda: [DefaultSubscription()],
     )
     file_surfer = AgentProxy(AgentId("FileSurfer", "default"), runtime)
-   
+
     await runtime.register(
-        "orchestrator", 
+        "orchestrator",
         lambda: LedgerOrchestrator(
             agents=[coder, executor, file_surfer, web_surfer],
             model_client=client,
@@ -251,7 +251,7 @@ Once the user has taken the final necessary action to complete the task, and you
     page = actual_surfer._page
     cdp_session = await context.new_cdp_session(page)
     config_file = "full_task.json"
-    
+
     evaluator = evaluation_harness.evaluator_router(config_file)
     score = await evaluator(
         trajectory=evaluation_harness.make_answer_trajecotry(final_answer),
@@ -260,7 +260,7 @@ Once the user has taken the final necessary action to complete the task, and you
         client=cdp_session,
     #    azure_config=llm_config,
     )
-    
+
     print("FINAL SCORE: " + str(score))
 
 

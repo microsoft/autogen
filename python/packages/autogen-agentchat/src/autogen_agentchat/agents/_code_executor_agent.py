@@ -1,11 +1,23 @@
+import re
 from typing import List, Sequence
 
-from autogen_core.base import CancellationToken
-from autogen_core.components.code_executor import CodeBlock, CodeExecutor, extract_markdown_code_blocks
+from autogen_core import CancellationToken
+from autogen_core.code_executor import CodeBlock, CodeExecutor
 
 from ..base import Response
 from ..messages import ChatMessage, TextMessage
 from ._base_chat_agent import BaseChatAgent
+
+
+def _extract_markdown_code_blocks(markdown_text: str) -> List[CodeBlock]:
+    pattern = re.compile(r"```(?:\s*([\w\+\-]+))?\n([\s\S]*?)```")
+    matches = pattern.findall(markdown_text)
+    code_blocks: List[CodeBlock] = []
+    for match in matches:
+        language = match[0].strip() if match[0] else ""
+        code_content = match[1]
+        code_blocks.append(CodeBlock(code=code_content, language=language))
+    return code_blocks
 
 
 class CodeExecutorAgent(BaseChatAgent):
@@ -19,7 +31,7 @@ class CodeExecutorAgent(BaseChatAgent):
         Follow the installation instructions for `Docker <https://docs.docker.com/get-docker/>`_.
 
     In this example, we show how to set up a `CodeExecutorAgent` agent that uses the
-    :py:class:`~autogen_ext.code_executors.DockerCommandLineCodeExecutor`
+    :py:class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor`
     to execute code snippets in a Docker container. The `work_dir` parameter indicates where all executed files are first saved locally before being executed in the Docker container.
 
         .. code-block:: python
@@ -27,8 +39,8 @@ class CodeExecutorAgent(BaseChatAgent):
             import asyncio
             from autogen_agentchat.agents import CodeExecutorAgent
             from autogen_agentchat.messages import TextMessage
-            from autogen_ext.code_executors import DockerCommandLineCodeExecutor
-            from autogen_core.base import CancellationToken
+            from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
+            from autogen_core import CancellationToken
 
 
             async def run_code_executor_agent() -> None:
@@ -77,13 +89,27 @@ class CodeExecutorAgent(BaseChatAgent):
         code_blocks: List[CodeBlock] = []
         for msg in messages:
             if isinstance(msg, TextMessage):
-                code_blocks.extend(extract_markdown_code_blocks(msg.content))
+                code_blocks.extend(_extract_markdown_code_blocks(msg.content))
         if code_blocks:
             # Execute the code blocks.
             result = await self._code_executor.execute_code_blocks(code_blocks, cancellation_token=cancellation_token)
-            return Response(chat_message=TextMessage(content=result.output, source=self.name))
+
+            code_output = result.output
+            if code_output.strip() == "":
+                # No output
+                code_output = f"The script ran but produced no output to console. The POSIX exit code was: {result.exit_code}. If you were expecting output, consider revising the script to ensure content is printed to stdout."
+            elif result.exit_code != 0:
+                # Error
+                code_output = f"The script ran, then exited with an error (POSIX exit code: {result.exit_code})\nIts output was:\n{result.output}"
+
+            return Response(chat_message=TextMessage(content=code_output, source=self.name))
         else:
-            return Response(chat_message=TextMessage(content="No code blocks found in the thread.", source=self.name))
+            return Response(
+                chat_message=TextMessage(
+                    content="No code blocks found in the thread. Please provide at least one markdown-encoded code block to execute (i.e., quoting code in ```python or ```sh code blocks).",
+                    source=self.name,
+                )
+            )
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """It it's a no-op as the code executor agent has no mutable state."""
