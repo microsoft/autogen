@@ -54,6 +54,7 @@ design-patterns/handoffs
 design-patterns/mixture-of-agents
 design-patterns/multi-agent-debate
 design-patterns/reflection
+design-patterns/code-execution-groupchat
 ```
 
 ```{toctree}

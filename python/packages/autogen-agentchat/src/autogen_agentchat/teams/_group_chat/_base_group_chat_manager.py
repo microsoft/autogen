@@ -5,7 +5,7 @@ from typing import Any, List
 from autogen_core import DefaultTopicId, MessageContext, event, rpc
 
 from ...base import TerminationCondition
-from ...messages import AgentMessage, ChatMessage, StopMessage
+from ...messages import AgentEvent, ChatMessage, StopMessage
 from ._events import (
     GroupChatAgentResponse,
     GroupChatRequestPublish,
@@ -48,7 +48,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
             raise ValueError("The group topic type must not be in the participant topic types.")
         self._participant_topic_types = participant_topic_types
         self._participant_descriptions = participant_descriptions
-        self._message_thread: List[AgentMessage] = []
+        self._message_thread: List[AgentEvent | ChatMessage] = []
         self._termination_condition = termination_condition
         if max_turns is not None and max_turns <= 0:
             raise ValueError("The maximum number of turns must be greater than 0.")
@@ -115,7 +115,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
         # Append the message to the message thread and construct the delta.
-        delta: List[AgentMessage] = []
+        delta: List[AgentEvent | ChatMessage] = []
         if message.agent_response.inner_messages is not None:
             for inner_message in message.agent_response.inner_messages:
                 self._message_thread.append(inner_message)
@@ -180,7 +180,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         ...
 
     @abstractmethod
-    async def select_speaker(self, thread: List[AgentMessage]) -> str:
+    async def select_speaker(self, thread: List[AgentEvent | ChatMessage]) -> str:
         """Select a speaker from the participants and return the
         topic type of the selected speaker."""
         ...
