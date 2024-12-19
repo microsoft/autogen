@@ -22,6 +22,7 @@ from autogen_agentchat.messages import (
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
+    ToolCallSummaryMessage,
 )
 from autogen_agentchat.teams import (
     RoundRobinGroupChat,
@@ -325,7 +326,8 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     assert isinstance(result.messages[0], TextMessage)  # task
     assert isinstance(result.messages[1], ToolCallRequestEvent)  # tool call
     assert isinstance(result.messages[2], ToolCallExecutionEvent)  # tool call result
-    assert isinstance(result.messages[3], TextMessage)  # tool use agent response
+    assert isinstance(result.messages[3], ToolCallSummaryMessage)  # tool use agent response
+    assert result.messages[3].content == "pass"  #  ensure the tool call was executed
     assert isinstance(result.messages[4], TextMessage)  # echo agent response
     assert isinstance(result.messages[5], TextMessage)  # tool use agent response
     assert isinstance(result.messages[6], TextMessage)  # echo agent response

@@ -281,9 +281,12 @@ class AssistantAgent(BaseChatAgent):
     @property
     def produced_message_types(self) -> List[type[ChatMessage]]:
         """The types of messages that the assistant agent produces."""
+        message_types: List[type[ChatMessage]] = [TextMessage]
         if self._handoffs:
-            return [TextMessage, HandoffMessage]
-        return [TextMessage]
+            message_types.append(HandoffMessage)
+        if self._tools:
+            message_types.append(ToolCallSummaryMessage)
+        return message_types
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         async for message in self.on_messages_stream(messages, cancellation_token):
