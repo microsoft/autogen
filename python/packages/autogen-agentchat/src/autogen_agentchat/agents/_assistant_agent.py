@@ -21,14 +21,14 @@ from .. import EVENT_LOGGER_NAME
 from ..base import Handoff as HandoffBase
 from ..base import Response
 from ..messages import (
-    AgentMessage,
+    AgentEvent,
     ChatMessage,
     HandoffMessage,
     MultiModalMessage,
     TextMessage,
-    ToolCallMessage,
-    ToolCallResultMessage,
-    ToolCallResultSummaryMessage,
+    ToolCallExecutionEvent,
+    ToolCallRequestEvent,
+    ToolCallSummaryMessage,
 )
 from ..state import AssistantAgentState
 from ._base_chat_agent import BaseChatAgent
@@ -63,7 +63,7 @@ class AssistantAgent(BaseChatAgent):
 
     * If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
     * When the model returns tool calls, they will be executed right away:
-        - When `reflect_on_tool_use` is False (default), the tool call results are returned as a :class:`~autogen_agentchat.messages.ToolCallResultSummaryMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. `tool_call_summary_format` can be used to customize the tool call summary.
+        - When `reflect_on_tool_use` is False (default), the tool call results are returned as a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. `tool_call_summary_format` can be used to customize the tool call summary.
         - When `reflect_on_tool_use` is True, the another model inference is made using the tool calls and results, and the text response is returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
 
     Hand off behavior:
@@ -295,7 +295,7 @@ class AssistantAgent(BaseChatAgent):
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentMessage | Response, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         # Add messages to the model context.
         for msg in messages:
             if isinstance(msg, MultiModalMessage) and self._model_client.capabilities["vision"] is False:
@@ -303,7 +303,7 @@ class AssistantAgent(BaseChatAgent):
             self._model_context.append(UserMessage(content=msg.content, source=msg.source))
 
         # Inner messages.
-        inner_messages: List[AgentMessage] = []
+        inner_messages: List[AgentEvent | ChatMessage] = []
 
         # Generate an inference result based on the current model context.
         llm_messages = self._system_messages + self._model_context
@@ -341,7 +341,7 @@ class AssistantAgent(BaseChatAgent):
 
         # Process tool calls.
         assert isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content)
-        tool_call_msg = ToolCallMessage(content=result.content, source=self.name, models_usage=result.usage)
+        tool_call_msg = ToolCallRequestEvent(content=result.content, source=self.name, models_usage=result.usage)
         event_logger.debug(tool_call_msg)
         # Add the tool call message to the output.
         inner_messages.append(tool_call_msg)
@@ -349,7 +349,7 @@ class AssistantAgent(BaseChatAgent):
 
         # Execute the tool calls.
         results = await asyncio.gather(*[self._execute_tool_call(call, cancellation_token) for call in result.content])
-        tool_call_result_msg = ToolCallResultMessage(content=results, source=self.name)
+        tool_call_result_msg = ToolCallExecutionEvent(content=results, source=self.name)
         event_logger.debug(tool_call_result_msg)
         self._model_context.append(FunctionExecutionResultMessage(content=results))
         inner_messages.append(tool_call_result_msg)
@@ -416,7 +416,7 @@ class AssistantAgent(BaseChatAgent):
                 )
             tool_call_summary = "\n".join(tool_call_summaries)
             yield Response(
-                chat_message=ToolCallResultSummaryMessage(content=tool_call_summary, source=self.name),
+                chat_message=ToolCallSummaryMessage(content=tool_call_summary, source=self.name),
                 inner_messages=inner_messages,
             )
 

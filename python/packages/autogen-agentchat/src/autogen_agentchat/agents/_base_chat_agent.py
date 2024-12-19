@@ -5,7 +5,7 @@ from autogen_core import CancellationToken
 
 from ..base import ChatAgent, Response, TaskResult
 from ..messages import (
-    AgentMessage,
+    AgentEvent,
     ChatMessage,
     TextMessage,
 )
@@ -58,7 +58,7 @@ class BaseChatAgent(ChatAgent, ABC):
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentMessage | Response, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         """Handles incoming messages and returns a stream of messages and
         and the final item is the response. The base implementation in
         :class:`BaseChatAgent` simply calls :meth:`on_messages` and yields
@@ -89,7 +89,7 @@ class BaseChatAgent(ChatAgent, ABC):
         if cancellation_token is None:
             cancellation_token = CancellationToken()
         input_messages: List[ChatMessage] = []
-        output_messages: List[AgentMessage] = []
+        output_messages: List[AgentEvent | ChatMessage] = []
         if task is None:
             pass
         elif isinstance(task, str):
@@ -119,13 +119,13 @@ class BaseChatAgent(ChatAgent, ABC):
         *,
         task: str | ChatMessage | List[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None]:
         """Run the agent with the given task and return a stream of messages
         and the final task result as the last item in the stream."""
         if cancellation_token is None:
             cancellation_token = CancellationToken()
         input_messages: List[ChatMessage] = []
-        output_messages: List[AgentMessage] = []
+        output_messages: List[AgentEvent | ChatMessage] = []
         if task is None:
             pass
         elif isinstance(task, str):
