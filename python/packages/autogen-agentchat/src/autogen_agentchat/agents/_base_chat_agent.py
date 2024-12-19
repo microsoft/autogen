@@ -1,10 +1,15 @@
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, List, Sequence
+from typing import Any, AsyncGenerator, List, Mapping, Sequence, get_args
 
-from autogen_core.base import CancellationToken
+from autogen_core import CancellationToken
 
 from ..base import ChatAgent, Response, TaskResult
-from ..messages import AgentMessage, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
+from ..messages import (
+    AgentEvent,
+    ChatMessage,
+    TextMessage,
+)
+from ..state import BaseState
 
 
 class BaseChatAgent(ChatAgent, ABC):
@@ -37,15 +42,38 @@ class BaseChatAgent(ChatAgent, ABC):
 
     @abstractmethod
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
-        """Handles incoming messages and returns a response."""
+        """Handles incoming messages and returns a response.
+
+        .. note::
+
+            Agents are stateful and the messages passed to this method should
+            be the new messages since the last call to this method. The agent
+            should maintain its state between calls to this method. For example,
+            if the agent needs to remember the previous messages to respond to
+            the current message, it should store the previous messages in the
+            agent state.
+
+        """
         ...
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentMessage | Response, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         """Handles incoming messages and returns a stream of messages and
-        and the final item is the response. The base implementation in :class:`BaseChatAgent`
-        simply calls :meth:`on_messages` and yields the messages in the response."""
+        and the final item is the response. The base implementation in
+        :class:`BaseChatAgent` simply calls :meth:`on_messages` and yields
+        the messages in the response.
+
+        .. note::
+
+            Agents are stateful and the messages passed to this method should
+            be the new messages since the last call to this method. The agent
+            should maintain its state between calls to this method. For example,
+            if the agent needs to remember the previous messages to respond to
+            the current message, it should store the previous messages in the
+            agent state.
+
+        """
         response = await self.on_messages(messages, cancellation_token)
         for inner_message in response.inner_messages or []:
             yield inner_message
@@ -54,21 +82,28 @@ class BaseChatAgent(ChatAgent, ABC):
     async def run(
         self,
         *,
-        task: str | ChatMessage | None = None,
+        task: str | ChatMessage | List[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the agent with the given task and return the result."""
         if cancellation_token is None:
             cancellation_token = CancellationToken()
         input_messages: List[ChatMessage] = []
-        output_messages: List[AgentMessage] = []
+        output_messages: List[AgentEvent | ChatMessage] = []
         if task is None:
             pass
         elif isinstance(task, str):
             text_msg = TextMessage(content=task, source="user")
             input_messages.append(text_msg)
             output_messages.append(text_msg)
-        elif isinstance(task, TextMessage | MultiModalMessage | StopMessage | HandoffMessage):
+        elif isinstance(task, list):
+            for msg in task:
+                if isinstance(msg, get_args(ChatMessage)[0]):
+                    input_messages.append(msg)
+                    output_messages.append(msg)
+                else:
+                    raise ValueError(f"Invalid message type in list: {type(msg)}")
+        elif isinstance(task, get_args(ChatMessage)[0]):
             input_messages.append(task)
             output_messages.append(task)
         else:
@@ -82,15 +117,15 @@ class BaseChatAgent(ChatAgent, ABC):
     async def run_stream(
         self,
         *,
-        task: str | ChatMessage | None = None,
+        task: str | ChatMessage | List[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None]:
         """Run the agent with the given task and return a stream of messages
         and the final task result as the last item in the stream."""
         if cancellation_token is None:
             cancellation_token = CancellationToken()
         input_messages: List[ChatMessage] = []
-        output_messages: List[AgentMessage] = []
+        output_messages: List[AgentEvent | ChatMessage] = []
         if task is None:
             pass
         elif isinstance(task, str):
@@ -98,7 +133,15 @@ class BaseChatAgent(ChatAgent, ABC):
             input_messages.append(text_msg)
             output_messages.append(text_msg)
             yield text_msg
-        elif isinstance(task, TextMessage | MultiModalMessage | StopMessage | HandoffMessage):
+        elif isinstance(task, list):
+            for msg in task:
+                if isinstance(msg, get_args(ChatMessage)[0]):
+                    input_messages.append(msg)
+                    output_messages.append(msg)
+                    yield msg
+                else:
+                    raise ValueError(f"Invalid message type in list: {type(msg)}")
+        elif isinstance(task, get_args(ChatMessage)[0]):
             input_messages.append(task)
             output_messages.append(task)
             yield task
@@ -117,3 +160,11 @@ class BaseChatAgent(ChatAgent, ABC):
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Resets the agent to its initialization state."""
         ...
+
+    async def save_state(self) -> Mapping[str, Any]:
+        """Export state. Default implementation for stateless agents."""
+        return BaseState().model_dump()
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        """Restore agent from saved state. Default implementation for stateless agents."""
+        BaseState.model_validate(state)

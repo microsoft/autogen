@@ -1,17 +1,18 @@
 import logging
 
 import pytest
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import (
+from autogen_core import (
     AgentId,
     AgentInstantiationContext,
     AgentType,
+    DefaultTopicId,
+    SingleThreadedAgentRuntime,
     TopicId,
+    TypeSubscription,
     try_get_known_serializers_for_type,
+    type_subscription,
 )
-from autogen_core.components import DefaultTopicId, TypeSubscription, type_subscription
-from opentelemetry.sdk.trace import TracerProvider
-from test_utils import (
+from autogen_test_utils import (
     CascadingAgent,
     CascadingMessageType,
     LoopbackAgent,
@@ -19,7 +20,8 @@ from test_utils import (
     MessageType,
     NoopAgent,
 )
-from test_utils.telemetry_test_utils import TestExporter, get_test_tracer_provider
+from autogen_test_utils.telemetry_test_utils import TestExporter, get_test_tracer_provider
+from opentelemetry.sdk.trace import TracerProvider
 
 test_exporter = TestExporter()
 

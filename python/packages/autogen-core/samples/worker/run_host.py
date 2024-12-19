@@ -1,10 +1,10 @@
 import asyncio
 
-from autogen_core.application import WorkerAgentRuntimeHost
+from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntimeHost
 
 
 async def main() -> None:
-    service = WorkerAgentRuntimeHost(address="localhost:50051")
+    service = GrpcWorkerAgentRuntimeHost(address="localhost:50051")
     service.start()
     await service.stop_when_signal()
 

@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package agents;
 
-option csharp_namespace = "Microsoft.AutoGen.Abstractions";
+option csharp_namespace = "Microsoft.AutoGen.Contracts";
 
 import "cloudevent.proto";
 import "google/protobuf/any.proto";
@@ -80,7 +80,7 @@ message SaveStateResponse {
 
 message Message {
     oneof message {
-        cloudevent.CloudEvent cloudEvent = 1;
+        io.cloudevents.v1.CloudEvent cloudEvent = 1;
         RegisterAgentTypeRequest registerAgentTypeRequest = 2;
         RegisterAgentTypeResponse registerAgentTypeResponse = 3;
         AddSubscriptionRequest addSubscriptionRequest = 4;

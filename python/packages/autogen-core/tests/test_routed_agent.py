@@ -2,12 +2,22 @@ import logging
 from dataclasses import dataclass
 from typing import Callable, cast
 
-import pytest
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, MessageContext, TopicId
 from autogen_core.base._rpc import is_rpc_request
-from autogen_core.components import RoutedAgent, TypeSubscription, event, message_handler, rpc
-from test_utils import LoopbackAgent
+import pytest
+
+from autogen_core import (
+    AgentId,
+    MessageContext,
+    RoutedAgent,
+    SingleThreadedAgentRuntime,
+    TopicId,
+    TypeSubscription,
+    event,
+    message_handler,
+    rpc,
+)
+from autogen_test_utils import LoopbackAgent
+
 
 
 @dataclass

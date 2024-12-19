@@ -6,9 +6,13 @@ from typing import Generator
 
 from autogenstudio.database import DatabaseManager
 from autogenstudio.datamodel.types import (
-    ModelConfig, AgentConfig, ToolConfig,
-    TeamConfig, ModelTypes, AgentTypes, TeamTypes, ComponentTypes,
-    TerminationConfig, TerminationTypes,  ToolTypes
+    ToolConfig,
+    OpenAIModelConfig,
+    RoundRobinTeamConfig,
+    StopMessageTerminationConfig,
+    AssistantAgentConfig,
+    ModelTypes, AgentTypes, TeamTypes, ComponentTypes,
+    TerminationTypes,  ToolTypes
 )
 from autogenstudio.datamodel.db import Model, Tool, Agent, Team, LinkTypes
 
@@ -42,7 +46,7 @@ def sample_model(test_user: str) -> Model:
     """Create a sample model with proper config"""
     return Model(
         user_id=test_user,
-        config=ModelConfig(
+        config=OpenAIModelConfig(
             model="gpt-4",
             model_type=ModelTypes.OPENAI,
             component_type=ComponentTypes.MODEL,
@@ -72,10 +76,10 @@ def sample_agent(test_user: str, sample_model: Model, sample_tool: Tool) -> Agen
     """Create a sample agent with proper config and relationships"""
     return Agent(
         user_id=test_user,
-        config=AgentConfig(
+        config=AssistantAgentConfig(
             name="test_agent",
             agent_type=AgentTypes.ASSISTANT,
-            model_client=ModelConfig.model_validate(sample_model.config),
+            model_client=OpenAIModelConfig.model_validate(sample_model.config),
             tools=[ToolConfig.model_validate(sample_tool.config)],
             component_type=ComponentTypes.AGENT,
             version="1.0.0"
@@ -88,10 +92,11 @@ def sample_team(test_user: str, sample_agent: Agent) -> Team:
     """Create a sample team with proper config"""
     return Team(
         user_id=test_user,
-        config=TeamConfig(
+        config=RoundRobinTeamConfig(
             name="test_team",
-            participants=[AgentConfig.model_validate(sample_agent.config)],
-            termination_condition=TerminationConfig(
+            participants=[AssistantAgentConfig.model_validate(
+                sample_agent.config)],
+            termination_condition=StopMessageTerminationConfig(
                 termination_type=TerminationTypes.STOP_MESSAGE,
                 component_type=ComponentTypes.TERMINATION,
                 version="1.0.0"
@@ -142,7 +147,7 @@ class TestDatabaseOperations:
             # Create two models with updated configs
             model1 = Model(
                 user_id="test_user",
-                config=ModelConfig(
+                config=OpenAIModelConfig(
                     model="gpt-4",
                     model_type=ModelTypes.OPENAI,
                     component_type=ComponentTypes.MODEL,
@@ -151,7 +156,7 @@ class TestDatabaseOperations:
             )
             model2 = Model(
                 user_id="test_user",
-                config=ModelConfig(
+                config=OpenAIModelConfig(
                     model="gpt-3.5",
                     model_type=ModelTypes.OPENAI,
                     component_type=ComponentTypes.MODEL,

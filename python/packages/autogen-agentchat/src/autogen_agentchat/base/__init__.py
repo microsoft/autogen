@@ -1,4 +1,5 @@
 from ._chat_agent import ChatAgent, Response
+from ._handoff import Handoff
 from ._task import TaskResult, TaskRunner
 from ._team import Team
 from ._termination import TerminatedException, TerminationCondition
@@ -11,4 +12,5 @@ __all__ = [
     "TerminationCondition",
     "TaskResult",
     "TaskRunner",
+    "Handoff",
 ]

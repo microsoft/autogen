@@ -3,19 +3,21 @@
 <div align="center">
 <img src="https://microsoft.github.io/autogen/0.2/img/ag.svg" alt="AutoGen Logo" width="100">
 
-[![Twitter](https://img.shields.io/twitter/url/https/twitter.com/cloudposse.svg?style=social&label=Follow%20%40pyautogen)](https://twitter.com/pyautogen) [![GitHub Discussions](https://img.shields.io/badge/Discussions-Q%26A-green?logo=github)](https://github.com/microsoft/autogen/discussions) [![0.2 Docs](https://img.shields.io/badge/Docs-0.2-blue)](https://microsoft.github.io/autogen/0.2/) [![0.4 Docs](https://img.shields.io/badge/Docs-0.4-blue)](https://microsoft.github.io/autogen/dev/)
-[![PyPi autogen-core](https://img.shields.io/badge/PyPi-autogen--core-blue?logo=pypi)](https://pypi.org/project/autogen-core/0.4.0.dev8/) [![PyPi autogen-agentchat](https://img.shields.io/badge/PyPi-autogen--agentchat-blue?logo=pypi)](https://pypi.org/project/autogen-agentchat/0.4.0.dev8/) [![PyPi autogen-ext](https://img.shields.io/badge/PyPi-autogen--ext-blue?logo=pypi)](https://pypi.org/project/autogen-ext/0.4.0.dev8/)
+[![Twitter](https://img.shields.io/twitter/url/https/twitter.com/cloudposse.svg?style=social&label=Follow%20%40pyautogen)](https://twitter.com/pyautogen) [![LinkedIn](https://img.shields.io/badge/LinkedIn-Company?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/company/105812540) [![Discord](https://img.shields.io/badge/discord-chat-green?logo=discord)](https://aka.ms/autogen-discord) [![GitHub Discussions](https://img.shields.io/badge/Discussions-Q%26A-green?logo=github)](https://github.com/microsoft/autogen/discussions) [![0.2 Docs](https://img.shields.io/badge/Docs-0.2-blue)](https://microsoft.github.io/autogen/0.2/) [![0.4 Docs](https://img.shields.io/badge/Docs-0.4-blue)](https://microsoft.github.io/autogen/dev/)
 
+[![PyPi autogen-core](https://img.shields.io/badge/PyPi-autogen--core-blue?logo=pypi)](https://pypi.org/project/autogen-core/0.4.0.dev11/) [![PyPi autogen-agentchat](https://img.shields.io/badge/PyPi-autogen--agentchat-blue?logo=pypi)](https://pypi.org/project/autogen-agentchat/0.4.0.dev11/) [![PyPi autogen-ext](https://img.shields.io/badge/PyPi-autogen--ext-blue?logo=pypi)](https://pypi.org/project/autogen-ext/0.4.0.dev11/)
 </div>
 
 # AutoGen
 
 > [!IMPORTANT]
 >
+> - (12/11/24) We have created a new Discord server for the AutoGen community. Join us at [aka.ms/autogen-discord](https://aka.ms/autogen-discord).
 > - (11/14/24) ⚠️ In response to a number of asks to clarify and distinguish between official AutoGen and its forks that created confusion, we issued a [clarification statement](https://github.com/microsoft/autogen/discussions/4217).
 > - (10/13/24) Interested in the standard AutoGen as a prior user? Find it at the actively-maintained *AutoGen* [0.2 branch](https://github.com/microsoft/autogen/tree/0.2) and `autogen-agentchat~=0.2` PyPi package.
 > - (10/02/24) [AutoGen 0.4](https://microsoft.github.io/autogen/dev) is a from-the-ground-up rewrite of AutoGen. Learn more about the history, goals and future at [this blog post](https://microsoft.github.io/autogen/blog). We’re excited to work with the community to gather feedback, refine, and improve the project before we officially release 0.4. This is a big change, so AutoGen 0.2 is still available, maintained, and developed in the [0.2 branch](https://github.com/microsoft/autogen/tree/0.2).
 > - *[Join us for Community Office Hours](https://github.com/microsoft/autogen/discussions/4059)* We will host a weekly open discussion to answer questions, talk about Roadmap, etc.
+
 
 AutoGen is an open-source framework for building AI agent systems.
 It simplifies the creation of event-driven, distributed, scalable, and resilient agentic applications.
@@ -54,7 +56,7 @@ Currently, there are three main APIs your application can target:
 
 - [Core](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/index.html)
 - [AgentChat](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/index.html)
-- [Extensions](https://microsoft.github.io/autogen/dev/reference/python/autogen_ext/autogen_ext.html)
+- [Extensions](https://microsoft.github.io/autogen/dev/user-guide/extensions-user-guide/index.html)
 
 ## Core
 
@@ -104,7 +106,7 @@ We look forward to your contributions!
 First install the packages:
 
 ```bash
-pip install 'autogen-agentchat==0.4.0.dev8' 'autogen-ext[openai]==0.4.0.dev8'
+pip install 'autogen-agentchat==0.4.0.dev11' 'autogen-ext[openai]==0.4.0.dev11'
 ```
 
 The following code uses OpenAI's GPT-4o model and you need to provide your
@@ -115,9 +117,10 @@ To use Azure OpenAI models, follow the instruction
 ```python
 import asyncio
 from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.task import Console, TextMentionTermination
+from autogen_agentchat.ui import Console
+from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
-from autogen_ext.models import OpenAIChatCompletionClient
+from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 # Define a tool
 async def get_weather(city: str) -> str:
@@ -161,14 +164,14 @@ git switch staging-dev
 # Build the project
 cd dotnet && dotnet build AutoGen.sln
 # In your source code, add AutoGen to your project
-dotnet add <your.csproj> reference <path to your checkout of autogen>/dotnet/src/Microsoft.AutoGen/Agents/Microsoft.AutoGen.Agents.csproj
+dotnet add <your.csproj> reference <path to your checkout of autogen>/dotnet/src/Microsoft.AutoGen/Core/Microsoft.AutoGen.Core.csproj
 ```
 
 Then, define and run your first agent:
 
 ```csharp
-using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Agents;
+using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -181,11 +184,11 @@ var app = await App.PublishMessageAsync("HelloAgents", new NewMessageReceived
 await App.RuntimeApp!.WaitForShutdownAsync();
 await app.WaitForShutdownAsync();
 
-[TopicSubscription("HelloAgents")]
+[TopicSubscription("agents")]
 public class HelloAgent(
-    IAgentContext context,
+    IAgentContext worker,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : ConsoleAgent(
-        context,
+        worker,
         typeRegistry),
         ISayHello,
         IHandle<NewMessageReceived>,
@@ -330,7 +333,7 @@ Use GitHub [Discussions](https://github.com/microsoft/autogen/discussions) for g
 
 ### Do you use Discord for communications?
 
-We are unable to use Discord for project discussions. Therefore, we request that all discussions take place on <https://github.com/microsoft/autogen/discussions/> going forward.
+We are unable to use the old Discord for project discussions, many of the maintainers no longer have viewing or posting rights there. Therefore, we request that all discussions take place on <https://github.com/microsoft/autogen/discussions/>  or the [new discord server](https://aka.ms/autogen-discord).
 
 ### What about forks?
 

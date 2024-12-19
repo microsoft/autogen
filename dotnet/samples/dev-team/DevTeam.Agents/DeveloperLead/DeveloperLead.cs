@@ -2,8 +2,9 @@
 // DeveloperLead.cs
 
 using DevTeam.Shared;
-using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
+using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Microsoft.SemanticKernel.Memory;
@@ -11,8 +12,8 @@ using Microsoft.SemanticKernel.Memory;
 namespace DevTeam.Agents;
 
 [TopicSubscription("devteam")]
-public class DeveloperLead(IAgentRuntime context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<DeveloperLead> logger)
-    : SKAiAgent<DeveloperLeadState>(context, memory, kernel, typeRegistry), ILeadDevelopers,
+public class DeveloperLead(IAgentWorker worker, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<DeveloperLead> logger)
+    : SKAiAgent<DeveloperLeadState>(worker, memory, kernel, typeRegistry), ILeadDevelopers,
     IHandle<DevPlanRequested>,
     IHandle<DevPlanChainClosed>
 {

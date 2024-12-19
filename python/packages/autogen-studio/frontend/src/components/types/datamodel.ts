@@ -91,9 +91,14 @@ export interface Session extends DBModel {
   team_id?: number;
 }
 
+export interface SessionRuns {
+  runs: Run[];
+}
+
 export interface BaseConfig {
   component_type: string;
   version?: string;
+  description?: string;
 }
 
 export interface WebSocketMessage {
@@ -109,25 +114,30 @@ export interface TaskResult {
   stop_reason?: string;
 }
 
-export type ModelTypes = "OpenAIChatCompletionClient";
+export type ModelTypes =
+  | "OpenAIChatCompletionClient"
+  | "AzureOpenAIChatCompletionClient";
 
 export type AgentTypes =
   | "AssistantAgent"
-  | "CodingAssistantAgent"
-  | "MultimodalWebSurfer";
+  | "UserProxyAgent"
+  | "MultimodalWebSurfer"
+  | "FileSurfer"
+  | "MagenticOneCoderAgent";
 
-export type TeamTypes = "RoundRobinGroupChat" | "SelectorGroupChat";
+export type ToolTypes = "PythonFunction";
 
-// class ComponentType(str, Enum):
-//     TEAM = "team"
-//     AGENT = "agent"
-//     MODEL = "model"
-//     TOOL = "tool"
-//     TERMINATION = "termination"
+export type TeamTypes =
+  | "RoundRobinGroupChat"
+  | "SelectorGroupChat"
+  | "MagenticOneGroupChat";
+
 export type TerminationTypes =
   | "MaxMessageTermination"
   | "StopMessageTermination"
-  | "TextMentionTermination";
+  | "TextMentionTermination"
+  | "TimeoutTermination"
+  | "CombinationTermination";
 
 export type ComponentTypes =
   | "team"
@@ -136,20 +146,48 @@ export type ComponentTypes =
   | "tool"
   | "termination";
 
-export interface ModelConfig extends BaseConfig {
+export type ComponentConfigTypes =
+  | TeamConfig
+  | AgentConfig
+  | ModelConfig
+  | ToolConfig
+  | TerminationConfig;
+
+export interface BaseModelConfig extends BaseConfig {
   model: string;
   model_type: ModelTypes;
   api_key?: string;
   base_url?: string;
 }
 
-export interface ToolConfig extends BaseConfig {
+export interface AzureOpenAIModelConfig extends BaseModelConfig {
+  model_type: "AzureOpenAIChatCompletionClient";
+  azure_deployment: string;
+  api_version: string;
+  azure_endpoint: string;
+  azure_ad_token_provider: string;
+}
+
+export interface OpenAIModelConfig extends BaseModelConfig {
+  model_type: "OpenAIChatCompletionClient";
+}
+
+export type ModelConfig = AzureOpenAIModelConfig | OpenAIModelConfig;
+
+export interface BaseToolConfig extends BaseConfig {
   name: string;
   description: string;
   content: string;
-  tool_type: string;
+  tool_type: ToolTypes;
 }
-export interface AgentConfig extends BaseConfig {
+
+export interface PythonFunctionToolConfig extends BaseToolConfig {
+  tool_type: "PythonFunction";
+}
+
+export type ToolConfig = PythonFunctionToolConfig;
+
+export interface BaseAgentConfig extends BaseConfig {
   name: string;
   agent_type: AgentTypes;
   system_message?: string;
@@ -157,20 +195,83 @@ export interface AgentConfig extends BaseConfig {
   tools?: ToolConfig[];
   description?: string;
 }
-export interface TerminationConfig extends BaseConfig {
-  termination_type: TerminationTypes;
-  max_messages?: number;
-  text?: string;
+
+export interface AssistantAgentConfig extends BaseAgentConfig {
+  agent_type: "AssistantAgent";
 }
 
-export interface TeamConfig extends BaseConfig {
+export interface UserProxyAgentConfig extends BaseAgentConfig {
+  agent_type: "UserProxyAgent";
+}
+
+export interface MultimodalWebSurferAgentConfig extends BaseAgentConfig {
+  agent_type: "MultimodalWebSurfer";
+}
+
+export interface FileSurferAgentConfig extends BaseAgentConfig {
+  agent_type: "FileSurfer";
+}
+
+export interface MagenticOneCoderAgentConfig extends BaseAgentConfig {
+  agent_type: "MagenticOneCoderAgent";
+}
+
+export type AgentConfig =
+  | AssistantAgentConfig
+  | UserProxyAgentConfig
+  | MultimodalWebSurferAgentConfig
+  | FileSurferAgentConfig
+  | MagenticOneCoderAgentConfig;
+
+// export interface TerminationConfig extends BaseConfig {
+//   termination_type: TerminationTypes;
+//   max_messages?: number;
+//   text?: string;
+// }
+
+export interface BaseTerminationConfig extends BaseConfig {
+  termination_type: TerminationTypes;
+}
+
+export interface MaxMessageTerminationConfig extends BaseTerminationConfig {
+  termination_type: "MaxMessageTermination";
+  max_messages: number;
+}
+
+export interface TextMentionTerminationConfig extends BaseTerminationConfig {
+  termination_type: "TextMentionTermination";
+  text: string;
+}
+
+export interface CombinationTerminationConfig extends BaseTerminationConfig {
+  termination_type: "CombinationTermination";
+  operator: "and" | "or";
+  conditions: TerminationConfig[];
+}
+
+export type TerminationConfig =
+  | MaxMessageTerminationConfig
+  | TextMentionTerminationConfig
+  | CombinationTerminationConfig;
+
+export interface BaseTeamConfig extends BaseConfig {
   name: string;
   participants: AgentConfig[];
   team_type: TeamTypes;
-  model_client?: ModelConfig;
   termination_condition?: TerminationConfig;
-  selector_config?: string;
 }
+
+export interface RoundRobinGroupChatConfig extends BaseTeamConfig {
+  team_type: "RoundRobinGroupChat";
+}
+
+export interface SelectorGroupChatConfig extends BaseTeamConfig {
+  team_type: "SelectorGroupChat";
+  selector_prompt: string;
+  model_client: ModelConfig;
+}
+
+export type TeamConfig = RoundRobinGroupChatConfig | SelectorGroupChatConfig;
 
 export interface Team extends DBModel {
   config: TeamConfig;
@@ -185,6 +286,7 @@ export interface TeamResult {
 export interface Run {
   id: string;
   created_at: string;
+  updated_at?: string;
   status: RunStatus;
   task: AgentMessageConfig;
   team_result: TeamResult | null;

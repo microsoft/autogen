@@ -4,8 +4,8 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import List, Union
 
-from autogen_core.components import FunctionCall, Image
-from autogen_core.components.models import FunctionExecutionResultMessage
+from autogen_core import FunctionCall, Image
+from autogen_core.models import FunctionExecutionResultMessage
 
 
 @dataclass(kw_only=True)
