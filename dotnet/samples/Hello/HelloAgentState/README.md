@@ -44,7 +44,7 @@ Within that event handler you may optionally *emit* new events, which are then s
 TopicSubscription("HelloAgents")]
 public class HelloAgent(
     iAgentWorker worker,
-    [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : ConsoleAgent(
+    [FromKeyedServices("EventTypes")] AgentsMetadata typeRegistry) : ConsoleAgent(
         worker,
         typeRegistry),
         ISayHello,

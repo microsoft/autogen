@@ -5,6 +5,7 @@ namespace Microsoft.AutoGen.Core;
 
 public interface IAgentWorker
 {
+    IServiceProvider ServiceProvider { get; }
     ValueTask PublishEventAsync(CloudEvent evt, CancellationToken cancellationToken = default);
     ValueTask SendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default);
     ValueTask SendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default);

@@ -46,14 +46,11 @@ public class GrpcGatewayServiceTests
         var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
 
         await service.OpenChannel(client.RequestStream, client.ResponseStream, client.CallContext);
-        var responseMessage = await client.ReadNext();
 
-        var connectionId = responseMessage!.OpenChannelResponse.ConnectionId;
+        await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), client.CallContext.Peer), client.CallContext);
+        await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(GMAgent), client.CallContext.Peer), client.CallContext);
 
-        await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), connectionId), client.CallContext);
-        await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(GMAgent), connectionId), client.CallContext);
-
-        var inputEvent = new NewMessageReceived { Message = $"Start-{connectionId}" }.ToCloudEvent("gh-gh-gh", "gh-gh-gh");
+        var inputEvent = new NewMessageReceived { Message = $"Start-{client.CallContext.Peer}" }.ToCloudEvent("gh-gh-gh", "gh-gh-gh");
 
         client.AddMessage(new Message { CloudEvent = inputEvent });
         var newMessageReceived = await client.ReadNext();
@@ -61,7 +58,7 @@ public class GrpcGatewayServiceTests
         newMessageReceived.CloudEvent.Source.Should().Be("gh-gh-gh");
 
         // Simulate an agent, by publishing a new message in the request stream
-        var helloEvent = new Hello { Message = $"Hello test-{connectionId}" }.ToCloudEvent("gh-gh-gh", "gh-gh-gh");
+        var helloEvent = new Hello { Message = $"Hello test-{client.CallContext.Peer}" }.ToCloudEvent("gh-gh-gh", "gh-gh-gh");
         client.AddMessage(new Message { CloudEvent = helloEvent });
 
         var helloMessageReceived = await client.ReadNext();
@@ -81,12 +78,9 @@ public class GrpcGatewayServiceTests
         var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
 
         await service.OpenChannel(client.RequestStream, client.ResponseStream, client.CallContext);
-        var responseMessage = await client.ReadNext();
 
-        var connectionId = responseMessage!.OpenChannelResponse.ConnectionId;
-
-        await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), connectionId), client.CallContext);
-        await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(GMAgent), connectionId), client.CallContext);
+        await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), client.CallContext.Peer), client.CallContext);
+        await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(GMAgent), client.CallContext.Peer), client.CallContext);
 
     }
 
@@ -102,11 +96,8 @@ public class GrpcGatewayServiceTests
         var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
 
         await service.OpenChannel(client.RequestStream, client.ResponseStream, client.CallContext);
-        var responseMessage = await client.ReadNext();
 
-        var connectionId = responseMessage!.OpenChannelResponse.ConnectionId;
-
-        var response = await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), connectionId), client.CallContext);
+        var response = await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), client.CallContext.Peer), client.CallContext);
         response.Success.Should().BeTrue();
     }
 

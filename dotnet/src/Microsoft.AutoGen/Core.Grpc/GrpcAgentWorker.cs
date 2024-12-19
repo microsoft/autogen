@@ -32,13 +32,15 @@ public sealed class GrpcAgentWorker(
         FullMode = BoundedChannelFullMode.Wait
     });
     private readonly AgentRpc.AgentRpcClient _client = client;
-    private readonly IServiceProvider _serviceProvider = serviceProvider;
+    public readonly IServiceProvider ServiceProvider = serviceProvider;
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes = configuredAgentTypes;
     private readonly ILogger<GrpcAgentWorker> _logger = logger;
     private readonly CancellationTokenSource _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
     private AsyncDuplexStreamingCall<Message, Message>? _channel;
     private Task? _readTask;
     private Task? _writeTask;
+
+    IServiceProvider IAgentWorker.ServiceProvider => throw new NotImplementedException();
 
     public void Dispose()
     {
@@ -175,7 +177,7 @@ public sealed class GrpcAgentWorker(
         {
             if (_agentTypes.TryGetValue(agentId.Type, out var agentType))
             {
-                agent = (Agent)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, this);
+                agent = (Agent)ActivatorUtilities.CreateInstance(ServiceProvider, agentType, this);
                 _agents.TryAdd((agentId.Type, agentId.Key), agent);
             }
             else

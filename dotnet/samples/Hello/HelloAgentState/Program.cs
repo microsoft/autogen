@@ -20,7 +20,7 @@ namespace Hello
     public class HelloAgent(
         IAgentWorker worker,
         IHostApplicationLifetime hostApplicationLifetime,
-        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : Agent(
+        [FromKeyedServices("EventTypes")] AgentsMetadata typeRegistry) : Agent(
             worker,
             typeRegistry),
             IHandleConsole,

@@ -12,7 +12,7 @@ public abstract class SKAiAgent<T>(
     IAgentWorker worker,
     ISemanticTextMemory memory,
     Kernel kernel,
-    EventTypes typeRegistry) : Agent(
+    AgentsMetadata typeRegistry) : Agent(
         worker,
         typeRegistry) where T : class, new()
 {

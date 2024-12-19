@@ -22,7 +22,7 @@ IServiceProvider serviceProvider,
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
     private readonly ConcurrentDictionary<string, (Agent Agent, string OriginalRequestId)> _pendingClientRequests = new();
     private readonly CancellationTokenSource _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
-    private readonly IServiceProvider _serviceProvider = serviceProvider;
+    public IServiceProvider ServiceProvider { get; } = serviceProvider;
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes = configuredAgentTypes;
     private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
     private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
@@ -182,7 +182,7 @@ IServiceProvider serviceProvider,
         {
             if (_agentTypes.TryGetValue(agentId.Type, out var agentType))
             {
-                agent = (Agent)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, this);
+                agent = (Agent)ActivatorUtilities.CreateInstance(ServiceProvider, agentType, this);
                 _agents.TryAdd((agentId.Type, agentId.Key), agent);
             }
             else

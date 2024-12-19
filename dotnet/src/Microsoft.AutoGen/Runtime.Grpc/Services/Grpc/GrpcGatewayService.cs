@@ -34,7 +34,6 @@ public sealed class GrpcGatewayService : AgentRpc.AgentRpcBase
         var state = await Gateway.ReadAsync(request);
         return new GetStateResponse { AgentState = state };
     }
-
     public override async Task<SaveStateResponse> SaveState(AgentState request, ServerCallContext context)
     {
         await Gateway.StoreAsync(request);
@@ -42,5 +41,15 @@ public sealed class GrpcGatewayService : AgentRpc.AgentRpcBase
         {
             Success = true // TODO: Implement error handling
         };
+    }
+    public override async Task<AddSubscriptionResponse> AddSubscription(AddSubscriptionRequest request, ServerCallContext context)
+    {
+        request.RequestId = context.Peer;
+        return await Gateway.AddSubscriptionAsync(request);
+    }
+    public override async Task<RegisterAgentTypeResponse> RegisterAgent(RegisterAgentTypeRequest request, ServerCallContext context)
+    {
+        request.RequestId = context.Peer;
+        return await Gateway.RegisterAgentTypeAsync(request);
     }
 }
