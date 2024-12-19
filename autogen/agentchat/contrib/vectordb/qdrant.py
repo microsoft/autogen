@@ -1,6 +1,7 @@
 import abc
+import hashlib
 import logging
-import os
+import uuid
 from typing import Callable, List, Optional, Sequence, Tuple, Union
 
 from .base import Document, ItemID, QueryResults, VectorDB
@@ -154,6 +155,18 @@ class QdrantVectorDB(VectorDB):
             Any
         """
         return self.client.delete_collection(collection_name)
+
+    def generate_chunk_ids(chunks: List[str]) -> List[ItemID]:
+        """
+        Generate chunk IDs to ensure non-duplicate uploads.
+
+        Args:
+            chunks (list): A list of chunks (strings) to hash.
+
+        Returns:
+            list: A list of generated chunk IDs.
+        """
+        return [str(uuid.UUID(hex=hashlib.md5(chunk.encode("utf-8")).hexdigest())) for chunk in chunks]
 
     def insert_docs(self, docs: List[Document], collection_name: str = None, upsert: bool = False) -> None:
         """
