@@ -12,23 +12,21 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
 
+from ._message_context import MessageContext
+from ._message_handler_context import MessageHandlerContext
+from ._subscription import Subscription
 from opentelemetry.trace import TracerProvider
 from typing_extensions import deprecated
 
-from . import (
-    Agent,
-    AgentId,
-    AgentInstantiationContext,
-    AgentMetadata,
-    AgentRuntime,
-    AgentType,
-    CancellationToken,
-    MessageContext,
-    MessageHandlerContext,
-    Subscription,
-    SubscriptionInstantiationContext,
-    TopicId,
-)
+from ._agent import Agent
+from ._agent_id import AgentId
+from ._agent_instantiation import AgentInstantiationContext
+from ._agent_metadata import AgentMetadata
+from ._agent_runtime import AgentRuntime
+from ._agent_type import AgentType
+from ._topic import TopicId
+from ._subscription_context import SubscriptionInstantiationContext
+from ._cancellation_token import CancellationToken
 from ._intervention import DropMessage
 from ._publish_based_rpc import PublishBasedRpcMixin
 from ._runtime_impl_helpers import SubscriptionManager, get_impl

@@ -10,8 +10,7 @@ from typing import Any, Awaitable, Callable, ClassVar, Dict, List, Mapping, Tupl
 
 from typing_extensions import Self
 
-from autogen_core._rpc import format_rpc_request_topic, is_rpc_response
-
+from ._rpc import format_rpc_request_topic, is_rpc_response
 from ._agent import Agent
 from ._agent_id import AgentId
 from ._agent_instantiation import AgentInstantiationContext
