@@ -12,8 +12,8 @@ from autogen_agentchat.messages import (
     MultiModalMessage,
     StopMessage,
     TextMessage,
-    ToolCallRequestEvent,
     ToolCallExecutionEvent,
+    ToolCallRequestEvent,
 )
 from autogen_core import CancellationToken
 from autogen_core import Image as AGImage
