@@ -239,10 +239,10 @@ async def test_round_robin_group_chat_state() -> None:
     state2 = await team2.save_state()
     assert state == state2
 
-    agent1_model_ctx_messages = await agent1._model_context.get_messages() # pyright: ignore
-    agent2_model_ctx_messages = await agent2._model_context.get_messages() # pyright: ignore
-    agent3_model_ctx_messages = await agent3._model_context.get_messages() # pyright: ignore
-    agent4_model_ctx_messages = await agent4._model_context.get_messages() # pyright: ignore
+    agent1_model_ctx_messages = await agent1._model_context.get_messages()  # pyright: ignore
+    agent2_model_ctx_messages = await agent2._model_context.get_messages()  # pyright: ignore
+    agent3_model_ctx_messages = await agent3._model_context.get_messages()  # pyright: ignore
+    agent4_model_ctx_messages = await agent4._model_context.get_messages()  # pyright: ignore
     assert agent3_model_ctx_messages == agent1_model_ctx_messages
     assert agent4_model_ctx_messages == agent2_model_ctx_messages
     manager_1 = await team1._runtime.try_get_underlying_agent_instance(  # pyright: ignore
@@ -583,10 +583,10 @@ async def test_selector_group_chat_state() -> None:
     state2 = await team2.save_state()
     assert state == state2
 
-    agent1_model_ctx_messages = await agent1._model_context.get_messages() # pyright: ignore
-    agent2_model_ctx_messages = await agent2._model_context.get_messages() # pyright: ignore
-    agent3_model_ctx_messages = await agent3._model_context.get_messages() # pyright: ignore
-    agent4_model_ctx_messages = await agent4._model_context.get_messages() # pyright: ignore
+    agent1_model_ctx_messages = await agent1._model_context.get_messages()  # pyright: ignore
+    agent2_model_ctx_messages = await agent2._model_context.get_messages()  # pyright: ignore
+    agent3_model_ctx_messages = await agent3._model_context.get_messages()  # pyright: ignore
+    agent4_model_ctx_messages = await agent4._model_context.get_messages()  # pyright: ignore
     assert agent3_model_ctx_messages == agent1_model_ctx_messages
     assert agent4_model_ctx_messages == agent2_model_ctx_messages
     manager_1 = await team1._runtime.try_get_underlying_agent_instance(  # pyright: ignore

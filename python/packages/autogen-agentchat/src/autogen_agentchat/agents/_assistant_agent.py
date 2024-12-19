@@ -10,14 +10,13 @@ from typing import (
     Dict,
     List,
     Mapping,
-    Optional,
     Sequence,
 )
 
 from autogen_core import CancellationToken, FunctionCall
 from autogen_core.model_context import (
     ChatCompletionContext,
-    UnboundedBufferedChatCompletionContext,
+    UnboundedChatCompletionContext,
 )
 from autogen_core.models import (
     AssistantMessage,
@@ -228,10 +227,10 @@ class AssistantAgent(BaseChatAgent):
         self,
         name: str,
         model_client: ChatCompletionClient,
-        model_context: Optional[ChatCompletionContext] = None,
         *,
         tools: List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
         handoffs: List[HandoffBase | str] | None = None,
+        model_context: ChatCompletionContext | None = None,
         description: str = "An agent that provides assistance with ability to use tools.",
         system_message: (
             str | None
@@ -288,7 +287,7 @@ class AssistantAgent(BaseChatAgent):
                 f"Handoff names must be unique from tool names. Handoff names: {handoff_tool_names}; tool names: {tool_names}"
             )
         if not model_context:
-            self._model_context = UnboundedBufferedChatCompletionContext()
+            self._model_context = UnboundedChatCompletionContext()
         self._reflect_on_tool_use = reflect_on_tool_use
         self._tool_call_summary_format = tool_call_summary_format
         self._is_running = False
@@ -422,14 +421,11 @@ class AssistantAgent(BaseChatAgent):
 
     async def save_state(self) -> Mapping[str, Any]:
         """Save the current state of the assistant agent."""
-        current_model_ctx_state = self._model_context.save_state()
-        return AssistantAgentState(llm_messages=current_model_ctx_state["messages"]).model_dump()
+        model_context_state = await self._model_context.save_state()
+        return AssistantAgentState(llm_context=model_context_state).model_dump()
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         """Load the state of the assistant agent"""
         assistant_agent_state = AssistantAgentState.model_validate(state)
-        await self._model_context.clear()
-
-        current_model_ctx_state = dict(self._model_context.save_state())
-        current_model_ctx_state["messages"] = assistant_agent_state.llm_messages
-        self._model_context.load_state(current_model_ctx_state)
+        # Load the model context state.
+        await self._model_context.load_state(assistant_agent_state.llm_context)
