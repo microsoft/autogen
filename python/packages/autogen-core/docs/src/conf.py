@@ -135,6 +135,7 @@ html_sidebars = {
     "user-guide/core-user-guide/**": ["sidebar-nav-bs-core"],
     "user-guide/agentchat-user-guide/**": ["sidebar-nav-bs-agentchat"],
     "user-guide/extensions-user-guide/**": ["sidebar-nav-bs-extensions"],
+    "user-guide/autogenstudio-user-guide/**": ["sidebar-nav-bs-studio"],
 }
 
 html_context = {

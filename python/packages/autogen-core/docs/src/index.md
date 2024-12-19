@@ -43,11 +43,13 @@ A framework for building AI agents and multi-agent applications
 
 <div style="margin-top: 2rem;">
 
-::::{grid} 1 1 2 2
+::::{grid}
+:gutter: 2
 
 :::{grid-item-card}
 :shadow: none
 :margin: 2 0 0 0
+:columns: 12 12 12 12
 
 <div class="sd-card-title sd-font-weight-bold docutils">
 
@@ -70,9 +72,29 @@ Get Started
 ```
 
 :::
+:::{grid-item-card} {fas}`palette;pst-color-primary` Studio
+:shadow: none
+:margin: 2 0 0 0
+:columns: 12 12 12 12
+
+No-code platform for authoring and interacting with multi-agent teams.
+
++++
+
+```{button-ref} user-guide/autogenstudio-user-guide/index
+:color: secondary
+
+Get Started
+```
+
+:::
+
+
 :::{grid-item-card} {fas}`cube;pst-color-primary` Core
 :shadow: none
 :margin: 2 0 0 0
+:columns: 12 12 6 6
+
 
 Provides building blocks for creating asynchronous, event driven multi-agent systems.
 
@@ -89,6 +111,29 @@ Get Started
 ```
 
 :::
+
+:::{grid-item-card} {fas}`puzzle-piece;pst-color-primary` Extensions
+:shadow: none
+:margin: 2 0 0 0
+:columns: 12 12 6 6
+
+
+Implementations of core components that interface with external services, or use extra dependencies. For example, Docker based code execution.
+
+```sh
+pip install 'autogen-ext==0.4.0.dev11'
+```
+
++++
+
+```{button-ref} user-guide/extensions-user-guide/index
+:color: secondary
+
+Get Started
+```
+
+:::
+
 ::::
 
 </div>
@@ -98,9 +143,8 @@ Get Started
 :hidden:
 
 user-guide/agentchat-user-guide/index
-Studio <user-guide/autogenstudio-user-guide/index>
 user-guide/core-user-guide/index
 user-guide/extensions-user-guide/index
-packages/index
+Studio <user-guide/autogenstudio-user-guide/index>
 reference/index
 ```
