@@ -228,15 +228,24 @@ In the original paper, the discovered agents significantly outperformed state-of
 
 To see the [results](#results-for-drop-benchmark) of early experiments with ADAS in AutoGen, please see the Results section.
 
-## ADAS in AutoGen
+## Implementing ADAS using AutoGen-Core API
 
-We have refactored the building block Agent Systems found in the original ADAS code to run using the AutoGen API. Specifically, we decided to implement these Agent Systems at the `AutoGen-Core` level of abstraction (rather than at the `AutoGen-AgentChat` level).
+We have refactored the building block Agent Systems found in the original ADAS code to run using the AutoGen API. Specifically, we decided to implement these Agent Systems at the `AutoGen-Core` level of abstraction (rather than at the `AutoGen-AgentChat` level). Here is why:
 
-The vision for going down this path is that the meta-agent can design, using `AutoGen-Core` building blocks, a new (multi-)agent system, which if proven useful (after going through a period of testing/adoption by the team), be incorporated into the official `AgentChat` API.
+While it is generally the case that `AgentChat` makes it easier to put together an complex multi-agent system, as the API already has some preset teams that implements some of multi-agent design patterns (RoundRobinGroupChat, SelectorGroupChat), the `AgentChat` API has two main drawbacks 1) comprehensiveness and 2) low-level flexibility. 
 
-See this document for more on the design tradeoffs between AutoGen-Core and `AutoGen-AgentChat` API.
+On the comprehensiveness aspect, the Mixture of Agents design -– which is similar to chain-of-thought with self-consistency, where we aggregate the outputs of multiple agents –- is not a built-in team/orchestrator at the `AgentChat` level. As a result, this has to be implemented -- using the `AutoGen-Core` API -- into the codebase as an official team-level Agent, and also added as one of the seeds in the ADAS archive. This suggests that we don't even need to bother with `AutoGen-Agent-Chat` and just implement everything with the `AutoGen-Core` API.
+
+On the low-level flexibility aspect, `AgentChat` hides a lot of flexibility on how to configure custom pub/sub topics, message handling, etc.
+
+In other words, the abstraction at the `AgentChat` level, while useful in the short term for quick development, may restrict the ability for the meta-agent to design novel multi-agent patterns, which is really our goal. If all the meta-agent could do is build off the limited building blocks provided by `AgentChat`, then it wouldn't be able to be as creative as it could be. 
+
+The ultimate vision for going down this path is that the meta-agent can design, using `AutoGen-Core` building blocks, a new (multi-)agent system, which if proven useful (after going through a period of testing/adoption by the team), be incorporated into the official `AgentChat` API.
+
+## ADAS features in AutoGen
 
 ### 4 manually crafted Agent Systems serving as the seeds to the archive
+- Please refer to the `get_init_archive()` function in the `adas_prompt.py` file for the current seed Agent Systems.
 - More will be added over time
 
 ### Prompt to Meta-Agent
@@ -278,6 +287,7 @@ Please see the `adas.py` file for details of all available settings.
 - `base_agent_model_config`: JSON string of the `AzureOpenAIChatCompletionClient` settings for the Base Agent.
 - `n_generation`: number of generations of new agents that the meta-agent tries to discover
 - `expr_name`: name of the output file containing both the original/seed and newly generated agent systems, as well as their fitness scores.
+- `save_dir`: the name of the directory to which the output file as indicated by `expr_name` will be saved.
 - `max_workers`: the number of threads to spin up in a `ThreadPoolExecutor`, to parallelize the execution of the particular Agent System that is currently being evaluated.
 
 ## QuickStart
@@ -346,7 +356,7 @@ Note: If you add a new agent system after you’ve started generating new Agent 
 
 ### Generate new Agent Systems
 #### Prepare your dataset
-First download your dataset locally.
+First download your dataset locally. It can be in any format, as long as your custom logic in the `load_dataset()` function properly reads the dataset file. 
 
 Then create a copy the file called `utils_benchmark_template.py`, and name it with a suffix corresponding to your benchmark. For example, see `utils_drop.py`. Place this under the `adas` directory. This file will later be passed to the `benchmark_specific_utils_file` flag when running the script.
 
@@ -354,8 +364,8 @@ Under the `load_dataset` function, add logic to load in your dataset. Do any pre
 
 ```python
 # utils_my_benchmark.py
-def load_dataset(filename: str) -> List[Dict[str, Any]]:
-  df = pd.read_csv(filename)
+def load_dataset(file_path: str) -> List[Dict[str, Any]]:
+  df = pd.read_csv(file_path)
   data = [{"inputs": "Your job is to solve this math problem: " + inputs, "targets": targets} for inputs, targets in df]
   return data
 ```
@@ -365,7 +375,7 @@ In the same `utils_my_benchmark.py` file, add logic to the compute_metrics funct
 ```python
 # utils_my_benchmark.py
 def compute_metrics(predictions: List[Any], labels: List[Any]) -> List[float]:
-  return np.square(np.subtract(A, B)).mean()
+  return np.square(np.subtract(predictions, labels)).mean()
 ```
 ### Choose the LLMs
 #### Choose the LLMs for the meta-agent
@@ -391,6 +401,7 @@ python packages/autogen-core/samples/adas/adas.py \
     --data_filename=/home/<user>/ADAS/dataset/drop_v0_dev.jsonl.gz \
     --n_generation=150 \
     --expr_name=drop_o1_preview_meta_gpt4o_base_results \
+    --save_dir='results/' \
     --meta_agent_model_config='{"api_version": "2024-08-01-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/o1-preview/chat/completions?api-version=2024-08-01-preview", "model_capabilities": {"function_calling": false, "json_output": false, "vision": false}, "azure_ad_token_provider": "DEFAULT", "model": " o1-preview-2024-09-12", "azure_deployment": "o1-preview-2024-09-12"}' \
     --base_agent_model_config='{"api_version": "2023-03-15-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2023-03-15-preview", "model_capabilities": {"function_calling": true, "json_output": true, "vision": true}, "azure_ad_token_pr ovider": "DEFAULT", "model": "gpt-4o-2024-08-06", "azure_deployment": "gpt-4o-2024-08-06"}' \
     --benchmark_specific_utils_file='/home/<user>/autogen/python/packages/autogen-core/samples/adas/utils_drop.py'
@@ -400,6 +411,7 @@ python packages/autogen-core/samples/adas/adas.py \
     --data_filename=/home/<user>/my_benchmark_data.csv \
     --n_generation=150 \
     --expr_name=drop_o1_preview_meta_gpt4o_base_results \
+    --save_dir='results/' \
     --meta_agent_model_config='{"api_version": "2024-08-01-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/o1-preview/chat/completions?api-version=2024-08-01-preview", "model_capabilities": {"function_calling": false, "json_output": false, "vision": false}, "azure_ad_token_provider": "DEFAULT", "model": " o1-preview-2024-09-12", "azure_deployment": "o1-preview-2024-09-12"}' \
     --base_agent_model_config='{"api_version": "2023-03-15-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2023-03-15-preview", "model_capabilities": {"function_calling": true, "json_output": true, "vision": true}, "azure_ad_token_pr ovider": "DEFAULT", "model": "gpt-4o-2024-08-06", "azure_deployment": "gpt-4o-2024-08-06"}' \
     --benchmark_specific_utils_file='/home/<user>/autogen/python/packages/autogen-core/samples/adas/utils_my_benchmark.py'
