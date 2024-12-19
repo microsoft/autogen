@@ -203,6 +203,7 @@ COT_SC = {
 
     # Create an AzureOpenAI model client.
     model_client = AzureOpenAIChatCompletionClient(
+        azure_deployment=model_client_kwargs['azure_deployment'],
         model=model_client_kwargs['model'],
         api_version=model_client_kwargs['api_version'],
         azure_endpoint=model_client_kwargs['azure_endpoint'],
@@ -363,6 +364,7 @@ Reflexion = {
 
     # Create an AzureOpenAI model client.
     model_client = AzureOpenAIChatCompletionClient(
+        azure_deployment=model_client_kwargs['azure_deployment'],
         model=model_client_kwargs['model'],
         api_version=model_client_kwargs['api_version'],
         azure_endpoint=model_client_kwargs['azure_endpoint'],
@@ -654,6 +656,7 @@ LLM_debate = {
 
     # Create an AzureOpenAI model client.
     model_client = AzureOpenAIChatCompletionClient(
+        azure_deployment=model_client_kwargs['azure_deployment'],
         model=model_client_kwargs['model'],
         api_version=model_client_kwargs['api_version'],
         azure_endpoint=model_client_kwargs['azure_endpoint'],
@@ -911,6 +914,7 @@ Tree_of_thought = {
 
     # Create an AzureOpenAI model client.
     model_client = AzureOpenAIChatCompletionClient(
+        azure_deployment=model_client_kwargs['azure_deployment'],
         model=model_client_kwargs['model'],
         api_version=model_client_kwargs['api_version'],
         azure_endpoint=model_client_kwargs['azure_endpoint'],
@@ -1548,6 +1552,7 @@ token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://co
 
 # Create an AzureOpenAI model client.
 model_client = AzureOpenAIChatCompletionClient(
+    azure_deployment=model_client_kwargs['azure_deployment'],
     model=model_client_kwargs['model'],
     api_version=model_client_kwargs['api_version'],
     azure_endpoint=model_client_kwargs['azure_endpoint'],

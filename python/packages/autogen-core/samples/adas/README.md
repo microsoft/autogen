@@ -331,7 +331,8 @@ agent_model_kwargs =  {
     'azure_endpoint': 'https://<user>-aoai1.openai.azure.com/openai/deployments/gpt-35-turbo/chat/completions?api-version=2024-08-01-preview',
     'model_capabilities': {'function_calling': True, 'json_output': True, 'vision': True},
     'azure_ad_token_provider': 'DEFAULT',
-    'model': 'gpt-35-turbo'
+    'model': 'gpt-35-turbo',
+    'azure_deployment': 'gpt-35-turbo'
 }
 ```
 Finally, the output of this `forward` function should be the answer that the agent system comes up with.
@@ -374,14 +375,14 @@ o1-preview is also reported to be great at writing code, and we suggest you try 
 
 This should be passed as a JSON string to the `meta_agent_model_config` flag.
 ```bash
---meta_agent_model_config='{"api_version": "2024-08-01-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/o1-preview/chat/completions?api-version=2024-08-01-preview", "model_capabilities": {"function_calling": false, "json_output": false, "vision": false}, "azure_ad_token_provider": "DEFAULT", "model": "o1-preview-2024-09-12"}'
+--meta_agent_model_config='{"api_version": "2024-08-01-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/o1-preview/chat/completions?api-version=2024-08-01-preview", "model_capabilities": {"function_calling": false, "json_output": false, "vision": false}, "azure_ad_token_provider": "DEFAULT", "model": "o1-preview-2024-09-12", "azure_deployment": "o1-preview-2024-09-12"}'
 ```
 #### Choose the LLM for the base agents used within the agent system
 The paper authors use GPT-3.5 (for cost purposes), but we recommend GPT-4o for better quality.
 
 This should be passed as a JSON string to the `base_agent_model_config` flag.
 ```bash
---base_agent_model_config='{"api_version": "2023-03-15-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2023-03-15-preview", "model_capabilities": {"function_calling": true, "json_output": true, "vision": true}, "azure_ad_token_provider": "DEFAULT", "model": "gpt-4o-2024-08-06"}'
+--base_agent_model_config='{"api_version": "2023-03-15-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2023-03-15-preview", "model_capabilities": {"function_calling": true, "json_output": true, "vision": true}, "azure_ad_token_provider": "DEFAULT", "model": "gpt-4o-2024-08-06", "azure_deployment": "gpt-4o-2024-08-06"}'
 ```
 ### Run ADAS
 ```bash
@@ -390,8 +391,8 @@ python packages/autogen-core/samples/adas/adas.py \
     --data_filename=/home/<user>/ADAS/dataset/drop_v0_dev.jsonl.gz \
     --n_generation=150 \
     --expr_name=drop_o1_preview_meta_gpt4o_base_results \
-    --meta_agent_model_config='{"api_version": "2024-08-01-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/o1-preview/chat/completions?api-version=2024-08-01-preview", "model_capabilities": {"function_calling": false, "json_output": false, "vision": false}, "azure_ad_token_provider": "DEFAULT", "model": " o1-preview-2024-09-12"}' \
-    --base_agent_model_config='{"api_version": "2023-03-15-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2023-03-15-preview", "model_capabilities": {"function_calling": true, "json_output": true, "vision": true}, "azure_ad_token_pr ovider": "DEFAULT", "model": "gpt-4o-2024-08-06"}' \
+    --meta_agent_model_config='{"api_version": "2024-08-01-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/o1-preview/chat/completions?api-version=2024-08-01-preview", "model_capabilities": {"function_calling": false, "json_output": false, "vision": false}, "azure_ad_token_provider": "DEFAULT", "model": " o1-preview-2024-09-12", "azure_deployment": "o1-preview-2024-09-12"}' \
+    --base_agent_model_config='{"api_version": "2023-03-15-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2023-03-15-preview", "model_capabilities": {"function_calling": true, "json_output": true, "vision": true}, "azure_ad_token_pr ovider": "DEFAULT", "model": "gpt-4o-2024-08-06", "azure_deployment": "gpt-4o-2024-08-06"}' \
     --benchmark_specific_utils_file='/home/<user>/autogen/python/packages/autogen-core/samples/adas/utils_drop.py'
 
 # For your own benchmark
@@ -399,8 +400,8 @@ python packages/autogen-core/samples/adas/adas.py \
     --data_filename=/home/<user>/my_benchmark_data.csv \
     --n_generation=150 \
     --expr_name=drop_o1_preview_meta_gpt4o_base_results \
-    --meta_agent_model_config='{"api_version": "2024-08-01-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/o1-preview/chat/completions?api-version=2024-08-01-preview", "model_capabilities": {"function_calling": false, "json_output": false, "vision": false}, "azure_ad_token_provider": "DEFAULT", "model": " o1-preview-2024-09-12"}' \
-    --base_agent_model_config='{"api_version": "2023-03-15-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2023-03-15-preview", "model_capabilities": {"function_calling": true, "json_output": true, "vision": true}, "azure_ad_token_pr ovider": "DEFAULT", "model": "gpt-4o-2024-08-06"}' \
+    --meta_agent_model_config='{"api_version": "2024-08-01-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/o1-preview/chat/completions?api-version=2024-08-01-preview", "model_capabilities": {"function_calling": false, "json_output": false, "vision": false}, "azure_ad_token_provider": "DEFAULT", "model": " o1-preview-2024-09-12", "azure_deployment": "o1-preview-2024-09-12"}' \
+    --base_agent_model_config='{"api_version": "2023-03-15-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2023-03-15-preview", "model_capabilities": {"function_calling": true, "json_output": true, "vision": true}, "azure_ad_token_pr ovider": "DEFAULT", "model": "gpt-4o-2024-08-06", "azure_deployment": "gpt-4o-2024-08-06"}' \
     --benchmark_specific_utils_file='/home/<user>/autogen/python/packages/autogen-core/samples/adas/utils_my_benchmark.py'
 ```
 You can also increase the number of generations for the meta-agent to try creating. Note that if there is any compilation error, the count of the generation will be skipped. (Potential bug, or at least confusing behavior). 

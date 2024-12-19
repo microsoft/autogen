@@ -354,6 +354,7 @@ async def main(arguments: Namespace) -> None:
     token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
     # Create an AzureOpenAI model client.
     client = AzureOpenAIChatCompletionClient(
+        azure_deployment=arguments.meta_agent_model_config['azure_deployment'],
         model=arguments.meta_agent_model_config["model"],
         api_version=arguments.meta_agent_model_config["api_version"],
         azure_endpoint=arguments.meta_agent_model_config["azure_endpoint"],
