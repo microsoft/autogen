@@ -58,7 +58,7 @@ AgentChat </div>
 High-level API that includes preset agents and teams for building multi-agent systems.
 
 ```sh
-pip install 'autogen-agentchat==0.4.0.dev11'
+pip install "autogen-agentchat==0.4.0.dev11"
 ```
 
 💡 *Start here if you are looking for an API similar to AutoGen 0.2.*
@@ -99,7 +99,7 @@ Get Started
 Provides building blocks for creating asynchronous, event driven multi-agent systems.
 
 ```sh
-pip install 'autogen-core==0.4.0.dev11'
+pip install "autogen-core==0.4.0.dev11"
 ```
 
 +++
@@ -121,7 +121,7 @@ Get Started
 Implementations of core components that interface with external services, or use extra dependencies. For example, Docker based code execution.
 
 ```sh
-pip install 'autogen-ext==0.4.0.dev11'
+pip install "autogen-ext==0.4.0.dev11"
 ```
 
 +++
