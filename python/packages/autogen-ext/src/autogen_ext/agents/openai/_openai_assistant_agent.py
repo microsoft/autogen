@@ -29,8 +29,8 @@ from autogen_agentchat.messages import (
     MultiModalMessage,
     StopMessage,
     TextMessage,
-    ToolCallRequestEvent,
     ToolCallExecutionEvent,
+    ToolCallRequestEvent,
 )
 from autogen_core import CancellationToken, FunctionCall
 from autogen_core.models._types import FunctionExecutionResult

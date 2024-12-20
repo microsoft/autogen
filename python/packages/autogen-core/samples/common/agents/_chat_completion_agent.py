@@ -254,10 +254,10 @@ class ChatCompletionAgent(RoutedAgent):
 
     async def save_state(self) -> Mapping[str, Any]:
         return {
-            "memory": self._model_context.save_state(),
+            "chat_history": await self._model_context.save_state(),
             "system_messages": self._system_messages,
         }
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
-        self._model_context.load_state(state["memory"])
+        await self._model_context.load_state(state["chat_history"])
         self._system_messages = state["system_messages"]
