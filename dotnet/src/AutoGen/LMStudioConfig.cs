@@ -18,6 +18,8 @@ public class LMStudioConfig : ILLMConfig
         this.Host = host;
         this.Port = port;
         this.Uri = new Uri($"http://{host}:{port}/v1");
+        if (modelName == null)
+            throw new ArgumentNullException("modelName is a required property for LMStudioConfig and cannot be null");
         this.ModelName = modelName;
     }
 
@@ -26,6 +28,8 @@ public class LMStudioConfig : ILLMConfig
         this.Uri = uri;
         this.Host = uri.Host;
         this.Port = uri.Port;
+        if (modelName == null)
+            throw new ArgumentNullException("modelName is a required property for LMStudioConfig and cannot be null");
         this.ModelName = modelName;
     }
 
