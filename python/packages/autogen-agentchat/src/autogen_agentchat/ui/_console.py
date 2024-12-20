@@ -7,7 +7,7 @@ from autogen_core import Image
 from autogen_core.models import RequestUsage
 
 from autogen_agentchat.base import Response, TaskResult
-from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage
+from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage, UsageEvent
 
 
 def _is_running_in_iterm() -> bool:
@@ -90,7 +90,9 @@ async def Console(
             sys.stdout.flush()
             # mypy ignore
             last_processed = message  # type: ignore
-
+        elif isinstance(message, UsageEvent):
+            total_usage.completion_tokens += message.models_usage.completion_tokens
+            total_usage.prompt_tokens += message.models_usage.prompt_tokens
         else:
             # Cast required for mypy to be happy
             message = cast(AgentEvent | ChatMessage, message)  # type: ignore

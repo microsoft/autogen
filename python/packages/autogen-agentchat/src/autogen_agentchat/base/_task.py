@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import AsyncGenerator, List, Protocol, Sequence
 
 from autogen_core import CancellationToken
+from autogen_core.models._types import RequestUsage
 
 from ..messages import AgentEvent, ChatMessage
 
@@ -15,6 +16,9 @@ class TaskResult:
 
     stop_reason: str | None = None
     """The reason the task stopped."""
+
+    usage: RequestUsage | None = None
+    """The usage of the task."""
 
 
 class TaskRunner(Protocol):

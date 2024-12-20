@@ -16,6 +16,7 @@ from autogen_core import (
     TypeSubscription,
 )
 from autogen_core._closure_agent import ClosureContext
+from autogen_core.models._types import RequestUsage
 
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
@@ -73,6 +74,8 @@ class BaseGroupChat(Team, ABC):
 
         # Flag to track if the group chat is running.
         self._is_running = False
+
+        self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
 
     @abstractmethod
     def _create_group_chat_manager_factory(
@@ -418,8 +421,14 @@ class BaseGroupChat(Team, ABC):
                 yield message
                 output_messages.append(message)
 
+            usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
+            for message in output_messages:
+                if message.models_usage:
+                    usage.prompt_tokens += message.models_usage.prompt_tokens
+                    usage.completion_tokens += message.models_usage.completion_tokens
+
             # Yield the final result.
-            yield TaskResult(messages=output_messages, stop_reason=self._stop_reason)
+            yield TaskResult(messages=output_messages, stop_reason=self._stop_reason, usage=usage)
 
         finally:
             # Wait for the shutdown task to finish.
