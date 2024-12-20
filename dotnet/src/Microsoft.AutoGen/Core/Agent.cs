@@ -41,7 +41,7 @@ public abstract class Agent
         ILogger<Agent>? logger = null)
     {
         EventTypes = eventTypes;
-        AgentId = new AgentId(this.GetType().Name, new Guid().ToString());
+        AgentId = new AgentId(this.GetType().Name, Guid.NewGuid().ToString());
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<Agent>();
         _handlersByMessageType = new(GetType().GetHandlersLookupTable());
         Worker = new UninitializedAgentWorker();
@@ -49,8 +49,10 @@ public abstract class Agent
     public static void Initialize(IAgentWorker worker, Agent agent)
     {
         agent.Worker = worker;
-        agent.Start().ConfigureAwait(false);
-        agent.AddImplicitSubscriptionsAsync().AsTask().Wait();
+        agent.Start().ContinueWith(async startTask =>
+        {
+            await agent.AddImplicitSubscriptionsAsync();
+        }, TaskScheduler.Default);
     }
 
     private async ValueTask AddImplicitSubscriptionsAsync()
@@ -152,7 +154,7 @@ public abstract class Agent
                 {
                     var activity = this.ExtractActivity(msg.CloudEvent.Type, msg.CloudEvent.Attributes);
                     await this.InvokeWithActivityAsync(
-                        static ((Agent Agent, CloudEvent Item) state, CancellationToken _) => state.Agent.CallHandlerAsync(state.Item),
+                        static ((Agent Agent, CloudEvent Item) state, CancellationToken ct) => state.Agent.CallHandlerAsync(state.Item, ct),
                         (this, msg.CloudEvent),
                         activity,
                         msg.CloudEvent.Type, cancellationToken).ConfigureAwait(false);
@@ -300,7 +302,7 @@ public abstract class Agent
             item.Type, cancellationToken).ConfigureAwait(false);
     }
 
-    public Task CallHandlerAsync(CloudEvent item)
+    public Task CallHandlerAsync(CloudEvent item, CancellationToken cancellationToken = default)
     {
         // Only send the event to the handler if the agent type is handling that type
         if (EventTypes.CheckIfTypeHandles(GetType(), eventName: item.Type))
@@ -323,7 +325,7 @@ public abstract class Agent
                 {
                     methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<IMessage>.Handle), BindingFlags.Public | BindingFlags.Instance)
                                     ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
-                    return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
+                    return methodInfo.Invoke(this, new object[] { convertedPayload, cancellationToken }) as Task ?? Task.CompletedTask;
                 }
                 else
                 {
@@ -342,23 +344,26 @@ public abstract class Agent
 
     public Task<RpcResponse> HandleRequestAsync(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
 
-    //TODO: should this be async and cancellable?
-    public virtual Task HandleObject(object item)
+    /// <summary>
+    /// Handles a generic object
+    /// </summary>
+    /// <param name="item">The object to handle</param>
+    /// <param name="cancellationToken">The cancellation token</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// TODO: this is only called from tests, should we remove it?
+    public virtual async Task HandleObjectAsync(object item, CancellationToken cancellationToken = default)
     {
         // get all Handle<T> methods
         var handleTMethods = this.GetType().GetMethods().Where(m => m.Name == "Handle" && m.GetParameters().Length == 1).ToList();
-
         // get the one that matches the type of the item
         var handleTMethod = handleTMethods.FirstOrDefault(m => m.GetParameters()[0].ParameterType == item.GetType());
-
         // if we found one, invoke it
         if (handleTMethod != null)
         {
-            return (Task)handleTMethod.Invoke(this, [item])!;
+            await (Task)handleTMethod.Invoke(this, [item])!;
         }
-
         // otherwise, complain
-        throw new InvalidOperationException($"No handler found for type {item.GetType().FullName}");
+        _logger.LogError($"No handler found for type {item.GetType().FullName}");
     }
     public async ValueTask PublishEventAsync(string topic, IMessage evt, CancellationToken cancellationToken = default)
     {

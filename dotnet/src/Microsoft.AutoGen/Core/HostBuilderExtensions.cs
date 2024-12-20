@@ -35,7 +35,12 @@ public static class HostBuilderExtensions
         {
             return ReflectionHelper.GetAgentsMetadata(assemblies);
         });
-        builder.Services.AddSingleton<Client>();
+        builder.Services.AddSingleton((s) => {
+            var worker = s.GetRequiredService<IAgentWorker>();
+            var client = ActivatorUtilities.CreateInstance<Client>(s);
+            Agent.Initialize(worker, client);
+            return client;
+        });
         builder.Services.AddSingleton(new AgentApplicationBuilder(builder));
 
         return builder;

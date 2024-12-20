@@ -182,9 +182,10 @@ IServiceProvider serviceProvider,
         {
             if (_agentTypes.TryGetValue(agentId.Type, out var agentType))
             {
-                agent = (Agent)ActivatorUtilities.CreateInstance(ServiceProvider, agentType, this);
+                agent = (Agent)ActivatorUtilities.CreateInstance(ServiceProvider, agentType);
                 Agent.Initialize(this, agent);
                 _agents.TryAdd((agentId.Type, agentId.Key), agent);
+
             }
             else
             {

@@ -53,8 +53,8 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
     {
         var agent = new TestAgent(new AgentsMetadata(TypeRegistry.Empty, new Dictionary<string, Type>(), new Dictionary<Type, HashSet<string>>(), new Dictionary<Type, HashSet<string>>()), new Logger<Agent>(new LoggerFactory()));
 
-        await agent.HandleObject("hello world");
-        await agent.HandleObject(42);
+        await agent.HandleObjectAsync("hello world");
+        await agent.HandleObjectAsync(42);
 
         agent.ReceivedItems.Should().HaveCount(2);
         agent.ReceivedItems[0].Should().Be("hello world");
@@ -65,7 +65,6 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
     public async Task ItDelegateMessageToTestAgentAsync()
     {
         var client = _fixture.AppHost.Services.GetRequiredService<Client>();
-
         await client.PublishMessageAsync(new TextMessage()
         {
             Source = nameof(ItDelegateMessageToTestAgentAsync),
@@ -94,7 +93,16 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
             ReceivedMessages[item.Source] = item.TextMessage_;
             return Task.CompletedTask;
         }
-
+        public Task Handle(string item)
+        {
+            ReceivedItems.Add(item);
+            return Task.CompletedTask;
+        }
+        public Task Handle(int item)
+        {
+            ReceivedItems.Add(item);
+            return Task.CompletedTask;
+        }
         public List<object> ReceivedItems { get; private set; } = [];
 
         /// <summary>

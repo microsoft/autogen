@@ -7,7 +7,7 @@ namespace Microsoft.AutoGen.Core;
 public class UninitializedAgentWorker() : IAgentWorker
 {
     public IServiceProvider ServiceProvider => throw new AgentInitalizedIncorrectlyException(AgentNotInitializedMessage);
-    internal const string AgentNotInitializedMessage = "Agent not initialized correctly. An Agent should never be directly intialized - it is always started byt the AgentWorker from the Runtime.";
+    internal const string AgentNotInitializedMessage = "Agent not initialized correctly. An Agent should never be directly intialized - it is always started by the AgentWorker from the Runtime.";
     public ValueTask PublishEventAsync(CloudEvent evt, CancellationToken cancellationToken = default) => throw new AgentInitalizedIncorrectlyException(AgentNotInitializedMessage);
     public ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default) => throw new AgentInitalizedIncorrectlyException(AgentNotInitializedMessage);
     public ValueTask SendMessageAsync(Message message, CancellationToken cancellationToken = default) => throw new AgentInitalizedIncorrectlyException(AgentNotInitializedMessage);

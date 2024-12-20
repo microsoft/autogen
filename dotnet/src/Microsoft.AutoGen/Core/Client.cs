@@ -3,7 +3,7 @@
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.AutoGen.Core;
-public sealed class Client([FromKeyedServices("EventTypes")] AgentsMetadata eventTypes)
+public sealed class Client([FromKeyedServices("AgentsMetadata")] AgentsMetadata eventTypes)
     : Agent(eventTypes)
 {
 }
