@@ -46,12 +46,11 @@ public abstract class Agent
         _handlersByMessageType = new(GetType().GetHandlersLookupTable());
         Worker = new UninitializedAgentWorker();
     }
-    public Task Initialize(IAgentWorker worker)
+    public static void Initialize(IAgentWorker worker, Agent agent)
     {
-        Worker = worker;
-        var completion = Start();
-        AddImplicitSubscriptionsAsync().AsTask().Wait();
-        return completion;
+        agent.Worker = worker;
+        agent.Start().ConfigureAwait(false);
+        agent.AddImplicitSubscriptionsAsync().AsTask().Wait();
     }
 
     private async ValueTask AddImplicitSubscriptionsAsync()
@@ -85,16 +84,15 @@ public abstract class Agent
         foreach (var method in handleMethods)
         {
             var eventType = method.GetParameters()[0].ParameterType;
-            var topics = (IAsyncEnumerable<string>?)EventTypes.GetTopicsForAgent(GetType());
+            var topics = EventTypes.GetTopicsForAgent(GetType());
             if (topics != null)
             {
-                await foreach (var topic in topics.ConfigureAwait(false))
+                foreach (var topic in topics)
                 {
                     Subscribe(topic);
                 }
             }
         }
-
     }
 
     /// <summary>

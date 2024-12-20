@@ -24,13 +24,30 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
     // need a variable to store the runtime instance
     public static WebApplication? Host { get; private set; }
 
+    /// <summary>
+    /// Verify that if the agent is not initialized via AgentWorker, it should throw the correct exception.
+    /// </summary>
+    /// <returns>void</returns>
     [Fact]
     public void Agent_ShouldThrowException_WhenNotInitialized()
     {
         var agent = ActivatorUtilities.CreateInstance<TestAgent>(_serviceProvider);
-        agent.Subscribe("TestEvent");
-        Assert.Throws<UninitializedAgentWorker.AgentInitalizedIncorrectlyException>(() => agent.Worker.ServiceProvider);
+        Assert.Throws<UninitializedAgentWorker.AgentInitalizedIncorrectlyException>(() => { agent.Subscribe("TestEvent"); });
     }
+
+    /// <summary>
+    /// validate that the agent is initialized correctly with implicit subs
+    /// </summary>
+    /// <returns>void</returns>
+    [Fact]
+    public async Task Agent_ShouldInitializeCorrectly()
+    {
+        var agent = ActivatorUtilities.CreateInstance<TestAgent>(_serviceProvider);
+        var worker = _serviceProvider.GetRequiredService<IAgentWorker>();
+        Agent.Initialize(worker, agent);
+        Assert.Equal("AgentWorker", agent.Worker.GetType().Name);
+    }
+
     [Fact]
     public async Task ItInvokeRightHandlerTestAsync()
     {
