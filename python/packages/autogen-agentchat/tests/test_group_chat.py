@@ -239,8 +239,13 @@ async def test_round_robin_group_chat_state() -> None:
     await team2.load_state(state)
     state2 = await team2.save_state()
     assert state == state2
-    assert agent3._model_context == agent1._model_context  # pyright: ignore
-    assert agent4._model_context == agent2._model_context  # pyright: ignore
+
+    agent1_model_ctx_messages = await agent1._model_context.get_messages()  # pyright: ignore
+    agent2_model_ctx_messages = await agent2._model_context.get_messages()  # pyright: ignore
+    agent3_model_ctx_messages = await agent3._model_context.get_messages()  # pyright: ignore
+    agent4_model_ctx_messages = await agent4._model_context.get_messages()  # pyright: ignore
+    assert agent3_model_ctx_messages == agent1_model_ctx_messages
+    assert agent4_model_ctx_messages == agent2_model_ctx_messages
     manager_1 = await team1._runtime.try_get_underlying_agent_instance(  # pyright: ignore
         AgentId("group_chat_manager", team1._team_id),  # pyright: ignore
         RoundRobinGroupChatManager,  # pyright: ignore
@@ -337,7 +342,7 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
 
     # Test streaming.
-    tool_use_agent._model_context.clear()  # pyright: ignore
+    await tool_use_agent._model_context.clear()  # pyright: ignore
     mock.reset()
     index = 0
     await team.reset()
@@ -351,7 +356,7 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
         index += 1
 
     # Test Console.
-    tool_use_agent._model_context.clear()  # pyright: ignore
+    await tool_use_agent._model_context.clear()  # pyright: ignore
     mock.reset()
     index = 0
     await team.reset()
@@ -579,8 +584,13 @@ async def test_selector_group_chat_state() -> None:
     await team2.load_state(state)
     state2 = await team2.save_state()
     assert state == state2
-    assert agent3._model_context == agent1._model_context  # pyright: ignore
-    assert agent4._model_context == agent2._model_context  # pyright: ignore
+
+    agent1_model_ctx_messages = await agent1._model_context.get_messages()  # pyright: ignore
+    agent2_model_ctx_messages = await agent2._model_context.get_messages()  # pyright: ignore
+    agent3_model_ctx_messages = await agent3._model_context.get_messages()  # pyright: ignore
+    agent4_model_ctx_messages = await agent4._model_context.get_messages()  # pyright: ignore
+    assert agent3_model_ctx_messages == agent1_model_ctx_messages
+    assert agent4_model_ctx_messages == agent2_model_ctx_messages
     manager_1 = await team1._runtime.try_get_underlying_agent_instance(  # pyright: ignore
         AgentId("group_chat_manager", team1._team_id),  # pyright: ignore
         SelectorGroupChatManager,  # pyright: ignore
@@ -931,7 +941,7 @@ async def test_swarm_handoff_using_tool_calls(monkeypatch: pytest.MonkeyPatch) -
     assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
 
     # Test streaming.
-    agent1._model_context.clear()  # pyright: ignore
+    await agent1._model_context.clear()  # pyright: ignore
     mock.reset()
     index = 0
     await team.reset()
@@ -944,7 +954,7 @@ async def test_swarm_handoff_using_tool_calls(monkeypatch: pytest.MonkeyPatch) -
         index += 1
 
     # Test Console
-    agent1._model_context.clear()  # pyright: ignore
+    await agent1._model_context.clear()  # pyright: ignore
     mock.reset()
     index = 0
     await team.reset()

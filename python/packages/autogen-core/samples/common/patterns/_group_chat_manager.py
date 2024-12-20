@@ -143,10 +143,12 @@ class GroupChatManager(RoutedAgent):
 
     async def save_state(self) -> Mapping[str, Any]:
         return {
-            "chat_history": self._model_context.save_state(),
+            "chat_history": await self._model_context.save_state(),
             "termination_word": self._termination_word,
         }
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
-        self._model_context.load_state(state["chat_history"])
+        # Load the chat history.
+        await self._model_context.load_state(state["chat_history"])
+        # Load the termination word.
         self._termination_word = state["termination_word"]
