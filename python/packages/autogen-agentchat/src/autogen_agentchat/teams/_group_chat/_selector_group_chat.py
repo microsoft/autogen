@@ -15,6 +15,7 @@ from ...messages import (
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
+    ToolCallSummaryMessage,
 )
 from ...state import SelectorManagerState
 from ._base_group_chat import BaseGroupChat
@@ -100,7 +101,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                 continue
             # The agent type must be the same as the topic type, which we use as the agent name.
             message = f"{msg.source}:"
-            if isinstance(msg, TextMessage | StopMessage | HandoffMessage):
+            if isinstance(msg, TextMessage | StopMessage | HandoffMessage | ToolCallSummaryMessage):
                 message += f" {msg.content}"
             elif isinstance(msg, MultiModalMessage):
                 for item in msg.content:

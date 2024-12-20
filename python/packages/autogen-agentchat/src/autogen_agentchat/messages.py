@@ -101,7 +101,18 @@ class ToolCallExecutionEvent(BaseMessage):
     type: Literal["ToolCallExecutionEvent"] = "ToolCallExecutionEvent"
 
 
-ChatMessage = Annotated[TextMessage | MultiModalMessage | StopMessage | HandoffMessage, Field(discriminator="type")]
+class ToolCallSummaryMessage(BaseMessage):
+    """A message signaling the summary of tool call results."""
+
+    content: str
+    """Summary of the the tool call results."""
+
+    type: Literal["ToolCallSummaryMessage"] = "ToolCallSummaryMessage"
+
+
+ChatMessage = Annotated[
+    TextMessage | MultiModalMessage | StopMessage | ToolCallSummaryMessage | HandoffMessage, Field(discriminator="type")
+]
 """Messages for agent-to-agent communication only."""
 
 
@@ -110,7 +121,13 @@ AgentEvent = Annotated[ToolCallRequestEvent | ToolCallExecutionEvent, Field(disc
 
 
 AgentMessage = Annotated[
-    TextMessage | MultiModalMessage | StopMessage | HandoffMessage | ToolCallRequestEvent | ToolCallExecutionEvent,
+    TextMessage
+    | MultiModalMessage
+    | StopMessage
+    | HandoffMessage
+    | ToolCallRequestEvent
+    | ToolCallExecutionEvent
+    | ToolCallSummaryMessage,
     Field(discriminator="type"),
 ]
 """(Deprecated, will be removed in 0.4.0) All message and event types."""
@@ -126,6 +143,7 @@ __all__ = [
     "ToolCallExecutionEvent",
     "ToolCallMessage",
     "ToolCallResultMessage",
+    "ToolCallSummaryMessage",
     "ChatMessage",
     "AgentEvent",
     "AgentMessage",
