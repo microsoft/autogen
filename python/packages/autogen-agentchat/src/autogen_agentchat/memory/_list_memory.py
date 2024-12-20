@@ -4,10 +4,8 @@ from typing import Any, List
 from autogen_core import CancellationToken, Image
 from pydantic import Field
 
-from ._base_memory import BaseMemoryConfig, ContentItem, Memory, MemoryEntry, MemoryQueryResult, MimeType
-from autogen_core.model_context import (
-    ChatCompletionContext
-)
+from ._base_memory import BaseMemoryConfig, MemoryContent, Memory, MemoryEntry, MemoryQueryResult, MimeType
+from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import (
     SystemMessage,
 )
@@ -41,11 +39,11 @@ class ListMemory(Memory):
         """Calculate text similarity score using SequenceMatcher."""
         return SequenceMatcher(None, text1.lower(), text2.lower()).ratio()
 
-    def _extract_text(self, content_item: ContentItem) -> str:
-        """Extract searchable text from ContentItem.
+    def _extract_text(self, content_item: MemoryContent) -> str:
+        """Extract searchable text from MemoryContent.
 
         Args:
-            content_item: ContentItem to extract text from
+            content_item: MemoryContent to extract text from
 
         Returns:
             Extracted text string
@@ -64,8 +62,7 @@ class ListMemory(Memory):
         elif isinstance(content, Image):
             raise ValueError("Image content cannot be converted to text")
         else:
-            raise ValueError(
-                f"Unsupported content type: {content_item.mime_type}")
+            raise ValueError(f"Unsupported content type: {content_item.mime_type}")
 
     async def transform(
         self,
@@ -78,7 +75,7 @@ class ListMemory(Memory):
 
         last_message = messages[-1]
         query_text = getattr(last_message, "content", str(last_message))
-        query = ContentItem(content=query_text, mime_type=MimeType.TEXT)
+        query = MemoryContent(content=query_text, mime_type=MimeType.TEXT)
 
         results = []
         query_results = await self.query(query)
@@ -86,15 +83,14 @@ class ListMemory(Memory):
             results.append(f"{i}. {result.entry.content}")
 
         if results:
-            memory_context = "Results from memory query to consider include:\n" + \
-                "\n".join(results)
+            memory_context = "Results from memory query to consider include:\n" + "\n".join(results)
             await model_context.add_message(SystemMessage(content=memory_context))
 
         return model_context
 
     async def query(
         self,
-        query: ContentItem,
+        query: MemoryContent,
         cancellation_token: CancellationToken | None = None,
         **kwargs: Any,
     ) -> List[MemoryQueryResult]:
@@ -122,11 +118,7 @@ class ListMemory(Memory):
         results.sort(key=lambda x: x.score, reverse=True)
         return results[: self._config.k]
 
-    async def add(
-        self,
-        entry: MemoryEntry,
-        cancellation_token: CancellationToken | None = None
-    ) -> None:
+    async def add(self, entry: MemoryEntry, cancellation_token: CancellationToken | None = None) -> None:
         """Add a new entry to memory."""
         self._entries.append(entry)
 

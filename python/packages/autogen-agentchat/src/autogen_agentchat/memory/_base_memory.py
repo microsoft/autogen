@@ -4,13 +4,12 @@ from typing import Any, Dict, List, Protocol, Union, runtime_checkable
 
 from autogen_core import CancellationToken, Image
 from pydantic import BaseModel, ConfigDict, Field
-from autogen_core.model_context import (
-    ChatCompletionContext
-)
+from autogen_core.model_context import ChatCompletionContext
 
 
 class MimeType(Enum):
     """Supported MIME types for memory content."""
+
     TEXT = "text/plain"
     JSON = "application/json"
     MARKDOWN = "text/markdown"
@@ -21,8 +20,9 @@ class MimeType(Enum):
 ContentType = Union[str, bytes, dict, Image]
 
 
-class ContentItem(BaseModel):
+class MemoryContent(BaseModel):
     """A content item with type information."""
+
     content: ContentType
     mime_type: MimeType
 
@@ -31,18 +31,17 @@ class ContentItem(BaseModel):
 
 class BaseMemoryConfig(BaseModel):
     """Base configuration for memory implementations."""
+
     k: int = Field(default=5, description="Number of results to return")
-    score_threshold: float | None = Field(
-        default=None,
-        description="Minimum relevance score"
-    )
+    score_threshold: float | None = Field(default=None, description="Minimum relevance score")
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MemoryEntry(BaseModel):
     """A memory entry containing content and metadata."""
-    content: ContentItem
+
+    content: MemoryContent
     """The content item with type information."""
 
     metadata: Dict[str, Any] = Field(default_factory=dict)
@@ -59,6 +58,7 @@ class MemoryEntry(BaseModel):
 
 class MemoryQueryResult(BaseModel):
     """Result from a memory query including the entry and its relevance score."""
+
     entry: MemoryEntry
     """The memory entry."""
 
@@ -99,8 +99,8 @@ class Memory(Protocol):
 
     async def query(
         self,
-        query: ContentItem,
-        cancellation_token: 'CancellationToken | None' = None,
+        query: MemoryContent,
+        cancellation_token: "CancellationToken | None" = None,
         **kwargs: Any,
     ) -> List[MemoryQueryResult]:
         """
@@ -116,11 +116,7 @@ class Memory(Protocol):
         """
         ...
 
-    async def add(
-        self,
-        entry: MemoryEntry,
-        cancellation_token: 'CancellationToken | None' = None
-    ) -> None:
+    async def add(self, entry: MemoryEntry, cancellation_token: "CancellationToken | None" = None) -> None:
         """
         Add a new entry to memory.
 
