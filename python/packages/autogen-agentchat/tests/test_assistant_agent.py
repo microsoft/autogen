@@ -14,6 +14,7 @@ from autogen_agentchat.messages import (
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
+    ToolCallSummaryMessage,
 )
 from autogen_core import Image
 from autogen_core.tools import FunctionTool
@@ -142,7 +143,7 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.messages[1].models_usage.prompt_tokens == 10
     assert isinstance(result.messages[2], ToolCallExecutionEvent)
     assert result.messages[2].models_usage is None
-    assert isinstance(result.messages[3], TextMessage)
+    assert isinstance(result.messages[3], ToolCallSummaryMessage)
     assert result.messages[3].content == "pass"
     assert result.messages[3].models_usage is None
 

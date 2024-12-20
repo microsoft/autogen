@@ -10,6 +10,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   GalleryHorizontalEnd,
+  Rocket,
 } from "lucide-react";
 import Icon from "./icons";
 
@@ -42,6 +43,12 @@ const navigation: INavItem[] = [
     href: "/gallery",
     icon: GalleryHorizontalEnd,
     breadcrumbs: [{ name: "Gallery", href: "/gallery", current: true }],
+  },
+  {
+    name: "Deploy",
+    href: "/deploy",
+    icon: Rocket,
+    breadcrumbs: [{ name: "Deploy", href: "/deploy", current: true }],
   },
 ];
 

@@ -326,21 +326,19 @@ class ComponentFactory:
     async def load_agent(self, config: AgentConfig, input_func: Optional[Callable] = None) -> AgentComponent:
         """Create agent instance from configuration."""
 
-        system_message = config.system_message if config.system_message else "You are a helpful assistant"
+        model_client = None
+        system_message = None
+        tools = []
+        if hasattr(config, "system_message") and config.system_message:
+            system_message = config.system_message
+        if hasattr(config, "model_client") and config.model_client:
+            model_client = await self.load(config.model_client)
+        if hasattr(config, "tools") and config.tools:
+            for tool_config in config.tools:
+                tool = await self.load(tool_config)
+                tools.append(tool)
 
         try:
-            # Load model client if specified
-            model_client = None
-            if config.model_client:
-                model_client = await self.load(config.model_client)
-
-            # Load tools if specified
-            tools = []
-            if config.tools:
-                for tool_config in config.tools:
-                    tool = await self.load(tool_config)
-                    tools.append(tool)
-
             if config.agent_type == AgentTypes.USERPROXY:
                 return UserProxyAgent(
                     name=config.name,
