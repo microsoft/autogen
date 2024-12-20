@@ -285,13 +285,6 @@ def calculate_vision_tokens(image: Image, detail: str = "auto") -> int:
     return total_tokens
 
 
-def _add_usage(usage1: RequestUsage, usage2: RequestUsage) -> RequestUsage:
-    return RequestUsage(
-        prompt_tokens=usage1.prompt_tokens + usage2.prompt_tokens,
-        completion_tokens=usage1.completion_tokens + usage2.completion_tokens,
-    )
-
-
 def convert_tools(
     tools: Sequence[Tool | ToolSchema],
 ) -> List[ChatCompletionToolParam]:
@@ -561,8 +554,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             logprobs=logprobs,
         )
 
-        _add_usage(self._actual_usage, usage)
-        _add_usage(self._total_usage, usage)
+        self.add_usage(usage)
 
         # TODO - why is this cast needed?
         return response
@@ -778,8 +770,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             logprobs=logprobs,
         )
 
-        _add_usage(self._actual_usage, usage)
-        _add_usage(self._total_usage, usage)
+        self.add_usage(usage)
 
         yield result
 
@@ -885,6 +876,12 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     @property
     def capabilities(self) -> ModelCapabilities:
         return self._model_capabilities
+
+    def add_usage(self, usage: RequestUsage) -> None:
+        self._total_usage = RequestUsage(
+            prompt_tokens=self._total_usage.prompt_tokens + usage.prompt_tokens,
+            completion_tokens=self._total_usage.completion_tokens + usage.completion_tokens,
+        )
 
 
 class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
