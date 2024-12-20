@@ -101,11 +101,23 @@ class ToolCallExecutionEvent(BaseMessage):
     type: Literal["ToolCallExecutionEvent"] = "ToolCallExecutionEvent"
 
 
+class UsageEvent(BaseMessage):
+    """An event signaling the usage of a model."""
+
+    content: str = ""
+    """The content of the usage event."""
+
+    models_usage: RequestUsage
+    """The model client usage incurred when producing this message."""
+
+    type: Literal["UsageEvent"] = "UsageEvent"
+
+
 ChatMessage = Annotated[TextMessage | MultiModalMessage | StopMessage | HandoffMessage, Field(discriminator="type")]
 """Messages for agent-to-agent communication only."""
 
 
-AgentEvent = Annotated[ToolCallRequestEvent | ToolCallExecutionEvent, Field(discriminator="type")]
+AgentEvent = Annotated[ToolCallRequestEvent | ToolCallExecutionEvent | UsageEvent, Field(discriminator="type")]
 """Events emitted by agents and teams when they work, not used for agent-to-agent communication."""
 
 
