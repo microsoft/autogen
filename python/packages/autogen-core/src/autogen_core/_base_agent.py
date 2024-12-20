@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
 import uuid
 import warnings
@@ -10,7 +11,15 @@ from typing import Any, Awaitable, Callable, ClassVar, Dict, List, Mapping, Tupl
 
 from typing_extensions import Self
 
-from ._rpc import format_rpc_request_topic, is_rpc_response
+from autogen_core._types import (
+    CancelledRpc,
+    CancelRpc,
+    CantHandleMessageResponse,
+    RpcMessageDroppedResponse,
+    RpcNoneResponse,
+)
+from autogen_core.exceptions import CantHandleException
+
 from ._agent import Agent
 from ._agent_id import AgentId
 from ._agent_instantiation import AgentInstantiationContext
@@ -24,6 +33,15 @@ from ._subscription import Subscription, UnboundSubscription
 from ._subscription_context import SubscriptionInstantiationContext
 from ._topic import TopicId
 from ._type_prefix_subscription import TypePrefixSubscription
+from ._well_known_topics import (
+    format_error_topic,
+    format_rpc_request_topic,
+    format_rpc_response_topic,
+    is_error_message,
+    is_rpc_cancel,
+    is_rpc_request,
+    is_rpc_response,
+)
 
 T = TypeVar("T", bound=Agent)
 
@@ -109,6 +127,13 @@ class BaseAgent(ABC, Agent):
             raise ValueError("Agent description must be a string")
         self._description = description
         self._pending_rpc_requests: Dict[str, Future[Any]] = {}
+        self._self_rpc_handlers_in_progress: Dict[str, Future[Any]] = {}
+
+        # TODO: find a way to clean this up over time.
+        # Essentially, the reason for this existing is if a response is sent but we get an error back for that response
+        # We need to forward this error back to the original sender, so they can fail their RPC.
+        # Map of request_id -> (rpc_request_message_id, agent_type_of_rpc_sender)
+        self._sent_rpc_responses: Dict[str, Tuple[str, str]] = {}
         self._forward_unbound_rpc_responses_to_handler = forward_unbound_rpc_responses_to_handler
 
     @property
@@ -128,9 +153,44 @@ class BaseAgent(ABC, Agent):
 
     @final
     async def on_message(self, message: Any, ctx: MessageContext) -> None:
+        # Intercept errors for outstanding rpc requests, let the others pass through
+        if (request_id := is_error_message(ctx.topic_id.type)) is not None:
+            # Check if this error corresponds to an RPC response we have sent
+            if request_id in self._sent_rpc_responses:
+                # The recipient we were trying to send a response to never got this response, so we're going to send an error to them instead of the original message
+                # If this message gets dropped, we're just going to ignore things
+                original_rpc_request_message_id, agent_type_of_rpc_sender = self._sent_rpc_responses[request_id]
+                error_topic = format_error_topic(
+                    error_recipient_agent_type=agent_type_of_rpc_sender, request_id=original_rpc_request_message_id
+                )
+                await self.publish_message(
+                    RpcMessageDroppedResponse(original_rpc_request_message_id), TopicId(error_topic, self.id.key)
+                )
+            # Check if we have a pending RPC that is error corresponds to
+            elif request_id in self._pending_rpc_requests:
+                self._pending_rpc_requests[request_id].set_exception(message)
+                del self._pending_rpc_requests[request_id]
+            else:
+                await self.on_message_impl(message, ctx)
+
+            return None
+
+        # Intercept RPC cancel
+        if (request_id := is_rpc_cancel(ctx.topic_id.type)) is not None:
+            if request_id in self._self_rpc_handlers_in_progress:
+                if isinstance(message, CancelRpc):
+                    self._self_rpc_handlers_in_progress[request_id].cancel()
+                    del self._self_rpc_handlers_in_progress[request_id]
+
+            return None
+
         # Intercept RPC responses
         if (request_id := is_rpc_response(ctx.topic_id.type)) is not None:
             if request_id in self._pending_rpc_requests:
+                if isinstance(message, RpcNoneResponse):
+                    message = None
+                if isinstance(message, CancelledRpc):
+                    self._pending_rpc_requests[request_id].cancel()
                 self._pending_rpc_requests[request_id].set_result(message)
                 del self._pending_rpc_requests[request_id]
             elif self._forward_unbound_rpc_responses_to_handler:
@@ -142,7 +202,17 @@ class BaseAgent(ABC, Agent):
                 )
             return None
 
-        await self.on_message_impl(message, ctx)
+        try:
+            await self.on_message_impl(message, ctx)
+        # If the agent signalled it cannot handle this message, and it was an RPC request. Let's deliver this error to the RPC sender so they know.
+        except CantHandleException:
+            if (requestor_type := is_rpc_request(ctx.topic_id.type)) is not None:
+                error_topic = format_error_topic(error_recipient_agent_type=requestor_type, request_id=ctx.message_id)
+                await self.publish_message(
+                    CantHandleMessageResponse(message_id=ctx.message_id), TopicId(error_topic, self.id.key)
+                )
+            else:
+                raise
 
     async def send_message(
         self,
@@ -150,6 +220,7 @@ class BaseAgent(ABC, Agent):
         recipient: AgentId,
         *,
         cancellation_token: CancellationToken | None = None,
+        timeout: float | None = None,
     ) -> Any:
         """See :py:meth:`autogen_core.AgentRuntime.send_message` for more information."""
         if cancellation_token is None:
@@ -173,7 +244,30 @@ class BaseAgent(ABC, Agent):
 
         self._pending_rpc_requests[request_id] = future
 
-        return future
+        async with asyncio.timeout(timeout):
+            return await future
+
+    async def _rpc_response(self, handler_return_value: Any, ctx: MessageContext) -> None:
+        if (requestor_type := is_rpc_request(ctx.topic_id.type)) is not None:
+            if handler_return_value is None:
+                handler_return_value = RpcNoneResponse()
+
+            response_topic_id = TopicId(
+                type=format_rpc_response_topic(rpc_sender_agent_type=requestor_type, request_id=ctx.message_id),
+                source=self.id.key,
+            )
+            message_id = str(uuid.uuid4())
+            # Intentionally accessing a private attribute here
+            # We store this so that if the response is dropped, we can send an error to the client instead.
+            # request_id -> (rpc_request_message_id, agent_type_of_rpc_sender)
+            self._sent_rpc_responses[message_id] = (ctx.message_id, requestor_type)  # type: ignore
+
+            await self.publish_message(
+                message=handler_return_value,
+                topic_id=response_topic_id,
+                cancellation_token=ctx.cancellation_token,
+                message_id=message_id,
+            )
 
     async def publish_message(
         self,
@@ -181,8 +275,11 @@ class BaseAgent(ABC, Agent):
         topic_id: TopicId,
         *,
         cancellation_token: CancellationToken | None = None,
+        message_id: str | None = None,
     ) -> None:
-        await self._runtime.publish_message(message, topic_id, sender=self.id, cancellation_token=cancellation_token)
+        await self._runtime.publish_message(
+            message, topic_id, sender=self.id, cancellation_token=cancellation_token, message_id=message_id
+        )
 
     async def save_state(self) -> Mapping[str, Any]:
         warnings.warn("save_state not implemented", stacklevel=2)

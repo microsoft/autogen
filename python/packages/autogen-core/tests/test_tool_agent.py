@@ -63,23 +63,27 @@ async def test_tool_agent() -> None:
     assert result == FunctionExecutionResult(call_id="1", content="pass")
 
     # Test raise function
-    with pytest.raises(ToolExecutionException):
-        await runtime.send_message(FunctionCall(id="2", arguments=json.dumps({"input": "raise"}), name="raise"), agent)
+    response = await runtime.send_message(
+        FunctionCall(id="2", arguments=json.dumps({"input": "raise"}), name="raise"), agent
+    )
+    assert isinstance(response, ToolExecutionException)
 
     # Test invalid tool name
-    with pytest.raises(ToolNotFoundException):
-        await runtime.send_message(FunctionCall(id="3", arguments=json.dumps({"input": "pass"}), name="invalid"), agent)
+    response = await runtime.send_message(
+        FunctionCall(id="3", arguments=json.dumps({"input": "pass"}), name="invalid"), agent
+    )
+    assert isinstance(response, ToolNotFoundException)
 
     # Test invalid arguments
-    with pytest.raises(InvalidToolArgumentsException):
-        await runtime.send_message(FunctionCall(id="3", arguments="invalid json /xd", name="pass"), agent)
+    response = await runtime.send_message(FunctionCall(id="3", arguments="invalid json /xd", name="pass"), agent)
+    assert isinstance(response, InvalidToolArgumentsException)
 
     # Test sleep and cancel.
     token = CancellationToken()
     result_future = runtime.send_message(
         FunctionCall(id="3", arguments=json.dumps({"input": "sleep"}), name="sleep"), agent, cancellation_token=token
     )
-    token.cancel()
+    await token.cancel()
     with pytest.raises(asyncio.CancelledError):
         await result_future
 

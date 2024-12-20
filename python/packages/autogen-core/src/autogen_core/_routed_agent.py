@@ -1,5 +1,7 @@
+import asyncio
 import logging
 import warnings
+from asyncio import CancelledError
 from functools import wraps
 from typing import (
     Any,
@@ -19,12 +21,13 @@ from typing import (
     runtime_checkable,
 )
 
+from autogen_core._types import CancelledRpc
+
 from ._base_agent import BaseAgent
 from ._message_context import MessageContext
-from ._rpc import format_rpc_response_topic, is_rpc_request
 from ._serialization import MessageSerializer, try_get_known_serializers_for_type
-from ._topic import TopicId
 from ._type_helpers import AnyType, get_types
+from ._well_known_topics import is_rpc_request
 from .exceptions import CantHandleException
 
 logger = logging.getLogger("autogen_core")
@@ -160,23 +163,13 @@ def message_handler(
             # Dont return, but publish it if you need to...
             # Any return is treated as a response to the RPC request and is published accordingly
 
-            if return_value is not None:
-                if (requestor_type := is_rpc_request(ctx.topic_id.type)) is not None:
-                    response_topic_id = TopicId(
-                        type=format_rpc_response_topic(rpc_sender_agent_type=requestor_type, request_id=ctx.message_id),
-                        source=self.id.key,
-                    )
-
-                    await self.publish_message(
-                        message=return_value,
-                        topic_id=response_topic_id,
-                        cancellation_token=ctx.cancellation_token,
-                    )
-                else:
-                    warnings.warn(
-                        "Returning a value from a message handler that is not an RPC request. This value will be ignored.",
-                        stacklevel=2,
-                    )
+            if return_value is not None and is_rpc_request(ctx.topic_id.type) is None:
+                warnings.warn(
+                    "Returning a value from a message handler that is not an RPC request. This value will be ignored.",
+                    stacklevel=2,
+                )
+            else:
+                await self._rpc_response(return_value, ctx)  # type: ignore
 
         wrapper_handler = cast(MessageHandler[AgentT, ReceivesT, ProducesT], wrapper)
         wrapper_handler.target_types = list(target_types)
@@ -410,7 +403,18 @@ def rpc(
                 else:
                     logger.warning(f"Message type {type(message)} not in target types {target_types}")
 
-            return_value = await func(self, message, ctx)
+            # Should be an rpc request, as the match function should have filtered it
+            assert is_rpc_request(ctx.topic_id.type) is not None
+
+            try:
+                future = asyncio.ensure_future(func(self, message, ctx))
+                self._self_rpc_handlers_in_progress[ctx.message_id] = future  # type: ignore
+                return_value = await future
+            except CancelledError:
+                await self._rpc_response(CancelledRpc(), ctx)  # type: ignore
+                return
+            finally:
+                del self._self_rpc_handlers_in_progress[ctx.message_id]  # type: ignore
 
             if AnyType not in return_types and type(return_value) not in return_types:
                 if strict:
@@ -418,26 +422,9 @@ def rpc(
                 else:
                     logger.warning(f"Return type {type(return_value)} not in return types {return_types}")
 
-            # Dont return, but publish it if you need to...
+            # Dont return, but publish
             # Any return is treated as a response to the RPC request and is published accordingly
-
-            if return_value is not None:
-                if (requestor_type := is_rpc_request(ctx.topic_id.type)) is not None:
-                    response_topic_id = TopicId(
-                        type=format_rpc_response_topic(rpc_sender_agent_type=requestor_type, request_id=ctx.message_id),
-                        source=self.id.key,
-                    )
-
-                    await self.publish_message(
-                        message=return_value,
-                        topic_id=response_topic_id,
-                        cancellation_token=ctx.cancellation_token,
-                    )
-                else:
-                    warnings.warn(
-                        "Returning a value from a message handler that is not an RPC request. This value will be ignored.",
-                        stacklevel=2,
-                    )
+            await self._rpc_response(return_value, ctx)  # type: ignore
 
         wrapper_handler = cast(MessageHandler[AgentT, ReceivesT, ProducesT], wrapper)
         wrapper_handler.target_types = list(target_types)
@@ -528,6 +515,11 @@ class RoutedAgent(BaseAgent):
             for h in handlers:
                 if h.router(message, ctx):
                     await h(self, message, ctx)
+                    return
+
+        if is_rpc_request(ctx.topic_id.type):
+            raise CantHandleException(f"No RPC handler found for message type {key_type}")
+
         await self.on_unhandled_message(message, ctx)
 
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:

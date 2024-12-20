@@ -12,11 +12,10 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
 
-from ._message_context import MessageContext
-from ._message_handler_context import MessageHandlerContext
-from ._subscription import Subscription
 from opentelemetry.trace import TracerProvider
 from typing_extensions import deprecated
+
+from autogen_core._types import RpcMessageDroppedResponse
 
 from ._agent import Agent
 from ._agent_id import AgentId
@@ -24,15 +23,18 @@ from ._agent_instantiation import AgentInstantiationContext
 from ._agent_metadata import AgentMetadata
 from ._agent_runtime import AgentRuntime
 from ._agent_type import AgentType
-from ._topic import TopicId
-from ._subscription_context import SubscriptionInstantiationContext
 from ._cancellation_token import CancellationToken
-from ._intervention import DropMessage
+from ._intervention import DropMessage, InterventionFunction
+from ._message_context import MessageContext
+from ._message_handler_context import MessageHandlerContext
 from ._publish_based_rpc import PublishBasedRpcMixin
 from ._runtime_impl_helpers import SubscriptionManager, get_impl
 from ._serialization import MessageSerializer, SerializationRegistry
+from ._subscription import Subscription
+from ._subscription_context import SubscriptionInstantiationContext
 from ._telemetry import EnvelopeMetadata, MessageRuntimeTracingConfig, TraceHelper, get_telemetry_envelope_metadata
-from .base.intervention import InterventionHandler
+from ._topic import TopicId
+from ._well_known_topics import format_error_topic
 
 logger = logging.getLogger("autogen_core")
 event_logger = logging.getLogger("autogen_core.events")
@@ -144,7 +146,7 @@ class SingleThreadedAgentRuntime(PublishBasedRpcMixin, AgentRuntime):
     def __init__(
         self,
         *,
-        intervention_handlers: List[InterventionHandler] | None = None,
+        intervention_handlers: List[InterventionFunction] | None = None,
         tracer_provider: TracerProvider | None = None,
     ) -> None:
         self._tracer_helper = TraceHelper(tracer_provider, MessageRuntimeTracingConfig("SingleThreadedAgentRuntime"))
@@ -286,6 +288,16 @@ class SingleThreadedAgentRuntime(PublishBasedRpcMixin, AgentRuntime):
                 self._outstanding_tasks.decrement()
             # TODO if responses are given for a publish
 
+    async def _send_error(self, exception: Any, for_message_id: str, recipient: AgentId) -> None:
+        topic = format_error_topic(recipient.type, for_message_id)
+
+        # Errors don't have an originating sender
+        await self.publish_message(
+            message=exception,
+            topic_id=TopicId(topic, recipient.key),
+            sender=None,
+        )
+
     async def process_next(self) -> None:
         """Process the next message in the queue."""
 
@@ -296,22 +308,40 @@ class SingleThreadedAgentRuntime(PublishBasedRpcMixin, AgentRuntime):
         message_envelope = self._message_queue.pop(0)
 
         message = message_envelope.message
-        sender = message_envelope.sender
 
         if self._intervention_handlers is not None:
+            message_context = MessageContext(
+                sender=message_envelope.sender,
+                topic_id=message_envelope.topic_id,
+                cancellation_token=message_envelope.cancellation_token,
+                message_id=message_envelope.message_id,
+            )
             for handler in self._intervention_handlers:
                 with self._tracer_helper.trace_block(
                     "intercept", handler.__class__.__name__, parent=message_envelope.metadata
                 ):
                     try:
-                        temp_message = await handler.on_publish(message, sender=sender)
+                        temp_message = handler(message, message_context)
+                        if inspect.isawaitable(temp_message):
+                            temp_message = await temp_message
+
                         _warn_if_none(temp_message, "on_publish")
                     except BaseException as e:
-                        # TODO: we should raise the intervention exception to the publisher.
                         logger.error(f"Exception raised in in intervention handler: {e}", exc_info=True)
                         return
+
                     if temp_message is DropMessage or isinstance(temp_message, DropMessage):
                         # TODO log message dropped
+                        # Send message dropped to sender
+
+                        # If it's None, then we don't know who to send the message to
+                        if message_envelope.sender is not None:
+                            await self._send_error(
+                                RpcMessageDroppedResponse(message_id=message_envelope.message_id),
+                                message_envelope.message_id,
+                                message_envelope.sender,
+                            )
+
                         return
 
                 message_envelope.message = temp_message

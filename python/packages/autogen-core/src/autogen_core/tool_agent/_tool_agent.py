@@ -2,7 +2,8 @@ import json
 from dataclasses import dataclass
 from typing import List
 
-from .. import FunctionCall, MessageContext, RoutedAgent, message_handler
+from .. import FunctionCall, MessageContext, RoutedAgent
+from .._routed_agent import rpc
 from ..models import FunctionExecutionResult
 from ..tools import Tool
 
@@ -16,7 +17,7 @@ __all__ = [
 
 
 @dataclass
-class ToolException(BaseException):
+class ToolException:
     call_id: str
     content: str
 
@@ -58,8 +59,10 @@ class ToolAgent(RoutedAgent):
     def tools(self) -> List[Tool]:
         return self._tools
 
-    @message_handler
-    async def handle_function_call(self, message: FunctionCall, ctx: MessageContext) -> FunctionExecutionResult:
+    @rpc
+    async def handle_function_call(
+        self, message: FunctionCall, ctx: MessageContext
+    ) -> FunctionExecutionResult | ToolNotFoundException | InvalidToolArgumentsException | ToolExecutionException:
         """Handles a `FunctionCall` message by executing the requested tool with the provided arguments.
 
         Args:
@@ -76,16 +79,16 @@ class ToolAgent(RoutedAgent):
         """
         tool = next((tool for tool in self._tools if tool.name == message.name), None)
         if tool is None:
-            raise ToolNotFoundException(call_id=message.id, content=f"Error: Tool not found: {message.name}")
+            return ToolNotFoundException(call_id=message.id, content=f"Error: Tool not found: {message.name}")
         else:
             try:
                 arguments = json.loads(message.arguments)
                 result = await tool.run_json(args=arguments, cancellation_token=ctx.cancellation_token)
                 result_as_str = tool.return_value_as_string(result)
-            except json.JSONDecodeError as e:
-                raise InvalidToolArgumentsException(
+            except json.JSONDecodeError:
+                return InvalidToolArgumentsException(
                     call_id=message.id, content=f"Error: Invalid arguments: {message.arguments}"
-                ) from e
+                )
             except Exception as e:
-                raise ToolExecutionException(call_id=message.id, content=f"Error: {e}") from e
+                return ToolExecutionException(call_id=message.id, content=f"Error: {e}")
         return FunctionExecutionResult(content=result_as_str, call_id=message.id)

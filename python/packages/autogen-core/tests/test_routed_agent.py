@@ -14,7 +14,8 @@ from autogen_core import (
     message_handler,
     rpc,
 )
-from autogen_core._rpc import is_rpc_request
+from autogen_core._well_known_topics import is_rpc_request
+from autogen_core.exceptions import CantHandleException
 from autogen_test_utils import LoopbackAgent
 
 
@@ -71,7 +72,7 @@ async def test_message_handler_router() -> None:
 
     # Send an RPC message.
     runtime.start()
-    await runtime.send_message(MessageType(), recipient=agent_id)
+    await runtime.send_message(MessageType(), recipient=agent_id, timeout=60)
     await runtime.stop_when_idle()
     agent = await runtime.try_get_underlying_agent_instance(agent_id, type=CounterAgent)
     assert agent.num_calls_broadcast == 1
@@ -114,14 +115,14 @@ async def test_routed_agent_message_matching() -> None:
     assert agent.handler_two_called is False
 
     runtime.start()
-    await runtime.send_message(TestMessage("one"), recipient=agent_id)
+    await runtime.send_message(TestMessage("one"), recipient=agent_id, timeout=60)
     await runtime.stop_when_idle()
     agent = await runtime.try_get_underlying_agent_instance(agent_id, type=RoutedAgentMessageCustomMatch)
     assert agent.handler_one_called is True
     assert agent.handler_two_called is False
 
     runtime.start()
-    await runtime.send_message(TestMessage("two"), recipient=agent_id)
+    await runtime.send_message(TestMessage("two"), recipient=agent_id, timeout=60)
     await runtime.stop_when_idle()
     agent = await runtime.try_get_underlying_agent_instance(agent_id, type=RoutedAgentMessageCustomMatch)
     assert agent.handler_one_called is True
@@ -167,7 +168,8 @@ async def test_event() -> None:
 
     # Send an RPC message, expect no change.
     runtime.start()
-    await runtime.send_message(TestMessage("one"), recipient=agent_id)
+    with pytest.raises(CantHandleException):
+        await runtime.send_message(TestMessage("one"), recipient=agent_id, timeout=60)
     await runtime.stop_when_idle()
     agent = await runtime.try_get_underlying_agent_instance(agent_id, type=EventAgent)
     assert agent.num_calls[0] == 1
@@ -199,7 +201,7 @@ async def test_rpc() -> None:
 
     # Send an RPC message.
     runtime.start()
-    await runtime.send_message(TestMessage("one"), recipient=agent_id)
+    await runtime.send_message(TestMessage("one"), recipient=agent_id, timeout=60)
     await runtime.stop_when_idle()
     agent = await runtime.try_get_underlying_agent_instance(agent_id, type=RPCAgent)
     assert agent.num_calls[0] == 1
@@ -207,7 +209,7 @@ async def test_rpc() -> None:
 
     # Send another RPC message.
     runtime.start()
-    await runtime.send_message(TestMessage("two"), recipient=agent_id)
+    await runtime.send_message(TestMessage("two"), recipient=agent_id, timeout=60)
     await runtime.stop_when_idle()
     agent = await runtime.try_get_underlying_agent_instance(agent_id, type=RPCAgent)
     assert agent.num_calls[0] == 1

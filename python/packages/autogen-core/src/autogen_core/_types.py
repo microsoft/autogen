@@ -10,3 +10,29 @@ class FunctionCall:
     arguments: str
     # Function to call
     name: str
+
+
+# TODO: Make this xlang friendly
+@dataclass
+class RpcNoneResponse:
+    pass
+
+
+@dataclass
+class RpcMessageDroppedResponse:
+    message_id: str
+
+
+@dataclass
+class CantHandleMessageResponse:
+    message_id: str
+
+
+@dataclass
+class CancelRpc:
+    pass
+
+
+@dataclass
+class CancelledRpc:
+    pass

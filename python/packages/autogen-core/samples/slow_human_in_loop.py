@@ -31,7 +31,6 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Optional
 
 from autogen_core import (
-    AgentId,
     CancellationToken,
     DefaultTopicId,
     FunctionCall,
@@ -41,7 +40,6 @@ from autogen_core import (
     message_handler,
     type_subscription,
 )
-from autogen_core.base.intervention import DefaultInterventionHandler
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import (
     AssistantMessage,
@@ -207,11 +205,11 @@ Today's date is {datetime.datetime.now().strftime("%Y-%m-%d")}
         self._model_context.load_state({**state["memory"], "messages": [m for m in state["memory"]["messages"]]})
 
 
-class NeedsUserInputHandler(DefaultInterventionHandler):
+class NeedsUserInputHandler:
     def __init__(self):
         self.question_for_user: GetSlowUserMessage | None = None
 
-    async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
+    async def __call__(self, message: Any, message_context: MessageContext) -> Any:
         if isinstance(message, GetSlowUserMessage):
             self.question_for_user = message
         return message
@@ -227,11 +225,11 @@ class NeedsUserInputHandler(DefaultInterventionHandler):
         return self.question_for_user.content
 
 
-class TerminationHandler(DefaultInterventionHandler):
+class TerminationHandler:
     def __init__(self):
         self.terminateMessage: TerminateMessage | None = None
 
-    async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
+    async def __call__(self, message: Any, message_context: MessageContext) -> Any:
         if isinstance(message, TerminateMessage):
             self.terminateMessage = message
         return message

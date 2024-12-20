@@ -9,8 +9,8 @@ from autogen_core import (
     MessageContext,
     RoutedAgent,
     SingleThreadedAgentRuntime,
-    message_handler,
 )
+from autogen_core._routed_agent import rpc
 
 
 @dataclass
@@ -28,7 +28,7 @@ class LongRunningAgent(RoutedAgent):
         self.called = False
         self.cancelled = False
 
-    @message_handler
+    @rpc
     async def on_new_message(self, message: MessageType, ctx: MessageContext) -> MessageType:
         self.called = True
         sleep = asyncio.ensure_future(asyncio.sleep(100))
@@ -48,7 +48,7 @@ class NestingLongRunningAgent(RoutedAgent):
         self.cancelled = False
         self._nested_agent = nested_agent
 
-    @message_handler
+    @rpc
     async def on_new_message(self, message: MessageType, ctx: MessageContext) -> MessageType:
         self.called = True
         response = self.send_message(message, self._nested_agent, cancellation_token=ctx.cancellation_token)
@@ -74,9 +74,9 @@ async def test_cancellation_with_token() -> None:
     while len(runtime.unprocessed_messages) == 0:
         await asyncio.sleep(0.01)
 
-    await runtime.process_next()
+    runtime.start()
 
-    token.cancel()
+    await token.cancel()
 
     with pytest.raises(asyncio.CancelledError):
         await response
@@ -85,6 +85,7 @@ async def test_cancellation_with_token() -> None:
     long_running_agent = await runtime.try_get_underlying_agent_instance(agent_id, type=LongRunningAgent)
     assert long_running_agent.called
     assert long_running_agent.cancelled
+    await runtime.stop()
 
 
 @pytest.mark.asyncio
@@ -107,8 +108,9 @@ async def test_nested_cancellation_only_outer_called() -> None:
     while len(runtime.unprocessed_messages) == 0:
         await asyncio.sleep(0.01)
 
-    await runtime.process_next()
-    token.cancel()
+    runtime.start()
+
+    await token.cancel()
 
     with pytest.raises(asyncio.CancelledError):
         await response
@@ -120,6 +122,7 @@ async def test_nested_cancellation_only_outer_called() -> None:
     long_running_agent = await runtime.try_get_underlying_agent_instance(long_running_id, type=LongRunningAgent)
     assert long_running_agent.called is False
     assert long_running_agent.cancelled is False
+    await runtime.stop()
 
 
 @pytest.mark.asyncio
@@ -143,10 +146,9 @@ async def test_nested_cancellation_inner_called() -> None:
     while len(runtime.unprocessed_messages) == 0:
         await asyncio.sleep(0.01)
 
-    await runtime.process_next()
-    # allow the inner agent to process
-    await runtime.process_next()
-    token.cancel()
+    runtime.start()
+
+    await token.cancel()
 
     with pytest.raises(asyncio.CancelledError):
         await response
@@ -158,3 +160,4 @@ async def test_nested_cancellation_inner_called() -> None:
     long_running_agent = await runtime.try_get_underlying_agent_instance(long_running_id, type=LongRunningAgent)
     assert long_running_agent.called
     assert long_running_agent.cancelled
+    await runtime.stop()

@@ -1,4 +1,4 @@
-from typing import Any, Awaitable, Callable, Protocol, final
+from typing import Any, Protocol
 
 from .._agent_id import AgentId
 
