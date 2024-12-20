@@ -2,14 +2,15 @@
 // AgentTests.cs
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using FluentAssertions;
 using Google.Protobuf.Reflection;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Moq;
 using Xunit;
 using static Microsoft.AutoGen.Core.Tests.AgentTests;
 
@@ -18,13 +19,22 @@ namespace Microsoft.AutoGen.Core.Tests;
 [Collection(ClusterFixtureCollection.Name)]
 public class AgentTests(InMemoryAgentRuntimeFixture fixture)
 {
+    private readonly IServiceProvider _serviceProvider = fixture.AppHost.Services;
     private readonly InMemoryAgentRuntimeFixture _fixture = fixture;
+    // need a variable to store the runtime instance
+    public static WebApplication? Host { get; private set; }
 
+    [Fact]
+    public void Agent_ShouldThrowException_WhenNotInitialized()
+    {
+        var agent = ActivatorUtilities.CreateInstance<TestAgent>(_serviceProvider);
+        agent.Subscribe("TestEvent");
+        Assert.Throws<UninitializedAgentWorker.AgentInitalizedIncorrectlyException>(() => agent.Worker.ServiceProvider);
+    }
     [Fact]
     public async Task ItInvokeRightHandlerTestAsync()
     {
-        var mockWorker = new Mock<IAgentWorker>();
-        var agent = new TestAgent(mockWorker.Object, new EventTypes(TypeRegistry.Empty, [], []), new Logger<Agent>(new LoggerFactory()));
+        var agent = new TestAgent(new AgentsMetadata(TypeRegistry.Empty, new Dictionary<string, Type>(), new Dictionary<Type, HashSet<string>>(), new Dictionary<Type, HashSet<string>>()), new Logger<Agent>(new LoggerFactory()));
 
         await agent.HandleObject("hello world");
         await agent.HandleObject(42);
@@ -58,28 +68,11 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
     /// <summary>
     /// The test agent is a simple agent that is used for testing purposes.
     /// </summary>
-    public class TestAgent : Agent, IHandle<string>, IHandle<int>, IHandle<TextMessage>
+    public class TestAgent(
+        [FromKeyedServices("AgentsMetadata")] AgentsMetadata eventTypes,
+        Logger<Agent>? logger = null) : Agent(eventTypes, logger), IHandle<TextMessage>
     {
-        public TestAgent(
-            IAgentWorker worker,
-            [FromKeyedServices("EventTypes")] EventTypes eventTypes,
-            Logger<Agent>? logger = null) : base(worker, eventTypes, logger)
-        {
-        }
-
-        public Task Handle(string item)
-        {
-            ReceivedItems.Add(item);
-            return Task.CompletedTask;
-        }
-
-        public Task Handle(int item)
-        {
-            ReceivedItems.Add(item);
-            return Task.CompletedTask;
-        }
-
-        public Task Handle(TextMessage item)
+        public Task Handle(TextMessage item, CancellationToken cancellationToken = default)
         {
             ReceivedMessages[item.Source] = item.TextMessage_;
             return Task.CompletedTask;
@@ -100,13 +93,9 @@ public sealed class InMemoryAgentRuntimeFixture : IDisposable
     public InMemoryAgentRuntimeFixture()
     {
         var builder = WebApplication.CreateBuilder();
-
-        // step 1: create in-memory agent runtime
-        // step 2: register TestAgent to that agent runtime
-        builder
-            .AddAgentWorker()
+        builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
+        builder.AddAgentWorker()
             .AddAgent<TestAgent>(nameof(TestAgent));
-
         AppHost = builder.Build();
         AppHost.StartAsync().Wait();
     }

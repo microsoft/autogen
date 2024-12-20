@@ -126,8 +126,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "HelloAgentState", "samples\
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Extensions.Aspire", "src\Microsoft.AutoGen\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj", "{65059914-5527-4A00-9308-9FAF23D5E85A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Agents.Tests", "test\Microsoft.AutoGen.Agents.Tests\Microsoft.AutoGen.Agents.Tests.csproj", "{394FDAF8-74F9-4977-94A5-3371737EB774}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Integration.Tests", "test\Microsoft.AutoGen.Integration.Tests\Microsoft.AutoGen.Integration.Tests.csproj", "{D04C6153-8EAF-4E54-9852-52CEC1BE8D31}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloAgent.AppHost", "test\Microsoft.AutoGen.Integration.Tests.AppHosts\HelloAgent.AppHost\HelloAgent.AppHost.csproj", "{99D7766B-076F-4E6F-A8D2-3DF1DAFA2599}"
@@ -145,6 +143,8 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Runtime.Grpc.Tests", "test\Microsoft.AutoGen.Runtime.Grpc.Tests\Microsoft.AutoGen.Runtime.Grpc.Tests.csproj", "{0E7983BB-2602-421E-8B37-332E52870A10}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Tests.Shared", "test\Microsoft.AutoGen.Tests.Shared\Microsoft.AutoGen.Tests.Shared.csproj", "{14F90F79-580E-454D-BA7A-ED6D9723020D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Core.Tests", "test\Microsoft.AutoGen.Core.Tests\Microsoft.AutoGen.Core.Tests.csproj", "{EAFFE339-26CB-4019-991D-BCCE8E7D33A1}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -344,10 +344,6 @@ Global
 		{65059914-5527-4A00-9308-9FAF23D5E85A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{65059914-5527-4A00-9308-9FAF23D5E85A}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{65059914-5527-4A00-9308-9FAF23D5E85A}.Release|Any CPU.Build.0 = Release|Any CPU
-		{394FDAF8-74F9-4977-94A5-3371737EB774}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{394FDAF8-74F9-4977-94A5-3371737EB774}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{394FDAF8-74F9-4977-94A5-3371737EB774}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{394FDAF8-74F9-4977-94A5-3371737EB774}.Release|Any CPU.Build.0 = Release|Any CPU
 		{D04C6153-8EAF-4E54-9852-52CEC1BE8D31}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{D04C6153-8EAF-4E54-9852-52CEC1BE8D31}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D04C6153-8EAF-4E54-9852-52CEC1BE8D31}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -384,6 +380,10 @@ Global
 		{14F90F79-580E-454D-BA7A-ED6D9723020D}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{14F90F79-580E-454D-BA7A-ED6D9723020D}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{14F90F79-580E-454D-BA7A-ED6D9723020D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EAFFE339-26CB-4019-991D-BCCE8E7D33A1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EAFFE339-26CB-4019-991D-BCCE8E7D33A1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EAFFE339-26CB-4019-991D-BCCE8E7D33A1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EAFFE339-26CB-4019-991D-BCCE8E7D33A1}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -441,7 +441,6 @@ Global
 		{97550E87-48C6-4EBF-85E1-413ABAE9DBFD} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{64EF61E7-00A6-4E5E-9808-62E10993A0E5} = {7EB336C2-7C0A-4BC8-80C6-A3173AB8DC45}
 		{65059914-5527-4A00-9308-9FAF23D5E85A} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
-		{394FDAF8-74F9-4977-94A5-3371737EB774} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 		{D04C6153-8EAF-4E54-9852-52CEC1BE8D31} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 		{99D7766B-076F-4E6F-A8D2-3DF1DAFA2599} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 		{7F60934B-3E59-48D0-B26D-04A39FEC13EF} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
@@ -451,6 +450,7 @@ Global
 		{4CB42139-DEE4-40B9-AA81-1E4CCAA2F338} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{0E7983BB-2602-421E-8B37-332E52870A10} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 		{14F90F79-580E-454D-BA7A-ED6D9723020D} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
+		{EAFFE339-26CB-4019-991D-BCCE8E7D33A1} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93384647-528D-46C8-922C-8DB36A382F0B}
