@@ -1,11 +1,16 @@
 from difflib import SequenceMatcher
-from typing import Any, List, Union
+from typing import Any, List
 
-from autogen_core.base import CancellationToken
-from autogen_core.components import Image
+from autogen_core import CancellationToken, Image
 from pydantic import Field
 
-from ._base_memory import BaseMemoryConfig, Memory, MemoryEntry, MemoryQueryResult
+from ._base_memory import BaseMemoryConfig, ContentItem, Memory, MemoryEntry, MemoryQueryResult, MimeType
+from autogen_core.model_context import (
+    ChatCompletionContext
+)
+from autogen_core.models import (
+    SystemMessage,
+)
 
 
 class ListMemoryConfig(BaseMemoryConfig):
@@ -20,12 +25,6 @@ class ListMemory(Memory):
     """Simple list-based memory using text similarity matching."""
 
     def __init__(self, name: str | None = None, config: ListMemoryConfig | None = None) -> None:
-        """Initialize list memory.
-
-        Args:
-            name: Name of the memory instance
-            config: Optional configuration, uses defaults if not provided
-        """
         self._name = name or "default_list_memory"
         self._config = config or ListMemoryConfig()
         self._entries: List[MemoryEntry] = []
@@ -39,22 +38,14 @@ class ListMemory(Memory):
         return self._config
 
     def _calculate_similarity(self, text1: str, text2: str) -> float:
-        """Calculate text similarity score using SequenceMatcher.
-
-        Args:
-            text1: First text string
-            text2: Second text string
-
-        Returns:
-            Similarity score between 0 and 1
-        """
+        """Calculate text similarity score using SequenceMatcher."""
         return SequenceMatcher(None, text1.lower(), text2.lower()).ratio()
 
-    def _extract_text(self, content: Union[str, List[Union[str, Image]]]) -> str:
-        """Extract searchable text from content.
+    def _extract_text(self, content_item: ContentItem) -> str:
+        """Extract searchable text from ContentItem.
 
         Args:
-            content: Content to extract text from
+            content_item: ContentItem to extract text from
 
         Returns:
             Extracted text string
@@ -62,41 +53,54 @@ class ListMemory(Memory):
         Raises:
             ValueError: If no text content can be extracted
         """
-        if isinstance(content, str):
-            return content
+        content = content_item.content
 
-        text_parts = [item for item in content if isinstance(item, str)]
-        if not text_parts:
-            raise ValueError("Content must contain at least one text element")
+        if content_item.mime_type in [MimeType.TEXT, MimeType.MARKDOWN]:
+            return str(content)
+        elif content_item.mime_type == MimeType.JSON:
+            if isinstance(content, dict):
+                return str(content)
+            raise ValueError("JSON content must be a dict")
+        elif isinstance(content, Image):
+            raise ValueError("Image content cannot be converted to text")
+        else:
+            raise ValueError(
+                f"Unsupported content type: {content_item.mime_type}")
 
-        return " ".join(text_parts)
+    async def transform(
+        self,
+        model_context: ChatCompletionContext,
+    ) -> ChatCompletionContext:
+        """Transform the model context using relevant memory content."""
+        messages = await model_context.get_messages()
+        if not messages:
+            return model_context
+
+        last_message = messages[-1]
+        query_text = getattr(last_message, "content", str(last_message))
+        query = ContentItem(content=query_text, mime_type=MimeType.TEXT)
+
+        results = []
+        query_results = await self.query(query)
+        for i, result in enumerate(query_results, 1):
+            results.append(f"{i}. {result.entry.content}")
+
+        if results:
+            memory_context = "Results from memory query to consider include:\n" + \
+                "\n".join(results)
+            await model_context.add_message(SystemMessage(content=memory_context))
+
+        return model_context
 
     async def query(
         self,
-        query: Union[str, Image, List[Union[str, Image]]],
+        query: ContentItem,
         cancellation_token: CancellationToken | None = None,
         **kwargs: Any,
     ) -> List[MemoryQueryResult]:
-        """Query memory entries based on text similarity.
-
-        Args:
-            query: Query text or content
-            cancellation_token: Optional token to cancel operation
-            **kwargs: Additional query parameters (unused)
-
-        Returns:
-            List of memory entries with similarity scores
-
-        Raises:
-            ValueError: If query contains unsupported content types
-        """
-        if isinstance(query, (str, Image)):
-            query_content = [query]
-        else:
-            query_content = query
-
+        """Query memory entries based on text similarity."""
         try:
-            query_text = self._extract_text(query_content)
+            query_text = self._extract_text(query)
         except ValueError:
             raise ValueError("Query must contain text content")
 
@@ -118,15 +122,19 @@ class ListMemory(Memory):
         results.sort(key=lambda x: x.score, reverse=True)
         return results[: self._config.k]
 
-    async def add(self, entry: MemoryEntry, cancellation_token: CancellationToken | None = None) -> None:
-        """Add a new entry to memory.
-
-        Args:
-            entry: Memory entry to add
-            cancellation_token: Optional token to cancel operation
-        """
+    async def add(
+        self,
+        entry: MemoryEntry,
+        cancellation_token: CancellationToken | None = None
+    ) -> None:
+        """Add a new entry to memory."""
         self._entries.append(entry)
 
     async def clear(self) -> None:
         """Clear all entries from memory."""
         self._entries = []
+
+    async def cleanup(self) -> None:
+        """Clean up any resources used by the memory implementation."""
+        # No resources to clean up in this implementation
+        pass
