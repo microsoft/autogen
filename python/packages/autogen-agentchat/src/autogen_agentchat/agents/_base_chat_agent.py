@@ -5,7 +5,7 @@ from autogen_core import CancellationToken
 
 from ..base import ChatAgent, Response, TaskResult
 from ..messages import (
-    AgentMessage,
+    AgentEvent,
     ChatMessage,
     TextMessage,
 )
@@ -42,16 +42,38 @@ class BaseChatAgent(ChatAgent, ABC):
 
     @abstractmethod
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
-        """Handles incoming messages and returns a response."""
+        """Handles incoming messages and returns a response.
+
+        .. note::
+
+            Agents are stateful and the messages passed to this method should
+            be the new messages since the last call to this method. The agent
+            should maintain its state between calls to this method. For example,
+            if the agent needs to remember the previous messages to respond to
+            the current message, it should store the previous messages in the
+            agent state.
+
+        """
         ...
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentMessage | Response, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         """Handles incoming messages and returns a stream of messages and
         and the final item is the response. The base implementation in
         :class:`BaseChatAgent` simply calls :meth:`on_messages` and yields
-        the messages in the response."""
+        the messages in the response.
+
+        .. note::
+
+            Agents are stateful and the messages passed to this method should
+            be the new messages since the last call to this method. The agent
+            should maintain its state between calls to this method. For example,
+            if the agent needs to remember the previous messages to respond to
+            the current message, it should store the previous messages in the
+            agent state.
+
+        """
         response = await self.on_messages(messages, cancellation_token)
         for inner_message in response.inner_messages or []:
             yield inner_message
@@ -67,7 +89,7 @@ class BaseChatAgent(ChatAgent, ABC):
         if cancellation_token is None:
             cancellation_token = CancellationToken()
         input_messages: List[ChatMessage] = []
-        output_messages: List[AgentMessage] = []
+        output_messages: List[AgentEvent | ChatMessage] = []
         if task is None:
             pass
         elif isinstance(task, str):
@@ -97,13 +119,13 @@ class BaseChatAgent(ChatAgent, ABC):
         *,
         task: str | ChatMessage | List[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None]:
         """Run the agent with the given task and return a stream of messages
         and the final task result as the last item in the stream."""
         if cancellation_token is None:
             cancellation_token = CancellationToken()
         input_messages: List[ChatMessage] = []
-        output_messages: List[AgentMessage] = []
+        output_messages: List[AgentEvent | ChatMessage] = []
         if task is None:
             pass
         elif isinstance(task, str):

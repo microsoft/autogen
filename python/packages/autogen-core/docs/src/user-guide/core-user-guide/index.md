@@ -11,16 +11,61 @@ myst:
 :maxdepth: 1
 :hidden:
 
+installation
 quickstart
-core-concepts/index
-framework/index
-design-patterns/index
-cookbook/index
-faqs
 ```
 
-```{warning}
-This project and documentation is a work in progress. If you have any questions or need help, please reach out to us on GitHub.
+```{toctree}
+:maxdepth: 1
+:hidden:
+:caption: Core Concepts
+
+core-concepts/agent-and-multi-agent-application
+core-concepts/architecture
+core-concepts/application-stack
+core-concepts/agent-identity-and-lifecycle
+core-concepts/topic-and-subscription
+```
+
+```{toctree}
+:maxdepth: 1
+:hidden:
+:caption: Framework Guide
+
+framework/agent-and-agent-runtime
+framework/message-and-communication
+framework/model-clients
+framework/tools
+framework/logging
+framework/telemetry
+framework/command-line-code-executors
+framework/distributed-agent-runtime
+framework/component-config
+```
+
+```{toctree}
+:maxdepth: 1
+:hidden:
+:caption: Multi-Agent Design Patterns
+
+design-patterns/intro
+design-patterns/concurrent-agents
+design-patterns/sequential-workflow
+design-patterns/group-chat
+design-patterns/handoffs
+design-patterns/mixture-of-agents
+design-patterns/multi-agent-debate
+design-patterns/reflection
+design-patterns/code-execution-groupchat
+```
+
+```{toctree}
+:maxdepth: 1
+:hidden:
+:caption: More
+
+cookbook/index
+faqs
 ```
 
 AutoGen core offers an easy way to quickly build event-driven, distributed, scalable, resilient AI agent systems. Agents are developed by using the [Actor model](https://en.wikipedia.org/wiki/Actor_model). You can build and run your agent system locally and easily move to a distributed system in the cloud when you are ready.
