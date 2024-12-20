@@ -311,7 +311,7 @@ cd autogen/python
 # Install autogen-core and autogen-ext in editable mode
 pip install -e packages/autogen-core
 pip install -e packages/autogen-ext
-pip install -r packages/autogen-core/samples/adas/requirements.txt
+pip install -r samples/adas/requirements.txt
 ```
 
 ### Agent System code definitions
@@ -397,24 +397,26 @@ This should be passed as a JSON string to the `base_agent_model_config` flag.
 ### Run ADAS
 ```bash
 # For DROP benchmark
-python packages/autogen-core/samples/adas/adas.py \
+python samples/adas/adas.py \
     --data_filename=/home/<user>/ADAS/dataset/drop_v0_dev.jsonl.gz \
     --n_generation=150 \
     --expr_name=drop_o1_preview_meta_gpt4o_base_results \
     --save_dir='results/' \
+    --max_workers=1 \
     --meta_agent_model_config='{"api_version": "2024-08-01-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/o1-preview/chat/completions?api-version=2024-08-01-preview", "model_capabilities": {"function_calling": false, "json_output": false, "vision": false}, "azure_ad_token_provider": "DEFAULT", "model": " o1-preview-2024-09-12", "azure_deployment": "o1-preview-2024-09-12"}' \
-    --base_agent_model_config='{"api_version": "2023-03-15-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2023-03-15-preview", "model_capabilities": {"function_calling": true, "json_output": true, "vision": true}, "azure_ad_token_pr ovider": "DEFAULT", "model": "gpt-4o-2024-08-06", "azure_deployment": "gpt-4o-2024-08-06"}' \
-    --benchmark_specific_utils_file='/home/<user>/autogen/python/packages/autogen-core/samples/adas/utils_drop.py'
+    --base_agent_model_config='{"api_version": "2023-03-15-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2023-03-15-preview", "model_capabilities": {"function_calling": true, "json_output": true, "vision": true}, "azure_ad_token_provider": "DEFAULT", "model": "gpt-4o-2024-08-06", "azure_deployment": "gpt-4o-2024-08-06"}' \
+    --benchmark_specific_utils_file='/home/<user>/autogen/python/samples/adas/utils_drop.py'
 
 # For your own benchmark
-python packages/autogen-core/samples/adas/adas.py \
+python samples/adas/adas.py \
     --data_filename=/home/<user>/my_benchmark_data.csv \
     --n_generation=150 \
     --expr_name=drop_o1_preview_meta_gpt4o_base_results \
     --save_dir='results/' \
+    --max_workers=1 \
     --meta_agent_model_config='{"api_version": "2024-08-01-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/o1-preview/chat/completions?api-version=2024-08-01-preview", "model_capabilities": {"function_calling": false, "json_output": false, "vision": false}, "azure_ad_token_provider": "DEFAULT", "model": " o1-preview-2024-09-12", "azure_deployment": "o1-preview-2024-09-12"}' \
-    --base_agent_model_config='{"api_version": "2023-03-15-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2023-03-15-preview", "model_capabilities": {"function_calling": true, "json_output": true, "vision": true}, "azure_ad_token_pr ovider": "DEFAULT", "model": "gpt-4o-2024-08-06", "azure_deployment": "gpt-4o-2024-08-06"}' \
-    --benchmark_specific_utils_file='/home/<user>/autogen/python/packages/autogen-core/samples/adas/utils_my_benchmark.py'
+    --base_agent_model_config='{"api_version": "2023-03-15-preview", "azure_endpoint": "https://<user>-aoai1.openai.azure.com/openai/deployments/gpt-4o/chat/completions?api-version=2023-03-15-preview", "model_capabilities": {"function_calling": true, "json_output": true, "vision": true}, "azure_ad_token_provider": "DEFAULT", "model": "gpt-4o-2024-08-06", "azure_deployment": "gpt-4o-2024-08-06"}' \
+    --benchmark_specific_utils_file='/home/<user>/autogen/python/samples/adas/utils_my_benchmark.py'
 ```
 You can also increase the number of generations for the meta-agent to try creating. Note that if there is any compilation error, the count of the generation will be skipped. (Potential bug, or at least confusing behavior). 
 
@@ -424,7 +426,7 @@ python3 adas.py --n_generations 100 --max_workers 1
 ```
 ## Results for DROP benchmark
 ### Best Agent System that the Meta-Agent discovered
-See the files in the `adas/results` director for the full list of discovered Agent Systems.
+See the files in the `adas/results` directory for the full list of discovered Agent Systems.
 #### Meta-Agent used o1-preview, and Base Agents used GPT3.5
 ```
 TODO: Testing/optimizations/reruns actively in progress.
