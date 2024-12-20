@@ -1,24 +1,26 @@
 # mypy: disable-error-code="no-any-unimported,misc"
+from pathlib import Path
+
 import pandas as pd
 import tiktoken
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
-from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
 from pydantic import BaseModel, Field
 
+from graphrag.config.config_file_loader import load_config_from_file
 from graphrag.query.indexer_adapters import (
     read_indexer_communities,
     read_indexer_entities,
     read_indexer_reports,
 )
 from graphrag.query.llm.base import BaseLLM
+from graphrag.query.llm.get_client import get_llm
 from graphrag.query.structured_search.global_search.community_context import GlobalCommunityContext
 from graphrag.query.structured_search.global_search.search import GlobalSearch
 
 from ._config import GlobalContextConfig as ContextConfig
 from ._config import GlobalDataConfig as DataConfig
 from ._config import MapReduceConfig
-from ._model_adapter import GraphragOpenAiModelAdapter
 
 _default_context_config = ContextConfig()
 _default_mapreduce_config = MapReduceConfig()
@@ -33,6 +35,27 @@ class GlobalSearchToolReturn(BaseModel):
 
 
 class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
+    """Enables running GraphRAG global search queries as an AutoGen tool.
+
+    This tool allows you to perform semantic search over a corpus of documents using the GraphRAG framework.
+    The search combines graph-based document relationships with semantic embeddings to find relevant information.
+
+    .. note::
+
+        This tool requires the :code:`graphrag` extra for the :code:`autogen-ext` package.
+
+        This tool requires indexed data created by the GraphRAG indexing process. See the GraphRAG documentation
+        for details on how to prepare the required data files.
+
+
+    Args:
+        token_encoder (tiktoken.Encoding): The tokenizer used for text encoding
+        llm (BaseLLM): The language model to use for search
+        data_config (DataConfig): Configuration for data source locations and settings
+        context_config (ContextConfig, optional): Configuration for context building. Defaults to default config.
+        mapreduce_config (MapReduceConfig, optional): Configuration for map-reduce operations. Defaults to default config.
+    """
+
     def __init__(
         self,
         token_encoder: tiktoken.Encoding,
@@ -115,31 +138,33 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
         return GlobalSearchToolReturn(answer=result.response)
 
     @classmethod
-    def from_config(
-        cls,
-        openai_client: AzureOpenAIChatCompletionClient,
-        data_config: DataConfig,
-        context_config: ContextConfig = _default_context_config,
-        mapreduce_config: MapReduceConfig = _default_mapreduce_config,
-    ) -> "GlobalSearchTool":
-        """Create a GlobalSearchTool instance from configuration.
+    def from_settings(cls, settings_path: str | Path) -> "GlobalSearchTool":
+        """Create a GlobalSearchTool instance from GraphRAG settings file.
 
         Args:
-            openai_client: The Azure OpenAI client to use
-            data_config: Configuration for data sources
-            context_config: Configuration for context building
-            mapreduce_config: Configuration for map-reduce operations
+            settings_path: Path to the GraphRAG settings.yaml file
 
         Returns:
             An initialized GlobalSearchTool instance
         """
-        llm_adapter = GraphragOpenAiModelAdapter(openai_client)
-        token_encoder = tiktoken.encoding_for_model(llm_adapter.model_name)
+        # Load GraphRAG config
+        config = load_config_from_file(settings_path)
+
+        # Initialize token encoder
+        token_encoder = tiktoken.get_encoding(config.encoding_model)
+
+        # Initialize LLM using graphrag's get_client
+        llm = get_llm(config)
+
+        # Create data config from storage paths
+        data_config = DataConfig(
+            input_dir=str(Path(config.storage.base_dir)),
+        )
 
         return cls(
             token_encoder=token_encoder,
-            llm=llm_adapter,
+            llm=llm,
             data_config=data_config,
-            context_config=context_config,
-            mapreduce_config=mapreduce_config,
+            context_config=_default_context_config,
+            mapreduce_config=_default_mapreduce_config,
         )

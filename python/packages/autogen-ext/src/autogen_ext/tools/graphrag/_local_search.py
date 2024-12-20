@@ -1,30 +1,27 @@
 # mypy: disable-error-code="no-any-unimported,misc"
 import os
-from typing import cast
+from pathlib import Path
 
 import pandas as pd
 import tiktoken
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
-from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
-from autogen_ext.models.openai._openai_client import OpenAIChatCompletionClient
 from pydantic import BaseModel, Field
 
+from graphrag.config.config_file_loader import load_config_from_file
 from graphrag.query.indexer_adapters import (
     read_indexer_entities,
     read_indexer_relationships,
     read_indexer_text_units,
 )
 from graphrag.query.llm.base import BaseLLM, BaseTextEmbedding
-from graphrag.query.llm.oai.embedding import OpenAIEmbedding
-from graphrag.query.llm.oai.typing import OpenaiApiType
+from graphrag.query.llm.get_client import get_llm, get_text_embedder
 from graphrag.query.structured_search.local_search.mixed_context import LocalSearchMixedContext
 from graphrag.query.structured_search.local_search.search import LocalSearch
 from graphrag.vector_stores.lancedb import LanceDBVectorStore
 
-from ._config import EmbeddingConfig, LocalContextConfig, SearchConfig
+from ._config import LocalContextConfig, SearchConfig
 from ._config import LocalDataConfig as DataConfig
-from ._model_adapter import GraphragOpenAiModelAdapter
 
 _default_context_config = LocalContextConfig()
 _default_search_config = SearchConfig()
@@ -39,6 +36,27 @@ class LocalSearchToolReturn(BaseModel):
 
 
 class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
+    """Enables running GraphRAG local search queries as an AutoGen tool.
+
+    This tool allows you to perform semantic search over a corpus of documents using the GraphRAG framework.
+    The search combines local document context with semantic embeddings to find relevant information.
+
+    .. note::
+
+        This tool requires the :code:`graphrag` extra for the :code:`autogen-ext` package.
+
+        This tool requires indexed data created by the GraphRAG indexing process. See the GraphRAG documentation
+        for details on how to prepare the required data files.
+
+    Args:
+        token_encoder (tiktoken.Encoding): The tokenizer used for text encoding
+        llm (BaseLLM): The language model to use for search
+        embedder (BaseTextEmbedding): The text embedding model to use
+        data_config (DataConfig): Configuration for data source locations and settings
+        context_config (LocalContextConfig, optional): Configuration for context building. Defaults to default config.
+        search_config (SearchConfig, optional): Configuration for search operations. Defaults to default config.
+    """
+
     def __init__(
         self,
         token_encoder: tiktoken.Encoding,
@@ -77,11 +95,6 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
             collection_name="default-entity-description",
         )
         description_embedding_store.connect(db_uri=os.path.join(data_config.input_dir, "lancedb"))
-        # entity_embedding_table = table = description_embedding_store.db_connection.open_table('default-entity-description').to_pandas()
-        # breakpoint()
-        # entity_description_embeddings = store_entity_semantic_embeddings(
-        #     entities=entities, vectorstore=description_embedding_store
-        # )
 
         description_embedding_store = LanceDBVectorStore(
             collection_name="default-entity-description",
@@ -128,45 +141,35 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
         return LocalSearchToolReturn(answer=result.response)
 
     @classmethod
-    def from_config(
-        cls,
-        openai_client: AzureOpenAIChatCompletionClient | OpenAIChatCompletionClient,
-        data_config: DataConfig,
-        embedding_config: EmbeddingConfig,
-        context_config: LocalContextConfig = _default_context_config,
-        search_config: SearchConfig = _default_search_config,
-    ) -> "LocalSearchTool":
-        """Create a LocalSearchTool instance from configuration.
+    def from_settings(cls, settings_path: str | Path) -> "LocalSearchTool":
+        """Create a LocalSearchTool instance from GraphRAG settings file.
 
         Args:
-            openai_client: The Azure OpenAI client to use
-            data_config: Configuration for data sources
-            embedding_config: Configuration for the embedding model
-            context_config: Configuration for context building
-            search_config: Configuration for search operations
+            settings_path: Path to the GraphRAG settings.yaml file
 
         Returns:
             An initialized LocalSearchTool instance
         """
-        llm_adapter = GraphragOpenAiModelAdapter(openai_client)
-        token_encoder = tiktoken.encoding_for_model(llm_adapter.model_name)
+        # Load GraphRAG config
+        config = load_config_from_file(settings_path)
 
-        embedder = OpenAIEmbedding(
-            model=embedding_config.model,
-            api_base=embedding_config.api_base,
-            deployment_name=embedding_config.deployment_name,
-            api_version=embedding_config.api_version,
-            api_type=cast(OpenaiApiType, embedding_config.api_type),
-            azure_ad_token_provider=embedding_config.azure_ad_token_provider,
-            max_retries=embedding_config.max_retries,
-            request_timeout=embedding_config.request_timeout,
+        # Initialize token encoder
+        token_encoder = tiktoken.get_encoding(config.encoding_model)
+
+        # Initialize LLM and embedder using graphrag's get_client functions
+        llm = get_llm(config)
+        embedder = get_text_embedder(config)
+
+        # Create data config from storage paths
+        data_config = DataConfig(
+            input_dir=str(Path(config.storage.base_dir)),
         )
 
         return cls(
             token_encoder=token_encoder,
-            llm=llm_adapter,
+            llm=llm,
             embedder=embedder,
             data_config=data_config,
-            context_config=context_config,
-            search_config=search_config,
+            context_config=_default_context_config,
+            search_config=_default_search_config,
         )

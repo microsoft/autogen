@@ -28,7 +28,7 @@ file-surfer = [
     "autogen-agentchat==0.4.0.dev11",
     "markitdown>=0.0.1a2",
 ]
-graphrag = ["graphrag>=1.0.0"]
+graphrag = ["graphrag>=1.0.1"]
 web-surfer = [
     "autogen-agentchat==0.4.0.dev11",
     "playwright>=1.48.0",
