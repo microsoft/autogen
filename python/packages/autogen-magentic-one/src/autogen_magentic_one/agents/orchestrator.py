@@ -249,14 +249,13 @@ class LedgerOrchestrator(BaseOrchestrator):
                 if key_error:
                     continue
                 return ledger_dict
-            except json.JSONDecodeError as e:
+            except json.JSONDecodeError:
                 self.logger.info(
                     OrchestrationEvent(
                         f"{self.metadata['type']} (error)",
                         f"Failed to parse ledger information: {ledger_str}",
                     )
                 )
-                raise e
 
         raise ValueError("Failed to parse ledger information after multiple retries.")
 
