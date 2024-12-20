@@ -21,6 +21,7 @@ from ....messages import (
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
+    ToolCallSummaryMessage,
 )
 from ....state import MagenticOneOrchestratorState
 from .._base_group_chat_manager import BaseGroupChatManager
@@ -433,7 +434,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             elif isinstance(m, StopMessage | HandoffMessage):
                 context.append(UserMessage(content=m.content, source=m.source))
             elif m.source == self._name:
-                assert isinstance(m, TextMessage)
+                assert isinstance(m, TextMessage | ToolCallSummaryMessage)
                 context.append(AssistantMessage(content=m.content, source=m.source))
             else:
                 assert isinstance(m, TextMessage) or isinstance(m, MultiModalMessage)
