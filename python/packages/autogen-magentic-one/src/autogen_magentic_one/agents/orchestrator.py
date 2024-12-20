@@ -249,7 +249,7 @@ class LedgerOrchestrator(BaseOrchestrator):
                 if key_error:
                     continue
                 return ledger_dict
-            except json.JSONDecodeError as e:
+            except json.JSONDecodeError:
                 self.logger.info(
                     OrchestrationEvent(
                         f"{self.metadata['type']} (error)",
