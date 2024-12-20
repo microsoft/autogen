@@ -44,13 +44,14 @@ public abstract class Agent
         AgentId = new AgentId(this.GetType().Name, new Guid().ToString());
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<Agent>();
         _handlersByMessageType = new(GetType().GetHandlersLookupTable());
-        AddImplicitSubscriptionsAsync().AsTask().Wait();
         Worker = new UninitializedAgentWorker();
     }
     public Task Initialize(IAgentWorker worker)
     {
         Worker = worker;
-        return Start();
+        var completion = Start();
+        AddImplicitSubscriptionsAsync().AsTask().Wait();
+        return completion;
     }
 
     private async ValueTask AddImplicitSubscriptionsAsync()
