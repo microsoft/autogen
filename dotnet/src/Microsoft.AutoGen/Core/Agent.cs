@@ -175,6 +175,10 @@ public abstract class Agent
                 break;
         }
     }
+    public async ValueTask<List<string>> GetSubscriptionsAsync()
+    {
+        return await Worker.GetSubscriptionsAsync(GetType()).ConfigureAwait(false);
+    }
     public List<string> Subscribe(string topic)
     {
         Message message = new()
@@ -277,14 +281,21 @@ public abstract class Agent
         // Return the result from the already-completed task
         return await completion.Task.ConfigureAwait(false);
     }
-
-    public async ValueTask PublishMessageAsync<T>(T message, string? source = null, CancellationToken token = default) where T : IMessage
+    /// <summary>
+    /// Publishes a message asynchronously.
+    /// </summary>
+    /// <typeparam name="T">The type of the message.</typeparam>
+    /// <param name="event">The message to publish.</param>
+    /// <param name="key">The source of the message.</param>
+    /// <param name="token">A token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async ValueTask PublishMessageAsync<T>(T @event, string? topic = null, string? key = null, CancellationToken token = default ) where T : IMessage
     {
-        var src = string.IsNullOrWhiteSpace(source) ? this.AgentId.Key : source;
-        var evt = message.ToCloudEvent(src);
+        var k = string.IsNullOrWhiteSpace(key) ? AgentId.Key : key;
+        var topicType = string.IsNullOrWhiteSpace(topic) ? "default" : topic;
+        var evt = @event.ToCloudEvent(k, topicType);
         await PublishEventAsync(evt, token).ConfigureAwait(false);
     }
-
     public async ValueTask PublishEventAsync(CloudEvent item, CancellationToken cancellationToken = default)
     {
         var activity = s_source.StartActivity($"PublishEventAsync '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
@@ -367,6 +378,6 @@ public abstract class Agent
     }
     public async ValueTask PublishEventAsync(string topic, IMessage evt, CancellationToken cancellationToken = default)
     {
-        await PublishEventAsync(evt.ToCloudEvent(topic), cancellationToken).ConfigureAwait(false);
+        await PublishEventAsync(evt.ToCloudEvent(key: GetType().Name, topic: topic), cancellationToken).ConfigureAwait(false);
     }
 }

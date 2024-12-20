@@ -12,4 +12,5 @@ public interface IAgentWorker
     ValueTask SendMessageAsync(Message message, CancellationToken cancellationToken = default);
     ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default);
     ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default);
+    ValueTask<List<string>> GetSubscriptionsAsync(Type type);
 }

@@ -19,7 +19,7 @@ public class PBAgent([FromKeyedServices("EventTypes")] AgentsMetadata eventTypes
     {
         ReceivedMessages[AgentId.Key] = item.Message;
         var hello = new Hello { Message = item.Message };
-        await PublishEventAsync(hello);
+        await PublishMessageAsync(hello);
     }
     public Task Handle(GoodBye item, CancellationToken cancellationToken)
     {
@@ -39,7 +39,7 @@ public class GMAgent([FromKeyedServices("EventTypes")] AgentsMetadata eventTypes
     {
         _logger.LogInformation($"Received Hello message {item.Message}");
         ReceivedMessages[AgentId.Key] = item.Message;
-        await PublishEventAsync(new GoodBye { Message = "" });
+        await PublishMessageAsync(new GoodBye { Message = "" });
     }
 
     public static ConcurrentDictionary<string, object> ReceivedMessages { get; private set; } = new();

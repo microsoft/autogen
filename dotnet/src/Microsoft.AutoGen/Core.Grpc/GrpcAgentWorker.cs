@@ -396,5 +396,10 @@ public sealed class GrpcAgentWorker(
             throw new KeyNotFoundException($"Failed to read AgentState for {agentId}.");
         }
     }
+
+    public ValueTask<List<string>> GetSubscriptionsAsync(Type type)
+    {
+        throw new NotImplementedException();
+    }
 }
 
