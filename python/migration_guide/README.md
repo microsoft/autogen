@@ -2,10 +2,13 @@
 
 This is a migration guide for users of the `v0.2.*` versions of `autogen-agentchat`
 to the `v0.4` version, which introduces a new set of APIs and features.
-
-> **Note**: The `v0.4` version contains breaking changes. Please read this guide carefully.
-We will still maintain the `v0.2` version in the `0.2` branch, however, 
+The `v0.4` version contains breaking changes. Please read this guide carefully.
+We still maintain the `v0.2` version in the `0.2` branch, however, 
 we highly recommend you to upgrade to the `v0.4` version.
+
+> **Note**: We no longer have admin access to the `pyautogen` PyPI package, and
+> the releases from that package is no longer from Microsoft since version 0.2.34.
+> Please read our [clarification statement] regarding forks. 
 
 ## What is `v0.4`?
 
