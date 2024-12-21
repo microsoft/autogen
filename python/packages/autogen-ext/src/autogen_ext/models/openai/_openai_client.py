@@ -25,6 +25,7 @@ from autogen_core import (
     EVENT_LOGGER_NAME,
     TRACE_LOGGER_NAME,
     CancellationToken,
+    Component,
     FunctionCall,
     Image,
 )
@@ -64,7 +65,9 @@ from openai.types.chat.chat_completion import Choice
 from openai.types.chat.chat_completion_chunk import Choice as ChunkChoice
 from openai.types.shared_params import FunctionDefinition, FunctionParameters
 from pydantic import BaseModel
-from typing_extensions import Unpack
+from typing_extensions import Self, Unpack
+
+from autogen_ext.models.openai._azure_token_provider import AzureTokenProvider
 
 from . import _model_info
 from .config import AzureOpenAIClientConfiguration, OpenAIClientConfiguration
@@ -971,7 +974,11 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
         self._client = _openai_client_from_config(state["_raw_config"])
 
 
-class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
+class ConfigHolder(BaseModel):
+    values: Dict[str, Any]
+
+
+class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[ConfigHolder]):
     """Chat completion client for Azure OpenAI hosted models.
 
     Args:
@@ -1019,6 +1026,9 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
 
     """
 
+    component_type = "model"
+    config_schema = ConfigHolder
+
     def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
         model_capabilities: Optional[ModelCapabilities] = None
         copied_args = dict(kwargs).copy()
@@ -1039,3 +1049,26 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
     def __setstate__(self, state: Dict[str, Any]) -> None:
         self.__dict__.update(state)
         self._client = _azure_openai_client_from_config(state["_raw_config"])
+
+    def _to_config(self) -> ConfigHolder:
+        copied_config = self._raw_config.copy()
+
+        if "azure_ad_token_provider" in copied_config:
+            if not isinstance(copied_config["azure_ad_token_provider"], AzureTokenProvider):
+                raise ValueError("azure_ad_token_provider must be a AzureTokenProvider to be component serialized")
+
+            copied_config["azure_ad_token_provider"] = (
+                copied_config["azure_ad_token_provider"].dump_component().model_dump()
+            )
+
+        return ConfigHolder(values=copied_config)
+
+    @classmethod
+    def _from_config(cls, config: ConfigHolder) -> Self:
+        copied_config = config.values.copy()
+        if "azure_ad_token_provider" in copied_config:
+            copied_config["azure_ad_token_provider"] = AzureTokenProvider.load_component(
+                copied_config["azure_ad_token_provider"]
+            )
+
+        return cls(**copied_config)
