@@ -313,21 +313,21 @@ and what the `position` should be, in `v0.4`, we can simply create a custom agen
 and implement the `on_messages`, `on_reset`, and `produced_message_types` methods.
 
 ```python
-from typing import Sequence
+from typing import Sequence, List
 from autogen_core import CancellationToken
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.messages import TextMessage, ChatMessage
 from autogen_agentchat.base import Response
 
 class CustomAgent(BaseChatAgent):
-    async def on_messages(self, messages: Sequence[TextMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         return Response(chat_message=TextMessage(content="Custom reply", source=self.name))
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         pass
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> List[type[ChatMessage]]:
         return [TextMessage]
 ```
 
@@ -377,7 +377,7 @@ and `CodeExecutorAgent` together in a `RoundRobinGroupChat`.
 import asyncio
 from autogen_agentchat.agents import AssistantAgent, CodeExecutorAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
-from autogen_agentchat.conditions import TextTermination, MaxMessageTermination
+from autogen_agentchat.conditions import TextMentionTermination, MaxMessageTermination
 from autogen_agentchat.ui import Console
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -397,7 +397,7 @@ async def main() -> None:
     )
 
     # The termination condition is a combination of text termination and max message termination, either of which will cause the chat to terminate.
-    termination = TextTermination("TERMINATE") | MaxMessageTermination(10)
+    termination = TextMentionTermination("TERMINATE") | MaxMessageTermination(10)
 
     # The group chat will alternate between the assistant and the code executor.
     group_chat = RoundRobinGroupChat([assistant, code_executor], termination_condition=termination)
@@ -464,6 +464,7 @@ import asyncio
 from autogen_core import CancellationToken
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.messages import TextMessage
 
 def get_weather(city: str) -> str: # Async tool is possible too.
     return f"The weather in {city} is 72 degree and sunny."
@@ -533,10 +534,11 @@ print(result.summary)
 In `v0.4`, you can use the `RoundRobinGroupChat` to achieve the same behavior.
 
 ```python
-from asyncio
+import asyncio
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
-from autogen_agentchat.conditions import TextTermination
+from autogen_agentchat.conditions import TextMentionTermination
+from autogen_agentchat.ui import Console
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 async def main() -> None:
@@ -557,7 +559,7 @@ async def main() -> None:
     )
 
     # The termination condition is a text termination, which will cause the chat to terminate when the text "APPROVE" is received.
-    termination = TextTermination("APPROVE")
+    termination = TextMentionTermination("APPROVE")
 
     # The group chat will alternate between the writer and the critic.
     group_chat = RoundRobinGroupChat([writer, critic], termination_condition=termination)
@@ -591,11 +593,12 @@ In `v0.4`, you can simply call `run` or `run_stream` again with the same group c
 `save_state` and `load_state` methods.
 
 ```python
-from asyncio
+import asyncio
 import json
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
-from autogen_agentchat.conditions import TextTermination
+from autogen_agentchat.conditions import TextMentionTermination
+from autogen_agentchat.ui import Console
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 def create_team() -> RoundRobinGroupChat:
@@ -616,7 +619,7 @@ def create_team() -> RoundRobinGroupChat:
     )
 
     # The termination condition is a text termination, which will cause the chat to terminate when the text "APPROVE" is received.
-    termination = TextTermination("APPROVE")
+    termination = TextMentionTermination("APPROVE")
 
     # The group chat will alternate between the writer and the critic.
     group_chat = RoundRobinGroupChat([writer, critic], termination_condition=termination)
@@ -669,8 +672,8 @@ Here is an example of using the state-based selection method to implement
 a web search/analysis scenario.
 
 ```python
+import asyncio
 from typing import Sequence
-
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.messages import AgentEvent, ChatMessage
@@ -794,7 +797,7 @@ and to the nested team or agent.
 The following example shows a simple nested chat that counts numbers.
 
 ```python
-from typing import Sequence
+from typing import Sequence, List
 from autogen_core import CancellationToken
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
@@ -802,10 +805,11 @@ from autogen_agentchat.messages import TextMessage, ChatMessage
 from autogen_agentchat.base import Response
 
 class CountingAgent(BaseChatAgent):
-    async def on_messages(self, messages: Sequence[TextMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         if len(messages) == 0:
             last_number = 0 # Start from 0 if no messages are given.
         else:
+            assert isinstance(messages[-1], TextMessage)
             last_number = int(messages[-1].content) # Otherwise, start from the last number.
         return Response(chat_message=TextMessage(content=str(last_number + 1), source=self.name))
 
@@ -813,7 +817,7 @@ class CountingAgent(BaseChatAgent):
         pass
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> List[type[ChatMessage]]:
         return [TextMessage]
 
 class NestedCountingAgent(BaseChatAgent):
@@ -821,23 +825,26 @@ class NestedCountingAgent(BaseChatAgent):
         super().__init__(name, description="An agent that counts numbers.")
         self._counting_team = counting_team
 
-    async def on_messages(self, messages: Sequence[TextMessage], cancellation_token: CancellationToken) -> Response:
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         # Run the inner team with the given messages and returns the last message produced by the team.
-        result = await self._counting_team.run(task=messages, cancellation_token=cancellation_token)
+        result = await self._counting_team.run(task=list(messages), cancellation_token=cancellation_token)
         # To stream the inner messages, implement `on_messages_stream` and use that to implement `on_messages`.
-        return Response(chat_message=result.messages[-1], inner_messages=result.messages[len(messages):-1])
+        assert isinstance(result.messages[-1], TextMessage)
+        return Response(chat_message=result.messages[-1], inner_messages=list(result.messages[len(messages):-1]))
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         # Reset the inner team.
-        await self._counting_team.reset(cancellation_token)
+        await self._counting_team.reset()
 
     @property
-    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+    def produced_message_types(self) -> List[type[ChatMessage]]:
         return [TextMessage]
 
 async def main() -> None:
     # Create a team of two counting agents as the inner team.
-    counting_team = RoundRobinGroupChat([CountingAgent("counting_agent_1"), CountingAgent("counting_agent_2")])
+    counting_agent_1 = CountingAgent("counting_agent_1", description="An agent that counts numbers.")
+    counting_agent_2 = CountingAgent("counting_agent_2", description="An agent that counts numbers.")
+    counting_team = RoundRobinGroupChat([counting_agent_1, counting_agent_2], max_turns=5)
     # Create a nested counting agent that takes the inner team as a parameter.
     nested_counting_agent = NestedCountingAgent("nested_counting_agent", counting_team)
     response = await nested_counting_agent.on_messages([TextMessage(content="1", source="user")], CancellationToken())

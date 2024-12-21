@@ -82,6 +82,7 @@ gen-proto = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/src
 
 gen-proto-samples = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/samples/protos --grpc_python_out=./packages/autogen-core/samples/protos --mypy_out=./packages/autogen-core/samples/protos --mypy_grpc_out=./packages/autogen-core/samples/protos --proto_path ../protos/ agent_events.proto"
 
+markdown-code-lint = "python check_md_code_blocks.py migration_guide.md ../README.md"
 
 teasdst = { cmd = "sphinx-build docs/src docs/build" }
 
