@@ -40,6 +40,7 @@ framework/logging
 framework/telemetry
 framework/command-line-code-executors
 framework/distributed-agent-runtime
+framework/component-config
 ```
 
 ```{toctree}
