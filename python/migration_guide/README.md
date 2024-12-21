@@ -22,6 +22,7 @@ See each feature below for detailed information on how to migrate.
 - [Two-Agent Chat](#two-agent-chat)
 - [Tool Use](#tool-use)
 - [Group Chat](#group-chat)
+- [Group Chat with Resume](#group-chat-with-resume)
 - [Group Chat with Custom Selector (Stateflow)](#group-chat-with-custom-selector-stateflow)
 - [Nested Chat](#nested-chat)
 - [Sequential Chat](#sequential-chat)
@@ -252,13 +253,143 @@ user_proxy = UserProxyAgent("user_proxy")
 See [User Proxy Agent Docs](https://microsoft.github.io/autogen/dev/reference/python/autogen_agentchat.agents.html#autogen_agentchat.agents.UserProxyAgent)
 for more details and how to customize the input function with timeout.
 
-## Custom Agent and Register Reply
+## Conversable Agent and Register Reply
+
+In `v0.2`, you can create a conversable agent and register a reply function as follows:
+
+```python
+from typing import Any, Dict, List, Optional, Tuple, Union
+from autogen.agentchat import ConversableAgent
+
+llm_config = {
+    "config_list": [{"model": "gpt-4o", "api_key": "sk-xxx"}],
+    "seed": 42,
+    "temperature": 0,
+}
+
+conversable_agent = ConversableAgent(
+    name="conversable_agent",
+    system_message="You are a helpful assistant.",
+    llm_config=llm_config,
+    code_execution_config={"work_dir": "coding"},
+    human_input_mode="NEVER",
+    max_consecutive_auto_reply=10,
+)
+
+def reply_func(
+    recipient: ConversableAgent, 
+    messages: Optional[List[Dict]] = None, 
+    sender: Optional[Agent] = None, 
+    config: Optional[Any] = None,
+) -> Tuple[bool, Union[str, Dict, None]]:
+    # Custom reply logic here
+    return True, "Custom reply"
+
+# Register the reply function
+conversable_agent.register_reply([ConversableAgent], reply_func, position=0)
+
+# NOTE: An async reply function will only be invoked with async send.
+```
+
+Rather than guessing what the `reply_func` does, all its parameters, 
+and what the `position` should be, in `v0.4`, we can simply create a custom agent
+and implement the `on_messages` method.
+
+```python
+from typing import Sequence
+from autogen_core import CancellationToken
+from autogen_agentchat.agents import BaseChatAgent
+from autogen_agentchat.messages import TextMessage
+from autogen_agentchat.base import Response
+
+class CustomAgent(BaseChatAgent):
+    async def on_messages(self, messages: Sequence[TextMessage], cancellation_token: CancellationToken) -> Response:
+        # Custom reply logic here
+        return Response(chat_message=TextMessage(content="Custom reply", source=self.name))
+```
+
+You can then use the custom agent in the same way as the `AssistantAgent`.
 
 ## Two-Agent Chat
+
+In `v0.2`, you can create a two-agent chat for code execution as follows:
+
+```python
+from autogen.coding import LocalCommandLineCodeExecutor
+from autogen.agentchat import AssistantAgent, UserProxyAgent
+
+llm_config = {
+    "config_list": [{"model": "gpt-4o", "api_key": "sk-xxx"}],
+    "seed": 42,
+    "temperature": 0,
+}
+
+assistant = AssistantAgent(
+    name="assistant",
+    system_message="You are a helpful assistant. Write all code in python. Reply only 'TERMINATE' if the task is done.",
+    llm_config=llm_config,
+    is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
+)
+
+user_proxy = UserProxyAgent(
+    name="user_proxy",
+    human_input_mode="NEVER",
+    max_consecutive_auto_reply=10,
+    code_execution_config={"code_executor": LocalCommandLineCodeExecutor(work_dir="coding")},
+    llm_config=False,
+    is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("TERMINATE"),
+)
+
+chat_result = user_proxy.initiate_chat(assistant, message="Write a python script to print 'Hello, world!'")
+# Intermediate messages are printed to the console directly.
+print(chat_result)
+```
+
+To get the same behavior in `v0.4`, you can use the `AssistantAgent` 
+and `CodeExecutorAgent` together in a `RoundRobinGroupChat`.
+
+```python
+import asyncio
+from autogen_agentchat.agents import AssistantAgent, CodeExecutorAgent
+from autogen_agentchat.teams import RoundRobinGroupChat
+from autogen_agentchat.conditions import TextTermination, MaxMessageTermination
+from autogen_agentchat.ui import Console
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+async def main() -> None:
+    model_client = OpenAIChatCompletionClient(model="gpt-4o", seed=42, temperature=0)
+
+    assistant = AssistantAgent(
+        name="assistant",
+        system_message="You are a helpful assistant. Write all code in python. Reply only 'TERMINATE' if the task is done.",
+        model_client=model_client,
+    )
+
+    code_executor = CodeExecutorAgent(
+        name="code_executor",
+        code_executor=LocalCommandLineCodeExecutor(work_dir="coding"),
+    )
+
+    # The termination condition is a combination of text termination and max message termination, either of which will cause the chat to terminate.
+    termination = TextTermination("TERMINATE") | MaxMessageTermination(10)
+
+    # The group chat will alternate between the assistant and the code executor.
+    group_chat = RoundRobinGroupChat([assistant, code_executor], termination_condition=termination)
+
+    # `run_stream` returns an async generator to stream the intermediate messages.
+    stream = group_chat.run_stream(task="Write a python script to print 'Hello, world!'")
+    # `Console` is a simple UI to display the stream.
+    await Console(stream)
+
+asyncio.run(main())
+```
 
 ## Tool Use
 
 ## Group Chat
+
+## Group Chat with Resume
 
 ## Group Chat with Custom Selector (Stateflow)
 
