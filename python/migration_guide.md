@@ -7,6 +7,7 @@ we highly recommend you upgrade to the `v0.4` version.
 
 > **Note**: We no longer have admin access to the `pyautogen` PyPI package, and
 > the releases from that package are no longer from Microsoft since version 0.2.34.
+> To continue use the `v0.2` version of the API, install it using `autogen-agentchat~=0.2`.
 > Please read our [clarification statement](https://github.com/microsoft/autogen/discussions/4217) regarding forks.
 
 ## What is `v0.4`?
