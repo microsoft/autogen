@@ -387,6 +387,73 @@ asyncio.run(main())
 
 ## Tool Use
 
+In `v0.2`, to create a tool use chatbot, you must have two agents, one for calling the tool and one for executing the tool.
+You need to initiate a two-agent chat for every user request.
+
+```python
+from autogen.agentchat import AssistantAgent, UserProxyAgent, register_function
+
+llm_config = {
+    "config_list": [{"model": "gpt-4o", "api_key": "sk-xxx"}],
+    "seed": 42,
+    "temperature": 0,
+}
+
+tool_caller = AssistantAgent(
+    name="tool_caller",
+    system_message="You are a helpful assistant. You can call tools to help user.",
+    llm_config=llm_config,
+)
+
+tool_executor = UserProxyAgent(
+    name="tool_executor",
+    human_input_mode="NEVER",
+    code_execution_config=False,
+    max_consecutive_auto_reply=1, # Only one or a batch of tool calls at a time.
+    llm_config=False,
+)
+
+def get_weather(city: str) -> str:
+    return f"The weather in {city} is 72 degree and sunny."
+
+# Register the tool function to the tool caller and executor.
+register_function(get_weather, caller=tool_caller, executor=tool_executor)
+
+chat_result = tool_executor.initiate_chat(
+    tool_caller, 
+    message="What's the weather in Seattle?",
+    summary_method="reflection_with_llm", # To let the model reflect on the tool use, set to "last_msg" to return the tool call result directly.
+)
+print(chat_result)
+```
+
+In `v0.4`, you really just need one agent -- the `AssistantAgent` -- to handle 
+both the tool calling and tool execution.
+
+```python
+import asyncio
+from autogen_core import CancellationToken
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_agentchat.agents import AssistantAgent
+
+def get_weather(city: str) -> str: # Async tool is possible too.
+    return f"The weather in {city} is 72 degree and sunny."
+
+async def main() -> None:
+    model_client = OpenAIChatCompletionClient(model="gpt-4o", seed=42, temperature=0)
+    assistant = AssistantAgent(
+        name="assistant",
+        system_message="You are a helpful assistant. You can call tools to help user.",
+        model_client=model_client,
+        tools=[get_weather],
+        reflect_on_tool_use=False, # Set to True to have the model reflect on the tool use.
+    )
+    response = await assistant.on_messages([TextMessage(content="What's the weather in Seattle?", source="user")], CancellationToken())
+    print(response)
+
+asyncio.run(main())
+```
+
 ## Group Chat
 
 ## Group Chat with Resume
