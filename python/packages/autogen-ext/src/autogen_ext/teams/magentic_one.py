@@ -39,13 +39,6 @@ class MagenticOne(MagenticOneGroupChat):
     """
 
     def __init__(self, client: OpenAIChatCompletionClient):
-        """
-        Initializes the MagenticOne group chat with the provided client and sets up
-        the agents: FileSurfer, WebSurfer, Coder, and Executor.
-
-        Args:
-            client (OpenAIChatCompletionClient): The client used for model interactions.
-        """
         self.client = client
         fs = FileSurfer("FileSurfer", model_client=client)
         ws = MultimodalWebSurfer("WebSurfer", model_client=client)
