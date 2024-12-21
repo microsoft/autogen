@@ -72,7 +72,7 @@ def check_code_blocks(markdown_file_paths: List[str]) -> None:
             files_with_errors.append(markdown_file_path)
 
     if files_with_errors:
-        raise RuntimeError(f"Syntax errors found in the following files: {'\n'.join(files_with_errors)}\n")
+        raise RuntimeError(f"Syntax errors found in the following files: {'\n'.join(files_with_errors)}")
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Check code blocks in Markdown files for syntax errors.")
