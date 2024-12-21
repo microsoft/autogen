@@ -19,6 +19,8 @@ class MagenticOneGroupChat(BaseGroupChat):
     The orchestrator handles the conversation flow, ensuring that the task is completed
     efficiently by managing the participants' interactions.
 
+    The orchestrator is based on the Magentic-One architecture, which is a generalist multi-agent system for solving complex tasks (see references below).
+
     Args:
         participants (List[ChatAgent]): The participants in the group chat.
         model_client (ChatCompletionClient): The model client used for generating responses.
@@ -56,6 +58,19 @@ class MagenticOneGroupChat(BaseGroupChat):
 
 
             asyncio.run(main())
+
+    References:
+
+        If you use the MagenticOneGroupChat in your work, please cite the following paper:
+
+        .. code-block:: bibtex
+
+            @article{fourney2024magentic,
+                title={Magentic-one: A generalist multi-agent system for solving complex tasks},
+                author={Fourney, Adam and Bansal, Gagan and Mozannar, Hussein and Tan, Cheng and Salinas, Eduardo and Niedtner, Friederike and Proebsting, Grace and Bassman, Griffin and Gerrits, Jack and Alber, Jacob and others},
+                journal={arXiv preprint arXiv:2411.04468},
+                year={2024}
+            }
     """
 
     def __init__(
