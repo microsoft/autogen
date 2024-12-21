@@ -2,7 +2,10 @@ import logging
 import re
 from typing import Any, Callable, Dict, List, Mapping, Sequence
 
+from autogen_core._default_topic import DefaultTopicId
 from autogen_core.models import ChatCompletionClient, SystemMessage
+
+from autogen_agentchat.teams._group_chat._events import GroupChatMessage
 
 from ... import TRACE_LOGGER_NAME
 from ...base import ChatAgent, TerminationCondition
@@ -16,6 +19,7 @@ from ...messages import (
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
     ToolCallSummaryMessage,
+    UsageEvent,
 )
 from ...state import SelectorManagerState
 from ._base_group_chat import BaseGroupChat
@@ -153,6 +157,12 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             agent_name = participants[0]
         self._previous_speaker = agent_name
         trace_logger.debug(f"Selected speaker: {agent_name}")
+
+        await self.publish_message(
+            GroupChatMessage(message=UsageEvent(source=self._id._type, models_usage=response.usage)),
+            topic_id=DefaultTopicId(type=self._output_topic_type),
+        )
+
         return agent_name
 
     def _mentioned_agents(self, message_content: str, agent_names: List[str]) -> Dict[str, int]:
