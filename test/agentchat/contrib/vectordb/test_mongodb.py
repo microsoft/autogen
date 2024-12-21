@@ -7,7 +7,6 @@ from typing import List
 import pytest
 
 from autogen.agentchat.contrib.vectordb.base import Document
-from autogen.agentchat.contrib.vectordb.mongodb import MongoDocument
 
 try:
     import pymongo
@@ -97,22 +96,36 @@ def db():
     _empty_collections_and_delete_indexes(database)
 
 
-def generate_embeddings(n=384):
-    return [random.random() for _ in range(n)]
-
-
 @pytest.fixture
 def example_documents() -> List[Document]:
-    """Note mix of integers and strings as ids, MongoDocuments added for testing"""
+    """Note mix of integers and strings as ids"""
     return [
         Document(id=1, content="Dogs are tough.", metadata={"a": 1}),
         Document(id=2, content="Cats have fluff.", metadata={"b": 1}),
         Document(id="1", content="What is a sandwich?", metadata={"c": 1}),
         Document(id="2", content="A sandwich makes a great lunch.", metadata={"d": 1, "e": 2}),
-        MongoDocument(content="Stars are big.", metadata={"a": 1}),
-        MongoDocument(content="Atoms are small.", metadata={"b": 1}, embedding=generate_embeddings()),
-        MongoDocument(id="123", content="I hate grass", metadata={"c": 1}),
-        MongoDocument(id="321", content="I love sand", metadata={"d": 1, "e": 2}, embedding=generate_embeddings()),
+    ]
+
+
+@pytest.fixture
+def id_less_example_documents() -> List[Document]:
+    """No ID for Hashing Input Test"""
+    return [
+        Document(content="Stars are Big.", metadata={"a": 1}),
+        Document(content="Atoms are Small.", metadata={"b": 1}),
+        Document(content="Clouds are White.", metadata={"c": 1}),
+        Document(content="Grass is Green.", metadata={"d": 1, "e": 2}),
+    ]
+
+
+@pytest.fixture
+def id_mix_example_documents() -> List[Document]:
+    """No ID for Hashing Input Test"""
+    return [
+        Document(id="123", content="Stars are Big.", metadata={"a": 1}),
+        Document(content="Atoms are Small.", metadata={"b": 1}),
+        Document(id="321", content="Clouds are White.", metadata={"c": 1}),
+        Document(content="Grass is Green.", metadata={"d": 1, "e": 2}),
     ]
 
 
@@ -216,16 +229,42 @@ def test_insert_docs(db, collection_name, example_documents):
     # Check that documents have correct fields, including "_id" and "embedding" but not "id"
     assert all([set(doc.keys()) == {"_id", "content", "metadata", "embedding"} for doc in found])
     # Check ids
-    assert {doc["_id"] for doc in found} == {1, "1", 2, "2", found[4]["_id"], found[5]["_id"], "123", "321"}
+    assert {doc["_id"] for doc in found} == {1, "1", 2, "2"}
     # Check embedding lengths
     assert len(found[0]["embedding"]) == 384
 
+
+def test_insert_docs_no_id(db, collection_name, id_less_example_documents):
+    # Test that there's an active collection
+    with pytest.raises(ValueError) as exc:
+        db.insert_docs(id_less_example_documents)
+    assert "No collection is specified" in str(exc.value)
+
+    # Create a collection
     db.delete_collection(collection_name)
     collection = db.create_collection(collection_name)
-    example_documents[0].embedding = [random.random() for _ in range(10)]
-    # Ensuring different size embeddings are not inserted
-    with pytest.raises(AssertionError, match=r"Embedding Vectors are not all equal in length. Sizes:"):
-        db.insert_docs(example_documents, collection_name=collection_name, upsert=False)
+
+    # Insert example documents
+    db.insert_docs(id_less_example_documents, collection_name=collection_name)
+    found = list(collection.find({}))
+    assert len(found) == len(id_less_example_documents)
+    # Check that documents have correct fields, including "_id" and "embedding" but not "id"
+    assert all([set(doc.keys()) == {"_id", "content", "metadata", "embedding"} for doc in found])
+    # Check ids
+    hash_values = set(db.generate_chunk_ids([content.get("content") for content in id_less_example_documents]))
+    assert {doc["_id"] for doc in found} == hash_values
+    # Check embedding lengths
+    assert len(found[0]["embedding"]) == 384
+
+
+def test_insert_docs_mix_id(db, collection_name, id_mix_example_documents):
+    # Test that there's an active collection
+    with pytest.raises(ValueError) as exc:
+        db.insert_docs(id_mix_example_documents)
+    assert "No collection is specified" in str(exc.value)
+    # Test that insert_docs does not accept mixed ID inserts
+    with pytest.raises(AssertionError, match="Documents provided must all have ID's or all not have ID's"):
+        db.insert_docs(id_mix_example_documents, collection_name, upsert=True)
 
 
 def test_update_docs(db_with_indexed_clxn, example_documents):
@@ -234,14 +273,14 @@ def test_update_docs(db_with_indexed_clxn, example_documents):
     db.update_docs(example_documents, collection.name, upsert=True)
     # Test that no changes were made to example_documents
     assert set(example_documents[0].keys()) == {"id", "content", "metadata"}
-    assert collection.count_documents({}) == len([doc for doc in example_documents if doc.get("id") is not None])
+    assert collection.count_documents({}) == len(example_documents)
     found = list(collection.find({}))
     # Check that documents have correct fields, including "_id" and "embedding" but not "id"
     assert all([set(doc.keys()) == {"_id", "content", "metadata", "embedding"} for doc in found])
     assert all([isinstance(doc["embedding"][0], float) for doc in found])
     assert all([len(doc["embedding"]) == db.dimensions for doc in found])
     # Check ids
-    assert {doc["_id"] for doc in found} == {1, "1", 2, "2", "123", "321"}
+    assert {doc["_id"] for doc in found} == {1, "1", 2, "2"}
 
     # Update an *existing* Document
     updated_doc = Document(id=1, content="Cats are tough.", metadata={"a": 10})
@@ -270,8 +309,7 @@ def test_delete_docs(db_with_indexed_clxn, example_documents):
     # Delete the 1s
     db.delete_docs(ids=[1, "1"], collection_name=clxn.name)
     # Confirm just the 2s remain
-    result_set = {doc["_id"] for doc in clxn.find({})}
-    assert 2 in result_set and "2" in result_set
+    assert {2, "2"} == {doc["_id"] for doc in clxn.find({})}
 
 
 def test_get_docs_by_ids(db_with_indexed_clxn, example_documents):
@@ -376,8 +414,8 @@ def test_retrieve_docs_multiple_queries(db_with_indexed_clxn, example_documents)
 
     assert len(results) == len(queries)
     assert all([len(res) == n_results for res in results])
-    assert {1, 2} <= {doc[0]["id"] for doc in results[0]}
-    assert {"1", "2"} <= {doc[0]["id"] for doc in results[1]}
+    assert {doc[0]["id"] for doc in results[0]} == {1, 2}
+    assert {doc[0]["id"] for doc in results[1]} == {"1", "2"}
 
 
 def test_retrieve_docs_with_threshold(db_with_indexed_clxn, example_documents):
@@ -414,6 +452,6 @@ def test_wait_until_document_ready(collection_name, example_documents):
             wait_until_document_ready=TIMEOUT,
         )
         vectorstore.insert_docs(example_documents)
-        assert vectorstore.retrieve_docs(queries=["Cats"], n_results=8)
+        assert vectorstore.retrieve_docs(queries=["Cats"], n_results=4)
     finally:
         _empty_collections_and_delete_indexes(database, [collection_name])
