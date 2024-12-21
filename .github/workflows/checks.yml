@@ -174,7 +174,7 @@ jobs:
           poe --directory ${{ matrix.package }} docs-check-examples
         working-directory: ./python
   
-markdown-code-lint:
+  markdown-code-lint:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
