@@ -123,12 +123,17 @@ class MongoDBAtlasVectorDB(VectorDB):
             if query_result and query_result[0][0]["_id"] == doc["id"]:
                 return
             sleep(_DELAY)
-        if query_result and float(query_result[0][1]) == 1.0:
+        if (
+            query_result
+            and float(query_result[0][1]) == 1.0
+            and query_result[0][0].get("metadata") == doc.get("metadata")
+        ):
             # Handles edge case where document is uploaded with a specific user-generated ID, then the identical content is uploaded with a hash generated ID.
-            raise TimeoutError(
-                f"""Documents may be ready, but the search has found an identical file with a different ID. Duplicate content may be present. Duplicate ID: {str(query_result[0][0]["_id"])}"""
+            logger.warning(
+                f"""Documents may be ready, the search has found identical content with a different ID and {"identical" if query_result[0][0].get("metadata") == doc.get("metadata") else "different"} metadata. Duplicate ID: {str(query_result[0][0]["_id"])}"""
             )
-        raise TimeoutError(f"Document {self.index_name} is not ready!")
+        else:
+            raise TimeoutError(f"Document {self.index_name} is not ready!")
 
     def _get_embedding_size(self):
         return len(self.embedding_function(_SAMPLE_SENTENCE)[0])
