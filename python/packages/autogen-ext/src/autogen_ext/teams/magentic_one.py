@@ -23,7 +23,7 @@ class MagenticOne(MagenticOneGroupChat):
 
             import asyncio
             from autogen_ext.models.openai import OpenAIChatCompletionClient
-            from autogen_ext.teams import MagenticOne
+            from autogen_ext.teams.magentic_one import MagenticOne
             from autogen_agentchat.ui import Console
 
 
