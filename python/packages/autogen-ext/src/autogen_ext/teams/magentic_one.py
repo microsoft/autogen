@@ -1,12 +1,11 @@
-from autogen_agentchat.teams import MagenticOneGroupChat
 from autogen_agentchat.agents import CodeExecutorAgent
-from autogen_agentchat.ui import Console
+from autogen_agentchat.teams import MagenticOneGroupChat
 
-from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.agents.file_surfer import FileSurfer
-from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
+from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
 class MagenticOne(MagenticOneGroupChat):
