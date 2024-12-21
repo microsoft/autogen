@@ -21,7 +21,7 @@ def extract_python_code_blocks(markdown_file_path: str) -> List[Tuple[str, int]]
 
     code_blocks: List[Tuple[str, int]] = []
     in_code_block = False
-    current_block : List[str] = []
+    current_block: List[str] = []
 
     for i, line in enumerate(lines):
         if line.strip().startswith("```python"):
