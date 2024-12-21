@@ -123,8 +123,17 @@ class MongoDBAtlasVectorDB(VectorDB):
             if query_result and query_result[0][0]["_id"] == doc["id"]:
                 return
             sleep(_DELAY)
-
-        raise TimeoutError(f"Document {self.index_name} is not ready!")
+        if (
+            query_result
+            and float(query_result[0][1]) == 1.0
+            and query_result[0][0].get("metadata") == doc.get("metadata")
+        ):
+            # Handles edge case where document is uploaded with a specific user-generated ID, then the identical content is uploaded with a hash generated ID.
+            logger.warning(
+                f"""Documents may be ready, the search has found identical content with a different ID and {"identical" if query_result[0][0].get("metadata") == doc.get("metadata") else "different"} metadata. Duplicate ID: {str(query_result[0][0]["_id"])}"""
+            )
+        else:
+            raise TimeoutError(f"Document {self.index_name} is not ready!")
 
     def _get_embedding_size(self):
         return len(self.embedding_function(_SAMPLE_SENTENCE)[0])
@@ -275,33 +284,49 @@ class MongoDBAtlasVectorDB(VectorDB):
 
         For large numbers of Documents, insertion is performed in batches.
 
+        Documents are recommended to not have an ID field, as the method will generate Hashed ID's for them.
+
         Args:
-            docs: List[Document] | A list of documents. Each document is a TypedDict `Document`.
+            docs: List[Document] | A list of documents. Each document is a TypedDict `Document`, which may contain an ID. Documents without ID's will have them generated.
             collection_name: str | The name of the collection. Default is None.
             upsert: bool | Whether to update the document if it exists. Default is False.
             batch_size: Number of documents to be inserted in each batch
+            kwargs: Additional keyword arguments. Use `hash_length` to set the length of the hash generated ID's, use `overwrite_ids` to overwrite existing ID's with Hashed Values.
         """
+        hash_length = kwargs.get("hash_length")
+        overwrite_ids = kwargs.get("overwrite_ids", False)
+
+        if any(doc.get("content") is None for doc in docs):
+            raise ValueError("The document content is required.")
+
         if not docs:
             logger.info("No documents to insert.")
             return
 
+        docs = deepcopy(docs)
         collection = self.get_collection(collection_name)
+
+        assert (
+            len({doc.get("id") is None for doc in docs}) == 1
+        ), "Documents provided must all have ID's or all not have ID's"
+
+        if docs[0].get("id") is None or overwrite_ids:
+            logger.info("No id field in the documents. The documents will be inserted with Hash generated IDs.")
+            content = [doc["content"] for doc in docs]
+            ids = (
+                self.generate_chunk_ids(content, hash_length=hash_length)
+                if hash_length
+                else self.generate_chunk_ids(content)
+            )
+            docs = [{**doc, "id": id} for doc, id in zip(docs, ids)]
+
         if upsert:
             self.update_docs(docs, collection.name, upsert=True)
-        else:
-            # Sanity checking the first document
-            if docs[0].get("content") is None:
-                raise ValueError("The document content is required.")
-            if docs[0].get("id") is None:
-                raise ValueError("The document id is required.")
 
-            input_ids = set()
-            result_ids = set()
-            id_batch = []
-            text_batch = []
-            metadata_batch = []
-            size = 0
-            i = 0
+        else:
+            input_ids, result_ids = set(), set()
+            id_batch, text_batch, metadata_batch = [], [], []
+            size, i = 0, 0
             for doc in docs:
                 id = doc["id"]
                 text = doc["content"]
@@ -314,9 +339,7 @@ class MongoDBAtlasVectorDB(VectorDB):
                 if (i + 1) % batch_size == 0 or size >= 47_000_000:
                     result_ids.update(self._insert_batch(collection, text_batch, metadata_batch, id_batch))
                     input_ids.update(id_batch)
-                    id_batch = []
-                    text_batch = []
-                    metadata_batch = []
+                    id_batch, text_batch, metadata_batch = [], [], []
                     size = 0
                 i += 1
             if text_batch:
@@ -365,7 +388,8 @@ class MongoDBAtlasVectorDB(VectorDB):
         ]
         # insert the documents in MongoDB Atlas
         insert_result = collection.insert_many(to_insert)  # type: ignore
-        return insert_result.inserted_ids  # TODO Remove this. Replace by log like update_docs
+        # TODO Remove this. Replace by log like update_docs
+        return insert_result.inserted_ids
 
     def update_docs(self, docs: List[Document], collection_name: str = None, **kwargs: Any) -> None:
         """Update documents, including their embeddings, in the Collection.
@@ -375,11 +399,14 @@ class MongoDBAtlasVectorDB(VectorDB):
         Uses deepcopy to avoid changing docs.
 
         Args:
-            docs: List[Document] | A list of documents.
+            docs: List[Document] | A list of documents, with ID, to ensure the correct document is updated.
             collection_name: str | The name of the collection. Default is None.
             kwargs: Any | Use upsert=True` to insert documents whose ids are not present in collection.
         """
-
+        provided_doc_count = len(docs)
+        docs = [doc for doc in docs if doc.get("id") is not None]
+        if len(docs) != provided_doc_count:
+            logger.info(f"{provided_doc_count - len(docs)} will not be updated, as they did not contain an ID")
         n_docs = len(docs)
         logger.info(f"Preparing to embed and update {n_docs=}")
         # Compute the embeddings
