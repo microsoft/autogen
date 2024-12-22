@@ -100,6 +100,36 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
         Assert.Equal("Active", value);
     }
 
+    /// <summary>
+    /// Test PublishMessageAsync method and ReceiveMessage method
+    /// </summary>
+    /// <returns>void</returns>
+    [Fact]
+    public async Task PublishMessageAsync_and_ReceiveMessageTest()
+    {
+        var agent = ActivatorUtilities.CreateInstance<TestAgent>(_serviceProvider);
+        var worker = _serviceProvider.GetRequiredService<IAgentWorker>();
+        Agent.Initialize(worker, agent);
+        await agent.SubscribeAsync("TestEvent").ConfigureAwait(true);
+        var subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
+        var found = false;
+        foreach (var subscription in subscriptions)
+        {
+            if (subscription.TypeSubscription.TopicType == "TestEvent")
+            {
+                found = true;
+            }
+        }
+        Assert.True(found);
+        await agent.PublishMessageAsync(new TextMessage()
+        {
+            Source = "TestEvent",
+            TextMessage_ = "buffer"
+        }).ConfigureAwait(true);
+        await Task.Delay(100);
+        Assert.True(TestAgent.ReceivedMessages.ContainsKey("TestEvent"));
+    }
+
     [Fact]
     public async Task ItInvokeRightHandlerTestAsync()
     {
