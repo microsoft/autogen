@@ -15,12 +15,11 @@ class MagenticOne(MagenticOneGroupChat):
     """
     MagenticOne is a specialized group chat class that integrates various agents
     such as FileSurfer, WebSurfer, Coder, and Executor to solve complex tasks.
+    To read more about the science behind Magentic-One, see the full blog post: `Magentic-One: A Generalist Multi-Agent System for Solving Complex Tasks <https://www.microsoft.com/en-us/research/articles/magentic-one-a-generalist-multi-agent-system-for-solving-complex-tasks>`_ and the references below.
 
     Attributes:
         client (OpenAIChatCompletionClient): The client used for model interactions.
         hil_mode (bool): Optional; If set to True, adds the UserProxyAgent to the list of agents.
-
-
 
     .. warning::
         Using Magentic-One involves interacting with a digital world designed for humans, which carries inherent risks. To minimize these risks, consider the following precautions:
@@ -104,6 +103,8 @@ class MagenticOne(MagenticOneGroupChat):
                 year={2024},
                 url={https://arxiv.org/abs/2411.04468}
             }
+
+
     """
 
     def __init__(self, client: OpenAIChatCompletionClient, hil_mode: bool = False):
