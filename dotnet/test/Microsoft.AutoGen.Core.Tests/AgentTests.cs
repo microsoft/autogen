@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Text.Json;
 using FluentAssertions;
 using Google.Protobuf.Reflection;
 using Microsoft.AspNetCore.Builder;
@@ -72,6 +73,31 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
         await agent.UnsubscribeAsync("TestEvent");
         subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
         Assert.Equal(2, subscriptions.Count);
+    }
+
+    /// <summary>
+    /// Test StoreAsync and ReadAsync methods
+    /// </summary>
+    /// <returns>void</returns>
+    [Fact]
+    public async Task StoreAsync_and_ReadAsyncTest()
+    {
+        var agent = ActivatorUtilities.CreateInstance<TestAgent>(_serviceProvider);
+        var worker = _serviceProvider.GetRequiredService<IAgentWorker>();
+        Agent.Initialize(worker, agent);
+        Dictionary<string, string> state = new()
+        {
+            { "testdata", "Active" }
+        };
+        await agent.StoreAsync(new AgentState
+            {
+                AgentId = agent.AgentId,
+                TextData = JsonSerializer.Serialize(state)
+            }).ConfigureAwait(true);
+        var readState = await agent.ReadAsync<AgentState>(agent.AgentId).ConfigureAwait(true);
+        var read = JsonSerializer.Deserialize<Dictionary<string, string>>(readState.TextData) ?? new Dictionary<string, string> { { "data", "No state data found" } };
+        read.TryGetValue("testdata", out var value);
+        Assert.Equal("Active", value);
     }
 
     [Fact]

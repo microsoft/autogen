@@ -253,8 +253,4 @@ public class AgentWorker(
         }
         return new ValueTask<List<Subscription>>([]);
     }
-    public ValueTask<SubscriptionResponse> UnsubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default)
-    {
-        throw new NotImplementedException();
-    }
 }
