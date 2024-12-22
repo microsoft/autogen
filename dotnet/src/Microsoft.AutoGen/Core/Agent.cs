@@ -49,7 +49,7 @@ public abstract class Agent
     public static void Initialize(IAgentWorker worker, Agent agent)
     {
         agent.Worker = worker;
-        agent.Start().Wait();
+        agent.Start();
         agent.AddImplicitSubscriptionsAsync().AsTask().Wait();
     }
 
