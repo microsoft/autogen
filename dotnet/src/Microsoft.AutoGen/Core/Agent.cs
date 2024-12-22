@@ -76,7 +76,7 @@ public abstract class Agent
                 }
             };
             // explicitly wait for this to complete
-            await Worker.SendMessageAsync(new Message { SubscriptionRequest = subscriptionRequest }).ConfigureAwait(true);
+            Worker.SubscribeAsync(subscriptionRequest).AsTask().Wait();
         }
 
         // using reflection, find all methods that Handle<T> and subscribe to the topic T
@@ -89,7 +89,7 @@ public abstract class Agent
             {
                 foreach (var topic in topics)
                 {
-                    Subscribe(topic);
+                    await SubscribeAsync(topic).ConfigureAwait(true);
                 }
             }
         }
@@ -177,26 +177,36 @@ public abstract class Agent
     {
         return await Worker.GetSubscriptionsAsync(GetType()).ConfigureAwait(false);
     }
-    public List<string> Subscribe(string topic)
+    public async ValueTask<SubscriptionResponse> SubscribeAsync(string topic)
     {
-        Message message = new()
+        return await UpdateSubscriptionAsync(topic, true).ConfigureAwait(true);
+    }
+    public async ValueTask<SubscriptionResponse> UnsubscribeAsync(string topic)
+    {
+        return await UpdateSubscriptionAsync(topic, false).ConfigureAwait(true);
+    }
+    private async ValueTask<SubscriptionResponse> UpdateSubscriptionAsync(string topic, bool subscribe)
+    {
+        SubscriptionRequest subscriptionRequest = new()
         {
-            SubscriptionRequest = new()
+            RequestId = Guid.NewGuid().ToString(),
+            Subscription = new Subscription
             {
-                RequestId = Guid.NewGuid().ToString(),
-                Subscription = new Subscription
+                TypeSubscription = new TypeSubscription
                 {
-                    TypeSubscription = new TypeSubscription
-                    {
-                        TopicType = topic,
-                        AgentType = this.AgentId.Key
-                    }
+                    TopicType = topic,
+                    AgentType = this.AgentId.Type
                 }
             }
         };
-        Worker.SendMessageAsync(message).AsTask().Wait();
-
-        return new List<string> { topic };
+        var subscriptionResponse = subscribe
+            ? await Worker.SubscribeAsync(subscriptionRequest).ConfigureAwait(true)
+            : await Worker.UnsubscribeAsync(subscriptionRequest).ConfigureAwait(true);
+        if (!subscriptionResponse.Success)
+        {
+            _logger.LogError($"{GetType}{AgentId.Key}: Failed to unsubscribe from topic {topic}");
+        }
+        return subscriptionResponse;
     }
     public async Task StoreAsync(AgentState state, CancellationToken cancellationToken = default)
     {

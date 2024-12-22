@@ -148,6 +148,26 @@ public class AgentWorker(
         };
         return response;
     }
+    public async ValueTask<SubscriptionResponse> UnsubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default)
+    {
+        var topic = request.Subscription.TypeSubscription.TopicType;
+        var agentType = request.Subscription.TypeSubscription.AgentType;
+        if (_subscriptionsByAgentType.TryGetValue(agentType, out var subscriptions))
+        {
+            subscriptions.Remove(request.Subscription);
+        }
+        if (_subscriptionsByTopic.TryGetValue(topic, out var agentTypes))
+        {
+            agentTypes.Remove(agentType);
+        }
+        var response = new SubscriptionResponse
+        {
+            RequestId = request.RequestId,
+            Error = "",
+            Success = true
+        };
+        return response;
+    }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {

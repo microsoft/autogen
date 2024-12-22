@@ -29,10 +29,15 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
     /// </summary>
     /// <returns>void</returns>
     [Fact]
-    public void Agent_ShouldThrowException_WhenNotInitialized()
+    public async Task Agent_ShouldThrowException_WhenNotInitialized()
     {
         var agent = ActivatorUtilities.CreateInstance<TestAgent>(_serviceProvider);
-        Assert.Throws<UninitializedAgentWorker.AgentInitalizedIncorrectlyException>(() => { agent.Subscribe("TestEvent"); });
+        await Assert.ThrowsAsync<UninitializedAgentWorker.AgentInitalizedIncorrectlyException>(
+            async () =>
+            {
+                await agent.SubscribeAsync("TestEvent");
+            }
+        );
     }
 
     /// <summary>
@@ -47,6 +52,25 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
         Agent.Initialize(worker, agent);
         Assert.Equal("AgentWorker", agent.Worker.GetType().Name);
         var subscriptions = await agent.GetSubscriptionsAsync();
+        Assert.Equal(2, subscriptions.Count);
+    }
+    /// <summary>
+    /// Test SubscribeAsync method
+    /// </summary>
+    /// <returns>void</returns>
+    [Fact]
+    public async Task SubscribeAsync_UnsubscribeAsync_and_GetSubscriptionsTest()
+    {
+        var agent = ActivatorUtilities.CreateInstance<TestAgent>(_serviceProvider);
+        var worker = _serviceProvider.GetRequiredService<IAgentWorker>();
+        Agent.Initialize(worker, agent);
+        var subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
+        Assert.Equal(2, subscriptions.Count);
+        await agent.SubscribeAsync("TestEvent");
+        subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
+        Assert.Equal(3, subscriptions.Count);
+        await agent.UnsubscribeAsync("TestEvent");
+        subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
         Assert.Equal(2, subscriptions.Count);
     }
 
