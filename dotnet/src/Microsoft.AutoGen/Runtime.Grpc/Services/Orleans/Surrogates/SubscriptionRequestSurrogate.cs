@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// AddSubscriptionRequestSurrogate.cs
+// SubscriptionRequestSurrogate.cs
 
 using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Orleans.Surrogates;
 
 [GenerateSerializer]
-public struct AddSubscriptionRequestSurrogate
+public struct SubscriptionRequestSurrogate
 {
     [Id(0)]
     public string RequestId;
@@ -15,13 +15,13 @@ public struct AddSubscriptionRequestSurrogate
 }
 
 [RegisterConverter]
-public sealed class AddSubscriptionRequestSurrogateConverter :
-    IConverter<AddSubscriptionRequest, AddSubscriptionRequestSurrogate>
+public sealed class SubscriptionRequestSurrogateConverter :
+    IConverter<SubscriptionRequest, SubscriptionRequestSurrogate>
 {
-    public AddSubscriptionRequest ConvertFromSurrogate(
-        in AddSubscriptionRequestSurrogate surrogate)
+    public SubscriptionRequest ConvertFromSurrogate(
+        in SubscriptionRequestSurrogate surrogate)
     {
-        var request = new AddSubscriptionRequest()
+        var request = new SubscriptionRequest()
         {
             RequestId = surrogate.RequestId,
             Subscription = surrogate.Subscription
@@ -29,9 +29,9 @@ public sealed class AddSubscriptionRequestSurrogateConverter :
         return request;
     }
 
-    public AddSubscriptionRequestSurrogate ConvertToSurrogate(
-        in AddSubscriptionRequest value) =>
-        new AddSubscriptionRequestSurrogate
+    public SubscriptionRequestSurrogate ConvertToSurrogate(
+        in SubscriptionRequest value) =>
+        new SubscriptionRequestSurrogate
         {
             RequestId = value.RequestId,
             Subscription = value.Subscription

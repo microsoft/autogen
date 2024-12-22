@@ -49,10 +49,8 @@ public abstract class Agent
     public static void Initialize(IAgentWorker worker, Agent agent)
     {
         agent.Worker = worker;
-        agent.Start().ContinueWith(async startTask =>
-        {
-            await agent.AddImplicitSubscriptionsAsync();
-        }, TaskScheduler.Default);
+        agent.Start().Wait();
+        agent.AddImplicitSubscriptionsAsync().AsTask().Wait();
     }
 
     private async ValueTask AddImplicitSubscriptionsAsync()
@@ -65,7 +63,7 @@ public abstract class Agent
 
         foreach (var topicType in topicTypes)
         {
-            var subscriptionRequest = new AddSubscriptionRequest
+            var subscriptionRequest = new SubscriptionRequest
             {
                 RequestId = Guid.NewGuid().ToString(),
                 Subscription = new Subscription
@@ -78,7 +76,7 @@ public abstract class Agent
                 }
             };
             // explicitly wait for this to complete
-            await Worker.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).ConfigureAwait(true);
+            await Worker.SendMessageAsync(new Message { SubscriptionRequest = subscriptionRequest }).ConfigureAwait(true);
         }
 
         // using reflection, find all methods that Handle<T> and subscribe to the topic T
@@ -175,7 +173,7 @@ public abstract class Agent
                 break;
         }
     }
-    public async ValueTask<List<string>> GetSubscriptionsAsync()
+    public async ValueTask<List<Subscription>> GetSubscriptionsAsync()
     {
         return await Worker.GetSubscriptionsAsync(GetType()).ConfigureAwait(false);
     }
@@ -183,7 +181,7 @@ public abstract class Agent
     {
         Message message = new()
         {
-            AddSubscriptionRequest = new()
+            SubscriptionRequest = new()
             {
                 RequestId = Guid.NewGuid().ToString(),
                 Subscription = new Subscription

@@ -67,14 +67,14 @@ public interface IRegistry
     /// </summary>
     /// <param name="request">The subscription request.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    ValueTask SubscribeAsync(AddSubscriptionRequest request);
+    ValueTask SubscribeAsync(SubscriptionRequest request);
 
     /// <summary>
     /// Unsubscribes an agent from a topic.
     /// </summary>
     /// <param name="request">The unsubscription request.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    ValueTask UnsubscribeAsync(AddSubscriptionRequest request); // TODO: This should have its own request type.
+    ValueTask UnsubscribeAsync(SubscriptionRequest request); // TODO: This should have its own request type.
 
     /// <summary>
     /// Gets the subscriptions for a specified agent type.

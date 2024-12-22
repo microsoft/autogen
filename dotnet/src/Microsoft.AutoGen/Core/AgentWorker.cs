@@ -2,55 +2,40 @@
 // AgentWorker.cs
 
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using System.Threading.Channels;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Core;
 
 /// <summary>
 /// Represents a worker that manages agents and handles messages.
 /// </summary>
-public class AgentWorker : IHostedService, IAgentWorker
+/// <remarks>
+/// Initializes a new instance of the <see cref="AgentWorker"/> class.
+/// </remarks>
+/// <param name="hostApplicationLifetime">The application lifetime.</param>
+/// <param name="serviceProvider">The service provider.</param>
+/// <param name="configuredAgentTypes">The configured agent types.</param>
+public class AgentWorker(
+    IHostApplicationLifetime hostApplicationLifetime,
+    IServiceProvider serviceProvider,
+    [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes) : IHostedService, IAgentWorker
 {
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
     private readonly ConcurrentDictionary<(string Type, string Key), Agent> _agents = new();
-    private readonly ILogger<AgentWorker> _logger;
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
     private readonly ConcurrentDictionary<string, (Agent Agent, string OriginalRequestId)> _pendingClientRequests = new();
-    private readonly CancellationTokenSource _shutdownCts;
-    public IServiceProvider ServiceProvider { get; }
-    private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes;
-    private readonly DistributedContextPropagator _distributedContextPropagator;
+    private readonly CancellationTokenSource _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
+    public IServiceProvider ServiceProvider { get; } = serviceProvider;
+    private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes = configuredAgentTypes;
+    private readonly ConcurrentDictionary<string, List<Subscription>> _subscriptionsByAgentType = new();
+    private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
     private readonly CancellationTokenSource _shutdownCancellationToken = new();
     private Task? _mailboxTask;
     private readonly object _channelLock = new();
-
-    /// <summary>
-    /// Initializes a new instance of the <see cref="AgentWorker"/> class.
-    /// </summary>
-    /// <param name="hostApplicationLifetime">The application lifetime.</param>
-    /// <param name="serviceProvider">The service provider.</param>
-    /// <param name="configuredAgentTypes">The configured agent types.</param>
-    /// <param name="logger">The logger.</param>
-    /// <param name="distributedContextPropagator">The distributed context propagator.</param>
-    public AgentWorker(
-        IHostApplicationLifetime hostApplicationLifetime,
-        IServiceProvider serviceProvider,
-        [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
-        ILogger<AgentWorker> logger,
-        DistributedContextPropagator distributedContextPropagator)
-    {
-        _logger = logger;
-        ServiceProvider = serviceProvider;
-        _configuredAgentTypes = configuredAgentTypes;
-        _distributedContextPropagator = distributedContextPropagator;
-        _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
-    }
 
     /// <inheritdoc />
     public async ValueTask PublishEventAsync(CloudEvent cloudEvent, CancellationToken cancellationToken = default)
@@ -129,10 +114,10 @@ public class AgentWorker : IHostedService, IAgentWorker
                             agentToInvoke.ReceiveMessage(msg);
                         }
                         break;
-                    case Message msg when msg.AddSubscriptionRequest != null:
-                        await AddSubscriptionRequestAsync(msg.AddSubscriptionRequest).ConfigureAwait(true);
+                    case Message msg when msg.SubscriptionRequest != null:
+                        await SubscribeAsync(msg.SubscriptionRequest).ConfigureAwait(true);
                         break;
-                    case Message msg when msg.AddSubscriptionResponse != null:
+                    case Message msg when msg.SubscriptionResponse != null:
                         break;
                     case Message msg when msg.RegisterAgentTypeResponse != null:
                         break;
@@ -149,22 +134,19 @@ public class AgentWorker : IHostedService, IAgentWorker
             }
         }
     }
-    private async ValueTask AddSubscriptionRequestAsync(AddSubscriptionRequest subscription)
+    public async ValueTask<SubscriptionResponse> SubscribeAsync(SubscriptionRequest subscription, CancellationToken cancellationToken = default)
     {
         var topic = subscription.Subscription.TypeSubscription.TopicType;
         var agentType = subscription.Subscription.TypeSubscription.AgentType;
-        _subscriptionsByAgentType[agentType] = subscription.Subscription;
+        _subscriptionsByAgentType.GetOrAdd(key: agentType, _ => []).Add(subscription.Subscription);
         _subscriptionsByTopic.GetOrAdd(topic, _ => []).Add(agentType);
-        Message response = new()
+        var response = new SubscriptionResponse
         {
-            AddSubscriptionResponse = new()
-            {
-                RequestId = subscription.RequestId,
-                Error = "",
-                Success = true
-            }
+            RequestId = subscription.RequestId,
+            Error = "",
+            Success = true
         };
-        await _mailbox.Writer.WriteAsync(response).ConfigureAwait(false);
+        return response;
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
@@ -243,7 +225,15 @@ public class AgentWorker : IHostedService, IAgentWorker
         return agent;
     }
 
-    public ValueTask<List<string>> GetSubscriptionsAsync(Type type)
+    public ValueTask<List<Subscription>> GetSubscriptionsAsync(Type type)
+    {
+        if (_subscriptionsByAgentType.TryGetValue(type.Name, out var subscriptions))
+        {
+            return new ValueTask<List<Subscription>>(subscriptions);
+        }
+        return new ValueTask<List<Subscription>>([]);
+    }
+    public ValueTask<SubscriptionResponse> UnsubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }

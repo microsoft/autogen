@@ -102,12 +102,12 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             };
         }
     }
-    public async ValueTask<AddSubscriptionResponse> AddSubscriptionAsync(AddSubscriptionRequest request)
+    public async ValueTask<SubscriptionResponse> AddSubscriptionAsync(SubscriptionRequest request)
     {
         try
         {
             await _gatewayRegistry.SubscribeAsync(request).ConfigureAwait(true);
-            return new AddSubscriptionResponse
+            return new SubscriptionResponse
             {
                 Success = true,
                 RequestId = request.RequestId
@@ -115,7 +115,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
         catch (Exception ex)
         {
-            return new AddSubscriptionResponse
+            return new SubscriptionResponse
             {
                 Success = false,
                 RequestId = request.RequestId,
@@ -184,8 +184,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             case Message.MessageOneofCase.RegisterAgentTypeRequest:
                 await RegisterAgentTypeAsync(connection, message.RegisterAgentTypeRequest);
                 break;
-            case Message.MessageOneofCase.AddSubscriptionRequest:
-                await AddSubscriptionAsync(connection, message.AddSubscriptionRequest);
+            case Message.MessageOneofCase.SubscriptionRequest:
+                await AddSubscriptionAsync(connection, message.SubscriptionRequest);
                 break;
             default:
                 // if it wasn't recognized return bad request
@@ -320,7 +320,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         throw new RpcException(new Status(StatusCode.InvalidArgument, error));
     }
-    private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, AddSubscriptionRequest request)
+    private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, SubscriptionRequest request)
     {
         var topic = "";
         var agentType = "";
@@ -337,10 +337,10 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         _subscriptionsByAgentType[agentType] = request.Subscription;
         _subscriptionsByTopic.GetOrAdd(topic, _ => []).Add(agentType);
         await _subscriptions.SubscribeAsync(topic, agentType);
-        //var response = new AddSubscriptionResponse { RequestId = request.RequestId, Error = "", Success = true };
+        //var response = new SubscriptionResponse { RequestId = request.RequestId, Error = "", Success = true };
         Message response = new()
         {
-            AddSubscriptionResponse = new()
+            SubscriptionResponse = new()
             {
                 RequestId = request.RequestId,
                 Error = "",

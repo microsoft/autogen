@@ -33,16 +33,14 @@ namespace Hello
 {
     [TopicSubscription("agents")]
     public class HelloAgent(
-        IAgentWorker worker,
-        [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
+        [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry,
         IHostApplicationLifetime hostApplicationLifetime) : ConsoleAgent(
-            worker,
             typeRegistry),
             ISayHello,
             IHandle<NewMessageReceived>,
             IHandle<ConversationClosed>
     {
-        public async Task Handle(NewMessageReceived item)
+        public async Task Handle(NewMessageReceived item, CancellationToken cancellationToken = default)
         {
             var response = await SayHello(item.Message).ConfigureAwait(false);
             var evt = new Output
@@ -57,7 +55,7 @@ namespace Hello
             };
             await PublishMessageAsync(goodbye).ConfigureAwait(false);
         }
-        public async Task Handle(ConversationClosed item)
+        public async Task Handle(ConversationClosed item, CancellationToken cancellationToken = default)
         {
             var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
             var evt = new Output

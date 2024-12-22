@@ -29,6 +29,21 @@ class AgentRpcStub(object):
                 request_serializer=agent__worker__pb2.AgentState.SerializeToString,
                 response_deserializer=agent__worker__pb2.SaveStateResponse.FromString,
                 )
+        self.RegisterAgent = channel.unary_unary(
+                '/agents.AgentRpc/RegisterAgent',
+                request_serializer=agent__worker__pb2.RegisterAgentTypeRequest.SerializeToString,
+                response_deserializer=agent__worker__pb2.RegisterAgentTypeResponse.FromString,
+                )
+        self.AddSubscription = channel.unary_unary(
+                '/agents.AgentRpc/AddSubscription',
+                request_serializer=agent__worker__pb2.SubscriptionRequest.SerializeToString,
+                response_deserializer=agent__worker__pb2.SubscriptionResponse.FromString,
+                )
+        self.RemoveSubscription = channel.unary_unary(
+                '/agents.AgentRpc/RemoveSubscription',
+                request_serializer=agent__worker__pb2.SubscriptionRequest.SerializeToString,
+                response_deserializer=agent__worker__pb2.SubscriptionResponse.FromString,
+                )
 
 
 class AgentRpcServicer(object):
@@ -52,6 +67,24 @@ class AgentRpcServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def RegisterAgent(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def AddSubscription(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def RemoveSubscription(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_AgentRpcServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -69,6 +102,21 @@ def add_AgentRpcServicer_to_server(servicer, server):
                     servicer.SaveState,
                     request_deserializer=agent__worker__pb2.AgentState.FromString,
                     response_serializer=agent__worker__pb2.SaveStateResponse.SerializeToString,
+            ),
+            'RegisterAgent': grpc.unary_unary_rpc_method_handler(
+                    servicer.RegisterAgent,
+                    request_deserializer=agent__worker__pb2.RegisterAgentTypeRequest.FromString,
+                    response_serializer=agent__worker__pb2.RegisterAgentTypeResponse.SerializeToString,
+            ),
+            'AddSubscription': grpc.unary_unary_rpc_method_handler(
+                    servicer.AddSubscription,
+                    request_deserializer=agent__worker__pb2.SubscriptionRequest.FromString,
+                    response_serializer=agent__worker__pb2.SubscriptionResponse.SerializeToString,
+            ),
+            'RemoveSubscription': grpc.unary_unary_rpc_method_handler(
+                    servicer.RemoveSubscription,
+                    request_deserializer=agent__worker__pb2.SubscriptionRequest.FromString,
+                    response_serializer=agent__worker__pb2.SubscriptionResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -128,5 +176,56 @@ class AgentRpc(object):
         return grpc.experimental.unary_unary(request, target, '/agents.AgentRpc/SaveState',
             agent__worker__pb2.AgentState.SerializeToString,
             agent__worker__pb2.SaveStateResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def RegisterAgent(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/agents.AgentRpc/RegisterAgent',
+            agent__worker__pb2.RegisterAgentTypeRequest.SerializeToString,
+            agent__worker__pb2.RegisterAgentTypeResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def AddSubscription(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/agents.AgentRpc/AddSubscription',
+            agent__worker__pb2.SubscriptionRequest.SerializeToString,
+            agent__worker__pb2.SubscriptionResponse.FromString,
+            options, channel_credentials,
+            insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def RemoveSubscription(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/agents.AgentRpc/RemoveSubscription',
+            agent__worker__pb2.SubscriptionRequest.SerializeToString,
+            agent__worker__pb2.SubscriptionResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)

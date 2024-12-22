@@ -9,11 +9,9 @@ using Microsoft.SemanticKernel.Memory;
 
 namespace Microsoft.AutoGen.Agents;
 public abstract class SKAiAgent<T>(
-    IAgentWorker worker,
     ISemanticTextMemory memory,
     Kernel kernel,
     AgentsMetadata typeRegistry) : Agent(
-        worker,
         typeRegistry) where T : class, new()
 {
     protected AgentState<T> _state = new();

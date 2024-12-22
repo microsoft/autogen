@@ -11,6 +11,6 @@ public interface IGateway : IGrainObserver
     ValueTask StoreAsync(Contracts.AgentState value);
     ValueTask<Contracts.AgentState> ReadAsync(AgentId agentId);
     ValueTask<RegisterAgentTypeResponse> RegisterAgentTypeAsync(RegisterAgentTypeRequest request);
-    ValueTask<AddSubscriptionResponse> AddSubscriptionAsync(AddSubscriptionRequest request);
+    ValueTask<SubscriptionResponse> AddSubscriptionAsync(SubscriptionRequest request);
     Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent);
 }

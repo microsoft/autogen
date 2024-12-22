@@ -127,13 +127,13 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
                     self._background_tasks.add(task)
                     task.add_done_callback(self._raise_on_exception)
                     task.add_done_callback(self._background_tasks.discard)
-                case "addSubscriptionRequest":
-                    add_subscription: agent_worker_pb2.AddSubscriptionRequest = message.addSubscriptionRequest
+                case "SubscriptionRequest":
+                    add_subscription: agent_worker_pb2.SubscriptionRequest = message.SubscriptionRequest
                     task = asyncio.create_task(self._process_add_subscription_request(add_subscription, client_id))
                     self._background_tasks.add(task)
                     task.add_done_callback(self._raise_on_exception)
                     task.add_done_callback(self._background_tasks.discard)
-                case "registerAgentTypeResponse" | "addSubscriptionResponse":
+                case "registerAgentTypeResponse" | "SubscriptionResponse":
                     logger.warning(f"Received unexpected message type: {oneofcase}")
                 case None:
                     logger.warning("Received empty message")
@@ -217,7 +217,7 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         )
 
     async def _process_add_subscription_request(
-        self, add_subscription_req: agent_worker_pb2.AddSubscriptionRequest, client_id: int
+        self, add_subscription_req: agent_worker_pb2.SubscriptionRequest, client_id: int
     ) -> None:
         oneofcase = add_subscription_req.subscription.WhichOneof("subscription")
         subscription: Subscription | None = None
@@ -254,7 +254,7 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
             # Send a response back to the client.
             await self._send_queues[client_id].put(
                 agent_worker_pb2.Message(
-                    addSubscriptionResponse=agent_worker_pb2.AddSubscriptionResponse(
+                    SubscriptionResponse=agent_worker_pb2.SubscriptionResponse(
                         request_id=add_subscription_req.request_id, success=success, error=error
                     )
                 )

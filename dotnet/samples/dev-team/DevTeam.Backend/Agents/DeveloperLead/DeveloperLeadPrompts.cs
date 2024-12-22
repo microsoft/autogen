@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // DeveloperLeadPrompts.cs
 
-namespace DevTeam.Agents;
+namespace DevTeam.Backend.Agents.DeveloperLead;
 public static class DevLeadSkills
 {
     public const string Plan = """

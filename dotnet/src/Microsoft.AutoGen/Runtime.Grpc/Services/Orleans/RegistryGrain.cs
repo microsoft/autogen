@@ -172,7 +172,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentStateStore")
         return null;
     }
 
-    public async ValueTask SubscribeAsync(AddSubscriptionRequest sub)
+    public async ValueTask SubscribeAsync(SubscriptionRequest sub)
     {
         switch (sub.Subscription.SubscriptionCase)
         {
@@ -206,7 +206,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentStateStore")
         }
         await state.WriteStateAsync().ConfigureAwait(false);
     }
-    public async ValueTask UnsubscribeAsync(AddSubscriptionRequest request)
+    public async ValueTask UnsubscribeAsync(SubscriptionRequest request)
     {
         throw new NotImplementedException();
     }

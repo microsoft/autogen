@@ -18,10 +18,8 @@ namespace Hello
 {
     [TopicSubscription("agents")]
     public class HelloAgent(
-        IAgentWorker worker,
         IHostApplicationLifetime hostApplicationLifetime,
-        [FromKeyedServices("EventTypes")] AgentsMetadata typeRegistry) : Agent(
-            worker,
+        [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry) : Agent(
             typeRegistry),
             IHandleConsole,
             IHandle<NewMessageReceived>,
@@ -29,7 +27,7 @@ namespace Hello
             IHandle<Shutdown>
     {
         private AgentState? State { get; set; }
-        public async Task Handle(NewMessageReceived item)
+        public async Task Handle(NewMessageReceived item, CancellationToken cancellationToken = default)
         {
             var response = await SayHello(item.Message).ConfigureAwait(false);
             var evt = new Output
@@ -57,7 +55,7 @@ namespace Hello
             await PublishMessageAsync(new Shutdown { Message = this.AgentId.Key }).ConfigureAwait(false);
 
         }
-        public async Task Handle(ConversationClosed item)
+        public async Task Handle(ConversationClosed item, CancellationToken cancellationToken = default)
         {
             State = await ReadAsync<AgentState>(this.AgentId).ConfigureAwait(false);
             var state = JsonSerializer.Deserialize<Dictionary<string, string>>(State.TextData) ?? new Dictionary<string, string> { { "data", "No state data found" } };
@@ -74,7 +72,7 @@ namespace Hello
                 TextData = JsonSerializer.Serialize(state)
             }).ConfigureAwait(false);
         }
-        public async Task Handle(Shutdown item)
+        public async Task Handle(Shutdown item, CancellationToken cancellationToken = default)
         {
             string? workflow = null;
             // make sure the workflow is finished

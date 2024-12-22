@@ -46,6 +46,8 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
         var worker = _serviceProvider.GetRequiredService<IAgentWorker>();
         Agent.Initialize(worker, agent);
         Assert.Equal("AgentWorker", agent.Worker.GetType().Name);
+        var subscriptions = await agent.GetSubscriptionsAsync();
+        Assert.Equal(2, subscriptions.Count);
     }
 
     [Fact]

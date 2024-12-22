@@ -187,14 +187,14 @@ await app.WaitForShutdownAsync();
 [TopicSubscription("agents")]
 public class HelloAgent(
     IAgentContext worker,
-    [FromKeyedServices("EventTypes")] AgentsMetadata typeRegistry) : ConsoleAgent(
+    [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry) : ConsoleAgent(
         worker,
         typeRegistry),
         ISayHello,
         IHandle<NewMessageReceived>,
         IHandle<ConversationClosed>
 {
-    public async Task Handle(NewMessageReceived item)
+    public async Task Handle(NewMessageReceived item, CancellationToken cancellationToken = default)
     {
         var response = await SayHello(item.Message).ConfigureAwait(false);
         var evt = new Output
@@ -209,7 +209,7 @@ public class HelloAgent(
         }.ToCloudEvent(this.AgentId.Key);
         await PublishEventAsync(goodbye).ConfigureAwait(false);
     }
-    public async Task Handle(ConversationClosed item)
+    public async Task Handle(ConversationClosed item, CancellationToken cancellationToken = default)
     {
         var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
         var evt = new Output

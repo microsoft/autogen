@@ -216,7 +216,7 @@ public sealed class GrpcAgentWorker(
             {
                 var subscriptionRequest = new Message
                 {
-                    AddSubscriptionRequest = new AddSubscriptionRequest
+                    SubscriptionRequest = new SubscriptionRequest
                     {
                         RequestId = Guid.NewGuid().ToString(),
                         Subscription = new Subscription
@@ -234,7 +234,7 @@ public sealed class GrpcAgentWorker(
                 {
                     subscriptionRequest = new Message
                     {
-                        AddSubscriptionRequest = new AddSubscriptionRequest
+                        SubscriptionRequest = new SubscriptionRequest
                         {
                             RequestId = Guid.NewGuid().ToString(),
                             Subscription = new Subscription
@@ -397,7 +397,17 @@ public sealed class GrpcAgentWorker(
         }
     }
 
-    public ValueTask<List<string>> GetSubscriptionsAsync(Type type)
+    public ValueTask<List<Subscription>> GetSubscriptionsAsync(Type type)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<SubscriptionResponse> SubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<SubscriptionResponse> UnsubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default)
     {
         throw new NotImplementedException();
     }
