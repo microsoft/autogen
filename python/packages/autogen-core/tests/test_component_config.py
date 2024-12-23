@@ -16,7 +16,7 @@ class MyConfig(BaseModel):
 
 
 class MyComponent(Component[MyConfig]):
-    config_schema = MyConfig
+    component_config_schema = MyConfig
     component_type = "custom"
 
     def __init__(self, info: str) -> None:
@@ -95,7 +95,7 @@ def test_cannot_import_locals() -> None:
         info: str
 
     class MyInvalidModelClient(Component[InvalidModelClientConfig]):
-        config_schema = InvalidModelClientConfig
+        component_config_schema = InvalidModelClientConfig
         component_type = "model"
 
         def __init__(self, info: str):
@@ -119,7 +119,7 @@ class InvalidModelClientConfig(BaseModel):
 
 
 class MyInvalidModelClient(Component[InvalidModelClientConfig]):
-    config_schema = InvalidModelClientConfig
+    component_config_schema = InvalidModelClientConfig
     component_type = "model"
 
     def __init__(self, info: str) -> None:
@@ -174,3 +174,37 @@ def test_schema_validation_fails_on_bad_config() -> None:
     )
     with pytest.raises(ValidationError):
         _ = MyComponent.load_component(model)
+
+
+def test_config_optional_values() -> None:
+    config = {
+        "provider": _type_to_provider_str(MyComponent),
+        "config": {"info": "test"},
+    }
+
+    model = ComponentModel.model_validate(config)
+    component = MyComponent.load_component(model)
+    assert component.info == "test"
+    assert component.__class__ == MyComponent
+
+
+class ConfigProviderOverrided(Component[MyConfig]):
+    component_provider_override = "InvalidButStillOverridden"
+    component_config_schema = MyConfig
+    component_type = "custom"
+
+    def __init__(self, info: str):
+        self.info = info
+
+    def _to_config(self) -> MyConfig:
+        return MyConfig(info=self.info)
+
+    @classmethod
+    def _from_config(cls, config: MyConfig) -> Self:
+        return cls(info=config.info)
+
+
+def test_config_provider_override() -> None:
+    comp = ConfigProviderOverrided("test")
+    dumped = comp.dump_component()
+    assert dumped.provider == "InvalidButStillOverridden"
