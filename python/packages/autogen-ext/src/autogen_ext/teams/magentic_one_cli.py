@@ -6,6 +6,21 @@ from autogen_ext.teams.magentic_one import MagenticOne
 from autogen_agentchat.ui import Console
 
 def main():
+    """
+    Command-line interface for running a complex task using MagenticOne.
+
+    This script accepts a single task string and an optional flag to disable
+    human-in-the-loop mode. It initializes the necessary clients and runs the
+    task using the MagenticOne class.
+
+    Arguments:
+    task (str): The task to be executed by MagenticOne.
+    --no-hil: Optional flag to disable human-in-the-loop mode.
+
+    Example usage:
+    python magentic_one_cli.py "example task"
+    python magentic_one_cli.py "example task" --no-hil
+    """
     parser = argparse.ArgumentParser(
         description=(
             "Run a complex task using MagenticOne.\n\n"
