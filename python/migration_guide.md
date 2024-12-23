@@ -36,7 +36,7 @@ See each feature below for detailed information on how to migrate.
 - [Assistant Agent](#assistant-agent)
 - [Multi-Modal Agent](#multi-modal-agent)
 - [User Proxy](#user-proxy)
-- [Custom Agent and Register Reply](#custom-agent-and-register-reply)
+- [Conversable Agent and Register Reply](#conversable-agent-and-register-reply)
 - [Two-Agent Chat](#two-agent-chat)
 - [Tool Use](#tool-use)
 - [Group Chat](#group-chat)
@@ -46,7 +46,7 @@ See each feature below for detailed information on how to migrate.
 - [Sequential Chat](#sequential-chat)
 - [GPTAssistantAgent](#gptassistantagent)
 - [Long-Context Handling](#long-context-handling)
-- [Observability](#observability)
+- [Observability and Control](#observability-and-control)
 - [Code Executors](#code-executors)
 
 The following features currently in `v0.2`
