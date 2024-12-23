@@ -48,9 +48,11 @@ video-surfer = [
     "ffmpeg-python",
     "openai-whisper",
 ]
-
 grpc = [
     "grpcio~=1.62.0", # TODO: update this once we have a stable version.
+]
+jupyter-executor = [
+    "jupyter-kernel-gateway>=3.0.1",
 ]
 
 [tool.hatch.build.targets.wheel]
