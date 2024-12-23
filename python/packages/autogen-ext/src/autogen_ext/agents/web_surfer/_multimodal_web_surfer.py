@@ -15,6 +15,7 @@ from typing import (
     List,
     Optional,
     Sequence,
+    Tuple,
     cast,
 )
 from urllib.parse import quote_plus
@@ -321,8 +322,8 @@ class MultimodalWebSurfer(BaseChatAgent):
             )
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        return [MultiModalMessage]
+    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+        return (MultiModalMessage,)
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         if not self.did_lazy_init:

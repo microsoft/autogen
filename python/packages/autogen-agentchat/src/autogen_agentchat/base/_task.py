@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import AsyncGenerator, List, Protocol, Sequence
+from typing import AsyncGenerator, Protocol, Sequence
 
 from autogen_core import CancellationToken
 
@@ -23,10 +23,12 @@ class TaskRunner(Protocol):
     async def run(
         self,
         *,
-        task: str | ChatMessage | List[ChatMessage] | None = None,
+        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the task and return the result.
+
+        The task can be a string, a single message, or a sequence of messages.
 
         The runner is stateful and a subsequent call to this method will continue
         from where the previous call left off. If the task is not specified,
@@ -36,11 +38,13 @@ class TaskRunner(Protocol):
     def run_stream(
         self,
         *,
-        task: str | ChatMessage | List[ChatMessage] | None = None,
+        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None]:
         """Run the task and produces a stream of messages and the final result
         :class:`TaskResult` as the last item in the stream.
+
+        The task can be a string, a single message, or a sequence of messages.
 
         The runner is stateful and a subsequent call to this method will continue
         from where the previous call left off. If the task is not specified,
