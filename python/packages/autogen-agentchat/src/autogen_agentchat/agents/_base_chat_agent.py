@@ -168,3 +168,9 @@ class BaseChatAgent(ChatAgent, ABC):
     async def load_state(self, state: Mapping[str, Any]) -> None:
         """Restore agent from saved state. Default implementation for stateless agents."""
         BaseState.model_validate(state)
+
+    async def activate(self) -> None:
+        pass
+
+    async def deactivate(self) -> None:
+        pass

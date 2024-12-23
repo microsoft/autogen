@@ -178,6 +178,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             str, Callable[[], Agent | Awaitable[Agent]] | Callable[[AgentRuntime, AgentId], Agent | Awaitable[Agent]]
         ] = {}
         self._instantiated_agents: Dict[AgentId, Agent] = {}
+        self._activated_agents: set[AgentId] = set()
         self._intervention_handlers = intervention_handlers
         self._outstanding_tasks = Counter()
         self._background_tasks: Set[Task[Any]] = set()
@@ -310,7 +311,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             recipient = message_envelope.recipient
             # todo: check if recipient is in the known namespaces
             # assert recipient in self._agents
-
+            
             try:
                 # TODO use id
                 sender_name = message_envelope.sender.type if message_envelope.sender is not None else "Unknown"
@@ -327,6 +328,11 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 #     )
                 # )
                 recipient_agent = await self._get_agent(recipient)
+
+                if recipient not in self._activated_agents:
+                    self._activated_agents.add(recipient)
+                    await recipient_agent.activate()
+
                 message_context = MessageContext(
                     sender=message_envelope.sender,
                     topic_id=None,
@@ -395,6 +401,10 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                         message_id=message_envelope.message_id,
                     )
                     agent = await self._get_agent(agent_id)
+                        
+                    if agent_id not in self._activated_agents:
+                        self._activated_agents.add(agent_id)
+                        await agent.activate()
 
                     async def _on_message(agent: Agent, message_context: MessageContext) -> Any:
                         with self._tracer_helper.trace_block("process", agent.id, parent=None):
@@ -532,6 +542,13 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         """Stop the runtime message processing loop."""
         if self._run_context is None:
             raise RuntimeError("Runtime is not started")
+        
+        # deactivate all the agents that have been activated
+        for agent_id in self._activated_agents:
+            agent = await self._get_agent(agent_id)
+            await agent.deactivate()
+        self._activated_agents.clear()
+            
         await self._run_context.stop()
         self._run_context = None
 
@@ -541,6 +558,13 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         if self._run_context is None:
             raise RuntimeError("Runtime is not started")
         await self._run_context.stop_when_idle()
+
+        # deactivate all the agents that have been activated
+        for agent_id in self._activated_agents:
+            agent = await self._get_agent(agent_id)
+            await agent.deactivate()
+        self._activated_agents.clear()
+
         self._run_context = None
 
     async def stop_when(self, condition: Callable[[], bool]) -> None:
@@ -548,6 +572,13 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         if self._run_context is None:
             raise RuntimeError("Runtime is not started")
         await self._run_context.stop_when(condition)
+
+        # deactivate all the agents that have been activated
+        for agent_id in self._activated_agents:
+            agent = await self._get_agent(agent_id)
+            await agent.deactivate()
+        self._activated_agents.clear()
+
         self._run_context = None
 
     async def agent_metadata(self, agent: AgentId) -> AgentMetadata:
