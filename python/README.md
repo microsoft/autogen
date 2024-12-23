@@ -5,6 +5,10 @@
 
 This directory works as a single `uv` workspace containing all project packages. See [`packages`](./packages/) to discover all project packages.
 
+## Migrating from 0.2.x?
+
+Please refer to the [migration guide](./migration_guide.md) for how to migrate your code from 0.2.x to 0.4.x.
+
 ## Development
 
 **TL;DR**, run all checks with:
