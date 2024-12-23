@@ -122,11 +122,12 @@ class MagenticOne(MagenticOneGroupChat):
             agents.append(user_proxy)
         super().__init__(agents, model_client=client)
 
-    def _validate_client_capabilities(self, client: ChatCompletionClient):
+    def _validate_client_capabilities(self, client: ChatCompletionClient) -> None:
         capabilities = client.capabilities
         if not (
             capabilities.get("vision") and capabilities.get("function_calling") and capabilities.get("json_output")
         ):
             warnings.warn(
-                "Client capabilities must include vision, function calling, and json output. This team has been tested with gpt-4o."
+                "Client capabilities must include vision, function calling, and json output. This team has been tested with gpt-4o.",
+                stacklevel=2,
             )
