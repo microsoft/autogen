@@ -33,7 +33,7 @@ def main():
     parser.add_argument("--no-hil", action="store_true", help="Disable human-in-the-loop mode.")
     args = parser.parse_args()
 
-    async def run_task(task, hil_mode):
+    async def run_task(task: str, hil_mode: bool) -> None:
         client = OpenAIChatCompletionClient(model="gpt-4o")
         m1 = MagenticOne(client=client, hil_mode=hil_mode)
         await Console(m1.run_stream(task=task))
