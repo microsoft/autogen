@@ -12,7 +12,7 @@ def main():
             "For more information, refer to the following paper: https://arxiv.org/abs/2411.04468"
         )
     )
-    parser.add_argument('task', type=str, nargs='*', help='The task to be executed by MagenticOne.')
+    parser.add_argument('task', type=str, nargs=1, help='The task to be executed by MagenticOne.')
     parser.add_argument('--no-hil', action='store_true', help='Disable human-in-the-loop mode.')
     args = parser.parse_args()
 
@@ -21,7 +21,7 @@ def main():
         m1 = MagenticOne(client=client, hil_mode=hil_mode)
         await Console(m1.run_stream(task=task))
 
-    task = ' '.join(shlex.split(' '.join(args.task)))
+    task = args.task[0]
     asyncio.run(run_task(task, not args.no_hil))
 
 if __name__ == "__main__":
