@@ -108,6 +108,28 @@ def example_documents() -> List[Document]:
 
 
 @pytest.fixture
+def id_less_example_documents() -> List[Document]:
+    """No ID for Hashing Input Test"""
+    return [
+        Document(content="Stars are Big.", metadata={"a": 1}),
+        Document(content="Atoms are Small.", metadata={"b": 1}),
+        Document(content="Clouds are White.", metadata={"c": 1}),
+        Document(content="Grass is Green.", metadata={"d": 1, "e": 2}),
+    ]
+
+
+@pytest.fixture
+def id_mix_example_documents() -> List[Document]:
+    """No ID for Hashing Input Test"""
+    return [
+        Document(id="123", content="Stars are Big.", metadata={"a": 1}),
+        Document(content="Atoms are Small.", metadata={"b": 1}),
+        Document(id="321", content="Clouds are White.", metadata={"c": 1}),
+        Document(content="Grass is Green.", metadata={"d": 1, "e": 2}),
+    ]
+
+
+@pytest.fixture
 def db_with_indexed_clxn(collection_name):
     """VectorDB with a collection created immediately"""
     database = MongoClient(MONGODB_URI)[MONGODB_DATABASE]
@@ -210,6 +232,39 @@ def test_insert_docs(db, collection_name, example_documents):
     assert {doc["_id"] for doc in found} == {1, "1", 2, "2"}
     # Check embedding lengths
     assert len(found[0]["embedding"]) == 384
+
+
+def test_insert_docs_no_id(db, collection_name, id_less_example_documents):
+    # Test that there's an active collection
+    with pytest.raises(ValueError) as exc:
+        db.insert_docs(id_less_example_documents)
+    assert "No collection is specified" in str(exc.value)
+
+    # Create a collection
+    db.delete_collection(collection_name)
+    collection = db.create_collection(collection_name)
+
+    # Insert example documents
+    db.insert_docs(id_less_example_documents, collection_name=collection_name)
+    found = list(collection.find({}))
+    assert len(found) == len(id_less_example_documents)
+    # Check that documents have correct fields, including "_id" and "embedding" but not "id"
+    assert all([set(doc.keys()) == {"_id", "content", "metadata", "embedding"} for doc in found])
+    # Check ids
+    hash_values = set(db.generate_chunk_ids([content.get("content") for content in id_less_example_documents]))
+    assert {doc["_id"] for doc in found} == hash_values
+    # Check embedding lengths
+    assert len(found[0]["embedding"]) == 384
+
+
+def test_insert_docs_mix_id(db, collection_name, id_mix_example_documents):
+    # Test that there's an active collection
+    with pytest.raises(ValueError) as exc:
+        db.insert_docs(id_mix_example_documents)
+    assert "No collection is specified" in str(exc.value)
+    # Test that insert_docs does not accept mixed ID inserts
+    with pytest.raises(AssertionError, match="Documents provided must all have ID's or all not have ID's"):
+        db.insert_docs(id_mix_example_documents, collection_name, upsert=True)
 
 
 def test_update_docs(db_with_indexed_clxn, example_documents):
