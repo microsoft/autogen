@@ -1,17 +1,15 @@
+import warnings
 from typing import List
-
-from autogen_core.models import ChatCompletionClient
 
 from autogen_agentchat.agents import CodeExecutorAgent, UserProxyAgent
 from autogen_agentchat.base import ChatAgent
 from autogen_agentchat.teams import MagenticOneGroupChat
+from autogen_core.models import ChatCompletionClient
 
 from autogen_ext.agents.file_surfer import FileSurfer
 from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-
-import warnings
 
 
 class MagenticOne(MagenticOneGroupChat):
