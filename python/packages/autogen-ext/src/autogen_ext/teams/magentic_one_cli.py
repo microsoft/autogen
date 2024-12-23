@@ -1,9 +1,11 @@
-import asyncio
 import argparse
-import shlex
+import asyncio
+
+from autogen_agentchat.ui import Console
+
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.teams.magentic_one import MagenticOne
-from autogen_agentchat.ui import Console
+
 
 def main():
     """
@@ -19,7 +21,7 @@ def main():
 
     Example usage:
     python magentic_one_cli.py "example task"
-    python magentic_one_cli.py --no-hil "example task" 
+    python magentic_one_cli.py --no-hil "example task"
     """
     parser = argparse.ArgumentParser(
         description=(
@@ -27,8 +29,8 @@ def main():
             "For more information, refer to the following paper: https://arxiv.org/abs/2411.04468"
         )
     )
-    parser.add_argument('task', type=str, nargs=1, help='The task to be executed by MagenticOne.')
-    parser.add_argument('--no-hil', action='store_true', help='Disable human-in-the-loop mode.')
+    parser.add_argument("task", type=str, nargs=1, help="The task to be executed by MagenticOne.")
+    parser.add_argument("--no-hil", action="store_true", help="Disable human-in-the-loop mode.")
     args = parser.parse_args()
 
     async def run_task(task, hil_mode):
@@ -38,6 +40,7 @@ def main():
 
     task = args.task[0]
     asyncio.run(run_task(task, not args.no_hil))
+
 
 if __name__ == "__main__":
     main()
