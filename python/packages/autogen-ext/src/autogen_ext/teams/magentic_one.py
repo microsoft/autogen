@@ -125,15 +125,18 @@ class MagenticOne(MagenticOneGroupChat):
 
     def _validate_client_capabilities(self, client: ChatCompletionClient) -> None:
         capabilities = client.capabilities
-        if not (
-            capabilities.get("vision") and capabilities.get("function_calling") and capabilities.get("json_output")
-        ):
+        required_capabilities = ["vision", "function_calling", "json_output"]
+
+        if not all(capabilities.get(cap) for cap in required_capabilities):
             warnings.warn(
-                "Client capabilities for MagenticOne must include vision, function calling, and json output.",
+                "Client capabilities for MagenticOne must include vision, " "function calling, and json output.",
                 stacklevel=2,
             )
-        if not isinstance(client, BaseOpenAIChatCompletionClient) or "gpt-4o" not in client.create_args.get("model", ""):
+
+        if not isinstance(client, BaseOpenAIChatCompletionClient) or "gpt-4o" not in client.create_args.get(
+            "model", ""
+        ):
             warnings.warn(
-                "MagenticOne performs best with OpenAI GPT-4o model either through OpenAI or Azure OpenAI.",
+                "MagenticOne performs best with OpenAI GPT-4o model either " "through OpenAI or Azure OpenAI.",
                 stacklevel=2,
             )
