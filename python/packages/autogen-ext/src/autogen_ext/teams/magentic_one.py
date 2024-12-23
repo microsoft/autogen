@@ -1,5 +1,7 @@
 from typing import List
 
+from autogen_core.models import ChatCompletionClient
+
 from autogen_agentchat.agents import CodeExecutorAgent, UserProxyAgent
 from autogen_agentchat.base import ChatAgent
 from autogen_agentchat.teams import MagenticOneGroupChat
@@ -8,7 +10,6 @@ from autogen_ext.agents.file_surfer import FileSurfer
 from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
 class MagenticOne(MagenticOneGroupChat):
@@ -18,7 +19,7 @@ class MagenticOne(MagenticOneGroupChat):
     To read more about the science behind Magentic-One, see the full blog post: `Magentic-One: A Generalist Multi-Agent System for Solving Complex Tasks <https://www.microsoft.com/en-us/research/articles/magentic-one-a-generalist-multi-agent-system-for-solving-complex-tasks>`_ and the references below.
 
     Attributes:
-        client (OpenAIChatCompletionClient): The client used for model interactions.
+        client (ChatCompletionClient): The client used for model interactions.
         hil_mode (bool): Optional; If set to True, adds the UserProxyAgent to the list of agents.
 
     .. warning::
@@ -107,7 +108,7 @@ class MagenticOne(MagenticOneGroupChat):
 
     """
 
-    def __init__(self, client: OpenAIChatCompletionClient, hil_mode: bool = False):
+    def __init__(self, client: ChatCompletionClient, hil_mode: bool = False):
         self.client = client
         fs = FileSurfer("FileSurfer", model_client=client)
         ws = MultimodalWebSurfer("WebSurfer", model_client=client)
