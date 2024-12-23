@@ -110,7 +110,6 @@ jobs:
           source .venv/bin/activate
           mkdir -p docs-staging/schemas/
           gen-component-schema > docs-staging/schemas/component-schema-latest.json
-          mv ./packages/autogen-core/docs/build/* docs-staging/${{ matrix.version.dest-dir }}/
         working-directory: ./python
       - uses: actions/upload-artifact@v4
         with:
