@@ -72,7 +72,6 @@ def main():
         reverse_provider_lookup_table[canonical].append(canonical)
         for provider_str in reverse_provider_lookup_table[canonical]:
             model = build_specific_component_schema(type, provider_str)
-            # outer_model_schema["$defs"] = dict(list(outer_model_schema["$defs"]) + list(model["$defs"]))
             # Add new defs, don't overwrite the existing ones
             for key, value in model["$defs"].items():
                 if key in outer_model_schema["$defs"]:
@@ -83,7 +82,7 @@ def main():
             outer_model_schema["$defs"][type.__name__ + "_prov:" + provider_str] = model
 
             outer_model_schema["$defs"]["ComponentModel"]["oneOf"].append(
-                {"$ref": f"#/$defs/{type.__name__+"_prov:"+provider_str}"}
+                {"$ref": f"#/$defs/{type.__name__}_prov:{provider_str}"}
             )
 
     add_type(OpenAIChatCompletionClient)
