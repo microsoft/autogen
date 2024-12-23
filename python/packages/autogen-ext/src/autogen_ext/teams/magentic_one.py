@@ -13,6 +13,7 @@ from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 
 import warnings
 
+
 class MagenticOne(MagenticOneGroupChat):
     """
     MagenticOne is a specialized group chat class that integrates various agents
@@ -125,5 +126,9 @@ class MagenticOne(MagenticOneGroupChat):
 
     def _validate_client_capabilities(self, client: ChatCompletionClient):
         capabilities = client.capabilities
-        if not (capabilities.get("vision") and capabilities.get("function_calling") and capabilities.get("json_output")):
-            warnings.warn("Client capabilities must include vision, function calling, and json output. This team has been tested with gpt-4o.")
+        if not (
+            capabilities.get("vision") and capabilities.get("function_calling") and capabilities.get("json_output")
+        ):
+            warnings.warn(
+                "Client capabilities must include vision, function calling, and json output. This team has been tested with gpt-4o."
+            )
