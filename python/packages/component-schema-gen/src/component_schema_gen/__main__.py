@@ -24,6 +24,8 @@ def build_specific_component_schema(component: type[ComponentConfigImpl[T]], pro
     if "$defs" not in component_model_schema:
         component_model_schema["$defs"] = {}
 
+    if "$defs" not in model_schema:
+        model_schema["$defs"] = {}
     component_model_schema["$defs"].update(model_schema["$defs"])  # type: ignore
     del model_schema["$defs"]
 
