@@ -52,10 +52,10 @@ See each feature below for detailed information on how to migrate.
 The following features currently in `v0.2`
 will be providied in the future releases of `v0.4.*` versions:
 
-- Model Client Cache
+- Model Client Cache [#4752](https://github.com/microsoft/autogen/issues/4752)
+- Jupyter Code Executor [#4795](https://github.com/microsoft/autogen/issues/4795)
 - Teacheable Agent
 - RAG Agent
-- Jupyter Code Executor
 
 We will update this guide when the missing features become available.
 
