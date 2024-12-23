@@ -7,7 +7,7 @@ from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.teams.magentic_one import MagenticOne
 
 
-def main():
+def main() -> None:
     """
     Command-line interface for running a complex task using MagenticOne.
 
@@ -43,4 +43,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main()  # type: ignore
