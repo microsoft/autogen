@@ -1,3 +1,5 @@
+import hashlib
+import os
 from typing import (
     Any,
     Callable,
@@ -16,6 +18,8 @@ Metadata = Union[Mapping[str, Any], None]
 Vector = Union[Sequence[float], Sequence[int]]
 ItemID = Union[str, int]  # chromadb doesn't support int ids, VikingDB does
 
+HASH_LENGTH = int(os.environ.get("HASH_LENGTH", 8))
+
 
 class Document(TypedDict):
     """A Document is a record in the vector database.
@@ -26,7 +30,7 @@ class Document(TypedDict):
     embedding: Vector, Optional | the vector representation of the content.
     """
 
-    id: ItemID
+    id: Optional[ItemID]
     content: str
     metadata: Optional[Metadata]
     embedding: Optional[Vector]
@@ -107,6 +111,19 @@ class VectorDB(Protocol):
             Any
         """
         ...
+
+    def generate_chunk_ids(chunks: List[str], hash_length: int = HASH_LENGTH) -> List[ItemID]:
+        """
+        Generate chunk IDs to ensure non-duplicate uploads.
+
+        Args:
+            chunks (list): A list of chunks (strings) to hash.
+            hash_length (int): The desired length of the hash.
+
+        Returns:
+            list: A list of generated chunk IDs.
+        """
+        return [hashlib.blake2b(chunk.encode("utf-8")).hexdigest()[:hash_length] for chunk in chunks]
 
     def insert_docs(self, docs: List[Document], collection_name: str = None, upsert: bool = False, **kwargs) -> None:
         """
