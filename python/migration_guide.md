@@ -55,6 +55,7 @@ will be providied in the future releases of `v0.4.*` versions:
 - Model Client Cache
 - Teacheable Agent
 - RAG Agent
+- Jupyter Code Executor
 
 We will update this guide when the missing features become available.
 
