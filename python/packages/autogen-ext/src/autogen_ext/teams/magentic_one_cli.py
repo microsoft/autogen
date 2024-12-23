@@ -19,7 +19,7 @@ def main():
 
     Example usage:
     python magentic_one_cli.py "example task"
-    python magentic_one_cli.py "example task" --no-hil
+    python magentic_one_cli.py --no-hil "example task" 
     """
     parser = argparse.ArgumentParser(
         description=(
