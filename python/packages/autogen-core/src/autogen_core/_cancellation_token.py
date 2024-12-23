@@ -12,7 +12,7 @@ class CancellationToken:
         self._callbacks: List[Callable[[], None]] = []
 
     def cancel(self) -> None:
-        """Cancel a pending async call"""
+        """Cancel pending async calls linked to this cancellation token."""
         with self._lock:
             if not self._cancelled:
                 self._cancelled = True
