@@ -182,11 +182,20 @@ class ComponentLoader:
         if not hasattr(component_class, "component_type"):
             raise AttributeError("component_type not defined")
 
-        schema = component_class.component_config_schema
-        validated_config = schema.model_validate(loaded_model.config)
+        loaded_config_version = loaded_model.component_version or component_class.component_version
+        if loaded_config_version < component_class.component_version:
+            try:
+                instance = component_class._from_config_past_version(loaded_model.config, loaded_config_version)  # type: ignore
+            except NotImplementedError as e:
+                raise NotImplementedError(
+                    f"Tried to load component {component_class} which is on version {component_class.component_version} with a config on version {loaded_config_version} but _from_config_past_version is not implemented"
+                ) from e
+        else:
+            schema = component_class.component_config_schema
+            validated_config = schema.model_validate(loaded_model.config)
 
-        # We're allowed to use the private method here
-        instance = component_class._from_config(validated_config)  # type: ignore
+            # We're allowed to use the private method here
+            instance = component_class._from_config(validated_config)  # type: ignore
 
         if expected is None and not isinstance(instance, cls):
             raise TypeError("Expected type does not match")
@@ -275,7 +284,7 @@ class Component(ComponentConfigImpl[ConfigT], ComponentLoader, Generic[ConfigT])
         return ComponentModel(
             provider=provider,
             component_type=self.component_type,
-            version=1,
+            version=self.component_version,
             description=None,
             config=obj_config,
         )
