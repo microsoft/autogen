@@ -11,6 +11,7 @@ from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 
+import warnings
 
 class MagenticOne(MagenticOneGroupChat):
     """
@@ -110,6 +111,8 @@ class MagenticOne(MagenticOneGroupChat):
 
     def __init__(self, client: ChatCompletionClient, hil_mode: bool = False):
         self.client = client
+        self._validate_client_capabilities(client)
+
         fs = FileSurfer("FileSurfer", model_client=client)
         ws = MultimodalWebSurfer("WebSurfer", model_client=client)
         coder = MagenticOneCoderAgent("Coder", model_client=client)
@@ -119,3 +122,8 @@ class MagenticOne(MagenticOneGroupChat):
             user_proxy = UserProxyAgent("User")
             agents.append(user_proxy)
         super().__init__(agents, model_client=client)
+
+    def _validate_client_capabilities(self, client: ChatCompletionClient):
+        capabilities = client.capabilities
+        if not (capabilities.get("vision") and capabilities.get("function_calling") and capabilities.get("json_output")):
+            warnings.warn("Client capabilities must include vision, function calling, and json output. This team has been tested with gpt-4o.")
