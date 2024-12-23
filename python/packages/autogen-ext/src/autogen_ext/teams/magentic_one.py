@@ -133,7 +133,7 @@ class MagenticOne(MagenticOneGroupChat):
                 stacklevel=2,
             )
 
-        if not isinstance(client, BaseOpenAIChatCompletionClient) or "gpt-4o" not in client.create_args.get(
+        if not isinstance(client, BaseOpenAIChatCompletionClient) or "gpt-4o" not in client._create_args.get(
             "model", ""
         ):
             warnings.warn(
