@@ -2,7 +2,7 @@ import time
 from typing import List, Sequence
 
 from ..base import TerminatedException, TerminationCondition
-from ..messages import AgentEvent, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
+from ..messages import AgentEvent, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage
 
 
 class StopMessageTermination(TerminationCondition):
