@@ -311,7 +311,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             recipient = message_envelope.recipient
             # todo: check if recipient is in the known namespaces
             # assert recipient in self._agents
-            
+
             try:
                 # TODO use id
                 sender_name = message_envelope.sender.type if message_envelope.sender is not None else "Unknown"
@@ -401,7 +401,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                         message_id=message_envelope.message_id,
                     )
                     agent = await self._get_agent(agent_id)
-                        
+
                     if agent_id not in self._activated_agents:
                         self._activated_agents.add(agent_id)
                         await agent.activate()
@@ -542,13 +542,13 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         """Stop the runtime message processing loop."""
         if self._run_context is None:
             raise RuntimeError("Runtime is not started")
-        
+
         # deactivate all the agents that have been activated
         for agent_id in self._activated_agents:
             agent = await self._get_agent(agent_id)
             await agent.deactivate()
         self._activated_agents.clear()
-            
+
         await self._run_context.stop()
         self._run_context = None
 

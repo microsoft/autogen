@@ -149,7 +149,7 @@ class BaseAgent(ABC, Agent):
     async def load_state(self, state: Mapping[str, Any]) -> None:
         warnings.warn("load_state not implemented", stacklevel=2)
         pass
-    
+
     async def activate(self) -> None:
         pass
 
