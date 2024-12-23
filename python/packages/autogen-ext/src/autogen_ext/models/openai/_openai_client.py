@@ -374,10 +374,6 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
 
-    @property
-    def create_args(self) -> Dict[str, Any]:
-        return self._create_args
-
     @classmethod
     def create_from_config(cls, config: Dict[str, Any]) -> ChatCompletionClient:
         return OpenAIChatCompletionClient(**config)
