@@ -133,9 +133,7 @@ class MagenticOne(MagenticOneGroupChat):
                 stacklevel=2,
             )
 
-        if not isinstance(client, BaseOpenAIChatCompletionClient) or "gpt-4o" not in client._create_args.get(
-            "model", ""
-        ):
+        if not isinstance(client, BaseOpenAIChatCompletionClient):
             warnings.warn(
                 "MagenticOne performs best with OpenAI GPT-4o model either " "through OpenAI or Azure OpenAI.",
                 stacklevel=2,
