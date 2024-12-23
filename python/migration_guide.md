@@ -802,6 +802,7 @@ and to the nested team or agent.
 The following example shows a simple nested chat that counts numbers.
 
 ```python
+import asyncio
 from typing import Sequence, List
 from autogen_core import CancellationToken
 from autogen_agentchat.agents import BaseChatAgent
@@ -810,6 +811,8 @@ from autogen_agentchat.messages import TextMessage, ChatMessage
 from autogen_agentchat.base import Response
 
 class CountingAgent(BaseChatAgent):
+    """An agent that returns a new number by adding 1 to the last number in the 
+    input messages."""
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         if len(messages) == 0:
             last_number = 0 # Start from 0 if no messages are given.
@@ -826,6 +829,8 @@ class CountingAgent(BaseChatAgent):
         return [TextMessage]
 
 class NestedCountingAgent(BaseChatAgent):
+    """An agent that increments the last number in the input messages
+    multiple times using a nested counting team."""
     def __init__(self, name: str, counting_team: RoundRobinGroupChat) -> None:
         super().__init__(name, description="An agent that counts numbers.")
         self._counting_team = counting_team
@@ -852,9 +857,24 @@ async def main() -> None:
     counting_team = RoundRobinGroupChat([counting_agent_1, counting_agent_2], max_turns=5)
     # Create a nested counting agent that takes the inner team as a parameter.
     nested_counting_agent = NestedCountingAgent("nested_counting_agent", counting_team)
+    # Run the nested counting agent with a message starting from 1.
     response = await nested_counting_agent.on_messages([TextMessage(content="1", source="user")], CancellationToken())
-    print(response.inner_messages)
+    assert response.inner_messages is not None
+    for message in response.inner_messages:
+        print(message)
     print(response.chat_message)
+
+asyncio.run(main())
+```
+
+You should see the following output:
+
+```bash
+source='counting_agent_1' models_usage=None content='2' type='TextMessage'
+source='counting_agent_2' models_usage=None content='3' type='TextMessage'
+source='counting_agent_1' models_usage=None content='4' type='TextMessage'
+source='counting_agent_2' models_usage=None content='5' type='TextMessage'
+source='counting_agent_1' models_usage=None content='6' type='TextMessage'
 ```
 
 You can take a look at [Society of Mind Agent (Experimental)](https://microsoft.github.io/autogen/dev/reference/python/autogen_agentchat.agents.html#autogen_agentchat.agents.SocietyOfMindAgent) for a more complex implementation.
