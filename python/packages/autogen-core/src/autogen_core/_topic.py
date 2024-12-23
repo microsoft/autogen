@@ -10,6 +10,12 @@ def is_valid_topic_type(value: str) -> bool:
 
 @dataclass(eq=True, frozen=True)
 class TopicId:
+    """
+    TopicId defines the scope of a broadcast message. In essence, agent runtime implements a publish-subscribe model through its broadcast API: when publishing a message, the topic must be specified.
+
+    See here for more information: :ref:`topic_and_subscription_topic`
+    """
+
     type: str
     """Type of the event that this topic_id contains. Adhere's to the cloud event spec.
 
@@ -33,6 +39,7 @@ class TopicId:
 
     @classmethod
     def from_str(cls, topic_id: str) -> Self:
+        """Convert a string of the format ``type/source`` into a TopicId"""
         items = topic_id.split("/", maxsplit=1)
         if len(items) != 2:
             raise ValueError(f"Invalid topic id: {topic_id}")
