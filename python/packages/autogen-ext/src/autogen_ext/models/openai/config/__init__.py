@@ -1,9 +1,11 @@
 from typing import Awaitable, Callable, Dict, List, Literal, Optional, Union
 
+from autogen_core import ComponentModel
 from autogen_core.models import ModelCapabilities
+from pydantic import BaseModel
 from typing_extensions import Required, TypedDict
 
-from autogen_ext.models.openai._azure_token_provider import AzureTokenProvider
+from .._azure_token_provider import AzureTokenProvider
 
 
 class ResponseFormat(TypedDict):
@@ -51,4 +53,49 @@ class AzureOpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False)
     azure_ad_token_provider: AsyncAzureADTokenProvider | AzureTokenProvider
 
 
-__all__ = ["AzureOpenAIClientConfiguration", "OpenAIClientConfiguration"]
+__all__ = [
+    "AzureOpenAIClientConfiguration",
+    "OpenAIClientConfiguration",
+    "AzureOpenAIClientConfigurationConfigModel",
+    "OpenAIClientConfigurationConfigModel",
+]
+
+
+# Pydantic equivalents of the above TypedDicts
+
+
+class CreateArgumentsConfigModel(BaseModel):
+    frequency_penalty: float | None = None
+    logit_bias: Dict[str, int] | None = None
+    max_tokens: int | None = None
+    n: int | None = None
+    presence_penalty: float | None = None
+    response_format: ResponseFormat | None = None
+    seed: int | None = None
+    stop: str | List[str] | None = None
+    temperature: float | None = None
+    top_p: float | None = None
+    user: str | None = None
+
+
+class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
+    model: str
+    api_key: str | None = None
+    timeout: float | None = None
+    max_retries: int | None = None
+    model_capabilities: ModelCapabilities | None = None
+
+
+# See OpenAI docs for explanation of these parameters
+class OpenAIClientConfigurationConfigModel(BaseOpenAIClientConfigurationConfigModel):
+    organization: str | None = None
+    base_url: str | None = None
+
+
+class AzureOpenAIClientConfigurationConfigModel(BaseOpenAIClientConfigurationConfigModel):
+    # Azure specific
+    azure_endpoint: str
+    azure_deployment: str | None = None
+    api_version: str
+    azure_ad_token: str | None = None
+    azure_ad_token_provider: ComponentModel | None = None

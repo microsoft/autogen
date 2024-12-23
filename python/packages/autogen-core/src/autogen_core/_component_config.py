@@ -40,9 +40,10 @@ def _type_to_provider_str(t: type) -> str:
 
 
 WELL_KNOWN_PROVIDERS = {
-    "azure_client": "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
-    "azure_model_client": "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
+    "azure_openai_model_client": "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
     "AzureOpenAIChatCompletionClient": "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
+    "openai_model_client": "autogen_ext.models.openai.OpenAIChatCompletionClient",
+    "OpenAIChatCompletionClient": "autogen_ext.models.openai.OpenAIChatCompletionClient",
 }
 
 
@@ -280,14 +281,16 @@ class Component(ComponentConfigImpl[ConfigT], ComponentLoader, Generic[ConfigT])
         if not hasattr(self, "component_type"):
             raise AttributeError("component_type not defined")
 
-        obj_config = self._to_config().model_dump()
-        return ComponentModel(
+        obj_config = self._to_config().model_dump(exclude_none=True)
+        model = ComponentModel(
             provider=provider,
             component_type=self.component_type,
             version=self.component_version,
+            component_version=self.component_version,
             description=None,
             config=obj_config,
         )
+        return model
 
     @classmethod
     def _from_config_past_version(cls, config: Dict[str, Any], version: int) -> Self:
