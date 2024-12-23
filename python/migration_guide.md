@@ -1,8 +1,9 @@
 # Migration Guide for v0.2 to v0.4
+
 This is a migration guide for users of the `v0.2.*` versions of `autogen-agentchat`
 to the `v0.4` version, which introduces a new set of APIs and features.
 The `v0.4` version contains breaking changes. Please read this guide carefully.
-We still maintain the `v0.2` version in the `0.2` branch; however, 
+We still maintain the `v0.2` version in the `0.2` branch; however,
 we highly recommend you upgrade to the `v0.4` version.
 
 > **Note**: We no longer have admin access to the `pyautogen` PyPI package, and
@@ -19,6 +20,10 @@ the [Core API](https://microsoft.github.io/autogen/dev/user-guide/core-user-guid
 the [AgentChat API](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/index.html) is built on Core, offering a task-driven, high-level framework for building interactive agentic applications. It is a replacement for AutoGen `v0.2`.
 
 Most of this guide focuses on `v0.4`'s AgentChat API; however, you can also build your own high-level framework using just the Core API.
+
+## New to AutoGen?
+
+Jump straight to the [AgentChat Tutorial](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/) to get started with `v0.4`.
 
 ## What's in this guide?
 
@@ -205,7 +210,6 @@ Read more on [Agent Tutorial](https://microsoft.github.io/autogen/dev/user-guide
 and
 [Assistant Agent Docs](https://microsoft.github.io/autogen/dev/reference/python/autogen_agentchat.agents.html#autogen_agentchat.agents.AssistantAgent).
 
-
 ## Multi-Modal Agent
 
 The `AssistantAgent` in `v0.4` supports multi-modal inputs if the model client supports it.
@@ -308,7 +312,7 @@ conversable_agent.register_reply([ConversableAgent], reply_func, position=0)
 # NOTE: An async reply function will only be invoked with async send.
 ```
 
-Rather than guessing what the `reply_func` does, all its parameters, 
+Rather than guessing what the `reply_func` does, all its parameters,
 and what the `position` should be, in `v0.4`, we can simply create a custom agent
 and implement the `on_messages`, `on_reset`, and `produced_message_types` methods.
 
@@ -370,7 +374,7 @@ chat_result = user_proxy.initiate_chat(assistant, message="Write a python script
 print(chat_result)
 ```
 
-To get the same behavior in `v0.4`, you can use the `AssistantAgent` 
+To get the same behavior in `v0.4`, you can use the `AssistantAgent`
 and `CodeExecutorAgent` together in a `RoundRobinGroupChat`.
 
 ```python
@@ -456,7 +460,7 @@ while True:
     print("Assistant:", chat_result.summary)
 ```
 
-In `v0.4`, you really just need one agent -- the `AssistantAgent` -- to handle 
+In `v0.4`, you really just need one agent -- the `AssistantAgent` -- to handle
 both the tool calling and tool execution.
 
 ```python
@@ -508,6 +512,7 @@ writer = AssistantAgent(
     description="A writer.",
     system_message="You are a writer.",
     llm_config=llm_config,
+    is_termination_msg=lambda x: x.get("content", "").rstrip().endswith("APPROVE"),
 )
 
 critic = AssistantAgent(
@@ -562,7 +567,7 @@ async def main() -> None:
     termination = TextMentionTermination("APPROVE")
 
     # The group chat will alternate between the writer and the critic.
-    group_chat = RoundRobinGroupChat([writer, critic], termination_condition=termination)
+    group_chat = RoundRobinGroupChat([writer, critic], termination_condition=termination, max_turns=12)
 
     # `run_stream` returns an async generator to stream the intermediate messages.
     stream = group_chat.run_stream(task="Write a short story about a robot that discovers it has feelings.")
@@ -574,7 +579,7 @@ asyncio.run(main())
 
 For LLM-based speaker selection, you can use the `SelectorGroupChat` instead.
 See [Selector Group Chat Tutorial](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/selector-group-chat.html)
-and 
+and
 [Selector Group Chat Docs](https://microsoft.github.io/autogen/dev/reference/python/autogen_agentchat.teams.html#autogen_agentchat.teams.SelectorGroupChat)
 for more details.
 
@@ -589,7 +594,7 @@ In `v0.2`, group chat with resume is a bit complicated. You need to explicitly
 save the group chat messages and load them back when you want to resume the chat.
 See [Resuming Group Chat in v0.2](https://microsoft.github.io/autogen/0.2/docs/topics/groupchat/resuming_groupchat) for more details.
 
-In `v0.4`, you can simply call `run` or `run_stream` again with the same group chat object to resume the chat. To export and load the state, you can use 
+In `v0.4`, you can simply call `run` or `run_stream` again with the same group chat object to resume the chat. To export and load the state, you can use
 `save_state` and `load_state` methods.
 
 ```python
@@ -859,7 +864,7 @@ You can take a look at [Society of Mind Agent (Experimental)](https://microsoft.
 In `v0.2`, sequential chat is supported by using the `initiate_chats` function.
 It takes input a list of dictionary configurations for each step of the sequence.
 See [Sequential Chat in v0.2](https://microsoft.github.io/autogen/0.2/docs/tutorial/conversation-patterns#sequential-chats)
-for more details. 
+for more details.
 
 Base on the feedback from the community, the `initiate_chats` function
 is too opinionated and not flexible enough to support the diverse set of scenarios that
@@ -895,7 +900,7 @@ every custom agent.
 
 In `v0.4`, we introduce the `ChatCompletionContext` base class that manages
 message history and provides a virtual view of the history. Applications can use
-built-in implementations such as `BufferedChatCompletionContext` to 
+built-in implementations such as `BufferedChatCompletionContext` to
 limit the message history sent to the model, or provide their own implementations
 that creates different virtual views.
 
@@ -943,7 +948,7 @@ For teams, you can also use termination conditions to stop the team when a certa
 See [Termination Condition Tutorial](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/termination.html)
 for more details.
 
-Unlike the `v0.2` which comes with a special logging module, the `v0.4` API 
+Unlike the `v0.2` which comes with a special logging module, the `v0.4` API
 simply uses Python's `logging` module to log events such as model client calls.
 See [Logging](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/framework/logging.html)
 in the Core API documentation for more details.
