@@ -18,11 +18,17 @@ class ComponentModel(BaseModel):
 
     provider: str
     """Describes how the component can be instantiated."""
-    component_type: ComponentType
-    """Logical type of the component."""
-    version: int
-    """Version of the component specification."""
-    description: str | None
+
+    component_type: ComponentType | None = None
+    """Logical type of the component. If missing, the component assumes the default type of the provider."""
+
+    version: int | None = None
+    """Version of the component specification. If missing, the component assumes whatever is the current version of the library used to load it. This is obviously dangerous and should be used for user authored ephmeral config. For all other configs version should be specified."""
+
+    component_version: int | None = None
+    """Version of the component. If missing, the component assumes the default version of the provider."""
+
+    description: str | None = None
     """Description of the component."""
 
     config: dict[str, Any]
@@ -33,11 +39,24 @@ def _type_to_provider_str(t: type) -> str:
     return f"{t.__module__}.{t.__qualname__}"
 
 
+WELL_KNOWN_PROVIDERS = {
+    "azure_client": "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
+    "azure_model_client": "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
+    "AzureOpenAIChatCompletionClient": "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
+}
+
+
 @runtime_checkable
 class ComponentConfigImpl(Protocol[ConfigT]):
     # Ideally would be ClassVar[Type[ConfigT]], but this is disallowed https://github.com/python/typing/discussions/1424 (despite being valid in this context)
-    config_schema: Type[ConfigT]
+    component_config_schema: Type[ConfigT]
+    """The Pydantic model class which represents the configuration of the component."""
     component_type: ClassVar[ComponentType]
+    """The logical type of the component."""
+    component_version: ClassVar[int] = 1
+    """The version of the component, if schema incompatibilities are introduced this should be updated."""
+    component_provider_override: ClassVar[str | None] = None
+    """Override the provider string for the component. This should be used to prevent internal module names being a part of the module name."""
 
     """The two methods a class must implement to be a component.
 
@@ -68,6 +87,23 @@ class ComponentConfigImpl(Protocol[ConfigT]):
         :meta public:
         """
         ...
+
+    @classmethod
+    def _from_config_past_version(cls, config: Dict[str, Any], version: int) -> Self:
+        """Create a new instance of the component from a previous version of the configuration object.
+
+        This is only called when the version of the configuration object is less than the current version, since in this case the schema is not known.
+
+        Args:
+            config (Dict[str, Any]): The configuration object.
+            version (int): The version of the configuration object.
+
+        Returns:
+            Self: The new instance of the component.
+
+        :meta public:
+        """
+        raise NotImplementedError()
 
 
 ExpectedType = TypeVar("ExpectedType")
@@ -124,6 +160,10 @@ class ComponentLoader:
         else:
             loaded_model = model
 
+        # First, do a look up in well known providers
+        if loaded_model.provider in WELL_KNOWN_PROVIDERS:
+            loaded_model.provider = WELL_KNOWN_PROVIDERS[loaded_model.provider]
+
         output = loaded_model.provider.rsplit(".", maxsplit=1)
         if len(output) != 2:
             raise ValueError("Invalid")
@@ -136,17 +176,26 @@ class ComponentLoader:
             raise TypeError("Invalid component class")
 
         # We need to check the schema is valid
-        if not hasattr(component_class, "config_schema"):
-            raise AttributeError("config_schema not defined")
+        if not hasattr(component_class, "component_config_schema"):
+            raise AttributeError("component_config_schema not defined")
 
         if not hasattr(component_class, "component_type"):
             raise AttributeError("component_type not defined")
 
-        schema = component_class.config_schema
-        validated_config = schema.model_validate(loaded_model.config)
+        loaded_config_version = loaded_model.component_version or component_class.component_version
+        if loaded_config_version < component_class.component_version:
+            try:
+                instance = component_class._from_config_past_version(loaded_model.config, loaded_config_version)  # type: ignore
+            except NotImplementedError as e:
+                raise NotImplementedError(
+                    f"Tried to load component {component_class} which is on version {component_class.component_version} with a config on version {loaded_config_version} but _from_config_past_version is not implemented"
+                ) from e
+        else:
+            schema = component_class.component_config_schema
+            validated_config = schema.model_validate(loaded_model.config)
 
-        # We're allowed to use the private method here
-        instance = component_class._from_config(validated_config)  # type: ignore
+            # We're allowed to use the private method here
+            instance = component_class._from_config(validated_config)  # type: ignore
 
         if expected is None and not isinstance(instance, cls):
             raise TypeError("Expected type does not match")
@@ -161,7 +210,7 @@ class ComponentLoader:
 class Component(ComponentConfigImpl[ConfigT], ComponentLoader, Generic[ConfigT]):
     """To create a component class, inherit from this class. Then implement two class variables:
 
-    - :py:attr:`config_schema` - A Pydantic model class which represents the configuration of the component. This is also the type parameter of Component.
+    - :py:attr:`component_config_schema` - A Pydantic model class which represents the configuration of the component. This is also the type parameter of Component.
     - :py:attr:`component_type` - What is the logical type of the component.
 
     Example:
@@ -180,7 +229,7 @@ class Component(ComponentConfigImpl[ConfigT], ComponentLoader, Generic[ConfigT])
 
         class MyComponent(Component[Config]):
             component_type = "custom"
-            config_schema = Config
+            component_config_schema = Config
 
             def __init__(self, value: str):
                 self.value = value
@@ -193,11 +242,12 @@ class Component(ComponentConfigImpl[ConfigT], ComponentLoader, Generic[ConfigT])
                 return cls(value=config.value)
     """
 
-    required_class_vars = ["config_schema", "component_type"]
+    required_class_vars = ["component_config_schema", "component_type"]
 
     def __init_subclass__(cls, **kwargs: Any):
         super().__init_subclass__(**kwargs)
 
+        # TODO: validate provider is loadable
         for var in cls.required_class_vars:
             if not hasattr(cls, var):
                 warnings.warn(
@@ -213,7 +263,16 @@ class Component(ComponentConfigImpl[ConfigT], ComponentLoader, Generic[ConfigT])
         Returns:
             ComponentModel: The model representing the component.
         """
-        provider = _type_to_provider_str(self.__class__)
+        if self.component_provider_override is not None:
+            provider = self.component_provider_override
+        else:
+            provider = _type_to_provider_str(self.__class__)
+            # Warn if internal module name is used,
+            if "._" in provider:
+                warnings.warn(
+                    "Internal module name used in provider string. This is not recommended and may cause issues in the future. Silence this warning by setting component_provider_override to this value.",
+                    stacklevel=2,
+                )
 
         if "<locals>" in provider:
             raise TypeError("Cannot dump component with local class")
@@ -225,7 +284,11 @@ class Component(ComponentConfigImpl[ConfigT], ComponentLoader, Generic[ConfigT])
         return ComponentModel(
             provider=provider,
             component_type=self.component_type,
-            version=1,
+            version=self.component_version,
             description=None,
             config=obj_config,
         )
+
+    @classmethod
+    def _from_config_past_version(cls, config: Dict[str, Any], version: int) -> Self:
+        raise NotImplementedError()

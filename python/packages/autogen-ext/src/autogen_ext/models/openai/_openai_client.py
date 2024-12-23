@@ -1027,7 +1027,8 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[
     """
 
     component_type = "model"
-    config_schema = ConfigHolder
+    component_config_schema = ConfigHolder
+    component_provider_override = "autogen_ext.models.openai.AzureOpenAIChatCompletionClient"
 
     def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
         model_capabilities: Optional[ModelCapabilities] = None
