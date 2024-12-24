@@ -1,5 +1,6 @@
 import asyncio
 import re
+import warnings
 from asyncio import Task
 from typing import Sequence, Optional, Mapping, Any, List, Unpack, Dict, cast
 from inspect import getfullargspec
@@ -154,25 +155,95 @@ def assert_valid_name(name: str) -> str:
 
 
 class AzureAIChatCompletionClient(ChatCompletionClient):
+    """
+    Chat completion client for models hosted on Azure AI Foundry or GitHub Models.
+    See `here <https://learn.microsoft.com/en-us/azure/ai-studio/reference/reference-model-inference-chat-completions>`_ for more info.
+
+    Args:
+        endpoint (str): The endpoint to use. **Required.**
+        credentials (union, AzureKeyCredential, AsyncTokenCredential): The credentials to use. **Required**
+        model_capabilities (ModelCapabilities): The capabilities of the model. **Required.**
+        model (str): The name of the model. **Required if model is hosted on GitHub Models.**
+        frequency_penalty: (optional,float)
+        presence_penalty: (optional,float)
+        temperature: (optional,float)
+        top_p: (optional,float)
+        max_tokens: (optional,int)
+        response_format: (optional,ChatCompletionsResponseFormat)
+        stop: (optional,List[str])
+        tools: (optional,List[ChatCompletionsToolDefinition])
+        tool_choice: (optional,Union[str, ChatCompletionsToolChoicePreset, ChatCompletionsNamedToolChoice]])
+        seed: (optional,int)
+        model_extras: (optional,Dict[str, Any])
+
+    To use this client, you must install the `azure-ai-inference` extension:
+
+        .. code-block:: bash
+
+            pip install 'autogen-ext[azure-ai-inference]==0.4.0.dev11'
+
+    The following code snippet shows how to use the client:
+
+        .. code-block:: python
+
+            from azure.core.credentials import AzureKeyCredential
+            from autogen_ext.models.azure import AzureAIChatCompletionClient
+            from autogen_core.models import UserMessage
+
+            client = AzureAIChatCompletionClient(
+                endpoint="endpoint",
+                credential=AzureKeyCredential("api_key"),
+                model_capabilities={
+                    "json_output": False,
+                    "function_calling": False,
+                    "vision": False,
+                },
+            )
+
+            result = await client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
+            print(result)
+
+    """
+
     def __init__(self, **kwargs: Unpack[AzureAIChatCompletionClientConfig]):
-        if "endpoint" not in kwargs:
-            raise ValueError("endpoint is required for AzureAIChatCompletionClient")
-        if "credential" not in kwargs:
-            raise ValueError("credential is required for AzureAIChatCompletionClient")
-        if "model_capabilities" not in kwargs:
-            raise ValueError("model_capabilities is required for AzureAIChatCompletionClient")
-        if _is_github_model(kwargs['endpoint']) and "model" not in kwargs:
-            raise ValueError("model is required for when using a Github model with AzureAIChatCompletionClient")
+        config = self._validate_config(kwargs)
+        self._model_capabilities = config["model_capabilities"]
+        self._client = self._create_client(config)
+        self._create_args = self._prepare_create_args(config)
 
-        # TODO: Change
-        _endpoint = kwargs.pop("endpoint")
-        _credential = kwargs.pop("credential")
-        self._model_capabilities = kwargs.pop("model_capabilities")
-        self._create_args = kwargs.copy()
-
-        self._client = ChatCompletionsClient(_endpoint, _credential, **self._create_args)
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
+
+    @staticmethod
+    def _validate_config(config: Dict) -> AzureAIChatCompletionClientConfig:
+        if "endpoint" not in config:
+            raise ValueError("endpoint is required for AzureAIChatCompletionClient")
+        if "credential" not in config:
+            raise ValueError("credential is required for AzureAIChatCompletionClient")
+        if "model_capabilities" not in config:
+            raise ValueError("model_capabilities is required for AzureAIChatCompletionClient")
+        if _is_github_model(config["endpoint"]) and "model" not in config:
+            raise ValueError("model is required for when using a Github model with AzureAIChatCompletionClient")
+        return config
+
+    @staticmethod
+    def _create_client(config: AzureAIChatCompletionClientConfig):
+        return ChatCompletionsClient(**config)
+
+    @staticmethod
+    def _prepare_create_args(config: Mapping[str, Any]) -> Mapping[str, Any]:
+        create_args = {k: v for k, v in config.items() if k in create_kwargs}
+        return create_args
+        # self._endpoint = config.pop("endpoint")
+        # self._credential = config.pop("credential")
+        # self._model_capabilities = config.pop("model_capabilities")
+        # self._create_args = config.copy()
+
+    def add_usage(self, usage: RequestUsage):
+        self._total_usage = RequestUsage(
+            self._total_usage.prompt_tokens + usage.prompt_tokens,
+            self._total_usage.completion_tokens + usage.completion_tokens,
+        )
 
     async def create(
         self,
@@ -200,7 +271,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             if self.capabilities["json_output"] is False and json_output is True:
                 raise ValueError("Model does not support JSON output")
 
-            if json_output is True:
+            if json_output is True and "response_format" not in create_args:
                 create_args["response_format"] = ChatCompletionsResponseFormatJSON()
 
         if self.capabilities["json_output"] is False and json_output is True:
@@ -259,6 +330,9 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
         )
+
+        self.add_usage(usage)
+
         return response
 
     async def create_stream(
@@ -286,7 +360,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             if self.capabilities["json_output"] is False and json_output is True:
                 raise ValueError("Model does not support JSON output")
 
-            if json_output is True:
+            if json_output is True and "response_format" not in create_args:
                 create_args["response_format"] = ChatCompletionsResponseFormatJSON()
 
         if self.capabilities["json_output"] is False and json_output is True:
@@ -380,6 +454,9 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
         )
+
+        self.add_usage(usage)
+
         yield result
 
     def actual_usage(self) -> RequestUsage:
