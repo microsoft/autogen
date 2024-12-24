@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import tempfile
-from typing import Any, AsyncGenerator, List, Sequence
+from typing import Any, AsyncGenerator, List, Sequence, Tuple
 
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
@@ -75,8 +75,8 @@ class _EchoAgent(BaseChatAgent):
         self._total_messages = 0
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        return [TextMessage]
+    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+        return (TextMessage,)
 
     @property
     def total_messages(self) -> int:
@@ -104,8 +104,8 @@ class _StopAgent(_EchoAgent):
         self._stop_at = stop_at
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        return [TextMessage, StopMessage]
+    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+        return (TextMessage, StopMessage)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         self._count += 1
@@ -797,8 +797,8 @@ class _HandOffAgent(BaseChatAgent):
         self._next_agent = next_agent
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        return [HandoffMessage]
+    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+        return (HandoffMessage,)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         return Response(
