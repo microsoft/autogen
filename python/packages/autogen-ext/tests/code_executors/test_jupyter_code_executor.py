@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 from pathlib import Path
 
 import pytest
@@ -75,7 +76,6 @@ async def test_commandline_code_executor_timeout(tmp_path: Path) -> None:
 @pytest.mark.asyncio
 async def test_commandline_code_executor_cancellation(tmp_path: Path) -> None:
     with LocalJupyterServer() as server, JupyterCodeExecutor(server, output_dir=tmp_path) as executor:
-        executor = JupyterCodeExecutor(server=server, output_dir=tmp_path)
         code_blocks = [CodeBlock(code="import time; time.sleep(10); print('hello world!')", language="python")]
 
         cancellation_token = CancellationToken()
@@ -86,3 +86,54 @@ async def test_commandline_code_executor_cancellation(tmp_path: Path) -> None:
 
         with pytest.raises(asyncio.CancelledError):
             await code_result_coroutine
+
+
+@pytest.mark.asyncio
+async def test_execute_code_with_image_output(tmp_path: Path) -> None:
+    with LocalJupyterServer() as server, JupyterCodeExecutor(server, output_dir=tmp_path) as executor:
+        code_blocks = [
+            CodeBlock(
+                code=inspect.cleandoc("""
+                    from PIL import Image, ImageDraw
+                    img = Image.new("RGB", (100, 100), color="white")
+                    draw = ImageDraw.Draw(img)
+                    draw.rectangle((10, 10, 90, 90), outline="black", fill="blue")
+                    display(img)
+                """),
+                language="python",
+            )
+        ]
+
+        code_result = await executor.execute_code_blocks(code_blocks, CancellationToken())
+
+        assert len(code_result.output_files) == 1
+        assert code_result == JupyterCodeResult(
+            exit_code=0,
+            output="<PIL.Image.Image image mode=RGB size=100x100>",
+            output_files=code_result.output_files,
+        )
+        assert code_result.output_files[0].parent == tmp_path
+
+
+@pytest.mark.asyncio
+async def test_execute_code_with_html_output(tmp_path: Path) -> None:
+    with LocalJupyterServer() as server, JupyterCodeExecutor(server, output_dir=tmp_path) as executor:
+        code_blocks = [
+            CodeBlock(
+                code=inspect.cleandoc("""
+                    from IPython.core.display import HTML
+                    HTML("<div style='color:blue'>Hello, HTML world!</div>")
+                """),
+                language="python",
+            )
+        ]
+
+        code_result = await executor.execute_code_blocks(code_blocks, CancellationToken())
+
+        assert len(code_result.output_files) == 1
+        assert code_result == JupyterCodeResult(
+            exit_code=0,
+            output="<IPython.core.display.HTML object>",
+            output_files=code_result.output_files,
+        )
+        assert code_result.output_files[0].parent == tmp_path
