@@ -55,44 +55,62 @@ The final line of your response must contain nothing but the answer as a number.
     return tasks_with_answers
 
 
+# Default client parameters
+TEMPERATURE = 0.1
+MAX_TOKENS = 4096
+PRESENCE_PENALTY = 0.0
+FREQUENCY_PENALTY = 0.0
+TOP_P = 1.0
+MAX_RETRIES = 65535
+
+
+def create_client():
+    # Choose one.
+    # return create_oai_client()
+    # return create_aoai_client()
+    return create_trapi_client()
+
+
 def create_oai_client():
     # Create an OpenAI client
     model_name = "gpt-4o-2024-05-13"
-    temp = 0.1
-    max_tokens = 4096
     client = OpenAIChatCompletionClient(
         model=model_name,
         api_key="",
-        temperature=temp,
-        max_tokens=max_tokens,
-        presence_penalty=0.0,
-        frequency_penalty=0.0,
-        top_p=1.0,
-        max_retries=65535,
+        temperature=TEMPERATURE,
+        max_tokens=MAX_TOKENS,
+        presence_penalty=PRESENCE_PENALTY,
+        frequency_penalty=FREQUENCY_PENALTY,
+        top_p=TOP_P,
+        max_retries=MAX_RETRIES,
     )
     return client
 
 
 def create_aoai_client():
-    # Create the token provider
+    # Create an Azure OpenAI client
     token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
-
-    # Create an OpenAI client
-    azure_deployment = "gpt-4o-2024-08-06-eval"
-    model = "gpt-4o-2024-08-06"
-    azure_endpoint = "https://agentic2.openai.azure.com/"
+    azure_deployment = "gpt-4o-2024-05-13-eval"
+    model = "gpt-4o-2024-05-13"
+    azure_endpoint = "https://agentic1.openai.azure.com/"
     client = AzureOpenAIChatCompletionClient(
         azure_endpoint=azure_endpoint,
         azure_ad_token_provider=token_provider,
         azure_deployment=azure_deployment,
         api_version="2024-06-01",
         model=model,
+        temperature=TEMPERATURE,
+        max_tokens=MAX_TOKENS,
+        presence_penalty=PRESENCE_PENALTY,
+        frequency_penalty=FREQUENCY_PENALTY,
+        top_p=TOP_P,
+        max_retries=MAX_RETRIES,
     )
     return client
 
 
 def create_trapi_client():
-    # Create the token provider
+    # Create an Azure OpenAI client through TRAPI
     token_provider = get_bearer_token_provider(ChainedTokenCredential(
         AzureCliCredential(),
         DefaultAzureCredential(
@@ -107,29 +125,25 @@ def create_trapi_client():
             # managed_identity_client_id=os.environ.get("DEFAULT_IDENTITY_CLIENT_ID"),  # See the TRAPI docs
         )
     ), "api://trapi/.default")
-
-    model = "gpt-4o-2024-08-06"  # This is (for instance) the OpenAI model name, which is used to look up capabilities.
-    azure_deployment = 'gpt-4o_2024-08-06'  # This is DeploymentName in the table at https://aka.ms/trapi/models
+    model = "gpt-4o-2024-05-13"  # This is (for instance) the OpenAI model name, which is used to look up capabilities.
+    azure_deployment = 'gpt-4o_2024-05-13'  # This is DeploymentName in the table at https://aka.ms/trapi/models
     trapi_suffix = 'msraif/shared'  # This is TRAPISuffix (without /openai) in the table at https://aka.ms/trapi/models
     endpoint = f'https://trapi.research.microsoft.com/{trapi_suffix}'
     api_version = '2024-10-21'  # From https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation#latest-ga-api-release
-
     client = AzureOpenAIChatCompletionClient(
         azure_ad_token_provider=token_provider,
         model=model,
         azure_deployment=azure_deployment,
         azure_endpoint=endpoint,
         api_version=api_version,
+        temperature=TEMPERATURE,
+        max_tokens=MAX_TOKENS,
+        presence_penalty=PRESENCE_PENALTY,
+        frequency_penalty=FREQUENCY_PENALTY,
+        top_p=TOP_P,
+        max_retries=MAX_RETRIES,
     )
-
     return client
-
-
-def create_client():
-    # Choose one.
-    return create_oai_client()
-    # return create_aoai_client()
-    # return create_trapi_client()
 
 
 async def assign_task_to_magentic_one(task, model_client, page_log) -> Tuple[str, str]:
@@ -259,7 +273,7 @@ async def train_and_test(task_index, max_train_trials, max_test_trials, task_ass
     tasklist = define_tasks_with_answers()
     task_with_answer = tasklist[task_index]
 
-    num_loops = 1  # Normally 10
+    num_loops = 10  # Normally 10
     total_num_successes = 0
     total_num_trials = 0
     for i in range(num_loops):
@@ -311,7 +325,7 @@ async def test_on_task(task_index, task_assignment_callback, page_log, num_trial
 
 async def main() -> None:
     # Create the PageLog. (This is optional)
-    page_log = PageLog("~/pagelogs/", "stress_test")
+    page_log = PageLog("~/pagelogs/", "repro-9")
     page = page_log.begin_page(
         summary="main",
         details='',
@@ -324,27 +338,23 @@ async def main() -> None:
     task_assignment_callback = assign_task_to_client  # assign_task_to_client or assign_task_to_magentic_one
 
     # Test, without using memory.
-    await test_on_task(task_index, task_assignment_callback, page_log, 1)
+    # await test_on_task(task_index, task_assignment_callback, page_log, 1)
 
     # Test, using memory.
     # await test_on_task_with_memory(task_index, task_assignment_callback, page_log, num_trials=3, reset_memory=True)
 
     # Train and test, using memory.
-    # num_successes, num_trials = await train_and_test(
-    #     task_index,
-    #     1,  # Normally 10
-    #     1,  # Normally 3
-    #     task_assignment_callback,
-    #     page_log)
-    # success_rate = round((num_successes / num_trials) * 100)
-    # page.add_lines("\nOverall success rate:  {}%\n".format(success_rate), flush=True)
+    num_successes, num_trials = await train_and_test(
+        task_index,
+        10,  # Normally 10
+        3,  # Normally 3
+        task_assignment_callback,
+        page_log)
+    success_rate = round((num_successes / num_trials) * 100)
+    page.add_lines("\nOverall success rate:  {}%\n".format(success_rate), flush=True)
 
     page_log.flush(final=True)  # Finalize the page log
     page_log.finish_page(page)
 
 if __name__ == "__main__":
-    # logger = logging.getLogger(EVENT_LOGGER_NAME)
-    # logger.setLevel(logging.INFO)
-    # log_handler = LogHandler()
-    # logger.handlers = [log_handler]
     asyncio.run(main())
