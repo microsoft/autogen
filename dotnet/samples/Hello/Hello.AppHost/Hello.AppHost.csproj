@@ -14,10 +14,11 @@
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.AppHost" />
     <PackageReference Include="Aspire.Hosting" />
+    <PackageReference Include="Aspire.Hosting.Python" />
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Backend\Backend.csproj" />
+    <ProjectReference Include="../../../src/Microsoft.AutoGen/AgentHost/Microsoft.Autogen.AgentHost.csproj" />
     <ProjectReference Include="..\HelloAgent\HelloAgent.csproj" />
   </ItemGroup>
 </Project>

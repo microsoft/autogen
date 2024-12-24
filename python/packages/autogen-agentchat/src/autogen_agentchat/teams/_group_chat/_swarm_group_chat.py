@@ -1,13 +1,10 @@
-import logging
-from typing import Callable, List
+from typing import Any, Callable, List, Mapping
 
-from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TerminationCondition
-from ...messages import AgentMessage, ChatMessage, HandoffMessage
+from ...messages import AgentEvent, ChatMessage, HandoffMessage
+from ...state import SwarmManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
-
-event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class SwarmGroupChatManager(BaseGroupChatManager):
@@ -32,16 +29,19 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         )
         self._current_speaker = participant_topic_types[0]
 
-    async def validate_group_state(self, message: ChatMessage | None) -> None:
-        """Validate the start message for the group chat."""
-        # Check if the start message is a handoff message.
-        if isinstance(message, HandoffMessage):
-            if message.target not in self._participant_topic_types:
-                raise ValueError(
-                    f"The target {message.target} is not one of the participants {self._participant_topic_types}. "
-                    "If you are resuming Swarm with a new HandoffMessage make sure to set the target to a valid participant as the target."
-                )
-            return
+    async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
+        """Validate the start messages for the group chat."""
+        # Check if any of the start messages is a handoff message.
+        if messages:
+            for message in messages:
+                if isinstance(message, HandoffMessage):
+                    if message.target not in self._participant_topic_types:
+                        raise ValueError(
+                            f"The target {message.target} is not one of the participants {self._participant_topic_types}. "
+                            "If you are resuming Swarm with a new HandoffMessage make sure to set the target to a valid participant as the target."
+                        )
+                    return
+
         # Check if there is a handoff message in the thread that is not targeting a valid participant.
         for existing_message in reversed(self._message_thread):
             if isinstance(existing_message, HandoffMessage):
@@ -64,7 +64,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             await self._termination_condition.reset()
         self._current_speaker = self._participant_topic_types[0]
 
-    async def select_speaker(self, thread: List[AgentMessage]) -> str:
+    async def select_speaker(self, thread: List[AgentEvent | ChatMessage]) -> str:
         """Select a speaker from the participants based on handoff message.
         Looks for the last handoff message in the thread to determine the next speaker."""
         if len(thread) == 0:
@@ -76,6 +76,20 @@ class SwarmGroupChatManager(BaseGroupChatManager):
                 assert self._current_speaker in self._participant_topic_types
                 return self._current_speaker
         return self._current_speaker
+
+    async def save_state(self) -> Mapping[str, Any]:
+        state = SwarmManagerState(
+            message_thread=list(self._message_thread),
+            current_turn=self._current_turn,
+            current_speaker=self._current_speaker,
+        )
+        return state.model_dump()
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        swarm_state = SwarmManagerState.model_validate(state)
+        self._message_thread = list(swarm_state.message_thread)
+        self._current_turn = swarm_state.current_turn
+        self._current_speaker = swarm_state.current_speaker
 
 
 class Swarm(BaseGroupChat):
@@ -97,10 +111,10 @@ class Swarm(BaseGroupChat):
         .. code-block:: python
 
             import asyncio
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import Swarm
-            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.conditions import MaxMessageTermination
 
 
             async def main() -> None:
@@ -127,15 +141,16 @@ class Swarm(BaseGroupChat):
             asyncio.run(main())
 
 
-    Using the :class:`~autogen_agentchat.task.HandoffTermination` for human-in-the-loop handoff:
+    Using the :class:`~autogen_agentchat.conditions.HandoffTermination` for human-in-the-loop handoff:
 
         .. code-block:: python
 
             import asyncio
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.teams import Swarm
-            from autogen_agentchat.task import HandoffTermination, Console, MaxMessageTermination
+            from autogen_agentchat.conditions import HandoffTermination, MaxMessageTermination
+            from autogen_agentchat.ui import Console
             from autogen_agentchat.messages import HandoffMessage
 
 

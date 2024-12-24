@@ -7,12 +7,17 @@ import asyncio
 import logging
 from typing import Annotated, Literal
 
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, AgentInstantiationContext, AgentRuntime
-from autogen_core.components import DefaultSubscription, DefaultTopicId
-from autogen_core.components.model_context import BufferedChatCompletionContext
-from autogen_core.components.models import SystemMessage
-from autogen_core.components.tools import FunctionTool
+from autogen_core import (
+    AgentId,
+    AgentInstantiationContext,
+    AgentRuntime,
+    DefaultSubscription,
+    DefaultTopicId,
+    SingleThreadedAgentRuntime,
+)
+from autogen_core.model_context import BufferedChatCompletionContext
+from autogen_core.models import SystemMessage
+from autogen_core.tools import FunctionTool
 from chess import BLACK, SQUARE_NAMES, WHITE, Board, Move
 from chess import piece_name as get_piece_name
 from common.agents._chat_completion_agent import ChatCompletionAgent

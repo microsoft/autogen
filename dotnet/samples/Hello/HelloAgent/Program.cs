@@ -1,34 +1,26 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Program.cs
-
-using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
+using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-// step 1: create in-memory agent runtime
-
-// step 2: register HelloAgent to that agent runtime
-
-// step 3: start the agent runtime
-
-// step 4: send a message to the agent
-
-// step 5: wait for the agent runtime to shutdown
+var local = true;
+if (Environment.GetEnvironmentVariable("AGENT_HOST") != null) { local = false; }
 var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
-}, local: true);
-//var app = await AgentsApp.StartAsync();
+}, local: local).ConfigureAwait(false);
 await app.WaitForShutdownAsync();
 
 namespace Hello
 {
-    [TopicSubscription("HelloAgents")]
+    [TopicSubscription("agents")]
     public class HelloAgent(
-        IAgentRuntime context, IHostApplicationLifetime hostApplicationLifetime,
-        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : AgentBase(
-            context,
+        IAgentWorker worker, IHostApplicationLifetime hostApplicationLifetime,
+        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : Agent(
+            worker,
             typeRegistry),
             ISayHello,
             IHandleConsole,
@@ -43,7 +35,7 @@ namespace Hello
             await PublishMessageAsync(evt).ConfigureAwait(false);
             var goodbye = new ConversationClosed
             {
-                UserId = this.AgentId.Key,
+                UserId = this.AgentId.Type,
                 UserMessage = "Goodbye"
             };
             await PublishMessageAsync(goodbye).ConfigureAwait(false);
@@ -53,7 +45,10 @@ namespace Hello
             var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
             var evt = new Output { Message = goodbye };
             await PublishMessageAsync(evt).ConfigureAwait(true);
-            await PublishMessageAsync(new Shutdown()).ConfigureAwait(false);
+            if (Environment.GetEnvironmentVariable("STAY_ALIVE_ON_GOODBYE") != "true")
+            {
+                await PublishMessageAsync(new Shutdown()).ConfigureAwait(false);
+            }
         }
 
         public async Task Handle(Shutdown item)

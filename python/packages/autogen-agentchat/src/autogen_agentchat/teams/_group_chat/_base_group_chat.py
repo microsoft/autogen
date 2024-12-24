@@ -2,23 +2,25 @@ import asyncio
 import logging
 import uuid
 from abc import ABC, abstractmethod
-from typing import AsyncGenerator, Callable, List
+from typing import Any, AsyncGenerator, Callable, List, Mapping, Sequence
 
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import (
+from autogen_core import (
     AgentId,
     AgentInstantiationContext,
     AgentRuntime,
     AgentType,
     CancellationToken,
+    ClosureAgent,
     MessageContext,
+    SingleThreadedAgentRuntime,
+    TypeSubscription,
 )
-from autogen_core.components import ClosureAgent, TypeSubscription
-from autogen_core.components._closure_agent import ClosureContext
+from autogen_core._closure_agent import ClosureContext
 
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
-from ...messages import AgentMessage, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
+from ...messages import AgentEvent, BaseChatMessage, ChatMessage, TextMessage
+from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import GroupChatMessage, GroupChatReset, GroupChatStart, GroupChatTermination
 from ._sequential_routed_agent import SequentialRoutedAgent
@@ -60,7 +62,7 @@ class BaseGroupChat(Team, ABC):
 
         # Constants for the closure agent to collect the output messages.
         self._stop_reason: str | None = None
-        self._output_message_queue: asyncio.Queue[AgentMessage | None] = asyncio.Queue()
+        self._output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | None] = asyncio.Queue()
 
         # Create a runtime for the team.
         # TODO: The runtime should be created by a managed context.
@@ -144,11 +146,18 @@ class BaseGroupChat(Team, ABC):
             message: GroupChatStart | GroupChatMessage | GroupChatTermination,
             ctx: MessageContext,
         ) -> None:
-            event_logger.info(message.message)
-            if isinstance(message, GroupChatTermination):
+            """Collect output messages from the group chat."""
+            if isinstance(message, GroupChatStart):
+                if message.messages is not None:
+                    for msg in message.messages:
+                        event_logger.info(msg)
+                        await self._output_message_queue.put(msg)
+            elif isinstance(message, GroupChatMessage):
+                event_logger.info(message.message)
+                await self._output_message_queue.put(message.message)
+            elif isinstance(message, GroupChatTermination):
+                event_logger.info(message.message)
                 self._stop_reason = message.message.content
-                return
-            await self._output_message_queue.put(message.message)
 
         await ClosureAgent.register_closure(
             runtime,
@@ -163,7 +172,7 @@ class BaseGroupChat(Team, ABC):
     async def run(
         self,
         *,
-        task: str | ChatMessage | None = None,
+        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the team and return the result. The base implementation uses
@@ -171,11 +180,11 @@ class BaseGroupChat(Team, ABC):
         Once the team is stopped, the termination condition is reset.
 
         Args:
-            task (str | ChatMessage | None): The task to run the team with.
+            task (str | ChatMessage | Sequence[ChatMessage] | None): The task to run the team with. Can be a string, a single :class:`ChatMessage` , or a list of :class:`ChatMessage`.
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
-                To gracefully stop the team, use :class:`~autogen_agentchat.task.ExternalTermination` instead.
+                To gracefully stop the team, use :class:`~autogen_agentchat.conditions.ExternalTermination` instead.
 
         Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
 
@@ -184,9 +193,9 @@ class BaseGroupChat(Team, ABC):
 
             import asyncio
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.conditions import MaxMessageTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
             async def main() -> None:
@@ -208,16 +217,16 @@ class BaseGroupChat(Team, ABC):
             asyncio.run(main())
 
 
-        Example using the :class:`~autogen_core.base.CancellationToken` to cancel the task:
+        Example using the :class:`~autogen_core.CancellationToken` to cancel the task:
 
         .. code-block:: python
 
             import asyncio
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.conditions import MaxMessageTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_core.base import CancellationToken
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_core import CancellationToken
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
             async def main() -> None:
@@ -262,19 +271,19 @@ class BaseGroupChat(Team, ABC):
     async def run_stream(
         self,
         *,
-        task: str | ChatMessage | None = None,
+        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
         of the type :class:`TaskResult` as the last item in the stream. Once the
         team is stopped, the termination condition is reset.
 
         Args:
-            task (str | ChatMessage | None): The task to run the team with.
+            task (str | ChatMessage | Sequence[ChatMessage] | None): The task to run the team with. Can be a string, a single :class:`ChatMessage` , or a list of :class:`ChatMessage`.
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
-                To gracefully stop the team, use :class:`~autogen_agentchat.task.ExternalTermination` instead.
+                To gracefully stop the team, use :class:`~autogen_agentchat.conditions.ExternalTermination` instead.
 
         Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
 
@@ -282,9 +291,9 @@ class BaseGroupChat(Team, ABC):
 
             import asyncio
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.conditions import MaxMessageTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
             async def main() -> None:
@@ -308,16 +317,17 @@ class BaseGroupChat(Team, ABC):
             asyncio.run(main())
 
 
-        Example using the :class:`~autogen_core.base.CancellationToken` to cancel the task:
+        Example using the :class:`~autogen_core.CancellationToken` to cancel the task:
 
         .. code-block:: python
 
             import asyncio
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.task import MaxMessageTermination, Console
+            from autogen_agentchat.conditions import MaxMessageTermination
+            from autogen_agentchat.ui import Console
             from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_core.base import CancellationToken
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_core import CancellationToken
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
             async def main() -> None:
@@ -352,16 +362,22 @@ class BaseGroupChat(Team, ABC):
 
         """
 
-        # Create the first chat message if the task is a string or a chat message.
-        first_chat_message: ChatMessage | None = None
+        # Create the messages list if the task is a string or a chat message.
+        messages: List[ChatMessage] | None = None
         if task is None:
             pass
         elif isinstance(task, str):
-            first_chat_message = TextMessage(content=task, source="user")
-        elif isinstance(task, TextMessage | MultiModalMessage | StopMessage | HandoffMessage):
-            first_chat_message = task
+            messages = [TextMessage(content=task, source="user")]
+        elif isinstance(task, BaseChatMessage):
+            messages = [task]
         else:
-            raise ValueError(f"Invalid task type: {type(task)}")
+            if not task:
+                raise ValueError("Task list cannot be empty.")
+            messages = []
+            for msg in task:
+                if not isinstance(msg, BaseChatMessage):
+                    raise ValueError("All messages in task list must be valid ChatMessage types")
+                messages.append(msg)
 
         if self._is_running:
             raise ValueError("The team is already running, it cannot run again until it is stopped.")
@@ -386,12 +402,12 @@ class BaseGroupChat(Team, ABC):
             # The group chat manager will start the group chat by relaying the message to the participants
             # and the closure agent.
             await self._runtime.send_message(
-                GroupChatStart(message=first_chat_message),
+                GroupChatStart(messages=messages),
                 recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
                 cancellation_token=cancellation_token,
             )
             # Collect the output messages in order.
-            output_messages: List[AgentMessage] = []
+            output_messages: List[AgentEvent | ChatMessage] = []
             # Yield the messsages until the queue is empty.
             while True:
                 message_future = asyncio.ensure_future(self._output_message_queue.get())
@@ -432,9 +448,9 @@ class BaseGroupChat(Team, ABC):
 
             import asyncio
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.task import MaxMessageTermination
+            from autogen_agentchat.conditions import MaxMessageTermination
             from autogen_agentchat.teams import RoundRobinGroupChat
-            from autogen_ext.models import OpenAIChatCompletionClient
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
             async def main() -> None:
@@ -489,5 +505,40 @@ class BaseGroupChat(Team, ABC):
             while not self._output_message_queue.empty():
                 self._output_message_queue.get_nowait()
 
+            # Indicate that the team is no longer running.
+            self._is_running = False
+
+    async def save_state(self) -> Mapping[str, Any]:
+        """Save the state of the group chat team."""
+        if not self._initialized:
+            raise RuntimeError("The group chat has not been initialized. It must be run before it can be saved.")
+
+        if self._is_running:
+            raise RuntimeError("The team cannot be saved while it is running.")
+        self._is_running = True
+
+        try:
+            # Save the state of the runtime. This will save the state of the participants and the group chat manager.
+            agent_states = await self._runtime.save_state()
+            return TeamState(agent_states=agent_states, team_id=self._team_id).model_dump()
+        finally:
+            # Indicate that the team is no longer running.
+            self._is_running = False
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        """Load the state of the group chat team."""
+        if not self._initialized:
+            await self._init(self._runtime)
+
+        if self._is_running:
+            raise RuntimeError("The team cannot be loaded while it is running.")
+        self._is_running = True
+
+        try:
+            # Load the state of the runtime. This will load the state of the participants and the group chat manager.
+            team_state = TeamState.model_validate(state)
+            self._team_id = team_state.team_id
+            await self._runtime.load_state(team_state.agent_states)
+        finally:
             # Indicate that the team is no longer running.
             self._is_running = False

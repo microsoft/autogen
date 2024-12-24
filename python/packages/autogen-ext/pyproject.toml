@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-ext"
-version = "0.4.0.dev8"
+version = "0.4.0.dev11"
 license = {file = "LICENSE-CODE"}
 description = "AutoGen extensions library"
 readme = "README.md"
@@ -15,21 +15,42 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "autogen-core==0.4.0.dev8",
+    "autogen-core==0.4.0.dev11",
 ]
 
+[project.scripts]
+m1 = "autogen_ext.teams.magentic_one_cli:main"
 
 [project.optional-dependencies]
-langchain-tools = ["langchain_core~= 0.3.3"]
-azure-code-executor = ["azure-core"]
-docker-code-executor = ["docker~=7.0"]
 langchain = ["langchain_core~= 0.3.3"]
 azure = ["azure-core", "azure-identity"]
 docker = ["docker~=7.0"]
-openai = ["openai>=1.3"]
+openai = ["openai>=1.3", "aiofiles"]
+file-surfer = [
+    "autogen-agentchat==0.4.0.dev11",
+    "markitdown>=0.0.1a2",
+]
 web-surfer = [
+    "autogen-agentchat==0.4.0.dev11",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
+    "markitdown>=0.0.1a2",
+]
+magentic-one = [
+    "autogen-agentchat==0.4.0.dev11",
+    "markitdown>=0.0.1a2",
+    "playwright>=1.48.0",
+    "pillow>=11.0.0",
+]
+video-surfer = [
+    "autogen-agentchat==0.4.0.dev11",
+    "opencv-python>=4.5",
+    "ffmpeg-python",
+    "openai-whisper",
+]
+
+grpc = [
+    "grpcio~=1.62.0", # TODO: update this once we have a stable version.
 ]
 agentic-memory = ["chromadb"]
 
@@ -37,17 +58,19 @@ agentic-memory = ["chromadb"]
 packages = ["src/autogen_ext"]
 
 [tool.uv]
-dev-dependencies = []
-
+dev-dependencies = [
+    "autogen_test_utils"
+]
 
 [tool.ruff]
 extend = "../../pyproject.toml"
 include = ["src/**", "tests/*.py"]
-exclude = ["src/autogen_ext/agents/web_surfer/*.js"]
+exclude = ["src/autogen_ext/agents/web_surfer/*.js", "src/autogen_ext/runtimes/grpc/protos", "tests/protos"]
 
 [tool.pyright]
 extends = "../../pyproject.toml"
 include = ["src", "tests"]
+exclude = ["src/autogen_ext/runtimes/grpc/protos", "tests/protos"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -57,7 +80,12 @@ testpaths = ["tests"]
 include = "../../shared_tasks.toml"
 
 [tool.poe.tasks]
-test = "pytest -n auto"
+test.sequence = [
+    "playwright install",
+    "pytest -n auto",
+]
+test.default_item_type = "cmd"
+mypy = "mypy --config-file ../../pyproject.toml --exclude src/autogen_ext/runtimes/grpc/protos --exclude tests/protos src tests"
 
 [tool.mypy]
 [[tool.mypy.overrides]]

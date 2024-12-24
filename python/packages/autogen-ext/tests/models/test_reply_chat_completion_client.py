@@ -3,11 +3,17 @@ from dataclasses import dataclass
 from typing import List
 
 import pytest
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, MessageContext
-from autogen_core.components import DefaultTopicId, RoutedAgent, default_subscription, message_handler
-from autogen_core.components.models import ChatCompletionClient, CreateResult, SystemMessage, UserMessage
-from autogen_ext.models import ReplayChatCompletionClient
+from autogen_core import (
+    AgentId,
+    DefaultTopicId,
+    MessageContext,
+    RoutedAgent,
+    SingleThreadedAgentRuntime,
+    default_subscription,
+    message_handler,
+)
+from autogen_core.models import ChatCompletionClient, CreateResult, SystemMessage, UserMessage
+from autogen_ext.models.replay import ReplayChatCompletionClient
 
 
 @dataclass
@@ -34,7 +40,7 @@ class LLMAgent(RoutedAgent):
 
     @property
     def _fixed_message_history_type(self) -> List[SystemMessage]:
-        return [SystemMessage(msg.content) for msg in self._chat_history]
+        return [SystemMessage(content=msg.content) for msg in self._chat_history]
 
 
 @default_subscription
@@ -42,7 +48,7 @@ class LLMAgentWithDefaultSubscription(LLMAgent): ...
 
 
 @pytest.mark.asyncio
-async def test_reply_chat_completion_client() -> None:
+async def test_replay_chat_completion_client() -> None:
     num_messages = 5
     messages = [f"Message {i}" for i in range(num_messages)]
     reply_model_client = ReplayChatCompletionClient(messages)
@@ -55,7 +61,7 @@ async def test_reply_chat_completion_client() -> None:
 
 
 @pytest.mark.asyncio
-async def test_reply_chat_completion_client_create_stream() -> None:
+async def test_replay_chat_completion_client_create_stream() -> None:
     num_messages = 5
     messages = [f"Message {i}" for i in range(num_messages)]
     reply_model_client = ReplayChatCompletionClient(messages)
@@ -149,7 +155,7 @@ async def test_token_count_logics() -> None:
 
 
 @pytest.mark.asyncio
-async def test_reply_chat_completion_client_reset() -> None:
+async def test_replay_chat_completion_client_reset() -> None:
     """Test that reset functionality properly resets the client state."""
     messages = ["First message", "Second message", "Third message"]
     client = ReplayChatCompletionClient(messages)

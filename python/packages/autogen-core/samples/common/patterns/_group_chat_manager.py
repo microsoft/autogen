@@ -1,10 +1,9 @@
 import logging
 from typing import Any, Callable, List, Mapping
 
-from autogen_core.base import AgentId, AgentProxy, MessageContext
-from autogen_core.components import RoutedAgent, message_handler
-from autogen_core.components.model_context import ChatCompletionContext
-from autogen_core.components.models import ChatCompletionClient, UserMessage
+from autogen_core import AgentId, AgentProxy, MessageContext, RoutedAgent, message_handler
+from autogen_core.model_context import ChatCompletionContext
+from autogen_core.models import ChatCompletionClient, UserMessage
 
 from ..types import (
     MultiModalMessage,
@@ -144,10 +143,12 @@ class GroupChatManager(RoutedAgent):
 
     async def save_state(self) -> Mapping[str, Any]:
         return {
-            "chat_history": self._model_context.save_state(),
+            "chat_history": await self._model_context.save_state(),
             "termination_word": self._termination_word,
         }
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
-        self._model_context.load_state(state["chat_history"])
+        # Load the chat history.
+        await self._model_context.load_state(state["chat_history"])
+        # Load the termination word.
         self._termination_word = state["termination_word"]

@@ -1,4 +1,9 @@
-from ._assistant_agent import AssistantAgent, Handoff
+"""
+This module initializes various pre-defined agents provided by the package.
+BaseChatAgent is the base class for all agents in AgentChat.
+"""
+
+from ._assistant_agent import AssistantAgent, Handoff  # type: ignore
 from ._base_chat_agent import BaseChatAgent
 from ._code_executor_agent import CodeExecutorAgent
 from ._coding_assistant_agent import CodingAssistantAgent
