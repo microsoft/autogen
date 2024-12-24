@@ -52,6 +52,7 @@ grpc = [
     "grpcio~=1.62.0", # TODO: update this once we have a stable version.
 ]
 jupyter-executor = [
+    "ipykernel>=6.29.5",
     "jupyter-kernel-gateway>=3.0.1",
 ]
 
