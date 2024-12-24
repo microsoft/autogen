@@ -167,7 +167,7 @@ class JupyterKernelClient:
                         match data_type:
                             case "text/plain":
                                 text_output.append(data)
-                            case data if data.startswith("image/") or data == "text/html":
+                            case type if type.startswith("image/") or type == "text/html":
                                 data_output.append(self.ExecutionResult.DataItem(mime_type=data_type, data=data))
                             case _:
                                 text_output.append(json.dumps(data))

@@ -90,11 +90,12 @@ class JupyterCodeExecutor(CodeExecutor):
                         match data.mime_type:
                             case "image/png":
                                 path = self._save_image(data.data)
-                                outputs.append(f"Image data saved to {path}")
                                 output_files.append(path)
+                            case "image/jpeg":
+                                # TODO: Should this also be encoded? Images are encoded as both png and jpg
+                                pass
                             case "text/html":
                                 path = self._save_html(data.data)
-                                outputs.append(f"HTML data saved to {path}")
                                 output_files.append(path)
                             case _:
                                 outputs.append(json.dumps(data.data))
