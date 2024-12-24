@@ -138,6 +138,24 @@ async def test_openai_chat_completion_client() -> None:
 
 
 @pytest.mark.asyncio
+async def test_custom_model_with_capabilities() -> None:
+    with pytest.raises(ValueError, match="model_capabilities is required"):
+        client = OpenAIChatCompletionClient(model="dummy_model", base_url="https://api.dummy.com/v0", api_key="api_key")
+
+    client = OpenAIChatCompletionClient(
+        model="dummy_model",
+        base_url="https://api.dummy.com/v0",
+        api_key="api_key",
+        model_capabilities={
+            "vision": False,
+            "function_calling": False,
+            "json_output": False,
+        },
+    )
+    assert client
+
+
+@pytest.mark.asyncio
 async def test_azure_openai_chat_completion_client() -> None:
     client = AzureOpenAIChatCompletionClient(
         azure_deployment="gpt-4o-1",
