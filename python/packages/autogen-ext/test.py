@@ -4,7 +4,7 @@ from autogen_core.models import UserMessage
 
 client = ChatCompletionClient.load_component(
     {
-        "provider": "openai_model_client",
+        "provider": "openai_chat_completion_client",
         "config": {
             "model": "gpt-4o"
         }
