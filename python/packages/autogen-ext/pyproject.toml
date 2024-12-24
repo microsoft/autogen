@@ -52,6 +52,9 @@ video-surfer = [
 grpc = [
     "grpcio~=1.62.0", # TODO: update this once we have a stable version.
 ]
+azure-ai-inference = [
+    "azure-ai-inference>=1.0.0b6",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
