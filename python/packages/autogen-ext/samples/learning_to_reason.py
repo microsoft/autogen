@@ -1,13 +1,13 @@
 import asyncio
-from autogen_ext.models import OpenAIChatCompletionClient
-from autogen_ext.models import AzureOpenAIChatCompletionClient
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
 from azure.identity import DefaultAzureCredential, ChainedTokenCredential, AzureCliCredential, get_bearer_token_provider
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import MagenticOneGroupChat
-from autogen_ext.agents import MultimodalWebSurfer
+from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.agents.web_surfer._utils import message_content_to_str
 from autogen_agentchat.task import Console
-from autogen_core.components.models import (
+from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     FunctionExecutionResult,
@@ -93,6 +93,9 @@ def create_aoai_client():
     azure_deployment = "gpt-4o-2024-05-13-eval"
     model = "gpt-4o-2024-05-13"
     azure_endpoint = "https://agentic1.openai.azure.com/"
+    # azure_deployment = "gpt-4o-2024-08-06-eval"
+    # model = "gpt-4o-2024-08-06"
+    # azure_endpoint = "https://agentic2.openai.azure.com/"
     client = AzureOpenAIChatCompletionClient(
         azure_endpoint=azure_endpoint,
         azure_ad_token_provider=token_provider,
@@ -206,7 +209,7 @@ In responding to every user message, you follow the same multi-step process give
 4. Critique the pros and cons above, looking for any flaws in your reasoning. But don't make up flaws that don't exist.
 5. Decide on the best response, looping back to step 1 if none of the responses are satisfactory.
 6. Finish by providing your final response in the particular format requested by the user.""")
-    user_message = UserMessage(content=task, source="human")
+    user_message = UserMessage(content=task, source="User")
 
     input_messages = [system_message] + [user_message]
     response = await client.create(input_messages)
@@ -325,7 +328,7 @@ async def test_on_task(task_index, task_assignment_callback, page_log, num_trial
 
 async def main() -> None:
     # Create the PageLog. (This is optional)
-    page_log = PageLog("~/pagelogs/", "repro-9")
+    page_log = PageLog("~/pagelogs/", "repro-14")
     page = page_log.begin_page(
         summary="main",
         details='',

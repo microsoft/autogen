@@ -3,8 +3,8 @@ import shutil
 import time
 from typing import List
 
-from autogen_core.components import Image
-from autogen_core.components.models import (
+from autogen_core import Image
+from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,

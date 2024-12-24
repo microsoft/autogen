@@ -1,7 +1,7 @@
 import time
 from typing import List
 
-from autogen_core.components.models import (
+from autogen_core.models import (
     AssistantMessage,
     LLMMessage,
     SystemMessage,
@@ -9,7 +9,7 @@ from autogen_core.components.models import (
     CreateResult,
 )
 
-from autogen_core.components import FunctionCall, Image
+from autogen_core import FunctionCall, Image
 
 from ._utils import message_content_to_str, UserContent, text_from_user_content, single_image_from_user_content
 
