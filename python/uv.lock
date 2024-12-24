@@ -520,6 +520,7 @@ grpc = [
     { name = "grpcio" },
 ]
 jupyter-executor = [
+    { name = "ipykernel" },
     { name = "jupyter-kernel-gateway" },
 ]
 langchain = [
@@ -566,6 +567,7 @@ requires-dist = [
     { name = "docker", marker = "extra == 'docker'", specifier = "~=7.0" },
     { name = "ffmpeg-python", marker = "extra == 'video-surfer'" },
     { name = "grpcio", marker = "extra == 'grpc'", specifier = "~=1.62.0" },
+    { name = "ipykernel", marker = "extra == 'jupyter-executor'", specifier = ">=6.29.5" },
     { name = "jupyter-kernel-gateway", marker = "extra == 'jupyter-executor'", specifier = ">=3.0.1" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = "~=0.3.3" },
     { name = "markitdown", marker = "extra == 'file-surfer'", specifier = ">=0.0.1a2" },
