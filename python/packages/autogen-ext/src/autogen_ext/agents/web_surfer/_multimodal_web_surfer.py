@@ -94,7 +94,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         start_page (str, optional): The start page for the browser. Defaults to MultimodalWebSurfer.DEFAULT_START_PAGE.
         animate_actions (bool, optional): Whether to animate actions. Defaults to False.
         to_save_screenshots (bool, optional): Whether to save screenshots. Defaults to False.
-        use_ocr (bool, optional): Whether to use OCR. Defaults to True.
+        use_ocr (bool, optional): Whether to use OCR. Defaults to False.
         browser_channel (str, optional): The browser channel. Defaults to None.
         browser_data_dir (str, optional): The browser data directory. Defaults to None.
         to_resize_viewport (bool, optional): Whether to resize the viewport. Defaults to True.
@@ -169,7 +169,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         start_page: str | None = DEFAULT_START_PAGE,
         animate_actions: bool = False,
         to_save_screenshots: bool = False,
-        use_ocr: bool = True,
+        use_ocr: bool = False,
         browser_channel: str | None = None,
         browser_data_dir: str | None = None,
         to_resize_viewport: bool = True,
