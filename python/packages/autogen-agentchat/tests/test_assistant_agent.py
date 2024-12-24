@@ -468,3 +468,78 @@ async def test_list_chat_messages(monkeypatch: pytest.MonkeyPatch) -> None:
         else:
             assert message == result.messages[index]
         index += 1
+
+
+def test_tool_management():
+    model_client = OpenAIChatCompletionClient(model="gpt-4", api_key="")
+    agent = AssistantAgent(name="test_assistant", model_client=model_client)
+
+    # Test function to be used as a tool
+    def sample_tool() -> str:
+        return "sample result"
+
+    # Test adding a tool
+    tool = FunctionTool(sample_tool, description="Sample tool")
+    agent.add_tool(tool)
+    assert len(agent._tools) == 1
+
+    # Test adding duplicate tool
+    with pytest.raises(ValueError, match="Tool names must be unique"):
+        agent.add_tool(tool)
+
+    # Test tool collision with handoff
+    agent_with_handoff = AssistantAgent(
+        name="test_assistant", model_client=model_client, handoffs=[Handoff(target="other_agent")]
+    )
+
+    conflicting_tool = FunctionTool(sample_tool, name="transfer_to_other_agent", description="Sample tool")
+    with pytest.raises(ValueError, match="Handoff names must be unique from tool names"):
+        agent_with_handoff.add_tool(conflicting_tool)
+
+    # Test removing a tool
+    agent.remove_tool(tool.name)
+    assert len(agent._tools) == 0
+
+    # Test removing non-existent tool
+    with pytest.raises(ValueError, match="Tool non_existent_tool not found"):
+        agent.remove_tool("non_existent_tool")
+
+    # Test removing all tools
+    agent.add_tool(tool)
+    assert len(agent._tools) == 1
+    agent.remove_all_tools()
+    assert len(agent._tools) == 0
+
+    # Test idempotency of remove_all_tools
+    agent.remove_all_tools()
+    assert len(agent._tools) == 0
+
+
+def test_callable_tool_addition():
+    model_client = OpenAIChatCompletionClient(model="gpt-4", api_key="")
+    agent = AssistantAgent(name="test_assistant", model_client=model_client)
+
+    # Test adding a callable directly
+    def documented_tool() -> str:
+        """This is a documented tool"""
+        return "result"
+
+    agent.add_tool(documented_tool)
+    assert len(agent._tools) == 1
+    assert agent._tools[0].description == "This is a documented tool"
+
+    # Test adding async callable
+    async def async_tool() -> str:
+        return "async result"
+
+    agent.add_tool(async_tool)
+    assert len(agent._tools) == 2
+
+
+def test_invalid_tool_addition():
+    model_client = OpenAIChatCompletionClient(model="gpt-4", api_key="")
+    agent = AssistantAgent(name="test_assistant", model_client=model_client)
+
+    # Test adding invalid tool type
+    with pytest.raises(ValueError, match="Unsupported tool type"):
+        agent.add_tool("not a tool")
