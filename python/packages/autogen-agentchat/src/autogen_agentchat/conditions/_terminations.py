@@ -2,7 +2,7 @@ import time
 from typing import List, Sequence
 
 from ..base import TerminatedException, TerminationCondition
-from ..messages import AgentEvent, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
+from ..messages import AgentEvent, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage
 
 
 class StopMessageTermination(TerminationCondition):
@@ -77,7 +77,7 @@ class TextMentionTermination(TerminationCondition):
         if self._terminated:
             raise TerminatedException("Termination condition has already been reached")
         for message in messages:
-            if isinstance(message, TextMessage | StopMessage) and self._text in message.content:
+            if isinstance(message.content, str) and self._text in message.content:
                 self._terminated = True
                 return StopMessage(content=f"Text '{self._text}' mentioned", source="TextMentionTermination")
             elif isinstance(message, MultiModalMessage):
