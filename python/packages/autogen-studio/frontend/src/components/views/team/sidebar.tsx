@@ -116,11 +116,9 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
       </div>
 
       {/* Section Label */}
-      <div className="py-2 text-sm text-secondary">
-        Recents
-        {isLoading && (
-          <RefreshCcw className="w-4 h-4 inline-block ml-2 animate-spin" />
-        )}
+      <div className="py-2 flex   text-sm text-secondary">
+        <div className="flex"> Recents</div>
+        {isLoading && <RefreshCcw className="w-4 h-4 ml-2 animate-spin" />}
       </div>
 
       {/* Teams List */}
@@ -137,9 +135,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
           {teams.length > 0 && (
             <div
               key={"teams_title"}
-              className={` ${
-                isLoading ? "opacity-50 pointer-events-none" : ""
-              }`}
+              className={` ${isLoading ? "  pointer-events-none" : ""}`}
             >
               {" "}
               {teams.map((team) => (

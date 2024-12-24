@@ -292,7 +292,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
           </span>
         </div>
         <div>
-          <Tooltip title="Download Team Configuration">
+          <Tooltip title="Download Team">
             <Button
               type="text"
               icon={<Download size={18} />}

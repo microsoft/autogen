@@ -8,7 +8,7 @@ from autogen_agentchat.state import SocietyOfMindAgentState
 
 from ..base import TaskResult, Team
 from ..messages import (
-    AgentMessage,
+    AgentEvent,
     ChatMessage,
     HandoffMessage,
     MultiModalMessage,
@@ -119,13 +119,13 @@ class SocietyOfMindAgent(BaseChatAgent):
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentMessage | Response, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         # Prepare the task for the team of agents.
         task = list(messages)
 
         # Run the team of agents.
         result: TaskResult | None = None
-        inner_messages: List[AgentMessage] = []
+        inner_messages: List[AgentEvent | ChatMessage] = []
         count = 0
         async for inner_msg in self._team.run_stream(task=task, cancellation_token=cancellation_token):
             if isinstance(inner_msg, TaskResult):

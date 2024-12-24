@@ -13,14 +13,14 @@ from autogen_core.models import (
 from .... import TRACE_LOGGER_NAME
 from ....base import Response, TerminationCondition
 from ....messages import (
-    AgentMessage,
+    AgentEvent,
     ChatMessage,
     HandoffMessage,
     MultiModalMessage,
     StopMessage,
     TextMessage,
-    ToolCallMessage,
-    ToolCallResultMessage,
+    ToolCallExecutionEvent,
+    ToolCallRequestEvent,
 )
 from ....state import MagenticOneOrchestratorState
 from .._base_group_chat_manager import BaseGroupChatManager
@@ -167,7 +167,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:  # type: ignore
-        delta: List[AgentMessage] = []
+        delta: List[AgentEvent | ChatMessage] = []
         if message.agent_response.inner_messages is not None:
             for inner_message in message.agent_response.inner_messages:
                 delta.append(inner_message)
@@ -210,7 +210,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         self._n_rounds = orchestrator_state.n_rounds
         self._n_stalls = orchestrator_state.n_stalls
 
-    async def select_speaker(self, thread: List[AgentMessage]) -> str:
+    async def select_speaker(self, thread: List[AgentEvent | ChatMessage]) -> str:
         """Not used in this orchestrator, we select next speaker in _orchestrate_step."""
         return ""
 
@@ -427,7 +427,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         """Convert the message thread to a context for the model."""
         context: List[LLMMessage] = []
         for m in self._message_thread:
-            if isinstance(m, ToolCallMessage | ToolCallResultMessage):
+            if isinstance(m, ToolCallRequestEvent | ToolCallExecutionEvent):
                 # Ignore tool call messages.
                 continue
             elif isinstance(m, StopMessage | HandoffMessage):

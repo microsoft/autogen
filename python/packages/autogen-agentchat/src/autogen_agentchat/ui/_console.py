@@ -7,7 +7,7 @@ from autogen_core import Image
 from autogen_core.models import RequestUsage
 
 from autogen_agentchat.base import Response, TaskResult
-from autogen_agentchat.messages import AgentMessage, MultiModalMessage
+from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage
 
 
 def _is_running_in_iterm() -> bool:
@@ -22,7 +22,7 @@ T = TypeVar("T", bound=TaskResult | Response)
 
 
 async def Console(
-    stream: AsyncGenerator[AgentMessage | T, None],
+    stream: AsyncGenerator[AgentEvent | ChatMessage | T, None],
     *,
     no_inline_images: bool = False,
 ) -> T:
@@ -32,7 +32,7 @@ async def Console(
     Returns the last processed TaskResult or Response.
 
     Args:
-        stream (AsyncGenerator[AgentMessage | TaskResult, None] | AsyncGenerator[AgentMessage | Response, None]): Message stream to render.
+        stream (AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None] | AsyncGenerator[AgentEvent | ChatMessage | Response, None]): Message stream to render.
             This can be from :meth:`~autogen_agentchat.base.TaskRunner.run_stream` or :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream`.
         no_inline_images (bool, optional): If terminal is iTerm2 will render images inline. Use this to disable this behavior. Defaults to False.
 
@@ -93,7 +93,7 @@ async def Console(
 
         else:
             # Cast required for mypy to be happy
-            message = cast(AgentMessage, message)  # type: ignore
+            message = cast(AgentEvent | ChatMessage, message)  # type: ignore
             output = f"{'-' * 10} {message.source} {'-' * 10}\n{_message_to_str(message, render_image_iterm=render_image_iterm)}\n"
             if message.models_usage:
                 output += f"[Prompt tokens: {message.models_usage.prompt_tokens}, Completion tokens: {message.models_usage.completion_tokens}]\n"
@@ -114,7 +114,7 @@ def _image_to_iterm(image: Image) -> str:
     return f"\033]1337;File=inline=1:{image_data}\a\n"
 
 
-def _message_to_str(message: AgentMessage, *, render_image_iterm: bool = False) -> str:
+def _message_to_str(message: AgentEvent | ChatMessage, *, render_image_iterm: bool = False) -> str:
     if isinstance(message, MultiModalMessage):
         result: List[str] = []
         for c in message.content:

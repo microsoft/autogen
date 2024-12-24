@@ -6,7 +6,7 @@ from autogen_core.models import (
 from pydantic import BaseModel, Field
 
 from ..messages import (
-    AgentMessage,
+    AgentEvent,
     ChatMessage,
 )
 
@@ -36,7 +36,7 @@ class TeamState(BaseState):
 class BaseGroupChatManagerState(BaseState):
     """Base state for all group chat managers."""
 
-    message_thread: List[AgentMessage] = Field(default_factory=list)
+    message_thread: List[AgentEvent | ChatMessage] = Field(default_factory=list)
     current_turn: int = Field(default=0)
     type: str = Field(default="BaseGroupChatManagerState")
 
