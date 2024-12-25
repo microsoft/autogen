@@ -1,6 +1,7 @@
 import asyncio
 import base64
 import json
+import re
 import sys
 import uuid
 from dataclasses import dataclass
@@ -71,6 +72,9 @@ class JupyterCodeExecutor(CodeExecutor):
             asyncio.TimeoutError: Code execution timeouts
             asyncio.CancelledError: CancellationToken evoked during execution
         """
+        if self._kernel_id is None:
+            raise ValueError("Kernel not running")
+
         async with await self._jupyter_client.get_kernel_client(self._kernel_id) as kernel_client:
             wait_for_ready_task = asyncio.create_task(kernel_client.wait_for_ready())
             cancellation_token.link_future(wait_for_ready_task)
@@ -78,38 +82,45 @@ class JupyterCodeExecutor(CodeExecutor):
 
             outputs: list[str] = []
             output_files: list[Path] = []
+            exit_code = 0
+
             for code_block in code_blocks:
                 code = silence_pip(code_block.code, code_block.language)
                 execute_task = asyncio.create_task(kernel_client.execute(code))
                 cancellation_token.link_future(execute_task)
                 result = await asyncio.wait_for(execute_task, timeout=self._timeout)
 
-                if result.is_ok:
-                    outputs.append(result.output)
-                    for data in result.data_items:
-                        match data.mime_type:
-                            case "image/png":
-                                path = self._save_image(data.data)
-                                output_files.append(path)
-                            case "image/jpeg":
-                                # TODO: Should this also be encoded? Images are encoded as both png and jpg
-                                pass
-                            case "text/html":
-                                path = self._save_html(data.data)
-                                output_files.append(path)
-                            case _:
-                                outputs.append(json.dumps(data.data))
-                else:
-                    return JupyterCodeResult(exit_code=1, output=f"ERROR: {result.output}", output_files=[])
+                # Clean ansi escape sequences
+                result.output = re.sub(r"\x1b\[[0-9;]*[A-Za-z]", "", result.output)
+                outputs.append(result.output)
 
-            return JupyterCodeResult(
-                exit_code=0, output="\n".join([output for output in outputs]), output_files=output_files
-            )
+                if not result.is_ok:
+                    exit_code = 1
+                    break
+
+                for data in result.data_items:
+                    match data.mime_type:
+                        case "image/png":
+                            path = self._save_image(data.data)
+                            output_files.append(path)
+                        case "image/jpeg":
+                            # TODO: Should this also be encoded? Images are encoded as both png and jpg
+                            pass
+                        case "text/html":
+                            path = self._save_html(data.data)
+                            output_files.append(path)
+                        case _:
+                            outputs.append(json.dumps(data.data))
+
+            return JupyterCodeResult(exit_code=exit_code, output="\n".join(outputs), output_files=output_files)
 
     async def restart(self) -> None:
         """Restart the code executor."""
-        self._jupyter_client.restart_kernel(self._kernel_id)
-        self._jupyter_kernel_client = self._jupyter_client.get_kernel_client(self._kernel_id)
+        if self._kernel_id is None:
+            self.start()
+        else:
+            self._jupyter_client.restart_kernel(self._kernel_id)
+            self._jupyter_kernel_client = self._jupyter_client.get_kernel_client(self._kernel_id)
 
     def start(self) -> None:
         """Start the kernel."""

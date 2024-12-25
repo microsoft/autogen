@@ -176,7 +176,7 @@ class JupyterKernelClient:
                 case "error":
                     return JupyterKernelClient.ExecutionResult(
                         is_ok=False,
-                        output=f"ERROR: {content['ename']}: {content['evalue']}\n{content['traceback']}",
+                        output="\n".join(content["traceback"]),
                         data_items=[],
                     )
                 case _:
