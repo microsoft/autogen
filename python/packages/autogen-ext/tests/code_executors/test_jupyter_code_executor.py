@@ -12,12 +12,33 @@ from autogen_ext.code_executors.jupyter import JupyterCodeExecutor, JupyterCodeR
 @pytest.mark.asyncio
 async def test_execute_code(tmp_path: Path) -> None:
     with LocalJupyterServer() as server, JupyterCodeExecutor(server, output_dir=tmp_path) as executor:
-        # Test single code block.
         code_blocks = [CodeBlock(code="import sys; print('hello world!')", language="python")]
         code_result = await executor.execute_code_blocks(code_blocks, CancellationToken())
         assert code_result == JupyterCodeResult(exit_code=0, output="hello world!\n", output_files=[])
 
-        # Test multiple code blocks.
+
+@pytest.mark.asyncio
+async def test_execute_code_error(tmp_path: Path) -> None:
+    with LocalJupyterServer() as server, JupyterCodeExecutor(server, output_dir=tmp_path) as executor:
+        code_blocks = [CodeBlock(code="print(undefined_variable)", language="python")]
+        code_result = await executor.execute_code_blocks(code_blocks, CancellationToken())
+        assert code_result == JupyterCodeResult(
+            exit_code=1,
+            output=inspect.cleandoc("""
+                ---------------------------------------------------------------------------
+                NameError                                 Traceback (most recent call last)
+                Cell In[1], line 1
+                ----> 1 print(undefined_variable)
+
+                NameError: name 'undefined_variable' is not defined
+            """),
+            output_files=[],
+        )
+
+
+@pytest.mark.asyncio
+async def test_execute_multiple_code_blocks(tmp_path: Path) -> None:
+    with LocalJupyterServer() as server, JupyterCodeExecutor(server, output_dir=tmp_path) as executor:
         code_blocks = [
             CodeBlock(code="import sys; print('hello world!')", language="python"),
             CodeBlock(code="a = 100 + 100; print(a)", language="python"),
@@ -25,11 +46,29 @@ async def test_execute_code(tmp_path: Path) -> None:
         code_result = await executor.execute_code_blocks(code_blocks, CancellationToken())
         assert code_result == JupyterCodeResult(exit_code=0, output="hello world!\n\n200\n", output_files=[])
 
-        # Test running code.
-        file_lines = ["import sys", "print('hello world!')", "a = 100 + 100", "print(a)"]
-        code_blocks = [CodeBlock(code="\n".join(file_lines), language="python")]
+
+@pytest.mark.asyncio
+async def test_execute_multiple_code_blocks_error(tmp_path: Path) -> None:
+    with LocalJupyterServer() as server, JupyterCodeExecutor(server, output_dir=tmp_path) as executor:
+        code_blocks = [
+            CodeBlock(code="import sys; print('hello world!')", language="python"),
+            CodeBlock(code="a = 100 + 100; print(a); print(undefined_variable)", language="python"),
+        ]
         code_result = await executor.execute_code_blocks(code_blocks, CancellationToken())
-        assert code_result == JupyterCodeResult(exit_code=0, output="hello world!\n200\n", output_files=[])
+        assert code_result == JupyterCodeResult(
+            exit_code=1,
+            output=inspect.cleandoc("""
+                hello world!
+
+                ---------------------------------------------------------------------------
+                NameError                                 Traceback (most recent call last)
+                Cell In[2], line 1
+                ----> 1 a = 100 + 100; print(a); print(undefined_variable)
+
+                NameError: name 'undefined_variable' is not defined
+            """),
+            output_files=[],
+        )
 
 
 @pytest.mark.asyncio
@@ -48,7 +87,7 @@ async def test_execute_code_after_stop(tmp_path: Path) -> None:
         await asyncio.sleep(1)
         executor.stop()
 
-        with pytest.raises(websockets.exceptions.InvalidStatus):
+        with pytest.raises(ValueError):
             code_blocks = [CodeBlock(code="import sys; print('hello world!')", language="python")]
             await executor.execute_code_blocks(code_blocks, CancellationToken())
 
