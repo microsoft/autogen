@@ -84,8 +84,6 @@ gen-proto-samples = "python -m grpc_tools.protoc --python_out=./packages/autogen
 
 markdown-code-lint = "python check_md_code_blocks.py migration_guide.md ../README.md"
 
-teasdst = { cmd = "sphinx-build docs/src docs/build" }
-
 [[tool.poe.tasks.gen-test-proto.sequence]]
 cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/tests/protos --grpc_python_out=./packages/autogen-core/tests/protos --mypy_out=./packages/autogen-core/tests/protos --mypy_grpc_out=./packages/autogen-core/tests/protos --proto_path ./packages/autogen-core/tests/protos serialization_test.proto"
 

@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from typing import List, Sequence
+from typing import Sequence, Tuple
 
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
@@ -33,8 +33,8 @@ class _EchoAgent(BaseChatAgent):
         self._total_messages = 0
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        return [TextMessage]
+    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+        return (TextMessage,)
 
     @property
     def total_messages(self) -> int:

@@ -1,0 +1,45 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "component-schema-gen"
+version = "0.1.0"
+license = {file = "LICENSE-CODE"}
+description = "Generates a JSON schema for component config"
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "autogen-core",
+    "autogen-ext",
+]
+
+[project.scripts]
+gen-component-schema = "component_schema_gen.__main__:main"
+
+[tool.uv]
+dev-dependencies = []
+
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+include = ["src/**"]
+
+[tool.ruff.lint]
+ignore = ["T201"]
+
+[tool.pyright]
+extends = "../../pyproject.toml"
+include = ["src"]
+
+[tool.poe]
+include = "../../shared_tasks.toml"
+
+[tool.poe.tasks]
+mypy = "mypy --config-file $POE_ROOT/../../pyproject.toml src"
+test = "true"
