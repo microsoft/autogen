@@ -1,6 +1,6 @@
 import asyncio
 from inspect import iscoroutinefunction
-from typing import Awaitable, Callable, List, Optional, Sequence, Union, cast
+from typing import Awaitable, Callable, Optional, Sequence, Tuple, Union, cast
 
 from aioconsole import ainput  # type: ignore
 from autogen_core import CancellationToken
@@ -122,9 +122,9 @@ class UserProxyAgent(BaseChatAgent):
         self._is_async = iscoroutinefunction(self.input_func)
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
+    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
         """Message types this agent can produce."""
-        return [TextMessage, HandoffMessage]
+        return (TextMessage, HandoffMessage)
 
     def _get_latest_handoff(self, messages: Sequence[ChatMessage]) -> Optional[HandoffMessage]:
         """Find the HandoffMessage in the message sequence that addresses this agent."""

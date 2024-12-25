@@ -77,7 +77,7 @@ class MyInnerConfig(BaseModel):
 
 
 class MyInnerComponent(Component[MyInnerConfig]):
-    config_schema = MyInnerConfig
+    component_config_schema = MyInnerConfig
     component_type = "custom"
 
     def __init__(self, inner_message: str):
@@ -97,7 +97,7 @@ class MyOuterConfig(BaseModel):
 
 
 class MyOuterComponent(Component[MyOuterConfig]):
-    config_schema = MyOuterConfig
+    component_config_schema = MyOuterConfig
     component_type = "custom"
 
     def __init__(self, outer_message: str, inner_class: MyInnerComponent):

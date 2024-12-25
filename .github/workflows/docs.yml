@@ -91,6 +91,31 @@ jobs:
           path: "./python/docs-staging"
           name: "redirects"
 
+  gen-component-schema:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          lfs: "true"
+          ref: ${{ matrix.version.ref }}
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: |
+          uv sync --locked --all-extras
+          source .venv/bin/activate
+          mkdir -p docs-staging/schemas/
+          gen-component-schema > docs-staging/schemas/component-schema-latest.json
+        working-directory: ./python
+      - uses: actions/upload-artifact@v4
+        with:
+          path: "./python/docs-staging"
+          name: "component-schema"
+
   build-02:
     runs-on: ubuntu-latest
     defaults:
@@ -153,7 +178,7 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
-    needs: [build-02, build-04, gen-redirects]
+    needs: [build-02, build-04, gen-redirects, gen-component-schema]
     if: ${{ needs.build-02.result == 'success' && needs.build-04.result == 'success' && needs.gen-redirects.result == 'success' && github.ref == 'refs/heads/main' }}
     steps:
       - uses: actions/download-artifact@v4
