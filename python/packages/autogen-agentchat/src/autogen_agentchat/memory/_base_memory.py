@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from autogen_core.model_context import ChatCompletionContext
 
 
-class MimeType(Enum):
+class MemoryMimeType(Enum):
     """Supported MIME types for memory content."""
 
     TEXT = "text/plain"
@@ -21,10 +21,11 @@ ContentType = Union[str, bytes, dict, Image]
 
 
 class MemoryContent(BaseModel):
-    """A content item with type information."""
-
     content: ContentType
-    mime_type: MimeType
+    mime_type: MemoryMimeType
+    metadata: Dict[str, Any] | None = None
+    timestamp: datetime | None = None
+    source: str | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -33,34 +34,17 @@ class BaseMemoryConfig(BaseModel):
     """Base configuration for memory implementations."""
 
     k: int = Field(default=5, description="Number of results to return")
-    score_threshold: float | None = Field(default=None, description="Minimum relevance score")
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-
-class MemoryEntry(BaseModel):
-    """A memory entry containing content and metadata."""
-
-    content: MemoryContent
-    """The content item with type information."""
-
-    metadata: Dict[str, Any] = Field(default_factory=dict)
-    """Optional metadata associated with the memory entry."""
-
-    timestamp: datetime = Field(default_factory=datetime.now)
-    """When the memory was created."""
-
-    source: str | None = None
-    """Optional source identifier for the memory."""
+    score_threshold: float | None = Field(
+        default=None, description="Minimum relevance score")
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MemoryQueryResult(BaseModel):
-    """Result from a memory query including the entry and its relevance score."""
+    """Result from a memory query including the content and its relevance score."""
 
-    entry: MemoryEntry
-    """The memory entry."""
+    content: MemoryContent
+    """The memory content."""
 
     score: float
     """Relevance score for this result. Higher means more relevant."""
@@ -87,13 +71,13 @@ class Memory(Protocol):
         model_context: ChatCompletionContext,
     ) -> ChatCompletionContext:
         """
-        Transform the model context using relevant memory content.
+        Transform the provided model context using relevant memory content.
 
         Args:
             model_context: The context to transform
 
         Returns:
-            The transformed context
+            The transformed context  
         """
         ...
 
@@ -116,12 +100,12 @@ class Memory(Protocol):
         """
         ...
 
-    async def add(self, entry: MemoryEntry, cancellation_token: "CancellationToken | None" = None) -> None:
+    async def add(self, content: MemoryContent, cancellation_token: "CancellationToken | None" = None) -> None:
         """
-        Add a new entry to memory.
+        Add a new content to memory.
 
         Args:
-            entry: The memory entry to add
+            content: The memory content to add
             cancellation_token: Optional token to cancel operation
         """
         ...

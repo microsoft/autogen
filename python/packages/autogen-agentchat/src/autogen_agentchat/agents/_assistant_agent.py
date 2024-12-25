@@ -44,7 +44,7 @@ from ..messages import (
 )
 from ..state import AssistantAgentState
 from ._base_chat_agent import BaseChatAgent
-from ..memory._base_memory import Memory, MemoryQueryResult
+from ..memory._base_memory import Memory
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
@@ -240,10 +240,11 @@ class AssistantAgent(BaseChatAgent):
         ) = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
         reflect_on_tool_use: bool = False,
         tool_call_summary_format: str = "{result}",
+        memory: List[Memory] | None = None,
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client
-        self._memory = memory
+        self._memory = [memory] if isinstance(memory, Memory) else memory
 
         self._system_messages: List[SystemMessage | UserMessage |
                                     AssistantMessage | FunctionExecutionResultMessage] = []
@@ -332,6 +333,11 @@ class AssistantAgent(BaseChatAgent):
 
         # Inner messages.
         inner_messages: List[AgentEvent | ChatMessage] = []
+
+        # Update the model context with memory content.
+        if self._memory:
+            for memory in self._memory:
+                await memory.transform(self._model_context)
 
         # Generate an inference result based on the current model context.
         llm_messages = self._system_messages + await self._model_context.get_messages()
