@@ -36,7 +36,7 @@ def main() -> None:
     async def run_task(task: str, hil_mode: bool) -> None:
         client = OpenAIChatCompletionClient(model="gpt-4o")
         m1 = MagenticOne(client=client, hil_mode=hil_mode)
-        await RichConsole(m1.run_stream(task=task))
+        await RichConsole(m1.run_stream(task=task), no_inline_images=True)
 
     task = args.task[0]
     asyncio.run(asyncio.wait_for(run_task(task, not args.no_hil), timeout=300))

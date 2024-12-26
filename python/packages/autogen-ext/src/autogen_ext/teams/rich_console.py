@@ -42,6 +42,7 @@ async def RichConsole(
     stream: AsyncGenerator[AgentEvent | ChatMessage | T, None],
     *,
     no_inline_images: bool = False,
+    primary_color: str = "magenta",
 ) -> T:
     render_image_iterm = _is_running_in_iterm() and _is_output_a_tty() and not no_inline_images
     start_time = time.time()
@@ -66,12 +67,12 @@ async def RichConsole(
         elif isinstance(message, Response):
             duration = time.time() - start_time
 
-            output = Text.from_markup(f"[bold magenta]{message.chat_message.source}[/bold magenta]\n{_message_to_str(message.chat_message, render_image_iterm=render_image_iterm)}")
+            output = Text.from_markup(f"{_message_to_str(message.chat_message, render_image_iterm=render_image_iterm)}")
             if message.chat_message.models_usage:
                 output.append(f"\n[Prompt tokens: {message.chat_message.models_usage.prompt_tokens}, Completion tokens: {message.chat_message.models_usage.completion_tokens}]")
                 total_usage.completion_tokens += message.chat_message.models_usage.completion_tokens
                 total_usage.prompt_tokens += message.chat_message.models_usage.prompt_tokens
-            console.print(Panel(output))
+            console.print(Panel(output, title=f"[bold {primary_color}]{message.chat_message.source}[/bold {primary_color}]"))
 
             if message.inner_messages is not None:
                 num_inner_messages = len(message.inner_messages)
@@ -88,12 +89,12 @@ async def RichConsole(
 
         else:
             message = cast(AgentEvent | ChatMessage, message)  # type: ignore
-            output = Text.from_markup(f"[bold magenta]{message.source}[/bold magenta]\n{_message_to_str(message, render_image_iterm=render_image_iterm)}")
+            output = Text.from_markup(f"{_message_to_str(message, render_image_iterm=render_image_iterm)}")
             if message.models_usage:
                 output.append(f"\n[Prompt tokens: {message.models_usage.prompt_tokens}, Completion tokens: {message.models_usage.completion_tokens}]")
                 total_usage.completion_tokens += message.models_usage.completion_tokens
                 total_usage.prompt_tokens += message.models_usage.prompt_tokens
-            console.print(Panel(output))
+            console.print(Panel(output, title=f"[bold {primary_color}]{message.source}[/bold {primary_color}]"))
             if render_image_iterm and isinstance(message, MultiModalMessage):
                 for c in message.content:
                     if isinstance(c, Image):
