@@ -16,7 +16,7 @@ from ..state import BaseState
 class BaseChatAgent(ChatAgent, ABC):
     """Base class for a chat agent.
 
-    This abstract class provides a base implementation for a chat agent.
+    This abstract class provides a base implementation for a :class:`ChatAgent`.
     To create a new chat agent, subclass this class and implement the
     :meth:`on_messages`, :meth:`on_reset`, and :attr:`produced_message_types`.
     If streaming is required, also implement the :meth:`on_messages_stream` method.
