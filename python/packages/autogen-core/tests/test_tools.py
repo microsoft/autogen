@@ -270,7 +270,7 @@ def test_func_tool_return_none() -> None:
     assert tool.name == "my_function"
     assert tool.description == "Function tool."
     assert issubclass(tool.args_type(), BaseModel)
-    assert tool.return_type() is NoneType
+    assert tool.return_type() is type(None)
     assert tool.state_type() is None
 
 
