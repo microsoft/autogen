@@ -1,9 +1,10 @@
 """
 This module defines various message types used for agent-to-agent communication.
-Each message type inherits from the BaseMessage class and includes specific fields
-relevant to the type of message being sent.
+Each message type inherits either from the BaseChatMessage class or BaseAgentEvent
+class and includes specific fields relevant to the type of message being sent.
 """
 
+from abc import ABC
 from typing import List, Literal
 
 from autogen_core import FunctionCall, Image
@@ -12,8 +13,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import Annotated, deprecated
 
 
-class BaseMessage(BaseModel):
-    """A base message."""
+class BaseMessage(BaseModel, ABC):
+    """Base class for all message types."""
 
     source: str
     """The name of the agent that sent this message."""
@@ -24,7 +25,19 @@ class BaseMessage(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class TextMessage(BaseMessage):
+class BaseChatMessage(BaseMessage, ABC):
+    """Base class for chat messages."""
+
+    pass
+
+
+class BaseAgentEvent(BaseMessage, ABC):
+    """Base class for agent events."""
+
+    pass
+
+
+class TextMessage(BaseChatMessage):
     """A text message."""
 
     content: str
@@ -33,7 +46,7 @@ class TextMessage(BaseMessage):
     type: Literal["TextMessage"] = "TextMessage"
 
 
-class MultiModalMessage(BaseMessage):
+class MultiModalMessage(BaseChatMessage):
     """A multimodal message."""
 
     content: List[str | Image]
@@ -42,7 +55,7 @@ class MultiModalMessage(BaseMessage):
     type: Literal["MultiModalMessage"] = "MultiModalMessage"
 
 
-class StopMessage(BaseMessage):
+class StopMessage(BaseChatMessage):
     """A message requesting stop of a conversation."""
 
     content: str
@@ -51,7 +64,7 @@ class StopMessage(BaseMessage):
     type: Literal["StopMessage"] = "StopMessage"
 
 
-class HandoffMessage(BaseMessage):
+class HandoffMessage(BaseChatMessage):
     """A message requesting handoff of a conversation to another agent."""
 
     target: str
@@ -83,7 +96,7 @@ class ToolCallResultMessage(BaseMessage):
     type: Literal["ToolCallResultMessage"] = "ToolCallResultMessage"
 
 
-class ToolCallRequestEvent(BaseMessage):
+class ToolCallRequestEvent(BaseAgentEvent):
     """An event signaling a request to use tools."""
 
     content: List[FunctionCall]
@@ -92,7 +105,7 @@ class ToolCallRequestEvent(BaseMessage):
     type: Literal["ToolCallRequestEvent"] = "ToolCallRequestEvent"
 
 
-class ToolCallExecutionEvent(BaseMessage):
+class ToolCallExecutionEvent(BaseAgentEvent):
     """An event signaling the execution of tool calls."""
 
     content: List[FunctionExecutionResult]
@@ -101,7 +114,7 @@ class ToolCallExecutionEvent(BaseMessage):
     type: Literal["ToolCallExecutionEvent"] = "ToolCallExecutionEvent"
 
 
-class ToolCallSummaryMessage(BaseMessage):
+class ToolCallSummaryMessage(BaseChatMessage):
     """A message signaling the summary of tool call results."""
 
     content: str

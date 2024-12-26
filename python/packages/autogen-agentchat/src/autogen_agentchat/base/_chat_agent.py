@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, AsyncGenerator, List, Mapping, Protocol, Sequence, runtime_checkable
+from typing import Any, AsyncGenerator, Mapping, Protocol, Sequence, Tuple, runtime_checkable
 
 from autogen_core import CancellationToken
 
@@ -14,8 +14,9 @@ class Response:
     chat_message: ChatMessage
     """A chat message produced by the agent as the response."""
 
-    inner_messages: List[AgentEvent | ChatMessage] | None = None
-    """Inner messages produced by the agent."""
+    inner_messages: Sequence[AgentEvent | ChatMessage] | None = None
+    """Inner messages produced by the agent, they can be :class:`AgentEvent`
+    or :class:`ChatMessage`."""
 
 
 @runtime_checkable
@@ -36,8 +37,9 @@ class ChatAgent(TaskRunner, Protocol):
         ...
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        """The types of messages that the agent produces."""
+    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+        """The types of messages that the agent produces in the
+        :attr:`Response.chat_message` field. They must be :class:`ChatMessage` types."""
         ...
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
