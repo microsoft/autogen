@@ -13,15 +13,19 @@ from rich.text import Text
 
 T = TypeVar("T", bound=TaskResult | Response)
 
+
 def _is_running_in_iterm() -> bool:
     return os.getenv("TERM_PROGRAM") == "iTerm.app"
+
 
 def _is_output_a_tty() -> bool:
     return sys.stdout.isatty()
 
+
 def _image_to_iterm(image: Image) -> str:
     image_data = image.to_base64()
     return f"\033]1337;File=inline=1:{image_data}\a\n"
+
 
 def _message_to_str(message: AgentEvent | ChatMessage, *, render_image_iterm: bool = False) -> str:
     if isinstance(message, MultiModalMessage):
@@ -37,6 +41,7 @@ def _message_to_str(message: AgentEvent | ChatMessage, *, render_image_iterm: bo
         return "\n".join(result)
     else:
         return f"{message.content}"
+
 
 async def RichConsole(
     stream: AsyncGenerator[AgentEvent | ChatMessage | T, None],
@@ -69,10 +74,14 @@ async def RichConsole(
 
             output = Text.from_markup(f"{_message_to_str(message.chat_message, render_image_iterm=render_image_iterm)}")
             if message.chat_message.models_usage:
-                output.append(f"\n[Prompt tokens: {message.chat_message.models_usage.prompt_tokens}, Completion tokens: {message.chat_message.models_usage.completion_tokens}]")
+                output.append(
+                    f"\n[Prompt tokens: {message.chat_message.models_usage.prompt_tokens}, Completion tokens: {message.chat_message.models_usage.completion_tokens}]"
+                )
                 total_usage.completion_tokens += message.chat_message.models_usage.completion_tokens
                 total_usage.prompt_tokens += message.chat_message.models_usage.prompt_tokens
-            console.print(Panel(output, title=f"[bold {primary_color}]{message.chat_message.source}[/bold {primary_color}]"))
+            console.print(
+                Panel(output, title=f"[bold {primary_color}]{message.chat_message.source}[/bold {primary_color}]")
+            )
 
             if message.inner_messages is not None:
                 num_inner_messages = len(message.inner_messages)
@@ -91,14 +100,16 @@ async def RichConsole(
             message = cast(AgentEvent | ChatMessage, message)  # type: ignore
             output = Text.from_markup(f"{_message_to_str(message, render_image_iterm=render_image_iterm)}")
             if message.models_usage:
-                output.append(f"\n[Prompt tokens: {message.models_usage.prompt_tokens}, Completion tokens: {message.models_usage.completion_tokens}]")
+                output.append(
+                    f"\n[Prompt tokens: {message.models_usage.prompt_tokens}, Completion tokens: {message.models_usage.completion_tokens}]"
+                )
                 total_usage.completion_tokens += message.models_usage.completion_tokens
                 total_usage.prompt_tokens += message.models_usage.prompt_tokens
             console.print(Panel(output, title=f"[bold {primary_color}]{message.source}[/bold {primary_color}]"))
             if render_image_iterm and isinstance(message, MultiModalMessage):
                 for c in message.content:
                     if isinstance(c, Image):
-                        console.print(_image_to_iterm(c))
+                        print(_image_to_iterm(c))
 
     if last_processed is None:
         raise ValueError("No TaskResult or Response was processed.")
