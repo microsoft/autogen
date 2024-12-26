@@ -52,6 +52,7 @@ class AgenticMemory:
 
         for trial in range(num_trials):
             page.add_lines("-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
+            task_plus_insights = task
 
             # Try to retrieve any relevant memories from the DB.
             filtered_insights = await self.retrieve_relevant_insights(task)
@@ -59,11 +60,11 @@ class AgenticMemory:
                 page.add_lines("Relevant insights were retrieved from memory.\n", flush=True)
                 memory_section = self.format_memory_section(filtered_insights)
                 if len(memory_section) > 0:
-                    task = task + '\n\n' + memory_section
+                    task_plus_insights = task + '\n\n' + memory_section
 
             # Attempt to solve the task.
             page.add_lines("Try to solve the task.\n", flush=True)
-            response, _ = await task_assignment_callback(task, self.client, self.page_log)
+            response, _ = await task_assignment_callback(task_plus_insights, self.client, self.page_log)
 
             response_is_correct = (response.lower() == expected_answer.lower())
             if response_is_correct:
