@@ -45,9 +45,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    import os
-    import sys
-
     fd = sys.stdout.fileno()
     flags = os.fcntl(fd, os.F_GETFL)
     os.fcntl(fd, os.F_SETFL, flags & ~os.O_NONBLOCK)
