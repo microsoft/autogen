@@ -1,5 +1,4 @@
 import inspect
-from types import NoneType
 from typing import Annotated, List
 
 import pytest
