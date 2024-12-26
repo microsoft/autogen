@@ -2,11 +2,9 @@ import argparse
 import asyncio
 import os
 import sys
-
-from autogen_agentchat.ui import Console as AutoGenConsole
-
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.teams.magentic_one import MagenticOne
+from autogen_ext.teams.rich_console import RichConsole
 
 
 def main() -> None:
@@ -38,7 +36,7 @@ def main() -> None:
     async def run_task(task: str, hil_mode: bool) -> None:
         client = OpenAIChatCompletionClient(model="gpt-4o")
         m1 = MagenticOne(client=client, hil_mode=hil_mode)
-        await AutoGenConsole(m1.run_stream(task=task))
+        await RichConsole(m1.run_stream(task=task))
 
     task = args.task[0]
     asyncio.run(asyncio.wait_for(run_task(task, not args.no_hil), timeout=300))
