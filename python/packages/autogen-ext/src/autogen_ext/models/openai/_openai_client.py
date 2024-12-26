@@ -360,7 +360,10 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     ):
         self._client = client
         if model_capabilities is None:
-            self._model_capabilities = _model_info.get_capabilities(create_args["model"])
+            try:
+                self._model_capabilities = _model_info.get_capabilities(create_args["model"])
+            except KeyError as err:
+                raise ValueError("model_capabilities is required when model name is not a valid OpenAI model") from err
         else:
             self._model_capabilities = model_capabilities
 

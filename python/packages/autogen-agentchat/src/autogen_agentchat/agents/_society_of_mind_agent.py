@@ -1,4 +1,4 @@
-from typing import Any, AsyncGenerator, List, Mapping, Sequence
+from typing import Any, AsyncGenerator, List, Mapping, Sequence, Tuple
 
 from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
@@ -9,10 +9,8 @@ from autogen_agentchat.state import SocietyOfMindAgentState
 from ..base import TaskResult, Team
 from ..messages import (
     AgentEvent,
+    BaseChatMessage,
     ChatMessage,
-    HandoffMessage,
-    MultiModalMessage,
-    StopMessage,
     TextMessage,
 )
 from ._base_chat_agent import BaseChatAgent
@@ -105,8 +103,8 @@ class SocietyOfMindAgent(BaseChatAgent):
         self._response_prompt = response_prompt
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        return [TextMessage]
+    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+        return (TextMessage,)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         # Call the stream method and collect the messages.
@@ -150,7 +148,7 @@ class SocietyOfMindAgent(BaseChatAgent):
                 [
                     UserMessage(content=message.content, source=message.source)
                     for message in inner_messages
-                    if isinstance(message, TextMessage | MultiModalMessage | StopMessage | HandoffMessage)
+                    if isinstance(message, BaseChatMessage)
                 ]
             )
             llm_messages.append(SystemMessage(content=self._response_prompt))

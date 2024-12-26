@@ -63,8 +63,8 @@ class FileSurfer(BaseChatAgent):
         self._browser = MarkdownFileBrowser(viewport_size=1024 * 5)
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        return [TextMessage]
+    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+        return (TextMessage,)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         for chat_message in messages:
