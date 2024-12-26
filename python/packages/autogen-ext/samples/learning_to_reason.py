@@ -84,7 +84,7 @@ The final line of your response must contain nothing but the answer as a number.
 
 
 # Default client parameters
-TEMPERATURE = 0.1
+TEMPERATURE = 1.0
 MAX_TOKENS = 4096
 PRESENCE_PENALTY = 0.0
 FREQUENCY_PENALTY = 0.0
@@ -183,7 +183,6 @@ def create_trapi_client(page_log):
         frequency_penalty=FREQUENCY_PENALTY,
         top_p=TOP_P,
         max_retries=MAX_RETRIES,
-        unknown_param="unknown_param",
     )
     if page_log is not None:
         page_log.append_entry_line("Client:  {}".format(client._resolved_model))
@@ -315,7 +314,7 @@ async def test(task_with_answer, num_trials, task_assignment_callback, use_memor
     return response, num_successes, num_trials
 
 
-async def train_and_test(task_index, max_train_trials, max_test_trials, task_assignment_callback, page_log):
+async def train_and_test(task_index, max_train_trials, max_test_trials, task_assignment_callback, client, page_log):
     tasklist = define_tasks_with_answers()
     task_with_answer = tasklist[task_index]
 
@@ -329,7 +328,7 @@ async def train_and_test(task_index, max_train_trials, max_test_trials, task_ass
             max_test_trials=max_test_trials,
             task_assignment_callback=task_assignment_callback,
             reset_memory=True,
-            client=create_client(page_log),
+            client=client,
             page_log=page_log)
         last_response, num_successes, num_trials = await test(
             task_with_answer=task_with_answer,
@@ -337,7 +336,7 @@ async def train_and_test(task_index, max_train_trials, max_test_trials, task_ass
             task_assignment_callback=task_assignment_callback,
             use_memory=True,
             reset_memory=False,
-            client=create_client(page_log),
+            client=client,
             page_log=page_log)
         print("SUCCESS RATE:  {}%\n".format(round((num_successes / num_trials) * 100)))
         total_num_successes += num_successes
@@ -345,37 +344,40 @@ async def train_and_test(task_index, max_train_trials, max_test_trials, task_ass
     return total_num_successes, total_num_trials
 
 
-async def test_on_task_with_memory(task_index, task_assignment_callback, page_log, num_trials, reset_memory):
+async def test_on_task_with_memory(task_index, task_assignment_callback, client, page_log, num_trials, reset_memory):
     last_response, num_successes, num_trials = await test(
         task_with_answer=define_tasks_with_answers()[task_index],
         num_trials=num_trials,
         task_assignment_callback=task_assignment_callback,
         use_memory=True,
         reset_memory=reset_memory,
-        client=create_client(page_log),
+        client=client,
         page_log=page_log)
     print("SUCCESS RATE:  {}%\n".format(round((num_successes / num_trials) * 100)))
 
 
-async def test_on_task(task_index, task_assignment_callback, page_log, num_trials):
+async def test_on_task(task_index, task_assignment_callback, client, page_log, num_trials):
     last_response, num_successes, num_trials = await test(
         task_with_answer=define_tasks_with_answers()[task_index],
         num_trials=num_trials,
         task_assignment_callback=task_assignment_callback,
         use_memory=False,
         reset_memory=False,
-        client=create_client(page_log),
+        client=client,
         page_log=page_log)
     print("SUCCESS RATE:  {}%\n".format(round((num_successes / num_trials) * 100)))
 
 
 async def main() -> None:
     # Create the PageLog. (This is optional)
-    page_log = PageLog("~/pagelogs/", "repro-16")
+    page_log = PageLog("~/pagelogs/", "repro-17")
     page = page_log.begin_page(
         summary="main",
         details='',
         method_call="main")
+
+    # Create the client.
+    client = create_client(page_log)
 
     # Choose the task from those listed at the top.
     task_index = 0
@@ -384,10 +386,10 @@ async def main() -> None:
     task_assignment_callback = assign_task_to_client  # assign_task_to_client or assign_task_to_magentic_one
 
     # Test, without using memory.
-    # await test_on_task(task_index, task_assignment_callback, page_log, 1)
+    # await test_on_task(task_index, task_assignment_callback, client, page_log, 1)
 
     # Test, using memory.
-    # await test_on_task_with_memory(task_index, task_assignment_callback, page_log, num_trials=3, reset_memory=True)
+    # await test_on_task_with_memory(task_index, task_assignment_callback, client, page_log, num_trials=3, reset_memory=True)
 
     # Train and test, using memory.
     num_successes, num_trials = await train_and_test(
@@ -395,6 +397,7 @@ async def main() -> None:
         10,  # Normally 10
         3,  # Normally 3
         task_assignment_callback,
+        client,
         page_log)
     success_rate = round((num_successes / num_trials) * 100)
     page.add_lines("\nOverall success rate:  {}%\n".format(success_rate), flush=True)
