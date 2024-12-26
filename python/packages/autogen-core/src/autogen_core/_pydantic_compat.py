@@ -8,24 +8,9 @@ from pydantic import BaseModel
 from pydantic.version import VERSION as PYDANTIC_VERSION
 from typing_extensions import get_origin
 
-__all__ = ("model_dump", "type2schema", "evaluate_forwardref")
+__all__ = ("model_dump", "type2schema")
 
 PYDANTIC_V1 = PYDANTIC_VERSION.startswith("1.")
-
-
-def evaluate_forwardref(
-    value: Any,
-    globalns: dict[str, Any] | None = None,
-    localns: dict[str, Any] | None = None,
-) -> Any:
-    if PYDANTIC_V1:
-        from pydantic.typing import evaluate_forwardref as evaluate_forwardref_internal
-
-        return evaluate_forwardref_internal(value, globalns, localns)
-    else:
-        from pydantic._internal._typing_extra import eval_type_lenient
-
-        return eval_type_lenient(value, globalns, localns)
 
 
 def type2schema(t: Type[Any] | None) -> Dict[str, Any]:
