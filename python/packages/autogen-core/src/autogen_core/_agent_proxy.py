@@ -11,6 +11,8 @@ if TYPE_CHECKING:
 
 
 class AgentProxy:
+    """A helper class that allows you to use an :class:`~autogen_core.AgentId` in place of its associated :class:`~autogen_core.Agent`"""
+
     def __init__(self, agent: AgentId, runtime: AgentRuntime):
         self._agent = agent
         self._runtime = runtime

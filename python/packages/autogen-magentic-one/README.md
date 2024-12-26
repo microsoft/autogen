@@ -1,5 +1,8 @@
 # Magentic-One
 
+> [!IMPORTANT]
+> **Note (December 22nd, 2024):** We recommend using the [Magentic-One API](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-ext/src/autogen_ext/teams/magentic_one.py) as the preferred way to interact with Magentic-One. The API provides a more streamlined and robust interface for integrating Magentic-One into your projects.
+
 > [!CAUTION]
 > Using Magentic-One involves interacting with a digital world designed for humans, which carries inherent risks. To minimize these risks, consider the following precautions:
 >
