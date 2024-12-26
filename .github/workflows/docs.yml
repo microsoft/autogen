@@ -51,7 +51,7 @@ jobs:
         with:
           lfs: "true"
           ref: ${{ matrix.version.ref }}
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
       - uses: actions/setup-python@v5
@@ -99,7 +99,7 @@ jobs:
         with:
           lfs: "true"
           ref: ${{ matrix.version.ref }}
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
       - uses: actions/setup-python@v5
