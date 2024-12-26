@@ -34,10 +34,7 @@ def _message_to_str(message: AgentEvent | ChatMessage, *, render_image_iterm: bo
             if isinstance(c, str):
                 result.append(c)
             else:
-                if render_image_iterm:
-                    result.append(_image_to_iterm(c))
-                else:
-                    result.append("<image>")
+                result.append("<image>")
         return "\n".join(result)
     else:
         return f"{message.content}"
@@ -68,34 +65,6 @@ async def RichConsole(
             )
             console.print(Panel(output, title="Summary"))
             last_processed = message  # type: ignore
-
-        elif isinstance(message, Response):
-            duration = time.time() - start_time
-
-            output = Text.from_markup(f"{_message_to_str(message.chat_message, render_image_iterm=render_image_iterm)}")
-            if message.chat_message.models_usage:
-                output.append(
-                    f"\n[Prompt tokens: {message.chat_message.models_usage.prompt_tokens}, Completion tokens: {message.chat_message.models_usage.completion_tokens}]"
-                )
-                total_usage.completion_tokens += message.chat_message.models_usage.completion_tokens
-                total_usage.prompt_tokens += message.chat_message.models_usage.prompt_tokens
-            console.print(
-                Panel(output, title=f"[bold {primary_color}]{message.chat_message.source}[/bold {primary_color}]")
-            )
-
-            if message.inner_messages is not None:
-                num_inner_messages = len(message.inner_messages)
-            else:
-                num_inner_messages = 0
-            output = (
-                f"Number of inner messages: {num_inner_messages}\n"
-                f"Total prompt tokens: {total_usage.prompt_tokens}\n"
-                f"Total completion tokens: {total_usage.completion_tokens}\n"
-                f"Duration: {duration:.2f} seconds\n"
-            )
-            console.print(Panel(output, title="Summary"))
-            last_processed = message  # type: ignore
-
         else:
             message = cast(AgentEvent | ChatMessage, message)  # type: ignore
             output = Text.from_markup(f"{_message_to_str(message, render_image_iterm=render_image_iterm)}")
