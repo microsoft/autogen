@@ -268,6 +268,10 @@ class PageLog:
                              method_call="model call",
                              show_in_overview=False)
         self.page_stack.write_stack_to_page(page)
+        if num_input_tokens is not None and num_input_tokens > 0:
+            page.add_lines("{} prompt tokens from count_tokens".format(num_input_tokens))
+        page.add_lines("{} prompt tokens".format(response.usage.prompt_tokens))
+        page.add_lines("{} completion tokens".format(response.usage.completion_tokens))
         for i, m in enumerate(input_messages):
             page.add_lines('\n' + self.message_source(m))
             page.add_lines(self.message_content(page, message=m))

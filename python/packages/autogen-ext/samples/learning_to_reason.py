@@ -21,36 +21,64 @@ from typing import (
 )
 from autogen_ext.agentic_memory import AgenticMemory, PageLog
 
+GRADER = 0
+
 PATH_TO_ARCHIVE_DIR = "~/agentic_memory_archive"
 
 
 def define_tasks_with_answers():
     tasks_with_answers = []
 
-    # Task index 0
-    tasks_with_answers.append({
-        "task": """You ask 100 people: 'How many of you are liars?' They all answer: 'At least one of us is not a liar.' But you know that at least one of the 100 is a liar. How many of them are liars? 
+    if GRADER:
+        # Task index 0
+        tasks_with_answers.append({
+            "task": """You ask 100 people: 'How many of you are liars?' They all answer: 'At least one of us is not a liar.' But you know that at least one of the 100 is a liar. How many of them are liars?
+            
+Be sure to consider the cases where all are lying or all are telling the truth.""",
+            "expected_answer": "100"})
+
+        # Task index 1
+        tasks_with_answers.append({
+            "task": """You are Van Helsing, a renowned vampire hunter. A Count of Moldova, La\u021bcu IV, son of  Costea, has tasked you with investigating the village of \u0218irnea in neighboring Wallachia. The Count's advisors have reported that a vampire was spotted crossing the border near the village, and would like you to investigate it.
+    
+You travel to the village of \u0218irnea, and you begin your investigation. One night, just before dawn, you catch a glimpse of a man in a long black cape with red lining leaping from roof-top to roof-top with superhuman agility. It's a vampire! You try to chase the creature back to its home, but the creature is too fast. However, because of the remoteness of the village, you know with absolute certainty that the vampire must be a resident of the village. You decide that your best course of action will be to visit all 100 residents of the town during the day. You know something about vampires and humans that will make your investigation possible; humans always tell the truth, but vampires always lie.
+    
+In the afternoon, you go from house to house, speaking with all 100 residents of \u0218irnea. You ask everyone the same question: \"How many vampires are living in \u0218irnea\". Everyone in the village gives the same response, \"At least one of us is a human.\"\n\nHow many residents of \u0218irnea have been turned into vampires?
+            
+Be sure to consider the cases where all are lying or all are telling the truth.""",
+            "expected_answer": "100"})
+
+        # Task index 2
+        tasks_with_answers.append({
+            "task": """Three guards stand at a door. You need to determine how many of them are truthful, and you already know that one of them is not. You ask each one 'How many guards here tell the truth?' Each one says 'One or more of us always tells the truth'. How many of the guards tell the truth?
+            
+Be sure to consider the cases where all are lying or all are telling the truth.""",
+            "expected_answer": "3"})
+    else:
+        # Task index 0
+        tasks_with_answers.append({
+            "task": """You ask 100 people: 'How many of you are liars?' They all answer: 'At least one of us is not a liar.' But you know that at least one of the 100 is a liar. How many of them are liars? 
 
 The final line of your response must contain nothing but the answer as a number.""",
-        "expected_answer": "100"})
+            "expected_answer": "100"})
 
-    # Task index 1
-    tasks_with_answers.append({
-        "task": """You are Van Helsing, a renowned vampire hunter. A Count of Moldova, La\u021bcu IV, son of  Costea, has tasked you with investigating the village of \u0218irnea in neighboring Wallachia. The Count's advisors have reported that a vampire was spotted crossing the border near the village, and would like you to investigate it.
+        # Task index 1
+        tasks_with_answers.append({
+            "task": """You are Van Helsing, a renowned vampire hunter. A Count of Moldova, La\u021bcu IV, son of  Costea, has tasked you with investigating the village of \u0218irnea in neighboring Wallachia. The Count's advisors have reported that a vampire was spotted crossing the border near the village, and would like you to investigate it.
 
 You travel to the village of \u0218irnea, and you begin your investigation. One night, just before dawn, you catch a glimpse of a man in a long black cape with red lining leaping from roof-top to roof-top with superhuman agility. It's a vampire! You try to chase the creature back to its home, but the creature is too fast. However, because of the remoteness of the village, you know with absolute certainty that the vampire must be a resident of the village. You decide that your best course of action will be to visit all 100 residents of the town during the day. You know something about vampires and humans that will make your investigation possible; humans always tell the truth, but vampires always lie.
 
 In the afternoon, you go from house to house, speaking with all 100 residents of \u0218irnea. You ask everyone the same question: \"How many vampires are living in \u0218irnea\". Everyone in the village gives the same response, \"At least one of us is a human.\"\n\nHow many residents of \u0218irnea have been turned into vampires?
 
 The final line of your response must contain nothing but the answer as a number.""",
-        "expected_answer": "100"})
+            "expected_answer": "100"})
 
-    # Task index 2
-    tasks_with_answers.append({
-        "task": """Three guards stand at a door. You need to determine how many of them are truthful, and you already know that one of them is not. You ask each one 'How many guards here tell the truth?' Each one says 'One or more of us always tells the truth'. How many of the guards tell the truth?
+        # Task index 2
+        tasks_with_answers.append({
+            "task": """Three guards stand at a door. You need to determine how many of them are truthful, and you already know that one of them is not. You ask each one 'How many guards here tell the truth?' Each one says 'One or more of us always tells the truth'. How many of the guards tell the truth?
 
 The final line of your response must contain nothing but the answer as a number.""",
-        "expected_answer": "3"})
+            "expected_answer": "3"})
 
     return tasks_with_answers
 
@@ -64,14 +92,14 @@ TOP_P = 1.0
 MAX_RETRIES = 65535
 
 
-def create_client():
+def create_client(page_log=None):
     # Choose one.
-    # return create_oai_client()
-    # return create_aoai_client()
-    return create_trapi_client()
+    # return create_oai_client(page_log)
+    # return create_aoai_client(page_log)
+    return create_trapi_client(page_log)
 
 
-def create_oai_client():
+def create_oai_client(page_log):
     # Create an OpenAI client
     model_name = "gpt-4o-2024-05-13"
     client = OpenAIChatCompletionClient(
@@ -84,10 +112,14 @@ def create_oai_client():
         top_p=TOP_P,
         max_retries=MAX_RETRIES,
     )
+    if page_log is not None:
+        page_log.append_entry_line("Client:  {}".format(client._resolved_model))
+        page_log.append_entry_line("  created through OpenAI directly")
+    page_log.append_entry_line("  temperature:  {}".format(TEMPERATURE))
     return client
 
 
-def create_aoai_client():
+def create_aoai_client(page_log):
     # Create an Azure OpenAI client
     token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
     azure_deployment = "gpt-4o-2024-05-13-eval"
@@ -109,10 +141,14 @@ def create_aoai_client():
         top_p=TOP_P,
         max_retries=MAX_RETRIES,
     )
+    if page_log is not None:
+        page_log.append_entry_line("Client:  {}".format(client._resolved_model))
+        page_log.append_entry_line("  created through Azure OpenAI")
+    page_log.append_entry_line("  temperature:  {}".format(TEMPERATURE))
     return client
 
 
-def create_trapi_client():
+def create_trapi_client(page_log):
     # Create an Azure OpenAI client through TRAPI
     token_provider = get_bearer_token_provider(ChainedTokenCredential(
         AzureCliCredential(),
@@ -128,8 +164,10 @@ def create_trapi_client():
             # managed_identity_client_id=os.environ.get("DEFAULT_IDENTITY_CLIENT_ID"),  # See the TRAPI docs
         )
     ), "api://trapi/.default")
-    model = "gpt-4o-2024-05-13"  # This is (for instance) the OpenAI model name, which is used to look up capabilities.
-    azure_deployment = 'gpt-4o_2024-05-13'  # This is DeploymentName in the table at https://aka.ms/trapi/models
+    # model = "gpt-4o-2024-05-13"  # This is (for instance) the OpenAI model name, which is used to look up capabilities.
+    # azure_deployment = 'gpt-4o_2024-05-13'  # This is DeploymentName in the table at https://aka.ms/trapi/models
+    model = "gpt-4o-2024-08-06"  # This is (for instance) the OpenAI model name, which is used to look up capabilities.
+    azure_deployment = 'gpt-4o_2024-08-06'  # This is DeploymentName in the table at https://aka.ms/trapi/models
     trapi_suffix = 'msraif/shared'  # This is TRAPISuffix (without /openai) in the table at https://aka.ms/trapi/models
     endpoint = f'https://trapi.research.microsoft.com/{trapi_suffix}'
     api_version = '2024-10-21'  # From https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation#latest-ga-api-release
@@ -145,7 +183,12 @@ def create_trapi_client():
         frequency_penalty=FREQUENCY_PENALTY,
         top_p=TOP_P,
         max_retries=MAX_RETRIES,
+        unknown_param="unknown_param",
     )
+    if page_log is not None:
+        page_log.append_entry_line("Client:  {}".format(client._resolved_model))
+        page_log.append_entry_line("  created through TRAPI")
+    page_log.append_entry_line("  temperature:  {}".format(TEMPERATURE))
     return client
 
 
@@ -286,7 +329,7 @@ async def train_and_test(task_index, max_train_trials, max_test_trials, task_ass
             max_test_trials=max_test_trials,
             task_assignment_callback=task_assignment_callback,
             reset_memory=True,
-            client=create_client(),
+            client=create_client(page_log),
             page_log=page_log)
         last_response, num_successes, num_trials = await test(
             task_with_answer=task_with_answer,
@@ -294,7 +337,7 @@ async def train_and_test(task_index, max_train_trials, max_test_trials, task_ass
             task_assignment_callback=task_assignment_callback,
             use_memory=True,
             reset_memory=False,
-            client=create_client(),
+            client=create_client(page_log),
             page_log=page_log)
         print("SUCCESS RATE:  {}%\n".format(round((num_successes / num_trials) * 100)))
         total_num_successes += num_successes
@@ -309,7 +352,7 @@ async def test_on_task_with_memory(task_index, task_assignment_callback, page_lo
         task_assignment_callback=task_assignment_callback,
         use_memory=True,
         reset_memory=reset_memory,
-        client=create_client(),
+        client=create_client(page_log),
         page_log=page_log)
     print("SUCCESS RATE:  {}%\n".format(round((num_successes / num_trials) * 100)))
 
@@ -321,14 +364,14 @@ async def test_on_task(task_index, task_assignment_callback, page_log, num_trial
         task_assignment_callback=task_assignment_callback,
         use_memory=False,
         reset_memory=False,
-        client=create_client(),
+        client=create_client(page_log),
         page_log=page_log)
     print("SUCCESS RATE:  {}%\n".format(round((num_successes / num_trials) * 100)))
 
 
 async def main() -> None:
     # Create the PageLog. (This is optional)
-    page_log = PageLog("~/pagelogs/", "repro-14")
+    page_log = PageLog("~/pagelogs/", "repro-16")
     page = page_log.begin_page(
         summary="main",
         details='',
@@ -359,5 +402,30 @@ async def main() -> None:
     page_log.flush(final=True)  # Finalize the page log
     page_log.finish_page(page)
 
+
+async def test_grader() -> None:
+    # Create the PageLog. (This is optional)
+    page_log = PageLog("~/pagelogs/", "test-grader-1")
+    page = page_log.begin_page(
+        summary="test_grader",
+        details='',
+        method_call="test_grader")
+
+    # Choose the task from those listed at the top.
+    task_index = 0
+
+    # Choose the client, agent or team to assign the task to.
+    task_assignment_callback = assign_task_to_client  # assign_task_to_client or assign_task_to_magentic_one
+
+    # Test, without using memory.
+    await test_on_task(task_index, task_assignment_callback, page_log, 2)
+
+    page_log.flush(final=True)  # Finalize the page log
+    page_log.finish_page(page)
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    if GRADER:
+        asyncio.run(test_grader())
+    else:
+        asyncio.run(main())

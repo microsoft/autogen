@@ -55,7 +55,6 @@ class Prompter:
             # Call the model.
             response = await self.client.create(input_messages)
 
-
         if response is None:
             parent_page = self.page_log.add_model_call(description="Ask the model",
                 details=details + "  ({:,} TOO MANY INPUT TOKENS)".format(num_input_tokens),
@@ -74,7 +73,7 @@ class Prompter:
 
             # Log the model call
             parent_page = self.page_log.add_model_call(description="Ask the model",
-                details=details, input_messages=input_messages, response=response_message,
+                details=details, input_messages=input_messages, response=response,
                 num_input_tokens=num_input_tokens, caller='Orchestrator')
 
             # Manage the chat history

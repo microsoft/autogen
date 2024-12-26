@@ -58,7 +58,8 @@ class AgenticMemory:
             if len(filtered_insights) > 0:
                 page.add_lines("Relevant insights were retrieved from memory.\n", flush=True)
                 memory_section = self.format_memory_section(filtered_insights)
-                task = task + '\n\n' + memory_section
+                if len(memory_section) > 0:
+                    task = task + '\n\n' + memory_section
 
             # Attempt to solve the task.
             page.add_lines("Try to solve the task.\n", flush=True)
@@ -193,12 +194,15 @@ class AgenticMemory:
         for trial in range(1, max_train_trials + 1):
             page.add_lines("-----  TRAIN TRIAL {}  -----\n".format(trial), flush=True)
 
+            task_plus_insights = task
+
             # Add any new insights we've accumulated so far.
             if last_insight is not None:
                 memory_section = self.format_memory_section(old_insights + [last_insight])
             else:
                 memory_section = self.format_memory_section(old_insights)
-            task_plus_insights = task + '\n\n' + memory_section
+            if len(memory_section) > 0:
+                task_plus_insights += '\n\n' + memory_section
 
             # Can we find a failure case to learn from?
             failure_found, response, work_history = await self._test_for_failure(
