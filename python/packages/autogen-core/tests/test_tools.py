@@ -171,7 +171,7 @@ def test_get_typed_signature_params() -> None:
 
     sig = get_typed_signature(my_function)
     assert isinstance(sig, inspect.Signature)
-    assert sig.return_annotation is NoneType
+    assert sig.return_annotation is type(None)
     assert len(sig.parameters) == 1
     assert sig.parameters["arg"].annotation is str
 
