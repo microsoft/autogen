@@ -878,10 +878,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         return self._model_capabilities
 
     def add_usage(self, usage: RequestUsage) -> None:
-        self._total_usage = RequestUsage(
-            prompt_tokens=self._total_usage.prompt_tokens + usage.prompt_tokens,
-            completion_tokens=self._total_usage.completion_tokens + usage.completion_tokens,
-        )
+        self._total_usage.prompt_tokens += usage.prompt_tokens
+        self._total_usage.completion_tokens += usage.completion_tokens
+
+        self._actual_usage.prompt_tokens += usage.prompt_tokens
+        self._actual_usage.completion_tokens += usage.completion_tokens
 
 
 class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
