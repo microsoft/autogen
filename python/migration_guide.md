@@ -54,6 +54,7 @@ will be providied in the future releases of `v0.4.*` versions:
 
 - Model Client Cache [#4752](https://github.com/microsoft/autogen/issues/4752)
 - Jupyter Code Executor [#4795](https://github.com/microsoft/autogen/issues/4795)
+- Model Client Cost [#4835](https://github.com/microsoft/autogen/issues/4835)
 - Teacheable Agent
 - RAG Agent
 
@@ -332,7 +333,7 @@ and what the `position` should be, in `v0.4`, we can simply create a custom agen
 and implement the `on_messages`, `on_reset`, and `produced_message_types` methods.
 
 ```python
-from typing import Sequence, List
+from typing import Sequence, Tuple
 from autogen_core import CancellationToken
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.messages import TextMessage, ChatMessage
@@ -346,8 +347,8 @@ class CustomAgent(BaseChatAgent):
         pass
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        return [TextMessage]
+    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+        return (TextMessage,)
 ```
 
 You can then use the custom agent in the same way as the `AssistantAgent`.
@@ -818,7 +819,7 @@ The following example shows a simple nested chat that counts numbers.
 
 ```python
 import asyncio
-from typing import Sequence, List
+from typing import Sequence, Tuple
 from autogen_core import CancellationToken
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
@@ -840,8 +841,8 @@ class CountingAgent(BaseChatAgent):
         pass
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        return [TextMessage]
+    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+        return (TextMessage,)
 
 class NestedCountingAgent(BaseChatAgent):
     """An agent that increments the last number in the input messages
@@ -852,18 +853,18 @@ class NestedCountingAgent(BaseChatAgent):
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         # Run the inner team with the given messages and returns the last message produced by the team.
-        result = await self._counting_team.run(task=list(messages), cancellation_token=cancellation_token)
+        result = await self._counting_team.run(task=messages, cancellation_token=cancellation_token)
         # To stream the inner messages, implement `on_messages_stream` and use that to implement `on_messages`.
         assert isinstance(result.messages[-1], TextMessage)
-        return Response(chat_message=result.messages[-1], inner_messages=list(result.messages[len(messages):-1]))
+        return Response(chat_message=result.messages[-1], inner_messages=result.messages[len(messages):-1])
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         # Reset the inner team.
         await self._counting_team.reset()
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        return [TextMessage]
+    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+        return (TextMessage,)
 
 async def main() -> None:
     # Create a team of two counting agents as the inner team.
