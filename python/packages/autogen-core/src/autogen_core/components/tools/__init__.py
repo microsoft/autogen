@@ -9,18 +9,9 @@ from ...tools import (
 from ...tools import (
     BaseToolWithState as BaseToolWithStateAlias,
 )
-from ...tools import (
-    CodeExecutionInput as CodeExecutionInputAlias,
-)
-from ...tools import (
-    CodeExecutionResult as CodeExecutionResultAlias,
-)
 from ...tools import FunctionTool as FunctionToolAlias
 from ...tools import (
     ParametersSchema as ParametersSchemaAlias,
-)
-from ...tools import (
-    PythonCodeExecutionTool as PythonCodeExecutionToolAlias,
 )
 from ...tools import (
     Tool as ToolAlias,
@@ -35,9 +26,6 @@ __all__ = [
     "ParametersSchema",
     "BaseTool",
     "BaseToolWithState",
-    "PythonCodeExecutionTool",
-    "CodeExecutionInput",
-    "CodeExecutionResult",
     "FunctionTool",
 ]
 
@@ -77,27 +65,6 @@ class ParametersSchema(ParametersSchemaAlias):
     "autogen_core.tools.BaseToolWithStateAlias moved to autogen_core.tools.BaseToolWithStateAlias. This alias will be removed in 0.4.0."
 )
 class BaseToolWithState(BaseToolWithStateAlias[ArgsT, ReturnT, StateT]):
-    pass
-
-
-@deprecated(
-    "autogen_core.tools.PythonCodeExecutionToolAlias moved to autogen_core.tools.PythonCodeExecutionToolAlias. This alias will be removed in 0.4.0."
-)
-class PythonCodeExecutionTool(PythonCodeExecutionToolAlias):
-    pass
-
-
-@deprecated(
-    "autogen_core.tools.CodeExecutionInputAlias moved to autogen_core.tools.CodeExecutionInputAlias. This alias will be removed in 0.4.0."
-)
-class CodeExecutionInput(CodeExecutionInputAlias):
-    pass
-
-
-@deprecated(
-    "autogen_core.tools.CodeExecutionResultAlias moved to autogen_core.tools.CodeExecutionResultAlias. This alias will be removed in 0.4.0."
-)
-class CodeExecutionResult(CodeExecutionResultAlias):
     pass
 
 
