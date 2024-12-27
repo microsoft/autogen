@@ -40,9 +40,9 @@ def _type_to_provider_str(t: type) -> str:
 
 
 WELL_KNOWN_PROVIDERS = {
-    "azure_openai_model_client": "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
+    "azure_openai_chat_completion_client": "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
     "AzureOpenAIChatCompletionClient": "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
-    "openai_model_client": "autogen_ext.models.openai.OpenAIChatCompletionClient",
+    "openai_chat_completion_client": "autogen_ext.models.openai.OpenAIChatCompletionClient",
     "OpenAIChatCompletionClient": "autogen_ext.models.openai.OpenAIChatCompletionClient",
 }
 
