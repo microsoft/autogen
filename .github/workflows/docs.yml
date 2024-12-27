@@ -49,13 +49,13 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        if: ${{ matrix.version.ref }} != "WORKFLOW_TARGET"
+        if: ${{ matrix.version.ref != "WORKFLOW_TARGET" }}
         with:
           lfs: "true"
           ref: ${{ matrix.version.ref }}
       - name: Checkout
         uses: actions/checkout@v4
-        if: ${{ matrix.version.ref }} == "WORKFLOW_TARGET"
+        if: ${{ matrix.version.ref == "WORKFLOW_TARGET" }}
         with:
           lfs: "true"
       - uses: astral-sh/setup-uv@v5
