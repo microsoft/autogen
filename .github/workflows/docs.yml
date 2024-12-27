@@ -31,19 +31,20 @@ jobs:
       matrix:
         version:
           [
-            { ref: main, dest-dir: dev },
-            { ref: "v0.4.0.dev0", dest-dir: "0.4.0.dev0" },
-            { ref: "v0.4.0.dev1", dest-dir: "0.4.0.dev1" },
-            { ref: "v0.4.0.dev2", dest-dir: "0.4.0.dev2" },
-            { ref: "v0.4.0.dev3", dest-dir: "0.4.0.dev3" },
-            { ref: "v0.4.0.dev4", dest-dir: "0.4.0.dev4" },
-            { ref: "v0.4.0.dev5", dest-dir: "0.4.0.dev5" },
-            { ref: "v0.4.0.dev6", dest-dir: "0.4.0.dev6" },
-            { ref: "v0.4.0.dev7", dest-dir: "0.4.0.dev7" },
-            { ref: "v0.4.0.dev8", dest-dir: "0.4.0.dev8" },
-            { ref: "v0.4.0.dev9", dest-dir: "0.4.0.dev9" },
-            { ref: "v0.4.0.dev10", dest-dir: "0.4.0.dev10" },
-            { ref: "v0.4.0.dev11", dest-dir: "0.4.0.dev11" },
+            # For main use the workflow target
+            { ref: "${{github.ref}}", dest-dir: dev, uv-version: "0.5.13" },
+            { ref: "v0.4.0.dev0", dest-dir: "0.4.0.dev0", uv-version: "0.5.11" },
+            { ref: "v0.4.0.dev1", dest-dir: "0.4.0.dev1", uv-version: "0.5.11" },
+            { ref: "v0.4.0.dev2", dest-dir: "0.4.0.dev2", uv-version: "0.5.11" },
+            { ref: "v0.4.0.dev3", dest-dir: "0.4.0.dev3", uv-version: "0.5.11" },
+            { ref: "v0.4.0.dev4", dest-dir: "0.4.0.dev4", uv-version: "0.5.11" },
+            { ref: "v0.4.0.dev5", dest-dir: "0.4.0.dev5", uv-version: "0.5.11" },
+            { ref: "v0.4.0.dev6", dest-dir: "0.4.0.dev6", uv-version: "0.5.11" },
+            { ref: "v0.4.0.dev7", dest-dir: "0.4.0.dev7", uv-version: "0.5.11" },
+            { ref: "v0.4.0.dev8", dest-dir: "0.4.0.dev8", uv-version: "0.5.11" },
+            { ref: "v0.4.0.dev9", dest-dir: "0.4.0.dev9", uv-version: "0.5.11" },
+            { ref: "v0.4.0.dev10", dest-dir: "0.4.0.dev10", uv-version: "0.5.11" },
+            { ref: "v0.4.0.dev11", dest-dir: "0.4.0.dev11", uv-version: "0.5.11" },
           ]
     steps:
       - name: Checkout
@@ -54,7 +55,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          version: "0.5.11"
+          version: ${{ matrix.version.uv-version }}
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -103,7 +104,6 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
-          version: "0.5.11"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"

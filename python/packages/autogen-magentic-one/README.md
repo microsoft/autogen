@@ -35,15 +35,15 @@ Find additional information about Magentic-one in our [blog post](https://aka.ms
 Magentic-One work is based on a multi-agent architecture where a lead Orchestrator agent is responsible for high-level planning, directing other agents and tracking task progress. The Orchestrator begins by creating a plan to tackle the task, gathering needed facts and educated guesses in a Task Ledger that is maintained. At each step of its plan, the Orchestrator creates a Progress Ledger where it self-reflects on task progress and checks whether the task is completed. If the task is not yet completed, it assigns one of Magentic-One other agents a subtask to complete. After the assigned agent completes its subtask, the Orchestrator updates the Progress Ledger and continues in this way until the task is complete. If the Orchestrator finds that progress is not being made for enough steps, it can update the Task Ledger and create a new plan. This is illustrated in the figure above; the Orchestrator work is thus divided into an outer loop where it updates the Task Ledger and an inner loop to update the Progress Ledger.
 
 Overall, Magentic-One consists of the following agents:
-- Orchestrator: the lead agent responsible for task decomposition and planning, directing other agents in executing subtasks, tracking overall progress, and taking corrective actions as needed 
+- Orchestrator: the lead agent responsible for task decomposition and planning, directing other agents in executing subtasks, tracking overall progress, and taking corrective actions as needed
 - WebSurfer: This is an LLM-based agent that is proficient in commanding and managing the state of a Chromium-based web browser. With each incoming request, the WebSurfer performs an action on the browser then reports on the new state of the web page   The action space of the WebSurfer includes navigation (e.g. visiting a URL, performing a web search);  web page actions (e.g., clicking and typing); and reading actions (e.g., summarizing or answering questions). The WebSurfer relies on the accessibility tree of the browser and on set-of-marks prompting to perform its actions.
 - FileSurfer: This is an LLM-based agent that commands a markdown-based file preview application to read local files of most types. The FileSurfer can also perform common navigation tasks such as listing the contents of directories and navigating a folder structure.
 - Coder: This is an LLM-based agent specialized through its system prompt for writing code, analyzing information collected from the other agents, or creating new artifacts.
 - ComputerTerminal: Finally, ComputerTerminal provides the team with access to a console shell where the Coder’s programs can be executed, and where new programming libraries can be installed.
 
-Together, Magentic-One’s agents provide the Orchestrator with the tools and capabilities that it needs to solve a broad variety of open-ended problems, as well as the ability to autonomously adapt to, and act in, dynamic and ever-changing web and file-system environments. 
+Together, Magentic-One’s agents provide the Orchestrator with the tools and capabilities that it needs to solve a broad variety of open-ended problems, as well as the ability to autonomously adapt to, and act in, dynamic and ever-changing web and file-system environments.
 
-While the default multimodal LLM we use for all agents is GPT-4o, Magentic-One is model agnostic and can incorporate heterogonous models to support different capabilities or meet different cost requirements when getting tasks done. For example, it can use different LLMs and SLMs and their specialized versions to power different agents. We recommend a strong reasoning model for the Orchestrator agent such as GPT-4o. In a different configuration of Magentic-One, we also experiment with using OpenAI o1-preview for the outer loop of the Orchestrator and for the Coder, while other agents continue to use GPT-4o. 
+While the default multimodal LLM we use for all agents is GPT-4o, Magentic-One is model agnostic and can incorporate heterogonous models to support different capabilities or meet different cost requirements when getting tasks done. For example, it can use different LLMs and SLMs and their specialized versions to power different agents. We recommend a strong reasoning model for the Orchestrator agent such as GPT-4o. In a different configuration of Magentic-One, we also experiment with using OpenAI o1-preview for the outer loop of the Orchestrator and for the Coder, while other agents continue to use GPT-4o.
 
 
 ### Logging in Team One Agents
@@ -71,13 +71,13 @@ You can install the Magentic-One package and then run the example code to see ho
     source .venv/bin/activate
     ```
    For Windows, run `.venv\Scripts\activate` to activate the environment.
-   
+
 2. Install magentic-one from source:
     ```bash
     cd packages/autogen-magentic-one
     pip install -e .
     ```
-    
+
     The following instructions are for running the example code:
 
 3. Configure the environment variables for the chat completion client. See instructions below [Environment Configuration for Chat Completion Client](#environment-configuration-for-chat-completion-client).
@@ -89,11 +89,11 @@ playwright install --with-deps chromium
 ```
 6. Now you can run the example code to see how the agents work together to accomplish a task.
 
-> [!CAUTION]  
-> The example code may download files from the internet, execute code, and interact with web pages. Ensure you are in a safe environment before running the example code. 
+> [!CAUTION]
+> The example code may download files from the internet, execute code, and interact with web pages. Ensure you are in a safe environment before running the example code.
 
 > [!NOTE]
-> You will need to ensure Docker is running prior to running the example. 
+> You will need to ensure Docker is running prior to running the example.
 
   ```bash
 
@@ -113,7 +113,7 @@ playwright install --with-deps chromium
   - hil_mode: (Optional) Enable human-in-the-loop mode (default: disabled)
   - save_screenshots: (Optional) Save screenshots of browser (default: disabled)
 
-7. [Preview] We have a preview API for Magentic-One. 
+7. [Preview] We have a preview API for Magentic-One.
  You can use the `MagenticOneHelper` class to interact with the system and stream logs. See the [interface README](interface/README.md) for more details.
 
 
@@ -146,7 +146,7 @@ To configure for Azure OpenAI service, set the following environment variables:
 
 This project uses Azure OpenAI service with [Entra ID authentcation by default](https://learn.microsoft.com/azure/ai-services/openai/how-to/managed-identity). If you run the examples on a local device, you can use the Azure CLI cached credentials for testing:
 
-Log in to Azure using `az login`, and then run the examples. The account used must have [RBAC permissions](https://learn.microsoft.com/azure/ai-services/openai/how-to/role-based-access-control) like `Azure Cognitive Services OpenAI User` for the OpenAI service; otherwise, you will receive the error: Principal does not have access to API/Operation. 
+Log in to Azure using `az login`, and then run the examples. The account used must have [RBAC permissions](https://learn.microsoft.com/azure/ai-services/openai/how-to/role-based-access-control) like `Azure Cognitive Services OpenAI User` for the OpenAI service; otherwise, you will receive the error: Principal does not have access to API/Operation.
 
 Note that even if you are the owner of the subscription, you still need to grant the necessary Azure Cognitive Services OpenAI permissions to call the API.
 
@@ -178,12 +178,12 @@ export BING_API_KEY=xxxxxxx
 
 ```
 @misc{fourney2024magenticonegeneralistmultiagentsolving,
-      title={Magentic-One: A Generalist Multi-Agent System for Solving Complex Tasks}, 
+      title={Magentic-One: A Generalist Multi-Agent System for Solving Complex Tasks},
       author={Adam Fourney and Gagan Bansal and Hussein Mozannar and Cheng Tan and Eduardo Salinas and Erkang and Zhu and Friederike Niedtner and Grace Proebsting and Griffin Bassman and Jack Gerrits and Jacob Alber and Peter Chang and Ricky Loynd and Robert West and Victor Dibia and Ahmed Awadallah and Ece Kamar and Rafah Hosn and Saleema Amershi},
       year={2024},
       eprint={2411.04468},
       archivePrefix={arXiv},
       primaryClass={cs.AI},
-      url={https://arxiv.org/abs/2411.04468}, 
+      url={https://arxiv.org/abs/2411.04468},
 }
 ```

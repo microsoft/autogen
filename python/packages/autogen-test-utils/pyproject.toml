@@ -11,10 +11,6 @@ dependencies = ["autogen-core",
 
 ]
 
-[tool.uv]
-dev-dependencies = []
-
-
 [tool.ruff]
 extend = "../../pyproject.toml"
 include = ["src/**"]
