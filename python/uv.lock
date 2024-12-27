@@ -19,7 +19,6 @@ resolution-markers = [
 [manifest]
 members = [
     "agbench",
-    "autogen",
     "autogen-agentchat",
     "autogen-core",
     "autogen-ext",
@@ -27,6 +26,27 @@ members = [
     "autogen-test-utils",
     "autogenstudio",
     "component-schema-gen",
+]
+
+[manifest.dependency-groups]
+dev = [
+    { name = "cookiecutter" },
+    { name = "grpcio-tools", specifier = "~=1.62.0" },
+    { name = "mypy", specifier = "==1.13.0" },
+    { name = "mypy-protobuf" },
+    { name = "packaging" },
+    { name = "poethepoet" },
+    { name = "polars" },
+    { name = "pyright", specifier = "==1.1.389" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-mock" },
+    { name = "pytest-xdist" },
+    { name = "rich" },
+    { name = "ruff", specifier = "==0.4.8" },
+    { name = "tomli" },
+    { name = "tomli-w" },
+    { name = "typer" },
 ]
 
 [[package]]
@@ -314,75 +334,6 @@ wheels = [
 ]
 
 [[package]]
-name = "autogen"
-version = "0.0.1"
-source = { virtual = "." }
-dependencies = [
-    { name = "agbench" },
-    { name = "autogen-agentchat" },
-    { name = "autogen-core" },
-    { name = "autogen-ext" },
-    { name = "autogen-magentic-one" },
-    { name = "autogen-test-utils" },
-    { name = "autogenstudio" },
-    { name = "component-schema-gen" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "cookiecutter" },
-    { name = "grpcio-tools" },
-    { name = "mypy" },
-    { name = "mypy-protobuf" },
-    { name = "packaging" },
-    { name = "poethepoet" },
-    { name = "polars" },
-    { name = "pyright" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-mock" },
-    { name = "pytest-xdist" },
-    { name = "rich" },
-    { name = "ruff" },
-    { name = "tomli" },
-    { name = "tomli-w" },
-    { name = "typer" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "agbench", editable = "packages/agbench" },
-    { name = "autogen-agentchat", editable = "packages/autogen-agentchat" },
-    { name = "autogen-core", editable = "packages/autogen-core" },
-    { name = "autogen-ext", editable = "packages/autogen-ext" },
-    { name = "autogen-magentic-one", editable = "packages/autogen-magentic-one" },
-    { name = "autogen-test-utils", editable = "packages/autogen-test-utils" },
-    { name = "autogenstudio", editable = "packages/autogen-studio" },
-    { name = "component-schema-gen", editable = "packages/component-schema-gen" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "cookiecutter" },
-    { name = "grpcio-tools", specifier = "~=1.62.0" },
-    { name = "mypy", specifier = "==1.13.0" },
-    { name = "mypy-protobuf" },
-    { name = "packaging" },
-    { name = "poethepoet" },
-    { name = "polars" },
-    { name = "pyright", specifier = "==1.1.389" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-mock" },
-    { name = "pytest-xdist" },
-    { name = "rich" },
-    { name = "ruff", specifier = "==0.4.8" },
-    { name = "tomli" },
-    { name = "tomli-w" },
-    { name = "typer" },
-]
-
-[[package]]
 name = "autogen-agentchat"
 version = "0.4.0.dev11"
 source = { editable = "packages/autogen-agentchat" }
@@ -392,9 +343,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "autogen-core", editable = "packages/autogen-core" }]
-
-[package.metadata.requires-dev]
-dev = []
 
 [[package]]
 name = "autogen-core"
@@ -679,9 +627,6 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [{ name = "autogen-core", editable = "packages/autogen-core" }]
-
-[package.metadata.requires-dev]
-dev = []
 
 [[package]]
 name = "autogenstudio"
@@ -1008,9 +953,6 @@ requires-dist = [
     { name = "autogen-core", editable = "packages/autogen-core" },
     { name = "autogen-ext", editable = "packages/autogen-ext" },
 ]
-
-[package.metadata.requires-dev]
-dev = []
 
 [[package]]
 name = "cookiecutter"

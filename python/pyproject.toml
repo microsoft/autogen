@@ -1,17 +1,3 @@
-[project]
-name = "autogen"
-version = "0.0.1"
-dependencies = [
-    "agbench",
-    "autogen-agentchat",
-    "autogen-core",
-    "autogen-ext",
-    "autogen-magentic-one",
-    "autogenstudio",
-    "autogen-test-utils",
-    "component-schema-gen",
-]
-
 [dependency-groups]
 dev = [
     "pyright==1.1.389",

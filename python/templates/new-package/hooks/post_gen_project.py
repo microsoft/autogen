@@ -18,8 +18,6 @@ workspace_def_path = THIS_FILE_DIR / ".." / ".." / ".." / "pyproject.toml"
 with workspace_def_path.open("rb") as f:
     config = tomllib.load(f)
 
-config["project"]["dependencies"].append("{{ cookiecutter.package_name }}")
-
 config["tool"]["uv"]["sources"]["{{ cookiecutter.package_name }}"] = {"workspace": True}
 
 with workspace_def_path.open("wb") as f:
