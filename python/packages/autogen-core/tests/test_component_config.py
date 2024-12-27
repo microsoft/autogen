@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from typing import Any, Dict
 
 import pytest
 from autogen_core import Component, ComponentLoader, ComponentModel
@@ -16,7 +17,7 @@ class MyConfig(BaseModel):
 
 
 class MyComponent(Component[MyConfig]):
-    config_schema = MyConfig
+    component_config_schema = MyConfig
     component_type = "custom"
 
     def __init__(self, info: str) -> None:
@@ -95,7 +96,7 @@ def test_cannot_import_locals() -> None:
         info: str
 
     class MyInvalidModelClient(Component[InvalidModelClientConfig]):
-        config_schema = InvalidModelClientConfig
+        component_config_schema = InvalidModelClientConfig
         component_type = "model"
 
         def __init__(self, info: str):
@@ -119,7 +120,7 @@ class InvalidModelClientConfig(BaseModel):
 
 
 class MyInvalidModelClient(Component[InvalidModelClientConfig]):
-    config_schema = InvalidModelClientConfig
+    component_config_schema = InvalidModelClientConfig
     component_type = "model"
 
     def __init__(self, info: str) -> None:
@@ -174,3 +175,111 @@ def test_schema_validation_fails_on_bad_config() -> None:
     )
     with pytest.raises(ValidationError):
         _ = MyComponent.load_component(model)
+
+
+def test_config_optional_values() -> None:
+    config = {
+        "provider": _type_to_provider_str(MyComponent),
+        "config": {"info": "test"},
+    }
+
+    model = ComponentModel.model_validate(config)
+    component = MyComponent.load_component(model)
+    assert component.info == "test"
+    assert component.__class__ == MyComponent
+
+
+class ConfigProviderOverrided(Component[MyConfig]):
+    component_provider_override = "InvalidButStillOverridden"
+    component_config_schema = MyConfig
+    component_type = "custom"
+
+    def __init__(self, info: str):
+        self.info = info
+
+    def _to_config(self) -> MyConfig:
+        return MyConfig(info=self.info)
+
+    @classmethod
+    def _from_config(cls, config: MyConfig) -> Self:
+        return cls(info=config.info)
+
+
+def test_config_provider_override() -> None:
+    comp = ConfigProviderOverrided("test")
+    dumped = comp.dump_component()
+    assert dumped.provider == "InvalidButStillOverridden"
+
+
+class MyConfig2(BaseModel):
+    info2: str
+
+
+class ComponentNonOneVersion(Component[MyConfig2]):
+    component_config_schema = MyConfig2
+    component_version = 2
+    component_type = "custom"
+
+    def __init__(self, info: str):
+        self.info = info
+
+    def _to_config(self) -> MyConfig2:
+        return MyConfig2(info2=self.info)
+
+    @classmethod
+    def _from_config(cls, config: MyConfig2) -> Self:
+        return cls(info=config.info2)
+
+
+class ComponentNonOneVersionWithUpgrade(Component[MyConfig2]):
+    component_config_schema = MyConfig2
+    component_version = 2
+    component_type = "custom"
+
+    def __init__(self, info: str):
+        self.info = info
+
+    def _to_config(self) -> MyConfig2:
+        return MyConfig2(info2=self.info)
+
+    @classmethod
+    def _from_config(cls, config: MyConfig2) -> Self:
+        return cls(info=config.info2)
+
+    @classmethod
+    def _from_config_past_version(cls, config: Dict[str, Any], version: int) -> Self:
+        model = MyConfig.model_validate(config)
+        return cls(info=model.info)
+
+
+def test_component_version() -> None:
+    comp = ComponentNonOneVersion("test")
+    dumped = comp.dump_component()
+    assert dumped.version == 2
+    comp2 = ComponentNonOneVersion.load_component(dumped)
+    assert comp.info == comp2.info
+    assert comp.__class__ == comp2.__class__
+
+
+def test_component_version_from_dict_non_existing_impl() -> None:
+    config = {
+        "provider": _type_to_provider_str(ComponentNonOneVersion),
+        "config": {"info": "test"},
+        "component_version": 1,
+    }
+
+    with pytest.raises(NotImplementedError):
+        ComponentNonOneVersion.load_component(config)
+
+
+def test_component_version_from_dict() -> None:
+    config = {
+        "provider": _type_to_provider_str(ComponentNonOneVersionWithUpgrade),
+        "config": {"info": "test"},
+        "component_version": 1,
+    }
+
+    comp = ComponentNonOneVersionWithUpgrade.load_component(config)
+    assert comp.info == "test"
+    assert comp.__class__ == ComponentNonOneVersionWithUpgrade
+    assert comp.dump_component().version == 2

@@ -70,7 +70,12 @@ from typing_extensions import Self, Unpack
 from autogen_ext.models.openai._azure_token_provider import AzureTokenProvider
 
 from . import _model_info
-from .config import AzureOpenAIClientConfiguration, OpenAIClientConfiguration
+from .config import (
+    AzureOpenAIClientConfiguration,
+    AzureOpenAIClientConfigurationConfigModel,
+    OpenAIClientConfiguration,
+    OpenAIClientConfigurationConfigModel,
+)
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
@@ -350,12 +355,16 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     def __init__(
         self,
         client: Union[AsyncOpenAI, AsyncAzureOpenAI],
+        *,
         create_args: Dict[str, Any],
         model_capabilities: Optional[ModelCapabilities] = None,
     ):
         self._client = client
         if model_capabilities is None:
-            self._model_capabilities = _model_info.get_capabilities(create_args["model"])
+            try:
+                self._model_capabilities = _model_info.get_capabilities(create_args["model"])
+            except KeyError as err:
+                raise ValueError("model_capabilities is required when model name is not a valid OpenAI model") from err
         else:
             self._model_capabilities = model_capabilities
 
@@ -381,6 +390,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     async def create(
         self,
         messages: Sequence[LLMMessage],
+        *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
@@ -573,11 +583,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     async def create_stream(
         self,
         messages: Sequence[LLMMessage],
+        *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
-        *,
         max_consecutive_empty_chunk_tolerance: int = 0,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         """
@@ -792,7 +802,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     def total_usage(self) -> RequestUsage:
         return self._total_usage
 
-    def count_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+    def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         model = self._create_args["model"]
         try:
             encoding = tiktoken.encoding_for_model(model)
@@ -881,16 +891,16 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         num_tokens += 12
         return num_tokens
 
-    def remaining_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+    def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         token_limit = _model_info.get_token_limit(self._create_args["model"])
-        return token_limit - self.count_tokens(messages, tools)
+        return token_limit - self.count_tokens(messages, tools=tools)
 
     @property
     def capabilities(self) -> ModelCapabilities:
         return self._model_capabilities
 
 
-class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
+class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenAIClientConfigurationConfigModel]):
     """Chat completion client for OpenAI hosted models.
 
     You can also use this client for OpenAI-compatible ChatCompletion endpoints.
@@ -949,6 +959,10 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
 
     """
 
+    component_type = "model"
+    component_config_schema = OpenAIClientConfigurationConfigModel
+    component_provider_override = "autogen_ext.models.openai.OpenAIChatCompletionClient"
+
     def __init__(self, **kwargs: Unpack[OpenAIClientConfiguration]):
         if "model" not in kwargs:
             raise ValueError("model is required for OpenAIChatCompletionClient")
@@ -961,8 +975,8 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
 
         client = _openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
-        self._raw_config = copied_args
-        super().__init__(client, create_args, model_capabilities)
+        self._raw_config: Dict[str, Any] = copied_args
+        super().__init__(client=client, create_args=create_args, model_capabilities=model_capabilities)
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
@@ -973,12 +987,19 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient):
         self.__dict__.update(state)
         self._client = _openai_client_from_config(state["_raw_config"])
 
+    def _to_config(self) -> OpenAIClientConfigurationConfigModel:
+        copied_config = self._raw_config.copy()
+        return OpenAIClientConfigurationConfigModel(**copied_config)
 
-class ConfigHolder(BaseModel):
-    values: Dict[str, Any]
+    @classmethod
+    def _from_config(cls, config: OpenAIClientConfigurationConfigModel) -> Self:
+        copied_config = config.model_copy().model_dump(exclude_none=True)
+        return cls(**copied_config)
 
 
-class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[ConfigHolder]):
+class AzureOpenAIChatCompletionClient(
+    BaseOpenAIChatCompletionClient, Component[AzureOpenAIClientConfigurationConfigModel]
+):
     """Chat completion client for Azure OpenAI hosted models.
 
     Args:
@@ -1027,7 +1048,8 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[
     """
 
     component_type = "model"
-    config_schema = ConfigHolder
+    component_config_schema = AzureOpenAIClientConfigurationConfigModel
+    component_provider_override = "autogen_ext.models.openai.AzureOpenAIChatCompletionClient"
 
     def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
         model_capabilities: Optional[ModelCapabilities] = None
@@ -1038,8 +1060,8 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[
 
         client = _azure_openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
-        self._raw_config = copied_args
-        super().__init__(client, create_args, model_capabilities)
+        self._raw_config: Dict[str, Any] = copied_args
+        super().__init__(client=client, create_args=create_args, model_capabilities=model_capabilities)
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
@@ -1050,7 +1072,7 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[
         self.__dict__.update(state)
         self._client = _azure_openai_client_from_config(state["_raw_config"])
 
-    def _to_config(self) -> ConfigHolder:
+    def _to_config(self) -> AzureOpenAIClientConfigurationConfigModel:
         copied_config = self._raw_config.copy()
 
         if "azure_ad_token_provider" in copied_config:
@@ -1058,14 +1080,14 @@ class AzureOpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[
                 raise ValueError("azure_ad_token_provider must be a AzureTokenProvider to be component serialized")
 
             copied_config["azure_ad_token_provider"] = (
-                copied_config["azure_ad_token_provider"].dump_component().model_dump()
+                copied_config["azure_ad_token_provider"].dump_component().model_dump(exclude_none=True)
             )
 
-        return ConfigHolder(values=copied_config)
+        return AzureOpenAIClientConfigurationConfigModel(**copied_config)
 
     @classmethod
-    def _from_config(cls, config: ConfigHolder) -> Self:
-        copied_config = config.values.copy()
+    def _from_config(cls, config: AzureOpenAIClientConfigurationConfigModel) -> Self:
+        copied_config = config.model_copy().model_dump(exclude_none=True)
         if "azure_ad_token_provider" in copied_config:
             copied_config["azure_ad_token_provider"] = AzureTokenProvider.load_component(
                 copied_config["azure_ad_token_provider"]

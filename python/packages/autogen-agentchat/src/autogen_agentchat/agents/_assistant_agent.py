@@ -11,6 +11,7 @@ from typing import (
     List,
     Mapping,
     Sequence,
+    Tuple,
 )
 
 from autogen_core import CancellationToken, FunctionCall
@@ -71,6 +72,14 @@ class AssistantAgent(BaseChatAgent):
     The :meth:`on_messages_stream` creates an async generator that produces
     the inner messages as they are created, and the :class:`~autogen_agentchat.base.Response`
     object as the last item before closing the generator.
+
+
+    .. note::
+
+        The caller must only pass the new messages to the agent on each call
+        to the :meth:`on_messages` or :meth:`on_messages_stream` method.
+        The agent maintains its state between calls to these methods.
+        Do not pass the entire conversation history to the agent on each call.
 
     Tool call behavior:
 
@@ -447,14 +456,14 @@ class AssistantAgent(BaseChatAgent):
         raise ValueError(f"Tool {tool_name} not found.")
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
+    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
         """The types of messages that the assistant agent produces."""
         message_types: List[type[ChatMessage]] = [TextMessage]
         if self._handoffs:
             message_types.append(HandoffMessage)
         if self._tools:
             message_types.append(ToolCallSummaryMessage)
-        return message_types
+        return tuple(message_types)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         async for message in self.on_messages_stream(messages, cancellation_token):

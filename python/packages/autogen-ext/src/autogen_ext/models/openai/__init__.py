@@ -1,3 +1,4 @@
+from ._azure_token_provider import AzureTokenProvider
 from ._openai_client import (
     AzureOpenAIChatCompletionClient,
     OpenAIChatCompletionClient,
@@ -9,4 +10,5 @@ __all__ = [
     "AzureOpenAIChatCompletionClient",
     "OpenAIClientConfiguration",
     "OpenAIChatCompletionClient",
+    "AzureTokenProvider",
 ]
