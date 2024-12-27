@@ -21,17 +21,22 @@ class KnowledgeArchive:
         self,
         verbosity: Optional[int] = 0,
         reset: Optional[bool] = False,
-        path_to_archive_dir: Optional[str] = "tmp/archive",
+        memory_dir: str = "tmp/memory",
+        run_subdir: str = "run1",
         page_log=None,
     ):
         """
         Args:
             - verbosity (Optional, int): 1 to print memory operations, 0 to omit them. 3+ to print memo lists.
             - reset (Optional, bool): True to clear the DB before starting. Default False
-            - path_to_archive_dir (Optional, str): path to the directory where the archive is stored.
+            - memory_dir (Optional, str): path to the directory where all memory data is stored.
+            - run_subdir (Optional, str): name of the subdirectory for this run's memory data.
+            - page_log (Optional, PageLog): the PageLog object to use for logging.
         """
-        self.path_to_archive_dir = path_to_archive_dir
-        path_to_db_dir = os.path.join(path_to_archive_dir, "memo_store")
+        memory_dir = os.path.expanduser(memory_dir)
+        path_to_db_dir = os.path.join(memory_dir, run_subdir, "memo_store")
+        self.path_to_dict = os.path.join(memory_dir, run_subdir, "uid_insight_dict.pkl")
+
         self.page_log = page_log
         parent_page = self.page_log.last_page()
         parent_page.add_lines("Creating KnowedgeArchive object", flush=True)
@@ -39,7 +44,6 @@ class KnowledgeArchive:
         self.memo_store = MemoStore(verbosity=verbosity, reset=reset, path_to_db_dir=path_to_db_dir)
 
         # Load or create the associated memo dict on disk.
-        self.path_to_dict = os.path.join(path_to_archive_dir, "uid_insight_dict.pkl")
         self.uid_insight_dict = {}
         self.last_insight_id = 0
         if (not reset) and os.path.exists(self.path_to_dict):

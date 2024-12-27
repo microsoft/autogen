@@ -1,15 +1,17 @@
 from typing import Callable, List
 from ._prompter import Prompter
 from ._knowledge_archive import KnowledgeArchive
+from ._grader import Grader
 
 
 class AgenticMemory:
-    def __init__(self, reset, client, page_log, path_to_archive_dir):
+    def __init__(self, reset, client, page_log, memory_dir, run_subdir):
         self.client = client
         self.page_log = page_log
         self.prompter = Prompter(client, page_log)
-        self.archive = KnowledgeArchive(verbosity=0, reset=reset, path_to_archive_dir=path_to_archive_dir,
+        self.archive = KnowledgeArchive(verbosity=0, reset=reset, memory_dir=memory_dir, run_subdir=run_subdir,
                                         page_log=page_log)
+        self.grader = Grader(client, page_log)
 
     async def train_on_task(self,
                             task: str,  # The task to be completed.
@@ -31,7 +33,9 @@ class AgenticMemory:
         page.add_lines("Iterate on the task, possibly discovering a useful new insight.\n", flush=True)
         _, insight = await self._iterate_on_task(task, expected_answer, task_assignment_callback,
                                                 final_format_instructions, max_train_trials, max_test_trials)
-        if insight is not None:
+        if insight is None:
+            page.add_lines("No useful insight was discovered.\n", flush=True)
+        else:
             page.add_lines("A new insight was created:\n{}".format(insight), flush=True)
             # Add this insight to memory.
             await self.add_insight_to_memory(task, insight)
@@ -51,7 +55,7 @@ class AgenticMemory:
         num_successes = 0
 
         for trial in range(num_trials):
-            page.add_lines("-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
+            page.add_lines("\n-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
             task_plus_insights = task
 
             # Try to retrieve any relevant memories from the DB.
@@ -65,12 +69,14 @@ class AgenticMemory:
             # Attempt to solve the task.
             page.add_lines("Try to solve the task.\n", flush=True)
             response, _ = await task_assignment_callback(task_plus_insights, self.client, self.page_log)
-
-            response_is_correct = (response.lower() == expected_answer.lower())
-            if response_is_correct:
-                num_successes += 1
-
             page.add_lines("Response:  {}\n".format(response), flush=True)
+
+            response_is_correct = await self.grader.response_is_correct(task, response, expected_answer)
+            if response_is_correct:
+                page.add_lines("Response is CORRECT.\n", flush=True)
+                num_successes += 1
+            else:
+                page.add_lines("Response is INCORRECT.\n", flush=True)
 
         # Calculate the success rate as a percentage, rounded to the nearest whole number.
         page.add_lines("\nSuccess rate:  {}%\n".format(round((num_successes / num_trials) * 100)), flush=True)
@@ -107,6 +113,9 @@ class AgenticMemory:
             details="",
             method_call="AgenticMemory.retrieve_relevant_insights")
 
+        page.add_lines("\nCURRENT TASK:")
+        page.add_lines(task)
+
         # Generalize the task.
         generalized_task = await self.prompter.generalize_task(task)
 
@@ -116,22 +125,24 @@ class AgenticMemory:
         page.add_lines("\n".join(topics))
         page.add_lines("")
 
-        # Retrieve insights from the archive.
-        unfiltered_insights = self.archive.get_relevant_insights(topics=topics)
-        filtered_insights = []
-        page.add_lines("\nUNFILTERED INSIGHTS")
-        for insight, relevance in unfiltered_insights.items():
-            page.add_lines("  INSIGHT: {}\n  RELEVANCE: {:.3f}".format(insight, relevance))
-            filtered_insights.append(insight)
-        page.add_lines("\nFiltered to top {} insights".format(len(filtered_insights)))
+        # Retrieve relevant insights from the archive.
+        relevant_insights_and_relevances = self.archive.get_relevant_insights(topics=topics)
+        relevant_insights = []
+        page.add_lines("\n{} POTENTIALLY RELEVANT INSIGHTS".format(len(relevant_insights_and_relevances)))
+        for insight, relevance in relevant_insights_and_relevances.items():
+            page.add_lines("\n  INSIGHT: {}\n  RELEVANCE: {:.3f}".format(insight, relevance))
+            relevant_insights.append(insight)
 
-        if len(filtered_insights) > 0:
-            # Apply a final filtering stage to keep only the insights that the LLM believes are relevant.
-            filtered_insights = await self.prompter.validate_insights(filtered_insights, task)
-            page.add_lines("\n{} insights were validated".format(len(filtered_insights)))
+        validated_insights = []
+        if len(relevant_insights) > 0:
+            # Apply a final validation stage to keep only the insights that the LLM concludes are relevant.
+            validated_insights = await self.prompter.validate_insights(relevant_insights, task)
+        page.add_lines("\n{} VALIDATED INSIGHTS".format(len(validated_insights)))
+        for insight in validated_insights:
+            page.add_lines("\n  INSIGHT: {}".format(insight))
 
         self.page_log.finish_page(page)
-        return filtered_insights
+        return validated_insights
 
     def format_memory_section(self, memories):
         memory_section = ""
@@ -158,16 +169,18 @@ class AgenticMemory:
         response, work_history = None, None
 
         for trial in range(num_trials):
-            page.add_lines("-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
+            page.add_lines("\n-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
 
             # Attempt to solve the task.
-            page.add_lines("Try to solve the task.\n", flush=True)
+            page.add_lines("Try to solve the task.", flush=True)
             response, work_history = await assign_task_to_completer(task_plus_insights, self.client, self.page_log)
             page.add_lines("Response:  {}\n".format(response), flush=True)
 
-            response_is_correct = (response.lower() == expected_answer.lower())
-            if not response_is_correct:
-                page.add_lines("\nResponse is INCORRECT. Return the details.\n", flush=True)
+            response_is_correct = await self.grader.response_is_correct(task_plus_insights, response, expected_answer)
+            if response_is_correct:
+                page.add_lines("Response is CORRECT.\n", flush=True)
+            else:
+                page.add_lines("Response is INCORRECT.\n  Stop testing, and return the details of the failure.\n", flush=True)
                 failure_found = True
                 break
 
@@ -193,7 +206,7 @@ class AgenticMemory:
 
         # Loop until success (or timeout) while learning from failures.
         for trial in range(1, max_train_trials + 1):
-            page.add_lines("-----  TRAIN TRIAL {}  -----\n".format(trial), flush=True)
+            page.add_lines("\n-----  TRAIN TRIAL {}  -----\n".format(trial), flush=True)
 
             task_plus_insights = task
 
@@ -210,7 +223,7 @@ class AgenticMemory:
                 task_plus_insights, expected_answer, assign_task_to_completer, max_test_trials)
             if not failure_found:
                 # No. Time to exit the loop.
-                page.add_lines("\nResponse is CORRECT. No learning needed.\n", flush=True)
+                page.add_lines("\nResponse is CORRECT.\n  Stop looking for insights.\n", flush=True)
                 # Was this the first trial?
                 if trial == 1:
                     # Yes. We should return the successful response, and no insight.
