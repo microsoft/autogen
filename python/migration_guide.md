@@ -74,13 +74,27 @@ config_list = [
 model_client = OpenAIWrapper(config_list=config_list)
 ```
 
+> **Note**: In AutoGen 0.2, the OpenAI client would try configs in the list until one worked. 0.4 instead expects a specfic model configuration to be chosen.
+
 In `v0.4`, we offers two ways to create a model client.
 
 ### Use component config
 
-TODO: add example
+AutoGen 0.4 has a [generic component configuration system](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/framework/component-config.html). Model clients are a great use case for this. See below for how to create an OpenAI chat completion client.
 
 ```python
+
+from autogen_core.models import ChatCompletionClient
+
+config = {
+    "provider": "OpenAIChatCompletionClient",
+    "config": {
+        "model": "gpt-4o",
+        "api_key": "sk-xxx" # os.environ["...']
+    }
+}
+
+model_client = ChatCompletionClient.load_component(config)
 ```
 
 ### Use model client class directly
