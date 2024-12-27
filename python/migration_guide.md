@@ -39,6 +39,7 @@ See each feature below for detailed information on how to migrate.
 - [Conversable Agent and Register Reply](#conversable-agent-and-register-reply)
 - [Two-Agent Chat](#two-agent-chat)
 - [Tool Use](#tool-use)
+- [Chat Result](#chat-result)
 - [Group Chat](#group-chat)
 - [Group Chat with Resume](#group-chat-with-resume)
 - [Group Chat with Custom Selector (Stateflow)](#group-chat-with-custom-selector-stateflow)
@@ -507,6 +508,44 @@ async def main() -> None:
 
 asyncio.run(main())
 ```
+
+## Chat Result
+
+In `v0.2`, you get a `ChatResult` object from the `initiate_chat` method.
+For example:
+
+```python
+chat_result = tool_executor.initiate_chat(
+    tool_caller, 
+    message=user_input,
+    summary_method="reflection_with_llm",
+)
+print(chat_result.summary) # Get LLM-reflected summary of the chat.
+print(chat_result.chat_history) # Get the chat history.
+print(chat_result.cost) # Get the cost of the chat.
+print(chat_result.human_input) # Get the human input solicited by the chat.
+```
+
+See [ChatResult Docs](https://microsoft.github.io/autogen/0.2/docs/reference/agentchat/chat#chatresult)
+for more details.
+
+In `v0.4`, you get a `TaskResult` object from a `run` or `run_stream` method.
+The `TaskResult` object contains the `messages` which is the message history
+of the chat, including both agents' private (tool calls, etc.) and public messages.
+
+TODO: Add token counting result after [#4719](https://github.com/microsoft/autogen/issues/4719) is resolved.
+
+There are some notable differences between `TaskResult` and `ChatResult`:
+
+- The `messages` list in `TaskResult` uses different message format than the `ChatResult.chat_history` list.
+- There is no `summary` field. It is up to the application to decide how to summarize the chat using the `messages` list.
+- `human_input` is not provided in the `TaskResult` object, as the user input can be extracted from the `messages` list by filtering with the `source` field.
+- `cost` is not provided in the `TaskResult` object, however, you can calculate the cost based on token usage. It would be a great community extension to add cost calculation. See [community extensions](https://microsoft.github.io/autogen/dev/user-guide/extensions-user-guide/discover.html).
+
+We provide a conversion function to convert the `TaskResult.messages` to
+a v0.2 compatible `ChatResult.chat_history` list.
+
+TODO: Add the conversion function here.
 
 ## Group Chat
 
