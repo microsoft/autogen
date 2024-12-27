@@ -31,14 +31,14 @@ AutoGen is designed to be extensible. The `autogen-ext` package contains many di
 :gutter: 3
 
 :::{grid-item-card} {fas}`magnifying-glass;pst-color-primary` Discover
-:link: ./installation.html
+:link: ./discover.html
 
-How to install AgentChat
+Discover community extensions and samples
 :::
 
 :::{grid-item-card} {fas}`code;pst-color-primary` Create your own
-:link: ./quickstart.html
+:link: ./create-your-own.html
 
-Build your first agent
+Create your own extension
 :::
 ::::
