@@ -21,11 +21,9 @@ from typing import (
     get_origin,
 )
 
-from pydantic import BaseModel, Field, create_model  # type: ignore
+from pydantic import BaseModel, Field, TypeAdapter, create_model  # type: ignore
 from pydantic_core import PydanticUndefined
 from typing_extensions import Literal
-
-from ._pydantic_compat import model_dump, type2schema
 
 logger = getLogger(__name__)
 
@@ -141,7 +139,7 @@ def get_parameter_json_schema(k: str, v: Any, default_values: Dict[str, Any]) ->
         A Pydanitc model for the parameter
     """
 
-    schema = type2schema(v)
+    schema = TypeAdapter(v).json_schema()
     if k in default_values:
         dv = default_values[k]
         schema["default"] = dv
@@ -293,7 +291,7 @@ def get_function_schema(f: Callable[..., Any], *, name: Optional[str] = None, de
         )
     )
 
-    return model_dump(function)
+    return function.model_dump()
 
 
 def normalize_annotated_type(type_hint: Type[Any]) -> Type[Any]:
