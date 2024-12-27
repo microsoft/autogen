@@ -545,7 +545,7 @@ There are some notable differences between `TaskResult` and `ChatResult`:
 We provide a conversion function to convert the `TaskResult.messages` to
 a v0.2 compatible `ChatResult.chat_history` list.
 
-TODO: Add the conversion function here.
+TODO: Add the conversion function here, after [#4833](https://github.com/microsoft/autogen/issues/4833) is resolved.
 
 ## Group Chat
 
