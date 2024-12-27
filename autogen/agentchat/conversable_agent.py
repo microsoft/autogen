@@ -1315,7 +1315,7 @@ class ConversableAgent(LLMAgent):
         else:
             raise ValueError("No OpenAIWrapper client is found.")
         response = self._generate_oai_reply_from_client(llm_client=llm_client, messages=messages, cache=cache)
-        return response
+        return self.generate_oai_reply(messages=messages, config=llm_client)
 
     def _check_chat_queue_for_sender(self, chat_queue: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         """
