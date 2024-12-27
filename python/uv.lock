@@ -27,7 +27,9 @@ members = [
     "autogenstudio",
     "component-schema-gen",
 ]
-requirements = [
+
+[manifest.dependency-groups]
+dev = [
     { name = "cookiecutter" },
     { name = "grpcio-tools", specifier = "~=1.62.0" },
     { name = "mypy", specifier = "==1.13.0" },
