@@ -283,7 +283,7 @@ class AssistantAgent(BaseChatAgent):
         Adds a new tool to the assistant agent.
 
         The tool can be either an instance of the `Tool` class, or a callable function. If the tool is a callable
-        function, a `FunctionTool` instance will be created with the function and its docstring as the description.
+        function, a :class:`~autogen_core.tools.FunctionTool` instance will be created with the function and its docstring as the description.
 
         The tool name must be unique among all the tools and handoffs added to the agent. If the model does not support
         function calling, an error will be raised.
