@@ -32,7 +32,7 @@ Build your first agent
 :::
 
 :::{grid-item-card} {fas}`graduation-cap;pst-color-primary` Tutorial
-:link: ./tutorial/index.html
+:link: ./tutorial/models.html
 
 Step-by-step guide to using AgentChat
 :::
