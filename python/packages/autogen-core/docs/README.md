@@ -7,7 +7,7 @@ AutoGen documentation is based on the sphinx documentation system and uses the m
 Ensure you have all of the dev dependencies for the `autogen-core` package installed. You can install them by running the following command from the root of the python repository:
 
 ```bash
-uv sync --all-packages
+uv sync
 source .venv/bin/activate
 ```
 

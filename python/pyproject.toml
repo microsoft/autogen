@@ -1,7 +1,16 @@
 [project]
 name = "autogen"
 version = "0.0.1"
-dependencies = []
+dependencies = [
+    "agbench",
+    "autogen-agentchat",
+    "autogen-core",
+    "autogen-ext",
+    "autogen-magentic-one",
+    "autogenstudio",
+    "autogen-test-utils",
+    "component-schema-gen",
+]
 
 [dependency-groups]
 dev = [
@@ -22,16 +31,21 @@ dev = [
     "cookiecutter",
     "poethepoet",
     "tomli",
+    "tomli-w"
 ]
 
 [tool.uv.workspace]
 members = ["packages/*"]
 
 [tool.uv.sources]
+agbench = { workspace = true }
+autogen-agentchat = { workspace = true }
 autogen-core = { workspace = true }
 autogen-ext = { workspace = true }
-autogen-agentchat = { workspace = true }
+autogen-magentic-one = { workspace = true }
+autogenstudio = { workspace = true }
 autogen-test-utils = { workspace = true }
+component-schema-gen = { workspace = true }
 
 [tool.ruff]
 line-length = 120

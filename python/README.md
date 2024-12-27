@@ -10,7 +10,7 @@ This directory works as a single `uv` workspace containing all project packages.
 **TL;DR**, run all checks with:
 
 ```sh
-uv sync --all-extras --all-packages
+uv sync --all-extras
 source .venv/bin/activate
 poe check
 ```
@@ -28,11 +28,11 @@ To do so, create a virtual environment where the AutoGen packages are installed 
 Run the following commands at the root level of the Python directory:
 
 ```sh
-uv sync --all-extras --all-packages
+uv sync --all-extras
 source .venv/bin/activate
 ```
 
-- `uv sync --all-extras --all-packages` will create a `.venv` directory at the current level and install packages from the current directory along with any other dependencies. The `all-extras` flag adds optional dependencies.
+- `uv sync --all-extras` will create a `.venv` directory at the current level and install packages from the current directory along with any other dependencies. The `all-extras` flag adds optional dependencies.
 - `source .venv/bin/activate` activates the virtual environment.
 
 ### Common Tasks
@@ -57,7 +57,7 @@ Alternatively, you can run all the checks with:
 To create a new package, similar to `autogen-core` or `autogen-chat`, use the following:
 
 ```sh
-uv sync --all-packages
+uv sync
 source .venv/bin/activate
 cookiecutter ./templates/new-package/
 ```

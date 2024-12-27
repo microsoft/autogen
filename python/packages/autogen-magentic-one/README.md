@@ -67,7 +67,7 @@ You can install the Magentic-One package and then run the example code to see ho
     ```bash
     git clone https://github.com/microsoft/autogen.git
     cd autogen/python
-    uv sync  --all-extras --all-packages
+    uv sync  --all-extras
     source .venv/bin/activate
     ```
    For Windows, run `.venv\Scripts\activate` to activate the environment.
