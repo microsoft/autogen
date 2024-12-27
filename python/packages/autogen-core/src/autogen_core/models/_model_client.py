@@ -29,6 +29,7 @@ class ChatCompletionClient(ABC, ComponentLoader):
     async def create(
         self,
         messages: Sequence[LLMMessage],
+        *,
         tools: Sequence[Tool | ToolSchema] = [],
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
@@ -41,6 +42,7 @@ class ChatCompletionClient(ABC, ComponentLoader):
     def create_stream(
         self,
         messages: Sequence[LLMMessage],
+        *,
         tools: Sequence[Tool | ToolSchema] = [],
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
@@ -56,10 +58,10 @@ class ChatCompletionClient(ABC, ComponentLoader):
     def total_usage(self) -> RequestUsage: ...
 
     @abstractmethod
-    def count_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int: ...
+    def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int: ...
 
     @abstractmethod
-    def remaining_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int: ...
+    def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int: ...
 
     @property
     @abstractmethod

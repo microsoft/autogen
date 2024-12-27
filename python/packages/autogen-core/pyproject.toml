@@ -20,7 +20,7 @@ dependencies = [
     "aioconsole>=0.8.1",
     "aiohttp>=3.10.10",
     "typing-extensions",
-    "pydantic<3.0.0,>=2.0.0",
+    "pydantic<3.0.0,>=2.10.0",
     "protobuf~=4.25.1",
     "tiktoken>=0.8.0",
     "opentelemetry-api~=1.27.0",
