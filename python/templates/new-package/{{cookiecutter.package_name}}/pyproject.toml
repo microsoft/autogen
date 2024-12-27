@@ -20,8 +20,8 @@ dependencies = [
 {% endif %}
 ]
 
-[tool.uv]
-dev-dependencies = []
+[dependency-groups]
+dev = []
 
 
 [tool.ruff]

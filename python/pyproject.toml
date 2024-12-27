@@ -1,8 +1,5 @@
-[tool.uv.workspace]
-members = ["packages/*"]
-
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pyright==1.1.389",
     "mypy==1.13.0",
     "ruff==0.4.8",
@@ -20,13 +17,21 @@ dev-dependencies = [
     "cookiecutter",
     "poethepoet",
     "tomli",
+    "tomli-w"
 ]
 
+[tool.uv.workspace]
+members = ["packages/*"]
+
 [tool.uv.sources]
+agbench = { workspace = true }
+autogen-agentchat = { workspace = true }
 autogen-core = { workspace = true }
 autogen-ext = { workspace = true }
-autogen-agentchat = { workspace = true }
+autogen-magentic-one = { workspace = true }
+autogenstudio = { workspace = true }
 autogen-test-utils = { workspace = true }
+component-schema-gen = { workspace = true }
 
 [tool.ruff]
 line-length = 120
