@@ -56,8 +56,8 @@ grpc = [
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "autogen_test_utils"
 ]
 
