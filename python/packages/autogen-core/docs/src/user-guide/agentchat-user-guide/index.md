@@ -61,6 +61,7 @@ tutorial/models
 tutorial/messages
 tutorial/agents
 tutorial/teams
+tutorial/human-in-the-loop
 tutorial/selector-group-chat
 tutorial/swarm
 tutorial/termination
@@ -75,4 +76,3 @@ tutorial/state
 
 examples/index
 ```
-
