@@ -2,7 +2,7 @@ from typing import Awaitable, Callable, Dict, List, Literal, Optional, Union
 
 from autogen_core import ComponentModel
 from autogen_core.models import ModelCapabilities
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 from typing_extensions import Required, TypedDict
 
 from .._azure_token_provider import AzureTokenProvider
@@ -79,9 +79,6 @@ class CreateArgumentsConfigModel(BaseModel):
 
 
 class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
-    # To allow `model_capabilities` field without triggering pydantic warnings.
-    model_config = ConfigDict(protected_namespaces=())
-
     model: str
     api_key: str | None = None
     timeout: float | None = None
