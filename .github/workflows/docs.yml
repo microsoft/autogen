@@ -45,6 +45,7 @@ jobs:
             { ref: "v0.4.0.dev9", dest-dir: "0.4.0.dev9", uv-version: "0.5.11" },
             { ref: "v0.4.0.dev10", dest-dir: "0.4.0.dev10", uv-version: "0.5.11" },
             { ref: "v0.4.0.dev11", dest-dir: "0.4.0.dev11", uv-version: "0.5.11" },
+            { ref: "v0.4.0.dev12", dest-dir: "0.4.0.dev12", uv-version: "0.5.11" },
           ]
     steps:
       - name: Checkout
