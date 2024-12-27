@@ -48,7 +48,7 @@ class UserProxyAgent(BaseChatAgent):
         You can run the team again with the user input. This way, the state of the team
         can be saved and restored when the user responds.
 
-        See `Pause for User Input <https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/teams.html#pause-for-user-input>`_ for more information.
+        See `Human-in-the-loop <https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/human-in-the-loop.html>`_ for more information.
 
     Example:
         Simple usage case::
