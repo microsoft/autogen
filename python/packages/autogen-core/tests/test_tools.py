@@ -164,6 +164,48 @@ def test_get_typed_signature_string() -> None:
     assert sig.return_annotation is str
 
 
+def test_get_typed_signature_params() -> None:
+    def my_function(arg: str) -> None:
+        return None
+
+    sig = get_typed_signature(my_function)
+    assert isinstance(sig, inspect.Signature)
+    assert sig.return_annotation is type(None)
+    assert len(sig.parameters) == 1
+    assert sig.parameters["arg"].annotation is str
+
+
+def test_get_typed_signature_two_params() -> None:
+    def my_function(arg: str, arg2: int) -> None:
+        return None
+
+    sig = get_typed_signature(my_function)
+    assert isinstance(sig, inspect.Signature)
+    assert len(sig.parameters) == 2
+    assert sig.parameters["arg"].annotation is str
+    assert sig.parameters["arg2"].annotation is int
+
+
+def test_get_typed_signature_param_str() -> None:
+    def my_function(arg: "str") -> None:
+        return None
+
+    sig = get_typed_signature(my_function)
+    assert isinstance(sig, inspect.Signature)
+    assert len(sig.parameters) == 1
+    assert sig.parameters["arg"].annotation is str
+
+
+def test_get_typed_signature_param_annotated() -> None:
+    def my_function(arg: Annotated[str, "An arg"]) -> None:
+        return None
+
+    sig = get_typed_signature(my_function)
+    assert isinstance(sig, inspect.Signature)
+    assert len(sig.parameters) == 1
+    assert sig.parameters["arg"].annotation == Annotated[str, "An arg"]
+
+
 def test_func_tool() -> None:
     def my_function() -> str:
         return "result"
@@ -227,7 +269,7 @@ def test_func_tool_return_none() -> None:
     assert tool.name == "my_function"
     assert tool.description == "Function tool."
     assert issubclass(tool.args_type(), BaseModel)
-    assert tool.return_type() is None
+    assert tool.return_type() is type(None)
     assert tool.state_type() is None
 
 
