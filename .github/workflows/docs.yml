@@ -31,7 +31,8 @@ jobs:
       matrix:
         version:
           [
-            { ref: main, dest-dir: dev, uv-version: "0.5.11" },
+            # For main use the workflow target
+            { ref: "WORKFLOW_TARGET", dest-dir: dev, uv-version: "0.5.13" },
             { ref: "v0.4.0.dev0", dest-dir: "0.4.0.dev0", uv-version: "0.5.11" },
             { ref: "v0.4.0.dev1", dest-dir: "0.4.0.dev1", uv-version: "0.5.11" },
             { ref: "v0.4.0.dev2", dest-dir: "0.4.0.dev2", uv-version: "0.5.11" },
@@ -48,9 +49,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        if: ${{ matrix.version.ref }} != "WORKFLOW_TARGET"
         with:
           lfs: "true"
           ref: ${{ matrix.version.ref }}
+      - name: Checkout
+        uses: actions/checkout@v4
+        if: ${{ matrix.version.ref }} == "WORKFLOW_TARGET"
+        with:
+          lfs: "true"
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
