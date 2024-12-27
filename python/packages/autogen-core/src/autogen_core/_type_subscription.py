@@ -33,9 +33,9 @@ class TypeSubscription(Subscription):
     def __init__(self, topic_type: str, agent_type: str | AgentType):
         self._topic_type = topic_type
         if isinstance(agent_type, AgentType):
-            self._agent_type: str = agent_type.type
+            self._agent_type = agent_type.type
         else:
-            self._agent_type: str = agent_type
+            self._agent_type = agent_type
         self._id = str(uuid.uuid4())
 
     @property
