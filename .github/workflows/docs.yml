@@ -31,7 +31,7 @@ jobs:
       matrix:
         version:
           [
-            { ref: main, dest-dir: dev, uv-version: "0.5.13" },
+            { ref: main, dest-dir: dev, uv-version: "0.5.11" },
             { ref: "v0.4.0.dev0", dest-dir: "0.4.0.dev0", uv-version: "0.5.11" },
             { ref: "v0.4.0.dev1", dest-dir: "0.4.0.dev1", uv-version: "0.5.11" },
             { ref: "v0.4.0.dev2", dest-dir: "0.4.0.dev2", uv-version: "0.5.11" },
