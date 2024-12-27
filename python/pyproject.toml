@@ -1,8 +1,10 @@
-[tool.uv.workspace]
-members = ["packages/*"]
+[project]
+name = "autogen"
+version = "0.0.1"
+dependencies = []
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pyright==1.1.389",
     "mypy==1.13.0",
     "ruff==0.4.8",
@@ -21,6 +23,9 @@ dev-dependencies = [
     "poethepoet",
     "tomli",
 ]
+
+[tool.uv.workspace]
+members = ["packages/*"]
 
 [tool.uv.sources]
 autogen-core = { workspace = true }

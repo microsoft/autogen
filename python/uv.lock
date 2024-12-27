@@ -19,6 +19,7 @@ resolution-markers = [
 [manifest]
 members = [
     "agbench",
+    "autogen",
     "autogen-agentchat",
     "autogen-core",
     "autogen-ext",
@@ -26,24 +27,6 @@ members = [
     "autogen-test-utils",
     "autogenstudio",
     "component-schema-gen",
-]
-requirements = [
-    { name = "cookiecutter" },
-    { name = "grpcio-tools", specifier = "~=1.62.0" },
-    { name = "mypy", specifier = "==1.13.0" },
-    { name = "mypy-protobuf" },
-    { name = "packaging" },
-    { name = "poethepoet" },
-    { name = "polars" },
-    { name = "pyright", specifier = "==1.1.389" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-mock" },
-    { name = "pytest-xdist" },
-    { name = "rich" },
-    { name = "ruff", specifier = "==0.4.8" },
-    { name = "tomli" },
-    { name = "typer" },
 ]
 
 [[package]]
@@ -328,6 +311,53 @@ dependencies = [
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7b/df/87120e2195f08d760bc5cf8a31cfa2381a6887517aa89453b23f1ae3354f/autodoc_pydantic-2.2.0-py3-none-any.whl", hash = "sha256:8c6a36fbf6ed2700ea9c6d21ea76ad541b621fbdf16b5a80ee04673548af4d95", size = 34001 },
+]
+
+[[package]]
+name = "autogen"
+version = "0.0.1"
+source = { virtual = "." }
+
+[package.dev-dependencies]
+dev = [
+    { name = "cookiecutter" },
+    { name = "grpcio-tools" },
+    { name = "mypy" },
+    { name = "mypy-protobuf" },
+    { name = "packaging" },
+    { name = "poethepoet" },
+    { name = "polars" },
+    { name = "pyright" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-mock" },
+    { name = "pytest-xdist" },
+    { name = "rich" },
+    { name = "ruff" },
+    { name = "tomli" },
+    { name = "typer" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "cookiecutter" },
+    { name = "grpcio-tools", specifier = "~=1.62.0" },
+    { name = "mypy", specifier = "==1.13.0" },
+    { name = "mypy-protobuf" },
+    { name = "packaging" },
+    { name = "poethepoet" },
+    { name = "polars" },
+    { name = "pyright", specifier = "==1.1.389" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-mock" },
+    { name = "pytest-xdist" },
+    { name = "rich" },
+    { name = "ruff", specifier = "==0.4.8" },
+    { name = "tomli" },
+    { name = "typer" },
 ]
 
 [[package]]
