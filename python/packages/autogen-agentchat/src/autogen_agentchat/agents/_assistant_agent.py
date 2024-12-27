@@ -72,6 +72,14 @@ class AssistantAgent(BaseChatAgent):
     the inner messages as they are created, and the :class:`~autogen_agentchat.base.Response`
     object as the last item before closing the generator.
 
+
+    .. note::
+
+        The caller must only pass the new messages to the agent on each call
+        to the :meth:`on_messages` or :meth:`on_messages_stream` method.
+        The agent maintains its state between calls to these methods.
+        Do not pass the entire conversation history to the agent on each call.
+
     Tool call behavior:
 
     * If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
