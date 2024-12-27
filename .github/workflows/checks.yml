@@ -123,7 +123,7 @@ jobs:
           python-version: "3.11"
       - name: Run uv sync
         run: |
-          uv sync --locked --all-extras
+          uv sync --locked --all-extras --all-packages
 
         working-directory: ./python
       - name: Run task
