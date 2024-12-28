@@ -69,14 +69,15 @@ class AgenticMemory:
             # Attempt to solve the task.
             page.add_lines("Try to solve the task.\n", flush=True)
             response, _ = await task_assignment_callback(task_plus_insights, self.client, self.page_log)
-            page.add_lines("Response:  {}\n".format(response), flush=True)
 
-            response_is_correct = await self.grader.response_is_correct(task, response, expected_answer)
+            response_is_correct, extracted_answer = await self.grader.response_is_correct(
+                task, response, expected_answer)
+            page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
             if response_is_correct:
-                page.add_lines("Response is CORRECT.\n", flush=True)
+                page.add_lines("Answer is CORRECT.\n", flush=True)
                 num_successes += 1
             else:
-                page.add_lines("Response is INCORRECT.\n", flush=True)
+                page.add_lines("Answer is INCORRECT.\n", flush=True)
 
         # Calculate the success rate as a percentage, rounded to the nearest whole number.
         page.add_lines("\nSuccess rate:  {}%\n".format(round((num_successes / num_trials) * 100)), flush=True)
@@ -152,8 +153,8 @@ class AgenticMemory:
                 memory_section += ('- ' + mem + '\n')
         return memory_section
 
-    async def _test_for_failure(self, task_plus_insights: str, expected_answer: str, assign_task_to_completer: Callable,
-                                num_trials: int):
+    async def _test_for_failure(self, task: str, task_plus_insights: str, expected_answer: str,
+                                assign_task_to_completer: Callable, num_trials: int):
         """
         Attempts to solve the given task multiple times to find a failure case to learn from.
         """
@@ -174,13 +175,14 @@ class AgenticMemory:
             # Attempt to solve the task.
             page.add_lines("Try to solve the task.", flush=True)
             response, work_history = await assign_task_to_completer(task_plus_insights, self.client, self.page_log)
-            page.add_lines("Response:  {}\n".format(response), flush=True)
 
-            response_is_correct = await self.grader.response_is_correct(task_plus_insights, response, expected_answer)
+            response_is_correct, extracted_answer = await self.grader.response_is_correct(
+                task, response, expected_answer)
+            page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
             if response_is_correct:
-                page.add_lines("Response is CORRECT.\n", flush=True)
+                page.add_lines("Answer is CORRECT.\n", flush=True)
             else:
-                page.add_lines("Response is INCORRECT.\n  Stop testing, and return the details of the failure.\n", flush=True)
+                page.add_lines("Answer is INCORRECT.\n  Stop testing, and return the details of the failure.\n", flush=True)
                 failure_found = True
                 break
 
@@ -220,7 +222,7 @@ class AgenticMemory:
 
             # Can we find a failure case to learn from?
             failure_found, response, work_history = await self._test_for_failure(
-                task_plus_insights, expected_answer, assign_task_to_completer, max_test_trials)
+                task, task_plus_insights, expected_answer, assign_task_to_completer, max_test_trials)
             if not failure_found:
                 # No. Time to exit the loop.
                 page.add_lines("\nResponse is CORRECT.\n  Stop looking for insights.\n", flush=True)

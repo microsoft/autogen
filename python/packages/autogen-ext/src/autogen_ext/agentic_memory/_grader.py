@@ -72,7 +72,7 @@ class Grader:
         user_message.append("\n# Text that may contain an answer")
         user_message.append(response_to_be_graded)
         self.clear_history()
-        given_answer, page = await self.call_model(
+        extracted_answer, page = await self.call_model(
             system_message=sys_message,
             user_content=user_message,
             details="to extract the answer")
@@ -90,11 +90,11 @@ class Grader:
         user_message.append("\n# Correct answer")
         user_message.append(correct_answer)
         user_message.append("\n# Answer to be graded")
-        user_message.append(given_answer)
+        user_message.append(extracted_answer)
         self.clear_history()
         decision, page = await self.call_model(
             system_message=sys_message,
             user_content=user_message,
             details="to check the answer for correctness")
 
-        return decision == "1"
+        return decision == "1", extracted_answer

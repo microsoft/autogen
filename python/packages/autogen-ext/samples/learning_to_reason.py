@@ -4,9 +4,9 @@ from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
 from azure.identity import DefaultAzureCredential, ChainedTokenCredential, AzureCliCredential, get_bearer_token_provider
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import MagenticOneGroupChat
-# from autogen_ext.agents.web_surfer import MultimodalWebSurfer
-# from autogen_ext.agents.web_surfer._utils import message_content_to_str
-from autogen_agentchat.task import Console
+from autogen_ext.agents.web_surfer import MultimodalWebSurfer
+from autogen_ext.agents.web_surfer._utils import message_content_to_str
+from autogen_agentchat.ui._console import Console
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -24,7 +24,7 @@ from autogen_ext.agentic_memory import AgenticMemory, PageLog, Grader
 
 MEMORY_DIR = "~/agentic_memory_archive"
 PAGELOG_DIR = "~/pagelogs/"
-RUN_SUBDIR = "repro-19-08"
+RUN_SUBDIR = "run_21_cl_base"
 
 # Default client parameters
 TEMPERATURE = 0.8
@@ -181,21 +181,17 @@ async def assign_task_to_magentic_one(task, model_client, page_log) -> Tuple[str
         max_turns=20,
     )
 
-    # user_input = await asyncio.get_event_loop().run_in_executor(None, input, ">: ")
+    # Get the team's text response to the task.
     stream = team.run_stream(task=task)
     task_result = await Console(stream)
+    response_str = "\n".join([message_content_to_str(message.content) for message in task_result.messages])
+    page.add_lines("-----  RESPONSE  -----\n\n{}\n".format(response_str), flush=True)
 
-    # Use the entire task_result (with images removed) as the work history.
-    work_history = "\n".join([message_content_to_str(message.content) for message in task_result.messages])
-
-    # Extract the final response as the last line of the last message.
-    # This assumes that the task statement specified that the answer should be on the last line.
-    final_message_string = task_result.messages[-1].content
-    final_message_lines = final_message_string.split("\n")
-    final_response = final_message_lines[-1]
+    # MagenticOne's response is the chat history, which we use here as the work history.
+    work_history = response_str
 
     page_log.finish_page(page)
-    return final_response, work_history
+    return response_str, work_history
 
 
 async def assign_task_to_client(task, client, page_log):
@@ -218,21 +214,20 @@ In responding to every user message, you follow the same multi-step process give
 
     input_messages = [system_message] + [user_message]
     response = await client.create(input_messages)
+    response_str = response.content
 
     # Log the model call
     page_log.add_model_call(description="Ask the model",
                             details="to complete the task", input_messages=input_messages,
                             response=response,
                             num_input_tokens=0, caller='assign_task_to_client')
+    page.add_lines("-----  RESPONSE  -----\n\n{}\n".format(response_str), flush=True)
 
-    # Split the response into lines.
-    response_lines = response.content.split("\n")
-
-    # The final line contains the answer. Extract it.
-    answer = response_lines[-1]
+    # Use the response as the work history as well.
+    work_history = response_str
 
     page_log.finish_page(page)
-    return answer, response.content
+    return response_str, work_history
 
 
 async def train(task_with_answer, max_train_trials, max_test_trials, task_assignment_callback, reset_memory,
@@ -276,15 +271,18 @@ async def test(task_with_answer, num_trials, task_assignment_callback, use_memor
         response = None
         num_successes = 0
         for trial in range(num_trials):
-            page.add_lines("-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
+            page.add_lines("\n-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
             page.add_lines("Try to solve the task.\n", flush=True)
             response, _ = await task_assignment_callback(task_with_answer["task"], client, page_log)
-            page.add_lines("Response:  {}\n".format(response), flush=True)
 
-            response_is_correct = await grader.response_is_correct(
+            response_is_correct, extracted_answer = await grader.response_is_correct(
                 task_with_answer["task"], response, task_with_answer["expected_answer"])
+            page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
             if response_is_correct:
+                page.add_lines("Answer is CORRECT.\n", flush=True)
                 num_successes += 1
+            else:
+                page.add_lines("Answer is INCORRECT.\n", flush=True)
 
     page.add_lines("\nSuccess rate:  {}%\n".format(round((num_successes / num_trials) * 100)), flush=True)
 
@@ -341,6 +339,7 @@ async def test_on_task_with_memory(task_index, task_assignment_callback, client,
         client=client,
         page_log=page_log)
     print("SUCCESS RATE:  {}%\n".format(round((num_successes / num_trials) * 100)))
+    return num_successes, num_trials
 
 
 async def test_on_task(task_index, task_assignment_callback, client, page_log, num_trials):
@@ -353,6 +352,7 @@ async def test_on_task(task_index, task_assignment_callback, client, page_log, n
         client=client,
         page_log=page_log)
     print("SUCCESS RATE:  {}%\n".format(round((num_successes / num_trials) * 100)))
+    return num_successes, num_trials
 
 
 async def main() -> None:
@@ -373,19 +373,20 @@ async def main() -> None:
     task_assignment_callback = assign_task_to_client  # assign_task_to_client or assign_task_to_magentic_one
 
     # Test, without using memory.
-    # await test_on_task(task_index, task_assignment_callback, client, page_log, 1)
+    num_successes, num_trials = await test_on_task(task_index, task_assignment_callback, client, page_log, 50)
 
     # Test, using memory.
-    # await test_on_task_with_memory(task_index, task_assignment_callback, client, page_log, num_trials=3, reset_memory=True)
+    # num_successes, num_trials = await test_on_task_with_memory(task_index, task_assignment_callback, client, page_log, num_trials=3, reset_memory=True)
 
     # Train and test, using memory.
-    num_successes, num_trials = await train_and_test(
-        task_index,
-        10,  # Normally 10
-        3,  # Normally 3
-        task_assignment_callback,
-        client,
-        page_log)
+    # num_successes, num_trials = await train_and_test(
+    #     task_index,
+    #     10,  # Normally 10
+    #     3,  # Normally 3
+    #     task_assignment_callback,
+    #     client,
+    #     page_log)
+
     success_rate = round((num_successes / num_trials) * 100)
     page.add_lines("\nOverall success rate:  {}%\n".format(success_rate), flush=True)
 
