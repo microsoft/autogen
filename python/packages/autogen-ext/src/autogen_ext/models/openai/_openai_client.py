@@ -922,7 +922,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
 
         .. code-block:: bash
 
-            pip install "autogen-ext[openai]==0.4.0.dev11"
+            pip install "autogen-ext[openai]==0.4.0.dev12"
 
     The following code snippet shows how to use the client with an OpenAI model:
 
@@ -1017,7 +1017,7 @@ class AzureOpenAIChatCompletionClient(
 
         .. code-block:: bash
 
-            pip install "autogen-ext[openai,azure]==0.4.0.dev11"
+            pip install "autogen-ext[openai,azure]==0.4.0.dev12"
 
     To use the client, you need to provide your deployment id, Azure Cognitive Services endpoint,
     api version, and model capabilities.

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-core"
-version = "0.4.0.dev11"
+version = "0.4.0.dev12"
 license = {file = "LICENSE-CODE"}
 description = "Foundational interfaces and agent runtime implementation for AutoGen"
 readme = "README.md"
@@ -72,7 +72,7 @@ dev = [
     "autodoc_pydantic~=2.2",
     "pygments",
 
-    "autogen_ext==0.4.0.dev11",
+    "autogen_ext==0.4.0.dev12",
 
     # Documentation tooling
     "sphinx-autobuild",
