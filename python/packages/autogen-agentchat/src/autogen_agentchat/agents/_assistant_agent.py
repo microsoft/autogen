@@ -298,6 +298,8 @@ class AssistantAgent(BaseChatAgent):
             )
         if not model_context:
             self._model_context = UnboundedChatCompletionContext()
+        else:
+            self._model_context = model_context
         self._reflect_on_tool_use = reflect_on_tool_use
         self._tool_call_summary_format = tool_call_summary_format
         self._is_running = False
