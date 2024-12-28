@@ -3,7 +3,6 @@ import inspect
 from pathlib import Path
 
 import pytest
-import websockets
 from autogen_core import CancellationToken
 from autogen_core.code_executor import CodeBlock
 from autogen_ext.code_executors.jupyter import JupyterCodeExecutor, JupyterCodeResult, LocalJupyterServer
