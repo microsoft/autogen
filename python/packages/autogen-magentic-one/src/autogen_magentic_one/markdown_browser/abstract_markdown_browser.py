@@ -62,3 +62,26 @@ class AbstractMarkdownBrowser(ABC):
     @abstractmethod
     def find_next(self) -> Union[str, None]:
         pass
+
+    @abstractmethod
+    def extract_tables(self) -> list:
+        """
+        Extract tables from the Markdown content and return them as Python objects.
+        """
+        pass
+
+    @abstractmethod
+    def wait_for_render(self, timeout: int) -> None:
+        """
+        Wait for the dynamic content to render within the specified timeout.
+        """
+        pass
+
+    @abstractmethod
+    def get_logs(self) -> list:
+        """
+        Retrieve logs of browser activities and errors.
+        """
+        pass
+
+
