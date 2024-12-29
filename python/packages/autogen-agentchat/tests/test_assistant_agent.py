@@ -1,7 +1,7 @@
 import asyncio
 import json
 import logging
-from typing import Any, AsyncGenerator, Dict, List, Tuple
+from typing import Any, AsyncGenerator, List
 
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
