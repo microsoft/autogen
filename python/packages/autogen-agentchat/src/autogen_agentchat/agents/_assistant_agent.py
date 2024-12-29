@@ -296,7 +296,9 @@ class AssistantAgent(BaseChatAgent):
             raise ValueError(
                 f"Handoff names must be unique from tool names. Handoff names: {handoff_tool_names}; tool names: {tool_names}"
             )
-        if not model_context:
+        if model_context is not None:
+            self._model_context = model_context
+        else:
             self._model_context = UnboundedChatCompletionContext()
         self._reflect_on_tool_use = reflect_on_tool_use
         self._tool_call_summary_format = tool_call_summary_format
