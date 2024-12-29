@@ -35,8 +35,10 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
             from langchain_experimental.tools.python.tool import PythonAstREPLTool
             from autogen_ext.tools.langchain import LangChainToolAdapter
             from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_agentchat.messages import TextMessage
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.ui import Console
+            from autogen_core import CancellationToken
 
 
             async def main() -> None:
@@ -49,7 +51,11 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
                     model_client=model_client,
                     system_message="Use the `df` variable to access the dataset.",
                 )
-                await Console(agent.run_stream(task="What's the average age of the passengers?"))
+                await Console(
+                    agent.on_messages_stream(
+                        [TextMessage(content="What's the average age of the passengers?", source="user")], CancellationToken()
+                    )
+                )
 
 
             asyncio.run(main())
