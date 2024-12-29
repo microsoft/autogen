@@ -9,7 +9,7 @@ from autogen_core.tools import BaseTool
 from pydantic import BaseModel, Field, create_model
 
 if TYPE_CHECKING:
-    from langchain_core.tools import Tool as LangChainTool
+    from langchain_core.tools import BaseTool as LangChainTool
 
 
 class LangChainToolAdapter(BaseTool[BaseModel, Any]):
