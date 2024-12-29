@@ -92,6 +92,7 @@ async def test_caller_loop() -> None:
         async def create(
             self,
             messages: Sequence[LLMMessage],
+            *,
             tools: Sequence[Tool | ToolSchema] = [],
             json_output: Optional[bool] = None,
             extra_create_args: Mapping[str, Any] = {},
@@ -116,6 +117,7 @@ async def test_caller_loop() -> None:
         def create_stream(
             self,
             messages: Sequence[LLMMessage],
+            *,
             tools: Sequence[Tool | ToolSchema] = [],
             json_output: Optional[bool] = None,
             extra_create_args: Mapping[str, Any] = {},
@@ -129,10 +131,10 @@ async def test_caller_loop() -> None:
         def total_usage(self) -> RequestUsage:
             return RequestUsage(prompt_tokens=0, completion_tokens=0)
 
-        def count_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+        def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
             return 0
 
-        def remaining_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+        def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
             return 0
 
         @property

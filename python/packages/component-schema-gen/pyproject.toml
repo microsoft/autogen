@@ -22,10 +22,6 @@ dependencies = [
 [project.scripts]
 gen-component-schema = "component_schema_gen.__main__:main"
 
-[tool.uv]
-dev-dependencies = []
-
-
 [tool.ruff]
 extend = "../../pyproject.toml"
 include = ["src/**"]
