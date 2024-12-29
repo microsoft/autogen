@@ -22,6 +22,38 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
 
     Args:
         langchain_tool (LangChainTool): A LangChain tool to wrap
+
+    Examples:
+
+    Use the `PythonAstREPLTool` from the `langchain_experimental` package to
+    create a tool that allows you to interact with a Pandas DataFrame.
+
+        .. code-block:: python
+
+            import asyncio
+            import pandas as pd
+            from langchain_experimental.tools.python.tool import PythonAstREPLTool
+            from autogen_ext.tools.langchain import LangChainToolAdapter
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.ui import Console
+
+
+            async def main() -> None:
+                df = pd.read_csv("https://raw.githubusercontent.com/pandas-dev/pandas/main/doc/data/titanic.csv")
+                tool = LangChainToolAdapter(PythonAstREPLTool(locals={"df": df}))
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+                agent = AssistantAgent(
+                    "assistant",
+                    tools=[tool],
+                    model_client=model_client,
+                    system_message="Use the `df` variable to access the dataset.",
+                )
+                await Console(agent.run_stream(task="What's the average age of the passengers?"))
+
+
+            asyncio.run(main())
+
     """
 
     def __init__(self, langchain_tool: LangChainTool):
