@@ -42,7 +42,7 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
 
 
             async def main() -> None:
-                df = pd.read_csv("https://raw.githubusercontent.com/pandas-dev/pandas/main/doc/data/titanic.csv")
+                df = pd.read_csv("https://raw.githubusercontent.com/pandas-dev/pandas/main/doc/data/titanic.csv")  # type: ignore
                 tool = LangChainToolAdapter(PythonAstREPLTool(locals={"df": df}))
                 model_client = OpenAIChatCompletionClient(model="gpt-4o")
                 agent = AssistantAgent(
