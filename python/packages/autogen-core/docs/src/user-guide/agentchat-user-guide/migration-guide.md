@@ -45,6 +45,7 @@ See each feature below for detailed information on how to migrate.
 - [Group Chat](#group-chat)
 - [Group Chat with Resume](#group-chat-with-resume)
 - [Save and Load Group Chat State](#save-and-load-group-chat-state)
+- [Group Chat with Tool Use](#group-chat-with-tool-use)
 - [Group Chat with Custom Selector (Stateflow)](#group-chat-with-custom-selector-stateflow)
 - [Nested Chat](#nested-chat)
 - [Sequential Chat](#sequential-chat)
@@ -144,6 +145,7 @@ custom_model_client = OpenAIChatCompletionClient(
         "vision": True,
         "function_calling": True,
         "json_output": True,
+        "model_family": "unknown",
     },
 )
 ```
@@ -222,7 +224,7 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-The `CancellationToken` can be used to cancel the request asynchronously
+The {py:class}`~autogen_core.CancellationToken` can be used to cancel the request asynchronously
 when you call `cancellation_token.cancel()`, which will cause the `await`
 on the `on_messages` call to raise a `CancelledError`.
 
@@ -231,7 +233,7 @@ and {py:class}`~autogen_agentchat.agents.AssistantAgent`.
 
 ## Multi-Modal Agent
 
-The `AssistantAgent` in `v0.4` supports multi-modal inputs if the model client supports it.
+The {py:class}`~autogen_agentchat.agents.AssistantAgent` in `v0.4` supports multi-modal inputs if the model client supports it.
 The `vision` capability of the model client is used to determine if the agent supports multi-modal inputs.
 
 ```python
@@ -354,7 +356,7 @@ class CustomAgent(BaseChatAgent):
         return (TextMessage,)
 ```
 
-You can then use the custom agent in the same way as the `AssistantAgent`.
+You can then use the custom agent in the same way as the {py:class}`~autogen_agentchat.agents.AssistantAgent`.
 See [Custom Agent Tutorial](./tutorial/custom-agents.ipynb)
 for more details.
 
@@ -412,7 +414,7 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-You can also call `save_state` and `load_state` on any teams, such as `RoundRobinGroupChat`
+You can also call `save_state` and `load_state` on any teams, such as {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat`
 to save and load the state of the entire team.
 
 ## Two-Agent Chat
@@ -450,8 +452,8 @@ chat_result = user_proxy.initiate_chat(assistant, message="Write a python script
 print(chat_result)
 ```
 
-To get the same behavior in `v0.4`, you can use the `AssistantAgent`
-and `CodeExecutorAgent` together in a `RoundRobinGroupChat`.
+To get the same behavior in `v0.4`, you can use the {py:class}`~autogen_agentchat.agents.AssistantAgent`
+and {py:class}`~autogen_agentchat.agents.CodeExecutorAgent` together in a {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat`.
 
 ```python
 import asyncio
@@ -536,7 +538,7 @@ while True:
     print("Assistant:", chat_result.summary)
 ```
 
-In `v0.4`, you really just need one agent -- the `AssistantAgent` -- to handle
+In `v0.4`, you really just need one agent -- the {py:class}`~autogen_agentchat.agents.AssistantAgent` -- to handle
 both the tool calling and tool execution.
 
 ```python
@@ -568,6 +570,11 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+When using tool-equipped agents inside a group chat such as
+{py:class}`~autogen_agentchat.teams.RoundRobinGroupChat`, 
+you simply do the same as above to add tools to the agents, and create a 
+group chat with the agents.
+
 ## Chat Result
 
 In `v0.2`, you get a `ChatResult` object from the `initiate_chat` method.
@@ -588,18 +595,18 @@ print(chat_result.human_input) # Get the human input solicited by the chat.
 See [ChatResult Docs](https://microsoft.github.io/autogen/0.2/docs/reference/agentchat/chat#chatresult)
 for more details.
 
-In `v0.4`, you get a `TaskResult` object from a `run` or `run_stream` method.
-The `TaskResult` object contains the `messages` which is the message history
+In `v0.4`, you get a {py:class}`~autogen_agentchat.base.TaskResult` object from a `run` or `run_stream` method.
+The {py:class}`~autogen_agentchat.base.TaskResult` object contains the `messages` which is the message history
 of the chat, including both agents' private (tool calls, etc.) and public messages.
 
 TODO: Add token counting result after [#4719](https://github.com/microsoft/autogen/issues/4719) is resolved.
 
-There are some notable differences between `TaskResult` and `ChatResult`:
+There are some notable differences between {py:class}`~autogen_agentchat.base.TaskResult` and `ChatResult`:
 
-- The `messages` list in `TaskResult` uses different message format than the `ChatResult.chat_history` list.
+- The `messages` list in {py:class}`~autogen_agentchat.base.TaskResult` uses different message format than the `ChatResult.chat_history` list.
 - There is no `summary` field. It is up to the application to decide how to summarize the chat using the `messages` list.
-- `human_input` is not provided in the `TaskResult` object, as the user input can be extracted from the `messages` list by filtering with the `source` field.
-- `cost` is not provided in the `TaskResult` object, however, you can calculate the cost based on token usage. It would be a great community extension to add cost calculation. See [community extensions](../extensions-user-guide/discover.md).
+- `human_input` is not provided in the {py:class}`~autogen_agentchat.base.TaskResult` object, as the user input can be extracted from the `messages` list by filtering with the `source` field.
+- `cost` is not provided in the {py:class}`~autogen_agentchat.base.TaskResult` object, however, you can calculate the cost based on token usage. It would be a great community extension to add cost calculation. See [community extensions](../extensions-user-guide/discover.md).
 
 ## Conversion between v0.2 and v0.4 Messages
 
@@ -607,7 +614,7 @@ TODO: Resolves [#4833](https://github.com/microsoft/autogen/issues/4833), maybe 
 the code in the `autogen-ext` package.
 
 You can use the following conversion functions to convert between a v0.4 message in
-`TaskResult.messages` and a v0.2 message in `ChatResult.chat_history`.
+{py:attr}`autogen_agentchat.base.TaskResult.messages` and a v0.2 message in `ChatResult.chat_history`.
 
 ```python
 from typing import Any, Dict, List, Literal
@@ -762,7 +769,7 @@ result = editor.initiate_chat(
 print(result.summary)
 ```
 
-In `v0.4`, you can use the `RoundRobinGroupChat` to achieve the same behavior.
+In `v0.4`, you can use the {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat` to achieve the same behavior.
 
 ```python
 import asyncio
@@ -803,12 +810,12 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-For LLM-based speaker selection, you can use the `SelectorGroupChat` instead.
+For LLM-based speaker selection, you can use the {py:class}`~autogen_agentchat.teams.SelectorGroupChat` instead.
 See [Selector Group Chat Tutorial](./tutorial/selector-group-chat.ipynb)
 and {py:class}`~autogen_agentchat.teams.SelectorGroupChat` for more details.
 
 > **Note**: In `v0.4`, you do not need to register functions on a user proxy to use tools
-> in a group chat. You can simply pass the tool functions to the `AssistantAgent` as shown in the [Tool Use](#tool-use) section.
+> in a group chat. You can simply pass the tool functions to the {py:class}`~autogen_agentchat.agents.AssistantAgent` as shown in the [Tool Use](#tool-use) section.
 > The agent will automatically call the tools when needed.
 > If your tool doesn't output well formed response, you can use the `reflect_on_tool_use` parameter to have the model reflect on the tool use.
 
@@ -892,6 +899,24 @@ In `v0.2`, you need to explicitly save the group chat messages and load them bac
 In `v0.4`, you can simply call `save_state` and `load_state` methods on the group chat object.
 See [Group Chat with Resume](#group-chat-with-resume) for an example.
 
+## Group Chat with Tool Use
+
+In `v0.2` group chat, when tools are involved, you need to register the tool functions on a user proxy,
+and include the user proxy in the group chat. The tool calls made by other agents
+will be routed to the user proxy to execute.
+
+We have observed numerous issues with this approach, such as the the tool call
+routing not working as expected, and the tool call request and result cannot be
+accepted by models without support for function calling.
+
+In `v0.4`, there is no need to register the tool functions on a user proxy,
+as the tools are directly executed within the {py:class}`~autogen_agentchat.agents.AssistantAgent`,
+which publishes the response from the tool to the group chat.
+So the group chat manager does not need to be involved in routing tool calls.
+
+See [Selector Group Chat Tutorial](./tutorial/selector-group-chat.ipynb) for an example
+of using tools in a group chat.
+
 ## Group Chat with Custom Selector (Stateflow)
 
 In `v0.2` group chat, when the `speaker_selection_method` is set to a custom function,
@@ -899,7 +924,7 @@ it can override the default selection method. This is useful for implementing
 a state-based selection method.
 For more details, see [Custom Sepaker Selection in v0.2](https://microsoft.github.io/autogen/0.2/docs/topics/groupchat/customized_speaker_selection).
 
-In `v0.4`, you can use the `SelectorGroupChat` with `selector_func` to achieve the same behavior.
+In `v0.4`, you can use the {py:class}`~autogen_agentchat.teams.SelectorGroupChat` with `selector_func` to achieve the same behavior.
 The `selector_func` is a function that takes the current message thread of the group chat
 and returns the next speaker's name. If `None` is returned, the LLM-based
 selection method will be used.
@@ -1135,7 +1160,7 @@ and we will provide more built-in support for workflows in the future.
 
 In `v0.2`, `GPTAssistantAgent` is a special agent class that is backed by the OpenAI Assistant API.
 
-In `v0.4`, the equivalent is the `OpenAIAssistantAgent` class.
+In `v0.4`, the equivalent is the {py:class}`~autogen_ext.agents.openai.OpenAIAssistantAgent` class.
 It supports the same set of features as the `GPTAssistantAgent` in `v0.2` with
 more such as customizable threads and file uploads.
 See {py:class}`~autogen_ext.agents.openai.OpenAIAssistantAgent` for more details.
@@ -1147,16 +1172,16 @@ by using the `transforms` capability that is added to an `ConversableAgent`
 after which is contructed.
 
 The feedbacks from our community has led us to believe this feature is essential
-and should be a built-in component of `AssistantAgent`, and can be used for
+and should be a built-in component of {py:class}`~autogen_agentchat.agents.AssistantAgent`, and can be used for
 every custom agent.
 
-In `v0.4`, we introduce the `ChatCompletionContext` base class that manages
+In `v0.4`, we introduce the {py:class}`~autogen_core.model_context.ChatCompletionContext` base class that manages
 message history and provides a virtual view of the history. Applications can use
-built-in implementations such as `BufferedChatCompletionContext` to
+built-in implementations such as {py:class}`~autogen_core.model_context.BufferedChatCompletionContext` to
 limit the message history sent to the model, or provide their own implementations
 that creates different virtual views.
 
-To use `BufferedChatCompletionContext` in an `AssistantAgent` in a chatbot scenario.
+To use {py:class}`~autogen_core.model_context.BufferedChatCompletionContext` in an {py:class}`~autogen_agentchat.agents.AssistantAgent` in a chatbot scenario.
 
 ```python
 import asyncio
@@ -1194,7 +1219,7 @@ which returns an async generator to stream the inner thoughts and actions of the
 For teams, you can use the `run_stream` method to stream the inner conversation among the agents in the team.
 Your application can use these streams to observe the agents and teams in real-time.
 
-Both the `on_messages_stream` and `run_stream` methods takes a `CancellationToken` as a parameter
+Both the `on_messages_stream` and `run_stream` methods takes a {py:class}`~autogen_core.CancellationToken` as a parameter
 which can be used to cancel the output stream asynchronously and stop the agent or team.
 For teams, you can also use termination conditions to stop the team when a certain condition is met.
 See [Termination Condition Tutorial](./tutorial/termination.ipynb)
@@ -1209,7 +1234,7 @@ in the Core API documentation for more details.
 
 The code executors in `v0.2` and `v0.4` are nearly identical except
 the `v0.4` executors support async API. You can also use
-`CancellationToken` to cancel a code execution if it takes too long.
+{py:class}`~autogen_core.CancellationToken` to cancel a code execution if it takes too long.
 See [Command Line Code Executors Tutorial](../core-user-guide/framework/command-line-code-executors.ipynb)
 in the Core API documentation.
 
