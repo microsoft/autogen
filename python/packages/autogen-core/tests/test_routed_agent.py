@@ -11,7 +11,6 @@ from autogen_core import (
     TopicId,
     TypeSubscription,
     event,
-    message_handler,
     rpc,
 )
 from autogen_test_utils import LoopbackAgent
@@ -31,12 +30,12 @@ class CounterAgent(RoutedAgent):
         self.num_calls_rpc = 0
         self.num_calls_broadcast = 0
 
-    @message_handler(match=lambda _, ctx: ctx.is_rpc)
+    @rpc(match=lambda _, ctx: ctx.is_rpc)
     async def on_rpc_message(self, message: MessageType, ctx: MessageContext) -> MessageType:
         self.num_calls_rpc += 1
         return message
 
-    @message_handler(match=lambda _, ctx: not ctx.is_rpc)
+    @event(match=lambda _, ctx: not ctx.is_rpc)
     async def on_broadcast_message(self, message: MessageType, ctx: MessageContext) -> None:
         self.num_calls_broadcast += 1
 
@@ -92,11 +91,11 @@ class RoutedAgentMessageCustomMatch(RoutedAgent):
     def match_one(message: TestMessage, ctx: MessageContext) -> bool:
         return message.value == "one"
 
-    @message_handler(match=match_one)
+    @event(match=match_one)
     async def handler_one(self, message: TestMessage, ctx: MessageContext) -> None:
         self.handler_one_called = True
 
-    @message_handler(match=cast(Callable[[TestMessage, MessageContext], bool], lambda msg, ctx: msg.value == "two"))  # type: ignore
+    @event(match=cast(Callable[[TestMessage, MessageContext], bool], lambda msg, ctx: msg.value == "two"))  # type: ignore
     async def handler_two(self, message: TestMessage, ctx: MessageContext) -> None:
         self.handler_two_called = True
 

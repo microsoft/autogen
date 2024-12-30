@@ -11,7 +11,7 @@ from autogen_core import (
     MessageContext,
     SingleThreadedAgentRuntime,
     default_subscription,
-    message_handler,
+    event,
 )
 
 
@@ -26,7 +26,7 @@ class _TestAgent(SequentialRoutedAgent):
         super().__init__(description=description)
         self.messages: List[Message] = []
 
-    @message_handler
+    @event
     async def handle_content_publish(self, message: Message, ctx: MessageContext) -> None:
         # Sleep a random amount of time to simulate processing time.
         await asyncio.sleep(random.random() / 100)

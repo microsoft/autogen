@@ -3,7 +3,7 @@ from types import NoneType
 from typing import Any, List, Optional, Union
 
 from autogen_core import MessageContext
-from autogen_core._routed_agent import RoutedAgent, message_handler
+from autogen_core._routed_agent import RoutedAgent, event, rpc
 from autogen_core._serialization import has_nested_base_model
 from autogen_core._type_helpers import AnyType, get_types
 from pydantic import BaseModel
@@ -22,11 +22,11 @@ def test_get_types() -> None:
 
 def test_handler() -> None:
     class HandlerClass(RoutedAgent):
-        @message_handler()
+        @rpc()
         async def handler(self, message: int, ctx: MessageContext) -> Any:
             return None
 
-        @message_handler()
+        @event()
         async def handler2(self, message: str | bool, ctx: MessageContext) -> None:
             return None
 
@@ -38,7 +38,7 @@ def test_handler() -> None:
 
 
 class HandlerClass(RoutedAgent):
-    @message_handler()
+    @rpc()
     async def handler(self, message: int, ctx: MessageContext) -> Any:
         return None
 

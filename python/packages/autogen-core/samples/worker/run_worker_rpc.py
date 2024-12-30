@@ -2,14 +2,7 @@ import asyncio
 import logging
 from dataclasses import dataclass
 
-from autogen_core import (
-    AgentId,
-    DefaultSubscription,
-    DefaultTopicId,
-    MessageContext,
-    RoutedAgent,
-    message_handler,
-)
+from autogen_core import AgentId, DefaultSubscription, DefaultTopicId, MessageContext, RoutedAgent, event, rpc
 from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
 
 
@@ -32,11 +25,11 @@ class ReceiveAgent(RoutedAgent):
     def __init__(self) -> None:
         super().__init__("Receive Agent")
 
-    @message_handler
+    @rpc
     async def on_greet(self, message: Greeting, ctx: MessageContext) -> Greeting:
         return Greeting(content=f"Received: {message.content}")
 
-    @message_handler
+    @event
     async def on_feedback(self, message: Feedback, ctx: MessageContext) -> None:
         print(f"Feedback received: {message.content}")
 
@@ -46,7 +39,7 @@ class GreeterAgent(RoutedAgent):
         super().__init__("Greeter Agent")
         self._receive_agent_id = AgentId(receive_agent_type, self.id.key)
 
-    @message_handler
+    @event
     async def on_ask(self, message: AskToGreet, ctx: MessageContext) -> None:
         response = await self.send_message(Greeting(f"Hello, {message.content}!"), recipient=self._receive_agent_id)
         await self.publish_message(Feedback(f"Feedback: {response.content}"), topic_id=DefaultTopicId())

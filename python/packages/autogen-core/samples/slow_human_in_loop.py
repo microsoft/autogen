@@ -39,7 +39,7 @@ from autogen_core import (
     MessageContext,
     RoutedAgent,
     SingleThreadedAgentRuntime,
-    message_handler,
+    event,
     type_subscription,
 )
 from autogen_core.model_context import BufferedChatCompletionContext
@@ -100,7 +100,7 @@ class SlowUserProxyAgent(RoutedAgent):
         self._model_context = BufferedChatCompletionContext(buffer_size=5)
         self._name = name
 
-    @message_handler
+    @event
     async def handle_message(self, message: AssistantTextMessage, ctx: MessageContext) -> None:
         await self._model_context.add_message(AssistantMessage(content=message.content, source=message.source))
         await self.publish_message(
@@ -170,7 +170,7 @@ Today's date is {datetime.datetime.now().strftime("%Y-%m-%d")}
             )
         ]
 
-    @message_handler
+    @event
     async def handle_message(self, message: UserTextMessage, ctx: MessageContext) -> None:
         await self._model_context.add_message(UserMessage(content=message.content, source=message.source))
 

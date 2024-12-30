@@ -9,7 +9,8 @@ from autogen_core import (
     FunctionCall,
     MessageContext,
     RoutedAgent,
-    message_handler,
+    event,
+    rpc,
 )
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import (
@@ -78,27 +79,27 @@ class ChatCompletionAgent(RoutedAgent):
         self._tools = tools
         self._tool_approver = tool_approver
 
-    @message_handler()
+    @event()
     async def on_text_message(self, message: TextMessage, ctx: MessageContext) -> None:
         """Handle a text message. This method adds the message to the memory and
         does not generate any message."""
         # Add a user message.
         await self._model_context.add_message(UserMessage(content=message.content, source=message.source))
 
-    @message_handler()
+    @event()
     async def on_multi_modal_message(self, message: MultiModalMessage, ctx: MessageContext) -> None:
         """Handle a multimodal message. This method adds the message to the memory
         and does not generate any message."""
         # Add a user message.
         await self._model_context.add_message(UserMessage(content=message.content, source=message.source))
 
-    @message_handler()
+    @event()
     async def on_reset(self, message: Reset, ctx: MessageContext) -> None:
         """Handle a reset message. This method clears the memory."""
         # Reset the chat messages.
         await self._model_context.clear()
 
-    @message_handler()
+    @rpc()
     async def on_respond_now(self, message: RespondNow, ctx: MessageContext) -> TextMessage | FunctionCallMessage:
         """Handle a respond now message. This method generates a response and
         returns it to the sender."""
@@ -108,7 +109,7 @@ class ChatCompletionAgent(RoutedAgent):
         # Return the response.
         return response
 
-    @message_handler()
+    @event()
     async def on_publish_now(self, message: PublishNow, ctx: MessageContext) -> None:
         """Handle a publish now message. This method generates a response and
         publishes it."""
@@ -118,7 +119,7 @@ class ChatCompletionAgent(RoutedAgent):
         # Publish the response.
         await self.publish_message(response, topic_id=DefaultTopicId())
 
-    @message_handler()
+    @rpc()
     async def on_tool_call_message(
         self, message: FunctionCallMessage, ctx: MessageContext
     ) -> FunctionExecutionResultMessage:

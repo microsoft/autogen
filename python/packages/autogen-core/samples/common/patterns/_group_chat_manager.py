@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Callable, List, Mapping
 
-from autogen_core import AgentId, AgentProxy, MessageContext, RoutedAgent, message_handler
+from autogen_core import AgentId, AgentProxy, MessageContext, RoutedAgent, event
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import ChatCompletionClient, UserMessage
 
@@ -74,12 +74,12 @@ class GroupChatManager(RoutedAgent):
         self._tranistions = transitions
         self._on_message_received = on_message_received
 
-    @message_handler()
+    @event()
     async def on_reset(self, message: Reset, ctx: MessageContext) -> None:
         """Handle a reset message. This method clears the memory."""
         await self._model_context.clear()
 
-    @message_handler()
+    @event()
     async def on_new_message(self, message: TextMessage | MultiModalMessage, ctx: MessageContext) -> None:
         """Handle a message. This method adds the message to the memory, selects the next speaker,
         and sends a message to the selected speaker to publish a response."""

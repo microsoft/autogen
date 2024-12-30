@@ -2,7 +2,7 @@ import asyncio
 import logging
 from typing import Union
 
-from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, message_handler
+from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, event
 from protos.agent_events_pb2 import ConversationClosed, Input, NewMessageReceived, Output  # type: ignore
 
 input_types = Union[ConversationClosed, Input, Output]
@@ -19,7 +19,7 @@ class UserProxy(RoutedAgent):
     ) -> None:
         super().__init__(description)
 
-    @message_handler
+    @event
     async def handle_user_chat_input(self, message: input_types, ctx: MessageContext) -> None:
         logger = logging.getLogger("autogen_core")
 

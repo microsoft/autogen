@@ -4,7 +4,7 @@ from typing import Awaitable, Callable, List
 from uuid import uuid4
 
 from _types import GroupChatMessage, MessageChunk, RequestToSpeak, UIAgentConfig
-from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, message_handler
+from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, event
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -36,7 +36,7 @@ class BaseGroupChatAgent(RoutedAgent):
         self._ui_config = ui_config
         self.console = Console()
 
-    @message_handler
+    @event
     async def handle_message(self, message: GroupChatMessage, ctx: MessageContext) -> None:
         self._chat_history.extend(
             [
@@ -45,7 +45,7 @@ class BaseGroupChatAgent(RoutedAgent):
             ]
         )
 
-    @message_handler
+    @event
     async def handle_request_to_speak(self, message: RequestToSpeak, ctx: MessageContext) -> None:
         self._chat_history.append(
             UserMessage(content=f"Transferred to {self.id.type}, adopt the persona immediately.", source="system")
@@ -86,7 +86,7 @@ class GroupChatManager(RoutedAgent):
         self._previous_participant_topic_type: str | None = None
         self._ui_config = ui_config
 
-    @message_handler
+    @event
     async def handle_message(self, message: GroupChatMessage, ctx: MessageContext) -> None:
         assert isinstance(message.body, UserMessage)
 
@@ -162,7 +162,7 @@ class UIAgent(RoutedAgent):
         super().__init__("UI Agent")
         self._on_message_chunk_func = on_message_chunk_func
 
-    @message_handler
+    @event
     async def handle_message_chunk(self, message: MessageChunk, ctx: MessageContext) -> None:
         await self._on_message_chunk_func(message)
 

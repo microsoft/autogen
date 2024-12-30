@@ -9,7 +9,7 @@ from autogen_core import (
     MessageContext,
     RoutedAgent,
     SingleThreadedAgentRuntime,
-    message_handler,
+    rpc,
 )
 
 
@@ -28,7 +28,7 @@ class LongRunningAgent(RoutedAgent):
         self.called = False
         self.cancelled = False
 
-    @message_handler
+    @rpc
     async def on_new_message(self, message: MessageType, ctx: MessageContext) -> MessageType:
         self.called = True
         sleep = asyncio.ensure_future(asyncio.sleep(100))
@@ -48,7 +48,7 @@ class NestingLongRunningAgent(RoutedAgent):
         self.cancelled = False
         self._nested_agent = nested_agent
 
-    @message_handler
+    @rpc
     async def on_new_message(self, message: MessageType, ctx: MessageContext) -> MessageType:
         self.called = True
         response = self.send_message(message, self._nested_agent, cancellation_token=ctx.cancellation_token)

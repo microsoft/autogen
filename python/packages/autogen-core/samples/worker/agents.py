@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, default_subscription, message_handler
+from autogen_core import DefaultTopicId, MessageContext, RoutedAgent, default_subscription, event
 
 
 @dataclass
@@ -21,7 +21,7 @@ class CascadingAgent(RoutedAgent):
         super().__init__("A cascading agent.")
         self.max_rounds = max_rounds
 
-    @message_handler
+    @event
     async def on_new_message(self, message: CascadingMessage, ctx: MessageContext) -> None:
         await self.publish_message(
             ReceiveMessageEvent(round=message.round, sender=str(ctx.sender), recipient=str(self.id)),
@@ -37,6 +37,6 @@ class ObserverAgent(RoutedAgent):
     def __init__(self) -> None:
         super().__init__("An observer agent.")
 
-    @message_handler
+    @event
     async def on_receive_message(self, message: ReceiveMessageEvent, ctx: MessageContext) -> None:
         print(f"[Round {message.round}]: Message from {message.sender} to {message.recipient}.")

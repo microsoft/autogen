@@ -6,13 +6,14 @@ from typing import Any
 from autogen_core import (
     BaseAgent,
     Component,
+    ComponentModel,
     DefaultTopicId,
     MessageContext,
     RoutedAgent,
     default_subscription,
-    message_handler,
+    event,
+    rpc,
 )
-from autogen_core._component_config import ComponentModel
 from pydantic import BaseModel
 
 
@@ -36,7 +37,7 @@ class LoopbackAgent(RoutedAgent):
         self.num_calls = 0
         self.received_messages: list[Any] = []
 
-    @message_handler
+    @rpc
     async def on_new_message(
         self, message: MessageType | ContentMessage, ctx: MessageContext
     ) -> MessageType | ContentMessage:
@@ -56,7 +57,7 @@ class CascadingAgent(RoutedAgent):
         self.num_calls = 0
         self.max_rounds = max_rounds
 
-    @message_handler
+    @event
     async def on_new_message(self, message: CascadingMessageType, ctx: MessageContext) -> None:
         self.num_calls += 1
         if message.round == self.max_rounds:

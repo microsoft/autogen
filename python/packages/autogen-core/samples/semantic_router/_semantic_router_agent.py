@@ -7,7 +7,7 @@ from autogen_core import (
     MessageContext,
     RoutedAgent,
     default_subscription,
-    message_handler,
+    event,
 )
 
 logging.basicConfig(level=logging.WARNING)
@@ -24,7 +24,7 @@ class SemanticRouterAgent(RoutedAgent):
         self._classifier = intent_classifier
 
     # The User has sent a message that needs to be routed
-    @message_handler
+    @event
     async def route_to_agent(self, message: UserProxyMessage, ctx: MessageContext) -> None:
         assert ctx.topic_id is not None
         logger.debug(f"Received message from {message.source}: {message.content}")

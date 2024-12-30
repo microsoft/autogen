@@ -2,7 +2,7 @@ import asyncio
 import logging
 from typing import Any
 
-from autogen_core import EVENT_LOGGER_NAME, MessageContext, RoutedAgent, message_handler
+from autogen_core import EVENT_LOGGER_NAME, MessageContext, RoutedAgent, event
 
 from autogen_magentic_one.messages import (
     AgentEvent,
@@ -57,7 +57,7 @@ class MagenticOneBaseAgent(RoutedAgent):
             except Exception as e:
                 future.set_exception(e)
 
-    @message_handler
+    @event
     async def handle_incoming_message(
         self,
         message: BroadcastMessage | ResetMessage | DeactivateMessage | RequestReplyMessage,

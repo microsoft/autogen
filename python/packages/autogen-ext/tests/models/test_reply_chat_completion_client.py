@@ -10,7 +10,7 @@ from autogen_core import (
     RoutedAgent,
     SingleThreadedAgentRuntime,
     default_subscription,
-    message_handler,
+    event,
 )
 from autogen_core.models import ChatCompletionClient, CreateResult, SystemMessage, UserMessage
 from autogen_ext.models.replay import ReplayChatCompletionClient
@@ -28,7 +28,7 @@ class LLMAgent(RoutedAgent):
         self._model_client = model_client
         self.num_calls = 0
 
-    @message_handler
+    @event
     async def on_new_message(self, message: ContentMessage, ctx: MessageContext) -> None:
         self._chat_history.append(message)
         self.num_calls += 1

@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 from _semantic_router_components import FinalResult, TerminationMessage, UserProxyMessage, WorkerAgentMessage
-from autogen_core import TRACE_LOGGER_NAME, DefaultTopicId, MessageContext, RoutedAgent, message_handler
+from autogen_core import TRACE_LOGGER_NAME, DefaultTopicId, MessageContext, RoutedAgent, event
 
 logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(f"{TRACE_LOGGER_NAME}.workers")
@@ -13,8 +13,8 @@ class WorkerAgent(RoutedAgent):
         super().__init__("A Worker Agent")
         self._name = name
 
-    @message_handler
-    async def my_message_handler(self, message: UserProxyMessage, ctx: MessageContext) -> None:
+    @event
+    async def my_event(self, message: UserProxyMessage, ctx: MessageContext) -> None:
         assert ctx.topic_id is not None
         logger.debug(f"Received message from {message.source}: {message.content}")
         if "END" in message.content:
@@ -43,7 +43,7 @@ class UserProxyAgent(RoutedAgent):
         super().__init__(description)
 
     # When a conversation ends
-    @message_handler
+    @event
     async def on_terminate(self, message: TerminationMessage, ctx: MessageContext) -> None:
         assert ctx.topic_id is not None
         """Handle a publish now message. This method prompts the user for input, then publishes it."""
@@ -55,7 +55,7 @@ class UserProxyAgent(RoutedAgent):
 
     # When the agent responds back, user proxy adds it to history and then
     # sends to Closure Agent for API to respond
-    @message_handler
+    @event
     async def on_agent_message(self, message: WorkerAgentMessage, ctx: MessageContext) -> None:
         assert ctx.topic_id is not None
         logger.debug(f"Received message from {message.source}: {message.content}")
