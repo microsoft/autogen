@@ -92,13 +92,19 @@ class AgenticMemory:
             details="",
             method_call="AgenticMemory.add_insight_to_memory")
 
+        page.add_lines("\nGIVEN TASK:")
+        page.add_lines(task)
+
+        page.add_lines("\nGIVEN INSIGHT:")
+        page.add_lines(insight)
+
         # Generalize the task.
         generalized_task = await self.prompter.generalize_task(task)
 
         # Get a combined list of topics from the task and insight.
         task_plus_insight = generalized_task.strip() + "\n(Hint:  " + insight + ")"
         topics = await self.prompter.find_index_topics(task_plus_insight)
-        page.add_lines("\nTOPICS EXTRACTED FROM TASK AND INSIGHT:")
+        page.add_lines("\nTOPICS EXTRACTED FROM TASK AND INSIGHT COMBINED:")
         page.add_lines("\n".join(topics))
         page.add_lines("")
 

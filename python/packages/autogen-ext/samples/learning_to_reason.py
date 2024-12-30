@@ -8,11 +8,6 @@ from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.agents.web_surfer._utils import message_content_to_str
 from autogen_agentchat.ui._console import Console
 from autogen_core.models import (
-    AssistantMessage,
-    ChatCompletionClient,
-    FunctionExecutionResult,
-    FunctionExecutionResultMessage,
-    LLMMessage,
     SystemMessage,
     UserMessage,
 )
@@ -24,7 +19,7 @@ from autogen_ext.agentic_memory import AgenticMemory, PageLog, Grader
 
 MEMORY_DIR = "~/agentic_memory_archive"
 PAGELOG_DIR = "~/pagelogs/"
-RUN_SUBDIR = "run_21_cl_base"
+RUN_SUBDIR = "run_27_3_g1_cl"
 
 # Default client parameters
 TEMPERATURE = 0.8
@@ -54,8 +49,13 @@ In the afternoon, you go from house to house, speaking with all 100 residents of
 
     # Task index 2
     tasks_with_answers.append({
-        "task": """Three guards stand at a door. You need to determine how many of them are truthful, and you already know that one of them is not. You ask each one 'How many guards here tell the truth?' Each one says 'One or more of us always tells the truth'. How many of the guards tell the truth?""",
-        "expected_answer": "3"})
+        "task": """Three guards stand at a door. You need to determine how many of them are truthful, and you already know for a fact that at least one of them never tells the truth. You ask each one 'How many guards here always tell the truth?' Each one says 'One or more of us always tells the truth'. How many of the guards always tell the truth?""",
+        "expected_answer": "None of them do"})
+
+    # Task index 3
+    tasks_with_answers.append({
+        "task": """You ask ten people 'How many of you are liars?' They all answer 'At least one of us is not a liar.' You happen to know that at least one of them IS a liar. How many of them are liars in total?""",
+        "expected_answer": "All of them are liars."})
 
     return tasks_with_answers
 
@@ -185,7 +185,7 @@ async def assign_task_to_magentic_one(task, model_client, page_log) -> Tuple[str
     stream = team.run_stream(task=task)
     task_result = await Console(stream)
     response_str = "\n".join([message_content_to_str(message.content) for message in task_result.messages])
-    page.add_lines("-----  RESPONSE  -----\n\n{}\n".format(response_str), flush=True)
+    page.add_lines("\n-----  RESPONSE  -----\n\n{}\n".format(response_str), flush=True)
 
     # MagenticOne's response is the chat history, which we use here as the work history.
     work_history = response_str
@@ -221,7 +221,7 @@ In responding to every user message, you follow the same multi-step process give
                             details="to complete the task", input_messages=input_messages,
                             response=response,
                             num_input_tokens=0, caller='assign_task_to_client')
-    page.add_lines("-----  RESPONSE  -----\n\n{}\n".format(response_str), flush=True)
+    page.add_lines("\n-----  RESPONSE  -----\n\n{}\n".format(response_str), flush=True)
 
     # Use the response as the work history as well.
     work_history = response_str
@@ -290,45 +290,6 @@ async def test(task_with_answer, num_trials, task_assignment_callback, use_memor
     return response, num_successes, num_trials
 
 
-async def train_and_test(task_index, max_train_trials, max_test_trials, task_assignment_callback, client, page_log):
-    page = page_log.begin_page(
-        summary="train_and_test",
-        details='',
-        method_call="train_and_test")
-
-    tasklist = define_tasks_with_answers()
-    task_with_answer = tasklist[task_index]
-
-    num_loops = 10  # Normally 10
-    total_num_successes = 0
-    total_num_trials = 0
-    for i in range(num_loops):
-        await train(
-            task_with_answer=task_with_answer,
-            max_train_trials=max_train_trials,
-            max_test_trials=max_test_trials,
-            task_assignment_callback=task_assignment_callback,
-            reset_memory=True,
-            client=client,
-            page_log=page_log)
-        last_response, num_successes, num_trials = await test(
-            task_with_answer=task_with_answer,
-            num_trials=max_test_trials,
-            task_assignment_callback=task_assignment_callback,
-            use_memory=True,
-            reset_memory=False,
-            client=client,
-            page_log=page_log)
-
-        page.add_lines("Success rate:  {}%\n".format(round((num_successes / num_trials) * 100)), flush=True)
-        print("SUCCESS RATE:  {}%\n".format(round((num_successes / num_trials) * 100)))
-        total_num_successes += num_successes
-        total_num_trials += num_trials
-
-    page_log.finish_page(page)
-    return total_num_successes, total_num_trials
-
-
 async def test_on_task_with_memory(task_index, task_assignment_callback, client, page_log, num_trials, reset_memory):
     last_response, num_successes, num_trials = await test(
         task_with_answer=define_tasks_with_answers()[task_index],
@@ -355,8 +316,49 @@ async def test_on_task(task_index, task_assignment_callback, client, page_log, n
     return num_successes, num_trials
 
 
+async def train_and_test(task_index_list, num_loops, max_train_trials, max_test_trials, task_assignment_callback, client, page_log):
+    page = page_log.begin_page(
+        summary="train_and_test",
+        details='',
+        method_call="train_and_test")
+
+    tasklist = define_tasks_with_answers()
+    task_with_answer_list = [tasklist[task_index] for task_index in task_index_list]
+
+    total_num_successes_list = [0 for _ in task_index_list]
+    for i in range(num_loops):
+        # Always train on the first task.
+        await train(
+            task_with_answer=task_with_answer_list[0],
+            max_train_trials=max_train_trials,
+            max_test_trials=max_test_trials,
+            task_assignment_callback=task_assignment_callback,
+            reset_memory=True,
+            client=client,
+            page_log=page_log)
+
+        # Test on all tasks.
+        for j, task_with_answer in enumerate(task_with_answer_list):
+            last_response, num_successes, num_trials = await test(
+                task_with_answer=task_with_answer,
+                num_trials=max_test_trials,
+                task_assignment_callback=task_assignment_callback,
+                use_memory=True,
+                reset_memory=False,
+                client=client,
+                page_log=page_log)
+            page.add_lines("Success rate ({}):  {}%".format(j, round((num_successes / num_trials) * 100)), flush=True)
+            print("SUCCESS RATE ({}):  {}%\n".format(j, round((num_successes / num_trials) * 100)))
+            total_num_successes_list[j] += num_successes
+
+        page.add_lines("")
+
+    page_log.finish_page(page)
+    return total_num_successes_list
+
+
 async def main() -> None:
-    # Create the PageLog. (This is optional)
+    # Create the PageLog.
     page_log = PageLog(PAGELOG_DIR, RUN_SUBDIR)
     page = page_log.begin_page(
         summary="main",
@@ -366,29 +368,32 @@ async def main() -> None:
     # Create the client.
     client = create_client(page_log)
 
-    # Choose the task from those listed at the top.
-    task_index = 0
+    # Choose the tasks from those listed at the top.
+    task_index_list = [3, 1]
 
     # Choose the client, agent or team to assign the task to.
     task_assignment_callback = assign_task_to_client  # assign_task_to_client or assign_task_to_magentic_one
 
     # Test, without using memory.
-    num_successes, num_trials = await test_on_task(task_index, task_assignment_callback, client, page_log, 50)
+    # num_successes, num_trials = await test_on_task(task_index, task_assignment_callback, client, page_log, 50)
 
     # Test, using memory.
     # num_successes, num_trials = await test_on_task_with_memory(task_index, task_assignment_callback, client, page_log, num_trials=3, reset_memory=True)
 
-    # Train and test, using memory.
-    # num_successes, num_trials = await train_and_test(
-    #     task_index,
-    #     10,  # Normally 10
-    #     3,  # Normally 3
-    #     task_assignment_callback,
-    #     client,
-    #     page_log)
+    # Train and test on any number of tasks using memory.
+    num_loops = 10  # Normally 10
+    total_num_successes_list = await train_and_test(
+        task_index_list,
+        num_loops,
+        10,  # Normally 10
+        3,  # Normally 3
+        task_assignment_callback,
+        client,
+        page_log)
 
-    success_rate = round((num_successes / num_trials) * 100)
-    page.add_lines("\nOverall success rate:  {}%\n".format(success_rate), flush=True)
+    for i, total_num_successes in enumerate(total_num_successes_list):
+        success_rate = round((total_num_successes / num_loops) * 100)
+        page.add_lines("\nOverall success rate ({}):  {}%\n".format(i, success_rate), flush=True)
 
     page_log.flush(final=True)  # Finalize the page log
     page_log.finish_page(page)
