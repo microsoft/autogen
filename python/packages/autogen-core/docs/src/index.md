@@ -71,6 +71,12 @@ pip install "autogen-agentchat==0.4.0.dev12"
 Get Started
 ```
 
+```{button-ref} user-guide/agentchat-user-guide/migration-guide
+:color: secondary
+
+Migration Guide (0.2.x to 0.4.x)
+```
+
 :::
 :::{grid-item-card} {fas}`palette;pst-color-primary` Studio
 :shadow: none

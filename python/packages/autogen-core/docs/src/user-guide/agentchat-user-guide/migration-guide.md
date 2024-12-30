@@ -16,14 +16,14 @@ we highly recommend you upgrade to the `v0.4` version.
 Since the release of AutoGen in 2023, we have intensively listened to our community and users from small startups and large enterprises, gathering much feedback. Based on that feedback, we built AutoGen `v0.4`, a from-the-ground-up rewrite adopting an asynchronous, event-driven architecture to address issues such as observability, flexibility, interactive control, and scale.
 
 The `v0.4` API is layered:
-the [Core API](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/index.html) is the foundation layer offering a scalable, event-driven actor framework for creating agentic workflows;
-the [AgentChat API](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/index.html) is built on Core, offering a task-driven, high-level framework for building interactive agentic applications. It is a replacement for AutoGen `v0.2`.
+the [Core API](../core-user-guide/index.md) is the foundation layer offering a scalable, event-driven actor framework for creating agentic workflows;
+the [AgentChat API](./index.md) is built on Core, offering a task-driven, high-level framework for building interactive agentic applications. It is a replacement for AutoGen `v0.2`.
 
 Most of this guide focuses on `v0.4`'s AgentChat API; however, you can also build your own high-level framework using just the Core API.
 
 ## New to AutoGen?
 
-Jump straight to the [AgentChat Tutorial](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/) to get started with `v0.4`.
+Jump straight to the [AgentChat Tutorial](./tutorial/models.ipynb) to get started with `v0.4`.
 
 ## What's in this guide?
 
@@ -85,7 +85,7 @@ In `v0.4`, we offers two ways to create a model client.
 
 ### Use component config
 
-AutoGen 0.4 has a [generic component configuration system](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/framework/component-config.html). Model clients are a great use case for this. See below for how to create an OpenAI chat completion client.
+AutoGen 0.4 has a [generic component configuration system](../core-user-guide/framework/component-config.ipynb). Model clients are a great use case for this. See below for how to create an OpenAI chat completion client.
 
 ```python
 
@@ -126,12 +126,12 @@ model_client = AzureOpenAIChatCompletionClient(
 )
 ```
 
-Read more on [OpenAI Chat Completion Client Docs](https://microsoft.github.io/autogen/dev/reference/python/autogen_ext.models.openai.html)
+Read more on [OpenAI Chat Completion Client Docs](../../reference/python/autogen_ext.models.openai.rst)
 
 ## Model Client for OpenAI-Compatible APIs
 
 You can use a the `OpenAIChatCompletionClient` to connect to an OpenAI-Compatible API,
-but you need to specify the `base_url` and `model_capabilities`.
+but you need to specify the `base_url` and `model_info`.
 
 ```python
 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -140,7 +140,7 @@ custom_model_client = OpenAIChatCompletionClient(
     model="custom-model-name",
     base_url="https://custom-model.com/reset/of/the/path",
     api_key="placeholder",
-    model_capabilities={
+    model_info={
         "vision": True,
         "function_calling": True,
         "json_output": True,
@@ -152,8 +152,8 @@ custom_model_client = OpenAIChatCompletionClient(
 > works differently from the OpenAI API even though they may claim to suppor it.
 > Please test them before using them.
 
-Read about [Model Clients](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/models.html)
-in AgentChat Tutorial and more detailed information on [Core API Docs](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/framework/model-clients.html)
+Read about [Model Clients](./tutorial/models.ipynb)
+in AgentChat Tutorial and more detailed information on [Core API Docs](../core-user-guide/framework/model-clients.ipynb)
 
 Support for other hosted models will be added in the future.
 
@@ -226,9 +226,9 @@ The `CancellationToken` can be used to cancel the request asynchronously
 when you call `cancellation_token.cancel()`, which will cause the `await`
 on the `on_messages` call to raise a `CancelledError`.
 
-Read more on [Agent Tutorial](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/agents.html)
+Read more on [Agent Tutorial](./tutorial/agents.ipynb)
 and
-[Assistant Agent Docs](https://microsoft.github.io/autogen/dev/reference/python/autogen_agentchat.agents.html#autogen_agentchat.agents.AssistantAgent).
+[Assistant Agent Docs](../../reference/python/autogen_agentchat.agents.rst#autogen_agentchat.agents.AssistantAgent).
 
 ## Multi-Modal Agent
 
@@ -291,7 +291,7 @@ from autogen_agentchat.agents import UserProxyAgent
 user_proxy = UserProxyAgent("user_proxy")
 ```
 
-See [User Proxy Agent Docs](https://microsoft.github.io/autogen/dev/reference/python/autogen_agentchat.agents.html#autogen_agentchat.agents.UserProxyAgent)
+See [User Proxy Agent Docs](../../reference/python/autogen_agentchat.agents.rst#autogen_agentchat.agents.UserProxyAgent)
 for more details and how to customize the input function with timeout.
 
 ## Conversable Agent and Register Reply
@@ -356,7 +356,7 @@ class CustomAgent(BaseChatAgent):
 ```
 
 You can then use the custom agent in the same way as the `AssistantAgent`.
-See [Custom Agent Tutorial](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/custom-agents.html)
+See [Custom Agent Tutorial](./tutorial/custom-agents.ipynb)
 for more details.
 
 ## Save and Load Agent State
@@ -600,7 +600,7 @@ There are some notable differences between `TaskResult` and `ChatResult`:
 - The `messages` list in `TaskResult` uses different message format than the `ChatResult.chat_history` list.
 - There is no `summary` field. It is up to the application to decide how to summarize the chat using the `messages` list.
 - `human_input` is not provided in the `TaskResult` object, as the user input can be extracted from the `messages` list by filtering with the `source` field.
-- `cost` is not provided in the `TaskResult` object, however, you can calculate the cost based on token usage. It would be a great community extension to add cost calculation. See [community extensions](https://microsoft.github.io/autogen/dev/user-guide/extensions-user-guide/discover.html).
+- `cost` is not provided in the `TaskResult` object, however, you can calculate the cost based on token usage. It would be a great community extension to add cost calculation. See [community extensions](../extensions-user-guide/discover.md).
 
 ## Conversion between v0.2 and v0.4 Messages
 
@@ -805,9 +805,9 @@ asyncio.run(main())
 ```
 
 For LLM-based speaker selection, you can use the `SelectorGroupChat` instead.
-See [Selector Group Chat Tutorial](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/selector-group-chat.html)
+See [Selector Group Chat Tutorial](./tutorial/selector-group-chat.ipynb)
 and
-[Selector Group Chat Docs](https://microsoft.github.io/autogen/dev/reference/python/autogen_agentchat.teams.html#autogen_agentchat.teams.SelectorGroupChat)
+[Selector Group Chat Docs](../../reference/python/autogen_agentchat.teams.rst#autogen_agentchat.teams.SelectorGroupChat)
 for more details.
 
 > **Note**: In `v0.4`, you do not need to register functions on a user proxy to use tools
@@ -1111,7 +1111,7 @@ source='counting_agent_2' models_usage=None content='5' type='TextMessage'
 source='counting_agent_1' models_usage=None content='6' type='TextMessage'
 ```
 
-You can take a look at [Society of Mind Agent (Experimental)](https://microsoft.github.io/autogen/dev/reference/python/autogen_agentchat.agents.html#autogen_agentchat.agents.SocietyOfMindAgent) for a more complex implementation.
+You can take a look at [Society of Mind Agent (Experimental)](../../reference/python/autogen_agentchat.agents.rst#autogen_agentchat.agents.SocietyOfMindAgent) for a more complex implementation.
 
 ## Sequential Chat
 
@@ -1128,7 +1128,7 @@ Therefore, in `v0.4`, we do not provide a built-in function for sequential chat 
 
 Instead, you can create an event-driven sequential workflow using the Core API,
 and use the other components provided the AgentChat API to implement each step of the workflow.
-See an example of sequential workflow in the [Core API Tutorial](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/design-patterns/sequential-workflow.html).
+See an example of sequential workflow in the [Core API Tutorial](../core-user-guide/design-patterns/sequential-workflow.ipynb).
 
 We recognize that the concept of workflow is at the heart of many applications,
 and we will provide more built-in support for workflows in the future.
@@ -1140,7 +1140,7 @@ In `v0.2`, `GPTAssistantAgent` is a special agent class that is backed by the Op
 In `v0.4`, the equivalent is the `OpenAIAssistantAgent` class.
 It supports the same set of features as the `GPTAssistantAgent` in `v0.2` with
 more such as customizable threads and file uploads.
-See [OpenAI Assistant Agent Docs](https://microsoft.github.io/autogen/dev/reference/python/autogen_ext.agents.openai.html#autogen_ext.agents.openai.OpenAIAssistantAgent) for more details.
+See [OpenAI Assistant Agent Docs](../../reference/python/autogen_ext.agents.openai.rst#autogen_ext.agents.openai.OpenAIAssistantAgent) for more details.
 
 ## Long Context Handling
 
@@ -1199,12 +1199,12 @@ Your application can use these streams to observe the agents and teams in real-t
 Both the `on_messages_stream` and `run_stream` methods takes a `CancellationToken` as a parameter
 which can be used to cancel the output stream asynchronously and stop the agent or team.
 For teams, you can also use termination conditions to stop the team when a certain condition is met.
-See [Termination Condition Tutorial](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/termination.html)
+See [Termination Condition Tutorial](./tutorial/termination.ipynb)
 for more details.
 
 Unlike the `v0.2` which comes with a special logging module, the `v0.4` API
 simply uses Python's `logging` module to log events such as model client calls.
-See [Logging](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/framework/logging.html)
+See [Logging](../core-user-guide/framework/logging.md)
 in the Core API documentation for more details.
 
 ## Code Executors
@@ -1212,9 +1212,9 @@ in the Core API documentation for more details.
 The code executors in `v0.2` and `v0.4` are nearly identical except
 the `v0.4` executors support async API. You can also use
 `CancellationToken` to cancel a code execution if it takes too long.
-See [Command Line Code Executors Tutorial](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/framework/command-line-code-executors.html)
+See [Command Line Code Executors Tutorial](../core-user-guide/framework/command-line-code-executors.ipynb)
 in the Core API documentation.
 
 We also added `AzureContainerCodeExecutor` that can use Azure Container Apps (ACA)
 dynamic sessions for code execution.
-See [ACA Dynamic Sessions Code Executor Docs](https://microsoft.github.io/autogen/dev/user-guide/extensions-user-guide/azure-container-code-executor.html).
+See [ACA Dynamic Sessions Code Executor Docs](../extensions-user-guide/azure-container-code-executor.ipynb).
