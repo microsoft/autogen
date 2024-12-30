@@ -6,7 +6,7 @@ import logging
 import threading
 import uuid
 import warnings
-from asyncio import CancelledError, Future, Task
+from asyncio import CancelledError, Future, Queue, Task
 from collections.abc import Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -172,7 +172,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         tracer_provider: TracerProvider | None = None,
     ) -> None:
         self._tracer_helper = TraceHelper(tracer_provider, MessageRuntimeTracingConfig("SingleThreadedAgentRuntime"))
-        self._message_queue: List[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope] = []
+        self._message_queue: Queue[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope] = Queue()
         # (namespace, type) -> List[AgentId]
         self._agent_factories: Dict[
             str, Callable[[], Agent | Awaitable[Agent]] | Callable[[AgentRuntime, AgentId], Agent | Awaitable[Agent]]
@@ -186,10 +186,10 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         self._serialization_registry = SerializationRegistry()
 
     @property
-    def unprocessed_messages(
+    def unprocessed_messages_count(
         self,
-    ) -> Sequence[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope]:
-        return self._message_queue
+    ) -> int:
+        return self._message_queue.qsize()
 
     @property
     def outstanding_tasks(self) -> int:
@@ -234,7 +234,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             content = message.__dict__ if hasattr(message, "__dict__") else message
             logger.info(f"Sending message of type {type(message).__name__} to {recipient.type}: {content}")
 
-            self._message_queue.append(
+            await self._message_queue.put(
                 SendMessageEnvelope(
                     message=message,
                     recipient=recipient,
@@ -282,7 +282,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             #     )
             # )
 
-            self._message_queue.append(
+            await self._message_queue.put(
                 PublishMessageEnvelope(
                     message=message,
                     cancellation_token=cancellation_token,
@@ -350,7 +350,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 self._outstanding_tasks.decrement()
                 return
 
-            self._message_queue.append(
+            await self._message_queue.put(
                 ResponseMessageEnvelope(
                     message=response,
                     future=message_envelope.future,
@@ -443,11 +443,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     async def process_next(self) -> None:
         """Process the next message in the queue."""
 
-        if len(self._message_queue) == 0:
-            # Yield control to the event loop to allow other tasks to run
-            await asyncio.sleep(0)
-            return
-        message_envelope = self._message_queue.pop(0)
+        message_envelope = await self._message_queue.get()
 
         match message_envelope:
             case SendMessageEnvelope(message=message, sender=sender, recipient=recipient, future=future):
@@ -520,7 +516,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
     @property
     def idle(self) -> bool:
-        return len(self._message_queue) == 0 and self._outstanding_tasks.get() == 0
+        return self._message_queue.qsize() == 0 and self._outstanding_tasks.get() == 0
 
     def start(self) -> None:
         """Start the runtime message processing loop."""

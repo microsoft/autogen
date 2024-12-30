@@ -71,7 +71,7 @@ async def test_cancellation_with_token() -> None:
     response = asyncio.create_task(runtime.send_message(MessageType(), recipient=agent_id, cancellation_token=token))
     assert not response.done()
 
-    while len(runtime.unprocessed_messages) == 0:
+    while runtime.unprocessed_messages_count == 0:
         await asyncio.sleep(0.01)
 
     await runtime.process_next()
@@ -104,7 +104,7 @@ async def test_nested_cancellation_only_outer_called() -> None:
     response = asyncio.create_task(runtime.send_message(MessageType(), nested_id, cancellation_token=token))
     assert not response.done()
 
-    while len(runtime.unprocessed_messages) == 0:
+    while runtime.unprocessed_messages_count == 0:
         await asyncio.sleep(0.01)
 
     await runtime.process_next()
@@ -140,7 +140,7 @@ async def test_nested_cancellation_inner_called() -> None:
     response = asyncio.create_task(runtime.send_message(MessageType(), nested_id, cancellation_token=token))
     assert not response.done()
 
-    while len(runtime.unprocessed_messages) == 0:
+    while runtime.unprocessed_messages_count == 0:
         await asyncio.sleep(0.01)
 
     await runtime.process_next()
