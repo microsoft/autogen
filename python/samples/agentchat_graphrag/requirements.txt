@@ -1,2 +1,2 @@
-autogen-agentchat==0.4.0.dev11
+autogen-agentchat==0.4.0.dev12
 autogen-ext[graphrag]==0.4.0.dev11
