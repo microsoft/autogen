@@ -13,7 +13,7 @@ _global_lock = threading.Lock()
 class _LoopBoundMixin:
     _loop = None
 
-    def _get_loop(self):
+    def _get_loop(self) -> asyncio.AbstractEventLoop:
         loop = asyncio.get_running_loop()
 
         if self._loop is None:
@@ -63,13 +63,13 @@ class Queue(_LoopBoundMixin, Generic[T]):
                 waiter.set_result(None)
                 break
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"<{type(self).__name__} at {id(self):#x} {self._format()}>"
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"<{type(self).__name__} {self._format()}>"
 
-    def _format(self):
+    def _format(self) -> str:
         result = f"maxsize={self._maxsize!r}"
         if getattr(self, "_queue", None):
             result += f" _queue={list(self._queue)!r}"
@@ -83,20 +83,20 @@ class Queue(_LoopBoundMixin, Generic[T]):
             result += " shutdown"
         return result
 
-    def qsize(self):
+    def qsize(self) -> int:
         """Number of items in the queue."""
         return len(self._queue)
 
     @property
-    def maxsize(self):
+    def maxsize(self) -> int:
         """Number of items allowed in the queue."""
         return self._maxsize
 
-    def empty(self):
+    def empty(self)-> bool:
         """Return True if the queue is empty, False otherwise."""
         return not self._queue
 
-    def full(self):
+    def full(self) -> bool:
         """Return True if there are maxsize items in the queue.
 
         Note: if the Queue was initialized with maxsize=0 (the default),
