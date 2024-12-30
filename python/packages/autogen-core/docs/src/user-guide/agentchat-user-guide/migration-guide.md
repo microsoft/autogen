@@ -145,7 +145,7 @@ custom_model_client = OpenAIChatCompletionClient(
         "vision": True,
         "function_calling": True,
         "json_output": True,
-        "model_family": "unknown",
+        "family": "unknown",
     },
 )
 ```
