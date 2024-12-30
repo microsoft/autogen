@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Any, AsyncGenerator, Mapping, Protocol, Sequence, Tuple, runtime_checkable
+from typing import Any, AsyncGenerator, Mapping, Protocol, Sequence, runtime_checkable
 
 from autogen_core import CancellationToken
 
@@ -37,7 +37,7 @@ class ChatAgent(TaskRunner, Protocol):
         ...
 
     @property
-    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         """The types of messages that the agent produces in the
         :attr:`Response.chat_message` field. They must be :class:`ChatMessage` types."""
         ...
