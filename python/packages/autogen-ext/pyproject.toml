@@ -58,7 +58,8 @@ packages = ["src/autogen_ext"]
 
 [dependency-groups]
 dev = [
-    "autogen_test_utils"
+    "autogen_test_utils",
+    "langchain-experimental",
 ]
 
 [tool.ruff]

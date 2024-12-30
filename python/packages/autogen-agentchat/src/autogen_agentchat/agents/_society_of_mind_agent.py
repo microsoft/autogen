@@ -1,4 +1,4 @@
-from typing import Any, AsyncGenerator, List, Mapping, Sequence, Tuple
+from typing import Any, AsyncGenerator, List, Mapping, Sequence
 
 from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
@@ -103,7 +103,7 @@ class SocietyOfMindAgent(BaseChatAgent):
         self._response_prompt = response_prompt
 
     @property
-    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         return (TextMessage,)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:

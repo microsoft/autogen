@@ -11,7 +11,6 @@ from typing import (
     List,
     Mapping,
     Sequence,
-    Tuple,
 )
 
 from autogen_core import CancellationToken, FunctionCall
@@ -72,13 +71,17 @@ class AssistantAgent(BaseChatAgent):
     the inner messages as they are created, and the :class:`~autogen_agentchat.base.Response`
     object as the last item before closing the generator.
 
-
     .. note::
 
         The caller must only pass the new messages to the agent on each call
         to the :meth:`on_messages` or :meth:`on_messages_stream` method.
         The agent maintains its state between calls to these methods.
         Do not pass the entire conversation history to the agent on each call.
+
+    .. note::
+        The assistant agent is not thread-safe or coroutine-safe.
+        It should not be shared between multiple tasks or coroutines, and it should
+        not call its methods concurrently.
 
     Tool call behavior:
 
@@ -87,6 +90,12 @@ class AssistantAgent(BaseChatAgent):
         - When `reflect_on_tool_use` is False (default), the tool call results are returned as a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. `tool_call_summary_format` can be used to customize the tool call summary.
         - When `reflect_on_tool_use` is True, the another model inference is made using the tool calls and results, and the text response is returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
 
+    .. note::
+        By default, the tool call results are returned as response when tool calls are made.
+        So it is recommended to pay attention to the formatting of the tools return values,
+        especially if another agent is expecting them in a specific format.
+        Use `tool_call_summary_format` to customize the tool call summary, if needed.
+
     Hand off behavior:
 
     * If a handoff is triggered, a :class:`~autogen_agentchat.messages.HandoffMessage` will be returned in :attr:`~autogen_agentchat.base.Response.chat_message`.
@@ -94,18 +103,15 @@ class AssistantAgent(BaseChatAgent):
 
 
     .. note::
-        The assistant agent is not thread-safe or coroutine-safe.
-        It should not be shared between multiple tasks or coroutines, and it should
-        not call its methods concurrently.
-
-    .. note::
-        By default, the tool call results are returned as response when tool calls are made.
-        So it is recommended to pay attention to the formatting of the tools return values,
-        especially if another agent is expecting them in a specific format.
-        Use `tool_call_summary_format` to customize the tool call summary, if needed.
-
-    .. note::
         If multiple handoffs are detected, only the first handoff is executed.
+
+
+    Limit context size sent to the model:
+
+    You can limit the number of messages sent to the model by setting
+    the `model_context` parameter to a :class:`~autogen_core.model_context.BufferedChatCompletionContext`.
+    This will limit the number of recent messages sent to the model and can be useful
+    when the model has a limit on the number of tokens it can process.
 
 
     Args:
@@ -296,14 +302,16 @@ class AssistantAgent(BaseChatAgent):
             raise ValueError(
                 f"Handoff names must be unique from tool names. Handoff names: {handoff_tool_names}; tool names: {tool_names}"
             )
-        if not model_context:
+        if model_context is not None:
+            self._model_context = model_context
+        else:
             self._model_context = UnboundedChatCompletionContext()
         self._reflect_on_tool_use = reflect_on_tool_use
         self._tool_call_summary_format = tool_call_summary_format
         self._is_running = False
 
     @property
-    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         """The types of messages that the assistant agent produces."""
         message_types: List[type[ChatMessage]] = [TextMessage]
         if self._handoffs:
