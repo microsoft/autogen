@@ -32,7 +32,7 @@ Build your first agent
 :::
 
 :::{grid-item-card} {fas}`graduation-cap;pst-color-primary` Tutorial
-:link: ./tutorial/index.html
+:link: ./tutorial/models.html
 
 Step-by-step guide to using AgentChat
 :::
@@ -61,6 +61,7 @@ tutorial/models
 tutorial/messages
 tutorial/agents
 tutorial/teams
+tutorial/human-in-the-loop
 tutorial/selector-group-chat
 tutorial/swarm
 tutorial/termination
@@ -75,4 +76,3 @@ tutorial/state
 
 examples/index
 ```
-

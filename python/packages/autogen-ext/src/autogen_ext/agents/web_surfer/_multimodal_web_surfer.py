@@ -15,7 +15,6 @@ from typing import (
     List,
     Optional,
     Sequence,
-    Tuple,
     cast,
 )
 from urllib.parse import quote_plus
@@ -184,11 +183,11 @@ class MultimodalWebSurfer(BaseChatAgent):
             raise ValueError(
                 "Cannot save screenshots without a debug directory. Set it using the 'debug_dir' parameter. The debug directory is created if it does not exist."
             )
-        if model_client.capabilities["function_calling"] is False:
+        if model_client.model_info["function_calling"] is False:
             raise ValueError(
                 "The model does not support function calling. MultimodalWebSurfer requires a model that supports function calling."
             )
-        if model_client.capabilities["vision"] is False:
+        if model_client.model_info["vision"] is False:
             raise ValueError("The model is not multimodal. MultimodalWebSurfer requires a multimodal model.")
         self._model_client = model_client
         self.headless = headless
@@ -322,7 +321,7 @@ class MultimodalWebSurfer(BaseChatAgent):
             )
 
     @property
-    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         return (MultiModalMessage,)
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:

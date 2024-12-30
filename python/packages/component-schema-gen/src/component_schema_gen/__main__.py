@@ -53,7 +53,7 @@ def build_specific_component_schema(component: type[ComponentConfigImpl[T]], pro
     return component_model_schema
 
 
-def main():
+def main() -> None:
     outer_model_schema: Dict[str, Any] = {
         "type": "object",
         "$ref": "#/$defs/ComponentModel",
@@ -69,7 +69,7 @@ def main():
     for key, value in WELL_KNOWN_PROVIDERS.items():
         reverse_provider_lookup_table[value].append(key)
 
-    def add_type(type: type[ComponentConfigImpl[T]]):
+    def add_type(type: type[ComponentConfigImpl[T]]) -> None:
         canonical = type.component_provider_override or _type_to_provider_str(type)
         reverse_provider_lookup_table[canonical].append(canonical)
         for provider_str in reverse_provider_lookup_table[canonical]:

@@ -9,7 +9,7 @@ from autogen_core import Image
 from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
     ChatCompletionClient,
-    ModelCapabilities,
+    ModelCapabilities,  # type: ignore
 )
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 
@@ -54,7 +54,7 @@ def create_completion_client_from_env(env: Dict[str, str] | None = None, **kwarg
 
     # If model capabilities were provided, deserialize them as well
     if "model_capabilities" in _kwargs:
-        _kwargs["model_capabilities"] = ModelCapabilities(
+        _kwargs["model_capabilities"] = ModelCapabilities(  # type: ignore
             vision=_kwargs["model_capabilities"].get("vision"),
             function_calling=_kwargs["model_capabilities"].get("function_calling"),
             json_output=_kwargs["model_capabilities"].get("json_output"),

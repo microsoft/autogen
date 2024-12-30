@@ -5,21 +5,20 @@
 
 [![Twitter](https://img.shields.io/twitter/url/https/twitter.com/cloudposse.svg?style=social&label=Follow%20%40pyautogen)](https://twitter.com/pyautogen) [![LinkedIn](https://img.shields.io/badge/LinkedIn-Company?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/company/105812540) [![Discord](https://img.shields.io/badge/discord-chat-green?logo=discord)](https://aka.ms/autogen-discord) [![GitHub Discussions](https://img.shields.io/badge/Discussions-Q%26A-green?logo=github)](https://github.com/microsoft/autogen/discussions) [![0.2 Docs](https://img.shields.io/badge/Docs-0.2-blue)](https://microsoft.github.io/autogen/0.2/) [![0.4 Docs](https://img.shields.io/badge/Docs-0.4-blue)](https://microsoft.github.io/autogen/dev/)
 
-[![PyPi autogen-core](https://img.shields.io/badge/PyPi-autogen--core-blue?logo=pypi)](https://pypi.org/project/autogen-core/0.4.0.dev11/) [![PyPi autogen-agentchat](https://img.shields.io/badge/PyPi-autogen--agentchat-blue?logo=pypi)](https://pypi.org/project/autogen-agentchat/0.4.0.dev11/) [![PyPi autogen-ext](https://img.shields.io/badge/PyPi-autogen--ext-blue?logo=pypi)](https://pypi.org/project/autogen-ext/0.4.0.dev11/)
+[![PyPi autogen-core](https://img.shields.io/badge/PyPi-autogen--core-blue?logo=pypi)](https://pypi.org/project/autogen-core/0.4.0.dev12/) [![PyPi autogen-agentchat](https://img.shields.io/badge/PyPi-autogen--agentchat-blue?logo=pypi)](https://pypi.org/project/autogen-agentchat/0.4.0.dev12/) [![PyPi autogen-ext](https://img.shields.io/badge/PyPi-autogen--ext-blue?logo=pypi)](https://pypi.org/project/autogen-ext/0.4.0.dev12/)
 </div>
 
 # AutoGen
 
 > [!IMPORTANT]
 >
-> - (12/19/24) Hello! 
+> - (12/19/24) Hello!
 The majority of the AutoGen Team members will be resting and recharging with family and friends over the holiday period. Activity/responses on the project may be delayed during the period of Dec 20-Jan 06. We will be excited to engage with you in the new year!
 > - (12/11/24) We have created a new Discord server for the AutoGen community. Join us at [aka.ms/autogen-discord](https://aka.ms/autogen-discord).
 > - (11/14/24) ⚠️ In response to a number of asks to clarify and distinguish between official AutoGen and its forks that created confusion, we issued a [clarification statement](https://github.com/microsoft/autogen/discussions/4217).
 > - (10/13/24) Interested in the standard AutoGen as a prior user? Find it at the actively-maintained *AutoGen* [0.2 branch](https://github.com/microsoft/autogen/tree/0.2) and `autogen-agentchat~=0.2` PyPi package.
 > - (10/02/24) [AutoGen 0.4](https://microsoft.github.io/autogen/dev) is a from-the-ground-up rewrite of AutoGen. Learn more about the history, goals and future at [this blog post](https://microsoft.github.io/autogen/blog). We’re excited to work with the community to gather feedback, refine, and improve the project before we officially release 0.4. This is a big change, so AutoGen 0.2 is still available, maintained, and developed in the [0.2 branch](https://github.com/microsoft/autogen/tree/0.2).
 > - *[Join us for Community Office Hours](https://github.com/microsoft/autogen/discussions/4059)* We will host a weekly open discussion to answer questions, talk about Roadmap, etc.
-
 
 AutoGen is an open-source framework for building AI agent systems.
 It simplifies the creation of event-driven, distributed, scalable, and resilient agentic applications.
@@ -108,7 +107,7 @@ We look forward to your contributions!
 First install the packages:
 
 ```bash
-pip install "autogen-agentchat==0.4.0.dev11" "autogen-ext[openai]==0.4.0.dev11"
+pip install "autogen-agentchat==0.4.0.dev12" "autogen-ext[openai]==0.4.0.dev12"
 ```
 
 The following code uses OpenAI's GPT-4o model and you need to provide your
