@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, List, Mapping, Sequence, Tuple
+from typing import Any, AsyncGenerator, List, Mapping, Sequence
 
 from autogen_core import CancellationToken
 
@@ -56,7 +56,7 @@ class BaseChatAgent(ChatAgent, ABC):
 
     @property
     @abstractmethod
-    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         """The types of messages that the agent produces in the
         :attr:`Response.chat_message` field. They must be :class:`ChatMessage` types."""
         ...

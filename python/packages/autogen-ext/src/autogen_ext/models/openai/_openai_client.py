@@ -37,7 +37,9 @@ from autogen_core.models import (
     CreateResult,
     FunctionExecutionResultMessage,
     LLMMessage,
-    ModelCapabilities,
+    ModelCapabilities,  # type: ignore
+    ModelFamily,
+    ModelInfo,
     RequestUsage,
     SystemMessage,
     TopLogprob,
@@ -94,32 +96,6 @@ required_create_args: Set[str] = set(["model"])
 def _azure_openai_client_from_config(config: Mapping[str, Any]) -> AsyncAzureOpenAI:
     # Take a copy
     copied_config = dict(config).copy()
-
-    import warnings
-
-    if "azure_deployment" not in copied_config and "model" in copied_config:
-        warnings.warn(
-            "Previous behavior of using the model name as the deployment name is deprecated and will be removed in 0.4. Please specify azure_deployment",
-            stacklevel=2,
-        )
-
-    if "azure_endpoint" not in copied_config and "base_url" in copied_config:
-        warnings.warn(
-            "Previous behavior of using the base_url as the endpoint is deprecated and will be removed in 0.4. Please specify azure_endpoint",
-            stacklevel=2,
-        )
-
-    # Do some fixups
-    copied_config["azure_deployment"] = copied_config.get("azure_deployment", config.get("model"))
-    if copied_config["azure_deployment"] is not None:
-        if "." in copied_config["azure_deployment"]:
-            warnings.warn(
-                "Previous behavior stripping '.' from the deployment name is deprecated and will be removed in 0.4",
-                stacklevel=2,
-            )
-            copied_config["azure_deployment"] = copied_config["azure_deployment"].replace(".", "")
-    copied_config["azure_endpoint"] = copied_config.get("azure_endpoint", copied_config.pop("base_url", None))
-
     # Shave down the config to just the AzureOpenAIChatCompletionClient kwargs
     azure_config = {k: v for k, v in copied_config.items() if k in aopenai_init_kwargs}
     return AsyncAzureOpenAI(**azure_config)
@@ -357,16 +333,24 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         client: Union[AsyncOpenAI, AsyncAzureOpenAI],
         *,
         create_args: Dict[str, Any],
-        model_capabilities: Optional[ModelCapabilities] = None,
+        model_capabilities: Optional[ModelCapabilities] = None,  # type: ignore
+        model_info: Optional[ModelInfo] = None,
     ):
         self._client = client
-        if model_capabilities is None:
+        if model_capabilities is None and model_info is None:
             try:
-                self._model_capabilities = _model_info.get_capabilities(create_args["model"])
+                self._model_info = _model_info.get_info(create_args["model"])
             except KeyError as err:
-                raise ValueError("model_capabilities is required when model name is not a valid OpenAI model") from err
-        else:
-            self._model_capabilities = model_capabilities
+                raise ValueError("model_info is required when model name is not a valid OpenAI model") from err
+        elif model_capabilities is not None and model_info is not None:
+            raise ValueError("model_capabilities and model_info are mutually exclusive")
+        elif model_capabilities is not None and model_info is None:
+            warnings.warn("model_capabilities is deprecated, use model_info instead", DeprecationWarning, stacklevel=2)
+            info = cast(ModelInfo, model_capabilities)
+            info["family"] = ModelFamily.UNKNOWN
+            self._model_info = info
+        elif model_capabilities is None and model_info is not None:
+            self._model_info = model_info
 
         self._resolved_model: Optional[str] = None
         if "model" in create_args:
@@ -375,7 +359,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if (
             "response_format" in create_args
             and create_args["response_format"]["type"] == "json_object"
-            and not self._model_capabilities["json_output"]
+            and not self._model_info["json_output"]
         ):
             raise ValueError("Model does not support JSON output")
 
@@ -574,8 +558,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             logprobs=logprobs,
         )
 
-        _add_usage(self._actual_usage, usage)
-        _add_usage(self._total_usage, usage)
+        self._total_usage = _add_usage(self._total_usage, usage)
+        self._actual_usage = _add_usage(self._actual_usage, usage)
 
         # TODO - why is this cast needed?
         return response
@@ -791,8 +775,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             logprobs=logprobs,
         )
 
-        _add_usage(self._actual_usage, usage)
-        _add_usage(self._total_usage, usage)
+        self._total_usage = _add_usage(self._total_usage, usage)
+        self._actual_usage = _add_usage(self._actual_usage, usage)
 
         yield result
 
@@ -896,8 +880,13 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         return token_limit - self.count_tokens(messages, tools=tools)
 
     @property
-    def capabilities(self) -> ModelCapabilities:
-        return self._model_capabilities
+    def capabilities(self) -> ModelCapabilities:  # type: ignore
+        warnings.warn("capabilities is deprecated, use model_info instead", DeprecationWarning, stacklevel=2)
+        return self._model_info
+
+    @property
+    def model_info(self) -> ModelInfo:
+        return self._model_info
 
 
 class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenAIClientConfigurationConfigModel]):
@@ -967,16 +956,23 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         if "model" not in kwargs:
             raise ValueError("model is required for OpenAIChatCompletionClient")
 
-        model_capabilities: Optional[ModelCapabilities] = None
+        model_capabilities: Optional[ModelCapabilities] = None  # type: ignore
         copied_args = dict(kwargs).copy()
         if "model_capabilities" in kwargs:
             model_capabilities = kwargs["model_capabilities"]
             del copied_args["model_capabilities"]
 
+        model_info: Optional[ModelInfo] = None
+        if "model_info" in kwargs:
+            model_info = kwargs["model_info"]
+            del copied_args["model_info"]
+
         client = _openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
         self._raw_config: Dict[str, Any] = copied_args
-        super().__init__(client=client, create_args=create_args, model_capabilities=model_capabilities)
+        super().__init__(
+            client=client, create_args=create_args, model_capabilities=model_capabilities, model_info=model_info
+        )
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
@@ -1052,16 +1048,23 @@ class AzureOpenAIChatCompletionClient(
     component_provider_override = "autogen_ext.models.openai.AzureOpenAIChatCompletionClient"
 
     def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
-        model_capabilities: Optional[ModelCapabilities] = None
+        model_capabilities: Optional[ModelCapabilities] = None  # type: ignore
         copied_args = dict(kwargs).copy()
         if "model_capabilities" in kwargs:
             model_capabilities = kwargs["model_capabilities"]
             del copied_args["model_capabilities"]
 
+        model_info: Optional[ModelInfo] = None
+        if "model_info" in kwargs:
+            model_info = kwargs["model_info"]
+            del copied_args["model_info"]
+
         client = _azure_openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
         self._raw_config: Dict[str, Any] = copied_args
-        super().__init__(client=client, create_args=create_args, model_capabilities=model_capabilities)
+        super().__init__(
+            client=client, create_args=create_args, model_capabilities=model_capabilities, model_info=model_info
+        )
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
