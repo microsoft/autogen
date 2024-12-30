@@ -94,32 +94,6 @@ required_create_args: Set[str] = set(["model"])
 def _azure_openai_client_from_config(config: Mapping[str, Any]) -> AsyncAzureOpenAI:
     # Take a copy
     copied_config = dict(config).copy()
-
-    import warnings
-
-    if "azure_deployment" not in copied_config and "model" in copied_config:
-        warnings.warn(
-            "Previous behavior of using the model name as the deployment name is deprecated and will be removed in 0.4. Please specify azure_deployment",
-            stacklevel=2,
-        )
-
-    if "azure_endpoint" not in copied_config and "base_url" in copied_config:
-        warnings.warn(
-            "Previous behavior of using the base_url as the endpoint is deprecated and will be removed in 0.4. Please specify azure_endpoint",
-            stacklevel=2,
-        )
-
-    # Do some fixups
-    copied_config["azure_deployment"] = copied_config.get("azure_deployment", config.get("model"))
-    if copied_config["azure_deployment"] is not None:
-        if "." in copied_config["azure_deployment"]:
-            warnings.warn(
-                "Previous behavior stripping '.' from the deployment name is deprecated and will be removed in 0.4",
-                stacklevel=2,
-            )
-            copied_config["azure_deployment"] = copied_config["azure_deployment"].replace(".", "")
-    copied_config["azure_endpoint"] = copied_config.get("azure_endpoint", copied_config.pop("base_url", None))
-
     # Shave down the config to just the AzureOpenAIChatCompletionClient kwargs
     azure_config = {k: v for k, v in copied_config.items() if k in aopenai_init_kwargs}
     return AsyncAzureOpenAI(**azure_config)
