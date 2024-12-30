@@ -44,6 +44,7 @@ See each feature below for detailed information on how to migrate.
 - [Conversion between v0.2 and v0.4 Messages](#conversion-between-v02-and-v04-messages)
 - [Group Chat](#group-chat)
 - [Group Chat with Resume](#group-chat-with-resume)
+- [Save and Load Group Chat State](#save-and-load-group-chat-state)
 - [Group Chat with Custom Selector (Stateflow)](#group-chat-with-custom-selector-stateflow)
 - [Nested Chat](#nested-chat)
 - [Sequential Chat](#sequential-chat)
@@ -364,7 +365,56 @@ In `v0.2` there is no built-in way to save and load an agent's state: you need
 to implement it yourself by exporting the `chat_messages` attribute of `ConversableAgent`
 and importing it back through the `chat_messages` parameter.
 
-In `v0.4` you can 
+In `v0.4`, you can call `save_state` and `load_state` methods on agents to save and load their state.
+
+```python
+import asyncio
+import json
+from autogen_agentchat.messages import TextMessage
+from autogen_agentchat.agents import AssistantAgent
+from autogen_core import CancellationToken
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+async def main() -> None:
+    model_client = OpenAIChatCompletionClient(model="gpt-4o", seed=42, temperature=0)
+
+    assistant = AssistantAgent(
+        name="assistant",
+        system_message="You are a helpful assistant.",
+        model_client=model_client,
+    )
+
+    cancellation_token = CancellationToken()
+    response = await assistant.on_messages([TextMessage(content="Hello!", source="user")], cancellation_token)
+    print(response)
+
+    # Save the state.
+    state = await assistant.save_state(cancellation_token)
+
+    # (Optional) Write state to disk.
+    with open("assistant_state.json", "w") as f:
+        json.dump(state, f)
+    
+    # (Optional) Load it back from disk.
+    with open("assistant_state.json", "r") as f:
+        state = json.load(f)
+        print(state) # Inspect the state, which contains the chat history.
+
+    # Carry on the chat. 
+    response = await assistant.on_messages([TextMessage(content="Tell me a joke.", source="user")], cancellation_token)
+    print(response)
+
+    # Load the state, resulting the agent to revert to the previous state before the last message.
+    await assistant.load_state(state)
+
+    # Carry on the same chat again.
+    response = await assistant.on_messages([TextMessage(content="Tell me a joke.", source="user")], cancellation_token)
+
+asyncio.run(main())
+```
+
+You can also call `save_state` and `load_state` on any teams, such as `RoundRobinGroupChat`
+to save and load the state of the entire team.
 
 ## Two-Agent Chat
 
@@ -837,6 +887,13 @@ async def main() -> None:
 
 asyncio.run(main())
 ```
+
+## Save and Load Group Chat State
+
+In `v0.2`, you need to explicitly save the group chat messages and load them back when you want to resume the chat.
+
+In `v0.4`, you can simply call `save_state` and `load_state` methods on the group chat object.
+See [Group Chat with Resume](#group-chat-with-resume) for an example.
 
 ## Group Chat with Custom Selector (Stateflow)
 
