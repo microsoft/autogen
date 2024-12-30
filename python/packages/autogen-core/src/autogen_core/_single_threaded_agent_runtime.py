@@ -13,9 +13,6 @@ from enum import Enum
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
 
 from opentelemetry.trace import TracerProvider
-from typing_extensions import deprecated
-
-from autogen_core._serialization import MessageSerializer, SerializationRegistry
 
 from ._agent import Agent
 from ._agent_id import AgentId
@@ -27,8 +24,8 @@ from ._cancellation_token import CancellationToken
 from ._message_context import MessageContext
 from ._message_handler_context import MessageHandlerContext
 from ._runtime_impl_helpers import SubscriptionManager, get_impl
+from ._serialization import MessageSerializer, SerializationRegistry
 from ._subscription import Subscription
-from ._subscription_context import SubscriptionInstantiationContext
 from ._telemetry import EnvelopeMetadata, MessageRuntimeTracingConfig, TraceHelper, get_telemetry_envelope_metadata
 from ._topic import TopicId
 from .base.intervention import DropMessage, InterventionHandler
@@ -558,37 +555,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
     async def agent_load_state(self, agent: AgentId, state: Mapping[str, Any]) -> None:
         await (await self._get_agent(agent)).load_state(state)
-
-    @deprecated(
-        "Use your agent's `register` method directly instead of this method. See documentation for latest usage."
-    )
-    async def register(
-        self,
-        type: str,
-        agent_factory: Callable[[], T | Awaitable[T]] | Callable[[AgentRuntime, AgentId], T | Awaitable[T]],
-        subscriptions: Callable[[], list[Subscription] | Awaitable[list[Subscription]]]
-        | list[Subscription]
-        | None = None,
-    ) -> AgentType:
-        if type in self._agent_factories:
-            raise ValueError(f"Agent with type {type} already exists.")
-
-        if subscriptions is not None:
-            if callable(subscriptions):
-                with SubscriptionInstantiationContext.populate_context(AgentType(type)):
-                    subscriptions_list_result = subscriptions()
-                    if inspect.isawaitable(subscriptions_list_result):
-                        subscriptions_list = await subscriptions_list_result
-                    else:
-                        subscriptions_list = subscriptions_list_result
-            else:
-                subscriptions_list = subscriptions
-
-            for subscription in subscriptions_list:
-                await self.add_subscription(subscription)
-
-        self._agent_factories[type] = agent_factory
-        return AgentType(type)
 
     async def register_factory(
         self,
