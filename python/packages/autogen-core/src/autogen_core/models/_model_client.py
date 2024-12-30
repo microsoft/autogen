@@ -1,15 +1,10 @@
 from __future__ import annotations
 
+import warnings
 from abc import ABC, abstractmethod
-from typing import Mapping, Optional, Sequence
+from typing import Literal, Mapping, Optional, Sequence, TypeAlias
 
-from typing_extensions import (
-    Any,
-    AsyncGenerator,
-    Required,
-    TypedDict,
-    Union,
-)
+from typing_extensions import Any, AsyncGenerator, Required, TypedDict, Union, deprecated
 
 from .. import CancellationToken
 from .._component_config import ComponentLoader
@@ -17,10 +12,38 @@ from ..tools import Tool, ToolSchema
 from ._types import CreateResult, LLMMessage, RequestUsage
 
 
+class ModelFamily:
+    """A model family is a group of models that share similar characteristics from a capabilities perspective. This is different to discrete supported features such as vision, function calling, and JSON output.
+
+    This namespace class holds contstants for the model families that AutoGen understands. Other families definitely exist and can be represented by a string, however, AutoGen will treat them as unknown."""
+
+    GPT_4O = "gpt-4o"
+    O1 = "o1"
+    GPT_4 = "gpt-4"
+    GPT_35 = "gpt-35"
+    UNKNOWN = "unknown"
+
+    ANY: TypeAlias = Literal["gpt-4o", "o1", "gpt-4", "gpt-35", "unknown"]
+
+    def __new__(cls, *args: Any, **kwargs: Any) -> None:
+        raise TypeError(f"{cls.__name__} is a namespace class and cannot be instantiated.")
+
+
 class ModelCapabilities(TypedDict, total=False):
     vision: Required[bool]
     function_calling: Required[bool]
     json_output: Required[bool]
+
+
+class ModelInfo(ModelCapabilities, total=False):
+    vision: Required[bool]
+    """True if the model supports vision, aka image input, otherwise False."""
+    function_calling: Required[bool]
+    """True if the model supports function calling, otherwise False."""
+    json_output: Required[bool]
+    """True if the model supports json output, otherwise False. Note: this is different to structured json."""
+    family: Required[ModelFamily.ANY | str]
+    """Model family should be one of the constants from :py:class:`ModelFamily` or a string representing an unknown model family."""
 
 
 class ChatCompletionClient(ABC, ComponentLoader):
@@ -63,6 +86,20 @@ class ChatCompletionClient(ABC, ComponentLoader):
     @abstractmethod
     def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int: ...
 
+    @deprecated(
+        "Use the model_info property instead of the capabilities property. Model info provides more information"
+    )
     @property
     @abstractmethod
     def capabilities(self) -> ModelCapabilities: ...
+
+    @property
+    @abstractmethod
+    def model_info(self) -> ModelInfo:
+        warnings.warn(
+            "Model client in use does not implement model_info property. Falling back to capabilities property. The capabilities property is deprecated and will be removed soon, please implement model_info instead in the model client class.",
+            stacklevel=2,
+        )
+        base_info: ModelInfo = self.capabilities  # type: ignore
+        base_info["family"] = ModelFamily.UNKNOWN
+        return base_info

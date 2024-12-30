@@ -9,6 +9,8 @@ from autogen_core.models import (
     CreateResult,
     LLMMessage,
     ModelCapabilities,
+    ModelFamily,
+    ModelInfo,
     RequestUsage,
 )
 from autogen_core.tools import Tool, ToolSchema
@@ -119,7 +121,9 @@ class ReplayChatCompletionClient(ChatCompletionClient):
     ):
         self.chat_completions = list(chat_completions)
         self.provided_message_count = len(self.chat_completions)
-        self._model_capabilities = ModelCapabilities(vision=False, function_calling=False, json_output=False)
+        self._model_capabilities = ModelInfo(
+            vision=False, function_calling=False, json_output=False, family=ModelFamily.UNKNOWN
+        )
         self._total_available_tokens = 10000
         self._cur_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
@@ -233,6 +237,10 @@ class ReplayChatCompletionClient(ChatCompletionClient):
     @property
     def capabilities(self) -> ModelCapabilities:
         """Return mock capabilities."""
+        return self._model_capabilities
+
+    @property
+    def model_info(self) -> ModelInfo:
         return self._model_capabilities
 
     def reset(self) -> None:

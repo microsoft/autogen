@@ -38,6 +38,8 @@ from autogen_core.models import (
     FunctionExecutionResultMessage,
     LLMMessage,
     ModelCapabilities,
+    ModelFamily,
+    ModelInfo,
     RequestUsage,
     SystemMessage,
     TopLogprob,
@@ -358,15 +360,23 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         *,
         create_args: Dict[str, Any],
         model_capabilities: Optional[ModelCapabilities] = None,
+        model_info: Optional[ModelInfo] = None,
     ):
         self._client = client
-        if model_capabilities is None:
+        if model_capabilities is None and model_info is None:
             try:
-                self._model_capabilities = _model_info.get_capabilities(create_args["model"])
+                self._model_info = _model_info.get_info(create_args["model"])
             except KeyError as err:
                 raise ValueError("model_capabilities is required when model name is not a valid OpenAI model") from err
-        else:
-            self._model_capabilities = model_capabilities
+        elif model_capabilities is not None and model_info is not None:
+            raise ValueError("model_capabilities and model_info are mutually exclusive")
+        elif model_capabilities is not None and model_info is None:
+            warnings.warn("model_capabilities is deprecated, use model_info instead", DeprecationWarning, stacklevel=2)
+            info = cast(ModelInfo, model_capabilities)
+            info["family"] = ModelFamily.UNKNOWN
+            self._model_info = info
+        elif model_capabilities is None and model_info is not None:
+            self._model_info = model_info
 
         self._resolved_model: Optional[str] = None
         if "model" in create_args:
@@ -375,7 +385,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if (
             "response_format" in create_args
             and create_args["response_format"]["type"] == "json_object"
-            and not self._model_capabilities["json_output"]
+            and not self._model_info["json_output"]
         ):
             raise ValueError("Model does not support JSON output")
 
@@ -897,7 +907,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
     @property
     def capabilities(self) -> ModelCapabilities:
-        return self._model_capabilities
+        return self._model_info
+
+    @property
+    def model_info(self) -> ModelInfo:
+        return self._model_info
 
 
 class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenAIClientConfigurationConfigModel]):
@@ -973,10 +987,17 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             model_capabilities = kwargs["model_capabilities"]
             del copied_args["model_capabilities"]
 
+        model_info: Optional[ModelInfo] = None
+        if "model_info" in kwargs:
+            model_info = kwargs["model_info"]
+            del copied_args["model_info"]
+
         client = _openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
         self._raw_config: Dict[str, Any] = copied_args
-        super().__init__(client=client, create_args=create_args, model_capabilities=model_capabilities)
+        super().__init__(
+            client=client, create_args=create_args, model_capabilities=model_capabilities, model_info=model_info
+        )
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
@@ -1058,10 +1079,17 @@ class AzureOpenAIChatCompletionClient(
             model_capabilities = kwargs["model_capabilities"]
             del copied_args["model_capabilities"]
 
+        model_info: Optional[ModelInfo] = None
+        if "model_info" in kwargs:
+            model_info = kwargs["model_info"]
+            del copied_args["model_info"]
+
         client = _azure_openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
         self._raw_config: Dict[str, Any] = copied_args
-        super().__init__(client=client, create_args=create_args, model_capabilities=model_capabilities)
+        super().__init__(
+            client=client, create_args=create_args, model_capabilities=model_capabilities, model_info=model_info
+        )
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()

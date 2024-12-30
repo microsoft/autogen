@@ -1,7 +1,7 @@
 from typing import Awaitable, Callable, Dict, List, Literal, Optional, Union
 
 from autogen_core import ComponentModel
-from autogen_core.models import ModelCapabilities
+from autogen_core.models import ModelCapabilities, ModelInfo
 from pydantic import BaseModel
 from typing_extensions import Required, TypedDict
 
@@ -35,6 +35,7 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     timeout: Union[float, None]
     max_retries: int
     model_capabilities: ModelCapabilities
+    model_info: ModelInfo
     """What functionality the model supports, determined by default from model name but is overriden if value passed."""
 
 
@@ -84,6 +85,7 @@ class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
     timeout: float | None = None
     max_retries: int | None = None
     model_capabilities: ModelCapabilities | None = None
+    model_info: ModelInfo | None = None
 
 
 # See OpenAI docs for explanation of these parameters
