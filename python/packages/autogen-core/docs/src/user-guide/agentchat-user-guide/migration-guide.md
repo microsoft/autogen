@@ -55,12 +55,12 @@ See each feature below for detailed information on how to migrate.
 - [Code Executors](#code-executors)
 
 The following features currently in `v0.2`
-will be providied in the future releases of `v0.4.*` versions:
+will be provided in the future releases of `v0.4.*` versions:
 
 - Model Client Cache [#4752](https://github.com/microsoft/autogen/issues/4752)
 - Jupyter Code Executor [#4795](https://github.com/microsoft/autogen/issues/4795)
 - Model Client Cost [#4835](https://github.com/microsoft/autogen/issues/4835)
-- Teacheable Agent
+- Teachable Agent
 - RAG Agent
 
 We will update this guide when the missing features become available.
@@ -82,7 +82,7 @@ model_client = OpenAIWrapper(config_list=config_list)
 
 > **Note**: In AutoGen 0.2, the OpenAI client would try configs in the list until one worked. 0.4 instead expects a specfic model configuration to be chosen.
 
-In `v0.4`, we offers two ways to create a model client.
+In `v0.4`, we offer two ways to create a model client.
 
 ### Use component config
 
@@ -319,9 +319,9 @@ conversable_agent = ConversableAgent(
 )
 
 def reply_func(
-    recipient: ConversableAgent, 
-    messages: Optional[List[Dict]] = None, 
-    sender: Optional[Agent] = None, 
+    recipient: ConversableAgent,
+    messages: Optional[List[Dict]] = None,
+    sender: Optional[Agent] = None,
     config: Optional[Any] = None,
 ) -> Tuple[bool, Union[str, Dict, None]]:
     # Custom reply logic here
@@ -395,13 +395,13 @@ async def main() -> None:
     # (Optional) Write state to disk.
     with open("assistant_state.json", "w") as f:
         json.dump(state, f)
-    
+
     # (Optional) Load it back from disk.
     with open("assistant_state.json", "r") as f:
         state = json.load(f)
         print(state) # Inspect the state, which contains the chat history.
 
-    # Carry on the chat. 
+    # Carry on the chat.
     response = await assistant.on_messages([TextMessage(content="Tell me a joke.", source="user")], cancellation_token)
     print(response)
 
@@ -531,7 +531,7 @@ while True:
     if user_input == "exit":
         break
     chat_result = tool_executor.initiate_chat(
-        tool_caller, 
+        tool_caller,
         message=user_input,
         summary_method="reflection_with_llm", # To let the model reflect on the tool use, set to "last_msg" to return the tool call result directly.
     )
@@ -582,7 +582,7 @@ For example:
 
 ```python
 chat_result = tool_executor.initiate_chat(
-    tool_caller, 
+    tool_caller,
     message=user_input,
     summary_method="reflection_with_llm",
 )
@@ -876,7 +876,7 @@ async def main() -> None:
     state = await group_chat.save_state()
     with open("group_chat_state.json", "w") as f:
         json.dump(state, f)
-    
+
     # Create a new team with the same participants configuration.
     group_chat = create_team()
 
@@ -1067,8 +1067,7 @@ from autogen_agentchat.messages import TextMessage, ChatMessage
 from autogen_agentchat.base import Response
 
 class CountingAgent(BaseChatAgent):
-    """An agent that returns a new number by adding 1 to the last number in the 
-    input messages."""
+    """An agent that returns a new number by adding 1 to the last number in the input messages."""
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         if len(messages) == 0:
             last_number = 0 # Start from 0 if no messages are given.
