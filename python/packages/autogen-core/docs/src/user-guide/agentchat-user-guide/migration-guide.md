@@ -126,7 +126,7 @@ model_client = AzureOpenAIChatCompletionClient(
 )
 ```
 
-Read more on [OpenAI Chat Completion Client Docs](../../reference/python/autogen_ext.models.openai.rst)
+Read more on {py:class}`~autogen_ext.models.openai.OpenAIChatCompletionClient`.
 
 ## Model Client for OpenAI-Compatible APIs
 
@@ -227,8 +227,7 @@ when you call `cancellation_token.cancel()`, which will cause the `await`
 on the `on_messages` call to raise a `CancelledError`.
 
 Read more on [Agent Tutorial](./tutorial/agents.ipynb)
-and
-[Assistant Agent Docs](../../reference/python/autogen_agentchat.agents.rst#autogen_agentchat.agents.AssistantAgent).
+and {py:class}`~autogen_agentchat.agents.AssistantAgent`.
 
 ## Multi-Modal Agent
 
@@ -291,7 +290,7 @@ from autogen_agentchat.agents import UserProxyAgent
 user_proxy = UserProxyAgent("user_proxy")
 ```
 
-See [User Proxy Agent Docs](../../reference/python/autogen_agentchat.agents.rst#autogen_agentchat.agents.UserProxyAgent)
+See {py:class}`~autogen_agentchat.agents.UserProxyAgent`
 for more details and how to customize the input function with timeout.
 
 ## Conversable Agent and Register Reply
@@ -389,7 +388,7 @@ async def main() -> None:
     print(response)
 
     # Save the state.
-    state = await assistant.save_state(cancellation_token)
+    state = await assistant.save_state()
 
     # (Optional) Write state to disk.
     with open("assistant_state.json", "w") as f:
@@ -806,9 +805,7 @@ asyncio.run(main())
 
 For LLM-based speaker selection, you can use the `SelectorGroupChat` instead.
 See [Selector Group Chat Tutorial](./tutorial/selector-group-chat.ipynb)
-and
-[Selector Group Chat Docs](../../reference/python/autogen_agentchat.teams.rst#autogen_agentchat.teams.SelectorGroupChat)
-for more details.
+and {py:class}`~autogen_agentchat.teams.SelectorGroupChat` for more details.
 
 > **Note**: In `v0.4`, you do not need to register functions on a user proxy to use tools
 > in a group chat. You can simply pass the tool functions to the `AssistantAgent` as shown in the [Tool Use](#tool-use) section.
@@ -1111,7 +1108,8 @@ source='counting_agent_2' models_usage=None content='5' type='TextMessage'
 source='counting_agent_1' models_usage=None content='6' type='TextMessage'
 ```
 
-You can take a look at [Society of Mind Agent (Experimental)](../../reference/python/autogen_agentchat.agents.rst#autogen_agentchat.agents.SocietyOfMindAgent) for a more complex implementation.
+You can take a look at {py:class}`~autogen_agentchat.agents.SocietyOfMindAgent`
+for a more complex implementation.
 
 ## Sequential Chat
 
@@ -1140,7 +1138,7 @@ In `v0.2`, `GPTAssistantAgent` is a special agent class that is backed by the Op
 In `v0.4`, the equivalent is the `OpenAIAssistantAgent` class.
 It supports the same set of features as the `GPTAssistantAgent` in `v0.2` with
 more such as customizable threads and file uploads.
-See [OpenAI Assistant Agent Docs](../../reference/python/autogen_ext.agents.openai.rst#autogen_ext.agents.openai.OpenAIAssistantAgent) for more details.
+See {py:class}`~autogen_ext.agents.openai.OpenAIAssistantAgent` for more details.
 
 ## Long Context Handling
 
