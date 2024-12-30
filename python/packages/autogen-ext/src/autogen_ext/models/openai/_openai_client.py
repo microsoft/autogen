@@ -558,8 +558,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             logprobs=logprobs,
         )
 
-        _add_usage(self._actual_usage, usage)
-        _add_usage(self._total_usage, usage)
+        self._total_usage = _add_usage(self._total_usage, usage)
+        self._actual_usage = _add_usage(self._actual_usage, usage)
 
         # TODO - why is this cast needed?
         return response
@@ -775,8 +775,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             logprobs=logprobs,
         )
 
-        _add_usage(self._actual_usage, usage)
-        _add_usage(self._total_usage, usage)
+        self._total_usage = _add_usage(self._total_usage, usage)
+        self._actual_usage = _add_usage(self._actual_usage, usage)
 
         yield result
 
