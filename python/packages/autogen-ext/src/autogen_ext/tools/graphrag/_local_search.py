@@ -6,8 +6,6 @@ import pandas as pd
 import tiktoken
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
-from pydantic import BaseModel, Field
-
 from graphrag.config.config_file_loader import load_config_from_file
 from graphrag.query.indexer_adapters import (
     read_indexer_entities,
@@ -19,6 +17,7 @@ from graphrag.query.llm.get_client import get_llm, get_text_embedder
 from graphrag.query.structured_search.local_search.mixed_context import LocalSearchMixedContext
 from graphrag.query.structured_search.local_search.search import LocalSearch
 from graphrag.vector_stores.lancedb import LanceDBVectorStore
+from pydantic import BaseModel, Field
 
 from ._config import LocalContextConfig, SearchConfig
 from ._config import LocalDataConfig as DataConfig
@@ -50,6 +49,7 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
         from azure.identity import DefaultAzureCredential, get_bearer_token_provider
         from autogen_agentchat.agents import AssistantAgent
 
+
         async def main():
             # Initialize the OpenAI client
             openai_client = OpenAIChatCompletionClient(
@@ -58,9 +58,7 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
             )
 
             # Set up local search tool
-            local_tool = LocalSearchTool.from_settings(
-                settings_path="./settings.yaml"
-            )
+            local_tool = LocalSearchTool.from_settings(settings_path="./settings.yaml")
 
             # Create assistant agent with the local search tool
             assistant_agent = AssistantAgent(
@@ -71,7 +69,7 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
                     "You are a tool selector AI assistant using the GraphRAG framework. "
                     "Your primary task is to determine the appropriate search tool to call based on the user's query. "
                     "For specific, detailed information about particular entities or relationships, call the 'local_search' function."
-                )
+                ),
             )
 
             # Run a sample query
@@ -80,6 +78,7 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
             async for msg in response_stream:
                 if hasattr(msg, "content"):
                     print(f"\nAgent response: {msg.content}")
+
 
         if __name__ == "__main__":
             asyncio.run(main())

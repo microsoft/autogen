@@ -5,8 +5,6 @@ import pandas as pd
 import tiktoken
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
-from pydantic import BaseModel, Field
-
 from graphrag.config.config_file_loader import load_config_from_file
 from graphrag.query.indexer_adapters import (
     read_indexer_communities,
@@ -17,6 +15,7 @@ from graphrag.query.llm.base import BaseLLM
 from graphrag.query.llm.get_client import get_llm
 from graphrag.query.structured_search.global_search.community_context import GlobalCommunityContext
 from graphrag.query.structured_search.global_search.search import GlobalSearch
+from pydantic import BaseModel, Field
 
 from ._config import GlobalContextConfig as ContextConfig
 from ._config import GlobalDataConfig as DataConfig
@@ -49,6 +48,7 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
         from azure.identity import DefaultAzureCredential, get_bearer_token_provider
         from autogen_agentchat.agents import AssistantAgent
 
+
         async def main():
             # Initialize the OpenAI client
             openai_client = OpenAIChatCompletionClient(
@@ -57,9 +57,7 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
             )
 
             # Set up global search tool
-            global_tool = GlobalSearchTool.from_settings(
-                settings_path="./settings.yaml"
-            )
+            global_tool = GlobalSearchTool.from_settings(settings_path="./settings.yaml")
 
             # Create assistant agent with the global search tool
             assistant_agent = AssistantAgent(
@@ -70,7 +68,7 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
                     "You are a tool selector AI assistant using the GraphRAG framework. "
                     "Your primary task is to determine the appropriate search tool to call based on the user's query. "
                     "For broader, abstract questions requiring a comprehensive understanding of the dataset, call the 'global_search' function."
-                )
+                ),
             )
 
             # Run a sample query
@@ -79,6 +77,7 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
             async for msg in response_stream:
                 if hasattr(msg, "content"):
                     print(f"\nAgent response: {msg.content}")
+
 
         if __name__ == "__main__":
             asyncio.run(main())
