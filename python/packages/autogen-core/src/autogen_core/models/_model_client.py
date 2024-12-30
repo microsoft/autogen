@@ -25,7 +25,7 @@ class ModelFamily:
 
     ANY: TypeAlias = Literal["gpt-4o", "o1", "gpt-4", "gpt-35", "unknown"]
 
-    def __new__(cls, *args: Any, **kwargs: Any) -> None:
+    def __new__(cls, *args: Any, **kwargs: Any) -> ModelFamily:
         raise TypeError(f"{cls.__name__} is a namespace class and cannot be instantiated.")
 
 
@@ -90,7 +90,7 @@ class ChatCompletionClient(ABC, ComponentLoader):
     # Deprecated
     @property
     @abstractmethod
-    def capabilities(self) -> ModelCapabilities: ... # type: ignore
+    def capabilities(self) -> ModelCapabilities: ...  # type: ignore
 
     @property
     @abstractmethod

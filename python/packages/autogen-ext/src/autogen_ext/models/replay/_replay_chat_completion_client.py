@@ -9,7 +9,7 @@ from autogen_core.models import (
     ChatCompletionClient,
     CreateResult,
     LLMMessage,
-    ModelCapabilities, # type: ignore
+    ModelCapabilities,  # type: ignore
     ModelFamily,
     ModelInfo,
     RequestUsage,
@@ -236,7 +236,7 @@ class ReplayChatCompletionClient(ChatCompletionClient):
         self._total_usage.prompt_tokens += self._cur_usage.prompt_tokens
 
     @property
-    def capabilities(self) -> ModelCapabilities: # type: ignore
+    def capabilities(self) -> ModelCapabilities:  # type: ignore
         """Return mock capabilities."""
         warnings.warn("capabilities is deprecated, use model_info instead", DeprecationWarning, stacklevel=2)
         return self._model_info
