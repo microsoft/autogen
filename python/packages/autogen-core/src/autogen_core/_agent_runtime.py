@@ -141,9 +141,11 @@ class AgentRuntime(Protocol):
             async def main() -> None:
                 runtime: AgentRuntime = ...  # type: ignore
                 await runtime.register_factory("my_agent", lambda: MyAgent())
-                
+
+
             import asyncio
-            asyncio.run(main())        
+
+            asyncio.run(main())
 
 
         Args:
