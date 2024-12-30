@@ -138,9 +138,9 @@ class AgentRuntime(Protocol):
                 return MyAgent()
 
 
-            runtime: AgentRuntime = ...  # type: ignore
-
-            await runtime.register_factory("my_agent", lambda: MyAgent())
+            async def main() -> None:
+                runtime: AgentRuntime = ...  # type: ignore
+                await runtime.register_factory("my_agent", lambda: MyAgent())
 
 
         Args:
