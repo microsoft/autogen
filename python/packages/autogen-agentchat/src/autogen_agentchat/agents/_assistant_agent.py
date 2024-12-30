@@ -262,7 +262,7 @@ class AssistantAgent(BaseChatAgent):
             self._system_messages = [SystemMessage(content=system_message)]
         self._tools: List[Tool] = []
         if tools is not None:
-            if model_client.capabilities["function_calling"] is False:
+            if model_client.model_info["function_calling"] is False:
                 raise ValueError("The model does not support function calling.")
             for tool in tools:
                 if isinstance(tool, Tool):
@@ -283,7 +283,7 @@ class AssistantAgent(BaseChatAgent):
         self._handoff_tools: List[Tool] = []
         self._handoffs: Dict[str, HandoffBase] = {}
         if handoffs is not None:
-            if model_client.capabilities["function_calling"] is False:
+            if model_client.model_info["function_calling"] is False:
                 raise ValueError("The model does not support function calling, which is needed for handoffs.")
             for handoff in handoffs:
                 if isinstance(handoff, str):
@@ -331,7 +331,7 @@ class AssistantAgent(BaseChatAgent):
     ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         # Add messages to the model context.
         for msg in messages:
-            if isinstance(msg, MultiModalMessage) and self._model_client.capabilities["vision"] is False:
+            if isinstance(msg, MultiModalMessage) and self._model_client.model_info["vision"] is False:
                 raise ValueError("The model does not support vision.")
             await self._model_context.add_message(UserMessage(content=msg.content, source=msg.source))
 

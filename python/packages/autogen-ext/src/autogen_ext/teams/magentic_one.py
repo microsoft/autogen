@@ -124,7 +124,7 @@ class MagenticOne(MagenticOneGroupChat):
         super().__init__(agents, model_client=client)
 
     def _validate_client_capabilities(self, client: ChatCompletionClient) -> None:
-        capabilities = client.capabilities
+        capabilities = client.model_info
         required_capabilities = ["vision", "function_calling", "json_output"]
 
         if not all(capabilities.get(cap) for cap in required_capabilities):

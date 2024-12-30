@@ -19,6 +19,7 @@ from autogen_agentchat.messages import (
 from autogen_core import Image
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import LLMMessage
+from autogen_core.models._model_client import ModelFamily
 from autogen_core.tools import FunctionTool
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
@@ -387,11 +388,7 @@ async def test_invalid_model_capabilities() -> None:
     model_client = OpenAIChatCompletionClient(
         model=model,
         api_key="",
-        model_capabilities={
-            "vision": False,
-            "function_calling": False,
-            "json_output": False,
-        },
+        model_info={"vision": False, "function_calling": False, "json_output": False, "family": ModelFamily.UNKNOWN},
     )
 
     with pytest.raises(ValueError):
