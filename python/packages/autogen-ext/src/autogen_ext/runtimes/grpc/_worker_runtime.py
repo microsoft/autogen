@@ -42,7 +42,6 @@ from autogen_core import (
     MessageHandlerContext,
     MessageSerializer,
     Subscription,
-    SubscriptionInstantiationContext,
     TopicId,
     TypePrefixSubscription,
     TypeSubscription,
@@ -54,7 +53,7 @@ from autogen_core._serialization import (
 from autogen_core._telemetry import MessageRuntimeTracingConfig, TraceHelper, get_telemetry_grpc_metadata
 from google.protobuf import any_pb2
 from opentelemetry.trace import TracerProvider
-from typing_extensions import Self, deprecated
+from typing_extensions import Self
 
 from . import _constants
 from ._constants import GRPC_IMPORT_ERROR_STR
