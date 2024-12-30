@@ -92,7 +92,7 @@ class Queue(_LoopBoundMixin, Generic[T]):
         """Number of items allowed in the queue."""
         return self._maxsize
 
-    def empty(self)-> bool:
+    def empty(self) -> bool:
         """Return True if the queue is empty, False otherwise."""
         return not self._queue
 

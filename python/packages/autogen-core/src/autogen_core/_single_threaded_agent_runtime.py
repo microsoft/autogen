@@ -20,7 +20,7 @@ from autogen_core._serialization import MessageSerializer, SerializationRegistry
 if sys.version_info >= (3, 13):
     from asyncio import Queue, QueueShutDown
 else:
-    from ._queue import Queue, QueueShutDown # type: ignore
+    from ._queue import Queue, QueueShutDown  # type: ignore
 
 from ._agent import Agent
 from ._agent_id import AgentId
