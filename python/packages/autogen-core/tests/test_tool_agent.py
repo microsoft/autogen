@@ -11,7 +11,7 @@ from autogen_core.models import (
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
-    ModelCapabilities,
+    ModelCapabilities,  # type: ignore
     RequestUsage,
     UserMessage,
 )
@@ -139,8 +139,8 @@ async def test_caller_loop() -> None:
             return 0
 
         @property
-        def capabilities(self) -> ModelCapabilities:
-            return ModelCapabilities(vision=False, function_calling=True, json_output=False)
+        def capabilities(self) -> ModelCapabilities:  # type: ignore
+            return ModelCapabilities(vision=False, function_calling=True, json_output=False)  # type: ignore
 
         @property
         def model_info(self) -> ModelInfo:

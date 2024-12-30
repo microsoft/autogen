@@ -22,7 +22,7 @@ from ...models import (
 from ...models import (
     LLMMessage as LLMMessageAlias,
 )
-from ...models import ModelCapabilities as ModelCapabilitiesAlias
+from ...models import ModelCapabilities as ModelCapabilitiesAlias  # type: ignore
 from ...models import (
     RequestUsage as RequestUsageAlias,
 )

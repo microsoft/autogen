@@ -37,7 +37,7 @@ from autogen_core.models import (
     CreateResult,
     FunctionExecutionResultMessage,
     LLMMessage,
-    ModelCapabilities,
+    ModelCapabilities, # type: ignore
     ModelFamily,
     ModelInfo,
     RequestUsage,
@@ -359,7 +359,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         client: Union[AsyncOpenAI, AsyncAzureOpenAI],
         *,
         create_args: Dict[str, Any],
-        model_capabilities: Optional[ModelCapabilities] = None,
+        model_capabilities: Optional[ModelCapabilities] = None, # type: ignore
         model_info: Optional[ModelInfo] = None,
     ):
         self._client = client
@@ -906,7 +906,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         return token_limit - self.count_tokens(messages, tools=tools)
 
     @property
-    def capabilities(self) -> ModelCapabilities:
+    def capabilities(self) -> ModelCapabilities: # type: ignore
+        warnings.warn("capabilities is deprecated, use model_info instead", DeprecationWarning, stacklevel=2)
         return self._model_info
 
     @property
@@ -981,7 +982,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         if "model" not in kwargs:
             raise ValueError("model is required for OpenAIChatCompletionClient")
 
-        model_capabilities: Optional[ModelCapabilities] = None
+        model_capabilities: Optional[ModelCapabilities] = None # type: ignore
         copied_args = dict(kwargs).copy()
         if "model_capabilities" in kwargs:
             model_capabilities = kwargs["model_capabilities"]
@@ -1073,7 +1074,7 @@ class AzureOpenAIChatCompletionClient(
     component_provider_override = "autogen_ext.models.openai.AzureOpenAIChatCompletionClient"
 
     def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
-        model_capabilities: Optional[ModelCapabilities] = None
+        model_capabilities: Optional[ModelCapabilities] = None # type: ignore
         copied_args = dict(kwargs).copy()
         if "model_capabilities" in kwargs:
             model_capabilities = kwargs["model_capabilities"]

@@ -29,13 +29,14 @@ class ModelFamily:
         raise TypeError(f"{cls.__name__} is a namespace class and cannot be instantiated.")
 
 
+@deprecated("Use the ModelInfo class instead ModelCapabilities.")
 class ModelCapabilities(TypedDict, total=False):
     vision: Required[bool]
     function_calling: Required[bool]
     json_output: Required[bool]
 
 
-class ModelInfo(ModelCapabilities, total=False):
+class ModelInfo(TypedDict, total=False):
     vision: Required[bool]
     """True if the model supports vision, aka image input, otherwise False."""
     function_calling: Required[bool]
@@ -86,12 +87,10 @@ class ChatCompletionClient(ABC, ComponentLoader):
     @abstractmethod
     def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int: ...
 
-    @deprecated(
-        "Use the model_info property instead of the capabilities property. Model info provides more information"
-    )
+    # Deprecated
     @property
     @abstractmethod
-    def capabilities(self) -> ModelCapabilities: ...
+    def capabilities(self) -> ModelCapabilities: ... # type: ignore
 
     @property
     @abstractmethod
