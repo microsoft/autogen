@@ -40,12 +40,54 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
 
     This tool allows you to perform semantic search over a corpus of documents using the GraphRAG framework.
     The search combines local document context with semantic embeddings to find relevant information.
+    Example usage with AssistantAgent:
+
+    .. code-block:: python
+
+        import asyncio
+        from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
+        from autogen_ext.tools.graphrag import LocalSearchTool
+        from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+        from autogen_agentchat.agents import AssistantAgent
+
+        async def main():
+            # Initialize the OpenAI client
+            openai_client = OpenAIChatCompletionClient(
+                model="gpt-4o-mini",
+                api_key="<api-key>",
+            )
+
+            # Set up local search tool
+            local_tool = LocalSearchTool.from_settings(
+                settings_path="./settings.yaml"
+            )
+
+            # Create assistant agent with the local search tool
+            assistant_agent = AssistantAgent(
+                name="search_assistant",
+                tools=[local_tool],
+                model_client=openai_client,
+                system_message=(
+                    "You are a tool selector AI assistant using the GraphRAG framework. "
+                    "Your primary task is to determine the appropriate search tool to call based on the user's query. "
+                    "For specific, detailed information about particular entities or relationships, call the 'local_search' function."
+                )
+            )
+
+            # Run a sample query
+            query = "What does the station-master say about Dr. Becher?"
+            response_stream = assistant_agent.run_stream(task=query)
+            async for msg in response_stream:
+                if hasattr(msg, "content"):
+                    print(f"\nAgent response: {msg.content}")
+
+        if __name__ == "__main__":
+            asyncio.run(main())
 
     .. note::
 
         This tool requires the :code:`graphrag` extra for the :code:`autogen-ext` package.
-
-        This tool requires indexed data created by the GraphRAG indexing process. See the GraphRAG documentation
+        This tool requires indexed data created by the GraphRAG indexing process. See the [GraphRAG documentation](https://microsoft.github.io/graphrag/)
         for details on how to prepare the required data files.
 
     Args:
