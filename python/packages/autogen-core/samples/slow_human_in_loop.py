@@ -33,6 +33,7 @@ from typing import Any, Mapping, Optional
 from autogen_core import (
     AgentId,
     CancellationToken,
+    DefaultInterventionHandler,
     DefaultTopicId,
     FunctionCall,
     MessageContext,
@@ -41,7 +42,6 @@ from autogen_core import (
     message_handler,
     type_subscription,
 )
-from autogen_core.base.intervention import DefaultInterventionHandler
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import (
     AssistantMessage,

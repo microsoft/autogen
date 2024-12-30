@@ -31,6 +31,11 @@ from ._constants import (
 from ._default_subscription import DefaultSubscription, default_subscription, type_subscription
 from ._default_topic import DefaultTopicId
 from ._image import Image
+from ._intervention import (
+    DefaultInterventionHandler,
+    DropMessage,
+    InterventionHandler,
+)
 from ._message_context import MessageContext
 from ._message_handler_context import MessageHandlerContext
 from ._routed_agent import RoutedAgent, event, message_handler, rpc
@@ -111,4 +116,7 @@ __all__ = [
     "ComponentConfigImpl",
     "ComponentModel",
     "ComponentType",
+    "DropMessage",
+    "InterventionHandler",
+    "DefaultInterventionHandler",
 ]
