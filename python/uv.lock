@@ -335,7 +335,7 @@ wheels = [
 
 [[package]]
 name = "autogen-agentchat"
-version = "0.4.0.dev12"
+version = "0.4.0.dev13"
 source = { editable = "packages/autogen-agentchat" }
 dependencies = [
     { name = "autogen-core" },
@@ -346,7 +346,7 @@ requires-dist = [{ name = "autogen-core", editable = "packages/autogen-core" }]
 
 [[package]]
 name = "autogen-core"
-version = "0.4.0.dev12"
+version = "0.4.0.dev13"
 source = { editable = "packages/autogen-core" }
 dependencies = [
     { name = "aioconsole" },
@@ -467,7 +467,7 @@ dev = [
 
 [[package]]
 name = "autogen-ext"
-version = "0.4.0.dev12"
+version = "0.4.0.dev13"
 source = { editable = "packages/autogen-ext" }
 dependencies = [
     { name = "autogen-core" },
