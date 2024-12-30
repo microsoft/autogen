@@ -61,7 +61,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up Python 
+    - name: Set up Python
       uses: actions/setup-python@v5
       with:
         python-version: 3.11
@@ -73,7 +73,7 @@ jobs:
     - name: list available kernels
       run: |
         python -m jupyter kernelspec list
-    - uses: astral-sh/setup-uv@v3
+    - uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
     - run: uv sync --locked --all-extras

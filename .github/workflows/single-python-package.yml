@@ -32,7 +32,7 @@ jobs:
           ref: ${{ github.event.inputs.ref }}
       # Require ref to be a tag
       - run: git show-ref --verify refs/tags/${{ github.event.inputs.ref }}
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
       - run: uv build --package ${{ github.event.inputs.package }} --out-dir dist/

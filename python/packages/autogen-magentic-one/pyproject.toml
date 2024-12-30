@@ -38,8 +38,8 @@ dependencies = [
     "pydantic<3.0.0,>=2.0.0",
 ]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "aiofiles",
     "types-aiofiles",
     "types-requests",

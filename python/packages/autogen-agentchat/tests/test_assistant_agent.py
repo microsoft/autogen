@@ -14,8 +14,11 @@ from autogen_agentchat.messages import (
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
+    ToolCallSummaryMessage,
 )
 from autogen_core import Image
+from autogen_core.model_context import BufferedChatCompletionContext
+from autogen_core.models import LLMMessage
 from autogen_core.tools import FunctionTool
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
@@ -38,10 +41,12 @@ class _MockChatCompletion:
     def __init__(self, chat_completions: List[ChatCompletion]) -> None:
         self._saved_chat_completions = chat_completions
         self.curr_index = 0
+        self.calls: List[List[LLMMessage]] = []
 
     async def mock_create(
         self, *args: Any, **kwargs: Any
     ) -> ChatCompletion | AsyncGenerator[ChatCompletionChunk, None]:
+        self.calls.append(kwargs["messages"])  # Save the call
         await asyncio.sleep(0.1)
         completion = self._saved_chat_completions[self.curr_index]
         self.curr_index += 1
@@ -142,7 +147,7 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.messages[1].models_usage.prompt_tokens == 10
     assert isinstance(result.messages[2], ToolCallExecutionEvent)
     assert result.messages[2].models_usage is None
-    assert isinstance(result.messages[3], TextMessage)
+    assert isinstance(result.messages[3], ToolCallSummaryMessage)
     assert result.messages[3].content == "pass"
     assert result.messages[3].models_usage is None
 
@@ -467,3 +472,43 @@ async def test_list_chat_messages(monkeypatch: pytest.MonkeyPatch) -> None:
         else:
             assert message == result.messages[index]
         index += 1
+
+
+@pytest.mark.asyncio
+async def test_model_context(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = "gpt-4o-2024-05-13"
+    chat_completions = [
+        ChatCompletion(
+            id="id1",
+            choices=[
+                Choice(
+                    finish_reason="stop",
+                    index=0,
+                    message=ChatCompletionMessage(content="Response to message 3", role="assistant"),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        ),
+    ]
+    mock = _MockChatCompletion(chat_completions)
+    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
+    model_context = BufferedChatCompletionContext(buffer_size=2)
+    agent = AssistantAgent(
+        "test_agent",
+        model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+        model_context=model_context,
+    )
+
+    messages = [
+        TextMessage(content="Message 1", source="user"),
+        TextMessage(content="Message 2", source="user"),
+        TextMessage(content="Message 3", source="user"),
+    ]
+    await agent.run(task=messages)
+
+    # Check if the mock client is called with only the last two messages.
+    assert len(mock.calls) == 1
+    assert len(mock.calls[0]) == 3  # 2 message from the context + 1 system message

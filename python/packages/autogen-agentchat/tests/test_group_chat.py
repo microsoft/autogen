@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import tempfile
-from typing import Any, AsyncGenerator, List, Sequence
+from typing import Any, AsyncGenerator, List, Sequence, Tuple
 
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
@@ -22,6 +22,7 @@ from autogen_agentchat.messages import (
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
+    ToolCallSummaryMessage,
 )
 from autogen_agentchat.teams import (
     RoundRobinGroupChat,
@@ -74,8 +75,8 @@ class _EchoAgent(BaseChatAgent):
         self._total_messages = 0
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        return [TextMessage]
+    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+        return (TextMessage,)
 
     @property
     def total_messages(self) -> int:
@@ -103,8 +104,8 @@ class _StopAgent(_EchoAgent):
         self._stop_at = stop_at
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        return [TextMessage, StopMessage]
+    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+        return (TextMessage, StopMessage)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         self._count += 1
@@ -238,8 +239,13 @@ async def test_round_robin_group_chat_state() -> None:
     await team2.load_state(state)
     state2 = await team2.save_state()
     assert state == state2
-    assert agent3._model_context == agent1._model_context  # pyright: ignore
-    assert agent4._model_context == agent2._model_context  # pyright: ignore
+
+    agent1_model_ctx_messages = await agent1._model_context.get_messages()  # pyright: ignore
+    agent2_model_ctx_messages = await agent2._model_context.get_messages()  # pyright: ignore
+    agent3_model_ctx_messages = await agent3._model_context.get_messages()  # pyright: ignore
+    agent4_model_ctx_messages = await agent4._model_context.get_messages()  # pyright: ignore
+    assert agent3_model_ctx_messages == agent1_model_ctx_messages
+    assert agent4_model_ctx_messages == agent2_model_ctx_messages
     manager_1 = await team1._runtime.try_get_underlying_agent_instance(  # pyright: ignore
         AgentId("group_chat_manager", team1._team_id),  # pyright: ignore
         RoundRobinGroupChatManager,  # pyright: ignore
@@ -325,7 +331,8 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     assert isinstance(result.messages[0], TextMessage)  # task
     assert isinstance(result.messages[1], ToolCallRequestEvent)  # tool call
     assert isinstance(result.messages[2], ToolCallExecutionEvent)  # tool call result
-    assert isinstance(result.messages[3], TextMessage)  # tool use agent response
+    assert isinstance(result.messages[3], ToolCallSummaryMessage)  # tool use agent response
+    assert result.messages[3].content == "pass"  #  ensure the tool call was executed
     assert isinstance(result.messages[4], TextMessage)  # echo agent response
     assert isinstance(result.messages[5], TextMessage)  # tool use agent response
     assert isinstance(result.messages[6], TextMessage)  # echo agent response
@@ -335,7 +342,7 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
     assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
 
     # Test streaming.
-    tool_use_agent._model_context.clear()  # pyright: ignore
+    await tool_use_agent._model_context.clear()  # pyright: ignore
     mock.reset()
     index = 0
     await team.reset()
@@ -349,7 +356,7 @@ async def test_round_robin_group_chat_with_tools(monkeypatch: pytest.MonkeyPatch
         index += 1
 
     # Test Console.
-    tool_use_agent._model_context.clear()  # pyright: ignore
+    await tool_use_agent._model_context.clear()  # pyright: ignore
     mock.reset()
     index = 0
     await team.reset()
@@ -577,8 +584,13 @@ async def test_selector_group_chat_state() -> None:
     await team2.load_state(state)
     state2 = await team2.save_state()
     assert state == state2
-    assert agent3._model_context == agent1._model_context  # pyright: ignore
-    assert agent4._model_context == agent2._model_context  # pyright: ignore
+
+    agent1_model_ctx_messages = await agent1._model_context.get_messages()  # pyright: ignore
+    agent2_model_ctx_messages = await agent2._model_context.get_messages()  # pyright: ignore
+    agent3_model_ctx_messages = await agent3._model_context.get_messages()  # pyright: ignore
+    agent4_model_ctx_messages = await agent4._model_context.get_messages()  # pyright: ignore
+    assert agent3_model_ctx_messages == agent1_model_ctx_messages
+    assert agent4_model_ctx_messages == agent2_model_ctx_messages
     manager_1 = await team1._runtime.try_get_underlying_agent_instance(  # pyright: ignore
         AgentId("group_chat_manager", team1._team_id),  # pyright: ignore
         SelectorGroupChatManager,  # pyright: ignore
@@ -785,8 +797,8 @@ class _HandOffAgent(BaseChatAgent):
         self._next_agent = next_agent
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        return [HandoffMessage]
+    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+        return (HandoffMessage,)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         return Response(
@@ -929,7 +941,7 @@ async def test_swarm_handoff_using_tool_calls(monkeypatch: pytest.MonkeyPatch) -
     assert result.stop_reason is not None and result.stop_reason == "Text 'TERMINATE' mentioned"
 
     # Test streaming.
-    agent1._model_context.clear()  # pyright: ignore
+    await agent1._model_context.clear()  # pyright: ignore
     mock.reset()
     index = 0
     await team.reset()
@@ -942,7 +954,7 @@ async def test_swarm_handoff_using_tool_calls(monkeypatch: pytest.MonkeyPatch) -
         index += 1
 
     # Test Console
-    agent1._model_context.clear()  # pyright: ignore
+    await agent1._model_context.clear()  # pyright: ignore
     mock.reset()
     index = 0
     await team.reset()

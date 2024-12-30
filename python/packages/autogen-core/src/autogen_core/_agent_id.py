@@ -10,6 +10,12 @@ def is_valid_agent_type(value: str) -> bool:
 
 
 class AgentId:
+    """
+    Agent ID uniquely identifies an agent instance within an agent runtime - including distributed runtime. It is the 'address' of the agent instance for receiving messages.
+
+    See here for more information: :ref:`agentid_and_lifecycle`
+    """
+
     def __init__(self, type: str | AgentType, key: str) -> None:
         if isinstance(type, AgentType):
             type = type.type
@@ -36,6 +42,7 @@ class AgentId:
 
     @classmethod
     def from_str(cls, agent_id: str) -> Self:
+        """Convert a string of the format ``type/key`` into an AgentId"""
         items = agent_id.split("/", maxsplit=1)
         if len(items) != 2:
             raise ValueError(f"Invalid agent id: {agent_id}")
@@ -44,8 +51,18 @@ class AgentId:
 
     @property
     def type(self) -> str:
+        """
+        An identifier that associates an agent with a specific factory function.
+
+        Strings may only be composed of alphanumeric letters (a-z) and (0-9), or underscores (_).
+        """
         return self._type
 
     @property
     def key(self) -> str:
+        """
+        Agent instance identifier.
+
+        Strings may only be composed of alphanumeric letters (a-z) and (0-9), or underscores (_).
+        """
         return self._key

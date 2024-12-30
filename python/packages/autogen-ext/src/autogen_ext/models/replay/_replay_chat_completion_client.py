@@ -16,7 +16,7 @@ from autogen_core.tools import Tool, ToolSchema
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
-class ReplayChatCompletionClient:
+class ReplayChatCompletionClient(ChatCompletionClient):
     """
     A mock chat completion client that replays predefined responses using an index-based approach.
 
@@ -128,6 +128,7 @@ class ReplayChatCompletionClient:
     async def create(
         self,
         messages: Sequence[LLMMessage],
+        *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
@@ -155,6 +156,7 @@ class ReplayChatCompletionClient:
     async def create_stream(
         self,
         messages: Sequence[LLMMessage],
+        *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
@@ -191,11 +193,11 @@ class ReplayChatCompletionClient:
     def total_usage(self) -> RequestUsage:
         return self._total_usage
 
-    def count_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+    def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         _, token_count = self._tokenize(messages)
         return token_count
 
-    def remaining_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+    def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         return max(
             0, self._total_available_tokens - self._total_usage.prompt_tokens - self._total_usage.completion_tokens
         )
