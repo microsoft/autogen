@@ -1,5 +1,5 @@
 import re
-from typing import List, Sequence, Tuple
+from typing import List, Sequence
 
 from autogen_core import CancellationToken
 from autogen_core.code_executor import CodeBlock, CodeExecutor
@@ -80,7 +80,7 @@ class CodeExecutorAgent(BaseChatAgent):
         self._code_executor = code_executor
 
     @property
-    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         """The types of messages that the code executor agent produces."""
         return (TextMessage,)
 
