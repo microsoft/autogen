@@ -81,7 +81,7 @@ lint = "python run_task_in_pkgs_if_exist.py lint"
 pyright = "python run_task_in_pkgs_if_exist.py pyright"
 mypy = "python run_task_in_pkgs_if_exist.py mypy"
 test = "python run_task_in_pkgs_if_exist.py test"
-coverage = "python run_task_in_pkgs_if_exist.py cov"
+coverage = "python run_task_in_pkgs_if_exist.py coverage"
 
 check = ["fmt", "lint", "pyright", "mypy", "coverage"]
 
