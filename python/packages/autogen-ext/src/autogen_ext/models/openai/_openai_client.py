@@ -888,13 +888,6 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     def model_info(self) -> ModelInfo:
         return self._model_info
 
-    def add_usage(self, usage: RequestUsage) -> None:
-        self._total_usage.prompt_tokens += usage.prompt_tokens
-        self._total_usage.completion_tokens += usage.completion_tokens
-
-        self._actual_usage.prompt_tokens += usage.prompt_tokens
-        self._actual_usage.completion_tokens += usage.completion_tokens
-
 
 class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenAIClientConfigurationConfigModel]):
     """Chat completion client for OpenAI hosted models.
