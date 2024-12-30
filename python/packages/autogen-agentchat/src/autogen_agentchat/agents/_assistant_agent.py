@@ -11,7 +11,6 @@ from typing import (
     List,
     Mapping,
     Sequence,
-    Tuple,
 )
 
 from autogen_core import CancellationToken, FunctionCall
@@ -312,7 +311,7 @@ class AssistantAgent(BaseChatAgent):
         self._is_running = False
 
     @property
-    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         """The types of messages that the assistant agent produces."""
         message_types: List[type[ChatMessage]] = [TextMessage]
         if self._handoffs:
