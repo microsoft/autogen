@@ -74,7 +74,7 @@ async def test_cancellation_with_token() -> None:
     while runtime.unprocessed_messages_count == 0:
         await asyncio.sleep(0.01)
 
-    await runtime.process_next()
+    await runtime._process_next()  # type: ignore
 
     token.cancel()
 
@@ -107,7 +107,7 @@ async def test_nested_cancellation_only_outer_called() -> None:
     while runtime.unprocessed_messages_count == 0:
         await asyncio.sleep(0.01)
 
-    await runtime.process_next()
+    await runtime._process_next()  # type: ignore
     token.cancel()
 
     with pytest.raises(asyncio.CancelledError):
@@ -143,9 +143,9 @@ async def test_nested_cancellation_inner_called() -> None:
     while runtime.unprocessed_messages_count == 0:
         await asyncio.sleep(0.01)
 
-    await runtime.process_next()
+    await runtime._process_next()  # type: ignore
     # allow the inner agent to process
-    await runtime.process_next()
+    await runtime._process_next()  # type: ignore
     token.cancel()
 
     with pytest.raises(asyncio.CancelledError):
