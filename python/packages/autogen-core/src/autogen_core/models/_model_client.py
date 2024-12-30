@@ -15,7 +15,7 @@ from ._types import CreateResult, LLMMessage, RequestUsage
 class ModelFamily:
     """A model family is a group of models that share similar characteristics from a capabilities perspective. This is different to discrete supported features such as vision, function calling, and JSON output.
 
-    This namespace class holds contstants for the model families that AutoGen understands. Other families definitely exist and can be represented by a string, however, AutoGen will treat them as unknown."""
+    This namespace class holds constants for the model families that AutoGen understands. Other families definitely exist and can be represented by a string, however, AutoGen will treat them as unknown."""
 
     GPT_4O = "gpt-4o"
     O1 = "o1"
