@@ -65,11 +65,8 @@ pip install "autogen-agentchat==0.4.0.dev12"
 
 +++
 
-```{button-ref} user-guide/agentchat-user-guide/quickstart
-:color: secondary
-
-Get Started
-```
+<a class="sd-sphinx-override sd-btn sd-text-wrap sd-btn-secondary reference internal" href="user-guide/agentchat-user-guide/quickstart.html"><span class="doc">Get Started</span></a>
+<a class="sd-sphinx-override sd-btn sd-text-wrap sd-btn-secondary reference internal" href="user-guide/agentchat-user-guide/migration-guide.html"><span class="doc">Migration Guide (0.2.x to 0.4.x)</span></a>
 
 :::
 :::{grid-item-card} {fas}`palette;pst-color-primary` Studio

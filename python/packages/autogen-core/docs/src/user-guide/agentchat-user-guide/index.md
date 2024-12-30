@@ -42,6 +42,12 @@ Step-by-step guide to using AgentChat
 
 Sample code and use cases
 :::
+
+:::{grid-item-card} {fas}`truck-moving;pst-color-primary` Migration Guide
+:link: ./migration-guide.html
+
+How to migrate from AutoGen 0.2.x to 0.4.x.
+:::
 ::::
 
 ```{toctree}
@@ -50,6 +56,7 @@ Sample code and use cases
 
 installation
 quickstart
+migration-guide
 ```
 
 ```{toctree}
