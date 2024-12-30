@@ -10,7 +10,6 @@ from pydantic import BaseModel, Field, create_model
 
 if TYPE_CHECKING:
     from langchain_core.tools import BaseTool as LangChainTool
-    from langchain_core.tools import Tool as LangChainFunctionTool
 
 
 class LangChainToolAdapter(BaseTool[BaseModel, Any]):
@@ -71,26 +70,22 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
         description = self._langchain_tool.description or ""
 
         # Determine the callable method
-        self._callable: Callable[..., Any]
-        if isinstance(self._langchain_tool, LangChainFunctionTool):
-            if not (
-                hasattr(self._langchain_tool, "func")
-                and self._langchain_tool.func is not None
-                and callable(self._langchain_tool.func)
-            ):
-                raise ValueError("The LangChain function tool must have a callable method named `func`")
-            self._callable = self._langchain_tool.func
+        if hasattr(self._langchain_tool, "func") and callable(self._langchain_tool.func):  # type: ignore
+            assert self._langchain_tool.func is not None  # type: ignore
+            self._callable: Callable[..., Any] = self._langchain_tool.func  # type: ignore
+        elif hasattr(self._langchain_tool, "_run") and callable(self._langchain_tool._run):  # type: ignore
+            self._callable: Callable[..., Any] = self._langchain_tool._run  # type: ignore
         else:
-            if not (hasattr(self._langchain_tool, "_run") and callable(self._langchain_tool._run)):  # type: ignore
-                raise ValueError("The LangChain tool must have a callable method named `_run`")
-            self._callable = self._langchain_tool._run  # type: ignore
+            raise AttributeError(
+                f"The provided LangChain tool '{name}' does not have a callable 'func' or '_run' method."
+            )
 
         # Determine args_type
-        if self._langchain_tool.args_schema:  # type: ignore
-            args_type = self._langchain_tool.args_schema  # type: ignore
+        if self._langchain_tool.args_schema:  # pyright: ignore
+            args_type = self._langchain_tool.args_schema  # pyright: ignore
         else:
             # Infer args_type from the callable's signature
-            sig = inspect.signature(cast(Callable[..., Any], self._callable))
+            sig = inspect.signature(cast(Callable[..., Any], self._callable))  # type: ignore
             fields = {
                 k: (v.annotation, Field(...))
                 for k, v in sig.parameters.items()
