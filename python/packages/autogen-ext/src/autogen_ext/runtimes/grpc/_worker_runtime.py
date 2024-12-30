@@ -670,54 +670,6 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         except BaseException as e:
             logger.error("Error handling event", exc_info=e)
 
-    @deprecated(
-        "Use your agent's `register` method directly instead of this method. See documentation for latest usage."
-    )
-    async def register(
-        self,
-        type: str,
-        agent_factory: Callable[[], T | Awaitable[T]],
-        subscriptions: Callable[[], list[Subscription] | Awaitable[list[Subscription]]]
-        | list[Subscription]
-        | None = None,
-    ) -> AgentType:
-        if type in self._agent_factories:
-            raise ValueError(f"Agent with type {type} already exists.")
-        self._agent_factories[type] = agent_factory
-
-        if self._host_connection is None:
-            raise RuntimeError("Host connection is not set.")
-
-        # Create a future for the registration response.
-        future = asyncio.get_event_loop().create_future()
-        request_id = await self._get_new_request_id()
-        self._pending_requests[request_id] = future
-
-        # Send the registration request message to the host.
-        message = agent_worker_pb2.Message(
-            registerAgentTypeRequest=agent_worker_pb2.RegisterAgentTypeRequest(request_id=request_id, type=type)
-        )
-        await self._host_connection.send(message)
-
-        # Wait for the registration response.
-        await future
-
-        if subscriptions is not None:
-            if callable(subscriptions):
-                with SubscriptionInstantiationContext.populate_context(AgentType(type)):
-                    subscriptions_list_result = subscriptions()
-                    if inspect.isawaitable(subscriptions_list_result):
-                        subscriptions_list = await subscriptions_list_result
-                    else:
-                        subscriptions_list = subscriptions_list_result
-            else:
-                subscriptions_list = subscriptions
-
-            for subscription in subscriptions_list:
-                await self.add_subscription(subscription)
-
-        return AgentType(type)
-
     async def register_factory(
         self,
         *,

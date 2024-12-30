@@ -3,8 +3,6 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any, Awaitable, Callable, Mapping, Protocol, Type, TypeVar, overload, runtime_checkable
 
-from typing_extensions import deprecated
-
 from ._agent import Agent
 from ._agent_id import AgentId
 from ._agent_metadata import AgentMetadata
@@ -70,30 +68,6 @@ class AgentRuntime(Protocol):
 
         Raises:
             UndeliverableException: If the message cannot be delivered.
-        """
-        ...
-
-    @deprecated(
-        "Use your agent's `register` method directly instead of this method. See documentation for latest usage."
-    )
-    async def register(
-        self,
-        type: str,
-        agent_factory: Callable[[], T | Awaitable[T]],
-        subscriptions: Callable[[], list[Subscription] | Awaitable[list[Subscription]]]
-        | list[Subscription]
-        | None = None,
-    ) -> AgentType:
-        """Register an agent factory with the runtime associated with a specific type. The type must be unique.
-
-        .. deprecated:: 0.4.0.dev1
-            Use a specific agent's `register` method directly instead of this method. For example: :meth:`BaseAgent.register`
-
-        Args:
-            type (str): The type of agent this factory creates. It is not the same as agent class name. The `type` parameter is used to differentiate between different factory functions rather than agent classes.
-            agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type. Inside the factory, use `autogen_core.AgentInstantiationContext` to access variables like the current runtime and agent ID.
-            subscriptions (Callable[[], list[Subscription]] | list[Subscription] | None, optional): The subscriptions that the agent should be subscribed to. Defaults to None.
-
         """
         ...
 
