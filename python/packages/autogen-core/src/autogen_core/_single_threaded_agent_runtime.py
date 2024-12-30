@@ -3,16 +3,23 @@ from __future__ import annotations
 import asyncio
 import inspect
 import logging
+import sys
 import threading
 import uuid
 import warnings
-from asyncio import CancelledError, Future, Task
+from asyncio import CancelledError, Future, Queue, Task
 from collections.abc import Sequence
 from dataclasses import dataclass
-from enum import Enum
 from typing import Any, Awaitable, Callable, Dict, List, Mapping, ParamSpec, Set, Type, TypeVar, cast
 
 from opentelemetry.trace import TracerProvider
+
+if sys.version_info >= (3, 13):
+    from asyncio import Queue, QueueShutDown
+else:
+    from ._queue import Queue, QueueShutDown  # type: ignore
+
+from typing_extensions import deprecated
 
 from ._agent import Agent
 from ._agent_id import AgentId
@@ -100,48 +107,36 @@ class Counter:
 
 
 class RunContext:
-    class RunState(Enum):
-        RUNNING = 0
-        CANCELLED = 1
-        UNTIL_IDLE = 2
-
     def __init__(self, runtime: SingleThreadedAgentRuntime) -> None:
         self._runtime = runtime
-        self._run_state = RunContext.RunState.RUNNING
-        self._end_condition: Callable[[], bool] = self._stop_when_cancelled
         self._run_task = asyncio.create_task(self._run())
-        self._lock = asyncio.Lock()
+        self._stopped = asyncio.Event()
 
     async def _run(self) -> None:
         while True:
-            async with self._lock:
-                if self._end_condition():
-                    return
+            if self._stopped.is_set():
+                return
 
-                await self._runtime.process_next()
+            await self._runtime._process_next()  # type: ignore
 
     async def stop(self) -> None:
-        async with self._lock:
-            self._run_state = RunContext.RunState.CANCELLED
-            self._end_condition = self._stop_when_cancelled
+        self._stopped.set()
+        self._runtime._message_queue.shutdown(immediate=True)  # type: ignore
         await self._run_task
 
     async def stop_when_idle(self) -> None:
-        async with self._lock:
-            self._run_state = RunContext.RunState.UNTIL_IDLE
-            self._end_condition = self._stop_when_idle
+        await self._runtime._message_queue.join()  # type: ignore
+        self._stopped.set()
+        self._runtime._message_queue.shutdown(immediate=True)  # type: ignore
         await self._run_task
 
-    async def stop_when(self, condition: Callable[[], bool]) -> None:
-        async with self._lock:
-            self._end_condition = condition
-        await self._run_task
+    async def stop_when(self, condition: Callable[[], bool], check_period: float = 1.0) -> None:
+        async def check_condition() -> None:
+            while not condition():
+                await asyncio.sleep(check_period)
+            await self.stop()
 
-    def _stop_when_cancelled(self) -> bool:
-        return self._run_state == RunContext.RunState.CANCELLED
-
-    def _stop_when_idle(self) -> bool:
-        return self._run_state == RunContext.RunState.UNTIL_IDLE and self._runtime.idle
+        await asyncio.create_task(check_condition())
 
 
 def _warn_if_none(value: Any, handler_name: str) -> None:
@@ -169,28 +164,23 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         tracer_provider: TracerProvider | None = None,
     ) -> None:
         self._tracer_helper = TraceHelper(tracer_provider, MessageRuntimeTracingConfig("SingleThreadedAgentRuntime"))
-        self._message_queue: List[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope] = []
+        self._message_queue: Queue[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope] = Queue()
         # (namespace, type) -> List[AgentId]
         self._agent_factories: Dict[
             str, Callable[[], Agent | Awaitable[Agent]] | Callable[[AgentRuntime, AgentId], Agent | Awaitable[Agent]]
         ] = {}
         self._instantiated_agents: Dict[AgentId, Agent] = {}
         self._intervention_handlers = intervention_handlers
-        self._outstanding_tasks = Counter()
         self._background_tasks: Set[Task[Any]] = set()
         self._subscription_manager = SubscriptionManager()
         self._run_context: RunContext | None = None
         self._serialization_registry = SerializationRegistry()
 
     @property
-    def unprocessed_messages(
+    def unprocessed_messages_count(
         self,
-    ) -> Sequence[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope]:
-        return self._message_queue
-
-    @property
-    def outstanding_tasks(self) -> int:
-        return self._outstanding_tasks.get()
+    ) -> int:
+        return self._message_queue.qsize()
 
     @property
     def _known_agent_names(self) -> Set[str]:
@@ -231,7 +221,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             content = message.__dict__ if hasattr(message, "__dict__") else message
             logger.info(f"Sending message of type {type(message).__name__} to {recipient.type}: {content}")
 
-            self._message_queue.append(
+            await self._message_queue.put(
                 SendMessageEnvelope(
                     message=message,
                     recipient=recipient,
@@ -279,7 +269,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             #     )
             # )
 
-            self._message_queue.append(
+            await self._message_queue.put(
                 PublishMessageEnvelope(
                     message=message,
                     cancellation_token=cancellation_token,
@@ -340,14 +330,14 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             except CancelledError as e:
                 if not message_envelope.future.cancelled():
                     message_envelope.future.set_exception(e)
-                self._outstanding_tasks.decrement()
+                self._message_queue.task_done()
                 return
             except BaseException as e:
                 message_envelope.future.set_exception(e)
-                self._outstanding_tasks.decrement()
+                self._message_queue.task_done()
                 return
 
-            self._message_queue.append(
+            await self._message_queue.put(
                 ResponseMessageEnvelope(
                     message=response,
                     future=message_envelope.future,
@@ -356,7 +346,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     metadata=get_telemetry_envelope_metadata(),
                 )
             )
-            self._outstanding_tasks.decrement()
+            self._message_queue.task_done()
 
     async def _process_publish(self, message_envelope: PublishMessageEnvelope) -> None:
         with self._tracer_helper.trace_block("publish", message_envelope.topic_id, parent=message_envelope.metadata):
@@ -411,7 +401,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     return
                 logger.error("Error processing publish message", exc_info=True)
             finally:
-                self._outstanding_tasks.decrement()
+                self._message_queue.task_done()
             # TODO if responses are given for a publish
 
     async def _process_response(self, message_envelope: ResponseMessageEnvelope) -> None:
@@ -433,18 +423,21 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             #         delivery_stage=DeliveryStage.DELIVER,
             #     )
             # )
-            self._outstanding_tasks.decrement()
+            self._message_queue.task_done()
             if not message_envelope.future.cancelled():
                 message_envelope.future.set_result(message_envelope.message)
 
+    @deprecated("Manually stepping the runtime processing is deprecated. Use start() instead.")
     async def process_next(self) -> None:
+        await self._process_next()
+
+    async def _process_next(self) -> None:
         """Process the next message in the queue."""
 
-        if len(self._message_queue) == 0:
-            # Yield control to the event loop to allow other tasks to run
-            await asyncio.sleep(0)
+        try:
+            message_envelope = await self._message_queue.get()
+        except QueueShutDown:
             return
-        message_envelope = self._message_queue.pop(0)
 
         match message_envelope:
             case SendMessageEnvelope(message=message, sender=sender, recipient=recipient, future=future):
@@ -464,7 +457,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                                 return
 
                         message_envelope.message = temp_message
-                self._outstanding_tasks.increment()
                 task = asyncio.create_task(self._process_send(message_envelope))
                 self._background_tasks.add(task)
                 task.add_done_callback(self._background_tasks.discard)
@@ -489,7 +481,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                                 return
 
                         message_envelope.message = temp_message
-                self._outstanding_tasks.increment()
                 task = asyncio.create_task(self._process_publish(message_envelope))
                 self._background_tasks.add(task)
                 task.add_done_callback(self._background_tasks.discard)
@@ -507,7 +498,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                             future.set_exception(MessageDroppedException())
                             return
                         message_envelope.message = temp_message
-                self._outstanding_tasks.increment()
                 task = asyncio.create_task(self._process_response(message_envelope))
                 self._background_tasks.add(task)
                 task.add_done_callback(self._background_tasks.discard)
@@ -515,37 +505,59 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         # Yield control to the message loop to allow other tasks to run
         await asyncio.sleep(0)
 
-    @property
-    def idle(self) -> bool:
-        return len(self._message_queue) == 0 and self._outstanding_tasks.get() == 0
-
     def start(self) -> None:
-        """Start the runtime message processing loop."""
+        """Start the runtime message processing loop. This runs in a background task.
+
+        Example:
+
+        .. code-block:: python
+
+            from autogen_core import SingleThreadedAgentRuntime
+
+            runtime = SingleThreadedAgentRuntime()
+            runtime.start()
+
+        """
         if self._run_context is not None:
             raise RuntimeError("Runtime is already started")
         self._run_context = RunContext(self)
 
     async def stop(self) -> None:
-        """Stop the runtime message processing loop."""
+        """Immediately stop the runtime message processing loop. The currently processing message will be completed, but all others following it will be discarded."""
         if self._run_context is None:
             raise RuntimeError("Runtime is not started")
         await self._run_context.stop()
         self._run_context = None
+        self._message_queue = Queue()
 
     async def stop_when_idle(self) -> None:
         """Stop the runtime message processing loop when there is
-        no outstanding message being processed or queued."""
+        no outstanding message being processed or queued. This is the most common way to stop the runtime."""
         if self._run_context is None:
             raise RuntimeError("Runtime is not started")
         await self._run_context.stop_when_idle()
         self._run_context = None
+        self._message_queue = Queue()
 
     async def stop_when(self, condition: Callable[[], bool]) -> None:
-        """Stop the runtime message processing loop when the condition is met."""
+        """Stop the runtime message processing loop when the condition is met.
+
+        .. caution::
+
+            This method is not recommended to be used, and is here for legacy
+            reasons. It will spawn a busy loop to continually check the
+            condition. It is much more efficient to call `stop_when_idle` or
+            `stop` instead. If you need to stop the runtime based on a
+            condition, consider using a background task and asyncio.Event to
+            signal when the condition is met and the background task should call
+            stop.
+
+        """
         if self._run_context is None:
             raise RuntimeError("Runtime is not started")
         await self._run_context.stop_when(condition)
         self._run_context = None
+        self._message_queue = Queue()
 
     async def agent_metadata(self, agent: AgentId) -> AgentMetadata:
         return (await self._get_agent(agent)).metadata
