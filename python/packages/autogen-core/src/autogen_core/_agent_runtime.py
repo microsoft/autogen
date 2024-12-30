@@ -73,16 +73,59 @@ class AgentRuntime(Protocol):
 
     async def register_factory(
         self,
-        *,
-        type: AgentType,
+        type: str | AgentType,
         agent_factory: Callable[[], T | Awaitable[T]],
-        expected_class: type[T],
+        *,
+        expected_class: type[T] | None = None,
     ) -> AgentType:
-        """Register an agent factory with the runtime associated with a specific type. The type must be unique.
+        """Register an agent factory with the runtime associated with a specific type. The type must be unique. This API does not add any subscriptions.
+
+        .. note::
+
+            This is a low level API and usually the agent class's `register` method should be used instead, as this also handles subscriptions automatically.
+
+        Example:
+
+        .. code-block:: python
+
+            from dataclasses import dataclass
+
+            from autogen_core import AgentRuntime, MessageContext, RoutedAgent, event
+            from autogen_core.models import UserMessage
+
+
+            @dataclass
+            class MyMessage:
+                content: str
+
+
+            class MyAgent(RoutedAgent):
+                def __init__(self) -> None:
+                    super().__init__("My core agent")
+
+                @event
+                async def handler(self, message: UserMessage, context: MessageContext) -> None:
+                    print("Event received: ", message.content)
+
+
+            async def my_agent_factory():
+                return MyAgent()
+
+
+            async def main() -> None:
+                runtime: AgentRuntime = ...  # type: ignore
+                await runtime.register_factory("my_agent", lambda: MyAgent())
+
+
+            import asyncio
+
+            asyncio.run(main())
+
 
         Args:
             type (str): The type of agent this factory creates. It is not the same as agent class name. The `type` parameter is used to differentiate between different factory functions rather than agent classes.
             agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type. Inside the factory, use `autogen_core.AgentInstantiationContext` to access variables like the current runtime and agent ID.
+            expected_class (type[T] | None, optional): The expected class of the agent, used for runtime validation of the factory. Defaults to None.
         """
         ...
 

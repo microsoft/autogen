@@ -558,11 +558,14 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
     async def register_factory(
         self,
-        *,
-        type: AgentType,
+        type: str | AgentType,
         agent_factory: Callable[[], T | Awaitable[T]],
-        expected_class: type[T],
+        *,
+        expected_class: type[T] | None = None,
     ) -> AgentType:
+        if isinstance(type, str):
+            type = AgentType(type)
+
         if type.type in self._agent_factories:
             raise ValueError(f"Agent with type {type} already exists.")
 
