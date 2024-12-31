@@ -667,6 +667,12 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     agent = factory_two(self, agent_id)
                 else:
                     raise ValueError("Agent factory must take 0 or 2 arguments.")
+
+                if inspect.isawaitable(agent):
+                    return cast(T, await agent)
+
+                return agent
+
             except BaseException as e:
                 event_logger.info(
                     AgentConstructionExceptionEvent(
@@ -676,11 +682,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 )
                 logger.error(f"Error constructing agent {agent_id}", exc_info=True)
                 raise
-
-            if inspect.isawaitable(agent):
-                return cast(T, await agent)
-
-            return agent
 
     async def _get_agent(self, agent_id: AgentId) -> Agent:
         if agent_id in self._instantiated_agents:

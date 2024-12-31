@@ -20,10 +20,10 @@ from autogen_test_utils import (
     MessageType,
     NoopAgent,
 )
-from autogen_test_utils.telemetry_test_utils import TestExporter, get_test_tracer_provider
+from autogen_test_utils.telemetry_test_utils import MyTestExporter, get_test_tracer_provider
 from opentelemetry.sdk.trace import TracerProvider
 
-test_exporter = TestExporter()
+test_exporter = MyTestExporter()
 
 
 @pytest.fixture
