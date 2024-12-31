@@ -33,7 +33,7 @@ from ._intervention import DropMessage, InterventionHandler
 from ._message_context import MessageContext
 from ._message_handler_context import MessageHandlerContext
 from ._runtime_impl_helpers import SubscriptionManager, get_impl
-from ._serialization import MessageSerializer, SerializationRegistry
+from ._serialization import JSON_DATA_CONTENT_TYPE, MessageSerializer, SerializationRegistry
 from ._subscription import Subscription
 from ._telemetry import EnvelopeMetadata, MessageRuntimeTracingConfig, TraceHelper, get_telemetry_envelope_metadata
 from ._topic import TopicId
@@ -187,7 +187,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         event_logger.info(
             MessageEvent(
-                payload=message,
+                payload=self._try_serialize(message),
                 sender=sender,
                 receiver=recipient,
                 kind=MessageKind.DIRECT,
@@ -249,7 +249,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
             event_logger.info(
                 MessageEvent(
-                    payload=message,
+                    payload=self._try_serialize(message),
                     sender=sender,
                     receiver=topic_id,
                     kind=MessageKind.PUBLISH,
@@ -294,7 +294,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 )
                 event_logger.info(
                     MessageEvent(
-                        payload=message_envelope.message,
+                        payload=self._try_serialize(message_envelope.message),
                         sender=message_envelope.sender,
                         receiver=recipient,
                         kind=MessageKind.DIRECT,
@@ -320,7 +320,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 self._message_queue.task_done()
                 event_logger.info(
                     MessageHandlerExceptionEvent(
-                        payload=message_envelope.message,
+                        payload=self._try_serialize(message_envelope.message),
                         handling_agent=recipient,
                         exception=e,
                     )
@@ -331,7 +331,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 self._message_queue.task_done()
                 event_logger.info(
                     MessageHandlerExceptionEvent(
-                        payload=message_envelope.message,
+                        payload=self._try_serialize(message_envelope.message),
                         handling_agent=recipient,
                         exception=e,
                     )
@@ -340,7 +340,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
             event_logger.info(
                 MessageEvent(
-                    payload=response,
+                    payload=self._try_serialize(response),
                     sender=message_envelope.recipient,
                     receiver=message_envelope.sender,
                     kind=MessageKind.RESPOND,
@@ -378,7 +378,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     )
                     event_logger.info(
                         MessageEvent(
-                            payload=message_envelope.message,
+                            payload=self._try_serialize(message_envelope.message),
                             sender=message_envelope.sender,
                             receiver=None,
                             kind=MessageKind.PUBLISH,
@@ -406,7 +406,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                                     logger.error(f"Error processing publish message for {agent.id}", exc_info=True)
                                     event_logger.info(
                                         MessageHandlerExceptionEvent(
-                                            payload=message_envelope.message,
+                                            payload=self._try_serialize(message_envelope.message),
                                             handling_agent=agent.id,
                                             exception=e,
                                         )
@@ -436,16 +436,16 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             )
             event_logger.info(
                 MessageEvent(
-                    payload=message_envelope.message,
+                    payload=self._try_serialize(message_envelope.message),
                     sender=message_envelope.sender,
                     receiver=message_envelope.recipient,
                     kind=MessageKind.RESPOND,
                     delivery_stage=DeliveryStage.DELIVER,
                 )
             )
-            self._message_queue.task_done()
             if not message_envelope.future.cancelled():
                 message_envelope.future.set_result(message_envelope.message)
+            self._message_queue.task_done()
 
     @deprecated("Manually stepping the runtime processing is deprecated. Use start() instead.")
     async def process_next(self) -> None:
@@ -475,7 +475,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                             if temp_message is DropMessage or isinstance(temp_message, DropMessage):
                                 event_logger.info(
                                     MessageDroppedEvent(
-                                        payload=message,
+                                        payload=self._try_serialize(message),
                                         sender=sender,
                                         receiver=recipient,
                                         kind=MessageKind.DIRECT,
@@ -508,7 +508,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                             if temp_message is DropMessage or isinstance(temp_message, DropMessage):
                                 event_logger.info(
                                     MessageDroppedEvent(
-                                        payload=message,
+                                        payload=self._try_serialize(message),
                                         sender=sender,
                                         receiver=topic_id,
                                         kind=MessageKind.PUBLISH,
@@ -533,7 +533,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                         if temp_message is DropMessage or isinstance(temp_message, DropMessage):
                             event_logger.info(
                                 MessageDroppedEvent(
-                                    payload=message,
+                                    payload=self._try_serialize(message),
                                     sender=sender,
                                     receiver=recipient,
                                     kind=MessageKind.RESPOND,
@@ -710,3 +710,10 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
     def add_message_serializer(self, serializer: MessageSerializer[Any] | Sequence[MessageSerializer[Any]]) -> None:
         self._serialization_registry.add_serializer(serializer)
+
+    def _try_serialize(self, message: Any) -> str:
+        try:
+            type_name = self._serialization_registry.type_name(message)
+            return self._serialization_registry.serialize(message, type_name=type_name, data_content_type=JSON_DATA_CONTENT_TYPE).decode("utf-8")
+        except ValueError:
+            return  "Message could not be serialized"

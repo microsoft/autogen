@@ -58,7 +58,7 @@ class MessageEvent:
     def __init__(
         self,
         *,
-        payload: Any,
+        payload: str,
         sender: AgentId | None,
         receiver: AgentId | TopicId | None,
         kind: MessageKind,
@@ -82,7 +82,7 @@ class MessageDroppedEvent:
     def __init__(
         self,
         *,
-        payload: Any,
+        payload: str,
         sender: AgentId | None,
         receiver: AgentId | TopicId | None,
         kind: MessageKind,
@@ -104,7 +104,7 @@ class MessageHandlerExceptionEvent:
     def __init__(
         self,
         *,
-        payload: Any,
+        payload: str,
         handling_agent: AgentId,
         exception: BaseException,
         **kwargs: Any,
