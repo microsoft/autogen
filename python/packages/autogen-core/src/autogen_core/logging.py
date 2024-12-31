@@ -69,8 +69,8 @@ class MessageEvent:
         self.kwargs["payload"] = payload
         self.kwargs["sender"] = None if sender is None else str(sender)
         self.kwargs["receiver"] = None if receiver is None else str(receiver)
-        self.kwargs["kind"] = kind
-        self.kwargs["delivery_stage"] = delivery_stage
+        self.kwargs["kind"] = str(kind)
+        self.kwargs["delivery_stage"] = str(delivery_stage)
         self.kwargs["type"] = "Message"
 
     # This must output the event in a json serializable format
@@ -92,7 +92,7 @@ class MessageDroppedEvent:
         self.kwargs["payload"] = payload
         self.kwargs["sender"] = None if sender is None else str(sender)
         self.kwargs["receiver"] = None if receiver is None else str(receiver)
-        self.kwargs["kind"] = kind
+        self.kwargs["kind"] = str(kind)
         self.kwargs["type"] = "MessageDropped"
 
     # This must output the event in a json serializable format
