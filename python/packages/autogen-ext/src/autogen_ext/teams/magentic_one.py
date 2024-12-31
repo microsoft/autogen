@@ -19,6 +19,13 @@ class MagenticOne(MagenticOneGroupChat):
     such as FileSurfer, WebSurfer, Coder, and Executor to solve complex tasks.
     To read more about the science behind Magentic-One, see the full blog post: `Magentic-One: A Generalist Multi-Agent System for Solving Complex Tasks <https://www.microsoft.com/en-us/research/articles/magentic-one-a-generalist-multi-agent-system-for-solving-complex-tasks>`_ and the references below.
 
+    Installation:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[magentic-one]==0.4.0.dev13"
+
+
     Args:
         client (ChatCompletionClient): The client used for model interactions.
         hil_mode (bool): Optional; If set to True, adds the UserProxyAgent to the list of agents.
