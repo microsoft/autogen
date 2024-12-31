@@ -2,7 +2,8 @@ import json
 from enum import Enum
 from typing import Any, cast
 
-from autogen_core import AgentId
+from ._agent_id import AgentId
+from ._topic import TopicId
 
 
 class LLMCallEvent:
@@ -59,7 +60,7 @@ class MessageEvent:
         *,
         payload: Any,
         sender: AgentId | None,
-        receiver: AgentId | None,
+        receiver: AgentId | TopicId | None,
         kind: MessageKind,
         delivery_stage: DeliveryStage,
         **kwargs: Any,
@@ -72,13 +73,47 @@ class MessageEvent:
         self.kwargs["delivery_stage"] = delivery_stage
         self.kwargs["type"] = "Message"
 
-    @property
-    def prompt_tokens(self) -> int:
-        return cast(int, self.kwargs["prompt_tokens"])
+    # This must output the event in a json serializable format
+    def __str__(self) -> str:
+        return json.dumps(self.kwargs)
 
-    @property
-    def completion_tokens(self) -> int:
-        return cast(int, self.kwargs["completion_tokens"])
+
+class MessageDroppedEvent:
+    def __init__(
+        self,
+        *,
+        payload: Any,
+        sender: AgentId | None,
+        receiver: AgentId | TopicId | None,
+        kind: MessageKind,
+        **kwargs: Any,
+    ) -> None:
+        self.kwargs = kwargs
+        self.kwargs["payload"] = payload
+        self.kwargs["sender"] = None if sender is None else str(sender)
+        self.kwargs["receiver"] = None if receiver is None else str(receiver)
+        self.kwargs["kind"] = kind
+        self.kwargs["type"] = "MessageDropped"
+
+    # This must output the event in a json serializable format
+    def __str__(self) -> str:
+        return json.dumps(self.kwargs)
+
+
+class MessageHandlerExceptionEvent:
+    def __init__(
+        self,
+        *,
+        payload: Any,
+        handling_agent: AgentId,
+        exception: BaseException,
+        **kwargs: Any,
+    ) -> None:
+        self.kwargs = kwargs
+        self.kwargs["payload"] = payload
+        self.kwargs["handling_agent"] = str(handling_agent)
+        self.kwargs["exception"] = str(exception)
+        self.kwargs["type"] = "MessageHandlerException"
 
     # This must output the event in a json serializable format
     def __str__(self) -> str:
