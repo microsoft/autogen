@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union
 
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken
@@ -8,7 +9,9 @@ from autogen_core.models import (
     ChatCompletionClient,
     CreateResult,
     LLMMessage,
-    ModelCapabilities,
+    ModelCapabilities,  # type: ignore
+    ModelFamily,
+    ModelInfo,
     RequestUsage,
 )
 from autogen_core.tools import Tool, ToolSchema
@@ -119,7 +122,9 @@ class ReplayChatCompletionClient(ChatCompletionClient):
     ):
         self.chat_completions = list(chat_completions)
         self.provided_message_count = len(self.chat_completions)
-        self._model_capabilities = ModelCapabilities(vision=False, function_calling=False, json_output=False)
+        self._model_info = ModelInfo(
+            vision=False, function_calling=False, json_output=False, family=ModelFamily.UNKNOWN
+        )
         self._total_available_tokens = 10000
         self._cur_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
@@ -231,9 +236,14 @@ class ReplayChatCompletionClient(ChatCompletionClient):
         self._total_usage.prompt_tokens += self._cur_usage.prompt_tokens
 
     @property
-    def capabilities(self) -> ModelCapabilities:
+    def capabilities(self) -> ModelCapabilities:  # type: ignore
         """Return mock capabilities."""
-        return self._model_capabilities
+        warnings.warn("capabilities is deprecated, use model_info instead", DeprecationWarning, stacklevel=2)
+        return self._model_info
+
+    @property
+    def model_info(self) -> ModelInfo:
+        return self._model_info
 
     def reset(self) -> None:
         """Reset the client state and usage to its initial state."""
