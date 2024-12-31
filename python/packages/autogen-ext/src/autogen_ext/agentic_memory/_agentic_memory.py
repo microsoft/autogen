@@ -113,6 +113,27 @@ class AgenticMemory:
 
         self.page_log.finish_page(page)
 
+    async def add_insight_without_task_to_memory(self, insight: str):
+        # Adds an insight to the DB.
+        page = self.page_log.begin_page(
+            summary="AgenticMemory.add_insight_without_task_to_memory",
+            details="",
+            method_call="AgenticMemory.add_insight_without_task_to_memory")
+
+        page.add_lines("\nGIVEN INSIGHT:")
+        page.add_lines(insight)
+
+        # Get a list of topics from the insight.
+        topics = await self.prompter.find_index_topics(insight)
+        page.add_lines("\nTOPICS EXTRACTED FROM INSIGHT:")
+        page.add_lines("\n".join(topics))
+        page.add_lines("")
+
+        # Add the insight to the archive.
+        self.archive.add_insight(insight, None, topics)
+
+        self.page_log.finish_page(page)
+
     async def retrieve_relevant_insights(self, task: str):
         # Retrieve insights from the DB that are relevant to the task.
         page = self.page_log.begin_page(
@@ -259,3 +280,71 @@ class AgenticMemory:
         page.add_lines("\n{}\n".format(final_response), flush=True)
         self.page_log.finish_page(page)
         return final_response, successful_insight
+
+    async def _handle_task_or_advice(self, text):
+        page = self.page_log.begin_page(
+            summary="AgenticMemory._handle_task_or_advice",
+            details="",
+            method_call="AgenticMemory._handle_task_or_advice")
+
+        task = await self.prompter.extract_task(text)
+        page.add_lines("Task:  {}".format(task), flush=True)
+
+        advice = await self.prompter.extract_advice(text)
+        page.add_lines("Advice:  {}".format(advice), flush=True)
+
+        self.page_log.finish_page(page)
+        return task, advice
+
+    async def execute_task(self, task: str, task_assignment_callback: Callable, should_await: bool,
+                           should_retrieve_insights: bool = True):
+        """
+        Assigns a task to the completion agent, along with any relevant insights/memories.
+        """
+        page = self.page_log.begin_page(
+            summary="AgenticMemory.execute_task",
+            details="",
+            method_call="AgenticMemory.execute_task")
+
+        if should_retrieve_insights:
+            # Try to retrieve any relevant memories from the DB.
+            filtered_insights = await self.retrieve_relevant_insights(task)
+            if len(filtered_insights) > 0:
+                page.add_lines("Relevant insights were retrieved from memory.\n", flush=True)
+                memory_section = self.format_memory_section(filtered_insights)
+                task = task + '\n\n' + memory_section
+
+        # Attempt to solve the task.
+        page.add_lines("Try to solve the task.\n", flush=True)
+        if should_await:
+            response, _ = await task_assignment_callback(task, self.client, self.page_log)
+        else:
+            response, _ = task_assignment_callback(task, self.client, self.page_log)
+
+        # page.add_lines("Response:  {}\n".format(response), flush=True)
+
+        self.page_log.finish_page(page)
+        return response
+
+    async def handle_user_message(self, text, task_assignment_callback, should_await=True):
+        page = self.page_log.begin_page(
+            summary="AgenticMemory.handle_user_message",
+            details="",
+            method_call="AgenticMemory.handle_user_message")
+
+        # task = await self.prompter.extract_task(text)
+        # page.add_lines("Task:  {}".format(task), flush=True)
+
+        advice = await self.prompter.extract_advice(text)
+        page.add_lines("Advice:  {}".format(advice), flush=True)
+
+        if advice is not None:
+            print("Adding advice to memory.")
+            await self.add_insight_without_task_to_memory(advice)
+
+        print("Passing task to completion agent.")
+        response = await self.execute_task(text, task_assignment_callback, should_await,
+                                           should_retrieve_insights=(advice is None))
+
+        self.page_log.finish_page(page)
+        return response

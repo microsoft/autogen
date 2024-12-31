@@ -19,7 +19,7 @@ from autogen_ext.agentic_memory import AgenticMemory, PageLog, Grader
 
 MEMORY_DIR = "~/agentic_memory_archive"
 PAGELOG_DIR = "~/pagelogs/"
-RUN_SUBDIR = "run_27_3_g1_cl"
+RUN_SUBDIR = "run_28_teach"
 
 # Default client parameters
 TEMPERATURE = 0.8
@@ -56,6 +56,11 @@ In the afternoon, you go from house to house, speaking with all 100 residents of
     tasks_with_answers.append({
         "task": """You ask ten people 'How many of you are liars?' They all answer 'At least one of us is not a liar.' You happen to know that at least one of them IS a liar. How many of them are liars in total?""",
         "expected_answer": "All of them are liars."})
+
+    # Task index 4
+    tasks_with_answers.append({
+        "task": "As a contribution to autogen, can I create a new autogen package for a copilot extension agent that I built on autogen?",
+        "expected_answer": "It's best to have your agent in its own repo, then add the autogen-extension topic to that repo."})
 
     return tasks_with_answers
 
@@ -357,6 +362,129 @@ async def train_and_test(task_index_list, num_loops, max_train_trials, max_test_
     return total_num_successes_list
 
 
+async def test_without_memory(task_assignment_callback, client, page_log):
+    page = page_log.begin_page(
+        summary="test_without_memory",
+        details='',
+        method_call="test_without_memory")
+
+    task_index = 3
+    num_trials = 1
+
+    num_successes, num_trials = await test_on_task(task_index, task_assignment_callback, client, page_log, num_trials)
+
+    success_rate = round((num_successes / num_trials) * 100)
+    page.add_lines("\nOverall success rate:  {}%\n".format(success_rate), flush=True)
+
+    page_log.finish_page(page)
+
+
+async def test_with_memory(task_assignment_callback, client, page_log):
+    page = page_log.begin_page(
+        summary="test_with_memory",
+        details='',
+        method_call="test_with_memory")
+
+    task_index = 3
+
+    num_successes, num_trials = await test_on_task_with_memory(task_index, task_assignment_callback, client, page_log,
+                                                               num_trials=3, reset_memory=False)
+    success_rate = round((num_successes / num_trials) * 100)
+    page.add_lines("\nOverall success rate:  {}%\n".format(success_rate), flush=True)
+
+    page_log.finish_page(page)
+
+
+async def test_self_teaching(task_assignment_callback, client, page_log):
+    page = page_log.begin_page(
+        summary="test_self_teaching",
+        details='',
+        method_call="test_self_teaching")
+
+    # Choose the tasks from those listed at the top.
+    task_index_list = [3, 1]
+
+    # Train and test on any number of tasks using memory.
+    num_loops = 10  # Normally 10
+    total_num_successes_list = await train_and_test(
+        task_index_list=task_index_list,
+        num_loops=num_loops,
+        max_train_trials=10,  # Normally 10
+        max_test_trials=3,  # Normally 3
+        task_assignment_callback=task_assignment_callback,
+        client=client,
+        page_log=page_log)
+
+    for i, total_num_successes in enumerate(total_num_successes_list):
+        success_rate = round((total_num_successes / num_loops) * 100)
+        page.add_lines("\nOverall success rate ({}):  {}%\n".format(i, success_rate), flush=True)
+
+    page_log.finish_page(page)
+
+
+async def send_message_to_agent(text, task_assignment_callback, client, page_log, reset_memory) -> None:
+    page = page_log.begin_page(
+        summary="send_message_to_agent",
+        details="",
+        method_call="send_message_to_agent")
+
+    memory = AgenticMemory(reset=reset_memory, client=client, page_log=page_log,
+                           memory_dir=MEMORY_DIR, run_subdir=RUN_SUBDIR)
+    response = await memory.handle_user_message(text, task_assignment_callback)
+
+    page.add_lines("Response:  {}\n".format(response), flush=True)
+
+    page_log.finish_page(page)
+    return response
+
+
+async def test_teachability(task_assignment_callback, client, page_log):
+    page = page_log.begin_page(
+        summary="test_teachability",
+        details='',
+        method_call="test_teachability")
+
+    tasklist = define_tasks_with_answers()
+    task_index = 4
+    task_with_answer = tasklist[task_index]
+    task = task_with_answer["task"]
+    answer = task_with_answer["expected_answer"]
+    grader = Grader(client, page_log)
+
+    # First test without memory.
+    page.add_lines("Clearing memory, then asking the question.")
+    # task = "As a contribution to autogen, can I create a new autogen package for a copilot extension agent that I built on autogen?"
+    response = await send_message_to_agent(task, task_assignment_callback, client, page_log, reset_memory=True)
+
+    # Check the response.
+    response_is_correct, extracted_answer = await grader.response_is_correct(task, response, answer)
+    page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
+    if response_is_correct:
+        page.add_lines("Answer is CORRECT.\n", flush=True)
+    else:
+        page.add_lines("Answer is INCORRECT.\n", flush=True)
+
+    # Give the advice.
+    page.add_lines("Giving the advice.")
+    insight = "When somebody builds something on autogen and wants to contribute it to autogen, instead of creating a new autogen package, it's better for them to implement it in a separate github repo, then just add the autogen-extension topic to that repo. That way their contribution will be automatically discoverable through autogen's page on community extensions:  https://microsoft.github.io/autogen/dev/user-guide/extensions-user-guide/index.html"
+    await send_message_to_agent(insight, task_assignment_callback, client, page_log, reset_memory=False)
+
+    # Now ask the question again to see if the advice is retrieved from memory.
+    page.add_lines("Asking the question again to see if the advice is retrieved from memory.")
+    response = await send_message_to_agent(task, task_assignment_callback, client, page_log, reset_memory=False)
+
+    # Check the response.
+    response_is_correct, extracted_answer = await grader.response_is_correct(task, response, answer)
+    page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
+    if response_is_correct:
+        page.add_lines("Answer is CORRECT.\n", flush=True)
+    else:
+        page.add_lines("Answer is INCORRECT.\n", flush=True)
+
+    page_log.finish_page(page)
+
+
+
 async def main() -> None:
     # Create the PageLog.
     page_log = PageLog(PAGELOG_DIR, RUN_SUBDIR)
@@ -368,32 +496,14 @@ async def main() -> None:
     # Create the client.
     client = create_client(page_log)
 
-    # Choose the tasks from those listed at the top.
-    task_index_list = [3, 1]
-
     # Choose the client, agent or team to assign the task to.
     task_assignment_callback = assign_task_to_client  # assign_task_to_client or assign_task_to_magentic_one
 
-    # Test, without using memory.
-    # num_successes, num_trials = await test_on_task(task_index, task_assignment_callback, client, page_log, 50)
-
-    # Test, using memory.
-    # num_successes, num_trials = await test_on_task_with_memory(task_index, task_assignment_callback, client, page_log, num_trials=3, reset_memory=True)
-
-    # Train and test on any number of tasks using memory.
-    num_loops = 10  # Normally 10
-    total_num_successes_list = await train_and_test(
-        task_index_list,
-        num_loops,
-        10,  # Normally 10
-        3,  # Normally 3
-        task_assignment_callback,
-        client,
-        page_log)
-
-    for i, total_num_successes in enumerate(total_num_successes_list):
-        success_rate = round((total_num_successes / num_loops) * 100)
-        page.add_lines("\nOverall success rate ({}):  {}%\n".format(i, success_rate), flush=True)
+    # SELECT ONE TEST TO RUN
+    # await test_without_memory(task_assignment_callback, client, page_log)
+    # await test_with_memory(task_assignment_callback, client, page_log)
+    # await test_self_teaching(task_assignment_callback, client, page_log)
+    await test_teachability(task_assignment_callback, client, page_log)
 
     page_log.flush(final=True)  # Finalize the page log
     page_log.finish_page(page)

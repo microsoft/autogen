@@ -242,3 +242,34 @@ class Prompter:
             details="to list the relevant insights")
 
         return [validated_insights] if validated_insights != "None" else []
+
+    async def extract_task(self, text):
+        # Returns a task from the given text, or None if none is found.
+        sys_message = """You are a helpful and thoughtful assistant."""
+        user_message = ["""Does the following text contain a question or a some task we are being asked to perform?
+- If so, please reply with the full question or task description, along with any supporting information, but without adding extra commentary or formatting.
+- If the task is just to remember something, that doesn't count as a task, so don't include it.
+- If there is no question or task in the text, simply write "None" with no punctuation."""]
+        user_message.append("\n# Text to analyze")
+        user_message.append(text)
+        self.clear_history()
+        response, page = await self.call_model(
+            system_message=sys_message,
+            user_content=user_message,
+            details="to extract a task")
+        return response if response != "None" else None
+
+    async def extract_advice(self, text):
+        # Returns a task from the given text, or None if none is found.
+        sys_message = """You are a helpful and thoughtful assistant."""
+        user_message = ["""Does the following text contain any information or advice that might be useful later?
+- If so, please copy the information or advice, adding no extra commentary or formatting.
+- If there is no potentially useful information or advice at all, simply write "None" with no punctuation."""]
+        user_message.append("\n# Text to analyze")
+        user_message.append(text)
+        self.clear_history()
+        response, page = await self.call_model(
+            system_message=sys_message,
+            user_content=user_message,
+            details="to extract advice")
+        return response if response != "None" else None
