@@ -26,6 +26,7 @@ class AgentRuntime(Protocol):
         *,
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
+        message_id: str | None = None,
     ) -> Any:
         """Send a message to an agent and get a response.
 
