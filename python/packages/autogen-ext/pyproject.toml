@@ -25,7 +25,7 @@ m1 = "autogen_ext.teams.magentic_one_cli:main"
 langchain = ["langchain_core~= 0.3.3"]
 azure = ["azure-core", "azure-identity"]
 docker = ["docker~=7.0"]
-openai = ["openai>=1.52.2", "aiofiles"]
+openai = ["openai>=1.52.2", "aiofiles", "azure-core", "azure-identity"]
 file-surfer = [
     "autogen-agentchat==0.4.0.dev13",
     "markitdown>=0.0.1a2",

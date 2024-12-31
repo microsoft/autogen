@@ -499,6 +499,8 @@ magentic-one = [
 ]
 openai = [
     { name = "aiofiles" },
+    { name = "azure-core" },
+    { name = "azure-identity" },
     { name = "openai" },
 ]
 video-surfer = [
@@ -529,7 +531,9 @@ requires-dist = [
     { name = "autogen-agentchat", marker = "extra == 'web-surfer'", editable = "packages/autogen-agentchat" },
     { name = "autogen-core", editable = "packages/autogen-core" },
     { name = "azure-core", marker = "extra == 'azure'" },
+    { name = "azure-core", marker = "extra == 'openai'" },
     { name = "azure-identity", marker = "extra == 'azure'" },
+    { name = "azure-identity", marker = "extra == 'openai'" },
     { name = "docker", marker = "extra == 'docker'", specifier = "~=7.0" },
     { name = "ffmpeg-python", marker = "extra == 'video-surfer'" },
     { name = "grpcio", marker = "extra == 'grpc'", specifier = "~=1.62.0" },
