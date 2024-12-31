@@ -13,7 +13,14 @@ from typing import Any, Awaitable, Callable, Dict, List, Mapping, ParamSpec, Set
 
 from opentelemetry.trace import TracerProvider
 
-from .logging import DeliveryStage, MessageDroppedEvent, MessageEvent, MessageHandlerExceptionEvent, MessageKind
+from .logging import (
+    AgentConstructionExceptionEvent,
+    DeliveryStage,
+    MessageDroppedEvent,
+    MessageEvent,
+    MessageHandlerExceptionEvent,
+    MessageKind,
+)
 
 if sys.version_info >= (3, 13):
     from asyncio import Queue, QueueShutDown
@@ -647,18 +654,28 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         agent_id: AgentId,
     ) -> T:
         with AgentInstantiationContext.populate_context((self, agent_id)):
-            if len(inspect.signature(agent_factory).parameters) == 0:
-                factory_one = cast(Callable[[], T], agent_factory)
-                agent = factory_one()
-            elif len(inspect.signature(agent_factory).parameters) == 2:
-                warnings.warn(
-                    "Agent factories that take two arguments are deprecated. Use AgentInstantiationContext instead. Two arg factories will be removed in a future version.",
-                    stacklevel=2,
+            try:
+                if len(inspect.signature(agent_factory).parameters) == 0:
+                    factory_one = cast(Callable[[], T], agent_factory)
+                    agent = factory_one()
+                elif len(inspect.signature(agent_factory).parameters) == 2:
+                    warnings.warn(
+                        "Agent factories that take two arguments are deprecated. Use AgentInstantiationContext instead. Two arg factories will be removed in a future version.",
+                        stacklevel=2,
+                    )
+                    factory_two = cast(Callable[[AgentRuntime, AgentId], T], agent_factory)
+                    agent = factory_two(self, agent_id)
+                else:
+                    raise ValueError("Agent factory must take 0 or 2 arguments.")
+            except BaseException as e:
+                event_logger.info(
+                    AgentConstructionExceptionEvent(
+                        agent_id=agent_id,
+                        exception=e,
+                    )
                 )
-                factory_two = cast(Callable[[AgentRuntime, AgentId], T], agent_factory)
-                agent = factory_two(self, agent_id)
-            else:
-                raise ValueError("Agent factory must take 0 or 2 arguments.")
+                logger.error(f"Error constructing agent {agent_id}", exc_info=True)
+                raise
 
             if inspect.isawaitable(agent):
                 return cast(T, await agent)
@@ -714,6 +731,8 @@ class SingleThreadedAgentRuntime(AgentRuntime):
     def _try_serialize(self, message: Any) -> str:
         try:
             type_name = self._serialization_registry.type_name(message)
-            return self._serialization_registry.serialize(message, type_name=type_name, data_content_type=JSON_DATA_CONTENT_TYPE).decode("utf-8")
+            return self._serialization_registry.serialize(
+                message, type_name=type_name, data_content_type=JSON_DATA_CONTENT_TYPE
+            ).decode("utf-8")
         except ValueError:
-            return  "Message could not be serialized"
+            return "Message could not be serialized"

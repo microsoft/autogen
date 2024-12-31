@@ -1,9 +1,11 @@
 from typing import List, Sequence
 
+import pytest
 from opentelemetry.sdk.trace import ReadableSpan, TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter, SpanExportResult
 
 
+@pytest.mark.skip
 class TestExporter(SpanExporter):
     def __init__(self) -> None:
         self.exported_spans: List[ReadableSpan] = []

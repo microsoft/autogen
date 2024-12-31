@@ -118,3 +118,21 @@ class MessageHandlerExceptionEvent:
     # This must output the event in a json serializable format
     def __str__(self) -> str:
         return json.dumps(self.kwargs)
+
+
+class AgentConstructionExceptionEvent:
+    def __init__(
+        self,
+        *,
+        agent_id: AgentId,
+        exception: BaseException,
+        **kwargs: Any,
+    ) -> None:
+        self.kwargs = kwargs
+        self.kwargs["agent_id"] = str(agent_id)
+        self.kwargs["exception"] = str(exception)
+        self.kwargs["type"] = "AgentConstructionException"
+
+    # This must output the event in a json serializable format
+    def __str__(self) -> str:
+        return json.dumps(self.kwargs)
