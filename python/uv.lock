@@ -627,10 +627,16 @@ version = "0.0.0"
 source = { editable = "packages/autogen-test-utils" }
 dependencies = [
     { name = "autogen-core" },
+    { name = "opentelemetry-sdk" },
+    { name = "pytest" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "autogen-core", editable = "packages/autogen-core" }]
+requires-dist = [
+    { name = "autogen-core", editable = "packages/autogen-core" },
+    { name = "opentelemetry-sdk", specifier = ">=1.27.0" },
+    { name = "pytest" },
+]
 
 [[package]]
 name = "autogenstudio"

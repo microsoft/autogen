@@ -339,7 +339,9 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         *,
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
+        message_id: str | None = None,
     ) -> Any:
+        # TODO: use message_id
         if not self._running:
             raise ValueError("Runtime must be running when sending message.")
         if self._host_connection is None:
