@@ -98,7 +98,7 @@ class UserProxyAgent(BaseChatAgent):
                     agent_task = asyncio.create_task(
                         agent.on_messages(
                             [TextMessage(content="What is your name? ", source="user")],
-                            cancellation_token=CancellationToken(),
+                            cancellation_token=token,
                         )
                     )
                     response = await agent_task
