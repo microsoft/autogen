@@ -281,21 +281,6 @@ class AgenticMemory:
         self.page_log.finish_page(page)
         return final_response, successful_insight
 
-    async def _handle_task_or_advice(self, text):
-        page = self.page_log.begin_page(
-            summary="AgenticMemory._handle_task_or_advice",
-            details="",
-            method_call="AgenticMemory._handle_task_or_advice")
-
-        task = await self.prompter.extract_task(text)
-        page.add_lines("Task:  {}".format(task), flush=True)
-
-        advice = await self.prompter.extract_advice(text)
-        page.add_lines("Advice:  {}".format(advice), flush=True)
-
-        self.page_log.finish_page(page)
-        return task, advice
-
     async def execute_task(self, task: str, task_assignment_callback: Callable, should_await: bool,
                            should_retrieve_insights: bool = True):
         """
@@ -348,3 +333,26 @@ class AgenticMemory:
 
         self.page_log.finish_page(page)
         return response
+
+    async def learn_from_demonstration(self, task, demonstration):
+        page = self.page_log.begin_page(
+            summary="AgenticMemory.learn_from_demonstration",
+            details="",
+            method_call="AgenticMemory.learn_from_demonstration")
+
+        page.add_lines("\nEXAMPLE TASK:")
+        page.add_lines(task)
+
+        page.add_lines("\nEXAMPLE DEMONSTRATION:")
+        page.add_lines(demonstration)
+
+        # Get a list of topics from the task.
+        topics = await self.prompter.find_index_topics(task.strip())
+        page.add_lines("\nTOPICS EXTRACTED FROM TASK:")
+        page.add_lines("\n".join(topics))
+        page.add_lines("")
+
+        # Add the insight to the archive.
+        self.archive.add_demonstration(task, demonstration, topics)
+
+        self.page_log.finish_page(page)

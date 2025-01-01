@@ -101,3 +101,15 @@ class KnowledgeArchive:
                 del insight_relevance_dict[insight]
 
         return insight_relevance_dict
+
+    def add_demonstration(self, task: str, demonstration: str, topics: List[str]):
+        """Adds a task-demonstration pair (as a single insight) to the knowledge archive."""
+        self.last_insight_id += 1
+        id_str = str(self.last_insight_id)
+        insight_str = "Example task:\n\n{}\nExample solution:\n\n{}".format(task, demonstration)
+        insight = Insight(id=id_str, insight_str=insight_str, task_str=task, topics=topics)
+        for topic in topics:
+            # Add a mapping in the vec DB from each topic to the insight.
+            self.memo_store.add_input_output_pair(topic, id_str)
+        self.uid_insight_dict[str(id_str)] = insight
+        self.save_archive()

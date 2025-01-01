@@ -19,7 +19,7 @@ from autogen_ext.agentic_memory import AgenticMemory, PageLog, Grader
 
 MEMORY_DIR = "~/agentic_memory_archive"
 PAGELOG_DIR = "~/pagelogs/"
-RUN_SUBDIR = "run_28_teach"
+RUN_SUBDIR = "run_29_demonstration"
 
 # Default client parameters
 TEMPERATURE = 0.8
@@ -61,6 +61,11 @@ In the afternoon, you go from house to house, speaking with all 100 residents of
     tasks_with_answers.append({
         "task": "As a contribution to autogen, can I create a new autogen package for a copilot extension agent that I built on autogen?",
         "expected_answer": "It's best to have your agent in its own repo, then add the autogen-extension topic to that repo."})
+
+    # Task index 5
+    tasks_with_answers.append({
+        "task": "You are a telecommunications engineer who wants to build cell phone towers on a stretch of road. Houses are located at mile markers 16, 18, 11, 8, 9, 5, 2. Each cell phone tower can cover houses located next to the road within a 4-mile radius. Find the minimum number of cell phone towers needed to cover all houses next to the road. Your answer should be a positive numerical integer value.",
+        "expected_answer": "2"})
 
     return tasks_with_answers
 
@@ -485,6 +490,65 @@ async def test_teachability(task_assignment_callback, client, page_log):
 
 
 
+async def give_demonstration_to_agent(task, demonstration, client, page_log) -> None:
+    page = page_log.begin_page(
+        summary="give_demonstration_to_agent",
+        details="",
+        method_call="give_demonstration_to_agent")
+
+    memory = AgenticMemory(reset=False, client=client, page_log=page_log, memory_dir=MEMORY_DIR, run_subdir=RUN_SUBDIR)
+    await memory.learn_from_demonstration(task, demonstration)
+
+    page_log.finish_page(page)
+
+
+async def test_learning_from_demonstration(task_assignment_callback, client, page_log):
+    page = page_log.begin_page(
+        summary="test_learning_from_demonstration",
+        details='',
+        method_call="test_learning_from_demonstration")
+
+    tasklist = define_tasks_with_answers()
+    task_index = 5
+    task_with_answer = tasklist[task_index]
+    task = task_with_answer["task"]
+    answer = task_with_answer["expected_answer"]
+    grader = Grader(client, page_log)
+
+    # First test without memory.
+    page.add_lines("Clearing memory, then assigning the task.")
+    response = await send_message_to_agent(task, task_assignment_callback, client, page_log, reset_memory=True)
+
+    # Check the response.
+    response_is_correct, extracted_answer = await grader.response_is_correct(task, response, answer)
+    page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
+    if response_is_correct:
+        page.add_lines("Answer is CORRECT.\n", flush=True)
+    else:
+        page.add_lines("Answer is INCORRECT.\n", flush=True)
+
+    # Provide the demonstration.
+    page.add_lines("Demonstrating a solution to a similar task.")
+    demo_task = "You are a telecommunications engineer who wants to build cell phone towers on a stretch of road. Houses are located at mile markers 10, 12, 17, 18, 19, 20, 3, 6. Each cell phone tower can cover houses located next to the road within a 4-mile radius. Find the minimum number of cell phone towers needed to cover all houses next to the road. Your answer should be a positive numerical integer value."
+    demonstration = "First I sort the houses by location:  3, 6, 10, 12, 17, 18, 19, 20. Then I start at one end and place the towers only where absolutely needed. The house at 3 could be served by a tower as far away as mile marker 7, because 3 + 4 = 7, so I place a tower at 7. How far would that tower at 7 reach? Radius means in both directions, so while it reaches the house at 3, it also reaches up to mile 11. And that would cover the house at 10. The next uncovered house would be at 12, so a second tower is required. It could go at 16 (16 + 4) and it would reach further, up to mile 20 (16 + 4) where the last house is located. So 2 towers are enough."
+    await give_demonstration_to_agent(demo_task, demonstration, client, page_log)
+
+    # Now assign the task again to see if the demonstration helps.
+    page.add_lines("Assigning the task again to see if the demonstration is useful.")
+    response = await send_message_to_agent(task, task_assignment_callback, client, page_log, reset_memory=False)
+
+    # Check the response.
+    response_is_correct, extracted_answer = await grader.response_is_correct(task, response, answer)
+    page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
+    if response_is_correct:
+        page.add_lines("Answer is CORRECT.\n", flush=True)
+    else:
+        page.add_lines("Answer is INCORRECT.\n", flush=True)
+
+    page_log.finish_page(page)
+
+
+
 async def main() -> None:
     # Create the PageLog.
     page_log = PageLog(PAGELOG_DIR, RUN_SUBDIR)
@@ -503,7 +567,8 @@ async def main() -> None:
     # await test_without_memory(task_assignment_callback, client, page_log)
     # await test_with_memory(task_assignment_callback, client, page_log)
     # await test_self_teaching(task_assignment_callback, client, page_log)
-    await test_teachability(task_assignment_callback, client, page_log)
+    # await test_teachability(task_assignment_callback, client, page_log)
+    await test_learning_from_demonstration(task_assignment_callback, client, page_log)
 
     page_log.flush(final=True)  # Finalize the page log
     page_log.finish_page(page)
