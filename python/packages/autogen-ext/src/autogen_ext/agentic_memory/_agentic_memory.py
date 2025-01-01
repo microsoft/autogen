@@ -161,10 +161,12 @@ class AgenticMemory:
             page.add_lines("\n  INSIGHT: {}\n  RELEVANCE: {:.3f}".format(insight, relevance))
             relevant_insights.append(insight)
 
+        # Apply a final validation stage to keep only the insights that the LLM concludes are relevant.
         validated_insights = []
-        if len(relevant_insights) > 0:
-            # Apply a final validation stage to keep only the insights that the LLM concludes are relevant.
-            validated_insights = await self.prompter.validate_insights(relevant_insights, task)
+        for insight in relevant_insights:
+            if await self.prompter.validate_insight(insight, task):
+                validated_insights.append(insight)
+
         page.add_lines("\n{} VALIDATED INSIGHTS".format(len(validated_insights)))
         for insight in validated_insights:
             page.add_lines("\n  INSIGHT: {}".format(insight))

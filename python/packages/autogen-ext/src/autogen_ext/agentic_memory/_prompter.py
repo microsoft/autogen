@@ -210,38 +210,27 @@ class Prompter:
 
         return generalized_task
 
-    async def validate_insights(self, insights, task_description):
-        # Returns only the insights that the client verifies are relevant to the task.
+    async def validate_insight(self, insight, task_description):
+        # Determines whether the insight could help solve the task.
 
         sys_message = """You are a helpful and thoughtful assistant."""
 
-        user_message = ["""We have been given a list of insights that may or may not be useful for solving the given task. 
+        user_message = ["""We have been given a potential insight that may or may not be useful for solving a given task. 
 - First review the following task.
-- Then review the list of insights that follow, and discuss which ones could be useful in solving the given task.
-- Do not attempt to actually solve the task. That will come later."""]
+- Then review the insight that follows, and consider whether it might help solve the given task.
+- Do not attempt to actually solve the task.
+- Reply with a single character, '1' if the insight may be useful, or '0' if it is not."""]
         user_message.append("\n# Task description")
         user_message.append(task_description)
-        user_message.append("\n# Possibly useful insights")
-        user_message.extend(insights)
+        user_message.append("\n# Possibly useful insight")
+        user_message.append(insight)
         self.clear_history()
-        response1, page = await self.call_model(
+        response, page = await self.call_model(
             system_message=sys_message,
             user_content=user_message,
-            details="to review the task and insights")
+            details="to validate the insight")
 
-        user_message = ["""Now output a verbatim copy the insights that you decided are relevant to the task.
-- The original list of insights is provided below for reference.
-- If an insight is not relevant to the task, simply omit it from your response.
-- Do not add any additional commentary either before or after the relevant tasks.
-- If none of the tasks are relevant, simply write "None"."""]
-        user_message.append("\n# Original list of possibly useful insights")
-        user_message.extend(insights)
-        validated_insights, page = await self.call_model(
-            system_message=sys_message,
-            user_content=user_message,
-            details="to list the relevant insights")
-
-        return [validated_insights] if validated_insights != "None" else []
+        return response == "1"
 
     async def extract_task(self, text):
         # Returns a task from the given text, or None if none is found.

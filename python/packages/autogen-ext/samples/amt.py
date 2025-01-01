@@ -19,7 +19,7 @@ from autogen_ext.agentic_memory import AgenticMemory, PageLog, Grader
 
 MEMORY_DIR = "~/agentic_memory_archive"
 PAGELOG_DIR = "~/pagelogs/"
-RUN_SUBDIR = "run_29_demonstration"
+RUN_SUBDIR = "run_31_3_g1_m1"
 
 # Default client parameters
 TEMPERATURE = 0.8
@@ -64,7 +64,7 @@ In the afternoon, you go from house to house, speaking with all 100 residents of
 
     # Task index 5
     tasks_with_answers.append({
-        "task": "You are a telecommunications engineer who wants to build cell phone towers on a stretch of road. Houses are located at mile markers 16, 18, 11, 8, 9, 5, 2. Each cell phone tower can cover houses located next to the road within a 4-mile radius. Find the minimum number of cell phone towers needed to cover all houses next to the road. Your answer should be a positive numerical integer value.",
+        "task": "You are a telecommunications engineer who wants to build cell phone towers on a stretch of road. Houses are located at mile markers 16, 17, 19, 9, 10, 11, 2, 4, 5. Each cell phone tower can cover houses located next to the road within a 4-mile radius. Find the minimum number of cell phone towers needed to cover all houses next to the road. Your answer should be a positive numerical integer value.",
         "expected_answer": "2"})
 
     return tasks_with_answers
@@ -326,7 +326,8 @@ async def test_on_task(task_index, task_assignment_callback, client, page_log, n
     return num_successes, num_trials
 
 
-async def train_and_test(task_index_list, num_loops, max_train_trials, max_test_trials, task_assignment_callback, client, page_log):
+async def train_and_test(task_index_list, num_loops, max_train_trials, max_test_trials, num_final_test_trials,
+                         task_assignment_callback, client, page_log):
     page = page_log.begin_page(
         summary="train_and_test",
         details='',
@@ -336,6 +337,7 @@ async def train_and_test(task_index_list, num_loops, max_train_trials, max_test_
     task_with_answer_list = [tasklist[task_index] for task_index in task_index_list]
 
     total_num_successes_list = [0 for _ in task_index_list]
+    total_num_trials = 0
     for i in range(num_loops):
         # Always train on the first task.
         await train(
@@ -351,7 +353,7 @@ async def train_and_test(task_index_list, num_loops, max_train_trials, max_test_
         for j, task_with_answer in enumerate(task_with_answer_list):
             last_response, num_successes, num_trials = await test(
                 task_with_answer=task_with_answer,
-                num_trials=max_test_trials,
+                num_trials=num_final_test_trials,
                 task_assignment_callback=task_assignment_callback,
                 use_memory=True,
                 reset_memory=False,
@@ -360,11 +362,12 @@ async def train_and_test(task_index_list, num_loops, max_train_trials, max_test_
             page.add_lines("Success rate ({}):  {}%".format(j, round((num_successes / num_trials) * 100)), flush=True)
             print("SUCCESS RATE ({}):  {}%\n".format(j, round((num_successes / num_trials) * 100)))
             total_num_successes_list[j] += num_successes
+        total_num_trials += num_final_test_trials
 
         page.add_lines("")
 
     page_log.finish_page(page)
-    return total_num_successes_list
+    return total_num_successes_list, total_num_trials
 
 
 async def test_without_memory(task_assignment_callback, client, page_log):
@@ -373,8 +376,8 @@ async def test_without_memory(task_assignment_callback, client, page_log):
         details='',
         method_call="test_without_memory")
 
-    task_index = 3
-    num_trials = 1
+    task_index = 5
+    num_trials = 20
 
     num_successes, num_trials = await test_on_task(task_index, task_assignment_callback, client, page_log, num_trials)
 
@@ -411,17 +414,18 @@ async def test_self_teaching(task_assignment_callback, client, page_log):
 
     # Train and test on any number of tasks using memory.
     num_loops = 10  # Normally 10
-    total_num_successes_list = await train_and_test(
+    total_num_successes_list, total_num_trials = await train_and_test(
         task_index_list=task_index_list,
         num_loops=num_loops,
         max_train_trials=10,  # Normally 10
         max_test_trials=3,  # Normally 3
+        num_final_test_trials=3,  # Normally 3
         task_assignment_callback=task_assignment_callback,
         client=client,
         page_log=page_log)
 
     for i, total_num_successes in enumerate(total_num_successes_list):
-        success_rate = round((total_num_successes / num_loops) * 100)
+        success_rate = round((total_num_successes / total_num_trials) * 100)
         page.add_lines("\nOverall success rate ({}):  {}%\n".format(i, success_rate), flush=True)
 
     page_log.finish_page(page)
@@ -566,9 +570,9 @@ async def main() -> None:
     # SELECT ONE TEST TO RUN
     # await test_without_memory(task_assignment_callback, client, page_log)
     # await test_with_memory(task_assignment_callback, client, page_log)
-    # await test_self_teaching(task_assignment_callback, client, page_log)
+    await test_self_teaching(task_assignment_callback, client, page_log)
     # await test_teachability(task_assignment_callback, client, page_log)
-    await test_learning_from_demonstration(task_assignment_callback, client, page_log)
+    # await test_learning_from_demonstration(task_assignment_callback, client, page_log)
 
     page_log.flush(final=True)  # Finalize the page log
     page_log.finish_page(page)
