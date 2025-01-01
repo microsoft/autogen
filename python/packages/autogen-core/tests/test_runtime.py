@@ -20,10 +20,10 @@ from autogen_test_utils import (
     MessageType,
     NoopAgent,
 )
-from autogen_test_utils.telemetry_test_utils import TestExporter, get_test_tracer_provider
+from autogen_test_utils.telemetry_test_utils import MyTestExporter, get_test_tracer_provider
 from opentelemetry.sdk.trace import TracerProvider
 
-test_exporter = TestExporter()
+test_exporter = MyTestExporter()
 
 
 @pytest.fixture
@@ -88,7 +88,7 @@ async def test_register_receives_publish(tracer_provider: TracerProvider) -> Non
 
 
 @pytest.mark.asyncio
-async def test_register_receives_publish_with_exception(caplog: pytest.LogCaptureFixture) -> None:
+async def test_register_receives_publish_with_construction(caplog: pytest.LogCaptureFixture) -> None:
     runtime = SingleThreadedAgentRuntime()
 
     runtime.add_message_serializer(try_get_known_serializers_for_type(MessageType))
@@ -103,8 +103,9 @@ async def test_register_receives_publish_with_exception(caplog: pytest.LogCaptur
         runtime.start()
         await runtime.publish_message(MessageType(), topic_id=TopicId("default", "default"))
         await runtime.stop_when_idle()
-        # Check if logger has the exception.
-        assert any("Error processing publish message" in e.message for e in caplog.records)
+
+    # Check if logger has the exception.
+    assert any("Error constructing agent" in e.message for e in caplog.records)
 
 
 @pytest.mark.asyncio

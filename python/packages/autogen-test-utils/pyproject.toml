@@ -7,8 +7,10 @@ name = "autogen-test-utils"
 version = "0.0.0"
 license = {file = "LICENSE-CODE"}
 requires-python = ">=3.10"
-dependencies = ["autogen-core",
-
+dependencies = [
+    "autogen-core",
+    "pytest",
+    "opentelemetry-sdk>=1.27.0",
 ]
 
 [tool.ruff]
