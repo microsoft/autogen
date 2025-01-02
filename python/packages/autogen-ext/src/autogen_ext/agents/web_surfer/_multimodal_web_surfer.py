@@ -62,6 +62,12 @@ class MultimodalWebSurfer(BaseChatAgent):
     """
     MultimodalWebSurfer is a multimodal agent that acts as a web surfer that can search the web and visit web pages.
 
+    Installation:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[web-surfer]==0.4.0.dev13"
+
     It launches a chromium browser and allows the playwright to interact with the web browser and can perform a variety of actions. The browser is launched on the first call to the agent and is reused for subsequent calls.
 
     It must be used with a multimodal model client that supports function/tool calling, ideally GPT-4o currently.
