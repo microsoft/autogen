@@ -54,6 +54,9 @@ class KnowledgeArchive:
                 self.last_insight_id = len(self.uid_insight_dict)
                 parent_page.add_lines("\n{} INSIGHTS LOADED".format(len(self.uid_insight_dict)))
 
+    def contains_insights(self):
+        return len(self.uid_insight_dict) > 0
+
     def save_archive(self):
         self.memo_store.save_memos()
         parent_page = self.page_log.last_page()
@@ -106,7 +109,7 @@ class KnowledgeArchive:
         """Adds a task-demonstration pair (as a single insight) to the knowledge archive."""
         self.last_insight_id += 1
         id_str = str(self.last_insight_id)
-        insight_str = "Example task:\n\n{}\nExample solution:\n\n{}".format(task, demonstration)
+        insight_str = "Example task:\n\n{}\n\nExample solution:\n\n{}".format(task, demonstration)
         insight = Insight(id=id_str, insight_str=insight_str, task_str=task, topics=topics)
         for topic in topics:
             # Add a mapping in the vec DB from each topic to the insight.

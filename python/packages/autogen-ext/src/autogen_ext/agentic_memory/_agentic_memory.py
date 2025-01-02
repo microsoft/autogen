@@ -141,35 +141,39 @@ class AgenticMemory:
             details="",
             method_call="AgenticMemory.retrieve_relevant_insights")
 
-        page.add_lines("\nCURRENT TASK:")
-        page.add_lines(task)
+        if self.archive.contains_insights():
+            page.add_lines("\nCURRENT TASK:")
+            page.add_lines(task)
 
-        # Generalize the task.
-        generalized_task = await self.prompter.generalize_task(task)
+            # Generalize the task.
+            generalized_task = await self.prompter.generalize_task(task)
 
-        # Get a list of topics from the task.
-        topics = await self.prompter.find_index_topics(generalized_task)
-        page.add_lines("\nTOPICS EXTRACTED FROM TASK:")
-        page.add_lines("\n".join(topics))
-        page.add_lines("")
+            # Get a list of topics from the task.
+            topics = await self.prompter.find_index_topics(generalized_task)
+            page.add_lines("\nTOPICS EXTRACTED FROM TASK:")
+            page.add_lines("\n".join(topics))
+            page.add_lines("")
 
-        # Retrieve relevant insights from the archive.
-        relevant_insights_and_relevances = self.archive.get_relevant_insights(topics=topics)
-        relevant_insights = []
-        page.add_lines("\n{} POTENTIALLY RELEVANT INSIGHTS".format(len(relevant_insights_and_relevances)))
-        for insight, relevance in relevant_insights_and_relevances.items():
-            page.add_lines("\n  INSIGHT: {}\n  RELEVANCE: {:.3f}".format(insight, relevance))
-            relevant_insights.append(insight)
+            # Retrieve relevant insights from the archive.
+            relevant_insights_and_relevances = self.archive.get_relevant_insights(topics=topics)
+            relevant_insights = []
+            page.add_lines("\n{} POTENTIALLY RELEVANT INSIGHTS".format(len(relevant_insights_and_relevances)))
+            for insight, relevance in relevant_insights_and_relevances.items():
+                page.add_lines("\n  INSIGHT: {}\n  RELEVANCE: {:.3f}".format(insight, relevance))
+                relevant_insights.append(insight)
 
-        # Apply a final validation stage to keep only the insights that the LLM concludes are relevant.
-        validated_insights = []
-        for insight in relevant_insights:
-            if await self.prompter.validate_insight(insight, task):
-                validated_insights.append(insight)
+            # Apply a final validation stage to keep only the insights that the LLM concludes are relevant.
+            validated_insights = []
+            for insight in relevant_insights:
+                if await self.prompter.validate_insight(insight, task):
+                    validated_insights.append(insight)
 
-        page.add_lines("\n{} VALIDATED INSIGHTS".format(len(validated_insights)))
-        for insight in validated_insights:
-            page.add_lines("\n  INSIGHT: {}".format(insight))
+            page.add_lines("\n{} VALIDATED INSIGHTS".format(len(validated_insights)))
+            for insight in validated_insights:
+                page.add_lines("\n  INSIGHT: {}".format(insight))
+        else:
+            page.add_lines("\nNO INSIGHTS WERE FOUND IN MEMORY")
+            validated_insights = []
 
         self.page_log.finish_page(page)
         return validated_insights

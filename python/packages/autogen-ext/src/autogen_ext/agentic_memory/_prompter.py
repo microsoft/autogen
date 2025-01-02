@@ -1,4 +1,5 @@
 import time
+import random
 from typing import List
 
 from autogen_core.models import (
@@ -18,19 +19,27 @@ class Prompter:
     def __init__(self, client, page_log):
         self.client = client
         self.page_log = page_log
+        self.default_system_message_content = "You are a helpful assistant."
         self.time_spent_in_model_calls = 0.
         self.num_model_calls = 0
         self.start_time = time.time()
 
+        # Instantiate a random number generator, seeded from the current time.
+        random.seed(int(time.time() * 1000))
+        self.rand = random.Random()
+
         # Create the chat history
         self._chat_history: List[LLMMessage] = []
 
-    async def call_model(self, details, user_content: UserContent = None, system_message=None, keep_these_messages=True):
+    async def call_model(self, details, user_content: UserContent = None, system_message_content=None, keep_these_messages=True):
         # Prepare the input message list
         user_message = UserMessage(content=user_content, source="User")
-        if system_message is None:
-            system_message = self.default_system_message
-        system_message = SystemMessage(content=system_message)
+
+        if system_message_content is None:
+            system_message_content = self.default_system_message_content
+        random_str = "({})\n\n".format(self.rand.randint(0, 1000000))  # Inject a random int for variability.
+        system_message_content = random_str + system_message_content
+        system_message = SystemMessage(content=system_message_content)
 
         input_messages = [system_message] + self._chat_history + [user_message]
 
@@ -125,14 +134,14 @@ class Prompter:
 
         self.clear_history()
         response1, page = await self.call_model(
-            system_message=sys_message,
+            system_message_content=sys_message,
             user_content=user_message,
             details="to learn from this failure")
 
         user_message = [
             "Now put yourself in the mind of the students. What misconception led them to their incorrect answer?"]
         response2, page = await self.call_model(
-            system_message=sys_message,
+            system_message_content=sys_message,
             user_content=user_message,
             details="to state the misconception")
 
@@ -144,7 +153,7 @@ class Prompter:
         #     user_message.append(memory_section)
 
         insight, page = await self.call_model(
-            system_message=sys_message,
+            system_message_content=sys_message,
             user_content=user_message,
             details="to formulate a concise insight")
 
@@ -169,7 +178,7 @@ class Prompter:
 
         self.clear_history()
         topics, page = await self.call_model(
-            system_message=sys_message,
+            system_message_content=sys_message,
             user_content=user_message,
             details="to extract topics")
 
@@ -192,19 +201,19 @@ class Prompter:
 
         self.clear_history()
         response1, page = await self.call_model(
-            system_message=sys_message,
+            system_message_content=sys_message,
             user_content=user_message,
             details="to rephrase the task in a list of important points")
 
         user_message = ["Do you see any parts of this list that are irrelevant to actually solving the task? If so, explain which items are irrelevant."]
         response2, page = await self.call_model(
-            system_message=sys_message,
+            system_message_content=sys_message,
             user_content=user_message,
             details="to identify irrelevant points")
 
         user_message = ["Revise your original list to include only the most general terms, those that are critical to solving the task, removing any themes or descriptions that are not essential to the solution. Your final list may be shorter, but do not leave out any part of the task that is needed for solving the task. Do not add any additional commentary either before or after the list."]
         generalized_task, page = await self.call_model(
-            system_message=sys_message,
+            system_message_content=sys_message,
             user_content=user_message,
             details="to make a final list of general terms")
 
@@ -226,7 +235,7 @@ class Prompter:
         user_message.append(insight)
         self.clear_history()
         response, page = await self.call_model(
-            system_message=sys_message,
+            system_message_content=sys_message,
             user_content=user_message,
             details="to validate the insight")
 
@@ -243,7 +252,7 @@ class Prompter:
         user_message.append(text)
         self.clear_history()
         response, page = await self.call_model(
-            system_message=sys_message,
+            system_message_content=sys_message,
             user_content=user_message,
             details="to extract a task")
         return response if response != "None" else None
@@ -258,7 +267,7 @@ class Prompter:
         user_message.append(text)
         self.clear_history()
         response, page = await self.call_model(
-            system_message=sys_message,
+            system_message_content=sys_message,
             user_content=user_message,
             details="to extract advice")
         return response if response != "None" else None
