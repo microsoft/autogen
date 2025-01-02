@@ -179,7 +179,7 @@ class HostConnection:
 
 
 class GrpcWorkerAgentRuntime(AgentRuntime):
-    # TODO: Needs to handle agent activate()/deactivate() calls
+    # TODO: Needs to handle agent close() call
     def __init__(
         self,
         host_address: str,

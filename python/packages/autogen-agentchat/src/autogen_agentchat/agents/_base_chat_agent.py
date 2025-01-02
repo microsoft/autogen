@@ -191,8 +191,5 @@ class BaseChatAgent(ChatAgent, ABC):
         """Restore agent from saved state. Default implementation for stateless agents."""
         BaseState.model_validate(state)
 
-    async def activate(self) -> None:
-        pass
-
-    async def deactivate(self) -> None:
+    async def close(self) -> None:
         pass

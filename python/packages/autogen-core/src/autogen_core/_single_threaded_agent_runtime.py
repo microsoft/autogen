@@ -160,7 +160,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             str, Callable[[], Agent | Awaitable[Agent]] | Callable[[AgentRuntime, AgentId], Agent | Awaitable[Agent]]
         ] = {}
         self._instantiated_agents: Dict[AgentId, Agent] = {}
-        self._activated_agents: set[AgentId] = set()
         self._intervention_handlers = intervention_handlers
         self._background_tasks: Set[Task[Any]] = set()
         self._subscription_manager = SubscriptionManager()
@@ -311,10 +310,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 )
                 recipient_agent = await self._get_agent(recipient)
 
-                if recipient not in self._activated_agents:
-                    self._activated_agents.add(recipient)
-                    await recipient_agent.activate()
-
                 message_context = MessageContext(
                     sender=message_envelope.sender,
                     topic_id=None,
@@ -406,10 +401,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                         message_id=message_envelope.message_id,
                     )
                     agent = await self._get_agent(agent_id)
-
-                    if agent_id not in self._activated_agents:
-                        self._activated_agents.add(agent_id)
-                        await agent.activate()
 
                     async def _on_message(agent: Agent, message_context: MessageContext) -> Any:
                         with self._tracer_helper.trace_block("process", agent.id, parent=None):
@@ -588,11 +579,10 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         if self._run_context is None:
             raise RuntimeError("Runtime is not started")
 
-        # deactivate all the agents that have been activated
-        for agent_id in self._activated_agents:
+        # close all the agents that have been instantiated
+        for agent_id in self._instantiated_agents:
             agent = await self._get_agent(agent_id)
-            await agent.deactivate()
-        self._activated_agents.clear()
+            await agent.close()
 
         await self._run_context.stop()
         self._run_context = None
@@ -605,11 +595,10 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             raise RuntimeError("Runtime is not started")
         await self._run_context.stop_when_idle()
 
-        # deactivate all the agents that have been activated
-        for agent_id in self._activated_agents:
+        # close all the agents that have been instantiated
+        for agent_id in self._instantiated_agents:
             agent = await self._get_agent(agent_id)
-            await agent.deactivate()
-        self._activated_agents.clear()
+            await agent.close()
 
         self._run_context = None
         self._message_queue = Queue()
@@ -632,11 +621,10 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             raise RuntimeError("Runtime is not started")
         await self._run_context.stop_when(condition)
 
-        # deactivate all the agents that have been activated
-        for agent_id in self._activated_agents:
+        # close all the agents that have been instantiated
+        for agent_id in self._instantiated_agents:
             agent = await self._get_agent(agent_id)
-            await agent.deactivate()
-        self._activated_agents.clear()
+            await agent.close()
 
         self._run_context = None
         self._message_queue = Queue()

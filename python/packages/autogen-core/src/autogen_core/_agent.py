@@ -46,10 +46,6 @@ class Agent(Protocol):
 
         ...
 
-    async def activate(self) -> None:
-        """Lazily called the first time a runtime sends a message to this agent"""
-        ...
-
-    async def deactivate(self) -> None:
+    async def close(self) -> None:
         """Called when the runtime is stopped or any stop method is called"""
         ...
