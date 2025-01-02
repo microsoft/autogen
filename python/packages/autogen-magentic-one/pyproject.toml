@@ -58,6 +58,11 @@ test.sequence = [
     "pytest -n auto",
 ]
 test.default_item_type = "cmd"
+coverage.sequence = [
+    "playwright install",
+    "pytest -n auto --cov=src --cov-report=term-missing --cov-report=xml",
+]
+coverage.default_item_type = "cmd"
 
 [tool.ruff]
 extend = "../../pyproject.toml"
