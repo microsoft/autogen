@@ -84,3 +84,37 @@ To help ensure the health of the project and community the AutoGen committers ha
 ## Becoming a Reviewer
 
 There is currently no formal reviewer solicitation process. Current reviewers identify reviewers from active contributors.
+
+## What makes a good docstring?
+
+- Concise and to the point
+- Describe the expected contract/behavior of the function/class
+- Describe all parameters, return values, and exceptions
+- Provide an example if possible
+
+For example, this is the docstring for the [TypeSubscription](https://microsoft.github.io/autogen/dev/reference/python/autogen_core.html#autogen_core.TypeSubscription) class:
+
+```python
+"""This subscription matches on topics based on a prefix of the type and maps to agents using the source of the topic as the agent key.
+
+This subscription causes each source to have its own agent instance.
+
+Example:
+
+    .. code-block:: python
+
+        from autogen_core import TypePrefixSubscription
+
+        subscription = TypePrefixSubscription(topic_type_prefix="t1", agent_type="a1")
+
+    In this case:
+
+    - A topic_id with type `t1` and source `s1` will be handled by an agent of type `a1` with key `s1`
+    - A topic_id with type `t1` and source `s2` will be handled by an agent of type `a1` with key `s2`.
+    - A topic_id with type `t1SUFFIX` and source `s2` will be handled by an agent of type `a1` with key `s2`.
+
+Args:
+    topic_type_prefix (str): Topic type prefix to match against
+    agent_type (str): Agent type to handle this subscription
+"""
+```
