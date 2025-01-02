@@ -5,6 +5,7 @@ dev = [
     "ruff==0.4.8",
     "pytest",
     "pytest-asyncio",
+    "pytest-cov",
     "pytest-xdist",
     "typer",
     "rich",
@@ -80,8 +81,9 @@ lint = "python run_task_in_pkgs_if_exist.py lint"
 pyright = "python run_task_in_pkgs_if_exist.py pyright"
 mypy = "python run_task_in_pkgs_if_exist.py mypy"
 test = "python run_task_in_pkgs_if_exist.py test"
+coverage = "python run_task_in_pkgs_if_exist.py coverage"
 
-check = ["fmt", "lint", "pyright", "mypy", "test"]
+check = ["fmt", "lint", "pyright", "mypy", "coverage"]
 
 gen-proto = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --grpc_python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_grpc_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --proto_path ../protos/ agent_worker.proto --proto_path ../protos/ cloudevent.proto"
 
