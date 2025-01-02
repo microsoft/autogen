@@ -1,5 +1,5 @@
 import pytest
-from autogen_core import AgentId, DefaultInterventionHandler, DropMessage, SingleThreadedAgentRuntime
+from autogen_core import AgentId, DefaultInterventionHandler, DropMessage, MessageContext, SingleThreadedAgentRuntime
 from autogen_core.exceptions import MessageDroppedException
 from autogen_test_utils import LoopbackAgent, MessageType
 
@@ -10,7 +10,9 @@ async def test_intervention_count_messages() -> None:
         def __init__(self) -> None:
             self.num_messages = 0
 
-        async def on_send(self, message: MessageType, *, sender: AgentId | None, recipient: AgentId) -> MessageType:
+        async def on_send(
+            self, message: MessageType, *, message_context: MessageContext, recipient: AgentId
+        ) -> MessageType:
             self.num_messages += 1
             return message
 
@@ -33,7 +35,7 @@ async def test_intervention_count_messages() -> None:
 async def test_intervention_drop_send() -> None:
     class DropSendInterventionHandler(DefaultInterventionHandler):
         async def on_send(
-            self, message: MessageType, *, sender: AgentId | None, recipient: AgentId
+            self, message: MessageType, *, message_context: MessageContext, recipient: AgentId
         ) -> MessageType | type[DropMessage]:
             return DropMessage
 
@@ -81,7 +83,7 @@ async def test_intervention_raise_exception_on_send() -> None:
 
     class ExceptionInterventionHandler(DefaultInterventionHandler):  # type: ignore
         async def on_send(
-            self, message: MessageType, *, sender: AgentId | None, recipient: AgentId
+            self, message: MessageType, *, message_context: MessageContext, recipient: AgentId
         ) -> MessageType | type[DropMessage]:  # type: ignore
             raise InterventionException
 
