@@ -8,14 +8,9 @@ from ... import TRACE_LOGGER_NAME
 from ...base import ChatAgent, TerminationCondition
 from ...messages import (
     AgentEvent,
+    BaseAgentEvent,
     ChatMessage,
-    HandoffMessage,
     MultiModalMessage,
-    StopMessage,
-    TextMessage,
-    ToolCallExecutionEvent,
-    ToolCallRequestEvent,
-    ToolCallSummaryMessage,
 )
 from ...state import SelectorManagerState
 from ._base_group_chat import BaseGroupChat
@@ -96,12 +91,12 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         # Construct the history of the conversation.
         history_messages: List[str] = []
         for msg in thread:
-            if isinstance(msg, ToolCallRequestEvent | ToolCallExecutionEvent):
-                # Ignore tool call messages.
+            if isinstance(msg, BaseAgentEvent):
+                # Ignore agent events.
                 continue
             # The agent type must be the same as the topic type, which we use as the agent name.
             message = f"{msg.source}:"
-            if isinstance(msg, TextMessage | StopMessage | HandoffMessage | ToolCallSummaryMessage):
+            if isinstance(msg.content, str):
                 message += f" {msg.content}"
             elif isinstance(msg, MultiModalMessage):
                 for item in msg.content:

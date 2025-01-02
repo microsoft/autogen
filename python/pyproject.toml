@@ -1,13 +1,11 @@
-[tool.uv.workspace]
-members = ["packages/*"]
-
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "pyright==1.1.389",
     "mypy==1.13.0",
     "ruff==0.4.8",
     "pytest",
     "pytest-asyncio",
+    "pytest-cov",
     "pytest-xdist",
     "typer",
     "rich",
@@ -20,13 +18,21 @@ dev-dependencies = [
     "cookiecutter",
     "poethepoet",
     "tomli",
+    "tomli-w"
 ]
 
+[tool.uv.workspace]
+members = ["packages/*"]
+
 [tool.uv.sources]
+agbench = { workspace = true }
+autogen-agentchat = { workspace = true }
 autogen-core = { workspace = true }
 autogen-ext = { workspace = true }
-autogen-agentchat = { workspace = true }
+autogen-magentic-one = { workspace = true }
+autogenstudio = { workspace = true }
 autogen-test-utils = { workspace = true }
+component-schema-gen = { workspace = true }
 
 [tool.ruff]
 line-length = 120
@@ -75,15 +81,15 @@ lint = "python run_task_in_pkgs_if_exist.py lint"
 pyright = "python run_task_in_pkgs_if_exist.py pyright"
 mypy = "python run_task_in_pkgs_if_exist.py mypy"
 test = "python run_task_in_pkgs_if_exist.py test"
+coverage = "python run_task_in_pkgs_if_exist.py coverage"
 
-check = ["fmt", "lint", "pyright", "mypy", "test"]
+check = ["fmt", "lint", "pyright", "mypy", "coverage"]
 
 gen-proto = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --grpc_python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_grpc_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --proto_path ../protos/ agent_worker.proto --proto_path ../protos/ cloudevent.proto"
 
 gen-proto-samples = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/samples/protos --grpc_python_out=./packages/autogen-core/samples/protos --mypy_out=./packages/autogen-core/samples/protos --mypy_grpc_out=./packages/autogen-core/samples/protos --proto_path ../protos/ agent_events.proto"
 
-
-teasdst = { cmd = "sphinx-build docs/src docs/build" }
+markdown-code-lint = "python check_md_code_blocks.py ../README.md ./packages/autogen-core/docs/src/user-guide/agentchat-user-guide/*.md"
 
 [[tool.poe.tasks.gen-test-proto.sequence]]
 cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/tests/protos --grpc_python_out=./packages/autogen-core/tests/protos --mypy_out=./packages/autogen-core/tests/protos --mypy_grpc_out=./packages/autogen-core/tests/protos --proto_path ./packages/autogen-core/tests/protos serialization_test.proto"

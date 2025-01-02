@@ -28,8 +28,8 @@ dependencies = [
     "scipy"
 ]
 
-[tool.uv]
-dev-dependencies = [
+[dependency-groups]
+dev = [
     "types-tabulate",
     "types-docker"
 ]

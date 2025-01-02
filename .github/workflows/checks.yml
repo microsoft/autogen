@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
       - uses: actions/setup-python@v5
@@ -33,7 +33,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
       - uses: actions/setup-python@v5
@@ -61,7 +61,7 @@ jobs:
           ]
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
       - uses: actions/setup-python@v5
@@ -89,7 +89,7 @@ jobs:
           ]
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
       - uses: actions/setup-python@v5
@@ -102,6 +102,7 @@ jobs:
           source ${{ github.workspace }}/python/.venv/bin/activate
           poe --directory ${{ matrix.package }} pyright
         working-directory: ./python
+
   test:
     runs-on: ubuntu-latest
     strategy:
@@ -115,7 +116,7 @@ jobs:
           ]
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
       - uses: actions/setup-python@v5
@@ -131,6 +132,45 @@ jobs:
           source ${{ github.workspace }}/python/.venv/bin/activate
           poe --directory ${{ matrix.package }} test
         working-directory: ./python
+  
+  codecov:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        package:
+          [
+            "./packages/autogen-core",
+            "./packages/autogen-magentic-one",
+            "./packages/autogen-ext",
+            "./packages/autogen-agentchat",
+          ]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run uv sync
+        run: |
+          uv sync --locked --all-extras
+
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe --directory ${{ matrix.package }} coverage
+        working-directory: ./python
+      - name: Upload coverage
+        uses: codecov/codecov-action@v5
+        with:
+          fail_ci_if_error: true # optional (default = false)
+          files: ${{ matrix.package }}/coverage.xml # optional
+          flags: unittests # optional
+          name: codecov-umbrella # optional
+          verbose: true # optional (default = false)
+          token: ${{ secrets.CODECOV_TOKEN }}
 
   docs:
     runs-on: ubuntu-latest
@@ -139,7 +179,7 @@ jobs:
         package: ["./packages/autogen-core"]
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
       - uses: actions/setup-python@v5
@@ -160,7 +200,7 @@ jobs:
         package: ["./packages/autogen-core"]
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
       - uses: actions/setup-python@v5
@@ -173,12 +213,30 @@ jobs:
           source ${{ github.workspace }}/python/.venv/bin/activate
           poe --directory ${{ matrix.package }} docs-check-examples
         working-directory: ./python
+  
+  markdown-code-lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe markdown-code-lint
+        working-directory: ./python
 
   check-proto-changes-python:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
       - uses: actions/setup-python@v5

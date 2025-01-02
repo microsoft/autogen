@@ -1,3 +1,4 @@
+(agentid_and_lifecycle)=
 # Agent Identity and Lifecycle
 
 The agent runtime manages agents' identities

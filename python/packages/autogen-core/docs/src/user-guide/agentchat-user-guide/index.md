@@ -32,7 +32,7 @@ Build your first agent
 :::
 
 :::{grid-item-card} {fas}`graduation-cap;pst-color-primary` Tutorial
-:link: ./tutorial/index.html
+:link: ./tutorial/models.html
 
 Step-by-step guide to using AgentChat
 :::
@@ -42,6 +42,12 @@ Step-by-step guide to using AgentChat
 
 Sample code and use cases
 :::
+
+:::{grid-item-card} {fas}`truck-moving;pst-color-primary` Migration Guide
+:link: ./migration-guide.html
+
+How to migrate from AutoGen 0.2.x to 0.4.x.
+:::
 ::::
 
 ```{toctree}
@@ -50,6 +56,7 @@ Sample code and use cases
 
 installation
 quickstart
+migration-guide
 ```
 
 ```{toctree}
@@ -61,6 +68,7 @@ tutorial/models
 tutorial/messages
 tutorial/agents
 tutorial/teams
+tutorial/human-in-the-loop
 tutorial/selector-group-chat
 tutorial/swarm
 tutorial/termination
@@ -75,4 +83,3 @@ tutorial/state
 
 examples/index
 ```
-
