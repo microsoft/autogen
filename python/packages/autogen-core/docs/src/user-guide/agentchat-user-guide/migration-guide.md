@@ -600,9 +600,7 @@ for more details.
 In `v0.4`, you get a {py:class}`~autogen_agentchat.base.TaskResult` object from a `run` or `run_stream` method.
 The {py:class}`~autogen_agentchat.base.TaskResult` object contains the `messages` which is the message history
 of the chat, including both agents' private (tool calls, etc.) and public messages.
-
-TODO: Add token counting result after [#4719](https://github.com/microsoft/autogen/issues/4719) is resolved.
-
+ 
 There are some notable differences between {py:class}`~autogen_agentchat.base.TaskResult` and `ChatResult`:
 
 - The `messages` list in {py:class}`~autogen_agentchat.base.TaskResult` uses different message format than the `ChatResult.chat_history` list.
@@ -612,8 +610,6 @@ There are some notable differences between {py:class}`~autogen_agentchat.base.Ta
 
 ## Conversion between v0.2 and v0.4 Messages
 
-TODO: Resolves [#4833](https://github.com/microsoft/autogen/issues/4833), maybe include
-the code in the `autogen-ext` package.
 
 You can use the following conversion functions to convert between a v0.4 message in
 {py:attr}`autogen_agentchat.base.TaskResult.messages` and a v0.2 message in `ChatResult.chat_history`.
@@ -729,7 +725,7 @@ def convert_to_v04_message(message: Dict[str, Any]) -> AgentEvent | ChatMessage:
 
 ## Group Chat
 
-In `v0.2`, you need to create a `GroupChat` dataclass and pass it into a
+In `v0.2`, you need to create a `GroupChat` class and pass it into a
 `GroupChatManager`, and have a participant that is a user proxy to initiate the chat.
 For a simple scenario of a writer and a critic, you can do the following:
 
