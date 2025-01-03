@@ -12,7 +12,10 @@ from semantic_kernel.contents.utils.author_role import AuthorRole
 from semantic_kernel.kernel import Kernel
 from semantic_kernel.functions.kernel_plugin import KernelPlugin
 from typing_extensions import AsyncGenerator, Union
-from ._kernel_function_from_tool import KernelFunctionFromTool
+from autogen_ext.tools.semantic_kernel import KernelFunctionFromTool
+from semantic_kernel.contents.function_call_content import FunctionCallContent
+from autogen_core import FunctionCall
+from semantic_kernel.contents.streaming_chat_message_content import StreamingChatMessageContent
 
 
 class SKChatCompletionAdapter(ChatCompletionClient):
@@ -76,7 +79,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         # If tools are available, configure function choice behavior with auto_invoke disabled
         function_choice_behavior = None
         if tools:
-            function_choice_behavior = FunctionChoiceBehavior.NoneInvoke()
+            function_choice_behavior = FunctionChoiceBehavior.Auto(auto_invoke=extra_create_args.get("auto_invoke", False))
         
         # Create settings with remaining args as extension_data
         settings = PromptExecutionSettings(
@@ -110,6 +113,28 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                 # Convert Tool to KernelFunction using KernelFunctionFromTool
                 kernel_function = KernelFunctionFromTool(tool, plugin_name="autogen_tools")
                 self._tools_plugin.functions[tool.name] = kernel_function
+
+    def _process_tool_calls(self, result: ChatMessageContent) -> list[FunctionCall]:
+        """Process tool calls from SK ChatMessageContent"""
+        function_calls = []
+        for item in result.items:
+            if isinstance(item, FunctionCallContent):
+                # Extract plugin name and function name
+                plugin_name = item.plugin_name or ""
+                function_name = item.function_name or item.name
+                if plugin_name:
+                    full_name = f"{plugin_name}-{function_name}"
+                else:
+                    full_name = function_name
+                    
+                function_calls.append(
+                    FunctionCall(
+                        id=item.id,
+                        name=full_name,
+                        arguments=item.arguments or "{}"
+                    )
+                )
+        return function_calls
 
     async def create(
         self,
@@ -150,10 +175,19 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         
         self._total_prompt_tokens += prompt_tokens
         self._total_completion_tokens += completion_tokens
+
+        # Process content based on whether there are tool calls
+        content: Union[str, list[FunctionCall]]
+        if any(isinstance(item, FunctionCallContent) for item in result[0].items):
+            content = self._process_tool_calls(result[0])
+            finish_reason = "function_calls"
+        else:
+            content = result[0].content
+            finish_reason = "stop"
         
         return CreateResult(
-            content=result[0].content,
-            finish_reason="stop", 
+            content=content,
+            finish_reason=finish_reason,
             usage=RequestUsage(
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens
@@ -169,12 +203,68 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
-        # Very similar to create(), but orchestrates streaming.
-        # 1. Convert messages -> ChatHistory
-        # 2. Possibly set function-calling if needed
-        # 3. Build generator that yields str segments or a final CreateResult
-        #    from SK's get_streaming_chat_message_contents(...)
-        raise NotImplementedError("create_stream is not implemented")
+        if "kernel" not in extra_create_args:
+            raise ValueError("kernel is required in extra_create_args")
+            
+        kernel = extra_create_args["kernel"]
+        if not isinstance(kernel, Kernel):
+            raise ValueError("kernel must be an instance of semantic_kernel.kernel.Kernel")
+
+        chat_history = self._convert_to_chat_history(messages)
+        settings = self._build_execution_settings(extra_create_args, tools)
+        self._sync_tools_with_kernel(kernel, tools)
+
+        prompt_tokens = 0
+        completion_tokens = 0
+        accumulated_content = ""
+        
+        async for streaming_messages in self._sk_client.get_streaming_chat_message_contents(
+            chat_history,
+            settings=settings,
+            kernel=kernel
+        ):
+            for msg in streaming_messages:
+                if not isinstance(msg, StreamingChatMessageContent):
+                    continue
+
+                # Track token usage
+                if msg.metadata and 'usage' in msg.metadata:
+                    usage = msg.metadata['usage']
+                    prompt_tokens = getattr(usage, 'prompt_tokens', 0)
+                    completion_tokens = getattr(usage, 'completion_tokens', 0)
+
+                # Check for function calls
+                if any(isinstance(item, FunctionCallContent) for item in msg.items):
+                    function_calls = self._process_tool_calls(msg)
+                    yield CreateResult(
+                        content=function_calls,
+                        finish_reason="function_calls",
+                        usage=RequestUsage(
+                            prompt_tokens=prompt_tokens,
+                            completion_tokens=completion_tokens
+                        ),
+                        cached=False
+                    )
+                    return
+
+                # Handle text content
+                if msg.content:
+                    accumulated_content += msg.content
+                    yield msg.content
+
+        # Final yield if there was text content
+        if accumulated_content:
+            self._total_prompt_tokens += prompt_tokens
+            self._total_completion_tokens += completion_tokens
+            yield CreateResult(
+                content=accumulated_content,
+                finish_reason="stop",
+                usage=RequestUsage(
+                    prompt_tokens=prompt_tokens,
+                    completion_tokens=completion_tokens
+                ),
+                cached=False
+            )
 
     def actual_usage(self) -> RequestUsage:
         return RequestUsage(
