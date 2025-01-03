@@ -62,6 +62,12 @@ class MultimodalWebSurfer(BaseChatAgent):
     """
     MultimodalWebSurfer is a multimodal agent that acts as a web surfer that can search the web and visit web pages.
 
+    Installation:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[web-surfer]==0.4.0.dev13"
+
     It launches a chromium browser and allows the playwright to interact with the web browser and can perform a variety of actions. The browser is launched on the first call to the agent and is reused for subsequent calls.
 
     It must be used with a multimodal model client that supports function/tool calling, ideally GPT-4o currently.
@@ -93,7 +99,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         start_page (str, optional): The start page for the browser. Defaults to MultimodalWebSurfer.DEFAULT_START_PAGE.
         animate_actions (bool, optional): Whether to animate actions. Defaults to False.
         to_save_screenshots (bool, optional): Whether to save screenshots. Defaults to False.
-        use_ocr (bool, optional): Whether to use OCR. Defaults to True.
+        use_ocr (bool, optional): Whether to use OCR. Defaults to False.
         browser_channel (str, optional): The browser channel. Defaults to None.
         browser_data_dir (str, optional): The browser data directory. Defaults to None.
         to_resize_viewport (bool, optional): Whether to resize the viewport. Defaults to True.
@@ -168,7 +174,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         start_page: str | None = DEFAULT_START_PAGE,
         animate_actions: bool = False,
         to_save_screenshots: bool = False,
-        use_ocr: bool = True,
+        use_ocr: bool = False,
         browser_channel: str | None = None,
         browser_data_dir: str | None = None,
         to_resize_viewport: bool = True,
@@ -183,11 +189,11 @@ class MultimodalWebSurfer(BaseChatAgent):
             raise ValueError(
                 "Cannot save screenshots without a debug directory. Set it using the 'debug_dir' parameter. The debug directory is created if it does not exist."
             )
-        if model_client.capabilities["function_calling"] is False:
+        if model_client.model_info["function_calling"] is False:
             raise ValueError(
                 "The model does not support function calling. MultimodalWebSurfer requires a model that supports function calling."
             )
-        if model_client.capabilities["vision"] is False:
+        if model_client.model_info["vision"] is False:
             raise ValueError("The model is not multimodal. MultimodalWebSurfer requires a multimodal model.")
         self._model_client = model_client
         self.headless = headless
@@ -321,8 +327,8 @@ class MultimodalWebSurfer(BaseChatAgent):
             )
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        return [MultiModalMessage]
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+        return (MultiModalMessage,)
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         if not self.did_lazy_init:

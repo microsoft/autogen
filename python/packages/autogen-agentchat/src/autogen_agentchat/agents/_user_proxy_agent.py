@@ -1,6 +1,6 @@
 import asyncio
 from inspect import iscoroutinefunction
-from typing import Awaitable, Callable, List, Optional, Sequence, Union, cast
+from typing import Awaitable, Callable, Optional, Sequence, Union, cast
 
 from aioconsole import ainput  # type: ignore
 from autogen_core import CancellationToken
@@ -48,7 +48,7 @@ class UserProxyAgent(BaseChatAgent):
         You can run the team again with the user input. This way, the state of the team
         can be saved and restored when the user responds.
 
-        See `Pause for User Input <https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/teams.html#pause-for-user-input>`_ for more information.
+        See `Human-in-the-loop <https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/human-in-the-loop.html>`_ for more information.
 
     Example:
         Simple usage case::
@@ -98,7 +98,7 @@ class UserProxyAgent(BaseChatAgent):
                     agent_task = asyncio.create_task(
                         agent.on_messages(
                             [TextMessage(content="What is your name? ", source="user")],
-                            cancellation_token=CancellationToken(),
+                            cancellation_token=token,
                         )
                     )
                     response = await agent_task
@@ -122,9 +122,9 @@ class UserProxyAgent(BaseChatAgent):
         self._is_async = iscoroutinefunction(self.input_func)
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         """Message types this agent can produce."""
-        return [TextMessage, HandoffMessage]
+        return (TextMessage, HandoffMessage)
 
     def _get_latest_handoff(self, messages: Sequence[ChatMessage]) -> Optional[HandoffMessage]:
         """Find the HandoffMessage in the message sequence that addresses this agent."""

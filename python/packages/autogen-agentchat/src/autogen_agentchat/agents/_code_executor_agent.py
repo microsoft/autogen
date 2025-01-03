@@ -80,9 +80,9 @@ class CodeExecutorAgent(BaseChatAgent):
         self._code_executor = code_executor
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         """The types of messages that the code executor agent produces."""
-        return [TextMessage]
+        return (TextMessage,)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         # Extract code blocks from the messages.

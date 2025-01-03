@@ -58,20 +58,41 @@ AgentChat </div>
 High-level API that includes preset agents and teams for building multi-agent systems.
 
 ```sh
-pip install "autogen-agentchat==0.4.0.dev11"
+pip install "autogen-agentchat==0.4.0.dev13"
 ```
 
 💡 *Start here if you are looking for an API similar to AutoGen 0.2.*
 
 +++
 
-```{button-ref} user-guide/agentchat-user-guide/quickstart
+<a class="sd-sphinx-override sd-btn sd-text-wrap sd-btn-secondary reference internal" href="user-guide/agentchat-user-guide/quickstart.html"><span class="doc">Get Started</span></a>
+<a class="sd-sphinx-override sd-btn sd-text-wrap sd-btn-secondary reference internal" href="user-guide/agentchat-user-guide/migration-guide.html"><span class="doc">Migration Guide (0.2.x to 0.4.x)</span></a>
+
+:::
+
+:::{grid-item-card}
+:shadow: none
+:margin: 2 0 0 0
+:columns: 12 12 12 12
+
+<div class="sd-card-title sd-font-weight-bold docutils">
+
+{fas}`book;pst-color-primary`
+Magentic-One </div>
+Magentic-One is a generalist multi-agent system for solving open-ended web and file-based tasks across a variety of domains.
+
++++
+
+
+```{button-ref} user-guide/agentchat-user-guide/magentic-one
 :color: secondary
 
 Get Started
 ```
 
 :::
+
+
 :::{grid-item-card} {fas}`palette;pst-color-primary` Studio
 :shadow: none
 :margin: 2 0 0 0
@@ -89,17 +110,15 @@ Get Started
 
 :::
 
-
 :::{grid-item-card} {fas}`cube;pst-color-primary` Core
 :shadow: none
 :margin: 2 0 0 0
 :columns: 12 12 6 6
 
-
 Provides building blocks for creating asynchronous, event driven multi-agent systems.
 
 ```sh
-pip install "autogen-core==0.4.0.dev11"
+pip install "autogen-core==0.4.0.dev13"
 ```
 
 +++
@@ -117,11 +136,10 @@ Get Started
 :margin: 2 0 0 0
 :columns: 12 12 6 6
 
-
 Implementations of core components that interface with external services, or use extra dependencies. For example, Docker based code execution.
 
 ```sh
-pip install "autogen-ext==0.4.0.dev11"
+pip install "autogen-ext==0.4.0.dev13"
 ```
 
 +++

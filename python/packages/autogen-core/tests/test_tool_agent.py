@@ -11,10 +11,11 @@ from autogen_core.models import (
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
-    ModelCapabilities,
+    ModelCapabilities,  # type: ignore
     RequestUsage,
     UserMessage,
 )
+from autogen_core.models._model_client import ModelFamily, ModelInfo
 from autogen_core.tool_agent import (
     InvalidToolArgumentsException,
     ToolAgent,
@@ -92,6 +93,7 @@ async def test_caller_loop() -> None:
         async def create(
             self,
             messages: Sequence[LLMMessage],
+            *,
             tools: Sequence[Tool | ToolSchema] = [],
             json_output: Optional[bool] = None,
             extra_create_args: Mapping[str, Any] = {},
@@ -116,6 +118,7 @@ async def test_caller_loop() -> None:
         def create_stream(
             self,
             messages: Sequence[LLMMessage],
+            *,
             tools: Sequence[Tool | ToolSchema] = [],
             json_output: Optional[bool] = None,
             extra_create_args: Mapping[str, Any] = {},
@@ -129,15 +132,19 @@ async def test_caller_loop() -> None:
         def total_usage(self) -> RequestUsage:
             return RequestUsage(prompt_tokens=0, completion_tokens=0)
 
-        def count_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+        def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
             return 0
 
-        def remaining_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+        def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
             return 0
 
         @property
-        def capabilities(self) -> ModelCapabilities:
-            return ModelCapabilities(vision=False, function_calling=True, json_output=False)
+        def capabilities(self) -> ModelCapabilities:  # type: ignore
+            return ModelCapabilities(vision=False, function_calling=True, json_output=False)  # type: ignore
+
+        @property
+        def model_info(self) -> ModelInfo:
+            return ModelInfo(vision=False, function_calling=True, json_output=False, family=ModelFamily.UNKNOWN)
 
     client = MockChatCompletionClient()
     tools: List[Tool] = [FunctionTool(_pass_function, name="pass", description="Pass function")]

@@ -1,6 +1,6 @@
 from typing import Dict
 
-from autogen_core.models import ModelCapabilities
+from autogen_core.models import ModelFamily, ModelInfo
 
 # Based on: https://platform.openai.com/docs/models/continuous-model-upgrades
 # This is a moving target, so correctness is checked by the model value returned by openai against expected values at runtime``
@@ -17,86 +17,102 @@ _MODEL_POINTERS = {
     "gpt-3.5-turbo-16k": "gpt-3.5-turbo-16k-0613",
 }
 
-_MODEL_CAPABILITIES: Dict[str, ModelCapabilities] = {
+_MODEL_INFO: Dict[str, ModelInfo] = {
     "o1-preview-2024-09-12": {
         "vision": False,
         "function_calling": False,
         "json_output": False,
+        "family": ModelFamily.O1,
     },
     "o1-mini-2024-09-12": {
         "vision": False,
         "function_calling": False,
         "json_output": False,
+        "family": ModelFamily.O1,
     },
     "gpt-4o-2024-08-06": {
         "vision": True,
         "function_calling": True,
         "json_output": True,
+        "family": ModelFamily.GPT_4O,
     },
     "gpt-4o-2024-05-13": {
         "vision": True,
         "function_calling": True,
         "json_output": True,
+        "family": ModelFamily.GPT_4O,
     },
     "gpt-4o-mini-2024-07-18": {
         "vision": True,
         "function_calling": True,
         "json_output": True,
+        "family": ModelFamily.GPT_4O,
     },
     "gpt-4-turbo-2024-04-09": {
         "vision": True,
         "function_calling": True,
         "json_output": True,
+        "family": ModelFamily.GPT_4,
     },
     "gpt-4-0125-preview": {
         "vision": False,
         "function_calling": True,
         "json_output": True,
+        "family": ModelFamily.GPT_4,
     },
     "gpt-4-1106-preview": {
         "vision": False,
         "function_calling": True,
         "json_output": True,
+        "family": ModelFamily.GPT_4,
     },
     "gpt-4-1106-vision-preview": {
         "vision": True,
         "function_calling": False,
         "json_output": False,
+        "family": ModelFamily.GPT_4,
     },
     "gpt-4-0613": {
         "vision": False,
         "function_calling": True,
         "json_output": True,
+        "family": ModelFamily.GPT_4,
     },
     "gpt-4-32k-0613": {
         "vision": False,
         "function_calling": True,
         "json_output": True,
+        "family": ModelFamily.GPT_4,
     },
     "gpt-3.5-turbo-0125": {
         "vision": False,
         "function_calling": True,
         "json_output": True,
+        "family": ModelFamily.GPT_35,
     },
     "gpt-3.5-turbo-1106": {
         "vision": False,
         "function_calling": True,
         "json_output": True,
+        "family": ModelFamily.GPT_35,
     },
     "gpt-3.5-turbo-instruct": {
         "vision": False,
         "function_calling": True,
         "json_output": True,
+        "family": ModelFamily.GPT_35,
     },
     "gpt-3.5-turbo-0613": {
         "vision": False,
         "function_calling": True,
         "json_output": True,
+        "family": ModelFamily.GPT_35,
     },
     "gpt-3.5-turbo-16k-0613": {
         "vision": False,
         "function_calling": True,
         "json_output": True,
+        "family": ModelFamily.GPT_35,
     },
 }
 
@@ -126,9 +142,9 @@ def resolve_model(model: str) -> str:
     return model
 
 
-def get_capabilities(model: str) -> ModelCapabilities:
+def get_info(model: str) -> ModelInfo:
     resolved_model = resolve_model(model)
-    return _MODEL_CAPABILITIES[resolved_model]
+    return _MODEL_INFO[resolved_model]
 
 
 def get_token_limit(model: str) -> int:
