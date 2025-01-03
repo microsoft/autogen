@@ -48,6 +48,7 @@ python/autogen_ext.agents.video_surfer.tools
 python/autogen_ext.teams.magentic_one
 python/autogen_ext.models.openai
 python/autogen_ext.models.replay
+python/autogen_ext.models.azure
 python/autogen_ext.tools.langchain
 python/autogen_ext.code_executors.local
 python/autogen_ext.code_executors.docker
