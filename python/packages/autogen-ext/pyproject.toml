@@ -52,6 +52,9 @@ video-surfer = [
 grpc = [
     "grpcio~=1.62.0", # TODO: update this once we have a stable version.
 ]
+semantic-kernel = [
+    "semantic-kernel>=1.17.1",
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
