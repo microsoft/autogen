@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFrameworks>$(PackageTargetFrameworks)</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
+
+  <PropertyGroup>
+    <!-- NuGet Package Settings -->
+    <Title>Microsoft.Autogen.Extensions.Anthropic</Title>
+    <Description>
+      Provide support for consuming Anthropic models in AutoGen
+    </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- TODO: Change to RepoRoot-based path -->
+		<!--<ProjectReference Include="..\..\Abstractions\Microsoft.AutoGen.Abstractions.csproj" />-->
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
+	  <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+	  <!-- <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" /> -->
+        <!-- This package is implicitly improted by Microsoft.Extensions.DependencyInjection, and when
+             imported directly can cause versioning issues against Microsoft.Extensions.AI.Abstractions
+             while that is in pre-release. Temporarily keep it commented -->
+	</ItemGroup>
+</Project>
