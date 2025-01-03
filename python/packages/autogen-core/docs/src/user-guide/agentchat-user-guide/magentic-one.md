@@ -23,7 +23,7 @@ The paper and original release of Magentic-One is based on [the implementation u
 
 ![](../../images/autogen-magentic-one-example.png)
 
-**Example**: The figure above illustrates Magentic-One mutli-agent team completing a complex task from the GAIA benchmark. Magentic-One's Orchestrator agent creates a plan, delegates tasks to other agents, and tracks progress towards the goal, dynamically revising the plan as needed. The Orchestrator can delegate tasks to a FileSurfer agent to read and handle files, a WebSurfer agent to operate a web browser, or a Coder or Computer Terminal agent to write or execute code, respectively.
+**Example**: The figure above illustrates Magentic-One multi-agent team completing a complex task from the GAIA benchmark. Magentic-One's Orchestrator agent creates a plan, delegates tasks to other agents, and tracks progress towards the goal, dynamically revising the plan as needed. The Orchestrator can delegate tasks to a FileSurfer agent to read and handle files, a WebSurfer agent to operate a web browser, or a Coder or Computer Terminal agent to write or execute code, respectively.
 
 ```{caution}
 Using Magentic-One involves interacting with a digital world designed for humans, which carries inherent risks. To minimize these risks, consider the following precautions:
@@ -67,7 +67,7 @@ async def main() -> None:
         model_client=model_client,
     )
     team = MagenticOneGroupChat([assistant], model_client=model_client)
-    await Console(team.run_stream(task="Provide a different proof to Fermat last theorem"))
+    await Console(team.run_stream(task="Provide a different proof for Fermat's Last Theorem"))
 
 
 asyncio.run(main())
