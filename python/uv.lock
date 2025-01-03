@@ -3225,7 +3225,6 @@ dependencies = [
     { name = "more-itertools" },
     { name = "openapi-schema-validator" },
     { name = "openapi-spec-validator" },
-    { name = "parse" },
     { name = "werkzeug" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/34/b9/a769ae516c7f016465b2d9abc6e8dc4d5a1b54c57ab99b3cc95e9587955f/openapi_core-0.19.4.tar.gz", hash = "sha256:1150d9daa5e7b4cacfd7d7e097333dc89382d7d72703934128dcf8a1a4d0df49", size = 109095 }
