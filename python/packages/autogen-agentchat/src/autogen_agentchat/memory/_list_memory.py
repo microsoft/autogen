@@ -5,7 +5,7 @@ from typing import Any, List
 from autogen_core import CancellationToken, Image
 from pydantic import Field
 
-from ._base_memory import BaseMemoryConfig, MemoryContent, Memory, MemoryQueryResult, MemoryMimeType
+from ._base_memory import BaseMemoryConfig, MemoryContent, Memory, MemoryMimeType
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import (
     SystemMessage,
@@ -74,7 +74,7 @@ class ListMemory(Memory):
     async def transform(
         self,
         model_context: ChatCompletionContext,
-    ) -> ChatCompletionContext:
+    ) -> List[MemoryContent]:
         """Transform the model context by injecting relevant memory content.
 
         This method mutates the provided model_context by adding relevant memory content:
@@ -89,8 +89,7 @@ class ListMemory(Memory):
                 memories exist.
 
         Returns:
-            ChatCompletionContext: The same context object that was passed in, 
-                now mutated with memory content if any was found.
+            List[MemoryQueryResult]: A list of matching memory content with scores
 
         Example:
             ```python
@@ -103,7 +102,7 @@ class ListMemory(Memory):
         """
         messages = await model_context.get_messages()
         if not messages:
-            return model_context
+            return []
 
         # Extract query from last message
         last_message = messages[-1]
@@ -113,13 +112,13 @@ class ListMemory(Memory):
                               mime_type=MemoryMimeType.TEXT)
 
         # Query memory and format results
-        results = []
+        results: List[str] = []
         query_results = await self.query(query)
         for i, result in enumerate(query_results, 1):
-            if isinstance(result.content.content, str):
-                results.append(f"{i}. {result.content.content}")
+            if isinstance(result.content, str):
+                results.append(f"{i}. {result.content}")
                 event_logger.debug(
-                    f"Retrieved memory {i}. {result.content.content}, score: {result.score}"
+                    f"Retrieved memory {i}. {result.content}, score: {result.score}"
                 )
 
         # Add memory results to context
@@ -130,14 +129,14 @@ class ListMemory(Memory):
             )
             await model_context.add_message(SystemMessage(content=memory_context))
 
-        return model_context
+        return query_results
 
     async def query(
         self,
         query: MemoryContent,
         cancellation_token: CancellationToken | None = None,
         **kwargs: Any,
-    ) -> List[MemoryQueryResult]:
+    ) -> List[MemoryContent]:
         """Query memory content based on text similarity.
 
         Searches memory content using text similarity matching against the query.
@@ -151,7 +150,7 @@ class ListMemory(Memory):
             **kwargs: Additional parameters passed to the similarity calculation
 
         Returns:
-            List[MemoryQueryResult]: Matching content with similarity scores,
+            List[MemoryContent]: Matching content with similarity scores,
                 sorted by score in descending order. Limited to config.k entries.
 
         Raises:
@@ -176,7 +175,7 @@ class ListMemory(Memory):
         except ValueError:
             raise ValueError("Query must contain text content")
 
-        results: List[MemoryQueryResult] = []
+        results: List[MemoryContent] = []
 
         for content in self._contents:
             try:
@@ -189,7 +188,9 @@ class ListMemory(Memory):
             if score >= self._config.similarity_threshold and (
                 self._config.score_threshold is None or score >= self._config.score_threshold
             ):
-                results.append(MemoryQueryResult(content=content, score=score))
+                result_content = content.model_copy()
+                result_content.score = score
+                results.append(result_content)
 
         results.sort(key=lambda x: x.score, reverse=True)
         return results[: self._config.k]

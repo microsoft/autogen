@@ -17,7 +17,7 @@ class MemoryMimeType(Enum):
     BINARY = "application/octet-stream"
 
 
-ContentType = Union[str, bytes, dict, Image]
+ContentType = Union[str, bytes, Dict[str, Any], Image]
 
 
 class MemoryContent(BaseModel):
@@ -26,6 +26,7 @@ class MemoryContent(BaseModel):
     metadata: Dict[str, Any] | None = None
     timestamp: datetime | None = None
     source: str | None = None
+    score: float = 0.0
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -36,18 +37,6 @@ class BaseMemoryConfig(BaseModel):
     k: int = Field(default=5, description="Number of results to return")
     score_threshold: float | None = Field(
         default=None, description="Minimum relevance score")
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-
-class MemoryQueryResult(BaseModel):
-    """Result from a memory query including the content and its relevance score."""
-
-    content: MemoryContent
-    """The memory content."""
-
-    score: float
-    """Relevance score for this result. Higher means more relevant."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
@@ -69,7 +58,7 @@ class Memory(Protocol):
     async def transform(
         self,
         model_context: ChatCompletionContext,
-    ) -> ChatCompletionContext:
+    ) -> List[MemoryContent]:
         """
         Transform the provided model context using relevant memory content.
 
@@ -77,7 +66,7 @@ class Memory(Protocol):
             model_context: The context to transform
 
         Returns:
-            The transformed context  
+            List of memory entries with relevance scores
         """
         ...
 
@@ -86,7 +75,7 @@ class Memory(Protocol):
         query: MemoryContent,
         cancellation_token: "CancellationToken | None" = None,
         **kwargs: Any,
-    ) -> List[MemoryQueryResult]:
+    ) -> List[MemoryContent]:
         """
         Query the memory store and return relevant entries.
 
