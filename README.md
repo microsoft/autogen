@@ -61,7 +61,7 @@ Currently, there are three main APIs your application can target:
 
 ## Core
 
-- [Installation](https://microsoft.github.io/autogen/dev/packages/index.html#pkg-info-autogen-core)
+- [Installation](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/installation.html)
 - [Quickstart](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/quickstart.html)
 
 The core API of AutoGen, `autogen-core`, is built following the
@@ -75,7 +75,7 @@ while still communicating with one another.
 
 ## AgentChat
 
-- [Installation](https://microsoft.github.io/autogen/dev/packages/index.html#pkg-info-autogen-agentchat)
+- [Installation](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/installation.html)
 - [Quickstart](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/quickstart.html)
 
 The AgentChat API, `autogen-agentchat`, is task driven and at a high level like AutoGen 0.2.

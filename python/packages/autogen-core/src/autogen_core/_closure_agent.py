@@ -61,6 +61,7 @@ class ClosureContext(Protocol):
         recipient: AgentId,
         *,
         cancellation_token: CancellationToken | None = None,
+        message_id: str | None = None,
     ) -> Any: ...
 
     async def publish_message(
