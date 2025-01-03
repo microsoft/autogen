@@ -64,3 +64,7 @@ class ChatAgent(TaskRunner, Protocol):
     async def load_state(self, state: Mapping[str, Any]) -> None:
         """Restore agent from saved state"""
         ...
+
+    async def close(self) -> None:
+        """Called when the runtime is stopped or any stop method is called"""
+        ...

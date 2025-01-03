@@ -309,6 +309,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     )
                 )
                 recipient_agent = await self._get_agent(recipient)
+
                 message_context = MessageContext(
                     sender=message_envelope.sender,
                     topic_id=None,
@@ -573,10 +574,20 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             raise RuntimeError("Runtime is already started")
         self._run_context = RunContext(self)
 
+    async def _close(self) -> None:
+        """Call the :meth:`Agent.close` method on all instantiated agents"""
+        # close all the agents that have been instantiated
+        for agent_id in self._instantiated_agents:
+            agent = await self._get_agent(agent_id)
+            await agent.close()
+
     async def stop(self) -> None:
         """Immediately stop the runtime message processing loop. The currently processing message will be completed, but all others following it will be discarded."""
         if self._run_context is None:
             raise RuntimeError("Runtime is not started")
+
+        await self._close()
+
         await self._run_context.stop()
         self._run_context = None
         self._message_queue = Queue()
@@ -587,6 +598,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         if self._run_context is None:
             raise RuntimeError("Runtime is not started")
         await self._run_context.stop_when_idle()
+
+        await self._close()
+
         self._run_context = None
         self._message_queue = Queue()
 
@@ -607,6 +621,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         if self._run_context is None:
             raise RuntimeError("Runtime is not started")
         await self._run_context.stop_when(condition)
+
+        await self._close()
+
         self._run_context = None
         self._message_queue = Queue()
 

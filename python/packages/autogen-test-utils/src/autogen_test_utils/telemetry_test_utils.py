@@ -1,6 +1,5 @@
 from typing import List, Sequence
 
-import pytest
 from opentelemetry.sdk.trace import ReadableSpan, TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter, SpanExportResult
 
