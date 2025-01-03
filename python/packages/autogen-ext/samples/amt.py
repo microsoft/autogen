@@ -16,12 +16,12 @@ from autogen_core.models import (
 from typing import (
     Tuple,
 )
-from autogen_ext.agentic_memory import AgenticMemory, PageLog, Grader
+from autogen_ext.agentic_memory import AgenticMemory, PageLog, Grader, RecordableChatCompletionClient
 
 
 MEMORY_DIR = "~/agentic_memory_archive"
 PAGELOG_DIR = "~/pagelogs/"
-RUN_SUBDIR = "run_32"
+RUN_SUBDIR = "run_33"
 
 # Default client parameters
 TEMPERATURE = 0.8
@@ -95,7 +95,7 @@ def create_oai_client(page_log):
     if page_log is not None:
         page_log.append_entry_line("Client:  {}".format(client._resolved_model))
         page_log.append_entry_line("  created through OpenAI directly")
-    page_log.append_entry_line("  temperature:  {}".format(TEMPERATURE))
+        page_log.append_entry_line("  temperature:  {}".format(TEMPERATURE))
     return client
 
 
@@ -121,7 +121,7 @@ def create_aoai_client(page_log):
     if page_log is not None:
         page_log.append_entry_line("Client:  {}".format(client._resolved_model))
         page_log.append_entry_line("  created through Azure OpenAI")
-    page_log.append_entry_line("  temperature:  {}".format(TEMPERATURE))
+        page_log.append_entry_line("  temperature:  {}".format(TEMPERATURE))
     return client
 
 
@@ -162,7 +162,7 @@ def create_trapi_client(page_log):
     if page_log is not None:
         page_log.append_entry_line("Client:  {}".format(client._resolved_model))
         page_log.append_entry_line("  created through TRAPI")
-    page_log.append_entry_line("  temperature:  {}".format(TEMPERATURE))
+        page_log.append_entry_line("  temperature:  {}".format(TEMPERATURE))
     return client
 
 
@@ -548,6 +548,55 @@ async def test_learning_from_demonstration(task_assignment_callback, client, pag
     page_log.finish_page(page)
 
 
+async def call_client(task, client, page_log):
+    page = page_log.begin_page(
+        summary="call_client",
+        details='',
+        method_call="call_client")
+
+    page.add_lines(task)
+
+    system_message_content = """You are a helpful and thoughtful assistant."""
+
+    system_message = SystemMessage(content=system_message_content)
+    user_message = UserMessage(content=task, source="User")
+
+    input_messages = [system_message] + [user_message]
+    response = await client.create(input_messages)
+    response_str = response.content
+
+    # Log the model call
+    page_log.add_model_call(description="Ask the model",
+                            details="to complete the task", input_messages=input_messages,
+                            response=response,
+                            num_input_tokens=0, caller='assign_task_to_client')
+    page.add_lines("\n-----  RESPONSE  -----\n\n{}\n".format(response_str), flush=True)
+
+    page_log.finish_page(page)
+    return response_str
+
+
+async def test_recordable_client(client, page_log):
+    page = page_log.begin_page(
+        summary="test_recordable_client",
+        details='',
+        method_call="test_recordable_client")
+
+    # Define a simple task.
+    task = "What is 4^4?"
+
+    # Use a client wrapper to record a session.
+    client1 = RecordableChatCompletionClient(client, "record", page_log)
+    await call_client(task, client1, page_log)
+    client1.save()
+
+    # Use a second client wrapper to check and replay the session.
+    client2 = RecordableChatCompletionClient(client, "check-replay", page_log)
+    await call_client(task, client2, page_log)
+
+    page_log.finish_page(page)
+
+
 async def main() -> None:
     # Create the PageLog.
     page_log = PageLog(PAGELOG_DIR, RUN_SUBDIR)
@@ -567,7 +616,8 @@ async def main() -> None:
     # await test_with_memory(task_assignment_callback, client, page_log)
     # await test_self_teaching(task_assignment_callback, client, page_log)
     # await test_teachability(task_assignment_callback, client, page_log)
-    await test_learning_from_demonstration(task_assignment_callback, client, page_log)
+    # await test_learning_from_demonstration(task_assignment_callback, client, page_log)
+    await test_recordable_client(client, page_log)
 
     page_log.flush(final=True)  # Finalize the page log
     page_log.finish_page(page)
