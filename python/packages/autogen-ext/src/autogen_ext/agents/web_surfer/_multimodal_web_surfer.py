@@ -15,7 +15,6 @@ from typing import (
     List,
     Optional,
     Sequence,
-    Tuple,
     cast,
 )
 from urllib.parse import quote_plus
@@ -62,6 +61,12 @@ from .playwright_controller import PlaywrightController
 class MultimodalWebSurfer(BaseChatAgent):
     """
     MultimodalWebSurfer is a multimodal agent that acts as a web surfer that can search the web and visit web pages.
+
+    Installation:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[web-surfer]==0.4.0.dev13"
 
     It launches a chromium browser and allows the playwright to interact with the web browser and can perform a variety of actions. The browser is launched on the first call to the agent and is reused for subsequent calls.
 
@@ -184,11 +189,11 @@ class MultimodalWebSurfer(BaseChatAgent):
             raise ValueError(
                 "Cannot save screenshots without a debug directory. Set it using the 'debug_dir' parameter. The debug directory is created if it does not exist."
             )
-        if model_client.capabilities["function_calling"] is False:
+        if model_client.model_info["function_calling"] is False:
             raise ValueError(
                 "The model does not support function calling. MultimodalWebSurfer requires a model that supports function calling."
             )
-        if model_client.capabilities["vision"] is False:
+        if model_client.model_info["vision"] is False:
             raise ValueError("The model is not multimodal. MultimodalWebSurfer requires a multimodal model.")
         self._model_client = model_client
         self.headless = headless
@@ -322,7 +327,7 @@ class MultimodalWebSurfer(BaseChatAgent):
             )
 
     @property
-    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         return (MultiModalMessage,)
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:

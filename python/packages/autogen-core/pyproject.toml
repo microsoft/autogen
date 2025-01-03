@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-core"
-version = "0.4.0.dev12"
+version = "0.4.0.dev13"
 license = {file = "LICENSE-CODE"}
 description = "Foundational interfaces and agent runtime implementation for AutoGen"
 readme = "README.md"
@@ -72,7 +72,7 @@ dev = [
     "autodoc_pydantic~=2.2",
     "pygments",
 
-    "autogen_ext==0.4.0.dev12",
+    "autogen_ext==0.4.0.dev13",
 
     # Documentation tooling
     "sphinx-autobuild",
@@ -109,6 +109,7 @@ include = "../../shared_tasks.toml"
 
 [tool.poe.tasks]
 test = "pytest -n auto"
+coverage = "pytest -n auto --cov=src --cov-report=term-missing --cov-report=xml"
 mypy.default_item_type = "cmd"
 mypy.sequence = [
     "mypy --config-file ../../pyproject.toml --exclude src/autogen_core/application/protos --exclude tests/protos src tests",

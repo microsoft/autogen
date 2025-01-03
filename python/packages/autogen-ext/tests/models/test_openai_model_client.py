@@ -14,6 +14,7 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
+from autogen_core.models._model_client import ModelFamily
 from autogen_core.tools import BaseTool, FunctionTool
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 from autogen_ext.models.openai._model_info import resolve_model
@@ -139,18 +140,14 @@ async def test_openai_chat_completion_client() -> None:
 
 @pytest.mark.asyncio
 async def test_custom_model_with_capabilities() -> None:
-    with pytest.raises(ValueError, match="model_capabilities is required"):
+    with pytest.raises(ValueError, match="model_info is required"):
         client = OpenAIChatCompletionClient(model="dummy_model", base_url="https://api.dummy.com/v0", api_key="api_key")
 
     client = OpenAIChatCompletionClient(
         model="dummy_model",
         base_url="https://api.dummy.com/v0",
         api_key="api_key",
-        model_capabilities={
-            "vision": False,
-            "function_calling": False,
-            "json_output": False,
-        },
+        model_info={"vision": False, "function_calling": False, "json_output": False, "family": ModelFamily.UNKNOWN},
     )
     assert client
 
@@ -163,7 +160,7 @@ async def test_azure_openai_chat_completion_client() -> None:
         api_key="api_key",
         api_version="2020-08-04",
         azure_endpoint="https://dummy.com",
-        model_capabilities={"vision": True, "function_calling": True, "json_output": True},
+        model_info={"vision": True, "function_calling": True, "json_output": True, "family": ModelFamily.GPT_4O},
     )
     assert client
 

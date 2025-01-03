@@ -15,7 +15,6 @@ from typing import (
     Optional,
     Sequence,
     Set,
-    Tuple,
     Union,
     cast,
 )
@@ -99,6 +98,13 @@ def _convert_tool_to_function_param(tool: Tool) -> "FunctionToolParam":
 
 class OpenAIAssistantAgent(BaseChatAgent):
     """An agent implementation that uses the OpenAI Assistant API to generate responses.
+
+    Installation:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[openai]==0.4.0.dev13"
+
 
     This agent leverages the OpenAI Assistant API to create AI assistants with capabilities like:
 
@@ -299,7 +305,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         self._initial_message_ids = initial_message_ids
 
     @property
-    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         """The types of messages that the assistant agent produces."""
         return (TextMessage,)
 

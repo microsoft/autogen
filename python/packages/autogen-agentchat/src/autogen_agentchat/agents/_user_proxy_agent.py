@@ -1,6 +1,6 @@
 import asyncio
 from inspect import iscoroutinefunction
-from typing import Awaitable, Callable, Optional, Sequence, Tuple, Union, cast
+from typing import Awaitable, Callable, Optional, Sequence, Union, cast
 
 from aioconsole import ainput  # type: ignore
 from autogen_core import CancellationToken
@@ -98,7 +98,7 @@ class UserProxyAgent(BaseChatAgent):
                     agent_task = asyncio.create_task(
                         agent.on_messages(
                             [TextMessage(content="What is your name? ", source="user")],
-                            cancellation_token=CancellationToken(),
+                            cancellation_token=token,
                         )
                     )
                     response = await agent_task
@@ -122,7 +122,7 @@ class UserProxyAgent(BaseChatAgent):
         self._is_async = iscoroutinefunction(self.input_func)
 
     @property
-    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         """Message types this agent can produce."""
         return (TextMessage, HandoffMessage)
 
