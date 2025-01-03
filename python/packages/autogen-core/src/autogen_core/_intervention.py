@@ -32,6 +32,7 @@ class InterventionHandler(Protocol):
 
         from autogen_core import DefaultInterventionHandler, MessageContext, AgentId, SingleThreadedAgentRuntime
         from dataclasses import dataclass
+        from typing import Any
 
 
         @dataclass
