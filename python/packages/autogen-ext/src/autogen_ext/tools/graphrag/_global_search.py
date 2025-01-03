@@ -49,13 +49,13 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
             pip install "autogen-agentchat==0.4.0.dev12" "autogen-ext[graphrag]==0.4.0.dev12"
 
         Before using this tool, you must complete the GraphRAG setup and indexing process:
-        
+
         1. Follow the GraphRAG documentation to initialize your project and settings
         2. Configure and tune your prompts for the specific use case
         3. Run the indexing process to generate the required data files
         4. Ensure you have the settings.yaml file from the setup process
-        
-        Please refer to the [GraphRAG documentation](https://microsoft.github.io/graphrag/) 
+
+        Please refer to the [GraphRAG documentation](https://microsoft.github.io/graphrag/)
         for detailed instructions on completing these prerequisite steps.
 
     Example usage with AssistantAgent:
