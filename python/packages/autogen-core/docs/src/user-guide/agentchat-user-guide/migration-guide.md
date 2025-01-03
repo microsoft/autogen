@@ -6,10 +6,12 @@ The `v0.4` version contains breaking changes. Please read this guide carefully.
 We still maintain the `v0.2` version in the `0.2` branch; however,
 we highly recommend you upgrade to the `v0.4` version.
 
-> **Note**: We no longer have admin access to the `pyautogen` PyPI package, and
-> the releases from that package are no longer from Microsoft since version 0.2.34.
-> To continue use the `v0.2` version of AutoGen, install it using `autogen-agentchat~=0.2`.
-> Please read our [clarification statement](https://github.com/microsoft/autogen/discussions/4217) regarding forks.
+```{note}
+We no longer have admin access to the `pyautogen` PyPI package, and
+the releases from that package are no longer from Microsoft since version 0.2.34.
+To continue use the `v0.2` version of AutoGen, install it using `autogen-agentchat~=0.2`.
+Please read our [clarification statement](https://github.com/microsoft/autogen/discussions/4217) regarding forks.
+```
 
 ## What is `v0.4`?
 
@@ -571,8 +573,8 @@ asyncio.run(main())
 ```
 
 When using tool-equipped agents inside a group chat such as
-{py:class}`~autogen_agentchat.teams.RoundRobinGroupChat`, 
-you simply do the same as above to add tools to the agents, and create a 
+{py:class}`~autogen_agentchat.teams.RoundRobinGroupChat`,
+you simply do the same as above to add tools to the agents, and create a
 group chat with the agents.
 
 ## Chat Result
