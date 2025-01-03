@@ -283,7 +283,7 @@ class AssistantAgent(BaseChatAgent):
         self._handoff_tools: List[Tool] = []
         self._handoffs: Dict[str, HandoffBase] = {}
         if handoffs is not None:
-            if model_client.model_info["function_calling"] is False:
+            if model_client.capabilities["function_calling"] is False:
                 raise ValueError("The model does not support function calling, which is needed for handoffs.")
             for handoff in handoffs:
                 if isinstance(handoff, str):
@@ -302,9 +302,8 @@ class AssistantAgent(BaseChatAgent):
             raise ValueError(
                 f"Handoff names must be unique from tool names. Handoff names: {handoff_tool_names}; tool names: {tool_names}"
             )
-        if model_context is not None:
-            self._model_context = model_context
-        else:
+        self._model_context = model_context
+        if not model_context:
             self._model_context = UnboundedChatCompletionContext()
         self._reflect_on_tool_use = reflect_on_tool_use
         self._tool_call_summary_format = tool_call_summary_format
@@ -331,7 +330,7 @@ class AssistantAgent(BaseChatAgent):
     ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         # Add messages to the model context.
         for msg in messages:
-            if isinstance(msg, MultiModalMessage) and self._model_client.model_info["vision"] is False:
+            if isinstance(msg, MultiModalMessage) and self._model_client.capabilities["vision"] is False:
                 raise ValueError("The model does not support vision.")
             await self._model_context.add_message(UserMessage(content=msg.content, source=msg.source))
 
@@ -341,7 +340,9 @@ class AssistantAgent(BaseChatAgent):
         # Generate an inference result based on the current model context.
         llm_messages = self._system_messages + await self._model_context.get_messages()
         result = await self._model_client.create(
-            llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
+            llm_messages,
+            tools=self._tools + self._handoff_tools,
+            cancellation_token=cancellation_token,
         )
 
         # Add the response to the model context.
@@ -385,7 +386,11 @@ class AssistantAgent(BaseChatAgent):
                 )
             # Return the output messages to signal the handoff.
             yield Response(
-                chat_message=HandoffMessage(content=handoffs[0].message, target=handoffs[0].target, source=self.name),
+                chat_message=HandoffMessage(
+                    content=handoffs[0].message,
+                    target=handoffs[0].target,
+                    source=self.name,
+                ),
                 inner_messages=inner_messages,
             )
             return
@@ -426,7 +431,10 @@ class AssistantAgent(BaseChatAgent):
         try:
             if not self._tools + self._handoff_tools:
                 raise ValueError("No tools are available.")
-            tool = next((t for t in self._tools + self._handoff_tools if t.name == tool_call.name), None)
+            tool = next(
+                (t for t in self._tools + self._handoff_tools if t.name == tool_call.name),
+                None,
+            )
             if tool is None:
                 raise ValueError(f"The tool '{tool_call.name}' is not available.")
             arguments = json.loads(tool_call.arguments)
