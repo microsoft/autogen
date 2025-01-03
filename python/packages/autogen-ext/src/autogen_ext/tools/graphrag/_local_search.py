@@ -39,6 +39,26 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
 
     This tool allows you to perform semantic search over a corpus of documents using the GraphRAG framework.
     The search combines local document context with semantic embeddings to find relevant information.
+
+    .. note::
+
+        This tool requires the :code:`graphrag` extra for the :code:`autogen-ext` package.
+        To install:
+
+        .. code-block:: bash
+
+            pip install "autogen-agentchat==0.4.0.dev12" "autogen-ext[graphrag]==0.4.0.dev12"
+
+        Before using this tool, you must complete the GraphRAG setup and indexing process:
+        
+        1. Follow the GraphRAG documentation to initialize your project and settings
+        2. Configure and tune your prompts for the specific use case
+        3. Run the indexing process to generate the required data files
+        4. Ensure you have the settings.yaml file from the setup process
+        
+        Please refer to the [GraphRAG documentation](https://microsoft.github.io/graphrag/) 
+        for detailed instructions on completing these prerequisite steps.
+
     Example usage with AssistantAgent:
 
     .. code-block:: python
@@ -82,12 +102,6 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
 
         if __name__ == "__main__":
             asyncio.run(main())
-
-    .. note::
-
-        This tool requires the :code:`graphrag` extra for the :code:`autogen-ext` package.
-        This tool requires indexed data created by the GraphRAG indexing process. See the [GraphRAG documentation](https://microsoft.github.io/graphrag/)
-        for details on how to prepare the required data files.
 
     Args:
         token_encoder (tiktoken.Encoding): The tokenizer used for text encoding
