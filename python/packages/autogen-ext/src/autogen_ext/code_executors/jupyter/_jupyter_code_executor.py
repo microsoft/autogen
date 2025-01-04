@@ -16,6 +16,7 @@ else:
 from autogen_core import CancellationToken
 from autogen_core.code_executor import CodeBlock, CodeExecutor, CodeResult
 from nbclient import NotebookClient
+from nbformat import NotebookNode
 from nbformat import v4 as nbformat
 
 from .._common import silence_pip
@@ -48,7 +49,13 @@ class JupyterCodeExecutor(CodeExecutor):
         self._kernel_name = kernel_name
         self._timeout = timeout
         self._output_dir = output_dir
-        self._start()
+        # TODO: Forward arguments perhaps?
+        self._client = NotebookClient(
+            nb=nbformat.new_notebook(),
+            kernel_name=self._kernel_name,
+            timeout=self._timeout,
+            allow_errors=True,
+        )
 
     async def execute_code_blocks(
         self, code_blocks: list[CodeBlock], cancellation_token: CancellationToken
@@ -85,10 +92,11 @@ class JupyterCodeExecutor(CodeExecutor):
             JupyterCodeResult: The result of the code execution.
         """
         execute_task = asyncio.create_task(
-            self._client.async_execute_cell_standalone(
-                nbformat.new_code_cell(silence_pip(code_block.code, code_block.language)), cleanup_kc=False
+            self._execute_cell(
+                nbformat.new_code_cell(silence_pip(code_block.code, code_block.language))  # type: ignore
             )
         )
+
         cancellation_token.link_future(execute_task)
         output_cell = await asyncio.wait_for(asyncio.shield(execute_task), timeout=self._timeout)
 
@@ -124,6 +132,16 @@ class JupyterCodeExecutor(CodeExecutor):
 
         return JupyterCodeResult(exit_code=exit_code, output="\n".join(outputs), output_files=output_files)
 
+    async def _execute_cell(self, cell: NotebookNode) -> NotebookNode:
+        # Temporary push cell to nb as async_execute_cell expects it. But then we want to remove it again as cells can take up significant amount of memory (especially with images)
+        self._client.nb.cells.append(cell)
+        output = await self._client.async_execute_cell(
+            cell,
+            cell_index=0,
+        )
+        self._client.nb.cells.pop()
+        return output
+
     def _save_image(self, image_data_base64: str) -> Path:
         """Save image data to a file."""
         image_data = base64.b64decode(image_data_base64)
@@ -139,22 +157,25 @@ class JupyterCodeExecutor(CodeExecutor):
 
     async def restart(self) -> None:
         """Restart the code executor."""
-        self._start()
+        await self.stop()
+        await self.start()
 
-    def _start(self) -> None:
-        self._client = NotebookClient(
-            nb=nbformat.new_notebook(), kernel_name=self._kernel_name, timeout=self._timeout, allow_errors=True
-        )
+    async def start(self) -> None:
+        self.kernel_context = self._client.async_setup_kernel()
+        await self.kernel_context.__aenter__()
 
     async def stop(self) -> None:
         """Stop the kernel."""
-        if self._client.km is not None:
-            await self._client._async_cleanup_kernel()  # type: ignore
+        await self.kernel_context.__aexit__(None, None, None)
 
     async def __aenter__(self) -> Self:
+        await self.start()
         return self
 
     async def __aexit__(
-        self, exc_type: type[BaseException] | None, exc_val: BaseException | None, exc_tb: TracebackType | None
+        self,
+        exc_type: type[BaseException] | None,
+        exc_val: BaseException | None,
+        exc_tb: TracebackType | None,
     ) -> None:
         await self.stop()
