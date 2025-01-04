@@ -32,6 +32,7 @@ from typing_extensions import deprecated
 from .. import EVENT_LOGGER_NAME
 from ..base import Handoff as HandoffBase
 from ..base import Response
+from ..memory._base_memory import Memory
 from ..messages import (
     AgentEvent,
     ChatMessage,
@@ -44,7 +45,6 @@ from ..messages import (
 )
 from ..state import AssistantAgentState
 from ._base_chat_agent import BaseChatAgent
-from ..memory._base_memory import Memory
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
@@ -245,8 +245,7 @@ class AssistantAgent(BaseChatAgent):
         name: str,
         model_client: ChatCompletionClient,
         *,
-        tools: List[Tool | Callable[..., Any] |
-                    Callable[..., Awaitable[Any]]] | None = None,
+        tools: List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
         handoffs: List[HandoffBase | str] | None = None,
         model_context: ChatCompletionContext | None = None,
         description: str = "An agent that provides assistance with ability to use tools.",
@@ -266,11 +265,11 @@ class AssistantAgent(BaseChatAgent):
             elif isinstance(memory, list):
                 self._memory = memory
             else:
-                raise TypeError(
-                    f"Expected Memory, List[Memory], or None, got {type(memory)}")
+                raise TypeError(f"Expected Memory, List[Memory], or None, got {type(memory)}")
 
-        self._system_messages: List[SystemMessage | UserMessage |
-                                    AssistantMessage | FunctionExecutionResultMessage] = []
+        self._system_messages: List[
+            SystemMessage | UserMessage | AssistantMessage | FunctionExecutionResultMessage
+        ] = []
         if system_message is None:
             self._system_messages = []
         else:
@@ -278,8 +277,7 @@ class AssistantAgent(BaseChatAgent):
         self._tools: List[Tool] = []
         if tools is not None:
             if model_client.model_info["function_calling"] is False:
-                raise ValueError(
-                    "The model does not support function calling.")
+                raise ValueError("The model does not support function calling.")
             for tool in tools:
                 if isinstance(tool, Tool):
                     self._tools.append(tool)
@@ -288,8 +286,7 @@ class AssistantAgent(BaseChatAgent):
                         description = tool.__doc__
                     else:
                         description = ""
-                    self._tools.append(FunctionTool(
-                        tool, description=description))
+                    self._tools.append(FunctionTool(tool, description=description))
                 else:
                     raise ValueError(f"Unsupported tool type: {type(tool)}")
         # Check if tool names are unique.
@@ -301,8 +298,7 @@ class AssistantAgent(BaseChatAgent):
         self._handoffs: Dict[str, HandoffBase] = {}
         if handoffs is not None:
             if model_client.model_info["function_calling"] is False:
-                raise ValueError(
-                    "The model does not support function calling, which is needed for handoffs.")
+                raise ValueError("The model does not support function calling, which is needed for handoffs.")
             for handoff in handoffs:
                 if isinstance(handoff, str):
                     handoff = HandoffBase(target=handoff)
@@ -310,13 +306,11 @@ class AssistantAgent(BaseChatAgent):
                     self._handoff_tools.append(handoff.handoff_tool)
                     self._handoffs[handoff.name] = handoff
                 else:
-                    raise ValueError(
-                        f"Unsupported handoff type: {type(handoff)}")
+                    raise ValueError(f"Unsupported handoff type: {type(handoff)}")
         # Check if handoff tool names are unique.
         handoff_tool_names = [tool.name for tool in self._handoff_tools]
         if len(handoff_tool_names) != len(set(handoff_tool_names)):
-            raise ValueError(
-                f"Handoff names must be unique: {handoff_tool_names}")
+            raise ValueError(f"Handoff names must be unique: {handoff_tool_names}")
         # Check if handoff tool names not in tool names.
         if any(name in tool_names for name in handoff_tool_names):
             raise ValueError(
@@ -344,8 +338,7 @@ class AssistantAgent(BaseChatAgent):
         async for message in self.on_messages_stream(messages, cancellation_token):
             if isinstance(message, Response):
                 return message
-        raise AssertionError(
-            "The stream should have returned the final result.")
+        raise AssertionError("The stream should have returned the final result.")
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
@@ -377,17 +370,14 @@ class AssistantAgent(BaseChatAgent):
         # Check if the response is a string and return it.
         if isinstance(result.content, str):
             yield Response(
-                chat_message=TextMessage(
-                    content=result.content, source=self.name, models_usage=result.usage),
+                chat_message=TextMessage(content=result.content, source=self.name, models_usage=result.usage),
                 inner_messages=inner_messages,
             )
             return
 
         # Process tool calls.
-        assert isinstance(result.content, list) and all(
-            isinstance(item, FunctionCall) for item in result.content)
-        tool_call_msg = ToolCallRequestEvent(
-            content=result.content, source=self.name, models_usage=result.usage)
+        assert isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content)
+        tool_call_msg = ToolCallRequestEvent(content=result.content, source=self.name, models_usage=result.usage)
         event_logger.debug(tool_call_msg)
         # Add the tool call message to the output.
         inner_messages.append(tool_call_msg)
@@ -395,8 +385,7 @@ class AssistantAgent(BaseChatAgent):
 
         # Execute the tool calls.
         results = await asyncio.gather(*[self._execute_tool_call(call, cancellation_token) for call in result.content])
-        tool_call_result_msg = ToolCallExecutionEvent(
-            content=results, source=self.name)
+        tool_call_result_msg = ToolCallExecutionEvent(content=results, source=self.name)
         event_logger.debug(tool_call_result_msg)
         await self._model_context.add_message(FunctionExecutionResultMessage(content=results))
         inner_messages.append(tool_call_result_msg)
@@ -416,8 +405,7 @@ class AssistantAgent(BaseChatAgent):
                 )
             # Return the output messages to signal the handoff.
             yield Response(
-                chat_message=HandoffMessage(
-                    content=handoffs[0].message, target=handoffs[0].target, source=self.name),
+                chat_message=HandoffMessage(content=handoffs[0].message, target=handoffs[0].target, source=self.name),
                 inner_messages=inner_messages,
             )
             return
@@ -431,8 +419,7 @@ class AssistantAgent(BaseChatAgent):
             await self._model_context.add_message(AssistantMessage(content=result.content, source=self.name))
             # Yield the response.
             yield Response(
-                chat_message=TextMessage(
-                    content=result.content, source=self.name, models_usage=result.usage),
+                chat_message=TextMessage(content=result.content, source=self.name, models_usage=result.usage),
                 inner_messages=inner_messages,
             )
         else:
@@ -448,8 +435,7 @@ class AssistantAgent(BaseChatAgent):
                 )
             tool_call_summary = "\n".join(tool_call_summaries)
             yield Response(
-                chat_message=ToolCallSummaryMessage(
-                    content=tool_call_summary, source=self.name),
+                chat_message=ToolCallSummaryMessage(content=tool_call_summary, source=self.name),
                 inner_messages=inner_messages,
             )
 
@@ -460,11 +446,9 @@ class AssistantAgent(BaseChatAgent):
         try:
             if not self._tools + self._handoff_tools:
                 raise ValueError("No tools are available.")
-            tool = next((t for t in self._tools +
-                        self._handoff_tools if t.name == tool_call.name), None)
+            tool = next((t for t in self._tools + self._handoff_tools if t.name == tool_call.name), None)
             if tool is None:
-                raise ValueError(
-                    f"The tool '{tool_call.name}' is not available.")
+                raise ValueError(f"The tool '{tool_call.name}' is not available.")
             arguments = json.loads(tool_call.arguments)
             result = await tool.run_json(arguments, cancellation_token)
             result_as_str = tool.return_value_as_string(result)

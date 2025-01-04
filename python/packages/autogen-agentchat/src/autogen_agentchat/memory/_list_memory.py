@@ -1,17 +1,16 @@
-from difflib import SequenceMatcher
 import logging
+from difflib import SequenceMatcher
 from typing import Any, List
 
 from autogen_core import CancellationToken, Image
-from pydantic import Field
-
-from ._base_memory import BaseMemoryConfig, MemoryContent, Memory, MemoryMimeType
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import (
     SystemMessage,
 )
+from pydantic import Field
 
 from .. import EVENT_LOGGER_NAME
+from ._base_memory import BaseMemoryConfig, Memory, MemoryContent, MemoryMimeType
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
@@ -34,19 +33,10 @@ class ListMemory(Memory):
     Example:
         ```python
         # Initialize memory with custom config
-        memory = ListMemory(
-            name="chat_history",
-            config=ListMemoryConfig(
-                similarity_threshold=0.7,
-                k=3
-            )
-        )
+        memory = ListMemory(name="chat_history", config=ListMemoryConfig(similarity_threshold=0.7, k=3))
 
         # Add memory content
-        content = MemoryContent(
-            content="User prefers formal language",
-            mime_type=MemoryMimeType.TEXT
-        )
+        content = MemoryContent(content="User prefers formal language", mime_type=MemoryMimeType.TEXT)
         await memory.add(content)
 
         # Transform a model context with memory
@@ -106,10 +96,8 @@ class ListMemory(Memory):
 
         # Extract query from last message
         last_message = messages[-1]
-        query_text = last_message.content if isinstance(
-            last_message.content, str) else str(last_message)
-        query = MemoryContent(content=query_text,
-                              mime_type=MemoryMimeType.TEXT)
+        query_text = last_message.content if isinstance(last_message.content, str) else str(last_message)
+        query = MemoryContent(content=query_text, mime_type=MemoryMimeType.TEXT)
 
         # Query memory and format results
         results: List[str] = []
@@ -117,15 +105,14 @@ class ListMemory(Memory):
         for i, result in enumerate(query_results, 1):
             if isinstance(result.content, str):
                 results.append(f"{i}. {result.content}")
-                event_logger.debug(
-                    f"Retrieved memory {i}. {result.content}, score: {result.score}"
-                )
+                event_logger.debug(f"Retrieved memory {i}. {result.content}, score: {result.score}")
 
         # Add memory results to context
         if results:
             memory_context = (
-                "\n The following results were retrieved from memory for this task. You may choose to use them or not. :\n" +
-                "\n".join(results) + "\n"
+                "\n The following results were retrieved from memory for this task. You may choose to use them or not. :\n"
+                + "\n".join(results)
+                + "\n"
             )
             await model_context.add_message(SystemMessage(content=memory_context))
 
@@ -159,10 +146,7 @@ class ListMemory(Memory):
         Example:
             ```python
             # Query memories similar to some text
-            query = MemoryContent(
-                content="What's the weather?", 
-                mime_type=MemoryMimeType.TEXT
-            )
+            query = MemoryContent(content="What's the weather?", mime_type=MemoryMimeType.TEXT)
             results = await memory.query(query)
 
             # Check similarity scores
@@ -172,8 +156,8 @@ class ListMemory(Memory):
         """
         try:
             query_text = self._extract_text(query)
-        except ValueError:
-            raise ValueError("Query must contain text content")
+        except ValueError as e:
+            raise ValueError("Query must contain text content") from e
 
         results: List[MemoryContent] = []
 
@@ -207,7 +191,7 @@ class ListMemory(Memory):
 
         Note:
             Uses difflib's SequenceMatcher for basic text similarity.
-            For production use cases, consider using more sophisticated 
+            For production use cases, consider using more sophisticated
             similarity metrics or embeddings.
         """
         return SequenceMatcher(None, text1.lower(), text2.lower()).ratio()
@@ -242,14 +226,9 @@ class ListMemory(Memory):
         elif isinstance(content, Image):
             raise ValueError("Image content cannot be converted to text")
         else:
-            raise ValueError(
-                f"Unsupported content type: {content_item.mime_type}")
+            raise ValueError(f"Unsupported content type: {content_item.mime_type}")
 
-    async def add(
-        self,
-        content: MemoryContent,
-        cancellation_token: CancellationToken | None = None
-    ) -> None:
+    async def add(self, content: MemoryContent, cancellation_token: CancellationToken | None = None) -> None:
         """Add new content to memory.
 
         Args:
@@ -262,3 +241,11 @@ class ListMemory(Memory):
             deduplication or content-based filtering.
         """
         self._contents.append(content)
+
+    async def clear(self) -> None:
+        """Clear all memory content."""
+        self._contents = []
+
+    async def cleanup(self) -> None:
+        """Cleanup resources if needed."""
+        pass

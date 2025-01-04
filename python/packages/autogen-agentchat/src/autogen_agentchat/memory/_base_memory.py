@@ -3,8 +3,8 @@ from enum import Enum
 from typing import Any, Dict, List, Protocol, Union, runtime_checkable
 
 from autogen_core import CancellationToken, Image
-from pydantic import BaseModel, ConfigDict, Field
 from autogen_core.model_context import ChatCompletionContext
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class MemoryMimeType(Enum):
@@ -22,7 +22,7 @@ ContentType = Union[str, bytes, Dict[str, Any], Image]
 
 class MemoryContent(BaseModel):
     content: ContentType
-    mime_type: MemoryMimeType
+    mime_type: MemoryMimeType | str
     metadata: Dict[str, Any] | None = None
     timestamp: datetime | None = None
     source: str | None = None
@@ -35,8 +35,7 @@ class BaseMemoryConfig(BaseModel):
     """Base configuration for memory implementations."""
 
     k: int = Field(default=5, description="Number of results to return")
-    score_threshold: float | None = Field(
-        default=None, description="Minimum relevance score")
+    score_threshold: float | None = Field(default=None, description="Minimum relevance score")
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
