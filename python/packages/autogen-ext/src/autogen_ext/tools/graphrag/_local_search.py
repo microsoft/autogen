@@ -47,7 +47,7 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
 
         .. code-block:: bash
 
-            pip install "autogen-agentchat==0.4.0.dev12" "autogen-ext[graphrag]==0.4.0.dev12"
+            pip install "autogen-agentchat==0.4.0.dev13" "autogen-ext[graphrag]==0.4.0.dev13"
 
         Before using this tool, you must complete the GraphRAG setup and indexing process:
 
