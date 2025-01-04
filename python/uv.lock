@@ -2,6 +2,7 @@ version = 1
 requires-python = ">=3.10, <3.13"
 resolution-markers = [
     "python_full_version < '3.11' and sys_platform == 'darwin'",
+    "python_version < '0'",
     "python_full_version < '3.11' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "(python_full_version < '3.11' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version < '3.11' and sys_platform != 'darwin' and sys_platform != 'linux')",
     "python_full_version == '3.11.*' and sys_platform == 'darwin'",
@@ -11,7 +12,6 @@ resolution-markers = [
     "python_full_version >= '3.12' and python_full_version < '3.12.4' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "(python_full_version >= '3.12' and python_full_version < '3.12.4' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.12' and python_full_version < '3.12.4' and sys_platform != 'darwin' and sys_platform != 'linux')",
     "python_full_version >= '3.12.4' and sys_platform == 'darwin'",
-    "python_version < '0'",
     "python_full_version >= '3.12.4' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "(python_full_version >= '3.12.4' and platform_machine != 'aarch64' and sys_platform == 'linux') or (python_full_version >= '3.12.4' and sys_platform != 'darwin' and sys_platform != 'linux')",
 ]

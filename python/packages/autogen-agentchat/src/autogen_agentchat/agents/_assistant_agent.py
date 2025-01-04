@@ -32,6 +32,7 @@ from typing_extensions import deprecated
 from .. import EVENT_LOGGER_NAME
 from ..base import Handoff as HandoffBase
 from ..base import Response
+from ..memory._base_memory import Memory
 from ..messages import (
     AgentEvent,
     ChatMessage,
@@ -253,9 +254,22 @@ class AssistantAgent(BaseChatAgent):
         ) = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
         reflect_on_tool_use: bool = False,
         tool_call_summary_format: str = "{result}",
+        memory: List[Memory] | None = None,
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client
+        self._memory = None
+        if memory is not None:
+            if isinstance(memory, Memory):
+                self._memory = [memory]
+            elif isinstance(memory, list):
+                self._memory = memory
+            else:
+                raise TypeError(f"Expected Memory, List[Memory], or None, got {type(memory)}")
+
+        self._system_messages: List[
+            SystemMessage | UserMessage | AssistantMessage | FunctionExecutionResultMessage
+        ] = []
         if system_message is None:
             self._system_messages = []
         else:
@@ -337,6 +351,12 @@ class AssistantAgent(BaseChatAgent):
 
         # Inner messages.
         inner_messages: List[AgentEvent | ChatMessage] = []
+
+        # Update the model context with memory content.
+        if self._memory:
+            for memory in self._memory:
+                await memory.transform(self._model_context)
+                # tbd .. add memory_results content to inner_messages
 
         # Generate an inference result based on the current model context.
         llm_messages = self._system_messages + await self._model_context.get_messages()

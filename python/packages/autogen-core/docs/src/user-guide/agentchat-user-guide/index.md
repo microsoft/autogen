@@ -81,6 +81,7 @@ tutorial/swarm
 tutorial/termination
 tutorial/custom-agents
 tutorial/state
+tutorial/memory
 ```
 
 ```{toctree}

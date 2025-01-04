@@ -7,6 +7,7 @@ import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base import Handoff, TaskResult
+from autogen_agentchat.memory import ListMemory, MemoryContent, MemoryMimeType
 from autogen_agentchat.messages import (
     ChatMessage,
     HandoffMessage,
@@ -508,4 +509,44 @@ async def test_model_context(monkeypatch: pytest.MonkeyPatch) -> None:
 
     # Check if the mock client is called with only the last two messages.
     assert len(mock.calls) == 1
-    assert len(mock.calls[0]) == 3  # 2 message from the context + 1 system message
+    # 2 message from the context + 1 system message
+    assert len(mock.calls[0]) == 3
+
+
+@pytest.mark.asyncio
+async def test_run_with_memory(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = "gpt-4o-2024-05-13"
+    chat_completions = [
+        ChatCompletion(
+            id="id1",
+            choices=[
+                Choice(
+                    finish_reason="stop",
+                    index=0,
+                    message=ChatCompletionMessage(content="Hello", role="assistant"),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
+        ),
+    ]
+    mock = _MockChatCompletion(chat_completions)
+    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
+
+    memory = ListMemory()
+    await memory.add(MemoryContent(content="meal recipe must be vegan", mime_type=MemoryMimeType.TEXT))
+
+    agent = AssistantAgent(
+        "test_agent", model_client=OpenAIChatCompletionClient(model=model, api_key=""), memory=[memory]
+    )
+
+    await agent.run(task="meal recipe")
+
+    messages = await agent._model_context.get_messages()
+
+    assert len(messages) >= 3  # Minimum expected messages
+
+    memory_message = next((msg for msg in messages if "retrieved from memory" in msg.content), None)
+    assert memory_message is not None
