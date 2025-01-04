@@ -31,6 +31,12 @@ How to install AgentChat
 Build your first agent
 :::
 
+:::{grid-item-card} {fas}`book;pst-color-primary` Magentic-One
+:link: ./magentic-one.html
+
+Get started with Magentic-One
+:::
+
 :::{grid-item-card} {fas}`graduation-cap;pst-color-primary` Tutorial
 :link: ./tutorial/models.html
 
@@ -56,6 +62,7 @@ How to migrate from AutoGen 0.2.x to 0.4.x.
 
 installation
 quickstart
+magentic-one
 migration-guide
 ```
 
