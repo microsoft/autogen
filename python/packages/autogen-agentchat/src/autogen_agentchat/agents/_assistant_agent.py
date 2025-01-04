@@ -37,6 +37,7 @@ from ..messages import (
     AgentEvent,
     ChatMessage,
     HandoffMessage,
+    MemoryQueryEvent,
     MultiModalMessage,
     TextMessage,
     ToolCallExecutionEvent,
@@ -355,8 +356,11 @@ class AssistantAgent(BaseChatAgent):
         # Update the model context with memory content.
         if self._memory:
             for memory in self._memory:
-                await memory.transform(self._model_context)
-                # tbd .. add memory_results content to inner_messages
+                memory_query_result = await memory.transform(self._model_context)
+                if memory_query_result and len(memory_query_result) > 0:
+                    memory_query_event_msg = MemoryQueryEvent(content=memory_query_result, source=self.name)
+                    inner_messages.append(memory_query_event_msg)
+                    yield memory_query_event_msg
 
         # Generate an inference result based on the current model context.
         llm_messages = self._system_messages + await self._model_context.get_messages()

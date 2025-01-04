@@ -11,6 +11,7 @@ from autogen_agentchat.memory import ListMemory, MemoryContent, MemoryMimeType
 from autogen_agentchat.messages import (
     ChatMessage,
     HandoffMessage,
+    MemoryQueryEvent,
     MultiModalMessage,
     TextMessage,
     ToolCallExecutionEvent,
@@ -542,11 +543,17 @@ async def test_run_with_memory(monkeypatch: pytest.MonkeyPatch) -> None:
         "test_agent", model_client=OpenAIChatCompletionClient(model=model, api_key=""), memory=[memory]
     )
 
-    await agent.run(task="meal recipe")
+    result = await agent.run(task="meal recipe")
 
-    messages = await agent._model_context.get_messages()
+    assert len(result.messages) >= 3  # Minimum expected messages
 
-    assert len(messages) >= 3  # Minimum expected messages
-
-    memory_message = next((msg for msg in messages if "retrieved from memory" in msg.content), None)
+    memory_message = next(
+        (
+            msg
+            for msg in result.messages
+            if isinstance(msg, MemoryQueryEvent)
+            and any(isinstance(mem.content, str) and "meal recipe must be vegan" in mem.content for mem in msg.content)
+        ),
+        None,
+    )
     assert memory_message is not None
