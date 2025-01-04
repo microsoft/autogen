@@ -26,7 +26,7 @@ class MemoryContent(BaseModel):
     metadata: Dict[str, Any] | None = None
     timestamp: datetime | None = None
     source: str | None = None
-    score: float = 0.0
+    score: float | None = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 

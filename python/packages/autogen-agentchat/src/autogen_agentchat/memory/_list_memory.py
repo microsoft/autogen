@@ -176,7 +176,7 @@ class ListMemory(Memory):
                 result_content.score = score
                 results.append(result_content)
 
-        results.sort(key=lambda x: x.score, reverse=True)
+        results.sort(key=lambda x: x.score if x.score is not None else float("-inf"), reverse=True)
         return results[: self._config.k]
 
     def _calculate_similarity(self, text1: str, text2: str) -> float:
