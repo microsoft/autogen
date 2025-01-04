@@ -53,7 +53,7 @@ grpc = [
 ]
 jupyter-executor = [
     "ipykernel>=6.29.5",
-    "jupyter-kernel-gateway>=3.0.1",
+    "nbclient>=0.10.2",
 ]
 
 [tool.hatch.build.targets.wheel]
