@@ -1,7 +1,8 @@
 import os
 import shutil
 import time
-from typing import List
+import json
+from typing import List, Dict
 
 from autogen_core import Image
 from autogen_core.models import (
@@ -228,6 +229,10 @@ class PageLog:
                     item.image.save(image_path)
                     # Add a link to the image.
                     content_list.append(page.link_to_image(image_filename, "message_image"))
+                elif isinstance(item, Dict):
+                    # Add a dictionary to the log.
+                    json_str = json.dumps(item, indent=4)
+                    content_list.append(json_str)
                 else:
                     content_list.append(str(item).rstrip())
         else:

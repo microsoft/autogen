@@ -1,5 +1,4 @@
 import time
-import random
 from typing import List
 
 from autogen_core.models import (
@@ -24,10 +23,6 @@ class Prompter:
         self.num_model_calls = 0
         self.start_time = time.time()
 
-        # Instantiate a random number generator, seeded from the current time.
-        random.seed(int(time.time() * 1000))
-        self.rand = random.Random()
-
         # Create the chat history
         self._chat_history: List[LLMMessage] = []
 
@@ -37,8 +32,6 @@ class Prompter:
 
         if system_message_content is None:
             system_message_content = self.default_system_message_content
-        random_str = "({})\n\n".format(self.rand.randint(0, 1000000))  # Inject a random int for variability.
-        system_message_content = random_str + system_message_content
         system_message = SystemMessage(content=system_message_content)
 
         input_messages = [system_message] + self._chat_history + [user_message]
@@ -54,8 +47,9 @@ class Prompter:
         # Call the model
         start_time = time.time()
 
-        # create_result, num_input_tokens = self.core.call_model(input_messages)
-        num_input_tokens = self.client.count_tokens(input_messages)
+        # Optional code to pre-count tokens.
+        # num_input_tokens = self.client.count_tokens(input_messages)
+        num_input_tokens = 0
         max_input_tokens_per_call = None  # This is a placeholder value.
         if (max_input_tokens_per_call is not None) and (num_input_tokens > max_input_tokens_per_call):
             # The input is too large.

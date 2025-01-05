@@ -55,27 +55,32 @@ class Grader:
     def clear_history(self):
         self._chat_history = []
 
-    async def response_is_correct(self, task_description, response_to_be_graded, correct_answer):
+    async def is_response_correct(self, task_description, response_to_be_graded, correct_answer):
         # Returns only the insights that the client verifies are relevant to the task.
+        page = self.page_log.begin_page(
+            summary="Grader.is_response_correct",
+            details="",
+            method_call="Grader.is_response_correct")
 
         sys_message = """You are a helpful and thoughtful assistant."""
 
         user_message = ["""Your job is to extract a possible answer to the following question from the given text.
 - First review the following task.
-- Then review the response that follows, which may contain reasoning that led to the answer, as well as other comments.
+- Then review the text that follows, which may an answer, plus reasoning that led to the answer.
 - Do not attempt to actually solve the task yourself.
 - Don't try to judge whether the reasoning steps were correct.
-- Simply respond by providing a copy of the answer from the text, omitting any other parts of the text.
-- If no answer is present in the text, simply reply "None"."""]
+- Simply respond by summarizing the answer described in the text, omitting any other parts of the text.
+- If no answer is present can be extracted from the text, simply reply "None"."""]
         user_message.append("\n# Task description")
         user_message.append(task_description)
         user_message.append("\n# Text that may contain an answer")
         user_message.append(response_to_be_graded)
         self.clear_history()
-        extracted_answer, page = await self.call_model(
+        extracted_answer, _ = await self.call_model(
             system_message=sys_message,
             user_content=user_message,
             details="to extract the answer")
+        page.add_lines("Extracted answer: " + extracted_answer)
 
         user_message = ["""Your job is to decide whether a given answer to a task is correct or not.
 - You will be given the task description and the correct, gold-standard answer, along with the answer to be graded.
@@ -92,9 +97,11 @@ class Grader:
         user_message.append("\n# Answer to be graded")
         user_message.append(extracted_answer)
         self.clear_history()
-        decision, page = await self.call_model(
+        decision, _ = await self.call_model(
             system_message=sys_message,
             user_content=user_message,
             details="to check the answer for correctness")
+        page.add_lines("Decision: " + decision)
 
+        self.page_log.finish_page(page)
         return decision == "1", extracted_answer

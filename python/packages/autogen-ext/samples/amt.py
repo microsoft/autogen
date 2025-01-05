@@ -1,5 +1,3 @@
-import time
-import random
 import asyncio
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
@@ -16,12 +14,12 @@ from autogen_core.models import (
 from typing import (
     Tuple,
 )
-from autogen_ext.agentic_memory import AgenticMemory, PageLog, Grader, RecordableChatCompletionClient
+from autogen_ext.agentic_memory import AgenticMemory, PageLog, Grader, ClientWrapper
 
 
 MEMORY_DIR = "~/agentic_memory_archive"
 PAGELOG_DIR = "~/pagelogs/"
-RUN_SUBDIR = "run_33"
+RUN_SUBDIR = "run_44"
 
 # Default client parameters
 TEMPERATURE = 0.8
@@ -68,6 +66,16 @@ In the afternoon, you go from house to house, speaking with all 100 residents of
     tasks_with_answers.append({
         "task": "You are a telecommunications engineer who wants to build cell phone towers on a stretch of road. Houses are located at mile markers 16, 17, 19, 11, 9, 10, 2, 5, 4. Each cell phone tower can cover houses located next to the road within a 4-mile radius. Find the minimum number of cell phone towers needed to cover all houses next to the road. Your answer should be a positive numerical integer value.",
         "expected_answer": "2"})
+
+    # Task index 6
+    tasks_with_answers.append({
+        "task": "What is 4^4?",
+        "expected_answer": "256"})
+
+    # Task index 7
+    tasks_with_answers.append({
+        "task": "What is 3^3?",
+        "expected_answer": "27"})
 
     return tasks_with_answers
 
@@ -223,12 +231,6 @@ In responding to every user message, you follow the same multi-step process give
 5. Decide on the best response, looping back to step 1 if none of the responses are satisfactory.
 6. Finish by providing your final response in the particular format requested by the user."""
 
-    # Randomize the system message content to add variability.
-    random.seed(int(time.time() * 1000))
-    rand = random.Random()
-    random_str = "({})\n\n".format(rand.randint(0, 1000000))  # Inject a random int for variability.
-    system_message_content = random_str + system_message_content
-
     system_message = SystemMessage(content=system_message_content)
     user_message = UserMessage(content=task, source="User")
 
@@ -295,7 +297,7 @@ async def test(task_with_answer, num_trials, task_assignment_callback, use_memor
             page.add_lines("Try to solve the task.\n", flush=True)
             response, _ = await task_assignment_callback(task_with_answer["task"], client, page_log)
 
-            response_is_correct, extracted_answer = await grader.response_is_correct(
+            response_is_correct, extracted_answer = await grader.is_response_correct(
                 task_with_answer["task"], response, task_with_answer["expected_answer"])
             page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
             if response_is_correct:
@@ -471,12 +473,11 @@ async def test_teachability(task_assignment_callback, client, page_log):
     grader = Grader(client, page_log)
 
     # First test without memory.
-    page.add_lines("Clearing memory, then asking the question.")
-    # task = "As a contribution to autogen, can I create a new autogen package for a copilot extension agent that I built on autogen?"
+    page.add_lines("\nClear memory, then ask the question.")
     response = await send_message_to_agent(task, task_assignment_callback, client, page_log, reset_memory=True)
 
     # Check the response.
-    response_is_correct, extracted_answer = await grader.response_is_correct(task, response, answer)
+    response_is_correct, extracted_answer = await grader.is_response_correct(task, response, answer)
     page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
     if response_is_correct:
         page.add_lines("Answer is CORRECT.\n", flush=True)
@@ -484,16 +485,16 @@ async def test_teachability(task_assignment_callback, client, page_log):
         page.add_lines("Answer is INCORRECT.\n", flush=True)
 
     # Give the advice.
-    page.add_lines("Giving the advice.")
+    page.add_lines("Give the advice.")
     insight = "When somebody builds something on autogen and wants to contribute it to autogen, instead of creating a new autogen package, it's better for them to implement it in a separate github repo, then just add the autogen-extension topic to that repo. That way their contribution will be automatically discoverable through autogen's page on community extensions:  https://microsoft.github.io/autogen/dev/user-guide/extensions-user-guide/index.html"
     await send_message_to_agent(insight, task_assignment_callback, client, page_log, reset_memory=False)
 
     # Now ask the question again to see if the advice is retrieved from memory.
-    page.add_lines("Asking the question again to see if the advice is retrieved from memory.")
+    page.add_lines("\nAsk the question again to see if the advice is retrieved from memory.")
     response = await send_message_to_agent(task, task_assignment_callback, client, page_log, reset_memory=False)
 
     # Check the response.
-    response_is_correct, extracted_answer = await grader.response_is_correct(task, response, answer)
+    response_is_correct, extracted_answer = await grader.is_response_correct(task, response, answer)
     page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
     if response_is_correct:
         page.add_lines("Answer is CORRECT.\n", flush=True)
@@ -576,27 +577,6 @@ async def call_client(task, client, page_log):
     return response_str
 
 
-async def test_recordable_client(client, page_log):
-    page = page_log.begin_page(
-        summary="test_recordable_client",
-        details='',
-        method_call="test_recordable_client")
-
-    # Define a simple task.
-    task = "What is 4^4?"
-
-    # Use a client wrapper to record a session.
-    client1 = RecordableChatCompletionClient(client, "record", page_log)
-    await call_client(task, client1, page_log)
-    client1.save()
-
-    # Use a second client wrapper to check and replay the session.
-    client2 = RecordableChatCompletionClient(client, "check-replay", page_log)
-    await call_client(task, client2, page_log)
-
-    page_log.finish_page(page)
-
-
 async def main() -> None:
     # Create the PageLog.
     page_log = PageLog(PAGELOG_DIR, RUN_SUBDIR)
@@ -617,7 +597,26 @@ async def main() -> None:
     # await test_self_teaching(task_assignment_callback, client, page_log)
     # await test_teachability(task_assignment_callback, client, page_log)
     # await test_learning_from_demonstration(task_assignment_callback, client, page_log)
-    await test_recordable_client(client, page_log)
+
+
+    # WRAPPED-CLIENT TESTS
+
+    # Wrap the client in a ClientWrapper to record or check-replay a session.
+    session_name = "teach-1"
+
+    # Record
+    # client = ClientWrapper(client, "record", session_name, page_log)
+    # # await test_teachability(task_assignment_callback, client, page_log)
+    # # await test_learning_from_demonstration(task_assignment_callback, client, page_log)
+    # # await test_self_teaching(task_assignment_callback, client, page_log)
+    # client.save()
+
+    # Check-replay
+    client = ClientWrapper(client, "check-replay", session_name, page_log)
+    await test_teachability(task_assignment_callback, client, page_log)
+    # await test_learning_from_demonstration(task_assignment_callback, client, page_log)
+    # await test_self_teaching(task_assignment_callback, client, page_log)
+
 
     page_log.flush(final=True)  # Finalize the page log
     page_log.finish_page(page)

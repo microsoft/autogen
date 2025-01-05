@@ -70,7 +70,7 @@ class AgenticMemory:
             page.add_lines("Try to solve the task.\n", flush=True)
             response, _ = await task_assignment_callback(task_plus_insights, self.client, self.page_log)
 
-            response_is_correct, extracted_answer = await self.grader.response_is_correct(
+            response_is_correct, extracted_answer = await self.grader.is_response_correct(
                 task, response, expected_answer)
             page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
             if response_is_correct:
@@ -209,7 +209,7 @@ class AgenticMemory:
             page.add_lines("Try to solve the task.", flush=True)
             response, work_history = await assign_task_to_completer(task_plus_insights, self.client, self.page_log)
 
-            response_is_correct, extracted_answer = await self.grader.response_is_correct(
+            response_is_correct, extracted_answer = await self.grader.is_response_correct(
                 task, response, expected_answer)
             page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
             if response_is_correct:
