@@ -16,6 +16,9 @@ class Grader:
         self.client = client
         self.page_log = page_log
 
+        # Check whether to report results to the client.
+        self.report_results = hasattr(self.client, 'report_result')
+
         # Create the chat history
         self._chat_history: List[LLMMessage] = []
 
@@ -104,4 +107,6 @@ class Grader:
         page.add_lines("Decision: " + decision)
 
         self.page_log.finish_page(page)
+        if self.report_results:
+            self.client.report_result(decision)
         return decision == "1", extracted_answer

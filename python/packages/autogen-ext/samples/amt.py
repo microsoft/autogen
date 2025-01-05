@@ -19,7 +19,7 @@ from autogen_ext.agentic_memory import AgenticMemory, PageLog, Grader, ClientWra
 
 MEMORY_DIR = "~/agentic_memory_archive"
 PAGELOG_DIR = "~/pagelogs/"
-RUN_SUBDIR = "run_44"
+RUN_SUBDIR = "replay-short-teach"
 
 # Default client parameters
 TEMPERATURE = 0.8
@@ -602,20 +602,21 @@ async def main() -> None:
     # WRAPPED-CLIENT TESTS
 
     # Wrap the client in a ClientWrapper to record or check-replay a session.
-    session_name = "teach-1"
+    session_name = "short-teach"
 
     # Record
     # client = ClientWrapper(client, "record", session_name, page_log)
-    # # await test_teachability(task_assignment_callback, client, page_log)
+    # await test_teachability(task_assignment_callback, client, page_log)
     # # await test_learning_from_demonstration(task_assignment_callback, client, page_log)
     # # await test_self_teaching(task_assignment_callback, client, page_log)
-    # client.save()
+    # client.finalize()
 
     # Check-replay
-    client = ClientWrapper(client, "check-replay", session_name, page_log)
-    await test_teachability(task_assignment_callback, client, page_log)
-    # await test_learning_from_demonstration(task_assignment_callback, client, page_log)
-    # await test_self_teaching(task_assignment_callback, client, page_log)
+    # client = ClientWrapper(client, "check-replay", session_name, page_log)
+    # await test_teachability(task_assignment_callback, client, page_log)
+    # # await test_learning_from_demonstration(task_assignment_callback, client, page_log)
+    # # await test_self_teaching(task_assignment_callback, client, page_log)
+    # client.finalize()
 
 
     page_log.flush(final=True)  # Finalize the page log
