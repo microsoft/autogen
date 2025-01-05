@@ -89,7 +89,7 @@ gen-proto = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/src
 
 gen-proto-samples = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/samples/protos --grpc_python_out=./packages/autogen-core/samples/protos --mypy_out=./packages/autogen-core/samples/protos --mypy_grpc_out=./packages/autogen-core/samples/protos --proto_path ../protos/ agent_events.proto"
 
-markdown-code-lint = "python check_md_code_blocks.py ../README.md ./packages/autogen-core/docs/src/user-guide/agentchat-user-guide/*.md"
+markdown-code-lint = "python check_md_code_blocks.py ../README.md ./packages/autogen-core/docs/src/user-guide/agentchat-user-guide/*.md ./packages/autogen-core/docs/src/index.md"
 
 [[tool.poe.tasks.gen-test-proto.sequence]]
 cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/tests/protos --grpc_python_out=./packages/autogen-core/tests/protos --mypy_out=./packages/autogen-core/tests/protos --mypy_grpc_out=./packages/autogen-core/tests/protos --proto_path ./packages/autogen-core/tests/protos serialization_test.proto"
