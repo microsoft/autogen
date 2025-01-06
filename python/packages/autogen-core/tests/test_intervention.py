@@ -1,5 +1,10 @@
+from typing import Any
+
 import pytest
 from autogen_core import AgentId, DefaultInterventionHandler, DropMessage, MessageContext, SingleThreadedAgentRuntime
+from autogen_core._default_subscription import DefaultSubscription
+from autogen_core._default_topic import DefaultTopicId
+from autogen_core._type_subscription import TypeSubscription
 from autogen_core.exceptions import MessageDroppedException
 from autogen_test_utils import LoopbackAgent, MessageType
 
@@ -8,12 +13,20 @@ from autogen_test_utils import LoopbackAgent, MessageType
 async def test_intervention_count_messages() -> None:
     class DebugInterventionHandler(DefaultInterventionHandler):
         def __init__(self) -> None:
-            self.num_messages = 0
+            self._num_send_messages = 0
+            self._num_publish_messages = 0
+            self._num_response_messages = 0
 
-        async def on_send(
-            self, message: MessageType, *, message_context: MessageContext, recipient: AgentId
-        ) -> MessageType:
-            self.num_messages += 1
+        async def on_send(self, message: Any, *, message_context: MessageContext, recipient: AgentId) -> Any:
+            self._num_send_messages += 1
+            return message
+
+        async def on_publish(self, message: Any, *, message_context: MessageContext) -> Any:
+            self._num_publish_messages += 1
+            return message
+
+        async def on_response(self, message: Any, *, sender: AgentId, recipient: AgentId | None) -> Any:
+            self._num_response_messages += 1
             return message
 
     handler = DebugInterventionHandler()
@@ -24,11 +37,21 @@ async def test_intervention_count_messages() -> None:
 
     _response = await runtime.send_message(MessageType(), recipient=loopback)
 
-    await runtime.stop()
+    await runtime.stop_when_idle()
 
-    assert handler.num_messages == 1
+    assert handler._num_send_messages == 1
+    assert handler._num_response_messages == 1
     loopback_agent = await runtime.try_get_underlying_agent_instance(loopback, type=LoopbackAgent)
     assert loopback_agent.num_calls == 1
+
+    runtime.start()
+    await runtime.add_subscription(DefaultSubscription(agent_type="name"))
+
+    _response = await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
+
+    await runtime.stop_when_idle()
+    assert loopback_agent.num_calls == 2
+    assert handler._num_publish_messages == 1
 
 
 @pytest.mark.asyncio
