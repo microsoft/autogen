@@ -12,6 +12,8 @@ from autogen_core.models import FunctionExecutionResult, RequestUsage
 from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import Annotated, deprecated
 
+from autogen_agentchat.memory import MemoryContent
+
 
 class BaseMessage(BaseModel, ABC):
     """Base class for all message types."""
@@ -123,13 +125,22 @@ class ToolCallSummaryMessage(BaseChatMessage):
     type: Literal["ToolCallSummaryMessage"] = "ToolCallSummaryMessage"
 
 
+class MemoryQueryEvent(BaseAgentEvent):
+    """An event signaling the results of memory queries."""
+
+    content: List[MemoryContent]
+    """The memory query results."""
+
+    type: Literal["MemoryQueryEvent"] = "MemoryQueryEvent"
+
+
 ChatMessage = Annotated[
     TextMessage | MultiModalMessage | StopMessage | ToolCallSummaryMessage | HandoffMessage, Field(discriminator="type")
 ]
 """Messages for agent-to-agent communication only."""
 
 
-AgentEvent = Annotated[ToolCallRequestEvent | ToolCallExecutionEvent, Field(discriminator="type")]
+AgentEvent = Annotated[ToolCallRequestEvent | ToolCallExecutionEvent | MemoryQueryEvent, Field(discriminator="type")]
 """Events emitted by agents and teams when they work, not used for agent-to-agent communication."""
 
 
@@ -140,7 +151,8 @@ AgentMessage = Annotated[
     | HandoffMessage
     | ToolCallRequestEvent
     | ToolCallExecutionEvent
-    | ToolCallSummaryMessage,
+    | ToolCallSummaryMessage
+    | MemoryQueryEvent,
     Field(discriminator="type"),
 ]
 """(Deprecated, will be removed in 0.4.0) All message and event types."""
@@ -157,6 +169,7 @@ __all__ = [
     "ToolCallMessage",
     "ToolCallResultMessage",
     "ToolCallSummaryMessage",
+    "MemoryQueryEvent",
     "ChatMessage",
     "AgentEvent",
     "AgentMessage",

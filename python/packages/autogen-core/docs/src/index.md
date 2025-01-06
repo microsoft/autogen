@@ -69,6 +69,30 @@ pip install "autogen-agentchat==0.4.0.dev13"
 <a class="sd-sphinx-override sd-btn sd-text-wrap sd-btn-secondary reference internal" href="user-guide/agentchat-user-guide/migration-guide.html"><span class="doc">Migration Guide (0.2.x to 0.4.x)</span></a>
 
 :::
+
+:::{grid-item-card}
+:shadow: none
+:margin: 2 0 0 0
+:columns: 12 12 12 12
+
+<div class="sd-card-title sd-font-weight-bold docutils">
+
+{fas}`book;pst-color-primary`
+Magentic-One </div>
+Magentic-One is a generalist multi-agent system for solving open-ended web and file-based tasks across a variety of domains.
+
++++
+
+
+```{button-ref} user-guide/agentchat-user-guide/magentic-one
+:color: secondary
+
+Get Started
+```
+
+:::
+
+
 :::{grid-item-card} {fas}`palette;pst-color-primary` Studio
 :shadow: none
 :margin: 2 0 0 0
