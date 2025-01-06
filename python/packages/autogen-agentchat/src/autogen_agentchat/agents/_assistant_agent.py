@@ -361,9 +361,12 @@ class AssistantAgent(BaseChatAgent):
                     memory_query_event_msg = MemoryQueryEvent(content=memory_query_result, source=self.name)
                     inner_messages.append(memory_query_event_msg)
                     yield memory_query_event_msg
-
+                    # Format memory content and add to model context
+                memory_content = "\n".join(str(item.content) for item in memory_query_result)
+                await self._model_context.add_message(SystemMessage(content=memory_content))
         # Generate an inference result based on the current model context.
         llm_messages = self._system_messages + await self._model_context.get_messages()
+
         result = await self._model_client.create(
             llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
         )
