@@ -18,6 +18,21 @@ class CodeExecutionResult(BaseModel):
 
 
 class PythonCodeExecutionTool(BaseTool[CodeExecutionInput, CodeExecutionResult]):
+    """A tool that executes Python code in a code executor and returns output.
+
+    Example executors:
+
+    * :class:`autogen_ext.code_executors.local.LocalCommandLineCodeExecutor`
+    * :class:`autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor`
+
+    Example usage:
+
+    .. code-block:: python
+
+
+    Args:
+        executor (CodeExecutor): The code executor that will be used to execute the code blocks.
+    """
     def __init__(self, executor: CodeExecutor):
         super().__init__(CodeExecutionInput, CodeExecutionResult, "CodeExecutor", "Execute Python code blocks.")
         self._executor = executor
