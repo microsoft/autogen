@@ -124,7 +124,7 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-_Migrating from AutoGen 0.2? Read the [guide](./user-guide/agentchat-user-guide/migration-guide.md)._
+_Start here if you are building conversational agents. [Migrating from AutoGen 0.2?](./user-guide/agentchat-user-guide/migration-guide.md)._
 
 +++
 
@@ -146,6 +146,8 @@ An event-driven programming framework for building scalable multi-agent AI syste
 * Deterministic and dynamic agentic workflows for business processes.
 * Research on multi-agent collaboration.
 * Distributed agents for multi-language applications.
+
+_Start here if you are building workflows or distributed agent systems._
 
 +++
 
