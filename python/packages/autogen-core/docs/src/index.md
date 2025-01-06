@@ -35,7 +35,7 @@ sd_hide_title: true
 AutoGen
 </h1>
 <h3>
-A framework for building AI agents and multi-agent applications
+For AI agents and multi-agent applications
 </h3>
 </div>
 </div>
@@ -55,8 +55,8 @@ A framework for building AI agents and multi-agent applications
 
 {fas}`book;pst-color-primary`
 Magentic-One </div>
-A multi-agent team for web and file-based tasks.
-Built on top of AgentChat.
+A multi-agent assistant for web and file-based tasks.
+Built on AgentChat.
 
 ```bash
 % m1 "Find flights from Seattle to Paris and format the result in a table"
@@ -77,8 +77,8 @@ Get Started
 :margin: 2 0 0 0
 :columns: 12 12 6 6
 
-Prototyping, testing and managing multi-agent teams without writing code.
-Built on top of AgentChat.
+An app for prototyping and managing agents without writing code.
+Built on AgentChat.
 
 ```bash
 % autogenstudio ui --port 8080
@@ -105,14 +105,23 @@ Get Started
 [![PyPi autogen-agentchat](https://img.shields.io/badge/PyPi-autogen--agentchat-blue?logo=pypi)](https://pypi.org/project/autogen-agentchat/0.4.0.dev13/)
 
 </div>
-Preset agents and teams for building conversational single and multi-agent applications.
-Built on top of Core.
+A programming framework for building conversational single and multi-agent applications.
+Built on Core.
 
 ```python
-from autogen_agentchat import AssistantAgent
+# pip install "autogen-agentchat==0.4.0.dev13" "autogen-ext[openai]==0.4.0.dev13" "yfinance" "matplotlib"
+import asyncio
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.ui import Console
 from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_ext.tools.code_execution import PythonCodeExecutionTool
 
-agent = AssistantAgent("assistant", OpenAIChatCompletionClient(model="gpt-4o"))
+async def main() -> None:
+    tool = PythonCodeExecutionTool(LocalCommandLineCodeExecutor(work_dir="coding"))
+    agent = AssistantAgent("assistant", OpenAIChatCompletionClient(model="gpt-4o"), tools=[tool], reflect_on_tool_use=True)
+    await Console(agent.run_stream(task="Create a plot of MSFT stock prices in 2024 and save it to a file. Use yfinance and matplotlib."))
+asyncio.run(main())
 ```
 
 _Migrating from AutoGen 0.2? Read the [guide](./user-guide/agentchat-user-guide/migration-guide.md)._
@@ -132,11 +141,10 @@ Get Started
 :margin: 2 0 0 0
 :columns: 12 12 12 12
 
-Foundational building blocks for asynchronous and event driven multi-agent systems. Examples scenarios:
+An event-driven programming framework for building scalable multi-agent AI systems. Examples scenarios:
 
 * Deterministic and dynamic agentic workflows for business processes.
 * Research on multi-agent collaboration.
-* Parallel training data generation for agentic models.
 * Distributed agents for multi-language applications.
 
 +++
