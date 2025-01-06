@@ -35,7 +35,7 @@ sd_hide_title: true
 AutoGen
 </h1>
 <h3>
-A framework for building AI agents and multi-agent applications
+A framework for building AI agents and applications
 </h3>
 </div>
 </div>
