@@ -141,7 +141,7 @@ Get Started
 :margin: 2 0 0 0
 :columns: 12 12 12 12
 
-An event-driven programming framework for building scalable multi-agent AI systems. Examples scenarios:
+An event-driven programming framework for building scalable multi-agent AI systems. Example scenarios:
 
 * Deterministic and dynamic agentic workflows for business processes.
 * Research on multi-agent collaboration.
