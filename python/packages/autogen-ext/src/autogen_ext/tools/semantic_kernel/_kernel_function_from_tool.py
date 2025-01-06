@@ -1,20 +1,28 @@
+from typing import TypeVar
+
+from autogen_core import CancellationToken
+from autogen_core.tools import BaseTool
+from pydantic import BaseModel
+from semantic_kernel.exceptions import FunctionExecutionException
+from semantic_kernel.filters.functions.function_invocation_context import FunctionInvocationContext
+from semantic_kernel.functions.function_result import FunctionResult
 from semantic_kernel.functions.kernel_function import KernelFunction
 from semantic_kernel.functions.kernel_function_metadata import KernelFunctionMetadata
 from semantic_kernel.functions.kernel_parameter_metadata import KernelParameterMetadata
-from semantic_kernel.functions.function_result import FunctionResult
-from semantic_kernel.filters.functions.function_invocation_context import FunctionInvocationContext
-from semantic_kernel.exceptions import FunctionExecutionException
-from autogen_core.tools import BaseTool
+
+InputT = TypeVar("InputT", bound=BaseModel)
+OutputT = TypeVar("OutputT", bound=BaseModel)
+
 
 class KernelFunctionFromTool(KernelFunction):
-    def __init__(self, tool: BaseTool, plugin_name: str | None = None):
-        # Build up KernelFunctionMetadata. You can also parse the tool’s schema for parameters.
+    def __init__(self, tool: BaseTool[InputT, OutputT], plugin_name: str | None = None):
+        # Build up KernelFunctionMetadata. You can also parse the tool's schema for parameters.
         parameters = [
             KernelParameterMetadata(
-                name="args", 
+                name="args",
                 description="JSON arguments for the tool",
                 default_value=None,
-                type_="dict",
+                type="dict",
                 type_object=dict,
                 is_required=True,
             )
@@ -23,7 +31,7 @@ class KernelFunctionFromTool(KernelFunction):
             name="return",
             description="Result from the tool",
             default_value=None,
-            type_="str",
+            type="str",
             type_object=str,
             is_required=False,
         )
@@ -44,10 +52,10 @@ class KernelFunctionFromTool(KernelFunction):
         # Extract the "args" parameter from the context
         if "args" not in context.arguments:
             raise FunctionExecutionException("Missing 'args' in FunctionInvocationContext.arguments")
-        tool_args = context.arguments["args"]
+        tool_args = context.arguments
 
         # Call your tool’s run_json
-        result = await self._tool.run_json(tool_args, cancellation_token=None)
+        result = await self._tool.run_json(tool_args, cancellation_token=CancellationToken())
 
         # Wrap in a FunctionResult
         context.result = FunctionResult(
