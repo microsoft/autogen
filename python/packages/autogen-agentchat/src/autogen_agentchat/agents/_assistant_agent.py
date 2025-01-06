@@ -255,7 +255,7 @@ class AssistantAgent(BaseChatAgent):
         ) = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
         reflect_on_tool_use: bool = False,
         tool_call_summary_format: str = "{result}",
-        memory: List[Memory] | None = None,
+        memory: Sequence[Memory] | None = None,
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client
