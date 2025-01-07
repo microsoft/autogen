@@ -57,15 +57,15 @@ def test_nested_data_model() -> None:
 
     @dataclass
     class NestedBaseModelList2:
-        nested: list[MyBaseModel]
+        nested: List[MyBaseModel]
 
     @dataclass
     class NestedBaseModelList3:
-        nested: list[list[MyBaseModel]]
+        nested: List[List[MyBaseModel]]
 
     @dataclass
     class NestedBaseModelList4:
-        nested: list[list[list[list[list[list[MyBaseModel]]]]]]
+        nested: List[List[List[List[List[List[MyBaseModel]]]]]]
 
     @dataclass
     class NestedBaseModelUnion:
