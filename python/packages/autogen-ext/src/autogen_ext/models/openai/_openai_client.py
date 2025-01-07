@@ -69,8 +69,6 @@ from openai.types.shared_params import FunctionDefinition, FunctionParameters
 from pydantic import BaseModel
 from typing_extensions import Self, Unpack
 
-from autogen_ext.models.openai._azure_token_provider import AzureTokenProvider
-
 from . import _model_info
 from .config import (
     AzureOpenAIClientConfiguration,
@@ -1076,8 +1074,9 @@ class AzureOpenAIChatCompletionClient(
         self._client = _azure_openai_client_from_config(state["_raw_config"])
 
     def _to_config(self) -> AzureOpenAIClientConfigurationConfigModel:
-        copied_config = self._raw_config.copy()
+        from ...auth.azure import AzureTokenProvider
 
+        copied_config = self._raw_config.copy()
         if "azure_ad_token_provider" in copied_config:
             if not isinstance(copied_config["azure_ad_token_provider"], AzureTokenProvider):
                 raise ValueError("azure_ad_token_provider must be a AzureTokenProvider to be component serialized")
@@ -1090,6 +1089,8 @@ class AzureOpenAIChatCompletionClient(
 
     @classmethod
     def _from_config(cls, config: AzureOpenAIClientConfigurationConfigModel) -> Self:
+        from ...auth.azure import AzureTokenProvider
+
         copied_config = config.model_copy().model_dump(exclude_none=True)
         if "azure_ad_token_provider" in copied_config:
             copied_config["azure_ad_token_provider"] = AzureTokenProvider.load_component(

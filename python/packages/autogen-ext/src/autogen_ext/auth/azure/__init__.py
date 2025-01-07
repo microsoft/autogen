@@ -1,10 +1,11 @@
 from typing import List
 
 from autogen_core import Component
-from azure.core.credentials import TokenProvider
-from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from pydantic import BaseModel
 from typing_extensions import Self
+
+from azure.core.credentials import TokenProvider
+from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 
 class TokenProviderConfig(BaseModel):

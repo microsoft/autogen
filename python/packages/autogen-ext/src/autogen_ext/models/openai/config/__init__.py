@@ -5,8 +5,6 @@ from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
 from pydantic import BaseModel
 from typing_extensions import Required, TypedDict
 
-from .._azure_token_provider import AzureTokenProvider
-
 
 class ResponseFormat(TypedDict):
     type: Literal["text", "json_object"]
@@ -51,7 +49,7 @@ class AzureOpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False)
     azure_deployment: str
     api_version: Required[str]
     azure_ad_token: str
-    azure_ad_token_provider: AsyncAzureADTokenProvider | AzureTokenProvider
+    azure_ad_token_provider: AsyncAzureADTokenProvider  # Or AzureTokenProvider
 
 
 __all__ = [
