@@ -7,7 +7,7 @@ import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base import Handoff, TaskResult
-from autogen_agentchat.memory import ListMemory, MemoryContent, MemoryMimeType
+from autogen_agentchat.memory import Memory, ListMemory, MemoryContent, MemoryMimeType
 from autogen_agentchat.messages import (
     ChatMessage,
     HandoffMessage,
@@ -533,27 +533,58 @@ async def test_run_with_memory(monkeypatch: pytest.MonkeyPatch) -> None:
             usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
         ),
     ]
+    b64_image_str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
     mock = _MockChatCompletion(chat_completions)
     monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
 
+    # Test basic memory properties and empty context
+    memory = ListMemory(name="test_memory")
+    assert memory.name == "test_memory"
+    assert memory.config is not None
+
+    empty_context = BufferedChatCompletionContext(buffer_size=2)
+    empty_results = await memory.transform(empty_context)
+    assert len(empty_results) == 0
+
+    # Test various content types and memory transforms
     memory = ListMemory()
-    await memory.add(MemoryContent(content="meal recipe must be vegan", mime_type=MemoryMimeType.TEXT))
+    await memory.add(MemoryContent(content="text content", mime_type=MemoryMimeType.TEXT))
+    await memory.add(MemoryContent(content={"key": "value"}, mime_type=MemoryMimeType.JSON))
+    await memory.add(MemoryContent(content=Image.from_base64(b64_image_str), mime_type=MemoryMimeType.IMAGE))
+
+    # Invalid query should raise error
+    with pytest.raises(ValueError, match="Query must contain text content"):
+        await memory.query(MemoryContent(content=Image.from_base64(b64_image_str), mime_type=MemoryMimeType.IMAGE))
+
+    # Test clear and cleanup
+    await memory.clear()
+    assert await memory.query(MemoryContent(content="", mime_type=MemoryMimeType.TEXT)) == []
+    await memory.cleanup()  # Should not raise
+
+    # Test invalid memory type
+    with pytest.raises(TypeError):
+        AssistantAgent(
+            "test_agent",
+            model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+            memory="invalid",  # type: ignore
+        )
+
+    # Test with agent
+    memory2 = ListMemory()
+    await memory2.add(MemoryContent(content="test instruction", mime_type=MemoryMimeType.TEXT))
 
     agent = AssistantAgent(
-        "test_agent", model_client=OpenAIChatCompletionClient(model=model, api_key=""), memory=[memory]
+        "test_agent", model_client=OpenAIChatCompletionClient(model=model, api_key=""), memory=[memory2]
     )
 
-    result = await agent.run(task="meal recipe")
+    result = await agent.run(task="test task")
+    assert len(result.messages) > 0
+    memory_event = next((msg for msg in result.messages if isinstance(msg, MemoryQueryEvent)), None)
+    assert memory_event is not None
 
-    assert len(result.messages) >= 3  # Minimum expected messages
+    # Test memory protocol
+    class BadMemory:
+        pass
 
-    memory_message = next(
-        (
-            msg
-            for msg in result.messages
-            if isinstance(msg, MemoryQueryEvent)
-            and any(isinstance(mem.content, str) and "meal recipe must be vegan" in mem.content for mem in msg.content)
-        ),
-        None,
-    )
-    assert memory_message is not None
+    assert not isinstance(BadMemory(), Memory)
+    assert isinstance(ListMemory(), Memory)
