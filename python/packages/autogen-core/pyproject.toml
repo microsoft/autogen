@@ -71,6 +71,7 @@ dev = [
     "sphinxcontrib-apidoc",
     "autodoc_pydantic~=2.2",
     "pygments",
+    "sphinxext-rediraffe",
 
     "autogen_ext==0.4.0.dev13",
 
