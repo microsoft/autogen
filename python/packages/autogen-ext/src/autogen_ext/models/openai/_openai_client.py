@@ -207,6 +207,7 @@ def assistant_message_to_oai(
             name=message.source,
         )
 
+
 def prepare_o1_messages(messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
     system_content = ""
     user_messages = []
@@ -226,6 +227,7 @@ def prepare_o1_messages(messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
     user_messages[0].content = f"{system_content.strip()}\n\n{user_messages[0].content.strip()}"
 
     return user_messages
+
 
 def to_oai_type(message: LLMMessage) -> Sequence[ChatCompletionMessageParam]:
     if isinstance(message, SystemMessage):
