@@ -1,6 +1,7 @@
 """This is an example of simulating a chess game with two agents
 that play against each other, using tools to reason about the game state
-and make moves, and using a group chat manager to orchestrate the conversation."""
+and make moves. The agents subscribe to the default topic and publish their
+moves to the default topic."""
 
 import argparse
 import asyncio
