@@ -176,43 +176,6 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
     }
 
     /// <summary>
-    /// GetAppHost - provides an app host used for one test vs the fixture which is shared. 
-    /// </summary>
-    /// <returns>WebApplication</returns>
-    internal static WebApplication GetAppHost()
-    {
-        var builder = WebApplication.CreateBuilder();
-        builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-        builder.AddAgentWorker()
-            .AddAgent<TestAgent>(nameof(TestAgent));
-        Host = builder.Build();
-        Host.StartAsync().Wait();
-        return Host;
-    }
-    /// <summary>
-    /// Start - starts the agent
-    /// </summary>
-    /// <returns>IAgentWorker, TestAgent</returns>
-    internal (WebApplication, IAgentWorker, TestAgent) Start()
-    {
-        var host = GetAppHost();
-        var agent = ActivatorUtilities.CreateInstance<TestAgent>(host.Services);
-        var worker = _serviceProvider.GetRequiredService<IAgentWorker>();
-        Agent.Initialize(worker, agent);
-        return (host, worker, agent);
-    }
-    /// <summary>
-    /// Stop - stops the agent
-    /// </summary>
-    /// <param name="Host">WebApplication</param>
-    /// <returns>void</returns>
-    internal static void Stop(WebApplication Host)
-    {
-        Host.StopAsync().Wait();
-        Host.DisposeAsync().AsTask().Wait();
-    }
-
-    /// <summary>
     /// The test agent is a simple agent that is used for testing purposes.
     /// </summary>
     public class TestAgent(
