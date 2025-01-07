@@ -100,15 +100,6 @@ dev = [
 ]
 
 [[package]]
-name = "aioconsole"
-version = "0.8.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/c7/c9/c57e979eea211b10a63783882a826f257713fa7c0d6c9a6eac851e674fb4/aioconsole-0.8.1.tar.gz", hash = "sha256:0535ce743ba468fb21a1ba43c9563032c779534d4ecd923a46dbd350ad91d234", size = 61085 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/fa/ea/23e756ec1fea0c685149304dda954b3b3932d6d06afbf42a66a2e6dc2184/aioconsole-0.8.1-py3-none-any.whl", hash = "sha256:e1023685cde35dde909fbf00631ffb2ed1c67fe0b7058ebb0892afbde5f213e5", size = 43324 },
-]
-
-[[package]]
 name = "aiofiles"
 version = "24.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -301,15 +292,6 @@ wheels = [
 ]
 
 [[package]]
-name = "asyncio-atexit"
-version = "1.0.1"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/22/d3/dd2974be3f67c7ec96e0d6ab454429d0372cb7c7bffa3d0ac67a483cb801/asyncio-atexit-1.0.1.tar.gz", hash = "sha256:1d0c71544b8ee2c484d322844ee72c0875dde6f250c0ed5b6993592ab9f7d436", size = 4373 }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/65/10/d6abaefa57a52646651fd0383c056280b0853c0106229ece6bb38cd14463/asyncio_atexit-1.0.1-py3-none-any.whl", hash = "sha256:d93d5f7d5633a534abd521ce2896ed0fbe8de170bb1e65ec871d1c20eac9d376", size = 3752 },
-]
-
-[[package]]
 name = "attrs"
 version = "24.2.0"
 source = { registry = "https://pypi.org/simple" }
@@ -347,16 +329,11 @@ name = "autogen-core"
 version = "0.4.0.dev13"
 source = { editable = "packages/autogen-core" }
 dependencies = [
-    { name = "aioconsole" },
-    { name = "aiohttp" },
-    { name = "asyncio-atexit" },
     { name = "jsonref" },
-    { name = "openai" },
     { name = "opentelemetry-api" },
     { name = "pillow" },
     { name = "protobuf" },
     { name = "pydantic" },
-    { name = "tiktoken" },
     { name = "typing-extensions" },
 ]
 
@@ -406,17 +383,12 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aioconsole", specifier = ">=0.8.1" },
-    { name = "aiohttp", specifier = ">=3.10.10" },
-    { name = "asyncio-atexit" },
     { name = "jsonref", specifier = "~=1.1.0" },
-    { name = "openai", specifier = ">=1.3" },
-    { name = "opentelemetry-api", specifier = "~=1.27.0" },
+    { name = "opentelemetry-api", specifier = ">=1.27.0" },
     { name = "pillow", specifier = ">=11.0.0" },
     { name = "protobuf", specifier = "~=4.25.1" },
     { name = "pydantic", specifier = ">=2.10.0,<3.0.0" },
-    { name = "tiktoken", specifier = ">=0.8.0" },
-    { name = "typing-extensions" },
+    { name = "typing-extensions", specifier = ">=4.0.0" },
 ]
 
 [package.metadata.requires-dev]
