@@ -1,15 +1,15 @@
 from typing import Callable, List
 from ._prompter import Prompter
-from ._knowledge_archive import KnowledgeArchive
+from ._agentic_memory_bank import AgenticMemoryBank
 from ._grader import Grader
 
 
-class AgenticMemory:
+class AgenticMemoryController:
     def __init__(self, reset, client, page_log, memory_dir):
         self.client = client
         self.page_log = page_log
         self.prompter = Prompter(client, page_log)
-        self.archive = KnowledgeArchive(verbosity=0, reset=reset, memory_dir=memory_dir, page_log=page_log)
+        self.memory_bank = AgenticMemoryBank(verbosity=0, reset=reset, memory_dir=memory_dir, page_log=page_log)
         self.grader = Grader(client, page_log)
 
     async def train_on_task(self,
@@ -24,9 +24,9 @@ class AgenticMemory:
         Repeatedly assigns a task to the completion agent, and tries to learn from failures by creating useful insights as memories.
         """
         page = self.page_log.begin_page(
-            summary="AgenticMemory.train_on_task",
+            summary="AgenticMemoryController.train_on_task",
             details="",
-            method_call="AgenticMemory.train_on_task")
+            method_call="AgenticMemoryController.train_on_task")
 
         # Attempt to create useful new memories.
         page.add_lines("Iterate on the task, possibly discovering a useful new insight.\n", flush=True)
@@ -46,9 +46,9 @@ class AgenticMemory:
         Assigns a task to the completion agent, along with any relevant insights/memories.
         """
         page = self.page_log.begin_page(
-            summary="AgenticMemory.test_on_task",
+            summary="AgenticMemoryController.test_on_task",
             details="",
-            method_call="AgenticMemory.test_on_task")
+            method_call="AgenticMemoryController.test_on_task")
 
         response = None
         num_successes = 0
@@ -87,9 +87,9 @@ class AgenticMemory:
     async def add_insight_to_memory(self, task: str, insight: str):
         # Adds an insight to the DB.
         page = self.page_log.begin_page(
-            summary="AgenticMemory.add_insight_to_memory",
+            summary="AgenticMemoryController.add_insight_to_memory",
             details="",
-            method_call="AgenticMemory.add_insight_to_memory")
+            method_call="AgenticMemoryController.add_insight_to_memory")
 
         page.add_lines("\nGIVEN TASK:")
         page.add_lines(task)
@@ -107,17 +107,17 @@ class AgenticMemory:
         page.add_lines("\n".join(topics))
         page.add_lines("")
 
-        # Add the insight to the archive.
-        self.archive.add_insight(insight, generalized_task, topics)
+        # Add the insight to the memory bank.
+        self.memory_bank.add_insight(insight, generalized_task, topics)
 
         self.page_log.finish_page(page)
 
     async def add_insight_without_task_to_memory(self, insight: str):
         # Adds an insight to the DB.
         page = self.page_log.begin_page(
-            summary="AgenticMemory.add_insight_without_task_to_memory",
+            summary="AgenticMemoryController.add_insight_without_task_to_memory",
             details="",
-            method_call="AgenticMemory.add_insight_without_task_to_memory")
+            method_call="AgenticMemoryController.add_insight_without_task_to_memory")
 
         page.add_lines("\nGIVEN INSIGHT:")
         page.add_lines(insight)
@@ -128,19 +128,19 @@ class AgenticMemory:
         page.add_lines("\n".join(topics))
         page.add_lines("")
 
-        # Add the insight to the archive.
-        self.archive.add_insight(insight, None, topics)
+        # Add the insight to the memory bank.
+        self.memory_bank.add_insight(insight, None, topics)
 
         self.page_log.finish_page(page)
 
     async def retrieve_relevant_insights(self, task: str):
         # Retrieve insights from the DB that are relevant to the task.
         page = self.page_log.begin_page(
-            summary="AgenticMemory.retrieve_relevant_insights",
+            summary="AgenticMemoryController.retrieve_relevant_insights",
             details="",
-            method_call="AgenticMemory.retrieve_relevant_insights")
+            method_call="AgenticMemoryController.retrieve_relevant_insights")
 
-        if self.archive.contains_insights():
+        if self.memory_bank.contains_insights():
             page.add_lines("\nCURRENT TASK:")
             page.add_lines(task)
 
@@ -153,8 +153,8 @@ class AgenticMemory:
             page.add_lines("\n".join(topics))
             page.add_lines("")
 
-            # Retrieve relevant insights from the archive.
-            relevant_insights_and_relevances = self.archive.get_relevant_insights(topics=topics)
+            # Retrieve relevant insights from the memory bank.
+            relevant_insights_and_relevances = self.memory_bank.get_relevant_insights(topics=topics)
             relevant_insights = []
             page.add_lines("\n{} POTENTIALLY RELEVANT INSIGHTS".format(len(relevant_insights_and_relevances)))
             for insight, relevance in relevant_insights_and_relevances.items():
@@ -191,9 +191,9 @@ class AgenticMemory:
         Attempts to solve the given task multiple times to find a failure case to learn from.
         """
         page = self.page_log.begin_page(
-            summary="AgenticMemory._test_for_failure",
+            summary="AgenticMemoryController._test_for_failure",
             details="",
-            method_call="AgenticMemory._test_for_failure")
+            method_call="AgenticMemoryController._test_for_failure")
 
         page.add_lines("\nTask description, including any insights:  {}".format(task_plus_insights))
         page.add_lines("\nExpected answer:  {}\n".format(expected_answer))
@@ -224,9 +224,9 @@ class AgenticMemory:
     async def _iterate_on_task(self, task: str, expected_answer: str, assign_task_to_completer: Callable,
                               final_format_instructions: str, max_train_trials: int, max_test_trials: int):
         page = self.page_log.begin_page(
-            summary="AgenticMemory._iterate_on_task",
+            summary="AgenticMemoryController._iterate_on_task",
             details="",
-            method_call="AgenticMemory._iterate_on_task")
+            method_call="AgenticMemoryController._iterate_on_task")
 
         page.add_lines("\nTask description:  {}".format(task))
         page.add_lines("\nExpected answer:  {}\n".format(expected_answer))
@@ -292,9 +292,9 @@ class AgenticMemory:
         Assigns a task to the completion agent, along with any relevant insights/memories.
         """
         page = self.page_log.begin_page(
-            summary="AgenticMemory.execute_task",
+            summary="AgenticMemoryController.execute_task",
             details="",
-            method_call="AgenticMemory.execute_task")
+            method_call="AgenticMemoryController.execute_task")
 
         if should_retrieve_insights:
             # Try to retrieve any relevant memories from the DB.
@@ -318,9 +318,9 @@ class AgenticMemory:
 
     async def handle_user_message(self, text, task_assignment_callback, should_await=True):
         page = self.page_log.begin_page(
-            summary="AgenticMemory.handle_user_message",
+            summary="AgenticMemoryController.handle_user_message",
             details="",
-            method_call="AgenticMemory.handle_user_message")
+            method_call="AgenticMemoryController.handle_user_message")
 
         # task = await self.prompter.extract_task(text)
         # page.add_lines("Task:  {}".format(task), flush=True)
@@ -341,9 +341,9 @@ class AgenticMemory:
 
     async def learn_from_demonstration(self, task, demonstration):
         page = self.page_log.begin_page(
-            summary="AgenticMemory.learn_from_demonstration",
+            summary="AgenticMemoryController.learn_from_demonstration",
             details="",
-            method_call="AgenticMemory.learn_from_demonstration")
+            method_call="AgenticMemoryController.learn_from_demonstration")
 
         page.add_lines("\nEXAMPLE TASK:")
         page.add_lines(task)
@@ -357,7 +357,7 @@ class AgenticMemory:
         page.add_lines("\n".join(topics))
         page.add_lines("")
 
-        # Add the insight to the archive.
-        self.archive.add_demonstration(task, demonstration, topics)
+        # Add the insight to the memory bank.
+        self.memory_bank.add_demonstration(task, demonstration, topics)
 
         self.page_log.finish_page(page)

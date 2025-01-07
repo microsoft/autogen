@@ -16,7 +16,7 @@ from autogen_core.models import (
 from typing import (
     Tuple,
 )
-from autogen_ext.agentic_memory import AgenticMemory, PageLog, Grader, ClientWrapper
+from autogen_ext.agentic_memory import AgenticMemoryController, PageLog, Grader, ClientWrapper
 
 
 def define_tasks_with_answers():
@@ -75,7 +75,7 @@ async def train(task_with_answer, max_train_trials, max_test_trials, task_assign
         summary="train",
         details='',
         method_call="train")
-    memory = AgenticMemory(reset=reset_memory, client=client, page_log=page_log,
+    memory = AgenticMemoryController(reset=reset_memory, client=client, page_log=page_log,
                            memory_dir=memory_dir)
     await memory.train_on_task(
         task=task_with_answer["task"],
@@ -98,7 +98,7 @@ async def test(task_with_answer, num_trials, task_assignment_callback, use_memor
 
     if use_memory:
         page.add_lines("Testing with memory.\n", flush=True)
-        memory = AgenticMemory(reset=reset_memory, client=client, page_log=page_log,
+        memory = AgenticMemoryController(reset=reset_memory, client=client, page_log=page_log,
                                memory_dir=memory_dir)
         response, num_successes, num_trials = await memory.test_on_task(
             task=task_with_answer["task"],
@@ -246,7 +246,7 @@ async def send_message_to_agent(text, task_assignment_callback, client, page_log
         details="",
         method_call="send_message_to_agent")
 
-    memory = AgenticMemory(reset=reset_memory, client=client, page_log=page_log,
+    memory = AgenticMemoryController(reset=reset_memory, client=client, page_log=page_log,
                            memory_dir=memory_dir)
     response = await memory.handle_user_message(text, task_assignment_callback)
 
@@ -310,7 +310,7 @@ async def give_demonstration_to_agent(task, demonstration, client, page_log, mem
         details="",
         method_call="give_demonstration_to_agent")
 
-    memory = AgenticMemory(reset=False, client=client, page_log=page_log, memory_dir=memory_dir)
+    memory = AgenticMemoryController(reset=False, client=client, page_log=page_log, memory_dir=memory_dir)
     await memory.learn_from_demonstration(task, demonstration)
 
     page_log.finish_page(page)
@@ -597,7 +597,7 @@ In responding to every user message, you follow the same multi-step process give
             else:
                 assert False, "Invalid base agent"
 
-            # Execute each eval.
+            # Execute each evaluations.
             memory_path = agentic_memory_bank_settings["path"]
             for ev in settings["evaluations"]:
                 eval_function = globals()[ev["name"]]
