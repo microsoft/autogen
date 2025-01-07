@@ -98,7 +98,7 @@ async def make_browser_request(browser: MultimodalWebSurfer, tool: ToolSchema, a
 async def test_web_surfer() -> None:
     runtime = SingleThreadedAgentRuntime()
     # Create an appropriate client
-    config = {"provider": "OpenAIChatCompletionClient", "config": MOCK_CHAT_COMPLETION_KWARGS}
+    config = {"provider": "OpenAIChatCompletionClient", "config": json.loads(MOCK_CHAT_COMPLETION_KWARGS)}
     client = ChatCompletionClient.load_component(config)
 
     # Register agents.
@@ -242,7 +242,7 @@ async def test_web_surfer_oai() -> None:
 async def test_web_surfer_bing() -> None:
     runtime = SingleThreadedAgentRuntime()
     # Create an appropriate client
-    config = {"provider": "OpenAIChatCompletionClient", "config": MOCK_CHAT_COMPLETION_KWARGS}
+    config = {"provider": "OpenAIChatCompletionClient", "config": json.loads(MOCK_CHAT_COMPLETION_KWARGS)}
     client = ChatCompletionClient.load_component(config)
 
     # Register agents.
