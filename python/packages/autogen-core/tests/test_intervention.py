@@ -52,7 +52,7 @@ async def test_intervention_count_messages() -> None:
     runtime.start()
     await runtime.add_subscription(DefaultSubscription(agent_type="name"))
 
-    _response = await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
+    await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
 
     await runtime.stop_when_idle()
     assert loopback_agent.num_calls == 2
