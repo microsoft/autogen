@@ -1086,6 +1086,7 @@ class AzureOpenAIChatCompletionClient(
 
     def _to_config(self) -> AzureOpenAIClientConfigurationConfigModel:
         copied_config = self._raw_config.copy()
+
         if "azure_ad_token_provider" in copied_config:
             if not isinstance(copied_config["azure_ad_token_provider"], AzureTokenProvider):
                 raise ValueError("azure_ad_token_provider must be a AzureTokenProvider to be component serialized")
