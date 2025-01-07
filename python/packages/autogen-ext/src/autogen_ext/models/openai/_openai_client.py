@@ -28,6 +28,7 @@ from autogen_core import (
     Component,
     FunctionCall,
     Image,
+    MessageHandlerContext,
 )
 from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
@@ -493,18 +494,26 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if use_beta_client:
             result = cast(ParsedChatCompletion[Any], result)
 
-        if result.usage is not None:
-            logger.info(
-                LLMCallEvent(
-                    prompt_tokens=result.usage.prompt_tokens,
-                    completion_tokens=result.usage.completion_tokens,
-                )
-            )
-
         usage = RequestUsage(
             # TODO backup token counting
             prompt_tokens=result.usage.prompt_tokens if result.usage is not None else 0,
             completion_tokens=(result.usage.completion_tokens if result.usage is not None else 0),
+        )
+
+        # If we are running in the context of a handler we can get the agent_id
+        try:
+            agent_id = MessageHandlerContext.agent_id()
+        except RuntimeError:
+            agent_id = None
+
+        logger.info(
+            LLMCallEvent(
+                messages=cast(Dict[str, Any], oai_messages),
+                response=result.model_dump(),
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+                agent_id=agent_id,
+            )
         )
 
         if self._resolved_model is not None:
