@@ -33,6 +33,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
     "sphinx.ext.graphviz",
+    "sphinxext.rediraffe",
     "sphinx_design",
     "sphinx_copybutton",
     "_extension.gallery_directive",
@@ -164,6 +165,11 @@ nb_mime_priority_overrides = [
   ('code_lint', 'image/png', 100),
   ('code_lint', 'text/plain', 100)
 ]
+
+rediraffe_redirects = {
+    "user-guide/agentchat-user-guide/tutorial/selector-group-chat.ipynb": "user-guide/agentchat-user-guide/selector-group-chat.ipynb",
+    "user-guide/agentchat-user-guide/tutorial/swarm.ipynb": "user-guide/agentchat-user-guide/swarm.ipynb",
+}
 
 
 def setup_to_main(
