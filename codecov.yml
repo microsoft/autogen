@@ -1,3 +1,5 @@
 coverage:
   status:
     project: off
+
+comment: false
