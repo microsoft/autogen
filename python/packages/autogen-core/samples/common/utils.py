@@ -131,11 +131,12 @@ def get_chat_completion_client_from_envs(**kwargs: Any) -> ChatCompletionClient:
         # Get Azure API version.
         kwargs["api_version"] = os.getenv("AZURE_OPENAI_API_VERSION", "2024-06-01")
         # Set model capabilities.
-        if "model_capabilities" not in kwargs or kwargs["model_capabilities"] is None:
-            kwargs["model_capabilities"] = {
+        if "model_info" not in kwargs or kwargs["model_info"] is None:
+            kwargs["model_info"] = {
                 "vision": True,
                 "function_calling": True,
                 "json_output": True,
+                "family": "gpt-4o",
             }
         return AzureOpenAIChatCompletionClient(**kwargs)  # type: ignore
     raise ValueError(f"Unknown API type: {api_type}")
