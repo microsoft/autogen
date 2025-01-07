@@ -194,5 +194,9 @@ samples/apps/autogen-studio/autogenstudio/models/test/
 
 notebook/coding
 
+# Chroma files
+.chroma/
+*.chroma
+
 # dotnet artifacts
 artifacts
