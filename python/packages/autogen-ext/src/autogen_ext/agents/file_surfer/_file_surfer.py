@@ -31,7 +31,20 @@ from ._tool_definitions import (
 
 
 class FileSurfer(BaseChatAgent):
-    """An agent, used by MagenticOne, that acts as a local file previewer. FileSurfer can open and read a variety of common file types, and can navigate the local file hierarchy."""
+    """An agent, used by MagenticOne, that acts as a local file previewer. FileSurfer can open and read a variety of common file types, and can navigate the local file hierarchy.
+
+    Installation:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[file-surfer]==0.4.0.dev13"
+
+    Args:
+        name (str): The agent's name
+        model_client (ChatCompletionClient): The model to use (must be tool-use enabled)
+        description (str): The agent's description used by the team. Defaults to DEFAULT_DESCRIPTION
+
+    """
 
     DEFAULT_DESCRIPTION = "An agent that can handle local files."
 
@@ -49,14 +62,6 @@ class FileSurfer(BaseChatAgent):
         model_client: ChatCompletionClient,
         description: str = DEFAULT_DESCRIPTION,
     ) -> None:
-        """
-        Initialize the FileSurfer.
-
-        Args:
-            name (str): The agent's name
-            model_client (ChatCompletionClient): The model to use (must be tool-use enabled)
-            description (str): The agent's description used by the team. Defaults to DEFAULT_DESCRIPTION
-        """
         super().__init__(name, description)
         self._model_client = model_client
         self._chat_history: List[LLMMessage] = []

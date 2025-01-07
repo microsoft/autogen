@@ -179,6 +179,7 @@ class HostConnection:
 
 
 class GrpcWorkerAgentRuntime(AgentRuntime):
+    # TODO: Needs to handle agent close() call
     def __init__(
         self,
         host_address: str,
@@ -339,7 +340,9 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         *,
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
+        message_id: str | None = None,
     ) -> Any:
+        # TODO: use message_id
         if not self._running:
             raise ValueError("Runtime must be running when sending message.")
         if self._host_connection is None:
