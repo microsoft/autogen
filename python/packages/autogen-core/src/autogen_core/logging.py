@@ -1,18 +1,30 @@
 import json
 from enum import Enum
-from typing import Any, cast
+from typing import Any, Dict, cast
 
 from ._agent_id import AgentId
 from ._topic import TopicId
 
 
 class LLMCallEvent:
-    def __init__(self, *, prompt_tokens: int, completion_tokens: int, **kwargs: Any) -> None:
+    def __init__(
+        self,
+        *,
+        messages: Dict[str, Any],
+        response: Dict[str, Any],
+        prompt_tokens: int,
+        completion_tokens: int,
+        agent_id: AgentId | None = None,
+        **kwargs: Any,
+    ) -> None:
         """To be used by model clients to log the call to the LLM.
 
         Args:
+            messages (Dict[str, Any]): The messages of the call. Must be json serializable.
+            response (Dict[str, Any]): The response of the call. Must be json serializable.
             prompt_tokens (int): Number of tokens used in the prompt.
             completion_tokens (int): Number of tokens used in the completion.
+            agent_id (AgentId | None, optional): The agent id of the model. Defaults to None.
 
         Example:
 
@@ -26,8 +38,12 @@ class LLMCallEvent:
 
         """
         self.kwargs = kwargs
+        self.kwargs["type"] = "LLMCall"
+        self.kwargs["messages"] = messages
+        self.kwargs["response"] = response
         self.kwargs["prompt_tokens"] = prompt_tokens
         self.kwargs["completion_tokens"] = completion_tokens
+        self.kwargs["agent_id"] = None if agent_id is None else str(agent_id)
         self.kwargs["type"] = "LLMCall"
 
     @property

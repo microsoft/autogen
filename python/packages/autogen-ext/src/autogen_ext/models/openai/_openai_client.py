@@ -28,6 +28,7 @@ from autogen_core import (
     Component,
     FunctionCall,
     Image,
+    MessageHandlerContext,
 )
 from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
@@ -495,18 +496,26 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if use_beta_client:
             result = cast(ParsedChatCompletion[Any], result)
 
-        if result.usage is not None:
-            logger.info(
-                LLMCallEvent(
-                    prompt_tokens=result.usage.prompt_tokens,
-                    completion_tokens=result.usage.completion_tokens,
-                )
-            )
-
         usage = RequestUsage(
             # TODO backup token counting
             prompt_tokens=result.usage.prompt_tokens if result.usage is not None else 0,
             completion_tokens=(result.usage.completion_tokens if result.usage is not None else 0),
+        )
+
+        # If we are running in the context of a handler we can get the agent_id
+        try:
+            agent_id = MessageHandlerContext.agent_id()
+        except RuntimeError:
+            agent_id = None
+
+        logger.info(
+            LLMCallEvent(
+                messages=cast(Dict[str, Any], oai_messages),
+                response=result.model_dump(),
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+                agent_id=agent_id,
+            )
         )
 
         if self._resolved_model is not None:
@@ -1076,8 +1085,9 @@ class AzureOpenAIChatCompletionClient(
         self._client = _azure_openai_client_from_config(state["_raw_config"])
 
     def _to_config(self) -> AzureOpenAIClientConfigurationConfigModel:
-        copied_config = self._raw_config.copy()
+        from ...auth import AzureTokenProvider
 
+        copied_config = self._raw_config.copy()
         if "azure_ad_token_provider" in copied_config:
             if not isinstance(copied_config["azure_ad_token_provider"], AzureTokenProvider):
                 raise ValueError("azure_ad_token_provider must be a AzureTokenProvider to be component serialized")
