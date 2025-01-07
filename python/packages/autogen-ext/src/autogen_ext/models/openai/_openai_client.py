@@ -974,10 +974,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
 
         config = {
             "provider": "OpenAIChatCompletionClient",
-            "config": {
-                "model": "gpt-4o",
-                "api_key": "REPLACE_WITH_YOUR_API_KEY"
-            }
+            "config": {"model": "gpt-4o", "api_key": "REPLACE_WITH_YOUR_API_KEY"},
         }
 
         client = ChatCompletionClient.load_component(config)
@@ -1108,12 +1105,10 @@ class AzureOpenAIChatCompletionClient(
                     "provider": "autogen_ext.models.openai.AzureTokenProvider",
                     "config": {
                         "provider_kind": "DefaultAzureCredential",
-                        "scopes": [
-                            "https://cognitiveservices.azure.com/.default"
-                        ]
-                    }
-                }
-            }
+                        "scopes": ["https://cognitiveservices.azure.com/.default"],
+                    },
+                },
+            },
         }
 
         client = ChatCompletionClient.load_component(config)

@@ -51,6 +51,7 @@ class AzureOpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False)
     azure_ad_token: str
     azure_ad_token_provider: AsyncAzureADTokenProvider  # Or AzureTokenProvider
 
+
 # Pydantic equivalents of the above TypedDicts
 class CreateArgumentsConfigModel(BaseModel):
     frequency_penalty: float | None = None
