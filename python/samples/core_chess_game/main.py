@@ -4,10 +4,11 @@ and make moves, and using a group chat manager to orchestrate the conversation."
 
 import argparse
 import asyncio
-from dataclasses import dataclass
 import logging
+from dataclasses import dataclass
 from typing import Annotated, Literal
 
+from agents import ChatCompletionAgent
 from autogen_core import (
     AgentId,
     AgentInstantiationContext,
@@ -21,10 +22,10 @@ from autogen_core.models import SystemMessage
 from autogen_core.tools import FunctionTool
 from chess import BLACK, SQUARE_NAMES, WHITE, Board, Move
 from chess import piece_name as get_piece_name
-from pydantic import BaseModel
-from agents import ChatCompletionAgent
 from patterns import GroupChatManager
+from pydantic import BaseModel
 from utils import get_chat_completion_client_from_envs
+
 
 @dataclass
 class TextMessage(BaseModel):
