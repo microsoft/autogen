@@ -31,7 +31,6 @@ from dataclasses import dataclass
 from typing import Any, Mapping, Optional
 
 from autogen_core import (
-    AgentId,
     CancellationToken,
     DefaultInterventionHandler,
     DefaultTopicId,
@@ -214,7 +213,7 @@ class NeedsUserInputHandler(DefaultInterventionHandler):
     def __init__(self):
         self.question_for_user: GetSlowUserMessage | None = None
 
-    async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
+    async def on_publish(self, message: Any, *, message_context: MessageContext) -> Any:
         if isinstance(message, GetSlowUserMessage):
             self.question_for_user = message
         return message
@@ -234,7 +233,7 @@ class TerminationHandler(DefaultInterventionHandler):
     def __init__(self):
         self.terminateMessage: TerminateMessage | None = None
 
-    async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
+    async def on_publish(self, message: Any, *, message_context: MessageContext) -> Any:
         if isinstance(message, TerminateMessage):
             self.terminateMessage = message
         return message

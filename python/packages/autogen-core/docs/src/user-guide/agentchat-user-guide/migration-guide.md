@@ -600,7 +600,7 @@ for more details.
 In `v0.4`, you get a {py:class}`~autogen_agentchat.base.TaskResult` object from a `run` or `run_stream` method.
 The {py:class}`~autogen_agentchat.base.TaskResult` object contains the `messages` which is the message history
 of the chat, including both agents' private (tool calls, etc.) and public messages.
- 
+
 There are some notable differences between {py:class}`~autogen_agentchat.base.TaskResult` and `ChatResult`:
 
 - The `messages` list in {py:class}`~autogen_agentchat.base.TaskResult` uses different message format than the `ChatResult.chat_history` list.
@@ -609,7 +609,6 @@ There are some notable differences between {py:class}`~autogen_agentchat.base.Ta
 - `cost` is not provided in the {py:class}`~autogen_agentchat.base.TaskResult` object, however, you can calculate the cost based on token usage. It would be a great community extension to add cost calculation. See [community extensions](../extensions-user-guide/discover.md).
 
 ## Conversion between v0.2 and v0.4 Messages
-
 
 You can use the following conversion functions to convert between a v0.4 message in
 {py:attr}`autogen_agentchat.base.TaskResult.messages` and a v0.2 message in `ChatResult.chat_history`.
@@ -809,7 +808,7 @@ asyncio.run(main())
 ```
 
 For LLM-based speaker selection, you can use the {py:class}`~autogen_agentchat.teams.SelectorGroupChat` instead.
-See [Selector Group Chat Tutorial](./tutorial/selector-group-chat.ipynb)
+See [Selector Group Chat Tutorial](./selector-group-chat.ipynb)
 and {py:class}`~autogen_agentchat.teams.SelectorGroupChat` for more details.
 
 > **Note**: In `v0.4`, you do not need to register functions on a user proxy to use tools
@@ -912,7 +911,7 @@ as the tools are directly executed within the {py:class}`~autogen_agentchat.agen
 which publishes the response from the tool to the group chat.
 So the group chat manager does not need to be involved in routing tool calls.
 
-See [Selector Group Chat Tutorial](./tutorial/selector-group-chat.ipynb) for an example
+See [Selector Group Chat Tutorial](./selector-group-chat.ipynb) for an example
 of using tools in a group chat.
 
 ## Group Chat with Custom Selector (Stateflow)
