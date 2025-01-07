@@ -207,6 +207,25 @@ def assistant_message_to_oai(
             name=message.source,
         )
 
+def prepare_o1_messages(messages: Sequence[LLMMessage]) -> Sequence[LLMMessage]:
+    system_content = ""
+    user_messages = []
+
+    # Separate system and user messages
+    for msg in messages:
+        if isinstance(msg, SystemMessage):
+            system_content += msg.content + "\n"
+        elif isinstance(msg, UserMessage):
+            user_messages.append(msg)
+
+    # Ensure there's at least one user message to attach the system content
+    if not user_messages:
+        raise ValueError("No UserMessage found to append SystemMessage content.")
+
+    # Prepend the collected system content to the first user message
+    user_messages[0].content = f"{system_content.strip()}\n\n{user_messages[0].content.strip()}"
+
+    return user_messages
 
 def to_oai_type(message: LLMMessage) -> Sequence[ChatCompletionMessageParam]:
     if isinstance(message, SystemMessage):
@@ -426,6 +445,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if self.capabilities["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output")
 
+        if self.model_info["family"] == "o1":
+            messages = prepare_o1_messages(messages)
         oai_messages_nested = [to_oai_type(m) for m in messages]
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]
 
