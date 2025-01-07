@@ -48,12 +48,11 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
     [Fact]
     public async Task Agent_ShouldInitializeCorrectly()
     {
-        var agent = ActivatorUtilities.CreateInstance<TestAgent>(_serviceProvider);
-        var worker = _serviceProvider.GetRequiredService<IAgentWorker>();
-        Agent.Initialize(worker, agent);
-        Assert.Equal("AgentWorker", agent.Worker.GetType().Name);
+        var (worker, agent) = _fixture.Start();
+        Assert.Equal("AgentWorker", worker.GetType().Name);
         var subscriptions = await agent.GetSubscriptionsAsync();
         Assert.Equal(2, subscriptions.Count);
+        _fixture.Stop();
     }
     /// <summary>
     /// Test SubscribeAsync method
@@ -62,17 +61,32 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
     [Fact]
     public async Task SubscribeAsync_UnsubscribeAsync_and_GetSubscriptionsTest()
     {
-        var agent = ActivatorUtilities.CreateInstance<TestAgent>(_serviceProvider);
-        var worker = _serviceProvider.GetRequiredService<IAgentWorker>();
-        Agent.Initialize(worker, agent);
-        var subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
-        Assert.Equal(2, subscriptions.Count);
+        var (_, agent) = _fixture.Start();
         await agent.SubscribeAsync("TestEvent");
+        await Task.Delay(100);
+        var subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
+        var found = false;
+        foreach (var subscription in subscriptions)
+        {
+            if (subscription.TypeSubscription.TopicType == "TestEvent")
+            {
+                found = true;
+            }
+        }
+        Assert.True(found);
+        await agent.UnsubscribeAsync("TestEvent").ConfigureAwait(true);
+        await Task.Delay(500);
         subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
-        Assert.Equal(3, subscriptions.Count);
-        await agent.UnsubscribeAsync("TestEvent");
-        subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
-        Assert.Equal(2, subscriptions.Count);
+        found = false;
+        foreach (var subscription in subscriptions)
+        {
+            if (subscription.TypeSubscription.TopicType == "TestEvent")
+            {
+                found = true;
+            }
+        }
+        Assert.False(found);
+        _fixture.Stop();
     }
 
     /// <summary>
@@ -82,9 +96,7 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
     [Fact]
     public async Task StoreAsync_and_ReadAsyncTest()
     {
-        var agent = ActivatorUtilities.CreateInstance<TestAgent>(_serviceProvider);
-        var worker = _serviceProvider.GetRequiredService<IAgentWorker>();
-        Agent.Initialize(worker, agent);
+        var (_, agent) = _fixture.Start();
         Dictionary<string, string> state = new()
         {
             { "testdata", "Active" }
@@ -98,6 +110,7 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
         var read = JsonSerializer.Deserialize<Dictionary<string, string>>(readState.TextData) ?? new Dictionary<string, string> { { "data", "No state data found" } };
         read.TryGetValue("testdata", out var value);
         Assert.Equal("Active", value);
+        _fixture.Stop();
     }
 
     /// <summary>
@@ -107,9 +120,7 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
     [Fact]
     public async Task PublishMessageAsync_and_ReceiveMessageTest()
     {
-        var agent = ActivatorUtilities.CreateInstance<TestAgent>(_serviceProvider);
-        var worker = _serviceProvider.GetRequiredService<IAgentWorker>();
-        Agent.Initialize(worker, agent);
+        var (_, agent) = _fixture.Start();
         await agent.SubscribeAsync("TestEvent").ConfigureAwait(true);
         var subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
         var found = false;
@@ -128,6 +139,7 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
         }).ConfigureAwait(true);
         await Task.Delay(100);
         Assert.True(TestAgent.ReceivedMessages.ContainsKey("TestEvent"));
+        _fixture.Stop();
     }
 
     [Fact]
@@ -164,6 +176,41 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
     }
 
     /// <summary>
+    /// GetAppHost - provides an app host used for one test vs the fixture which is shared. 
+    /// </summary>
+    /// <returns>WebApplication</returns>
+    internal static WebApplication GetAppHost()
+    {
+        var builder = WebApplication.CreateBuilder();
+        builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
+        builder.AddAgentWorker()
+            .AddAgent<TestAgent>(nameof(TestAgent));
+        Host = builder.Build();
+        Host.StartAsync().Wait();
+        return Host;
+    }
+    /// <summary>
+    /// Start - starts the agent
+    /// </summary>
+    /// <returns>IAgentWorker, TestAgent</returns>
+    internal (IAgentWorker, TestAgent) Start()
+    {
+        var agent = ActivatorUtilities.CreateInstance<TestAgent>(GetAppHost().Services);
+        var worker = _serviceProvider.GetRequiredService<IAgentWorker>();
+        Agent.Initialize(worker, agent);
+        return (worker, agent);
+    }
+    /// <summary>
+    /// Stop - stops the agent
+    /// </summary>
+    /// <param name="Host">WebApplication</param>
+    /// <returns>void</returns>
+    internal static void Stop(WebApplication Host)
+    {
+        Host.StopAsync().Wait();
+    }
+
+    /// <summary>
     /// The test agent is a simple agent that is used for testing purposes.
     /// </summary>
     public class TestAgent(
@@ -195,6 +242,13 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
     }
 }
 
+/// <summary>
+/// InMemoryAgentRuntimeFixture - provides a fixture for the agent runtime.
+/// </summary>
+/// <remarks>
+/// This fixture is used to provide a runtime for the agent tests.
+/// However, it is shared between tests. So operations from one test can affect another.
+/// </remarks>
 public sealed class InMemoryAgentRuntimeFixture : IDisposable
 {
     public InMemoryAgentRuntimeFixture()
@@ -212,6 +266,25 @@ public sealed class InMemoryAgentRuntimeFixture : IDisposable
     {
         AppHost.StopAsync().Wait();
         AppHost.Dispose();
+    }
+        /// <summary>
+    /// Start - starts the agent
+    /// </summary>
+    /// <returns>IAgentWorker, TestAgent</returns>
+    public (IAgentWorker, TestAgent) Start()
+    {
+        var agent = ActivatorUtilities.CreateInstance<TestAgent>(AppHost.Services);
+        var worker = AppHost.Services.GetRequiredService<IAgentWorker>();
+        Agent.Initialize(worker, agent);
+        return (worker, agent);
+    }
+    /// <summary>
+    /// Stop - stops the agent
+    /// </summary>
+    /// <returns>void</returns>
+    public void Stop()
+    {
+        AppHost.StopAsync().Wait();
     }
 }
 
