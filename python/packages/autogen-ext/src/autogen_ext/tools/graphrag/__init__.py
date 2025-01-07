@@ -7,8 +7,8 @@ from ._config import (
     MapReduceConfig,
     SearchConfig,
 )
-from ._global_search import GlobalSearchTool
-from ._local_search import LocalSearchTool
+from ._global_search import GlobalSearchTool, GlobalSearchToolArgs, GlobalSearchToolReturn
+from ._local_search import LocalSearchTool, LocalSearchToolArgs, LocalSearchToolReturn
 
 __all__ = [
     "GlobalSearchTool",
@@ -16,7 +16,11 @@ __all__ = [
     "GlobalDataConfig",
     "LocalDataConfig",
     "GlobalContextConfig",
+    "GlobalSearchToolArgs",
+    "GlobalSearchToolReturn",
     "LocalContextConfig",
+    "LocalSearchToolArgs",
+    "LocalSearchToolReturn",
     "MapReduceConfig",
     "SearchConfig",
     "EmbeddingConfig",
