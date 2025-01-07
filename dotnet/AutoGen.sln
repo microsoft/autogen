@@ -142,6 +142,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Core.Test
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DevTeam.ServiceDefaults", "samples\dev-team\DevTeam.ServiceDefaults\DevTeam.ServiceDefaults.csproj", "{599E1971-1DA9-453F-A7A8-42510BBC95C2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Core.Grpc.Tests", "test\Microsoft.AutoGen.Core.Grpc.Tests\Microsoft.AutoGen.Core.Grpc.Tests.csproj", "{33A28A4B-123B-4416-9631-0F759B8D6172}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -372,6 +374,10 @@ Global
 		{599E1971-1DA9-453F-A7A8-42510BBC95C2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{599E1971-1DA9-453F-A7A8-42510BBC95C2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{599E1971-1DA9-453F-A7A8-42510BBC95C2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{33A28A4B-123B-4416-9631-0F759B8D6172}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{33A28A4B-123B-4416-9631-0F759B8D6172}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{33A28A4B-123B-4416-9631-0F759B8D6172}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{33A28A4B-123B-4416-9631-0F759B8D6172}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -437,6 +443,7 @@ Global
 		{14F90F79-580E-454D-BA7A-ED6D9723020D} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 		{EAFFE339-26CB-4019-991D-BCCE8E7D33A1} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 		{599E1971-1DA9-453F-A7A8-42510BBC95C2} = {05B9C173-6441-4DCA-9AC4-E897EF75F331}
+		{33A28A4B-123B-4416-9631-0F759B8D6172} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93384647-528D-46C8-922C-8DB36A382F0B}
