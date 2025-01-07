@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-agentchat"
-version = "0.4.0.dev11"
+version = "0.4.0.dev13"
 license = {file = "LICENSE-CODE"}
 description = "AutoGen agents and teams library"
 readme = "README.md"
@@ -15,12 +15,8 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "autogen-core==0.4.0.dev11",
+    "autogen-core==0.4.0.dev13",
 ]
-
-[tool.uv]
-dev-dependencies = []
-
 
 [tool.ruff]
 extend = "../../pyproject.toml"
@@ -40,3 +36,4 @@ include = "../../shared_tasks.toml"
 
 [tool.poe.tasks]
 test = "pytest -n auto"
+coverage = "pytest -n auto --cov=src --cov-report=term-missing --cov-report=xml"

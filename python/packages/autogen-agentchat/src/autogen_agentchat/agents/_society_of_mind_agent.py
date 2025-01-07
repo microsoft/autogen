@@ -8,11 +8,9 @@ from autogen_agentchat.state import SocietyOfMindAgentState
 
 from ..base import TaskResult, Team
 from ..messages import (
-    AgentMessage,
+    AgentEvent,
+    BaseChatMessage,
     ChatMessage,
-    HandoffMessage,
-    MultiModalMessage,
-    StopMessage,
     TextMessage,
 )
 from ._base_chat_agent import BaseChatAgent
@@ -105,8 +103,8 @@ class SocietyOfMindAgent(BaseChatAgent):
         self._response_prompt = response_prompt
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        return [TextMessage]
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+        return (TextMessage,)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         # Call the stream method and collect the messages.
@@ -119,13 +117,13 @@ class SocietyOfMindAgent(BaseChatAgent):
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentMessage | Response, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         # Prepare the task for the team of agents.
         task = list(messages)
 
         # Run the team of agents.
         result: TaskResult | None = None
-        inner_messages: List[AgentMessage] = []
+        inner_messages: List[AgentEvent | ChatMessage] = []
         count = 0
         async for inner_msg in self._team.run_stream(task=task, cancellation_token=cancellation_token):
             if isinstance(inner_msg, TaskResult):
@@ -150,7 +148,7 @@ class SocietyOfMindAgent(BaseChatAgent):
                 [
                     UserMessage(content=message.content, source=message.source)
                     for message in inner_messages
-                    if isinstance(message, TextMessage | MultiModalMessage | StopMessage | HandoffMessage)
+                    if isinstance(message, BaseChatMessage)
                 ]
             )
             llm_messages.append(SystemMessage(content=self._response_prompt))

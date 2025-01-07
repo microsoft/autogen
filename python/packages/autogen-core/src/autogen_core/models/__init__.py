@@ -1,4 +1,4 @@
-from ._model_client import ChatCompletionClient, ModelCapabilities
+from ._model_client import ChatCompletionClient, ModelCapabilities, ModelFamily, ModelInfo  # type: ignore
 from ._types import (
     AssistantMessage,
     ChatCompletionTokenLogprob,
@@ -27,4 +27,6 @@ __all__ = [
     "CreateResult",
     "TopLogprob",
     "ChatCompletionTokenLogprob",
+    "ModelFamily",
+    "ModelInfo",
 ]

@@ -2,7 +2,7 @@ import asyncio
 import logging
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Callable, List, Mapping, get_args
+from typing import Any, AsyncGenerator, Callable, List, Mapping, Sequence
 
 from autogen_core import (
     AgentId,
@@ -19,7 +19,7 @@ from autogen_core._closure_agent import ClosureContext
 
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
-from ...messages import AgentMessage, ChatMessage, TextMessage
+from ...messages import AgentEvent, BaseChatMessage, ChatMessage, TextMessage
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import GroupChatMessage, GroupChatReset, GroupChatStart, GroupChatTermination
@@ -62,7 +62,7 @@ class BaseGroupChat(Team, ABC):
 
         # Constants for the closure agent to collect the output messages.
         self._stop_reason: str | None = None
-        self._output_message_queue: asyncio.Queue[AgentMessage | None] = asyncio.Queue()
+        self._output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | None] = asyncio.Queue()
 
         # Create a runtime for the team.
         # TODO: The runtime should be created by a managed context.
@@ -172,7 +172,7 @@ class BaseGroupChat(Team, ABC):
     async def run(
         self,
         *,
-        task: str | ChatMessage | List[ChatMessage] | None = None,
+        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
     ) -> TaskResult:
         """Run the team and return the result. The base implementation uses
@@ -180,7 +180,7 @@ class BaseGroupChat(Team, ABC):
         Once the team is stopped, the termination condition is reset.
 
         Args:
-            task (str | ChatMessage | List[ChatMessage] | None): The task to run the team with. Can be a string, a single :class:`ChatMessage` , or a list of :class:`ChatMessage`.
+            task (str | ChatMessage | Sequence[ChatMessage] | None): The task to run the team with. Can be a string, a single :class:`ChatMessage` , or a list of :class:`ChatMessage`.
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
@@ -271,15 +271,15 @@ class BaseGroupChat(Team, ABC):
     async def run_stream(
         self,
         *,
-        task: str | ChatMessage | List[ChatMessage] | None = None,
+        task: str | ChatMessage | Sequence[ChatMessage] | None = None,
         cancellation_token: CancellationToken | None = None,
-    ) -> AsyncGenerator[AgentMessage | TaskResult, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
         of the type :class:`TaskResult` as the last item in the stream. Once the
         team is stopped, the termination condition is reset.
 
         Args:
-            task (str | ChatMessage | List[ChatMessage] | None): The task to run the team with. Can be a string, a single :class:`ChatMessage` , or a list of :class:`ChatMessage`.
+            task (str | ChatMessage | Sequence[ChatMessage] | None): The task to run the team with. Can be a string, a single :class:`ChatMessage` , or a list of :class:`ChatMessage`.
             cancellation_token (CancellationToken | None): The cancellation token to kill the task immediately.
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
@@ -368,14 +368,16 @@ class BaseGroupChat(Team, ABC):
             pass
         elif isinstance(task, str):
             messages = [TextMessage(content=task, source="user")]
-        elif isinstance(task, get_args(ChatMessage)[0]):
-            messages = [task]  # type: ignore
-        elif isinstance(task, list):
+        elif isinstance(task, BaseChatMessage):
+            messages = [task]
+        else:
             if not task:
-                raise ValueError("Task list cannot be empty")
-            if not all(isinstance(msg, get_args(ChatMessage)[0]) for msg in task):
-                raise ValueError("All messages in task list must be valid ChatMessage types")
-            messages = task
+                raise ValueError("Task list cannot be empty.")
+            messages = []
+            for msg in task:
+                if not isinstance(msg, BaseChatMessage):
+                    raise ValueError("All messages in task list must be valid ChatMessage types")
+                messages.append(msg)
 
         if self._is_running:
             raise ValueError("The team is already running, it cannot run again until it is stopped.")
@@ -405,7 +407,7 @@ class BaseGroupChat(Team, ABC):
                 cancellation_token=cancellation_token,
             )
             # Collect the output messages in order.
-            output_messages: List[AgentMessage] = []
+            output_messages: List[AgentEvent | ChatMessage] = []
             # Yield the messsages until the queue is empty.
             while True:
                 message_future = asyncio.ensure_future(self._output_message_queue.get())

@@ -2,15 +2,27 @@ import asyncio
 import json
 import logging
 import warnings
-from typing import Any, AsyncGenerator, Awaitable, Callable, Dict, List, Mapping, Sequence
+from typing import (
+    Any,
+    AsyncGenerator,
+    Awaitable,
+    Callable,
+    Dict,
+    List,
+    Mapping,
+    Sequence,
+)
 
 from autogen_core import CancellationToken, FunctionCall
+from autogen_core.model_context import (
+    ChatCompletionContext,
+    UnboundedChatCompletionContext,
+)
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
-    LLMMessage,
     SystemMessage,
     UserMessage,
 )
@@ -21,13 +33,14 @@ from .. import EVENT_LOGGER_NAME
 from ..base import Handoff as HandoffBase
 from ..base import Response
 from ..messages import (
-    AgentMessage,
+    AgentEvent,
     ChatMessage,
     HandoffMessage,
     MultiModalMessage,
     TextMessage,
-    ToolCallMessage,
-    ToolCallResultMessage,
+    ToolCallExecutionEvent,
+    ToolCallRequestEvent,
+    ToolCallSummaryMessage,
 )
 from ..state import AssistantAgentState
 from ._base_chat_agent import BaseChatAgent
@@ -58,12 +71,30 @@ class AssistantAgent(BaseChatAgent):
     the inner messages as they are created, and the :class:`~autogen_agentchat.base.Response`
     object as the last item before closing the generator.
 
+    .. note::
+
+        The caller must only pass the new messages to the agent on each call
+        to the :meth:`on_messages` or :meth:`on_messages_stream` method.
+        The agent maintains its state between calls to these methods.
+        Do not pass the entire conversation history to the agent on each call.
+
+    .. note::
+        The assistant agent is not thread-safe or coroutine-safe.
+        It should not be shared between multiple tasks or coroutines, and it should
+        not call its methods concurrently.
+
     Tool call behavior:
 
     * If the model returns no tool call, then the response is immediately returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
     * When the model returns tool calls, they will be executed right away:
-        - When `reflect_on_tool_use` is False (default), the tool call results are returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. `tool_call_summary_format` can be used to customize the tool call summary.
+        - When `reflect_on_tool_use` is False (default), the tool call results are returned as a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. `tool_call_summary_format` can be used to customize the tool call summary.
         - When `reflect_on_tool_use` is True, the another model inference is made using the tool calls and results, and the text response is returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
+
+    .. note::
+        By default, the tool call results are returned as response when tool calls are made.
+        So it is recommended to pay attention to the formatting of the tools return values,
+        especially if another agent is expecting them in a specific format.
+        Use `tool_call_summary_format` to customize the tool call summary, if needed.
 
     Hand off behavior:
 
@@ -72,19 +103,15 @@ class AssistantAgent(BaseChatAgent):
 
 
     .. note::
-        The assistant agent is not thread-safe or coroutine-safe.
-        It should not be shared between multiple tasks or coroutines, and it should
-        not call its methods concurrently.
-
-    .. note::
-        By default, the tool call results are returned as response when tool calls are made.
-        So it is recommended to pay attention to the formatting of the tools return values,
-        especially if another agent is expecting them in a specific format.
-        Use `tool_call_summary_format` to customize the tool call summary, if needed.
-
-    .. note::
         If multiple handoffs are detected, only the first handoff is executed.
 
+
+    Limit context size sent to the model:
+
+    You can limit the number of messages sent to the model by setting
+    the `model_context` parameter to a :class:`~autogen_core.model_context.BufferedChatCompletionContext`.
+    This will limit the number of recent messages sent to the model and can be useful
+    when the model has a limit on the number of tokens it can process.
 
 
     Args:
@@ -95,8 +122,9 @@ class AssistantAgent(BaseChatAgent):
             allowing it to transfer to other agents by responding with a :class:`HandoffMessage`.
             The transfer is only executed when the team is in :class:`~autogen_agentchat.teams.Swarm`.
             If a handoff is a string, it should represent the target agent's name.
+        model_context (ChatCompletionContext | None, optional): The model context for storing and retrieving :class:`~autogen_core.models.LLMMessage`. It can be preloaded with initial messages. The initial messages will be cleared when the agent is reset.
         description (str, optional): The description of the agent.
-        system_message (str, optional): The system message for the model.
+        system_message (str, optional): The system message for the model. If provided, it will be prepended to the messages in the model context when making an inference. Set to `None` to disable.
         reflect_on_tool_use (bool, optional): If `True`, the agent will make another model inference using the tool call and result
             to generate a response. If `False`, the tool call result will be returned as the response. Defaults to `False`.
         tool_call_summary_format (str, optional): The format string used to create a tool call summary for every tool call result.
@@ -218,9 +246,11 @@ class AssistantAgent(BaseChatAgent):
         *,
         tools: List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
         handoffs: List[HandoffBase | str] | None = None,
+        model_context: ChatCompletionContext | None = None,
         description: str = "An agent that provides assistance with ability to use tools.",
-        system_message: str
-        | None = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
+        system_message: (
+            str | None
+        ) = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
         reflect_on_tool_use: bool = False,
         tool_call_summary_format: str = "{result}",
     ):
@@ -232,7 +262,7 @@ class AssistantAgent(BaseChatAgent):
             self._system_messages = [SystemMessage(content=system_message)]
         self._tools: List[Tool] = []
         if tools is not None:
-            if model_client.capabilities["function_calling"] is False:
+            if model_client.model_info["function_calling"] is False:
                 raise ValueError("The model does not support function calling.")
             for tool in tools:
                 if isinstance(tool, Tool):
@@ -253,7 +283,7 @@ class AssistantAgent(BaseChatAgent):
         self._handoff_tools: List[Tool] = []
         self._handoffs: Dict[str, HandoffBase] = {}
         if handoffs is not None:
-            if model_client.capabilities["function_calling"] is False:
+            if model_client.model_info["function_calling"] is False:
                 raise ValueError("The model does not support function calling, which is needed for handoffs.")
             for handoff in handoffs:
                 if isinstance(handoff, str):
@@ -272,17 +302,23 @@ class AssistantAgent(BaseChatAgent):
             raise ValueError(
                 f"Handoff names must be unique from tool names. Handoff names: {handoff_tool_names}; tool names: {tool_names}"
             )
-        self._model_context: List[LLMMessage] = []
+        if model_context is not None:
+            self._model_context = model_context
+        else:
+            self._model_context = UnboundedChatCompletionContext()
         self._reflect_on_tool_use = reflect_on_tool_use
         self._tool_call_summary_format = tool_call_summary_format
         self._is_running = False
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         """The types of messages that the assistant agent produces."""
+        message_types: List[type[ChatMessage]] = [TextMessage]
         if self._handoffs:
-            return [TextMessage, HandoffMessage]
-        return [TextMessage]
+            message_types.append(HandoffMessage)
+        if self._tools:
+            message_types.append(ToolCallSummaryMessage)
+        return tuple(message_types)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         async for message in self.on_messages_stream(messages, cancellation_token):
@@ -292,24 +328,24 @@ class AssistantAgent(BaseChatAgent):
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentMessage | Response, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         # Add messages to the model context.
         for msg in messages:
-            if isinstance(msg, MultiModalMessage) and self._model_client.capabilities["vision"] is False:
+            if isinstance(msg, MultiModalMessage) and self._model_client.model_info["vision"] is False:
                 raise ValueError("The model does not support vision.")
-            self._model_context.append(UserMessage(content=msg.content, source=msg.source))
+            await self._model_context.add_message(UserMessage(content=msg.content, source=msg.source))
 
         # Inner messages.
-        inner_messages: List[AgentMessage] = []
+        inner_messages: List[AgentEvent | ChatMessage] = []
 
         # Generate an inference result based on the current model context.
-        llm_messages = self._system_messages + self._model_context
+        llm_messages = self._system_messages + await self._model_context.get_messages()
         result = await self._model_client.create(
             llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
         )
 
         # Add the response to the model context.
-        self._model_context.append(AssistantMessage(content=result.content, source=self.name))
+        await self._model_context.add_message(AssistantMessage(content=result.content, source=self.name))
 
         # Check if the response is a string and return it.
         if isinstance(result.content, str):
@@ -321,7 +357,7 @@ class AssistantAgent(BaseChatAgent):
 
         # Process tool calls.
         assert isinstance(result.content, list) and all(isinstance(item, FunctionCall) for item in result.content)
-        tool_call_msg = ToolCallMessage(content=result.content, source=self.name, models_usage=result.usage)
+        tool_call_msg = ToolCallRequestEvent(content=result.content, source=self.name, models_usage=result.usage)
         event_logger.debug(tool_call_msg)
         # Add the tool call message to the output.
         inner_messages.append(tool_call_msg)
@@ -329,9 +365,9 @@ class AssistantAgent(BaseChatAgent):
 
         # Execute the tool calls.
         results = await asyncio.gather(*[self._execute_tool_call(call, cancellation_token) for call in result.content])
-        tool_call_result_msg = ToolCallResultMessage(content=results, source=self.name)
+        tool_call_result_msg = ToolCallExecutionEvent(content=results, source=self.name)
         event_logger.debug(tool_call_result_msg)
-        self._model_context.append(FunctionExecutionResultMessage(content=results))
+        await self._model_context.add_message(FunctionExecutionResultMessage(content=results))
         inner_messages.append(tool_call_result_msg)
         yield tool_call_result_msg
 
@@ -356,11 +392,11 @@ class AssistantAgent(BaseChatAgent):
 
         if self._reflect_on_tool_use:
             # Generate another inference result based on the tool call and result.
-            llm_messages = self._system_messages + self._model_context
+            llm_messages = self._system_messages + await self._model_context.get_messages()
             result = await self._model_client.create(llm_messages, cancellation_token=cancellation_token)
             assert isinstance(result.content, str)
             # Add the response to the model context.
-            self._model_context.append(AssistantMessage(content=result.content, source=self.name))
+            await self._model_context.add_message(AssistantMessage(content=result.content, source=self.name))
             # Yield the response.
             yield Response(
                 chat_message=TextMessage(content=result.content, source=self.name, models_usage=result.usage),
@@ -379,7 +415,7 @@ class AssistantAgent(BaseChatAgent):
                 )
             tool_call_summary = "\n".join(tool_call_summaries)
             yield Response(
-                chat_message=TextMessage(content=tool_call_summary, source=self.name),
+                chat_message=ToolCallSummaryMessage(content=tool_call_summary, source=self.name),
                 inner_messages=inner_messages,
             )
 
@@ -402,14 +438,15 @@ class AssistantAgent(BaseChatAgent):
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Reset the assistant agent to its initialization state."""
-        self._model_context.clear()
+        await self._model_context.clear()
 
     async def save_state(self) -> Mapping[str, Any]:
         """Save the current state of the assistant agent."""
-        return AssistantAgentState(llm_messages=self._model_context.copy()).model_dump()
+        model_context_state = await self._model_context.save_state()
+        return AssistantAgentState(llm_context=model_context_state).model_dump()
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         """Load the state of the assistant agent"""
         assistant_agent_state = AssistantAgentState.model_validate(state)
-        self._model_context.clear()
-        self._model_context.extend(assistant_agent_state.llm_messages)
+        # Load the model context state.
+        await self._model_context.load_state(assistant_agent_state.llm_context)

@@ -1,14 +1,14 @@
-from typing import Any, List, Mapping, Optional
+from typing import Annotated, Any, List, Mapping, Optional
 
-from autogen_core.models import (
-    LLMMessage,
-)
 from pydantic import BaseModel, Field
 
 from ..messages import (
-    AgentMessage,
+    AgentEvent,
     ChatMessage,
 )
+
+# Ensures pydantic can distinguish between types of events & messages.
+_AgentMessage = Annotated[AgentEvent | ChatMessage, Field(discriminator="type")]
 
 
 class BaseState(BaseModel):
@@ -21,7 +21,7 @@ class BaseState(BaseModel):
 class AssistantAgentState(BaseState):
     """State for an assistant agent."""
 
-    llm_messages: List[LLMMessage] = Field(default_factory=list)
+    llm_context: Mapping[str, Any] = Field(default_factory=lambda: dict([("messages", [])]))
     type: str = Field(default="AssistantAgentState")
 
 
@@ -36,7 +36,7 @@ class TeamState(BaseState):
 class BaseGroupChatManagerState(BaseState):
     """Base state for all group chat managers."""
 
-    message_thread: List[AgentMessage] = Field(default_factory=list)
+    message_thread: List[_AgentMessage] = Field(default_factory=list)
     current_turn: int = Field(default=0)
     type: str = Field(default="BaseGroupChatManagerState")
 

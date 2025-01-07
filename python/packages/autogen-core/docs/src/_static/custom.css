@@ -74,3 +74,14 @@ html[data-theme="light"] .bd-header {
   background-color: transparent;
   border: none;
 }
+
+.card-title {
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.card-title svg {
+  font-size: 2rem;
+  vertical-align: bottom;
+  margin-right: 5px;
+}

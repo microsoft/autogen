@@ -33,9 +33,9 @@ dependencies = [
     "alembic",
     "loguru",
     "pyyaml",
-    "autogen-core==0.4.0.dev11",
-    "autogen-agentchat==0.4.0.dev11",
-    "autogen-ext[magentic-one]==0.4.0.dev11"
+    "autogen-core==0.4.0.dev13",
+    "autogen-agentchat==0.4.0.dev13",
+    "autogen-ext[magentic-one]==0.4.0.dev13"
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
 
@@ -88,3 +88,4 @@ fmt = "ruff format"
 format.ref = "fmt"
 lint = "ruff check"
 test = "pytest -n 0"
+coverage = "pytest -n 0 --cov=autogenstudio --cov-report=term-missing"

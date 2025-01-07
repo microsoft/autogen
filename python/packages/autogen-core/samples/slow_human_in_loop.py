@@ -33,6 +33,7 @@ from typing import Any, Mapping, Optional
 from autogen_core import (
     AgentId,
     CancellationToken,
+    DefaultInterventionHandler,
     DefaultTopicId,
     FunctionCall,
     MessageContext,
@@ -41,7 +42,6 @@ from autogen_core import (
     message_handler,
     type_subscription,
 )
-from autogen_core.base.intervention import DefaultInterventionHandler
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import (
     AssistantMessage,
@@ -114,7 +114,7 @@ class SlowUserProxyAgent(RoutedAgent):
         return state_to_save
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
-        self._model_context.load_state({**state["memory"], "messages": [m for m in state["memory"]["messages"]]})
+        await self._model_context.load_state(state["memory"])
 
 
 class ScheduleMeetingInput(BaseModel):
@@ -200,11 +200,11 @@ Today's date is {datetime.datetime.now().strftime("%Y-%m-%d")}
 
     async def save_state(self) -> Mapping[str, Any]:
         return {
-            "memory": self._model_context.save_state(),
+            "memory": await self._model_context.save_state(),
         }
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
-        self._model_context.load_state({**state["memory"], "messages": [m for m in state["memory"]["messages"]]})
+        await self._model_context.load_state(state["memory"])
 
 
 class NeedsUserInputHandler(DefaultInterventionHandler):

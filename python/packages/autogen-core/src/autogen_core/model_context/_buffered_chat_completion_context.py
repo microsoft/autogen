@@ -1,4 +1,4 @@
-from typing import Any, List, Mapping
+from typing import List
 
 from ..models import FunctionExecutionResultMessage, LLMMessage
 from ._chat_completion_context import ChatCompletionContext
@@ -10,16 +10,14 @@ class BufferedChatCompletionContext(ChatCompletionContext):
 
     Args:
         buffer_size (int): The size of the buffer.
-
+        initial_messages (List[LLMMessage] | None): The initial messages.
     """
 
     def __init__(self, buffer_size: int, initial_messages: List[LLMMessage] | None = None) -> None:
-        self._messages: List[LLMMessage] = initial_messages or []
+        super().__init__(initial_messages)
+        if buffer_size <= 0:
+            raise ValueError("buffer_size must be greater than 0.")
         self._buffer_size = buffer_size
-
-    async def add_message(self, message: LLMMessage) -> None:
-        """Add a message to the memory."""
-        self._messages.append(message)
 
     async def get_messages(self) -> List[LLMMessage]:
         """Get at most `buffer_size` recent messages."""
@@ -29,17 +27,3 @@ class BufferedChatCompletionContext(ChatCompletionContext):
             # Remove the first message from the list.
             messages = messages[1:]
         return messages
-
-    async def clear(self) -> None:
-        """Clear the message memory."""
-        self._messages = []
-
-    def save_state(self) -> Mapping[str, Any]:
-        return {
-            "messages": [message for message in self._messages],
-            "buffer_size": self._buffer_size,
-        }
-
-    def load_state(self, state: Mapping[str, Any]) -> None:
-        self._messages = state["messages"]
-        self._buffer_size = state["buffer_size"]

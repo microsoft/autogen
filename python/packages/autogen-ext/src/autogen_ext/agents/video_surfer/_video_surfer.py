@@ -18,6 +18,12 @@ class VideoSurfer(AssistantAgent):
     """
     VideoSurfer is a specialized agent designed to answer questions about a local video file.
 
+    Installation:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[video-surfer]==0.4.0.dev13"
+
     This agent utilizes various tools to extract information from the video, such as its length, screenshots at specific timestamps, and audio transcriptions. It processes these elements to provide detailed answers to user queries.
 
     Available tools:
@@ -28,6 +34,14 @@ class VideoSurfer(AssistantAgent):
     - :func:`~autogen_ext.agents.video_surfer.tools.get_screenshot_at`
     - :func:`~autogen_ext.agents.video_surfer.tools.save_screenshot`
     - :func:`~autogen_ext.agents.video_surfer.tools.transcribe_video_screenshot`
+
+    Args:
+        name (str): The name of the agent.
+        model_client (ChatCompletionClient): The model client used for generating responses.
+        tools (List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional):
+            A list of tools or functions the agent can use. If not provided, defaults to all video tools from the action space.
+        description (str, optional): A brief description of the agent. Defaults to "An agent that can answer questions about a local video.".
+        system_message (str | None, optional): The system message guiding the agent's behavior. Defaults to a predefined message.
 
     Example usage:
 
@@ -127,17 +141,6 @@ class VideoSurfer(AssistantAgent):
         description: Optional[str] = None,
         system_message: Optional[str] = None,
     ):
-        """
-        Initialize the VideoSurfer.
-
-        Args:
-            name (str): The name of the agent.
-            model_client (ChatCompletionClient): The model client used for generating responses.
-            tools (List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional):
-                A list of tools or functions the agent can use. If not provided, defaults to all video tools from the action space.
-            description (str, optional): A brief description of the agent. Defaults to "An agent that can answer questions about a local video.".
-            system_message (str | None, optional): The system message guiding the agent's behavior. Defaults to a predefined message.
-        """
         super().__init__(
             name=name,
             model_client=model_client,
