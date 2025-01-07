@@ -50,10 +50,13 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_core.tools import BaseTool
-from common.types import TextMessage
-from common.utils import get_chat_completion_client_from_envs
+from utils import get_chat_completion_client_from_envs
 from pydantic import BaseModel, Field
 
+@dataclass
+class TextMessage(BaseModel):
+    source: str
+    content: str
 
 @dataclass
 class UserTextMessage(TextMessage):

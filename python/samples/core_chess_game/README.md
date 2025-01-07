@@ -1,18 +1,16 @@
-# Samples
+# Chess Game Example
 
-This directory contains sample apps that use AutoGen Core API.
-See [core user guide](../docs/src/user-guide/core-user-guide/) for notebook examples.
+An example with two chess player agents that executes its own tools to demonstrate tool use and reflection on tool use.
 
-See [Running the examples](#running-the-examples) for instructions on how to run the examples.
-
-- [`chess_game.py`](chess_game.py): an example with two chess player agents that executes its own tools to demonstrate tool use and reflection on tool use.
-- [`slow_human_in_loop.py`](slow_human_in_loop.py): an example showing human-in-the-loop which waits for human input before making the tool call.
-
-## Running the examples
+## Running the example
 
 ### Prerequisites
 
 First, you need a shell with AutoGen core and required dependencies installed.
+
+```bash
+pip install "autogen-core==0.4.0.dev13" "autogen-ext[openai,azure]==0.4.0.dev13" "chess"
+```
 
 ### Using Azure OpenAI API
 

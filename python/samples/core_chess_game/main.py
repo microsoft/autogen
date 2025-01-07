@@ -4,6 +4,7 @@ and make moves, and using a group chat manager to orchestrate the conversation."
 
 import argparse
 import asyncio
+from dataclasses import dataclass
 import logging
 from typing import Annotated, Literal
 
@@ -20,10 +21,15 @@ from autogen_core.models import SystemMessage
 from autogen_core.tools import FunctionTool
 from chess import BLACK, SQUARE_NAMES, WHITE, Board, Move
 from chess import piece_name as get_piece_name
-from common.agents._chat_completion_agent import ChatCompletionAgent
-from common.patterns._group_chat_manager import GroupChatManager
-from common.types import TextMessage
-from common.utils import get_chat_completion_client_from_envs
+from pydantic import BaseModel
+from agents import ChatCompletionAgent
+from patterns import GroupChatManager
+from utils import get_chat_completion_client_from_envs
+
+@dataclass
+class TextMessage(BaseModel):
+    source: str
+    content: str
 
 
 def validate_turn(board: Board, player: Literal["white", "black"]) -> None:
