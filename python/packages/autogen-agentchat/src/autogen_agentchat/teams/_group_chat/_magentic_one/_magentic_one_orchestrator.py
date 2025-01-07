@@ -308,9 +308,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 await self._log_message(f"Failed to parse ledger information, retrying: {ledger_str}")
             except (json.JSONDecodeError, TypeError):
                 key_error = True
-                await self._log_message(
-                    "Invalid ledger format encountered, retrying..."
-                )
+                await self._log_message("Invalid ledger format encountered, retrying...")
                 continue
         if key_error:
             raise ValueError("Failed to parse ledger information after multiple retries.")
