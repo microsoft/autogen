@@ -193,12 +193,13 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
     /// Start - starts the agent
     /// </summary>
     /// <returns>IAgentWorker, TestAgent</returns>
-    internal (IAgentWorker, TestAgent) Start()
+    internal (WebApplication, IAgentWorker, TestAgent) Start()
     {
-        var agent = ActivatorUtilities.CreateInstance<TestAgent>(GetAppHost().Services);
+        var host = GetAppHost();
+        var agent = ActivatorUtilities.CreateInstance<TestAgent>(host.Services);
         var worker = _serviceProvider.GetRequiredService<IAgentWorker>();
         Agent.Initialize(worker, agent);
-        return (worker, agent);
+        return (host, worker, agent);
     }
     /// <summary>
     /// Stop - stops the agent
@@ -208,6 +209,7 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
     internal static void Stop(WebApplication Host)
     {
         Host.StopAsync().Wait();
+        Host.DisposeAsync().AsTask().Wait();
     }
 
     /// <summary>
@@ -249,7 +251,7 @@ public class AgentTests(InMemoryAgentRuntimeFixture fixture)
 /// This fixture is used to provide a runtime for the agent tests.
 /// However, it is shared between tests. So operations from one test can affect another.
 /// </remarks>
-public sealed class InMemoryAgentRuntimeFixture : IDisposable
+public sealed class InMemoryAgentRuntimeFixture
 {
     public InMemoryAgentRuntimeFixture()
     {
@@ -262,12 +264,7 @@ public sealed class InMemoryAgentRuntimeFixture : IDisposable
     }
     public IHost AppHost { get; }
 
-    void IDisposable.Dispose()
-    {
-        AppHost.StopAsync().Wait();
-        AppHost.Dispose();
-    }
-        /// <summary>
+    /// <summary>
     /// Start - starts the agent
     /// </summary>
     /// <returns>IAgentWorker, TestAgent</returns>
@@ -284,7 +281,8 @@ public sealed class InMemoryAgentRuntimeFixture : IDisposable
     /// <returns>void</returns>
     public void Stop()
     {
-        AppHost.StopAsync().Wait();
+        IHostApplicationLifetime hostApplicationLifetime = AppHost.Services.GetRequiredService<IHostApplicationLifetime>();
+        hostApplicationLifetime.StopApplication();
     }
 }
 

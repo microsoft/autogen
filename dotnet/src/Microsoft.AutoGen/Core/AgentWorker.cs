@@ -154,11 +154,17 @@ public class AgentWorker(
         var agentType = request.Subscription.TypeSubscription.AgentType;
         if (_subscriptionsByAgentType.TryGetValue(agentType, out var subscriptions))
         {
-            subscriptions.Remove(request.Subscription);
+            while (subscriptions.Remove(request.Subscription))
+            {
+                //ensures all instances are removed    
+            }
         }
         if (_subscriptionsByTopic.TryGetValue(topic, out var agentTypes))
         {
-            agentTypes.Remove(agentType);
+            while (agentTypes.Remove(agentType))
+            {
+                //ensures all instances are removed
+            }
         }
         var response = new SubscriptionResponse
         {
