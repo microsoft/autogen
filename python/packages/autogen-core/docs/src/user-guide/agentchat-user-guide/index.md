@@ -31,16 +31,28 @@ How to install AgentChat
 Build your first agent
 :::
 
+:::{grid-item-card} {fas}`graduation-cap;pst-color-primary` Tutorial
+:link: ./tutorial/models.html
+
+Step-by-step guide to using AgentChat, learn about agents, teams, and more
+:::
+
+:::{grid-item-card} {fas}`book;pst-color-primary` Selector Group Chat
+:link: ./selector-group-chat.html
+
+Multi-agent coordination through a shared context and centralized, customizable selector
+:::
+
+:::{grid-item-card} {fas}`book;pst-color-primary` Swarm
+:link: ./swarm.html
+
+Multi-agent coordination through a shared context and localized, tool-based selector
+:::
+
 :::{grid-item-card} {fas}`book;pst-color-primary` Magentic-One
 :link: ./magentic-one.html
 
 Get started with Magentic-One
-:::
-
-:::{grid-item-card} {fas}`graduation-cap;pst-color-primary` Tutorial
-:link: ./tutorial/models.html
-
-Step-by-step guide to using AgentChat
 :::
 
 :::{grid-item-card} {fas}`code;pst-color-primary` Examples
@@ -62,7 +74,6 @@ How to migrate from AutoGen 0.2.x to 0.4.x.
 
 installation
 quickstart
-magentic-one
 migration-guide
 ```
 
@@ -76,11 +87,19 @@ tutorial/messages
 tutorial/agents
 tutorial/teams
 tutorial/human-in-the-loop
-tutorial/selector-group-chat
-tutorial/swarm
 tutorial/termination
 tutorial/custom-agents
 tutorial/state
+```
+
+```{toctree}
+:maxdepth: 1
+:hidden:
+:caption: Advanced
+
+selector-group-chat
+swarm
+magentic-one
 ```
 
 ```{toctree}

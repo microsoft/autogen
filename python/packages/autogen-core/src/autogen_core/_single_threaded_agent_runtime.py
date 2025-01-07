@@ -474,7 +474,16 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                             "intercept", handler.__class__.__name__, parent=message_envelope.metadata
                         ):
                             try:
-                                temp_message = await handler.on_send(message, sender=sender, recipient=recipient)
+                                message_context = MessageContext(
+                                    sender=sender,
+                                    topic_id=None,
+                                    is_rpc=True,
+                                    cancellation_token=message_envelope.cancellation_token,
+                                    message_id=message_envelope.message_id,
+                                )
+                                temp_message = await handler.on_send(
+                                    message, message_context=message_context, recipient=recipient
+                                )
                                 _warn_if_none(temp_message, "on_send")
                             except BaseException as e:
                                 future.set_exception(e)
@@ -506,7 +515,14 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                             "intercept", handler.__class__.__name__, parent=message_envelope.metadata
                         ):
                             try:
-                                temp_message = await handler.on_publish(message, sender=sender)
+                                message_context = MessageContext(
+                                    sender=sender,
+                                    topic_id=topic_id,
+                                    is_rpc=False,
+                                    cancellation_token=message_envelope.cancellation_token,
+                                    message_id=message_envelope.message_id,
+                                )
+                                temp_message = await handler.on_publish(message, message_context=message_context)
                                 _warn_if_none(temp_message, "on_publish")
                             except BaseException as e:
                                 # TODO: we should raise the intervention exception to the publisher.
