@@ -26,8 +26,9 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "autogen_test_utils",
     "aiofiles",
+    "asyncio_atexit",
+    "autogen_test_utils",
     "azure-identity",
     "chess",
     "colorama",
@@ -41,6 +42,7 @@ dev = [
     "llama-index",
     "markdownify",
     "nbqa",
+    "opentelemetry-sdk>=1.27.0",
     "pip",
     "polars",
     "python-dotenv",
@@ -50,12 +52,11 @@ dev = [
     "textual-imageview",
     "textual",
     "types-aiofiles",
+    "types-docker",
     "types-pillow",
     "types-protobuf",
     "types-requests",
-    "types-docker",
     "wikipedia",
-    "opentelemetry-sdk>=1.27.0",
 
     # Documentation
     "myst-nb==1.1.2",
