@@ -1,0 +1,28 @@
+pagelog_dir: ~/pagelogs/
+memory_dir: ~/agentic_memory_archive
+run_subdir: temp
+base_agent: thin_agent  # thin_agent or magentic_one
+
+client:
+  provider: trapi  # openai, azure_openai, or trapi
+  api_key: sk-xx  # only for openai
+  temperature: 0.8
+  max_tokens: 4096
+  presence_penalty: 0.0
+  frequency_penalty: 0.0
+  top_p: 1.0
+  max_retries: 65535
+  wrapper:
+    enabled: 1  # Only available for thin_agent
+    mode: check-replay  # pass-through, record, or check-replay
+    session_name: short-3
+
+evals:
+  - name: test_teachability
+  - name: test_learning_from_demonstration
+    num_trials: 1  # 1-10
+  - name: test_self_teaching
+    num_loops: 1  # 1-10
+    max_train_trials: 2  # 2-10
+    max_test_trials: 1  # 1-3
+    num_final_test_trials: 1  # 1-3
