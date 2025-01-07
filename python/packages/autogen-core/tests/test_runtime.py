@@ -86,6 +86,8 @@ async def test_register_receives_publish(tracer_provider: TracerProvider) -> Non
         "autogen publish default.(default)-T",
     ]
 
+    await runtime.close()
+
 
 @pytest.mark.asyncio
 async def test_register_receives_publish_with_construction(caplog: pytest.LogCaptureFixture) -> None:
@@ -106,6 +108,8 @@ async def test_register_receives_publish_with_construction(caplog: pytest.LogCap
 
     # Check if logger has the exception.
     assert any("Error constructing agent" in e.message for e in caplog.records)
+
+    await runtime.close()
 
 
 @pytest.mark.asyncio
@@ -137,6 +141,8 @@ async def test_register_receives_publish_cascade() -> None:
         agent = await runtime.try_get_underlying_agent_instance(AgentId(f"name{i}", "default"), CascadingAgent)
         assert agent.num_calls == total_num_calls_expected
 
+    await runtime.close()
+
 
 @pytest.mark.asyncio
 async def test_register_factory_explicit_name() -> None:
@@ -162,6 +168,8 @@ async def test_register_factory_explicit_name() -> None:
     )
     assert other_long_running_agent.num_calls == 0
 
+    await runtime.close()
+
 
 @pytest.mark.asyncio
 async def test_default_subscription() -> None:
@@ -184,6 +192,8 @@ async def test_default_subscription() -> None:
         AgentId("name", key="other"), type=LoopbackAgentWithDefaultSubscription
     )
     assert other_long_running_agent.num_calls == 0
+
+    await runtime.close()
 
 
 @pytest.mark.asyncio
@@ -208,6 +218,8 @@ async def test_type_subscription() -> None:
     )
     assert other_long_running_agent.num_calls == 0
 
+    await runtime.close()
+
 
 @pytest.mark.asyncio
 async def test_default_subscription_publish_to_other_source() -> None:
@@ -229,3 +241,5 @@ async def test_default_subscription_publish_to_other_source() -> None:
         AgentId("name", key="other"), type=LoopbackAgentWithDefaultSubscription
     )
     assert other_long_running_agent.num_calls == 1
+
+    await runtime.close()

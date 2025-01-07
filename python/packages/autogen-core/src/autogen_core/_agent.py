@@ -47,5 +47,5 @@ class Agent(Protocol):
         ...
 
     async def close(self) -> None:
-        """Called when the runtime is stopped or any stop method is called"""
+        """Called when the runtime is closed"""
         ...

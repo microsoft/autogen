@@ -192,4 +192,5 @@ class BaseChatAgent(ChatAgent, ABC):
         BaseState.model_validate(state)
 
     async def close(self) -> None:
+        """Called when the runtime is closed"""
         pass
