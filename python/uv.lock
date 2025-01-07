@@ -336,33 +336,33 @@ name = "autogen-agentchat"
 version = "0.4.0.dev13"
 source = { editable = "packages/autogen-agentchat" }
 dependencies = [
+    { name = "aioconsole" },
     { name = "autogen-core" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "autogen-core", editable = "packages/autogen-core" }]
+requires-dist = [
+    { name = "aioconsole", specifier = ">=0.8.1" },
+    { name = "autogen-core", editable = "packages/autogen-core" },
+]
 
 [[package]]
 name = "autogen-core"
 version = "0.4.0.dev13"
 source = { editable = "packages/autogen-core" }
 dependencies = [
-    { name = "aioconsole" },
-    { name = "aiohttp" },
-    { name = "asyncio-atexit" },
     { name = "jsonref" },
-    { name = "openai" },
     { name = "opentelemetry-api" },
     { name = "pillow" },
     { name = "protobuf" },
     { name = "pydantic" },
-    { name = "tiktoken" },
     { name = "typing-extensions" },
 ]
 
 [package.dev-dependencies]
 dev = [
     { name = "aiofiles" },
+    { name = "asyncio-atexit" },
     { name = "autodoc-pydantic" },
     { name = "autogen-ext" },
     { name = "autogen-test-utils" },
@@ -407,22 +407,18 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aioconsole", specifier = ">=0.8.1" },
-    { name = "aiohttp", specifier = ">=3.10.10" },
-    { name = "asyncio-atexit" },
     { name = "jsonref", specifier = "~=1.1.0" },
-    { name = "openai", specifier = ">=1.3" },
-    { name = "opentelemetry-api", specifier = "~=1.27.0" },
+    { name = "opentelemetry-api", specifier = ">=1.27.0" },
     { name = "pillow", specifier = ">=11.0.0" },
     { name = "protobuf", specifier = "~=4.25.1" },
     { name = "pydantic", specifier = ">=2.10.0,<3.0.0" },
-    { name = "tiktoken", specifier = ">=0.8.0" },
-    { name = "typing-extensions" },
+    { name = "typing-extensions", specifier = ">=4.0.0" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "aiofiles" },
+    { name = "asyncio-atexit" },
     { name = "autodoc-pydantic", specifier = "~=2.2" },
     { name = "autogen-ext", editable = "packages/autogen-ext" },
     { name = "autogen-test-utils", editable = "packages/autogen-test-utils" },
