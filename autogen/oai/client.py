@@ -474,7 +474,7 @@ class OpenAIWrapper:
         # Create a default Azure token provider if requested
         azure_ad_token_provider = openai_config.get("azure_ad_token_provider")
         if azure_ad_token_provider is not None:
-            assert type(azure_ad_token_provider) == str, "azure_ad_token_provider must be a string"
+            assert isinstance(azure_ad_token_provider, str), "azure_ad_token_provider must be a string"
             import azure.identity
             if azure_ad_token_provider == "DEFAULT":
                 azure_ad_token_provider = "https://cognitiveservices.azure.com/.default"
