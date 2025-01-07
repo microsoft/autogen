@@ -1085,8 +1085,6 @@ class AzureOpenAIChatCompletionClient(
         self._client = _azure_openai_client_from_config(state["_raw_config"])
 
     def _to_config(self) -> AzureOpenAIClientConfigurationConfigModel:
-        from ...auth import AzureTokenProvider
-
         copied_config = self._raw_config.copy()
         if "azure_ad_token_provider" in copied_config:
             if not isinstance(copied_config["azure_ad_token_provider"], AzureTokenProvider):
