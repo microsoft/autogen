@@ -22,20 +22,18 @@ class KnowledgeArchive:
         verbosity: Optional[int] = 0,
         reset: Optional[bool] = False,
         memory_dir: str = "tmp/memory",
-        run_subdir: str = "run1",
         page_log=None,
     ):
         """
         Args:
             - verbosity (Optional, int): 1 to print memory operations, 0 to omit them. 3+ to print memo lists.
             - reset (Optional, bool): True to clear the DB before starting. Default False
-            - memory_dir (Optional, str): path to the directory where all memory data is stored.
-            - run_subdir (Optional, str): name of the subdirectory for this run's memory data.
+            - memory_dir (Optional, str): path to the directory where this run's memory data is stored.
             - page_log (Optional, PageLog): the PageLog object to use for logging.
         """
         memory_dir = os.path.expanduser(memory_dir)
-        path_to_db_dir = os.path.join(memory_dir, run_subdir, "memo_store")
-        self.path_to_dict = os.path.join(memory_dir, run_subdir, "uid_insight_dict.pkl")
+        path_to_db_dir = os.path.join(memory_dir, "memo_store")
+        self.path_to_dict = os.path.join(memory_dir, "uid_insight_dict.pkl")
 
         self.page_log = page_log
         parent_page = self.page_log.last_page()

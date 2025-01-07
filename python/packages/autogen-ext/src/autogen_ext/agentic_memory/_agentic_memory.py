@@ -5,12 +5,11 @@ from ._grader import Grader
 
 
 class AgenticMemory:
-    def __init__(self, reset, client, page_log, memory_dir, run_subdir):
+    def __init__(self, reset, client, page_log, memory_dir):
         self.client = client
         self.page_log = page_log
         self.prompter = Prompter(client, page_log)
-        self.archive = KnowledgeArchive(verbosity=0, reset=reset, memory_dir=memory_dir, run_subdir=run_subdir,
-                                        page_log=page_log)
+        self.archive = KnowledgeArchive(verbosity=0, reset=reset, memory_dir=memory_dir, page_log=page_log)
         self.grader = Grader(client, page_log)
 
     async def train_on_task(self,

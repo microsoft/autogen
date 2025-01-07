@@ -80,7 +80,7 @@ class Page:
         # Remove every character from the string 'description' that is not alphanumeric or a space.
         description = ''.join(e for e in description if e.isalnum() or e.isspace())
         target_image_filename = (str(self.page_log.get_next_page_id()) + ' - ' + description)
-        local_image_path = os.path.join(self.page_log.run_dir_path, target_image_filename)
+        local_image_path = os.path.join(self.page_log.log_dir, target_image_filename)
         shutil.copyfile(source_image_path, local_image_path)
         self.add_lines('\n' + description)
         self.add_lines(self.link_to_image(target_image_filename, description), flush=True)
@@ -90,7 +90,7 @@ class Page:
             self.lines.pop()
 
     def flush(self):
-        page_path = os.path.join(self.page_log.run_dir_path, self.index_str + ".html")
+        page_path = os.path.join(self.page_log.log_dir, self.index_str + ".html")
         with open(page_path, "w") as f:
             f.write(self.page_log.html_opening(self.file_title, final=self.final))
             f.write(f"<h3>{self.file_title}</h3>\n")
@@ -106,15 +106,13 @@ class Page:
 
 
 class PageLog:
-    def __init__(self, path, run_id):
-        self.log_dir = os.path.expanduser(path)
-        self.run_id = run_id
+    def __init__(self, settings):
+        self.log_dir = os.path.expanduser(settings["path"])
         self.page_stack = PageStack()
         self.pages = []
         self.last_page_id = 0
         self.entry_lines = []
         self.exit_lines = []
-        self.run_dir_path = None
         self.name = "0 Overview"
         self.create_run_dir()
         self.token_counts_path = self.create_token_counts_file()
@@ -125,14 +123,13 @@ class PageLog:
         return self.last_page_id
 
     def create_run_dir(self):
-        # Create a fresh run directory.
-        self.run_dir_path = os.path.join(self.log_dir, f"{self.run_id}")
-        if os.path.exists(self.run_dir_path):
-            shutil.rmtree(self.run_dir_path)
-        os.makedirs(self.run_dir_path)
+        # Create a fresh log directory.
+        if os.path.exists(self.log_dir):
+            shutil.rmtree(self.log_dir)
+        os.makedirs(self.log_dir)
 
     def create_token_counts_file(self):
-        token_counts_path = os.path.join(self.run_dir_path, "token_counts.csv")
+        token_counts_path = os.path.join(self.log_dir, "token_counts.csv")
         f = open(token_counts_path, "w")
         f.close()  # The file starts empty and will be appended to later.
         return token_counts_path
@@ -141,10 +138,6 @@ class PageLog:
         # Write the number of input tokens to the file, with caller and path to other details.
         with open(self.token_counts_path, "a") as f:
             f.write(f"{num_input_tokens},{caller},{details_path}\n")
-
-    def num_subdirectories(self):
-        # Return the number of subdirectories in the log directory.
-        return len([name for name in os.listdir(self.log_dir) if os.path.isdir(os.path.join(self.log_dir, name))])
 
     def html_opening(self, file_title, final=False):
         # Return the opening text of a simple HTML file.
@@ -225,7 +218,7 @@ class PageLog:
                 elif isinstance(item, Image):
                     # Save the image to disk.
                     image_filename = str(self.get_next_page_id()) + " image.jpg"
-                    image_path = os.path.join(self.run_dir_path, image_filename)
+                    image_path = os.path.join(self.log_dir, image_filename)
                     item.image.save(image_path)
                     # Add a link to the image.
                     content_list.append(page.link_to_image(image_filename, "message_image"))
@@ -316,7 +309,7 @@ class PageLog:
 
     def flush(self, final=False):
         # Create an overview of the log.
-        overview_path = os.path.join(self.run_dir_path, self.name + ".html")
+        overview_path = os.path.join(self.log_dir, self.name + ".html")
         with open(overview_path, "w") as f:
             f.write(self.html_opening("0 Overview", final=final))
             f.write(f"<h3>{self.name}</h3>\n")

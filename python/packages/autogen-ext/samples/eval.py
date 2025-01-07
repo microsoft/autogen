@@ -70,13 +70,13 @@ In the afternoon, you go from house to house, speaking with all 100 residents of
 
 
 async def train(task_with_answer, max_train_trials, max_test_trials, task_assignment_callback, reset_memory,
-                client, page_log, memory_dir, run_subdir) -> None:
+                client, page_log, memory_dir) -> None:
     page = page_log.begin_page(
         summary="train",
         details='',
         method_call="train")
     memory = AgenticMemory(reset=reset_memory, client=client, page_log=page_log,
-                           memory_dir=memory_dir, run_subdir=run_subdir)
+                           memory_dir=memory_dir)
     await memory.train_on_task(
         task=task_with_answer["task"],
         expected_answer=task_with_answer["expected_answer"],
@@ -88,7 +88,7 @@ async def train(task_with_answer, max_train_trials, max_test_trials, task_assign
 
 
 async def test(task_with_answer, num_trials, task_assignment_callback, use_memory, reset_memory,
-               client, page_log, memory_dir, run_subdir) -> Tuple[str, int, int]:
+               client, page_log, memory_dir) -> Tuple[str, int, int]:
     page = page_log.begin_page(
         summary="test",
         details='',
@@ -99,7 +99,7 @@ async def test(task_with_answer, num_trials, task_assignment_callback, use_memor
     if use_memory:
         page.add_lines("Testing with memory.\n", flush=True)
         memory = AgenticMemory(reset=reset_memory, client=client, page_log=page_log,
-                               memory_dir=memory_dir, run_subdir=run_subdir)
+                               memory_dir=memory_dir)
         response, num_successes, num_trials = await memory.test_on_task(
             task=task_with_answer["task"],
             expected_answer=task_with_answer["expected_answer"],
@@ -129,7 +129,7 @@ async def test(task_with_answer, num_trials, task_assignment_callback, use_memor
     return response, num_successes, num_trials
 
 
-async def test_on_task_with_memory(task_index, task_assignment_callback, client, page_log, memory_dir, run_subdir,
+async def test_on_task_with_memory(task_index, task_assignment_callback, client, page_log, memory_dir,
                                    num_trials, reset_memory):
     last_response, num_successes, num_trials = await test(
         task_with_answer=define_tasks_with_answers()[task_index],
@@ -139,13 +139,12 @@ async def test_on_task_with_memory(task_index, task_assignment_callback, client,
         reset_memory=reset_memory,
         client=client,
         page_log=page_log,
-        memory_dir=memory_dir,
-        run_subdir=run_subdir)
+        memory_dir=memory_dir)
     print("SUCCESS RATE:  {}%\n".format(round((num_successes / num_trials) * 100)))
     return num_successes, num_trials
 
 
-async def test_on_task(task_index, task_assignment_callback, client, page_log, memory_dir, run_subdir, num_trials):
+async def test_on_task(task_index, task_assignment_callback, client, page_log, memory_dir, num_trials):
     last_response, num_successes, num_trials = await test(
         task_with_answer=define_tasks_with_answers()[task_index],
         num_trials=num_trials,
@@ -154,14 +153,13 @@ async def test_on_task(task_index, task_assignment_callback, client, page_log, m
         reset_memory=False,
         client=client,
         page_log=page_log,
-        memory_dir=memory_dir,
-        run_subdir=run_subdir)
+        memory_dir=memory_dir)
     print("SUCCESS RATE:  {}%\n".format(round((num_successes / num_trials) * 100)))
     return num_successes, num_trials
 
 
 async def train_and_test(task_index_list, num_loops, max_train_trials, max_test_trials, num_final_test_trials,
-                         task_assignment_callback, client, page_log, memory_dir, run_subdir):
+                         task_assignment_callback, client, page_log, memory_dir):
     page = page_log.begin_page(
         summary="train_and_test",
         details='',
@@ -182,8 +180,7 @@ async def train_and_test(task_index_list, num_loops, max_train_trials, max_test_
             reset_memory=True,
             client=client,
             page_log=page_log,
-            memory_dir=memory_dir,
-            run_subdir=run_subdir)
+            memory_dir=memory_dir)
 
         # Test on all tasks.
         for j, task_with_answer in enumerate(task_with_answer_list):
@@ -195,8 +192,7 @@ async def train_and_test(task_index_list, num_loops, max_train_trials, max_test_
                 reset_memory=False,
                 client=client,
                 page_log=page_log,
-                memory_dir=memory_dir,
-                run_subdir=run_subdir)
+                memory_dir=memory_dir)
             page.add_lines("Success rate ({}):  {}%".format(j, round((num_successes / num_trials) * 100)), flush=True)
             print("SUCCESS RATE ({}):  {}%\n".format(j, round((num_successes / num_trials) * 100)))
             total_num_successes_list[j] += num_successes
@@ -208,7 +204,7 @@ async def train_and_test(task_index_list, num_loops, max_train_trials, max_test_
     return total_num_successes_list, total_num_trials
 
 
-async def test_without_memory(task_assignment_callback, client, page_log, memory_dir, run_subdir):
+async def test_without_memory(task_assignment_callback, client, page_log, memory_dir):
     page = page_log.begin_page(
         summary="test_without_memory",
         details='',
@@ -218,7 +214,7 @@ async def test_without_memory(task_assignment_callback, client, page_log, memory
     num_trials = 20
 
     num_successes, num_trials = await test_on_task(task_index, task_assignment_callback, client, page_log,
-                                                   memory_dir, run_subdir, num_trials)
+                                                   memory_dir, num_trials)
 
     success_rate = round((num_successes / num_trials) * 100)
     page.add_lines("\nOverall success rate:  {}%\n".format(success_rate), flush=True)
@@ -226,7 +222,7 @@ async def test_without_memory(task_assignment_callback, client, page_log, memory
     page_log.finish_page(page)
 
 
-async def test_with_memory(task_assignment_callback, client, page_log, memory_dir, run_subdir):
+async def test_with_memory(task_assignment_callback, client, page_log, memory_dir):
     page = page_log.begin_page(
         summary="test_with_memory",
         details='',
@@ -235,7 +231,7 @@ async def test_with_memory(task_assignment_callback, client, page_log, memory_di
     task_index = 3
 
     num_successes, num_trials = await test_on_task_with_memory(task_index, task_assignment_callback, client, page_log,
-                                                               memory_dir=memory_dir, run_subdir=run_subdir,
+                                                               memory_dir=memory_dir,
                                                                num_trials=3, reset_memory=False)
     success_rate = round((num_successes / num_trials) * 100)
     page.add_lines("\nOverall success rate:  {}%\n".format(success_rate), flush=True)
@@ -243,7 +239,7 @@ async def test_with_memory(task_assignment_callback, client, page_log, memory_di
     page_log.finish_page(page)
 
 
-async def send_message_to_agent(text, task_assignment_callback, client, page_log, memory_dir, run_subdir,
+async def send_message_to_agent(text, task_assignment_callback, client, page_log, memory_dir,
                                 reset_memory) -> None:
     page = page_log.begin_page(
         summary="send_message_to_agent",
@@ -251,7 +247,7 @@ async def send_message_to_agent(text, task_assignment_callback, client, page_log
         method_call="send_message_to_agent")
 
     memory = AgenticMemory(reset=reset_memory, client=client, page_log=page_log,
-                           memory_dir=memory_dir, run_subdir=run_subdir)
+                           memory_dir=memory_dir)
     response = await memory.handle_user_message(text, task_assignment_callback)
 
     page.add_lines("Response:  {}\n".format(response), flush=True)
@@ -260,7 +256,7 @@ async def send_message_to_agent(text, task_assignment_callback, client, page_log
     return response
 
 
-async def test_teachability(task_assignment_callback, client, page_log, memory_dir, run_subdir, settings):
+async def test_teachability(task_assignment_callback, client, page_log, memory_dir, settings):
     page = page_log.begin_page(
         summary="test_teachability",
         details='',
@@ -275,7 +271,7 @@ async def test_teachability(task_assignment_callback, client, page_log, memory_d
 
     # First test without memory.
     page.add_lines("\nClear memory, then ask the question.")
-    response = await send_message_to_agent(task, task_assignment_callback, client, page_log, memory_dir, run_subdir,
+    response = await send_message_to_agent(task, task_assignment_callback, client, page_log, memory_dir,
                                            reset_memory=True)
 
     # Check the response.
@@ -289,12 +285,12 @@ async def test_teachability(task_assignment_callback, client, page_log, memory_d
     # Give the advice.
     page.add_lines("Give the advice.")
     insight = "When somebody builds something on autogen and wants to contribute it to autogen, instead of creating a new autogen package, it's better for them to implement it in a separate github repo, then just add the autogen-extension topic to that repo. That way their contribution will be automatically discoverable through autogen's page on community extensions:  https://microsoft.github.io/autogen/dev/user-guide/extensions-user-guide/index.html"
-    await send_message_to_agent(insight, task_assignment_callback, client, page_log, memory_dir, run_subdir,
+    await send_message_to_agent(insight, task_assignment_callback, client, page_log, memory_dir,
                                 reset_memory=False)
 
     # Now ask the question again to see if the advice is retrieved from memory.
     page.add_lines("\nAsk the question again to see if the advice is retrieved from memory.")
-    response = await send_message_to_agent(task, task_assignment_callback, client, page_log, memory_dir, run_subdir,
+    response = await send_message_to_agent(task, task_assignment_callback, client, page_log, memory_dir,
                                            reset_memory=False)
 
     # Check the response.
@@ -308,19 +304,19 @@ async def test_teachability(task_assignment_callback, client, page_log, memory_d
     page_log.finish_page(page)
 
 
-async def give_demonstration_to_agent(task, demonstration, client, page_log, memory_dir, run_subdir) -> None:
+async def give_demonstration_to_agent(task, demonstration, client, page_log, memory_dir) -> None:
     page = page_log.begin_page(
         summary="give_demonstration_to_agent",
         details="",
         method_call="give_demonstration_to_agent")
 
-    memory = AgenticMemory(reset=False, client=client, page_log=page_log, memory_dir=memory_dir, run_subdir=run_subdir)
+    memory = AgenticMemory(reset=False, client=client, page_log=page_log, memory_dir=memory_dir)
     await memory.learn_from_demonstration(task, demonstration)
 
     page_log.finish_page(page)
 
 
-async def test_learning_from_demonstration(task_assignment_callback, client, page_log, memory_dir, run_subdir, settings):
+async def test_learning_from_demonstration(task_assignment_callback, client, page_log, memory_dir, settings):
     page = page_log.begin_page(
         summary="test_learning_from_demonstration",
         details='',
@@ -332,7 +328,7 @@ async def test_learning_from_demonstration(task_assignment_callback, client, pag
     # First test after clearing memory.
     page.add_lines("To get a baseline, clear memory, then assign the task.")
     num_successes, num_trials = await test_on_task_with_memory(task_index, task_assignment_callback, client, page_log,
-                                                               memory_dir=memory_dir, run_subdir=run_subdir,
+                                                               memory_dir=memory_dir,
                                                                num_trials=num_trials, reset_memory=True)
     success_rate = round((num_successes / num_trials) * 100)
     page.add_lines("\nSuccess rate:  {}%\n".format(success_rate), flush=True)
@@ -341,12 +337,12 @@ async def test_learning_from_demonstration(task_assignment_callback, client, pag
     page.add_lines("Demonstrate a solution to a similar task.")
     demo_task = "You are a telecommunications engineer who wants to build cell phone towers on a stretch of road. Houses are located at mile markers 17, 20, 19, 10, 11, 12, 3, 6. Each cell phone tower can cover houses located next to the road within a 4-mile radius. Find the minimum number of cell phone towers needed to cover all houses next to the road. Your answer should be a positive numerical integer value."
     demonstration = "Sort the houses by location:  3, 6, 10, 11, 12, 17, 19, 20. Then start at one end and place the towers only where absolutely needed. The house at 3 could be served by a tower as far away as mile marker 7, because 3 + 4 = 7, so place a tower at 7. This obviously covers houses up to mile 7. But a coverage radius of 4 miles (in each direction) means a total coverage of 8 miles. So the tower at mile 7 would reach all the way to mile 11, covering the houses at 10 and 11. The next uncovered house would be at mile 12 (not 10), requiring a second tower. It could go at mile 16 (which is 12 + 4) and this tower would reach up to mile 20 (16 + 4), covering the remaining houses. So 2 towers would be enough."
-    await give_demonstration_to_agent(demo_task, demonstration, client, page_log, memory_dir, run_subdir)
+    await give_demonstration_to_agent(demo_task, demonstration, client, page_log, memory_dir)
 
     # Now test again to see if the demonstration (retrieved from memory) helps.
     page.add_lines("Assign the task again to see if the demonstration helps.")
     num_successes, num_trials = await test_on_task_with_memory(task_index, task_assignment_callback, client, page_log,
-                                                               memory_dir=memory_dir, run_subdir=run_subdir,
+                                                               memory_dir=memory_dir,
                                                                num_trials=num_trials, reset_memory=False)
     success_rate = round((num_successes / num_trials) * 100)
     page.add_lines("\nSuccess rate:  {}%\n".format(success_rate), flush=True)
@@ -354,7 +350,7 @@ async def test_learning_from_demonstration(task_assignment_callback, client, pag
     page_log.finish_page(page)
 
 
-async def test_self_teaching(task_assignment_callback, client, page_log, memory_dir, run_subdir, settings):
+async def test_self_teaching(task_assignment_callback, client, page_log, memory_dir, settings):
     page = page_log.begin_page(
         summary="test_self_teaching",
         details='',
@@ -373,8 +369,7 @@ async def test_self_teaching(task_assignment_callback, client, page_log, memory_
         task_assignment_callback=task_assignment_callback,
         client=client,
         page_log=page_log,
-        memory_dir=memory_dir,
-        run_subdir=run_subdir)
+        memory_dir=memory_dir)
 
     for i, total_num_successes in enumerate(total_num_successes_list):
         success_rate = round((total_num_successes / total_num_trials) * 100)
@@ -384,32 +379,24 @@ async def test_self_teaching(task_assignment_callback, client, page_log, memory_
 
 
 class Evaluator:
-    def __init__(self, settings_filepath):
-        # Load the .yaml settings file.
-        with open(settings_filepath, "r") as file:
-            self.settings = yaml.load(file, Loader=yaml.FullLoader)
-            self.pagelog_dir = self.settings["pagelog_dir"]
-            self.memory_dir = self.settings["memory_dir"]
-            self.run_subdir = self.settings["run_subdir"]
-            self.base_agent = self.settings["base_agent"]
-            self.client_settings = self.settings["client"]
+    def __init__(self):
         self.page_log = None
 
-    def create_client(self):
+    def create_client(self, settings):
         client = None
-        provider = self.client_settings["provider"]
+        provider = settings["provider"]
         if provider == "openai":
-            client = self.create_oai_client()
+            client = self.create_oai_client(settings)
         elif provider == "azure_openai":
-            client = self.create_aoai_client()
+            client = self.create_aoai_client(settings)
         elif provider == "trapi":
-            client = self.create_trapi_client()
+            client = self.create_trapi_client(settings)
         else:
             assert False, "Invalid client provider"
 
         # Check if the client should be wrapped.
-        if "wrapper" in self.client_settings:
-            wrapper_settings = self.client_settings["wrapper"]
+        if "wrapper" in settings:
+            wrapper_settings = settings["wrapper"]
             if wrapper_settings["enabled"]:
                 # Wrap the client.
                 client = ClientWrapper(
@@ -417,25 +404,25 @@ class Evaluator:
 
         return client
 
-    def create_oai_client(self):
+    def create_oai_client(self, settings):
         # Create an OpenAI client
         model_name = "gpt-4o-2024-08-06"
         client = OpenAIChatCompletionClient(
             model=model_name,
-            api_key=self.client_settings["api_key"],
-            temperature=self.client_settings["temperature"],
-            max_tokens=self.client_settings["max_tokens"],
-            presence_penalty=self.client_settings["presence_penalty"],
-            frequency_penalty=self.client_settings["frequency_penalty"],
-            top_p=self.client_settings["top_p"],
-            max_retries=self.client_settings["max_retries"],
+            api_key=settings["api_key"],
+            temperature=settings["temperature"],
+            max_tokens=settings["max_tokens"],
+            presence_penalty=settings["presence_penalty"],
+            frequency_penalty=settings["frequency_penalty"],
+            top_p=settings["top_p"],
+            max_retries=settings["max_retries"],
         )
         self.page_log.append_entry_line("Client:  {}".format(client._resolved_model))
         self.page_log.append_entry_line("  created through OpenAI directly")
-        self.page_log.append_entry_line("  temperature:  {}".format(self.client_settings["temperature"]))
+        self.page_log.append_entry_line("  temperature:  {}".format(settings["temperature"]))
         return client
 
-    def create_aoai_client(self):
+    def create_aoai_client(self, settings):
         # Create an Azure OpenAI client
         token_provider = get_bearer_token_provider(DefaultAzureCredential(),
                                                    "https://cognitiveservices.azure.com/.default")
@@ -448,19 +435,19 @@ class Evaluator:
             azure_deployment=azure_deployment,
             api_version="2024-06-01",
             model=model,
-            temperature=self.client_settings["temperature"],
-            max_tokens=self.client_settings["max_tokens"],
-            presence_penalty=self.client_settings["presence_penalty"],
-            frequency_penalty=self.client_settings["frequency_penalty"],
-            top_p=self.client_settings["top_p"],
-            max_retries=self.client_settings["max_retries"],
+            temperature=settings["temperature"],
+            max_tokens=settings["max_tokens"],
+            presence_penalty=settings["presence_penalty"],
+            frequency_penalty=settings["frequency_penalty"],
+            top_p=settings["top_p"],
+            max_retries=settings["max_retries"],
         )
         self.page_log.append_entry_line("Client:  {}".format(client._resolved_model))
         self.page_log.append_entry_line("  created through Azure OpenAI")
-        self.page_log.append_entry_line("  temperature:  {}".format(self.client_settings["temperature"]))
+        self.page_log.append_entry_line("  temperature:  {}".format(settings["temperature"]))
         return client
 
-    def create_trapi_client(self):
+    def create_trapi_client(self, settings):
         # Create an Azure OpenAI client through TRAPI
         token_provider = get_bearer_token_provider(ChainedTokenCredential(
             AzureCliCredential(),
@@ -487,16 +474,16 @@ class Evaluator:
             azure_deployment=azure_deployment,
             azure_endpoint=endpoint,
             api_version=api_version,
-            temperature=self.client_settings["temperature"],
-            max_tokens=self.client_settings["max_tokens"],
-            presence_penalty=self.client_settings["presence_penalty"],
-            frequency_penalty=self.client_settings["frequency_penalty"],
-            top_p=self.client_settings["top_p"],
-            max_retries=self.client_settings["max_retries"],
+            temperature=settings["temperature"],
+            max_tokens=settings["max_tokens"],
+            presence_penalty=settings["presence_penalty"],
+            frequency_penalty=settings["frequency_penalty"],
+            top_p=settings["top_p"],
+            max_retries=settings["max_retries"],
         )
         self.page_log.append_entry_line("Client:  {}".format(client._resolved_model))
         self.page_log.append_entry_line("  created through TRAPI")
-        self.page_log.append_entry_line("  temperature:  {}".format(self.client_settings["temperature"]))
+        self.page_log.append_entry_line("  temperature:  {}".format(settings["temperature"]))
         return client
 
     async def assign_task_to_magentic_one(self, task, model_client, page_log) -> Tuple[str, str]:
@@ -575,37 +562,53 @@ In responding to every user message, you follow the same multi-step process give
         page_log.finish_page(page)
         return response_str, work_history
 
-    async def run(self):
-        # Create the PageLog.
-        self.page_log = PageLog(self.settings["pagelog_dir"], self.settings["run_subdir"])
-        page = self.page_log.begin_page(
-            summary="main",
-            details='',
-            method_call="main")
+    async def run(self, settings_filepath):
+        # Load the settings from yaml.
+        with open(settings_filepath, "r") as file:
+            settings = yaml.load(file, Loader=yaml.FullLoader)
+            evaluator_settings = settings["evaluator"]
 
-        # Create the client.
-        client = self.create_client()
+            # Create the PageLog.
+            self.page_log = PageLog(evaluator_settings["pagelog"])
+            page = self.page_log.begin_page(
+                summary="main",
+                details='',
+                method_call="main")
 
-        # Choose the base agent.
-        if self.base_agent == "magentic_one":
-            task_assignment_callback = self.assign_task_to_magentic_one
-        elif self.base_agent == "thin_agent":
-            task_assignment_callback = self.assign_task_to_client
-        else:
-            assert False, "Invalid base agent"
+            # Create the client, which is used by both the apprentice and the evaluator.
+            client = self.create_client(settings["client"])
 
-        # Execute each eval.
-        evals = self.settings["evals"]
-        for ev in evals:
-            eval_function = globals()[ev["name"]]
-            await eval_function(task_assignment_callback, client, self.page_log, self.memory_dir, self.run_subdir, ev)
+            # Configure the apprentice.
+            apprentice_settings = settings["apprentice"]
 
-        if hasattr(client, "finalize"):
-            # The client wrapper needs to be finalized.
-            client.finalize()
+            # Configure the agentic memory controller.
+            agentic_memory_controller_settings = apprentice_settings["agentic_memory_controller"]
+            agentic_memory_bank_settings = agentic_memory_controller_settings["agentic_memory_bank"]
 
-        self.page_log.flush(final=True)  # Finalize the page log
-        self.page_log.finish_page(page)
+            # Configure the agent wrapper.
+            agent_wrapper_settings = apprentice_settings["agent_wrapper"]
+
+            # Configure the base agent.
+            base_agent = agent_wrapper_settings["base_agent"]
+            if base_agent == "magentic_one":
+                task_assignment_callback = self.assign_task_to_magentic_one
+            elif base_agent == "thin_agent":
+                task_assignment_callback = self.assign_task_to_client
+            else:
+                assert False, "Invalid base agent"
+
+            # Execute each eval.
+            memory_path = agentic_memory_bank_settings["path"]
+            for ev in settings["evaluations"]:
+                eval_function = globals()[ev["name"]]
+                await eval_function(task_assignment_callback, client, self.page_log, memory_path, ev)
+
+            if hasattr(client, "finalize"):
+                # If this is a client wrapper, it needs to be finalized.
+                client.finalize()
+
+            self.page_log.flush(final=True)  # Finalize the page log
+            self.page_log.finish_page(page)
 
 
 if __name__ == "__main__":
@@ -613,5 +616,5 @@ if __name__ == "__main__":
     if len(args) != 1:
         print("Usage:  amt.py <path to *.yaml file>")
     else:
-        evaluator = Evaluator(settings_filepath=args[0])
-        asyncio.run(evaluator.run())
+        evaluator = Evaluator()
+        asyncio.run(evaluator.run(settings_filepath=args[0]))
