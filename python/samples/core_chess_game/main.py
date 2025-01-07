@@ -4,26 +4,70 @@ and make moves, and using a group chat manager to orchestrate the conversation."
 
 import argparse
 import asyncio
+import json
 import logging
-from typing import Annotated, Literal
+from typing import Annotated, Any, Dict, List, Literal
 
 from autogen_core import (
     AgentId,
-    AgentInstantiationContext,
     AgentRuntime,
-    DefaultSubscription,
     DefaultTopicId,
+    MessageContext,
+    RoutedAgent,
     SingleThreadedAgentRuntime,
+    default_subscription,
+    message_handler,
 )
-from autogen_core.model_context import BufferedChatCompletionContext
-from autogen_core.models import SystemMessage
-from autogen_core.tools import FunctionTool
+from autogen_core.model_context import BufferedChatCompletionContext, ChatCompletionContext
+from autogen_core.models import AssistantMessage, ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
+from autogen_core.tool_agent import ToolAgent, tool_agent_caller_loop
+from autogen_core.tools import FunctionTool, Tool, ToolSchema
 from chess import BLACK, SQUARE_NAMES, WHITE, Board, Move
 from chess import piece_name as get_piece_name
-from common.agents._chat_completion_agent import ChatCompletionAgent
-from common.patterns._group_chat_manager import GroupChatManager
-from common.types import TextMessage
-from common.utils import get_chat_completion_client_from_envs
+from pydantic import BaseModel
+
+
+class TextMessage(BaseModel):
+    source: str
+    content: str
+
+
+@default_subscription
+class ToolUseAgent(RoutedAgent):
+    def __init__(
+        self,
+        description: str,
+        instructions: str,
+        model_client: ChatCompletionClient,
+        model_context: ChatCompletionContext,
+        tool_schema: List[ToolSchema],
+        tool_agent_type: str,
+    ) -> None:
+        super().__init__(description=description)
+        self._system_messages: List[LLMMessage] = [SystemMessage(content=instructions)]
+        self._model_client = model_client
+        self._tool_schema = tool_schema
+        self._tool_agent_id = AgentId(tool_agent_type, self.id.key)
+        self._model_context = model_context
+
+    @message_handler
+    async def handle_message(self, message: TextMessage, ctx: MessageContext) -> None:
+        # Add the user message to the model context.
+        await self._model_context.add_message(UserMessage(content=message.content, source=message.source))
+        # Run the caller loop to handle tool calls.
+        messages = await tool_agent_caller_loop(
+            self,
+            tool_agent_id=self._tool_agent_id,
+            model_client=self._model_client,
+            input_messages=(await self._model_context.get_messages()),
+            tool_schema=self._tool_schema,
+            cancellation_token=ctx.cancellation_token,
+        )
+        assert isinstance(messages[-1].content, str)
+        # Add the assistant message to the model context.
+        await self._model_context.add_message(AssistantMessage(content=messages[-1].content, source=self.id.type))
+        # Publish the final response.
+        await self.publish_message(TextMessage(content=messages[-1].content, source=self.id.type), DefaultTopicId())
 
 
 def validate_turn(board: Board, player: Literal["white", "black"]) -> None:
@@ -90,29 +134,25 @@ def make_move(
     return f"Moved {piece_name} ({piece_symbol}) from {SQUARE_NAMES[new_move.from_square]} to {SQUARE_NAMES[new_move.to_square]}."
 
 
-async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
+async def chess_game(runtime: AgentRuntime, model_config: Dict[str, Any]) -> None:  # type: ignore
     """Create agents for a chess game and return the group chat."""
 
     # Create the board.
     board = Board()
 
     # Create tools for each player.
-    # @functools.wraps(get_legal_moves)
     def get_legal_moves_black() -> str:
         return get_legal_moves(board, "black")
 
-    # @functools.wraps(get_legal_moves)
     def get_legal_moves_white() -> str:
         return get_legal_moves(board, "white")
 
-    # @functools.wraps(make_move)
     def make_move_black(
         thinking: Annotated[str, "Thinking for the move"],
         move: Annotated[str, "A move in UCI format"],
     ) -> str:
         return make_move(board, "black", thinking, move)
 
-    # @functools.wraps(make_move)
     def make_move_white(
         thinking: Annotated[str, "Thinking for the move"],
         move: Annotated[str, "A move in UCI format"],
@@ -122,7 +162,7 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
     def get_board_text() -> Annotated[str, "The current board state"]:
         return get_board(board)
 
-    black_tools = [
+    black_tools: List[Tool] = [
         FunctionTool(
             get_legal_moves_black,
             name="get_legal_moves",
@@ -140,7 +180,7 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
         ),
     ]
 
-    white_tools = [
+    white_tools: List[Tool] = [
         FunctionTool(
             get_legal_moves_white,
             name="get_legal_moves",
@@ -158,73 +198,59 @@ async def chess_game(runtime: AgentRuntime) -> None:  # type: ignore
         ),
     ]
 
-    await ChatCompletionAgent.register(
+    model_client = ChatCompletionClient.load_component(model_config)
+
+    # Register the agents.
+    await ToolAgent.register(
+        runtime,
+        "ToolAgent",
+        lambda: ToolAgent(description="Tool agent for chess game.", tools=black_tools + white_tools),
+    )
+
+    await ToolUseAgent.register(
         runtime,
         "PlayerBlack",
-        lambda: ChatCompletionAgent(
+        lambda: ToolUseAgent(
             description="Player playing black.",
-            system_messages=[
-                SystemMessage(
-                    content="You are a chess player and you play as black. "
-                    "Use get_legal_moves() to get list of legal moves. "
-                    "Use get_board() to get the current board state. "
-                    "Think about your strategy and call make_move(thinking, move) to make a move."
-                ),
-            ],
+            instructions="You are a chess player and you play as black. "
+            "Use get_legal_moves() to get list of legal moves. "
+            "Use get_board() to get the current board state. "
+            "Think about your strategy and call make_move(thinking, move) to make a move.",
+            model_client=model_client,
             model_context=BufferedChatCompletionContext(buffer_size=10),
-            model_client=get_chat_completion_client_from_envs(model="gpt-4o"),
-            tools=black_tools,
+            tool_schema=[tool.schema for tool in black_tools],
+            tool_agent_type="ToolAgent",
         ),
     )
-    await runtime.add_subscription(DefaultSubscription(agent_type="PlayerBlack"))
 
-    await ChatCompletionAgent.register(
+    await ToolUseAgent.register(
         runtime,
         "PlayerWhite",
-        lambda: ChatCompletionAgent(
+        lambda: ToolUseAgent(
             description="Player playing white.",
-            system_messages=[
-                SystemMessage(
-                    content="You are a chess player and you play as white. "
-                    "Use get_legal_moves() to get list of legal moves. "
-                    "Use get_board() to get the current board state. "
-                    "Think about your strategy and call make_move(thinking, move) to make a move."
-                ),
-            ],
+            instructions="You are a chess player and you play as white. "
+            "Use get_legal_moves() to get list of legal moves. "
+            "Use get_board() to get the current board state. "
+            "Think about your strategy and call make_move(thinking, move) to make a move.",
+            model_client=model_client,
             model_context=BufferedChatCompletionContext(buffer_size=10),
-            model_client=get_chat_completion_client_from_envs(model="gpt-4o"),
-            tools=white_tools,
+            tool_schema=[tool.schema for tool in white_tools],
+            tool_agent_type="ToolAgent",
         ),
     )
-    await runtime.add_subscription(DefaultSubscription(agent_type="PlayerWhite"))
-
-    # Create a group chat manager for the chess game to orchestrate a turn-based
-    # conversation between the two agents.
-    await GroupChatManager.register(
-        runtime,
-        "ChessGame",
-        lambda: GroupChatManager(
-            description="A chess game between two agents.",
-            model_context=BufferedChatCompletionContext(buffer_size=10),
-            participants=[
-                AgentId("PlayerWhite", AgentInstantiationContext.current_agent_id().key),
-                AgentId("PlayerBlack", AgentInstantiationContext.current_agent_id().key),
-            ],  # white goes first
-        ),
-    )
-    await runtime.add_subscription(DefaultSubscription(agent_type="ChessGame"))
 
 
-async def main() -> None:
+async def main(model_config: Dict[str, Any]) -> None:
     """Main Entrypoint."""
     runtime = SingleThreadedAgentRuntime()
-    await chess_game(runtime)
+    await chess_game(runtime, model_config)
     runtime.start()
     # Publish an initial message to trigger the group chat manager to start
     # orchestration.
-    await runtime.publish_message(
+    # Send an initial message to player white to start the game.
+    await runtime.send_message(
         TextMessage(content="Game started.", source="System"),
-        topic_id=DefaultTopicId(),
+        AgentId("PlayerWhite", "default"),
     )
     await runtime.stop_when_idle()
 
@@ -232,6 +258,9 @@ async def main() -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a chess game between two agents.")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging.")
+    parser.add_argument(
+        "--model-config", type=str, help="Path to the model configuration file.", default="model_config.json"
+    )
     args = parser.parse_args()
     if args.verbose:
         logging.basicConfig(level=logging.WARNING)
@@ -239,4 +268,6 @@ if __name__ == "__main__":
         handler = logging.FileHandler("chess_game.log")
         logging.getLogger("autogen_core").addHandler(handler)
 
-    asyncio.run(main())
+    with open(args.model_config, "r") as f:
+        model_config = json.load(f)
+    asyncio.run(main(model_config))
