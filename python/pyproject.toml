@@ -18,7 +18,8 @@ dev = [
     "cookiecutter",
     "poethepoet",
     "tomli",
-    "tomli-w"
+    "tomli-w",
+    "chainlit",
 ]
 
 [tool.uv.workspace]
@@ -70,6 +71,7 @@ disallow_any_unimported = true
 
 [tool.pyright]
 include = ["src", "tests", "samples"]
+exclude = ["samples/core_xlang_hello_python_agent/protos"]
 typeCheckingMode = "strict"
 reportUnnecessaryIsInstance = false
 reportMissingTypeStubs = false
