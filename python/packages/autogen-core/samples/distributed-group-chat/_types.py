@@ -4,7 +4,7 @@ from typing import Dict
 from autogen_core.models import (
     LLMMessage,
 )
-from autogen_ext.models.openai import AzureOpenAIClientConfiguration
+from autogen_ext.models.openai.config import AzureOpenAIClientConfiguration
 from pydantic import BaseModel
 
 
