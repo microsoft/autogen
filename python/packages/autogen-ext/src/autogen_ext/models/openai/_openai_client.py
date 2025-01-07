@@ -50,6 +50,7 @@ from openai import AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
     ChatCompletion,
     ChatCompletionAssistantMessageParam,
+    ChatCompletionContentPartImageParam,
     ChatCompletionContentPartParam,
     ChatCompletionContentPartTextParam,
     ChatCompletionMessageParam,
@@ -155,7 +156,7 @@ def user_message_to_oai(message: UserMessage) -> ChatCompletionUserMessageParam:
             elif isinstance(part, Image):
                 # TODO: support url based images
                 # TODO: support specifying details
-                parts.append(part.to_openai_format())
+                parts.append(cast(ChatCompletionContentPartImageParam, part.to_openai_format()))
             else:
                 raise ValueError(f"Unknown content type: {part}")
         return ChatCompletionUserMessageParam(
