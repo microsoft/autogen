@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // GrpcAgentWorkerHostBuilderExtension.cs
+using System.Diagnostics;
 using Grpc.Core;
 using Grpc.Net.Client.Configuration;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
 namespace Microsoft.AutoGen.Core.Grpc;
 
@@ -43,7 +45,22 @@ public static class GrpcAgentWorkerHostBuilderExtensions
                 channelOptions.ThrowOperationCanceledOnCancellation = true;
             });
         });
+        var assemblies = AppDomain.CurrentDomain.GetAssemblies();
+        builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
         builder.Services.AddSingleton<IAgentWorker, GrpcAgentWorker>();
+        builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<IAgentWorker>());
+        builder.Services.AddKeyedSingleton("AgentsMetadata", (sp, key) =>
+        {
+            return ReflectionHelper.GetAgentsMetadata(assemblies);
+        });
+        builder.Services.AddSingleton((s) => {
+            var worker = s.GetRequiredService<IAgentWorker>();
+            var client = ActivatorUtilities.CreateInstance<Client>(s);
+            Agent.Initialize(worker, client);
+            return client;
+        });
+        builder.Services.AddSingleton(new AgentApplicationBuilder(builder));
+
         return builder;
     }
 }

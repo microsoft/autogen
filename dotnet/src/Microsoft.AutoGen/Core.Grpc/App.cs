@@ -20,7 +20,7 @@ public static class AgentsApp
     {
         builder ??= WebApplication.CreateBuilder();
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-        builder.AddAgentWorker()
+        builder.AddGrpcAgentWorker()
             .AddAgents(agentTypes);
         builder.AddServiceDefaults();
         var app = builder.Build();
