@@ -72,8 +72,8 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageVersion>
     <PackageVersion Include="Microsoft.Orleans.Core.Abstractions" Version="$(MicrosoftOrleans)" />
-    <PackageVersion Include="Microsoft.Orleans.Persistence.Memory" Version="$(MicrosoftOrleans)" />
     <PackageVersion Include="Microsoft.Orleans.Persistence.Cosmos" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.Memory" Version="9.0.1" />
     <PackageVersion Include="Microsoft.Orleans.Reminders" Version="$(MicrosoftOrleans)" />
     <PackageVersion Include="Microsoft.Orleans.Reminders.Cosmos" Version="$(MicrosoftOrleans)" />
     <PackageVersion Include="Microsoft.Orleans.Runtime" Version="$(MicrosoftOrleans)" />
@@ -83,12 +83,14 @@
     <PackageVersion Include="Microsoft.Orleans.Server" Version="$(MicrosoftOrleans)" />
     <PackageVersion Include="Microsoft.Orleans.Streaming" Version="$(MicrosoftOrleans)" />
     <PackageVersion Include="Microsoft.Orleans.Streaming.EventHubs" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.TestingHost" Version="9.0.1" />
     <PackageVersion Include="Microsoft.SemanticKernel" Version="1.29.0" />
     <PackageVersion Include="Microsoft.SemanticKernel.Agents.Core" Version="$(MicrosoftSemanticKernelExperimentalVersion)" />
     <PackageVersion Include="Microsoft.SemanticKernel.Connectors.AzureOpenAI" Version="1.29.0" />
     <PackageVersion Include="Microsoft.SemanticKernel.Connectors.Qdrant" Version="$(MicrosoftSemanticKernelExperimentalVersion)" />
     <PackageVersion Include="Microsoft.SemanticKernel.Plugins.Memory" Version="$(MicrosoftSemanticKernelExperimentalVersion)" />
     <PackageVersion Include="Microsoft.SemanticKernel.Plugins.Web" Version="$(MicrosoftSemanticKernelExperimentalVersion)" />
+    <PackageVersion Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.0" />
     <PackageVersion Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageVersion Include="Octokit" Version="13.0.1" />
     <PackageVersion Include="Octokit.Webhooks.AspNetCore" Version="2.4.1" />
@@ -120,7 +122,10 @@
     <PackageVersion Include="FluentAssertions" Version="6.12.2" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageVersion Include="System.Text.Json" Version="9.0.0" />
+    <PackageVersion Include="Testcontainers" Version="4.1.0" />
+    <PackageVersion Include="Testcontainers.Xunit" Version="4.1.0" />
     <PackageVersion Include="xunit" Version="2.9.2" />
+    <PackageVersion Include="xunit.extensibility.core" Version="2.9.2" />
     <PackageVersion Include="xunit.runner.console" Version="2.9.2" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="2.8.2" />
     <PackageVersion Include="Moq" Version="4.20.72" />

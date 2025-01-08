@@ -2,31 +2,35 @@
 // Program.cs
 
 using Azure.Identity;
-using DevTeam.Backend;
 using DevTeam.Options;
-using Microsoft.AI.DevTeam;
-using Microsoft.AutoGen.Core;
-using Microsoft.AutoGen.Extensions.SemanticKernel;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Options;
+using Microsoft.AutoGen.Core;
 using Octokit.Webhooks;
 using Octokit.Webhooks.AspNetCore;
+using DevTeam.Backend.Services;
+using DevTeam.Backend.Agents;
+using DevTeam.Backend.Agents.ProductManager;
+using DevTeam.Backend.Agents.DeveloperLead;
+using DevTeam.Backend.Agents.Developer;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.ConfigureSemanticKernel();
 
 builder.Services.AddHttpClient();
 builder.Services.AddControllers();
 builder.Services.AddSwaggerGen();
 
-builder.AddAgentWorker(builder.Configuration["AGENT_HOST"]!)
+builder.AddGrpcAgentWorker(builder.Configuration["AGENT_HOST"]!)
+    .AddAgentHost()
     .AddAgent<AzureGenie>(nameof(AzureGenie))
     //.AddAgent<Sandbox>(nameof(Sandbox))
-    .AddAgent<Hubber>(nameof(Hubber));
+    .AddAgent<Hubber>(nameof(Hubber))
+    .AddAgent<Dev>(nameof(Dev))
+    .AddAgent<ProductManager>(nameof(ProductManager))
+    .AddAgent<DeveloperLead>(nameof(DeveloperLead));
 
-builder.Services.AddSingleton<AgentWorker>();
 builder.Services.AddSingleton<WebhookEventProcessor, GithubWebHookProcessor>();
 builder.Services.AddSingleton<GithubAuthService>();
 builder.Services.AddSingleton<IManageAzure, AzureService>();
