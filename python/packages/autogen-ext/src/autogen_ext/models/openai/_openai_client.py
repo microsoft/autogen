@@ -907,52 +907,79 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
     for additional model clients.
 
     Args:
-        model (str): The model to use. **Required.**
-        api_key (str): The API key to use. **Required if 'OPENAI_API_KEY' is not found in the environment variables.**
-        timeout (optional, int): The timeout for the request in seconds.
-        max_retries (optional, int): The maximum number of retries to attempt.
-        organization_id (optional, str): The organization ID to use.
+        model (str): Which OpenAI model to use.
+        api_key (optional, str): The API key to use. **Required if 'OPENAI_API_KEY' is not found in the environment variables.**
+        organization (optional, str): The organization ID to use.
         base_url (optional, str): The base URL to use. **Required if the model is not hosted on OpenAI.**
-        model_capabilities (optional, ModelCapabilities): The capabilities of the model. **Required if the model name is not a valid OpenAI model.**
+        timeout: (optional, float): The timeout for the request in seconds.
+        max_retries (optional, int): The maximum number of retries to attempt.
+        model_info (optional, ModelInfo): The capabilities of the model. **Required if the model name is not a valid OpenAI model.**
+        frequency_penalty (optional, float):
+        logit_bias: (optional, dict[str, int]):
+        max_tokens (optional, int):
+        n (optional, int):
+        presence_penalty (optional, float):
+        response_format (optional, literal["json_object", "text"]):
+        seed (optional, int):
+        stop (optional, str | List[str]):
+        temperature (optional, float):
+        top_p (optional, float):
+        user (optional, str):
+
 
     To use this client, you must install the `openai` extension:
 
-        .. code-block:: bash
+    .. code-block:: bash
 
-            pip install "autogen-ext[openai]==0.4.0.dev13"
+        pip install "autogen-ext[openai]==0.4.0.dev13"
 
     The following code snippet shows how to use the client with an OpenAI model:
 
-        .. code-block:: python
+    .. code-block:: python
 
-            from autogen_ext.models.openai import OpenAIChatCompletionClient
-            from autogen_core.models import UserMessage
+        from autogen_ext.models.openai import OpenAIChatCompletionClient
+        from autogen_core.models import UserMessage
 
-            openai_client = OpenAIChatCompletionClient(
-                model="gpt-4o-2024-08-06",
-                # api_key="sk-...", # Optional if you have an OPENAI_API_KEY environment variable set.
-            )
+        openai_client = OpenAIChatCompletionClient(
+            model="gpt-4o-2024-08-06",
+            # api_key="sk-...", # Optional if you have an OPENAI_API_KEY environment variable set.
+        )
 
-            result = await openai_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
-            print(result)
+        result = await openai_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
+        print(result)
 
 
     To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model capabilities:
 
-        .. code-block:: python
+    .. code-block:: python
 
-            from autogen_ext.models.openai import OpenAIChatCompletionClient
+        from autogen_ext.models.openai import OpenAIChatCompletionClient
 
-            custom_model_client = OpenAIChatCompletionClient(
-                model="custom-model-name",
-                base_url="https://custom-model.com/reset/of/the/path",
-                api_key="placeholder",
-                model_capabilities={
-                    "vision": True,
-                    "function_calling": True,
-                    "json_output": True,
-                },
-            )
+        custom_model_client = OpenAIChatCompletionClient(
+            model="custom-model-name",
+            base_url="https://custom-model.com/reset/of/the/path",
+            api_key="placeholder",
+            model_capabilities={
+                "vision": True,
+                "function_calling": True,
+                "json_output": True,
+            },
+        )
+
+    To load the client from a configuration, you can use the `load_component` method:
+
+    .. code-block:: python
+
+        from autogen_core.models import ChatCompletionClient
+
+        config = {
+            "provider": "OpenAIChatCompletionClient",
+            "config": {"model": "gpt-4o", "api_key": "REPLACE_WITH_YOUR_API_KEY"},
+        }
+
+        client = ChatCompletionClient.load_component(config)
+
+    To view the full list of available configuration options, see the :py:class:`OpenAIClientConfigurationConfigModel` class.
 
     """
 
@@ -1007,15 +1034,29 @@ class AzureOpenAIChatCompletionClient(
     """Chat completion client for Azure OpenAI hosted models.
 
     Args:
+
+        model (str): Which OpenAI model to use.
         azure_endpoint (str): The endpoint for the Azure model. **Required for Azure models.**
-        model (str): The deployment ID for the Azure model. **Required for Azure models.**
+        azure_deployment (str): Deployment name for the Azure model. **Required for Azure models.**
         api_version (str): The API version to use. **Required for Azure models.**
         azure_ad_token (str): The Azure AD token to use. Provide this or `azure_ad_token_provider` for token-based authentication.
-        azure_ad_token_provider (Callable[[], Awaitable[str]]): The Azure AD token provider to use. Provide this or `azure_ad_token` for token-based authentication.
-        model_capabilities (ModelCapabilities): The capabilities of the model if default resolved values are not correct.
+        azure_ad_token_provider (optional, Callable[[], Awaitable[str]] | AzureTokenProvider): The Azure AD token provider to use. Provide this or `azure_ad_token` for token-based authentication.
         api_key (optional, str): The API key to use, use this if you are using key based authentication. It is optional if you are using Azure AD token based authentication or `AZURE_OPENAI_API_KEY` environment variable.
-        timeout (optional, int): The timeout for the request in seconds.
+        timeout: (optional, float): The timeout for the request in seconds.
         max_retries (optional, int): The maximum number of retries to attempt.
+        model_info (optional, ModelInfo): The capabilities of the model. **Required if the model name is not a valid OpenAI model.**
+        frequency_penalty (optional, float):
+        logit_bias: (optional, dict[str, int]):
+        max_tokens (optional, int):
+        n (optional, int):
+        presence_penalty (optional, float):
+        response_format (optional, literal["json_object", "text"]):
+        seed (optional, int):
+        stop (optional, str | List[str]):
+        temperature (optional, float):
+        top_p (optional, float):
+        user (optional, str):
+
 
     To use this client, you must install the `azure` and `openai` extensions:
 
@@ -1046,6 +1087,39 @@ class AzureOpenAIChatCompletionClient(
                 azure_ad_token_provider=token_provider,  # Optional if you choose key-based authentication.
                 # api_key="sk-...", # For key-based authentication. `AZURE_OPENAI_API_KEY` environment variable can also be used instead.
             )
+
+    To load the client that uses identity based aith from a configuration, you can use the `load_component` method:
+
+    .. code-block:: python
+
+        from autogen_core.models import ChatCompletionClient
+
+        config = {
+            "provider": "AzureOpenAIChatCompletionClient",
+            "config": {
+                "model": "gpt-4o-2024-05-13",
+                "azure_endpoint": "https://{your-custom-endpoint}.openai.azure.com/",
+                "azure_deployment": "{your-azure-deployment}",
+                "api_version": "2024-06-01",
+                "azure_ad_token_provider": {
+                    "provider": "autogen_ext.models.openai.AzureTokenProvider",
+                    "config": {
+                        "provider_kind": "DefaultAzureCredential",
+                        "scopes": ["https://cognitiveservices.azure.com/.default"],
+                    },
+                },
+            },
+        }
+
+        client = ChatCompletionClient.load_component(config)
+
+
+    To view the full list of available configuration options, see the :py:class:`AzureOpenAIClientConfigurationConfigModel` class.
+
+
+    .. note::
+
+        Right now only `DefaultAzureCredential` is supported with no additional args passed to it.
 
     See `here <https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/managed-identity#chat-completions>`_ for how to use the Azure client directly or for more info.
 
