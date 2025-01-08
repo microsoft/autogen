@@ -2,9 +2,10 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Protocol, Union, runtime_checkable
 
-from autogen_core import CancellationToken, Image
-from autogen_core.model_context import ChatCompletionContext
-from pydantic import BaseModel, ConfigDict, Field
+from .._cancellation_token import CancellationToken
+from ..model_context import ChatCompletionContext
+from .._image import Image
+from pydantic import BaseModel, ConfigDict
 
 
 class MemoryMimeType(Enum):
@@ -31,15 +32,6 @@ class MemoryContent(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class BaseMemoryConfig(BaseModel):
-    """Base configuration for memory implementations."""
-
-    k: int = Field(default=5, description="Number of results to return")
-    score_threshold: float | None = Field(default=None, description="Minimum relevance score")
-
-    model_config = ConfigDict(arbitrary_types_allowed=True)
-
-
 @runtime_checkable
 class Memory(Protocol):
     """Protocol defining the interface for memory implementations."""
@@ -49,20 +41,15 @@ class Memory(Protocol):
         """The name of this memory implementation."""
         ...
 
-    @property
-    def config(self) -> BaseMemoryConfig:
-        """The configuration for this memory implementation."""
-        ...
-
-    async def transform(
+    async def update_context(
         self,
         model_context: ChatCompletionContext,
     ) -> List[MemoryContent]:
         """
-        Transform the provided model context using relevant memory content.
+        Update the provided model context using relevant memory content.
 
         Args:
-            model_context: The context to transform
+            model_context: The context to update.
 
         Returns:
             List of memory entries with relevance scores
@@ -72,7 +59,7 @@ class Memory(Protocol):
     async def query(
         self,
         query: MemoryContent,
-        cancellation_token: "CancellationToken | None" = None,
+        cancellation_token: CancellationToken | None = None,
         **kwargs: Any,
     ) -> List[MemoryContent]:
         """
@@ -88,7 +75,7 @@ class Memory(Protocol):
         """
         ...
 
-    async def add(self, content: MemoryContent, cancellation_token: "CancellationToken | None" = None) -> None:
+    async def add(self, content: MemoryContent, cancellation_token: CancellationToken | None = None) -> None:
         """
         Add a new content to memory.
 
@@ -102,6 +89,6 @@ class Memory(Protocol):
         """Clear all entries from memory."""
         ...
 
-    async def cleanup(self) -> None:
+    async def close(self) -> None:
         """Clean up any resources used by the memory implementation."""
         ...

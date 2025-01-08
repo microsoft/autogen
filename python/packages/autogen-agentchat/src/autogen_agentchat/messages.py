@@ -12,7 +12,7 @@ from autogen_core.models import FunctionExecutionResult, RequestUsage
 from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import Annotated, deprecated
 
-from autogen_agentchat.memory import MemoryContent
+from autogen_core.memory import MemoryContent
 
 
 class BaseMessage(BaseModel, ABC):
@@ -135,12 +135,14 @@ class MemoryQueryEvent(BaseAgentEvent):
 
 
 ChatMessage = Annotated[
-    TextMessage | MultiModalMessage | StopMessage | ToolCallSummaryMessage | HandoffMessage, Field(discriminator="type")
+    TextMessage | MultiModalMessage | StopMessage | ToolCallSummaryMessage | HandoffMessage, Field(
+        discriminator="type")
 ]
 """Messages for agent-to-agent communication only."""
 
 
-AgentEvent = Annotated[ToolCallRequestEvent | ToolCallExecutionEvent | MemoryQueryEvent, Field(discriminator="type")]
+AgentEvent = Annotated[ToolCallRequestEvent | ToolCallExecutionEvent |
+                       MemoryQueryEvent, Field(discriminator="type")]
 """Events emitted by agents and teams when they work, not used for agent-to-agent communication."""
 
 

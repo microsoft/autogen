@@ -7,7 +7,7 @@ import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base import Handoff, TaskResult
-from autogen_agentchat.memory import Memory, ListMemory, MemoryContent, MemoryMimeType
+from autogen_core.memory import Memory, ListMemory, MemoryContent, MemoryMimeType
 from autogen_agentchat.messages import (
     ChatMessage,
     HandoffMessage,
@@ -97,7 +97,8 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
             created=0,
             model=model,
             object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
+            usage=CompletionUsage(
+                prompt_tokens=10, completion_tokens=5, total_tokens=0),
         ),
         ChatCompletion(
             id="id2",
@@ -105,13 +106,15 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
                 Choice(
                     finish_reason="stop",
                     index=0,
-                    message=ChatCompletionMessage(content="pass", role="assistant"),
+                    message=ChatCompletionMessage(
+                        content="pass", role="assistant"),
                 )
             ],
             created=0,
             model=model,
             object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
+            usage=CompletionUsage(
+                prompt_tokens=10, completion_tokens=5, total_tokens=0),
         ),
         ChatCompletion(
             id="id2",
@@ -119,13 +122,15 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
                 Choice(
                     finish_reason="stop",
                     index=0,
-                    message=ChatCompletionMessage(content="TERMINATE", role="assistant"),
+                    message=ChatCompletionMessage(
+                        content="TERMINATE", role="assistant"),
                 )
             ],
             created=0,
             model=model,
             object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
+            usage=CompletionUsage(
+                prompt_tokens=10, completion_tokens=5, total_tokens=0),
         ),
     ]
     mock = _MockChatCompletion(chat_completions)
@@ -169,7 +174,8 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     agent2 = AssistantAgent(
         "tool_use_agent",
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),
-        tools=[_pass_function, _fail_function, FunctionTool(_echo_function, description="Echo")],
+        tools=[_pass_function, _fail_function, FunctionTool(
+            _echo_function, description="Echo")],
     )
     await agent2.load_state(state)
     state2 = await agent2.save_state()
@@ -205,17 +211,20 @@ async def test_run_with_tools_and_reflection(monkeypatch: pytest.MonkeyPatch) ->
             created=0,
             model=model,
             object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
+            usage=CompletionUsage(
+                prompt_tokens=10, completion_tokens=5, total_tokens=0),
         ),
         ChatCompletion(
             id="id2",
             choices=[
-                Choice(finish_reason="stop", index=0, message=ChatCompletionMessage(content="Hello", role="assistant"))
+                Choice(finish_reason="stop", index=0, message=ChatCompletionMessage(
+                    content="Hello", role="assistant"))
             ],
             created=0,
             model=model,
             object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
+            usage=CompletionUsage(
+                prompt_tokens=10, completion_tokens=5, total_tokens=0),
         ),
         ChatCompletion(
             id="id2",
@@ -227,7 +236,8 @@ async def test_run_with_tools_and_reflection(monkeypatch: pytest.MonkeyPatch) ->
             created=0,
             model=model,
             object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
+            usage=CompletionUsage(
+                prompt_tokens=10, completion_tokens=5, total_tokens=0),
         ),
     ]
     mock = _MockChatCompletion(chat_completions)
@@ -235,7 +245,8 @@ async def test_run_with_tools_and_reflection(monkeypatch: pytest.MonkeyPatch) ->
     agent = AssistantAgent(
         "tool_use_agent",
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),
-        tools=[_pass_function, _fail_function, FunctionTool(_echo_function, description="Echo")],
+        tools=[_pass_function, _fail_function, FunctionTool(
+            _echo_function, description="Echo")],
         reflect_on_tool_use=True,
     )
     result = await agent.run(task="task")
@@ -311,7 +322,8 @@ async def test_handoffs(monkeypatch: pytest.MonkeyPatch) -> None:
             created=0,
             model=model,
             object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=42, completion_tokens=43, total_tokens=85),
+            usage=CompletionUsage(
+                prompt_tokens=42, completion_tokens=43, total_tokens=85),
         ),
     ]
     mock = _MockChatCompletion(chat_completions)
@@ -363,13 +375,15 @@ async def test_multi_modal_task(monkeypatch: pytest.MonkeyPatch) -> None:
                 Choice(
                     finish_reason="stop",
                     index=0,
-                    message=ChatCompletionMessage(content="Hello", role="assistant"),
+                    message=ChatCompletionMessage(
+                        content="Hello", role="assistant"),
                 )
             ],
             created=0,
             model=model,
             object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
+            usage=CompletionUsage(
+                prompt_tokens=10, completion_tokens=5, total_tokens=0),
         ),
     ]
     mock = _MockChatCompletion(chat_completions)
@@ -390,7 +404,8 @@ async def test_invalid_model_capabilities() -> None:
     model_client = OpenAIChatCompletionClient(
         model=model,
         api_key="",
-        model_info={"vision": False, "function_calling": False, "json_output": False, "family": ModelFamily.UNKNOWN},
+        model_info={"vision": False, "function_calling": False,
+                    "json_output": False, "family": ModelFamily.UNKNOWN},
     )
 
     with pytest.raises(ValueError):
@@ -405,7 +420,8 @@ async def test_invalid_model_capabilities() -> None:
         )
 
     with pytest.raises(ValueError):
-        agent = AssistantAgent(name="assistant", model_client=model_client, handoffs=["agent2"])
+        agent = AssistantAgent(
+            name="assistant", model_client=model_client, handoffs=["agent2"])
 
     with pytest.raises(ValueError):
         agent = AssistantAgent(name="assistant", model_client=model_client)
@@ -424,13 +440,15 @@ async def test_list_chat_messages(monkeypatch: pytest.MonkeyPatch) -> None:
                 Choice(
                     finish_reason="stop",
                     index=0,
-                    message=ChatCompletionMessage(content="Response to message 1", role="assistant"),
+                    message=ChatCompletionMessage(
+                        content="Response to message 1", role="assistant"),
                 )
             ],
             created=0,
             model=model,
             object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            usage=CompletionUsage(
+                prompt_tokens=10, completion_tokens=5, total_tokens=15),
         ),
     ]
     mock = _MockChatCompletion(chat_completions)
@@ -483,13 +501,15 @@ async def test_model_context(monkeypatch: pytest.MonkeyPatch) -> None:
                 Choice(
                     finish_reason="stop",
                     index=0,
-                    message=ChatCompletionMessage(content="Response to message 3", role="assistant"),
+                    message=ChatCompletionMessage(
+                        content="Response to message 3", role="assistant"),
                 )
             ],
             created=0,
             model=model,
             object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+            usage=CompletionUsage(
+                prompt_tokens=10, completion_tokens=5, total_tokens=15),
         ),
     ]
     mock = _MockChatCompletion(chat_completions)
@@ -524,13 +544,15 @@ async def test_run_with_memory(monkeypatch: pytest.MonkeyPatch) -> None:
                 Choice(
                     finish_reason="stop",
                     index=0,
-                    message=ChatCompletionMessage(content="Hello", role="assistant"),
+                    message=ChatCompletionMessage(
+                        content="Hello", role="assistant"),
                 )
             ],
             created=0,
             model=model,
             object="chat.completion",
-            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
+            usage=CompletionUsage(
+                prompt_tokens=10, completion_tokens=5, total_tokens=0),
         ),
     ]
     b64_image_str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
@@ -540,26 +562,21 @@ async def test_run_with_memory(monkeypatch: pytest.MonkeyPatch) -> None:
     # Test basic memory properties and empty context
     memory = ListMemory(name="test_memory")
     assert memory.name == "test_memory"
-    assert memory.config is not None
 
     empty_context = BufferedChatCompletionContext(buffer_size=2)
-    empty_results = await memory.transform(empty_context)
+    empty_results = await memory.update_context(empty_context)
     assert len(empty_results) == 0
 
-    # Test various content types and memory transforms
+    # Test various content types
     memory = ListMemory()
     await memory.add(MemoryContent(content="text content", mime_type=MemoryMimeType.TEXT))
     await memory.add(MemoryContent(content={"key": "value"}, mime_type=MemoryMimeType.JSON))
     await memory.add(MemoryContent(content=Image.from_base64(b64_image_str), mime_type=MemoryMimeType.IMAGE))
 
-    # Invalid query should raise error
-    with pytest.raises(ValueError, match="Query must contain text content"):
-        await memory.query(MemoryContent(content=Image.from_base64(b64_image_str), mime_type=MemoryMimeType.IMAGE))
-
     # Test clear and cleanup
     await memory.clear()
     assert await memory.query(MemoryContent(content="", mime_type=MemoryMimeType.TEXT)) == []
-    await memory.cleanup()  # Should not raise
+    await memory.close()  # Should not raise
 
     # Test invalid memory type
     with pytest.raises(TypeError):
@@ -579,7 +596,8 @@ async def test_run_with_memory(monkeypatch: pytest.MonkeyPatch) -> None:
 
     result = await agent.run(task="test task")
     assert len(result.messages) > 0
-    memory_event = next((msg for msg in result.messages if isinstance(msg, MemoryQueryEvent)), None)
+    memory_event = next(
+        (msg for msg in result.messages if isinstance(msg, MemoryQueryEvent)), None)
     assert memory_event is not None
 
     # Test memory protocol
