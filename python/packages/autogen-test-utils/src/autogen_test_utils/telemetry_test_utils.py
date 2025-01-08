@@ -4,7 +4,7 @@ from opentelemetry.sdk.trace import ReadableSpan, TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor, SpanExporter, SpanExportResult
 
 
-class TestExporter(SpanExporter):
+class MyTestExporter(SpanExporter):
     def __init__(self) -> None:
         self.exported_spans: List[ReadableSpan] = []
 
@@ -24,7 +24,7 @@ class TestExporter(SpanExporter):
         return self.exported_spans
 
 
-def get_test_tracer_provider(exporter: TestExporter) -> TracerProvider:
+def get_test_tracer_provider(exporter: MyTestExporter) -> TracerProvider:
     tracer_provider = TracerProvider()
     tracer_provider.add_span_processor(SimpleSpanProcessor(exporter))
     return tracer_provider

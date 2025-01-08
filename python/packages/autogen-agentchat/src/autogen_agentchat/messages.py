@@ -1,9 +1,10 @@
 """
 This module defines various message types used for agent-to-agent communication.
-Each message type inherits from the BaseMessage class and includes specific fields
-relevant to the type of message being sent.
+Each message type inherits either from the BaseChatMessage class or BaseAgentEvent
+class and includes specific fields relevant to the type of message being sent.
 """
 
+from abc import ABC
 from typing import List, Literal
 
 from autogen_core import FunctionCall, Image
@@ -12,8 +13,8 @@ from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import Annotated
 
 
-class BaseMessage(BaseModel):
-    """A base message."""
+class BaseMessage(BaseModel, ABC):
+    """Base class for all message types."""
 
     source: str
     """The name of the agent that sent this message."""
@@ -24,7 +25,19 @@ class BaseMessage(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
-class TextMessage(BaseMessage):
+class BaseChatMessage(BaseMessage, ABC):
+    """Base class for chat messages."""
+
+    pass
+
+
+class BaseAgentEvent(BaseMessage, ABC):
+    """Base class for agent events."""
+
+    pass
+
+
+class TextMessage(BaseChatMessage):
     """A text message."""
 
     content: str
@@ -33,7 +46,7 @@ class TextMessage(BaseMessage):
     type: Literal["TextMessage"] = "TextMessage"
 
 
-class MultiModalMessage(BaseMessage):
+class MultiModalMessage(BaseChatMessage):
     """A multimodal message."""
 
     content: List[str | Image]
@@ -42,7 +55,7 @@ class MultiModalMessage(BaseMessage):
     type: Literal["MultiModalMessage"] = "MultiModalMessage"
 
 
-class StopMessage(BaseMessage):
+class StopMessage(BaseChatMessage):
     """A message requesting stop of a conversation."""
 
     content: str
@@ -51,7 +64,7 @@ class StopMessage(BaseMessage):
     type: Literal["StopMessage"] = "StopMessage"
 
 
-class HandoffMessage(BaseMessage):
+class HandoffMessage(BaseChatMessage):
     """A message requesting handoff of a conversation to another agent."""
 
     target: str
@@ -63,33 +76,41 @@ class HandoffMessage(BaseMessage):
     type: Literal["HandoffMessage"] = "HandoffMessage"
 
 
-class ToolCallMessage(BaseMessage):
-    """A message signaling the use of tools."""
+class ToolCallRequestEvent(BaseAgentEvent):
+    """An event signaling a request to use tools."""
 
     content: List[FunctionCall]
     """The tool calls."""
 
-    type: Literal["ToolCallMessage"] = "ToolCallMessage"
+    type: Literal["ToolCallRequestEvent"] = "ToolCallRequestEvent"
 
 
-class ToolCallResultMessage(BaseMessage):
-    """A message signaling the results of tool calls."""
+class ToolCallExecutionEvent(BaseAgentEvent):
+    """An event signaling the execution of tool calls."""
 
     content: List[FunctionExecutionResult]
     """The tool call results."""
 
-    type: Literal["ToolCallResultMessage"] = "ToolCallResultMessage"
+    type: Literal["ToolCallExecutionEvent"] = "ToolCallExecutionEvent"
 
 
-ChatMessage = Annotated[TextMessage | MultiModalMessage | StopMessage | HandoffMessage, Field(discriminator="type")]
-"""Messages for agent-to-agent communication."""
+class ToolCallSummaryMessage(BaseChatMessage):
+    """A message signaling the summary of tool call results."""
+
+    content: str
+    """Summary of the the tool call results."""
+
+    type: Literal["ToolCallSummaryMessage"] = "ToolCallSummaryMessage"
 
 
-AgentMessage = Annotated[
-    TextMessage | MultiModalMessage | StopMessage | HandoffMessage | ToolCallMessage | ToolCallResultMessage,
-    Field(discriminator="type"),
+ChatMessage = Annotated[
+    TextMessage | MultiModalMessage | StopMessage | ToolCallSummaryMessage | HandoffMessage, Field(discriminator="type")
 ]
-"""All message types."""
+"""Messages for agent-to-agent communication only."""
+
+
+AgentEvent = Annotated[ToolCallRequestEvent | ToolCallExecutionEvent, Field(discriminator="type")]
+"""Events emitted by agents and teams when they work, not used for agent-to-agent communication."""
 
 
 __all__ = [
@@ -98,8 +119,9 @@ __all__ = [
     "MultiModalMessage",
     "StopMessage",
     "HandoffMessage",
-    "ToolCallMessage",
-    "ToolCallResultMessage",
+    "ToolCallRequestEvent",
+    "ToolCallExecutionEvent",
+    "ToolCallSummaryMessage",
     "ChatMessage",
-    "AgentMessage",
+    "AgentEvent",
 ]

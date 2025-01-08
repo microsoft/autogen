@@ -2,8 +2,9 @@
 // Program.cs
 
 using Hello;
-using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
+using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 
 // send a message to the agent
 var builder = WebApplication.CreateBuilder();
@@ -32,10 +33,10 @@ namespace Hello
 {
     [TopicSubscription("agents")]
     public class HelloAgent(
-        IAgentRuntime context,
+        IAgentWorker worker,
         [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
         IHostApplicationLifetime hostApplicationLifetime) : ConsoleAgent(
-            context,
+            worker,
             typeRegistry),
             ISayHello,
             IHandle<NewMessageReceived>,

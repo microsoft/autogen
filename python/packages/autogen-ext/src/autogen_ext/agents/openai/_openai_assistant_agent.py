@@ -23,14 +23,14 @@ from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
-    AgentMessage,
+    AgentEvent,
     ChatMessage,
     HandoffMessage,
     MultiModalMessage,
     StopMessage,
     TextMessage,
-    ToolCallMessage,
-    ToolCallResultMessage,
+    ToolCallExecutionEvent,
+    ToolCallRequestEvent,
 )
 from autogen_core import CancellationToken, FunctionCall
 from autogen_core.models._types import FunctionExecutionResult
@@ -98,6 +98,13 @@ def _convert_tool_to_function_param(tool: Tool) -> "FunctionToolParam":
 
 class OpenAIAssistantAgent(BaseChatAgent):
     """An agent implementation that uses the OpenAI Assistant API to generate responses.
+
+    Installation:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[openai]==0.4.0.dev13"
+
 
     This agent leverages the OpenAI Assistant API to create AI assistants with capabilities like:
 
@@ -298,9 +305,9 @@ class OpenAIAssistantAgent(BaseChatAgent):
         self._initial_message_ids = initial_message_ids
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         """The types of messages that the assistant agent produces."""
-        return [TextMessage]
+        return (TextMessage,)
 
     @property
     def threads(self) -> AsyncThreads:
@@ -350,7 +357,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
-    ) -> AsyncGenerator[AgentMessage | Response, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         """Handle incoming messages and return a response."""
         await self._ensure_initialized()
 
@@ -362,7 +369,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 await self.handle_text_message(message.content, cancellation_token)
 
         # Inner messages for tool calls
-        inner_messages: List[AgentMessage] = []
+        inner_messages: List[AgentEvent | ChatMessage] = []
 
         # Create and start a run
         run: Run = await cancellation_token.link_future(
@@ -402,7 +409,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
                         )
 
                 # Add tool call message to inner messages
-                tool_call_msg = ToolCallMessage(source=self.name, content=tool_calls)
+                tool_call_msg = ToolCallRequestEvent(source=self.name, content=tool_calls)
                 inner_messages.append(tool_call_msg)
                 event_logger.debug(tool_call_msg)
                 yield tool_call_msg
@@ -414,7 +421,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
                     tool_outputs.append(FunctionExecutionResult(content=result, call_id=tool_call.id))
 
                 # Add tool result message to inner messages
-                tool_result_msg = ToolCallResultMessage(source=self.name, content=tool_outputs)
+                tool_result_msg = ToolCallExecutionEvent(source=self.name, content=tool_outputs)
                 inner_messages.append(tool_result_msg)
                 event_logger.debug(tool_result_msg)
                 yield tool_result_msg

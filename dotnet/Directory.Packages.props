@@ -72,6 +72,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageVersion>
     <PackageVersion Include="Microsoft.Orleans.Core.Abstractions" Version="$(MicrosoftOrleans)" />
+    <PackageVersion Include="Microsoft.Orleans.Persistence.Memory" Version="$(MicrosoftOrleans)" />
     <PackageVersion Include="Microsoft.Orleans.Persistence.Cosmos" Version="$(MicrosoftOrleans)" />
     <PackageVersion Include="Microsoft.Orleans.Reminders" Version="$(MicrosoftOrleans)" />
     <PackageVersion Include="Microsoft.Orleans.Reminders.Cosmos" Version="$(MicrosoftOrleans)" />

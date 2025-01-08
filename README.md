@@ -42,6 +42,7 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+
 ### Why Use AutoGen?
 
 - **Essential building blocks for agents**: AutoGen provides everything you need to create intelligent agents, including tools, LLMs, multi-agent teams, and capabilities like code/tool execution and human-in-the-loop workflows. AutoGen also provides state-of-the-art agents like Magentic-One for top performance and reliability, supports distributed agents and cross-language support in Python and .NET.
@@ -49,7 +50,6 @@ asyncio.run(main())
 - **Rapid prototyping and flexibility**: AutoGen uses a modular, extensible design with clearly divided responsibilities between layers. The Core API implements message passing, event-driven agents, and runtime for flexibility and power, the AgentChat API implements a simpler but opinionated API rapid for prototyping, or the Extensions API enables first- and third-party extensions continuously expanding framework capabilities. Additionally, AutoGen Studio enables a beautiful GUI for no-code agent development.
 
 - **Community and ecosystem**: Join and contribute to a thriving ecosystem. We host weekly office hours and talks with maintainers and community. We also have a Discord server for real-time chat, GitHub Discussions for Q&A, and a blog for tutorials and updates.
-
 
 ## Where to go next?
 

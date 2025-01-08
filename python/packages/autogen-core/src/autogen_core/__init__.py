@@ -12,6 +12,13 @@ from ._agent_type import AgentType
 from ._base_agent import BaseAgent
 from ._cancellation_token import CancellationToken
 from ._closure_agent import ClosureAgent, ClosureContext
+from ._component_config import (
+    Component,
+    ComponentConfigImpl,
+    ComponentLoader,
+    ComponentModel,
+    ComponentType,
+)
 from ._constants import (
     EVENT_LOGGER_NAME as EVENT_LOGGER_NAME_ALIAS,
 )
@@ -24,6 +31,11 @@ from ._constants import (
 from ._default_subscription import DefaultSubscription, default_subscription, type_subscription
 from ._default_topic import DefaultTopicId
 from ._image import Image
+from ._intervention import (
+    DefaultInterventionHandler,
+    DropMessage,
+    InterventionHandler,
+)
 from ._message_context import MessageContext
 from ._message_handler_context import MessageHandlerContext
 from ._routed_agent import RoutedAgent, event, message_handler, rpc
@@ -99,4 +111,12 @@ __all__ = [
     "ROOT_LOGGER_NAME",
     "EVENT_LOGGER_NAME",
     "TRACE_LOGGER_NAME",
+    "Component",
+    "ComponentLoader",
+    "ComponentConfigImpl",
+    "ComponentModel",
+    "ComponentType",
+    "DropMessage",
+    "InterventionHandler",
+    "DefaultInterventionHandler",
 ]

@@ -72,9 +72,20 @@ async def test_society_of_mind_agent(monkeypatch: pytest.MonkeyPatch) -> None:
     inner_team = RoundRobinGroupChat([agent1, agent2], termination_condition=inner_termination)
     society_of_mind_agent = SocietyOfMindAgent("society_of_mind", team=inner_team, model_client=model_client)
     response = await society_of_mind_agent.run(task="Count to 10.")
-    assert len(response.messages) == 5
+    assert len(response.messages) == 4
     assert response.messages[0].source == "user"
-    assert response.messages[1].source == "user"
-    assert response.messages[2].source == "assistant1"
-    assert response.messages[3].source == "assistant2"
-    assert response.messages[4].source == "society_of_mind"
+    assert response.messages[1].source == "assistant1"
+    assert response.messages[2].source == "assistant2"
+    assert response.messages[3].source == "society_of_mind"
+
+    # Test save and load state.
+    state = await society_of_mind_agent.save_state()
+    assert state is not None
+    agent1 = AssistantAgent("assistant1", model_client=model_client, system_message="You are a helpful assistant.")
+    agent2 = AssistantAgent("assistant2", model_client=model_client, system_message="You are a helpful assistant.")
+    inner_termination = MaxMessageTermination(3)
+    inner_team = RoundRobinGroupChat([agent1, agent2], termination_condition=inner_termination)
+    society_of_mind_agent2 = SocietyOfMindAgent("society_of_mind", team=inner_team, model_client=model_client)
+    await society_of_mind_agent2.load_state(state)
+    state2 = await society_of_mind_agent2.save_state()
+    assert state == state2

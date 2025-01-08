@@ -9,7 +9,7 @@ from autogen_core.tools import BaseTool
 from pydantic import BaseModel, Field, create_model
 
 if TYPE_CHECKING:
-    from langchain_core.tools import Tool as LangChainTool
+    from langchain_core.tools import BaseTool as LangChainTool
 
 
 class LangChainToolAdapter(BaseTool[BaseModel, Any]):
@@ -22,6 +22,44 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
 
     Args:
         langchain_tool (LangChainTool): A LangChain tool to wrap
+
+    Examples:
+
+    Use the `PythonAstREPLTool` from the `langchain_experimental` package to
+    create a tool that allows you to interact with a Pandas DataFrame.
+
+        .. code-block:: python
+
+            import asyncio
+            import pandas as pd
+            from langchain_experimental.tools.python.tool import PythonAstREPLTool
+            from autogen_ext.tools.langchain import LangChainToolAdapter
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_agentchat.messages import TextMessage
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.ui import Console
+            from autogen_core import CancellationToken
+
+
+            async def main() -> None:
+                df = pd.read_csv("https://raw.githubusercontent.com/pandas-dev/pandas/main/doc/data/titanic.csv")  # type: ignore
+                tool = LangChainToolAdapter(PythonAstREPLTool(locals={"df": df}))
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+                agent = AssistantAgent(
+                    "assistant",
+                    tools=[tool],
+                    model_client=model_client,
+                    system_message="Use the `df` variable to access the dataset.",
+                )
+                await Console(
+                    agent.on_messages_stream(
+                        [TextMessage(content="What's the average age of the passengers?", source="user")], CancellationToken()
+                    )
+                )
+
+
+            asyncio.run(main())
+
     """
 
     def __init__(self, langchain_tool: LangChainTool):
@@ -32,10 +70,10 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
         description = self._langchain_tool.description or ""
 
         # Determine the callable method
-        if hasattr(self._langchain_tool, "func") and callable(self._langchain_tool.func):
-            assert self._langchain_tool.func is not None
-            self._callable: Callable[..., Any] = self._langchain_tool.func
-        elif hasattr(self._langchain_tool, "_run") and callable(self._langchain_tool._run):  # pyright: ignore
+        if hasattr(self._langchain_tool, "func") and callable(self._langchain_tool.func):  # type: ignore
+            assert self._langchain_tool.func is not None  # type: ignore
+            self._callable: Callable[..., Any] = self._langchain_tool.func  # type: ignore
+        elif hasattr(self._langchain_tool, "_run") and callable(self._langchain_tool._run):  # type: ignore
             self._callable: Callable[..., Any] = self._langchain_tool._run  # type: ignore
         else:
             raise AttributeError(

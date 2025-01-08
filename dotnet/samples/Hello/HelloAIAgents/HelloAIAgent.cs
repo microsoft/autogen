@@ -1,18 +1,18 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // HelloAIAgent.cs
 
-using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Agents;
+using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.AI;
 
 namespace Hello;
 [TopicSubscription("agents")]
 public class HelloAIAgent(
-    IAgentRuntime context,
+    IAgentWorker worker,
     [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
     IHostApplicationLifetime hostApplicationLifetime,
     IChatClient client) : HelloAgent(
-        context,
+        worker,
         typeRegistry,
         hostApplicationLifetime),
         IHandle<NewMessageReceived>

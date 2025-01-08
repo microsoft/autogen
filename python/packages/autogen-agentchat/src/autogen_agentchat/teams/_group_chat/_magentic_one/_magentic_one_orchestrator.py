@@ -13,14 +13,15 @@ from autogen_core.models import (
 from .... import TRACE_LOGGER_NAME
 from ....base import Response, TerminationCondition
 from ....messages import (
-    AgentMessage,
+    AgentEvent,
     ChatMessage,
     HandoffMessage,
     MultiModalMessage,
     StopMessage,
     TextMessage,
-    ToolCallMessage,
-    ToolCallResultMessage,
+    ToolCallExecutionEvent,
+    ToolCallRequestEvent,
+    ToolCallSummaryMessage,
 )
 from ....state import MagenticOneOrchestratorState
 from .._base_group_chat_manager import BaseGroupChatManager
@@ -126,17 +127,18 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             )
             # Stop the group chat.
             return
-        assert message is not None and message.message is not None
+        assert message is not None and message.messages is not None
 
-        # Validate the group state given the start message.
-        await self.validate_group_state(message.message)
+        # Validate the group state given all the messages.
+        await self.validate_group_state(message.messages)
 
-        # Log the start message.
+        # Log the message.
         await self.publish_message(message, topic_id=DefaultTopicId(type=self._output_topic_type))
         # Outer Loop for first time
         # Create the initial task ledger
         #################################
-        self._task = self._content_to_str(message.message.content)
+        # Combine all message contents for task
+        self._task = " ".join([self._content_to_str(msg.content) for msg in message.messages])
         planning_conversation: List[LLMMessage] = []
 
         # 1. GATHER FACTS
@@ -166,7 +168,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
     @event
     async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:  # type: ignore
-        delta: List[AgentMessage] = []
+        delta: List[AgentEvent | ChatMessage] = []
         if message.agent_response.inner_messages is not None:
             for inner_message in message.agent_response.inner_messages:
                 delta.append(inner_message)
@@ -184,7 +186,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 return
         await self._orchestrate_step(ctx.cancellation_token)
 
-    async def validate_group_state(self, message: ChatMessage | None) -> None:
+    async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
         pass
 
     async def save_state(self) -> Mapping[str, Any]:
@@ -209,7 +211,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         self._n_rounds = orchestrator_state.n_rounds
         self._n_stalls = orchestrator_state.n_stalls
 
-    async def select_speaker(self, thread: List[AgentMessage]) -> str:
+    async def select_speaker(self, thread: List[AgentEvent | ChatMessage]) -> str:
         """Not used in this orchestrator, we select next speaker in _orchestrate_step."""
         return ""
 
@@ -295,6 +297,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 for key in required_keys:
                     if (
                         key not in progress_ledger
+                        or not isinstance(progress_ledger[key], dict)
                         or "answer" not in progress_ledger[key]
                         or "reason" not in progress_ledger[key]
                     ):
@@ -303,7 +306,9 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 if not key_error:
                     break
                 await self._log_message(f"Failed to parse ledger information, retrying: {ledger_str}")
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, TypeError):
+                key_error = True
+                await self._log_message("Invalid ledger format encountered, retrying...")
                 continue
         if key_error:
             raise ValueError("Failed to parse ledger information after multiple retries.")
@@ -426,13 +431,13 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         """Convert the message thread to a context for the model."""
         context: List[LLMMessage] = []
         for m in self._message_thread:
-            if isinstance(m, ToolCallMessage | ToolCallResultMessage):
+            if isinstance(m, ToolCallRequestEvent | ToolCallExecutionEvent):
                 # Ignore tool call messages.
                 continue
             elif isinstance(m, StopMessage | HandoffMessage):
                 context.append(UserMessage(content=m.content, source=m.source))
             elif m.source == self._name:
-                assert isinstance(m, TextMessage)
+                assert isinstance(m, TextMessage | ToolCallSummaryMessage)
                 context.append(AssistantMessage(content=m.content, source=m.source))
             else:
                 assert isinstance(m, TextMessage) or isinstance(m, MultiModalMessage)

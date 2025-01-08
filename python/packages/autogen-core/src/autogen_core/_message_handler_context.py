@@ -8,7 +8,7 @@ from ._agent_id import AgentId
 class MessageHandlerContext:
     def __init__(self) -> None:
         raise RuntimeError(
-            "MessageHandlerContext cannot be instantiated. It is a static class that provides context management for agent instantiation."
+            "MessageHandlerContext cannot be instantiated. It is a static class that provides context management for message handling."
         )
 
     _MESSAGE_HANDLER_CONTEXT: ClassVar[ContextVar[AgentId]] = ContextVar("_MESSAGE_HANDLER_CONTEXT")
