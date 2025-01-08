@@ -100,10 +100,10 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
             { "testdata", "Active" }
         };
         await agent.StoreAsync(new AgentState
-            {
-                AgentId = agent.AgentId,
-                TextData = JsonSerializer.Serialize(state)
-            }).ConfigureAwait(true);
+        {
+            AgentId = agent.AgentId,
+            TextData = JsonSerializer.Serialize(state)
+        }).ConfigureAwait(true);
         var readState = await agent.ReadAsync<AgentState>(agent.AgentId).ConfigureAwait(true);
         var read = JsonSerializer.Deserialize<Dictionary<string, string>>(readState.TextData) ?? new Dictionary<string, string> { { "data", "No state data found" } };
         read.TryGetValue("testdata", out var value);

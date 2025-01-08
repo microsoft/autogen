@@ -2,18 +2,18 @@
 // Program.cs
 
 using Azure.Identity;
+using DevTeam.Backend.Agents;
+using DevTeam.Backend.Agents.Developer;
+using DevTeam.Backend.Agents.DeveloperLead;
+using DevTeam.Backend.Agents.ProductManager;
+using DevTeam.Backend.Services;
 using DevTeam.Options;
+using Microsoft.AutoGen.Core;
+using Microsoft.AutoGen.Core.Grpc;
 using Microsoft.Extensions.Azure;
 using Microsoft.Extensions.Options;
-using Microsoft.AutoGen.Core;
 using Octokit.Webhooks;
 using Octokit.Webhooks.AspNetCore;
-using DevTeam.Backend.Services;
-using DevTeam.Backend.Agents;
-using DevTeam.Backend.Agents.ProductManager;
-using DevTeam.Backend.Agents.DeveloperLead;
-using DevTeam.Backend.Agents.Developer;
-using Microsoft.AutoGen.Core.Grpc;
 
 var builder = WebApplication.CreateBuilder(args);
 

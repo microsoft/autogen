@@ -29,18 +29,17 @@ public sealed class AgentStateSurrogateConverter :
 {
     public AgentState ConvertFromSurrogate(
         in AgentStateSurrogate surrogate)
+    {
+        var agentState = new AgentState
         {
-            var agentState = new AgentState
-            {
-                AgentId = surrogate.AgentId,
-                BinaryData = surrogate.BinaryData,
-                TextData = surrogate.TextData,
-                ETag = surrogate.Etag
-            };
-            //agentState.ProtoData = surrogate.ProtoData;
-            return agentState;
-        }
-        
+            AgentId = surrogate.AgentId,
+            BinaryData = surrogate.BinaryData,
+            TextData = surrogate.TextData,
+            ETag = surrogate.Etag
+        };
+        //agentState.ProtoData = surrogate.ProtoData;
+        return agentState;
+    }
 
     public AgentStateSurrogate ConvertToSurrogate(
         in AgentState value) =>

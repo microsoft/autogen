@@ -159,7 +159,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         {
             completion.SetResult(workerProcess.Connect());
         });
-        
+
         await completion.Task;
         return connectionId;
     }
@@ -197,7 +197,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         if (!_pendingRequests.TryRemove((connection, response.RequestId), out var completion))
         {
-            _logger.LogWarning("Received response for unknown request id: {RequestId}.", response.RequestId);   
+            _logger.LogWarning("Received response for unknown request id: {RequestId}.", response.RequestId);
             return;
         }
         // Complete the request.

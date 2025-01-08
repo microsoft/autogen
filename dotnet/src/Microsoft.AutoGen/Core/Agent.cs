@@ -297,7 +297,7 @@ public abstract class Agent
     /// <param name="key">The source of the message.</param>
     /// <param name="token">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async ValueTask PublishMessageAsync<T>(T @event, string? topic = null, string? key = null, CancellationToken token = default ) where T : IMessage
+    public async ValueTask PublishMessageAsync<T>(T @event, string? topic = null, string? key = null, CancellationToken token = default) where T : IMessage
     {
         var k = string.IsNullOrWhiteSpace(key) ? AgentId.Key : key;
         var topicType = string.IsNullOrWhiteSpace(topic) ? "default" : topic;

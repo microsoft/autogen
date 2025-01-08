@@ -116,7 +116,7 @@ public sealed class GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logge
 
         IMessage evt = (skillName, functionName) switch
         {
-            ("PM", "Readme") => new ReadmeChainClosed {  },
+            ("PM", "Readme") => new ReadmeChainClosed { },
             ("DevLead", "Plan") => new DevPlanChainClosed { },
             ("Developer", "Implement") => new CodeChainClosed { },
             _ => new CloudEvent() // TODO: default event

@@ -217,7 +217,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentStateStore")
                     state.State.AgentsToTopicsMap.TryGetValue(request.Subscription.TypeSubscription.AgentType, out var topics);
                     if (topics is not null)
                     {
-                        while(topics.Remove(request.Subscription.TypeSubscription.TopicType))
+                        while (topics.Remove(request.Subscription.TypeSubscription.TopicType))
                         {
                             // ensures all instances are removed
                         }
@@ -227,7 +227,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentStateStore")
                     state.State.TopicToAgentTypesMap.TryGetValue(request.Subscription.TypeSubscription.TopicType, out var agents);
                     if (agents is not null)
                     {
-                        while(agents.Remove(request.Subscription.TypeSubscription.AgentType))
+                        while (agents.Remove(request.Subscription.TypeSubscription.AgentType))
                         {
                             // ensures all instances are removed
                         }

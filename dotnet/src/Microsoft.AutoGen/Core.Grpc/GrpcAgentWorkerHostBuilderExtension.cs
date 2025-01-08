@@ -53,7 +53,8 @@ public static class GrpcAgentWorkerHostBuilderExtensions
         {
             return ReflectionHelper.GetAgentsMetadata(assemblies);
         });
-        builder.Services.AddSingleton((s) => {
+        builder.Services.AddSingleton((s) =>
+        {
             var worker = s.GetRequiredService<IAgentWorker>();
             var client = ActivatorUtilities.CreateInstance<Client>(s);
             Agent.Initialize(worker, client);
