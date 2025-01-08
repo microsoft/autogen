@@ -152,6 +152,9 @@ class BaseAgent(ABC, Agent):
         warnings.warn("load_state not implemented", stacklevel=2)
         pass
 
+    async def close(self) -> None:
+        pass
+
     @classmethod
     async def register(
         cls,
