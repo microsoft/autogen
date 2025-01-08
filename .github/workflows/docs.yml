@@ -33,6 +33,7 @@ jobs:
           [
             # For main use the workflow target
             { ref: "${{github.ref}}", dest-dir: dev, uv-version: "0.5.13" },
+            { ref: "${{github.ref}}", dest-dir: stable, uv-version: "0.5.13" },
             { ref: "v0.4.0.dev0", dest-dir: "0.4.0.dev0", uv-version: "0.5.11" },
             { ref: "v0.4.0.dev1", dest-dir: "0.4.0.dev1", uv-version: "0.5.11" },
             { ref: "v0.4.0.dev2", dest-dir: "0.4.0.dev2", uv-version: "0.5.11" },

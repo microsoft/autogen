@@ -54,12 +54,14 @@ A framework for building AI agents and applications
 <div class="sd-card-title sd-font-weight-bold docutils">
 
 {fas}`book;pst-color-primary`
-Magentic-One </div>
+Magentic-One [![PyPi magentic-one](https://img.shields.io/badge/PyPi-magentic--one-blue?logo=pypi)](https://pypi.org/project/magentic-one/)
+</div>
 A multi-agent assistant for web and file-based tasks.
 Built on AgentChat.
 
 ```bash
-% m1 "Find flights from Seattle to Paris and format the result in a table"
+pip install magentic-one
+m1 "Find flights from Seattle to Paris and format the result in a table"
 ```
 
 +++
@@ -72,7 +74,7 @@ Get Started
 
 :::
 
-:::{grid-item-card} {fas}`palette;pst-color-primary` Studio [![PyPi autogenstudio](https://img.shields.io/badge/PyPi-autogen--studio-blue?logo=pypi)](https://pypi.org/project/autogenstudio/)
+:::{grid-item-card} {fas}`palette;pst-color-primary` Studio [![PyPi autogenstudio](https://img.shields.io/badge/PyPi-autogenstudio-blue?logo=pypi)](https://pypi.org/project/autogenstudio/)
 :shadow: none
 :margin: 2 0 0 0
 :columns: 12 12 6 6
@@ -81,7 +83,8 @@ An app for prototyping and managing agents without writing code.
 Built on AgentChat.
 
 ```bash
-% autogenstudio ui --port 8080
+pip install autogenstudio
+autogenstudio ui --port 8080
 ```
 
 +++
