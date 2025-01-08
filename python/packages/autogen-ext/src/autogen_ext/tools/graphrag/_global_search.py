@@ -102,6 +102,7 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
         if __name__ == "__main__":
             asyncio.run(main())
 
+
     Args:
         token_encoder (tiktoken.Encoding): The tokenizer used for text encoding
         llm (BaseLLM): The language model to use for search
