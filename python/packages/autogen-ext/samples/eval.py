@@ -69,7 +69,7 @@ In the afternoon, you go from house to house, speaking with all 100 residents of
     return tasks_with_answers
 
 
-async def eval_teachability(apprentice, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
+async def eval_teachability(fast_learner, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
     """An evaluation"""
     page = page_log.begin_page(
         summary="eval_teachability",
@@ -82,11 +82,11 @@ async def eval_teachability(apprentice, evaluator, task_assignment_callback, cli
     task = task_with_answer["task"]
     answer = task_with_answer["expected_answer"]
     grader = Grader(client, page_log)
-    apprentice.start(reset_memory=True)
+    fast_learner.start(reset_memory=True)
 
     # First test without memory.
     page.add_lines("\nClear memory, then ask the question.")
-    response = await apprentice.handle_user_message(task, task_assignment_callback)
+    response = await fast_learner.handle_user_message(task, task_assignment_callback)
 
     # Check the response.
     response_is_correct, extracted_answer = await grader.is_response_correct(task, response, answer)
@@ -99,11 +99,11 @@ async def eval_teachability(apprentice, evaluator, task_assignment_callback, cli
     # Give the advice.
     page.add_lines("Give the advice.")
     insight = "When somebody builds something on autogen and wants to contribute it to autogen, instead of creating a new autogen package, it's better for them to implement it in a separate github repo, then just add the autogen-extension topic to that repo. That way their contribution will be automatically discoverable through autogen's page on community extensions:  https://microsoft.github.io/autogen/dev/user-guide/extensions-user-guide/index.html"
-    await apprentice.handle_user_message(insight, task_assignment_callback)
+    await fast_learner.handle_user_message(insight, task_assignment_callback)
 
     # Now ask the question again to see if the advice is retrieved from memory.
     page.add_lines("\nAsk the question again to see if the advice is retrieved from memory.")
-    response = await apprentice.handle_user_message(task, task_assignment_callback)
+    response = await fast_learner.handle_user_message(task, task_assignment_callback)
 
     # Check the response.
     response_is_correct, extracted_answer = await grader.is_response_correct(task, response, answer)
@@ -113,11 +113,11 @@ async def eval_teachability(apprentice, evaluator, task_assignment_callback, cli
     else:
         page.add_lines("Answer is INCORRECT.\n", flush=True)
 
-    apprentice.stop()
+    fast_learner.stop()
     page_log.finish_page(page)
 
 
-async def eval_learning_from_demonstration(apprentice, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
+async def eval_learning_from_demonstration(fast_learner, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
     """An evaluation"""
     page = page_log.begin_page(
         summary="eval_learning_from_demonstration",
@@ -154,7 +154,7 @@ async def eval_learning_from_demonstration(apprentice, evaluator, task_assignmen
     page_log.finish_page(page)
 
 
-async def eval_self_teaching(apprentice, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
+async def eval_self_teaching(fast_learner, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
     """An evaluation"""
     page = page_log.begin_page(
         summary="eval_self_teaching",
@@ -223,8 +223,8 @@ class Evaluator:
             assert False, "Invalid client provider"
 
         # Check if the client should be wrapped.
-        if "wrapper" in settings:
-            wrapper_settings = settings["wrapper"]
+        if "ClientWrapper" in settings:
+            wrapper_settings = settings["ClientWrapper"]
             if wrapper_settings["enabled"]:
                 # Wrap the client.
                 client = ClientWrapper(
@@ -435,32 +435,32 @@ In responding to every user message, you follow the same multi-step process give
         # Load the settings from yaml.
         with open(settings_filepath, "r") as file:
             settings = yaml.load(file, Loader=yaml.FullLoader)
-            evaluator_settings = settings["evaluator"]
+            evaluator_settings = settings["Evaluator"]
 
             # Create the PageLog.
-            self.page_log = PageLog(evaluator_settings["pagelog"])
+            self.page_log = PageLog(evaluator_settings["PageLog"])
             page = self.page_log.begin_page(
                 summary="main",
                 details='',
                 method_call="main")
 
-            # Create the client, which is used by both the apprentice and the evaluator.
+            # Create the client, which is used by both the fast_learner and the evaluator.
             client = self.create_client(settings["client"])
 
-            # Create the apprentice.
-            apprentice_settings = settings["apprentice"]
-            apprentice = Apprentice(settings["apprentice"], self, client, self.page_log)
+            # Create the fast_learner.
+            fast_learner_settings = settings["FastLearner"]
+            fast_learner = FastLearner(fast_learner_settings, self, client, self.page_log)
 
             # Configure the agentic memory controller.
-            agentic_memory_controller_settings = apprentice_settings["agentic_memory_controller"]
-            agentic_memory_bank_settings = agentic_memory_controller_settings["agentic_memory_bank"]
+            agentic_memory_controller_settings = fast_learner_settings["AgenticMemoryController"]
+            agentic_memory_bank_settings = agentic_memory_controller_settings["AgenticMemoryBank"]
 
             # Configure the agent wrapper.
-            agent_wrapper_settings = apprentice_settings["agent_wrapper"]
+            agent_wrapper_settings = fast_learner_settings["AgentWrapper"]
 
             # Configure the base agent.
             base_agent = agent_wrapper_settings["base_agent"]
-            if base_agent == "magentic_one":
+            if base_agent == "MagenticOneGroupChat":
                 task_assignment_callback = self.assign_task_to_magentic_one
             elif base_agent == "thin_agent":
                 task_assignment_callback = self.assign_task_to_client
@@ -471,7 +471,7 @@ In responding to every user message, you follow the same multi-step process give
             memory_path = agentic_memory_bank_settings["path"]
             for ev in settings["evaluations"]:
                 eval_function = globals()[ev["name"]]
-                await eval_function(apprentice, self, task_assignment_callback, client, self.page_log, memory_path, ev)
+                await eval_function(fast_learner, self, task_assignment_callback, client, self.page_log, memory_path, ev)
 
             if hasattr(client, "finalize"):
                 # If this is a client wrapper, it needs to be finalized.
@@ -481,14 +481,14 @@ In responding to every user message, you follow the same multi-step process give
             self.page_log.finish_page(page)
 
 
-class Apprentice:
+class FastLearner:
     def __init__(self, settings, evaluator, client, page_log):
         self.settings = settings
         self.evaluator = evaluator
         self.client = client
         self.page_log = page_log
-        self.memory_settings = settings["agentic_memory_controller"]
-        self.agent_settings = settings["agent_wrapper"]
+        self.memory_settings = settings["AgenticMemoryController"]
+        self.agent_settings = settings["AgentWrapper"]
         self.memory = None
         self.agent = None
 
@@ -497,7 +497,7 @@ class Apprentice:
             reset=reset_memory,
             client=self.client,
             page_log=self.page_log,
-            memory_dir=self.memory_settings["agentic_memory_bank"]["path"]
+            memory_dir=self.memory_settings["AgenticMemoryBank"]["path"]
         )
 
     def create_agent(self):
@@ -513,9 +513,9 @@ class Apprentice:
 
     async def handle_user_message(self, text, task_assignment_callback, should_await=True):
         page = self.page_log.begin_page(
-            summary="Apprentice.handle_user_message",
+            summary="FastLearner.handle_user_message",
             details="",
-            method_call="Apprentice.handle_user_message")
+            method_call="FastLearner.handle_user_message")
 
         # Pass the user message through to the memory controller.
         response = await self.memory.handle_user_message(text, task_assignment_callback, should_await)

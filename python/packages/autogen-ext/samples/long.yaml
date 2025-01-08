@@ -1,7 +1,7 @@
 
 Evaluator:
   PageLog:
-    path: ~/pagelogs/temp
+    path: ~/pagelogs/long
 
 client:
   provider: trapi  # openai, azure_openai, or trapi
@@ -14,14 +14,14 @@ client:
   top_p: 1.0
   max_retries: 65535
   ClientWrapper:  # Provides record & replay functionality
-    enabled: 1  # Only works for thin_agent currently
+    enabled: 0  # Only works for thin_agent currently
     mode: check-replay  # pass-through, record, or check-replay
-    session_name: short-3
+    session_name: long
 
 FastLearner:
   AgenticMemoryController:
     AgenticMemoryBank:
-      path: ~/agentic_memory_bank/temp
+      path: ~/agentic_memory_bank/long
   AgentWrapper:
     base_agent: thin_agent  # MagenticOneGroupChat, thin_agent, etc.
 
@@ -29,10 +29,10 @@ evaluations:
   - name: eval_teachability
 
   - name: eval_learning_from_demonstration
-    num_trials: 1  # 1-10
+    num_trials: 10  # 1-10
 
   - name: eval_self_teaching
-    num_loops: 1  # 1-10
-    max_train_trials: 2  # 2-10  Move to AMC
-    max_test_trials: 1  # 1-3  Move to AMC
-    num_final_test_trials: 1  # 1-3
+    num_loops: 10  # 1-10
+    max_train_trials: 10  # 2-10  Move to AMC
+    max_test_trials: 3  # 1-3  Move to AMC
+    num_final_test_trials: 3  # 1-3
