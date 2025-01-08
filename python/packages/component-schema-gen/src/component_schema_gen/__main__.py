@@ -8,7 +8,8 @@ from autogen_core._component_config import (
     ComponentConfigImpl,
     _type_to_provider_str,  # type: ignore
 )
-from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, AzureTokenProvider, OpenAIChatCompletionClient
+from autogen_ext.auth.azure import AzureTokenProvider
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 from pydantic import BaseModel
 
 all_defs: Dict[str, Any] = {}

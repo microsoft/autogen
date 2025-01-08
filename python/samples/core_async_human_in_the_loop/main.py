@@ -28,10 +28,9 @@ import datetime
 import json
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional
+from typing import Any, Dict, Mapping, Optional
 
 from autogen_core import (
-    AgentId,
     CancellationToken,
     DefaultInterventionHandler,
     DefaultTopicId,
@@ -50,9 +49,13 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_core.tools import BaseTool
-from common.types import TextMessage
-from common.utils import get_chat_completion_client_from_envs
 from pydantic import BaseModel, Field
+
+
+@dataclass
+class TextMessage:
+    source: str
+    content: str
 
 
 @dataclass
@@ -109,7 +112,7 @@ class SlowUserProxyAgent(RoutedAgent):
 
     async def save_state(self) -> Mapping[str, Any]:
         state_to_save = {
-            "memory": self._model_context.save_state(),
+            "memory": await self._model_context.save_state(),
         }
         return state_to_save
 
@@ -211,7 +214,7 @@ class NeedsUserInputHandler(DefaultInterventionHandler):
     def __init__(self):
         self.question_for_user: GetSlowUserMessage | None = None
 
-    async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
+    async def on_publish(self, message: Any, *, message_context: MessageContext) -> Any:
         if isinstance(message, GetSlowUserMessage):
             self.question_for_user = message
         return message
@@ -231,7 +234,7 @@ class TerminationHandler(DefaultInterventionHandler):
     def __init__(self):
         self.terminateMessage: TerminateMessage | None = None
 
-    async def on_publish(self, message: Any, *, sender: AgentId | None) -> Any:
+    async def on_publish(self, message: Any, *, message_context: MessageContext) -> Any:
         if isinstance(message, TerminateMessage):
             self.terminateMessage = message
         return message
@@ -247,7 +250,7 @@ class TerminationHandler(DefaultInterventionHandler):
         return self.terminateMessage.content
 
 
-async def main(latest_user_input: Optional[str] = None) -> None | str:
+async def main(model_config: Dict[str, Any], latest_user_input: Optional[str] = None) -> None | str:
     """
     Asynchronous function that serves as the entry point of the program.
     This function initializes the necessary components for the program and registers the user and scheduling assistant agents.
@@ -264,6 +267,8 @@ async def main(latest_user_input: Optional[str] = None) -> None | str:
     """
     global state_persister
 
+    model_client = ChatCompletionClient.load_component(model_config)
+
     termination_handler = TerminationHandler()
     needs_user_input_handler = NeedsUserInputHandler()
     runtime = SingleThreadedAgentRuntime(intervention_handlers=[needs_user_input_handler, termination_handler])
@@ -279,11 +284,12 @@ async def main(latest_user_input: Optional[str] = None) -> None | str:
         lambda: SchedulingAssistantAgent(
             "SchedulingAssistant",
             description="AI that helps you schedule meetings",
-            model_client=get_chat_completion_client_from_envs(model="gpt-4o-mini"),
+            model_client=model_client,
             initial_message=initial_schedule_assistant_message,
         ),
     )
 
+    runtime_initiation_message: UserTextMessage | AssistantTextMessage
     if latest_user_input is not None:
         runtime_initiation_message = UserTextMessage(content=latest_user_input, source="User")
     else:
@@ -326,6 +332,9 @@ if __name__ == "__main__":
     # if os.path.exists("state.json"):
     #     os.remove("state.json")
 
+    with open("model_config.json") as f:
+        model_config = json.load(f)
+
     def get_user_input(question_for_user: str):
         print("--------------------------QUESTION_FOR_USER--------------------------")
         print(question_for_user)
@@ -338,7 +347,7 @@ if __name__ == "__main__":
             user_input = get_user_input(question_for_user)
         else:
             user_input = None
-        user_input_needed = await main(user_input)
+        user_input_needed = await main(model_config, user_input)
         if user_input_needed:
             await run_main(user_input_needed)
 

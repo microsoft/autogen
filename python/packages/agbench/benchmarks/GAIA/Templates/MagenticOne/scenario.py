@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 import os
 import re
@@ -27,7 +28,7 @@ from autogen_magentic_one.agents.orchestrator import LedgerOrchestrator
 from autogen_magentic_one.messages import BroadcastMessage
 from autogen_magentic_one.agents.multimodal_web_surfer import MultimodalWebSurfer
 from autogen_magentic_one.agents.file_surfer import FileSurfer
-from autogen_magentic_one.utils import LogHandler, message_content_to_str, create_completion_client_from_env
+from autogen_magentic_one.utils import LogHandler, message_content_to_str
 
 encoding = None
 def count_token(value: str) -> int:
@@ -124,10 +125,9 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     # Create the AzureOpenAI client, with AAD auth, from environment
-    client = create_completion_client_from_env()
+    client = ChatCompletionClient.load_component(json.loads(os.environ["CHAT_COMPLETION_CLIENT_CONFIG"]))
+    mlm_client = ChatCompletionClient.load_component(json.loads(os.environ["MLM_CHAT_COMPLETION_CLIENT_CONFIG"]))
 
-
-    mlm_client = create_completion_client_from_env()
 
     # Register agents.
     await runtime.register(
