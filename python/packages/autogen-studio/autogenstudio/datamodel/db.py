@@ -118,7 +118,7 @@ class Tool(SQLModel, table=True):
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
     version: Optional[str] = "0.0.1"
-    config: Union[ToolConfig, dict] = Field(default_factory=ToolConfig, sa_column=Column(JSON))
+    config: Union[ToolConfig, dict] = Field(sa_column=Column(JSON))
     agents: List["Agent"] = Relationship(back_populates="tools", link_model=AgentToolLink)
 
 
@@ -135,7 +135,7 @@ class Model(SQLModel, table=True):
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
     version: Optional[str] = "0.0.1"
-    config: Union[ModelConfig, dict] = Field(default_factory=ModelConfig, sa_column=Column(JSON))
+    config: Union[ModelConfig, dict] = Field(sa_column=Column(JSON))
     agents: List["Agent"] = Relationship(back_populates="models", link_model=AgentModelLink)
 
 
@@ -152,7 +152,7 @@ class Team(SQLModel, table=True):
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
     version: Optional[str] = "0.0.1"
-    config: Union[TeamConfig, dict] = Field(default_factory=TeamConfig, sa_column=Column(JSON))
+    config: Union[TeamConfig, dict] = Field(sa_column=Column(JSON))
     agents: List["Agent"] = Relationship(back_populates="teams", link_model=TeamAgentLink)
 
 
@@ -169,7 +169,7 @@ class Agent(SQLModel, table=True):
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
     version: Optional[str] = "0.0.1"
-    config: Union[AgentConfig, dict] = Field(default_factory=AgentConfig, sa_column=Column(JSON))
+    config: Union[AgentConfig, dict] = Field(sa_column=Column(JSON))
     tools: List[Tool] = Relationship(back_populates="agents", link_model=AgentToolLink)
     models: List[Model] = Relationship(back_populates="agents", link_model=AgentModelLink)
     teams: List[Team] = Relationship(back_populates="agents", link_model=TeamAgentLink)

@@ -2,7 +2,7 @@ import time
 from typing import List, Sequence
 
 from ..base import TerminatedException, TerminationCondition
-from ..messages import AgentMessage, HandoffMessage, MultiModalMessage, StopMessage, TextMessage
+from ..messages import AgentEvent, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage
 
 
 class StopMessageTermination(TerminationCondition):
@@ -15,7 +15,7 @@ class StopMessageTermination(TerminationCondition):
     def terminated(self) -> bool:
         return self._terminated
 
-    async def __call__(self, messages: Sequence[AgentMessage]) -> StopMessage | None:
+    async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
         if self._terminated:
             raise TerminatedException("Termination condition has already been reached")
         for message in messages:
@@ -43,7 +43,7 @@ class MaxMessageTermination(TerminationCondition):
     def terminated(self) -> bool:
         return self._message_count >= self._max_messages
 
-    async def __call__(self, messages: Sequence[AgentMessage]) -> StopMessage | None:
+    async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
         if self.terminated:
             raise TerminatedException("Termination condition has already been reached")
         self._message_count += len(messages)
@@ -73,11 +73,11 @@ class TextMentionTermination(TerminationCondition):
     def terminated(self) -> bool:
         return self._terminated
 
-    async def __call__(self, messages: Sequence[AgentMessage]) -> StopMessage | None:
+    async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
         if self._terminated:
             raise TerminatedException("Termination condition has already been reached")
         for message in messages:
-            if isinstance(message, TextMessage | StopMessage) and self._text in message.content:
+            if isinstance(message.content, str) and self._text in message.content:
                 self._terminated = True
                 return StopMessage(content=f"Text '{self._text}' mentioned", source="TextMentionTermination")
             elif isinstance(message, MultiModalMessage):
@@ -128,7 +128,7 @@ class TokenUsageTermination(TerminationCondition):
             or (self._max_completion_token is not None and self._completion_token_count >= self._max_completion_token)
         )
 
-    async def __call__(self, messages: Sequence[AgentMessage]) -> StopMessage | None:
+    async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
         if self.terminated:
             raise TerminatedException("Termination condition has already been reached")
         for message in messages:
@@ -163,7 +163,7 @@ class HandoffTermination(TerminationCondition):
     def terminated(self) -> bool:
         return self._terminated
 
-    async def __call__(self, messages: Sequence[AgentMessage]) -> StopMessage | None:
+    async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
         if self._terminated:
             raise TerminatedException("Termination condition has already been reached")
         for message in messages:
@@ -194,7 +194,7 @@ class TimeoutTermination(TerminationCondition):
     def terminated(self) -> bool:
         return self._terminated
 
-    async def __call__(self, messages: Sequence[AgentMessage]) -> StopMessage | None:
+    async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
         if self._terminated:
             raise TerminatedException("Termination condition has already been reached")
 
@@ -242,7 +242,7 @@ class ExternalTermination(TerminationCondition):
         """Set the termination condition to terminated."""
         self._setted = True
 
-    async def __call__(self, messages: Sequence[AgentMessage]) -> StopMessage | None:
+    async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
         if self._terminated:
             raise TerminatedException("Termination condition has already been reached")
         if self._setted:
@@ -273,7 +273,7 @@ class SourceMatchTermination(TerminationCondition):
     def terminated(self) -> bool:
         return self._terminated
 
-    async def __call__(self, messages: Sequence[AgentMessage]) -> StopMessage | None:
+    async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
         if self._terminated:
             raise TerminatedException("Termination condition has already been reached")
         if not messages:

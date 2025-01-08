@@ -2,16 +2,17 @@
 // Developer.cs
 
 using DevTeam.Shared;
-using Microsoft.AutoGen.Abstractions;
 using Microsoft.AutoGen.Agents;
+using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Memory;
 
 namespace DevTeam.Agents;
 
 [TopicSubscription("devteam")]
-public class Dev(IAgentRuntime context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<Dev> logger)
-    : SKAiAgent<DeveloperState>(context, memory, kernel, typeRegistry), IDevelopApps,
+public class Dev(IAgentWorker worker, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, ILogger<Dev> logger)
+    : SKAiAgent<DeveloperState>(worker, memory, kernel, typeRegistry), IDevelopApps,
     IHandle<CodeGenerationRequested>,
     IHandle<CodeChainClosed>
 {

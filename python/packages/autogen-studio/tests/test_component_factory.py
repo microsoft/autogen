@@ -7,11 +7,16 @@ from autogen_agentchat.conditions import MaxMessageTermination, StopMessageTermi
 from autogen_core.tools import FunctionTool
 
 from autogenstudio.datamodel.types import (
-    AgentConfig,
-    ModelConfig,
-    TeamConfig,
+    AssistantAgentConfig,
+    OpenAIModelConfig,
+    RoundRobinTeamConfig,
+    SelectorTeamConfig,
+    MagenticOneTeamConfig,
     ToolConfig,
-    TerminationConfig,
+    MaxMessageTerminationConfig,
+    StopMessageTerminationConfig,
+    TextMentionTerminationConfig,
+    CombinationTerminationConfig,
     ModelTypes,
     AgentTypes,
     TeamTypes,
@@ -56,7 +61,7 @@ def calculator(a: int, b: int, operation: str = '+') -> int:
 
 @pytest.fixture
 def sample_model_config():
-    return ModelConfig(
+    return OpenAIModelConfig(
         model_type=ModelTypes.OPENAI,
         model="gpt-4",
         api_key="test-key",
@@ -66,8 +71,8 @@ def sample_model_config():
 
 
 @pytest.fixture
-def sample_agent_config(sample_model_config: ModelConfig, sample_tool_config: ToolConfig):
-    return AgentConfig(
+def sample_agent_config(sample_model_config: OpenAIModelConfig, sample_tool_config: ToolConfig):
+    return AssistantAgentConfig(
         name="test_agent",
         agent_type=AgentTypes.ASSISTANT,
         system_message="You are a helpful assistant",
@@ -80,7 +85,7 @@ def sample_agent_config(sample_model_config: ModelConfig, sample_tool_config: To
 
 @pytest.fixture
 def sample_termination_config():
-    return TerminationConfig(
+    return MaxMessageTerminationConfig(
         termination_type=TerminationTypes.MAX_MESSAGES,
         max_messages=10,
         component_type=ComponentTypes.TERMINATION,
@@ -90,9 +95,9 @@ def sample_termination_config():
 
 @pytest.fixture
 def sample_team_config(
-    sample_agent_config: AgentConfig, sample_termination_config: TerminationConfig, sample_model_config: ModelConfig
+    sample_agent_config: AssistantAgentConfig, sample_termination_config: MaxMessageTerminationConfig, sample_model_config: OpenAIModelConfig
 ):
-    return TeamConfig(
+    return RoundRobinTeamConfig(
         name="test_team",
         team_type=TeamTypes.ROUND_ROBIN,
         participants=[sample_agent_config],
@@ -146,14 +151,14 @@ async def test_load_tool_invalid_config(component_factory: ComponentFactory):
 
 
 @pytest.mark.asyncio
-async def test_load_model(component_factory: ComponentFactory, sample_model_config: ModelConfig):
+async def test_load_model(component_factory: ComponentFactory, sample_model_config: OpenAIModelConfig):
     # Test loading model from ModelConfig
     model = await component_factory.load_model(sample_model_config)
     assert model is not None
 
 
 @pytest.mark.asyncio
-async def test_load_agent(component_factory: ComponentFactory, sample_agent_config: AgentConfig):
+async def test_load_agent(component_factory: ComponentFactory, sample_agent_config: AssistantAgentConfig):
     # Test loading agent from AgentConfig
     agent = await component_factory.load_agent(sample_agent_config)
     assert isinstance(agent, AssistantAgent)
@@ -163,8 +168,8 @@ async def test_load_agent(component_factory: ComponentFactory, sample_agent_conf
 
 @pytest.mark.asyncio
 async def test_load_termination(component_factory: ComponentFactory):
-    # Test MaxMessageTermination
-    max_msg_config = TerminationConfig(
+
+    max_msg_config = MaxMessageTerminationConfig(
         termination_type=TerminationTypes.MAX_MESSAGES,
         max_messages=5,
         component_type=ComponentTypes.TERMINATION,
@@ -175,14 +180,14 @@ async def test_load_termination(component_factory: ComponentFactory):
     assert termination._max_messages == 5
 
     # Test StopMessageTermination
-    stop_msg_config = TerminationConfig(
+    stop_msg_config = StopMessageTerminationConfig(
         termination_type=TerminationTypes.STOP_MESSAGE, component_type=ComponentTypes.TERMINATION, version="1.0.0"
     )
     termination = await component_factory.load_termination(stop_msg_config)
     assert isinstance(termination, StopMessageTermination)
 
     # Test TextMentionTermination
-    text_mention_config = TerminationConfig(
+    text_mention_config = TextMentionTerminationConfig(
         termination_type=TerminationTypes.TEXT_MENTION,
         text="DONE",
         component_type=ComponentTypes.TERMINATION,
@@ -193,17 +198,17 @@ async def test_load_termination(component_factory: ComponentFactory):
     assert termination._text == "DONE"
 
     # Test AND combination
-    and_combo_config = TerminationConfig(
+    and_combo_config = CombinationTerminationConfig(
         termination_type=TerminationTypes.COMBINATION,
         operator="and",
         conditions=[
-            TerminationConfig(
+            MaxMessageTerminationConfig(
                 termination_type=TerminationTypes.MAX_MESSAGES,
                 max_messages=5,
                 component_type=ComponentTypes.TERMINATION,
                 version="1.0.0",
             ),
-            TerminationConfig(
+            TextMentionTerminationConfig(
                 termination_type=TerminationTypes.TEXT_MENTION,
                 text="DONE",
                 component_type=ComponentTypes.TERMINATION,
@@ -217,17 +222,17 @@ async def test_load_termination(component_factory: ComponentFactory):
     assert termination is not None
 
     # Test OR combination
-    or_combo_config = TerminationConfig(
+    or_combo_config = CombinationTerminationConfig(
         termination_type=TerminationTypes.COMBINATION,
         operator="or",
         conditions=[
-            TerminationConfig(
+            MaxMessageTerminationConfig(
                 termination_type=TerminationTypes.MAX_MESSAGES,
                 max_messages=5,
                 component_type=ComponentTypes.TERMINATION,
                 version="1.0.0",
             ),
-            TerminationConfig(
+            TextMentionTerminationConfig(
                 termination_type=TerminationTypes.TEXT_MENTION,
                 text="DONE",
                 component_type=ComponentTypes.TERMINATION,
@@ -243,7 +248,7 @@ async def test_load_termination(component_factory: ComponentFactory):
     # Test invalid combinations
     with pytest.raises(ValueError):
         await component_factory.load_termination(
-            TerminationConfig(
+            CombinationTerminationConfig(
                 termination_type=TerminationTypes.COMBINATION,
                 conditions=[],  # Empty conditions
                 component_type=ComponentTypes.TERMINATION,
@@ -253,11 +258,11 @@ async def test_load_termination(component_factory: ComponentFactory):
 
     with pytest.raises(ValueError):
         await component_factory.load_termination(
-            TerminationConfig(
+            CombinationTerminationConfig(
                 termination_type=TerminationTypes.COMBINATION,
                 operator="invalid",  # type: ignore
                 conditions=[
-                    TerminationConfig(
+                    MaxMessageTerminationConfig(
                         termination_type=TerminationTypes.MAX_MESSAGES,
                         max_messages=5,
                         component_type=ComponentTypes.TERMINATION,
@@ -272,16 +277,16 @@ async def test_load_termination(component_factory: ComponentFactory):
     # Test missing operator
     with pytest.raises(ValueError):
         await component_factory.load_termination(
-            TerminationConfig(
+            CombinationTerminationConfig(
                 termination_type=TerminationTypes.COMBINATION,
                 conditions=[
-                    TerminationConfig(
+                    MaxMessageTerminationConfig(
                         termination_type=TerminationTypes.MAX_MESSAGES,
                         max_messages=5,
                         component_type=ComponentTypes.TERMINATION,
                         version="1.0.0",
                     ),
-                    TerminationConfig(
+                    TextMentionTerminationConfig(
                         termination_type=TerminationTypes.TEXT_MENTION,
                         text="DONE",
                         component_type=ComponentTypes.TERMINATION,
@@ -296,7 +301,7 @@ async def test_load_termination(component_factory: ComponentFactory):
 
 @pytest.mark.asyncio
 async def test_load_team(
-    component_factory: ComponentFactory, sample_team_config: TeamConfig, sample_model_config: ModelConfig
+    component_factory: ComponentFactory, sample_team_config: RoundRobinTeamConfig, sample_model_config: OpenAIModelConfig
 ):
     # Test loading RoundRobinGroupChat team
     team = await component_factory.load_team(sample_team_config)
@@ -304,12 +309,12 @@ async def test_load_team(
     assert len(team._participants) == 1
 
     # Test loading SelectorGroupChat team with multiple participants
-    selector_team_config = TeamConfig(
+    selector_team_config = SelectorTeamConfig(
         name="selector_team",
         team_type=TeamTypes.SELECTOR,
         participants=[  # Add two participants
             sample_team_config.participants[0],  # First agent
-            AgentConfig(  # Second agent
+            AssistantAgentConfig(  # Second agent
                 name="test_agent_2",
                 agent_type=AgentTypes.ASSISTANT,
                 system_message="You are another helpful assistant",
@@ -329,12 +334,12 @@ async def test_load_team(
     assert len(team._participants) == 2
 
     # Test loading MagenticOneGroupChat team
-    magentic_one_config = TeamConfig(
+    magentic_one_config = MagenticOneTeamConfig(
         name="magentic_one_team",
         team_type=TeamTypes.MAGENTIC_ONE,
         participants=[  # Add two participants
             sample_team_config.participants[0],  # First agent
-            AgentConfig(  # Second agent
+            AssistantAgentConfig(  # Second agent
                 name="test_agent_2",
                 agent_type=AgentTypes.ASSISTANT,
                 system_message="You are another helpful assistant",
@@ -360,7 +365,7 @@ async def test_invalid_configs(component_factory: ComponentFactory):
     # Test invalid agent type
     with pytest.raises(ValueError):
         await component_factory.load_agent(
-            AgentConfig(
+            AssistantAgentConfig(
                 name="test",
                 agent_type="InvalidAgent",  # type: ignore
                 system_message="test",
@@ -372,7 +377,7 @@ async def test_invalid_configs(component_factory: ComponentFactory):
     # Test invalid team type
     with pytest.raises(ValueError):
         await component_factory.load_team(
-            TeamConfig(
+            RoundRobinTeamConfig(
                 name="test",
                 team_type="InvalidTeam",  # type: ignore
                 participants=[],
@@ -384,7 +389,7 @@ async def test_invalid_configs(component_factory: ComponentFactory):
     # Test invalid termination type
     with pytest.raises(ValueError):
         await component_factory.load_termination(
-            TerminationConfig(
+            MaxMessageTerminationConfig(
                 termination_type="InvalidTermination",  # type: ignore
                 component_type=ComponentTypes.TERMINATION,
                 version="1.0.0",

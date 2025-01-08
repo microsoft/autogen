@@ -2,7 +2,7 @@
 // Program.cs
 
 using DevTeam.Agents;
-using Microsoft.AutoGen.Agents;
+using Microsoft.AutoGen.Core;
 using Microsoft.AutoGen.Extensions.SemanticKernel;
 
 var builder = WebApplication.CreateBuilder(args);

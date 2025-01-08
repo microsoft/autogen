@@ -42,7 +42,6 @@ from autogen_core import (
     MessageHandlerContext,
     MessageSerializer,
     Subscription,
-    SubscriptionInstantiationContext,
     TopicId,
     TypePrefixSubscription,
     TypeSubscription,
@@ -54,7 +53,7 @@ from autogen_core._serialization import (
 from autogen_core._telemetry import MessageRuntimeTracingConfig, TraceHelper, get_telemetry_grpc_metadata
 from google.protobuf import any_pb2
 from opentelemetry.trace import TracerProvider
-from typing_extensions import Self, deprecated
+from typing_extensions import Self
 
 from . import _constants
 from ._constants import GRPC_IMPORT_ERROR_STR
@@ -179,7 +178,33 @@ class HostConnection:
         return await self._recv_queue.get()
 
 
+# TODO: Lots of types need to have protobuf equivalents:
+# Core:
+#   - FunctionCall, CodeResult, possibly CodeBlock
+#   - All the types in https://github.com/microsoft/autogen/blob/main/python/packages/autogen-core/src/autogen_core/models/_types.py
+#
+# Agentchat:
+#   - All the types in https://github.com/microsoft/autogen/blob/main/python/packages/autogen-agentchat/src/autogen_agentchat/messages.py to protobufs.
+#
+# Ext --
+#   CodeExecutor:
+#       - CommandLineCodeResult
+
+
 class GrpcWorkerAgentRuntime(AgentRuntime):
+    """An agent runtime for running remote or cross-language agents.
+
+    Agent messaging uses protobufs from `agent_worker.proto`_ and ``CloudEvent`` from `cloudevent.proto`_.
+
+    Cross-language agents will additionally require all agents use shared protobuf schemas for any message types that are sent between agents.
+
+    .. _agent_worker.proto: https://github.com/microsoft/autogen/blob/main/protos/agent_worker.proto
+
+    .. _cloudevent.proto: https://github.com/microsoft/autogen/blob/main/protos/cloudevent.proto
+
+    """
+
+    # TODO: Needs to handle agent close() call
     def __init__(
         self,
         host_address: str,
@@ -340,7 +365,9 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         *,
         sender: AgentId | None = None,
         cancellation_token: CancellationToken | None = None,
+        message_id: str | None = None,
     ) -> Any:
+        # TODO: use message_id
         if not self._running:
             raise ValueError("Runtime must be running when sending message.")
         if self._host_connection is None:
@@ -670,61 +697,16 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         except BaseException as e:
             logger.error("Error handling event", exc_info=e)
 
-    @deprecated(
-        "Use your agent's `register` method directly instead of this method. See documentation for latest usage."
-    )
-    async def register(
-        self,
-        type: str,
-        agent_factory: Callable[[], T | Awaitable[T]],
-        subscriptions: Callable[[], list[Subscription] | Awaitable[list[Subscription]]]
-        | list[Subscription]
-        | None = None,
-    ) -> AgentType:
-        if type in self._agent_factories:
-            raise ValueError(f"Agent with type {type} already exists.")
-        self._agent_factories[type] = agent_factory
-
-        if self._host_connection is None:
-            raise RuntimeError("Host connection is not set.")
-
-        # Create a future for the registration response.
-        future = asyncio.get_event_loop().create_future()
-        request_id = await self._get_new_request_id()
-        self._pending_requests[request_id] = future
-
-        # Send the registration request message to the host.
-        message = agent_worker_pb2.Message(
-            registerAgentTypeRequest=agent_worker_pb2.RegisterAgentTypeRequest(request_id=request_id, type=type)
-        )
-        await self._host_connection.send(message)
-
-        # Wait for the registration response.
-        await future
-
-        if subscriptions is not None:
-            if callable(subscriptions):
-                with SubscriptionInstantiationContext.populate_context(AgentType(type)):
-                    subscriptions_list_result = subscriptions()
-                    if inspect.isawaitable(subscriptions_list_result):
-                        subscriptions_list = await subscriptions_list_result
-                    else:
-                        subscriptions_list = subscriptions_list_result
-            else:
-                subscriptions_list = subscriptions
-
-            for subscription in subscriptions_list:
-                await self.add_subscription(subscription)
-
-        return AgentType(type)
-
     async def register_factory(
         self,
-        *,
-        type: AgentType,
+        type: str | AgentType,
         agent_factory: Callable[[], T | Awaitable[T]],
-        expected_class: type[T],
+        *,
+        expected_class: type[T] | None = None,
     ) -> AgentType:
+        if isinstance(type, str):
+            type = AgentType(type)
+
         if type.type in self._agent_factories:
             raise ValueError(f"Agent with type {type} already exists.")
         if self._host_connection is None:

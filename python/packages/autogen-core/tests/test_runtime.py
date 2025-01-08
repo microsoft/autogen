@@ -20,10 +20,10 @@ from autogen_test_utils import (
     MessageType,
     NoopAgent,
 )
-from autogen_test_utils.telemetry_test_utils import TestExporter, get_test_tracer_provider
+from autogen_test_utils.telemetry_test_utils import MyTestExporter, get_test_tracer_provider
 from opentelemetry.sdk.trace import TracerProvider
 
-test_exporter = TestExporter()
+test_exporter = MyTestExporter()
 
 
 @pytest.fixture
@@ -86,9 +86,11 @@ async def test_register_receives_publish(tracer_provider: TracerProvider) -> Non
         "autogen publish default.(default)-T",
     ]
 
+    await runtime.close()
+
 
 @pytest.mark.asyncio
-async def test_register_receives_publish_with_exception(caplog: pytest.LogCaptureFixture) -> None:
+async def test_register_receives_publish_with_construction(caplog: pytest.LogCaptureFixture) -> None:
     runtime = SingleThreadedAgentRuntime()
 
     runtime.add_message_serializer(try_get_known_serializers_for_type(MessageType))
@@ -103,8 +105,11 @@ async def test_register_receives_publish_with_exception(caplog: pytest.LogCaptur
         runtime.start()
         await runtime.publish_message(MessageType(), topic_id=TopicId("default", "default"))
         await runtime.stop_when_idle()
-        # Check if logger has the exception.
-        assert any("Error processing publish message" in e.message for e in caplog.records)
+
+    # Check if logger has the exception.
+    assert any("Error constructing agent" in e.message for e in caplog.records)
+
+    await runtime.close()
 
 
 @pytest.mark.asyncio
@@ -136,6 +141,8 @@ async def test_register_receives_publish_cascade() -> None:
         agent = await runtime.try_get_underlying_agent_instance(AgentId(f"name{i}", "default"), CascadingAgent)
         assert agent.num_calls == total_num_calls_expected
 
+    await runtime.close()
+
 
 @pytest.mark.asyncio
 async def test_register_factory_explicit_name() -> None:
@@ -161,6 +168,8 @@ async def test_register_factory_explicit_name() -> None:
     )
     assert other_long_running_agent.num_calls == 0
 
+    await runtime.close()
+
 
 @pytest.mark.asyncio
 async def test_default_subscription() -> None:
@@ -183,6 +192,8 @@ async def test_default_subscription() -> None:
         AgentId("name", key="other"), type=LoopbackAgentWithDefaultSubscription
     )
     assert other_long_running_agent.num_calls == 0
+
+    await runtime.close()
 
 
 @pytest.mark.asyncio
@@ -207,6 +218,8 @@ async def test_type_subscription() -> None:
     )
     assert other_long_running_agent.num_calls == 0
 
+    await runtime.close()
+
 
 @pytest.mark.asyncio
 async def test_default_subscription_publish_to_other_source() -> None:
@@ -228,3 +241,5 @@ async def test_default_subscription_publish_to_other_source() -> None:
         AgentId("name", key="other"), type=LoopbackAgentWithDefaultSubscription
     )
     assert other_long_running_agent.num_calls == 1
+
+    await runtime.close()
