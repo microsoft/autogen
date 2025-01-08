@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "magentic-one-cli"
 version = "0.1.0"
 license = {file = "LICENSE-CODE"}
-description = "Magentic-One is a generalist multi-agent system, built on `AutoGen-AgentChat`, for solving complex web and file-based tasks. This package installs all the `m1` command-line utility to quickly get started with Magentic-One."
+description = "Magentic-One is a generalist multi-agent system, built on `AutoGen-AgentChat`, for solving complex web and file-based tasks. This package installs the `m1` command-line utility to quickly get started with Magentic-One."
 readme = "README.md"
 requires-python = ">=3.10"
 classifiers = [
