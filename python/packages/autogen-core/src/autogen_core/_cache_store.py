@@ -1,7 +1,7 @@
 from typing import Any, Optional, Protocol
 
 
-class AbstractStore(Protocol):
+class CacheStore(Protocol):
     """
     This protocol defines the basic interface for store/cache operations.
 

@@ -2,13 +2,19 @@ import copy
 from typing import Any, List, Optional, Tuple, Union
 
 import pytest
-from autogen_core.models import ChatCompletionClient, CreateResult, LLMMessage, SystemMessage, UserMessage
-from autogen_core.store import AbstractStore
-from autogen_ext.models.cache import ChatCompletionCache
-from autogen_ext.models.replay import ReplayChatCompletionClient
+from autogen_core import CacheStore
+from autogen_core.models import (
+    ChatCompletionCache,
+    ChatCompletionClient,
+    CreateResult,
+    LLMMessage,
+    ReplayChatCompletionClient,
+    SystemMessage,
+    UserMessage,
+)
 
 
-class DictStore(AbstractStore):
+class DictStore(CacheStore):
     def __init__(self) -> None:
         self._store: dict[Any, Any] = {}
 
@@ -64,60 +70,11 @@ async def test_cache_model_and_count_api() -> None:
     _, prompts, system_prompt, replay_client, cached_client = get_test_data()
 
     assert replay_client.model_info == cached_client.model_info
+    assert replay_client.capabilities == cached_client.capabilities
 
     messages: List[LLMMessage] = [system_prompt, UserMessage(content=prompts[0], source="user")]
     assert replay_client.count_tokens(messages) == cached_client.count_tokens(messages)
     assert replay_client.remaining_tokens(messages) == cached_client.remaining_tokens(messages)
-
-
-@pytest.mark.asyncio
-async def test_cache_force_cache() -> None:
-    responses, prompts, system_prompt, _, cached_client = get_test_data()
-
-    response0 = await cached_client.create([system_prompt, UserMessage(content=prompts[0], source="user")])
-    assert isinstance(response0, CreateResult)
-    assert not response0.cached
-    assert response0.content == responses[0]
-
-    response0_cached = await cached_client.create(
-        [system_prompt, UserMessage(content=prompts[0], source="user")], force_cache=True
-    )
-    assert isinstance(response0_cached, CreateResult)
-    assert response0_cached.cached
-    assert response0_cached.content == responses[0]
-
-    # Ensure error when force_cache=True and cache miss.
-    with pytest.raises(ValueError, match="Encountered cache miss for force_cache request"):
-        await cached_client.create([system_prompt, UserMessage(content=prompts[1], source="user")], force_cache=True)
-
-
-@pytest.mark.asyncio
-async def test_cache_force_client() -> None:
-    responses, prompts, system_prompt, _, cached_client = get_test_data()
-
-    response0 = await cached_client.create([system_prompt, UserMessage(content=prompts[0], source="user")])
-    assert isinstance(response0, CreateResult)
-    assert not response0.cached
-    assert response0.content == responses[0]
-
-    response1 = await cached_client.create(
-        [system_prompt, UserMessage(content=prompts[0], source="user")], force_client=True
-    )
-    assert isinstance(response1, CreateResult)
-    assert not response1.cached
-    assert response1.content == responses[1]
-
-    response2 = await cached_client.create(
-        [system_prompt, UserMessage(content=prompts[1], source="user")], force_client=True
-    )
-    assert isinstance(response2, CreateResult)
-    assert not response2.cached
-    assert response2.content == responses[2]
-
-    with pytest.raises(ValueError, match="force_cache and force_client cannot both be True"):
-        await cached_client.create(
-            [system_prompt, UserMessage(content=prompts[2], source="user")], force_cache=True, force_client=True
-        )
 
 
 @pytest.mark.asyncio

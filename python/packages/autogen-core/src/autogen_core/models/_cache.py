@@ -3,17 +3,19 @@ import json
 import warnings
 from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union, cast
 
-from autogen_core import CancellationToken
-from autogen_core.models import (
+from .._cache_store import CacheStore
+from .._cancellation_token import CancellationToken
+from ..tools import Tool, ToolSchema
+from ._model_client import (
     ChatCompletionClient,
-    CreateResult,
-    LLMMessage,
     ModelCapabilities,  # type: ignore
     ModelInfo,
+)
+from ._types import (
+    CreateResult,
+    LLMMessage,
     RequestUsage,
 )
-from autogen_core.store import AbstractStore
-from autogen_core.tools import Tool, ToolSchema
 
 
 class ChatCompletionCache(ChatCompletionClient):
@@ -22,13 +24,42 @@ class ChatCompletionCache(ChatCompletionClient):
     Cache hits do not contribute to token usage of the original client.
     """
 
-    def __init__(self, client: ChatCompletionClient, store: AbstractStore):
+    def __init__(self, client: ChatCompletionClient, store: CacheStore):
         """
         Initialize a new ChatCompletionCache.
 
+        First initialize (for eg) a Redis store:
+
+        ```python
+        import redis
+
+        redis_client = redis.Redis(host="localhost", port=6379, db=0)
+        ```
+
+        or diskcache store:
+
+        ```python
+        from diskcache import Cache
+
+        diskcache_client = Cache("/tmp/diskcache")
+        ```
+
+        Then initialize the ChatCompletionCache with the store:
+
+        ```python
+        from autogen_core.models import ChatCompletionCache
+        from autogen_ext.models import OpenAIChatCompletionClient
+
+        # Original client
+        client = OpenAIChatCompletionClient(...)
+
+        # Cached version
+        cached_client = ChatCompletionCache(client, redis_client)
+        ```
+
         Args:
             client (ChatCompletionClient): The original ChatCompletionClient to wrap.
-            store (AbstractStore): A store object that implements get and set methods.
+            store (CacheStore): A store object that implements get and set methods.
                 The user is responsible for managing the store's lifecycle & clearing it (if needed).
         """
         self.client = client
@@ -40,17 +71,11 @@ class ChatCompletionCache(ChatCompletionClient):
         tools: Sequence[Tool | ToolSchema],
         json_output: Optional[bool],
         extra_create_args: Mapping[str, Any],
-        force_cache: bool,
-        force_client: bool,
     ) -> tuple[Optional[Union[CreateResult, List[Union[str, CreateResult]]]], str]:
         """
         Helper function to check the cache for a result.
         Returns a tuple of (cached_result, cache_key).
-        cached_result is None if the cache is empty or force_client is True.
-        Raises an error if there is a cache miss and force_cache is True.
         """
-        if force_client and force_cache:
-            raise ValueError("force_cache and force_client cannot both be True")
 
         data = {
             "messages": [message.model_dump() for message in messages],
@@ -61,12 +86,9 @@ class ChatCompletionCache(ChatCompletionClient):
         serialized_data = json.dumps(data, sort_keys=True)
         cache_key = hashlib.sha256(serialized_data.encode()).hexdigest()
 
-        if not force_client:
-            cached_result = cast(Optional[CreateResult], self.store.get(cache_key))
-            if cached_result is not None:
-                return cached_result, cache_key
-            elif force_cache:
-                raise ValueError("Encountered cache miss for force_cache request")
+        cached_result = cast(Optional[CreateResult], self.store.get(cache_key))
+        if cached_result is not None:
+            return cached_result, cache_key
 
         return None, cache_key
 
@@ -78,8 +100,6 @@ class ChatCompletionCache(ChatCompletionClient):
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
-        force_cache: bool = False,
-        force_client: bool = False,
     ) -> CreateResult:
         """
         Cached version of ChatCompletionClient.create.
@@ -87,14 +107,8 @@ class ChatCompletionCache(ChatCompletionClient):
         without invoking the underlying client.
 
         NOTE: cancellation_token is ignored for cached results.
-
-        Additional parameters:
-        - force_cache: If True, the cache will be used and an error will be raised if a result is unavailable.
-        - force_client: If True, the cache will be bypassed and the underlying client will be called.
         """
-        cached_result, cache_key = self._check_cache(
-            messages, tools, json_output, extra_create_args, force_cache, force_client
-        )
+        cached_result, cache_key = self._check_cache(messages, tools, json_output, extra_create_args)
         if cached_result:
             assert isinstance(cached_result, CreateResult)
             cached_result.cached = True
@@ -118,8 +132,6 @@ class ChatCompletionCache(ChatCompletionClient):
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
-        force_cache: bool = False,
-        force_client: bool = False,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         """
         Cached version of ChatCompletionClient.create_stream.
@@ -127,18 +139,14 @@ class ChatCompletionCache(ChatCompletionClient):
         without streaming from the underlying client.
 
         NOTE: cancellation_token is ignored for cached results.
-
-        Additional parameters:
-        - force_cache: If True, the cache will be used and an error will be raised if a result is unavailable.
-        - force_client: If True, the cache will be bypassed and the underlying client will be called.
         """
-
-        if force_client and force_cache:
-            raise ValueError("force_cache and force_client cannot both be True")
 
         async def _generator() -> AsyncGenerator[Union[str, CreateResult], None]:
             cached_result, cache_key = self._check_cache(
-                messages, tools, json_output, extra_create_args, force_cache, force_client
+                messages,
+                tools,
+                json_output,
+                extra_create_args,
             )
             if cached_result:
                 assert isinstance(cached_result, list)
@@ -153,6 +161,7 @@ class ChatCompletionCache(ChatCompletionClient):
                 tools=tools,
                 json_output=json_output,
                 extra_create_args=extra_create_args,
+                cancellation_token=cancellation_token,
             )
 
             output_results: List[Union[str, CreateResult]] = []
