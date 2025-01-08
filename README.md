@@ -53,7 +53,7 @@ AutoGen provides everything you need to create intelligent agents, including LLM
 
 AutoGen framework uses a modular, extensible design with clearly divided responsibilities between layers. 
 - [Core API](./python/packages/autogen-core/) implements message passing, event-driven agents, and local and distributed runtime for flexibility and power. It also support cross-language support for .NET and Python.
-- [AgentChat API](./python/packages/autogen-agentchat/) implements a simpler but opinionated API rapid for prototyping.
+- [AgentChat API](./python/packages/autogen-agentchat/) implements a simpler but opinionated API rapid for prototyping. This API is built on top of the Core API and is closest to what users of v0.2 are familiar with.
 - [Extensions API](./python/packages/autogen-ext/) enables first- and third-party extensions continuously expanding framework capabilities. 
 
 The ecosystem also supports two essential developer tools:
