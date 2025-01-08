@@ -32,6 +32,7 @@ autogen-core = { workspace = true }
 autogen-ext = { workspace = true }
 autogen-magentic-one = { workspace = true }
 autogenstudio = { workspace = true }
+magentic-one-cli = { workspace = true }
 autogen-test-utils = { workspace = true }
 component-schema-gen = { workspace = true }
 

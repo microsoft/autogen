@@ -18,14 +18,11 @@ dependencies = [
     "autogen-core==0.4.0.dev13",
 ]
 
-[project.scripts]
-m1 = "autogen_ext.teams.magentic_one_cli:main"
-
 [project.optional-dependencies]
 langchain = ["langchain_core~= 0.3.3"]
 azure = ["azure-core", "azure-identity"]
 docker = ["docker~=7.0"]
-openai = ["openai>=1.52.2", "aiofiles"]
+openai = ["openai>=1.52.2", "tiktoken>=0.8.0", "aiofiles"]
 file-surfer = [
     "autogen-agentchat==0.4.0.dev13",
     "markitdown>=0.0.1a2",
