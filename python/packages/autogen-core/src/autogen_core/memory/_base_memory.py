@@ -2,10 +2,11 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Protocol, Union, runtime_checkable
 
-from .._cancellation_token import CancellationToken
-from ..model_context import ChatCompletionContext
-from .._image import Image
 from pydantic import BaseModel, ConfigDict
+
+from .._cancellation_token import CancellationToken
+from .._image import Image
+from ..model_context import ChatCompletionContext
 
 
 class MemoryMimeType(Enum):

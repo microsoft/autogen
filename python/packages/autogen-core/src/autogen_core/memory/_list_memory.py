@@ -1,9 +1,9 @@
 from typing import Any, List
 
-from ._base_memory import Memory, MemoryContent
-from ..models import SystemMessage
-from ..model_context import ChatCompletionContext
 from .._cancellation_token import CancellationToken
+from ..model_context import ChatCompletionContext
+from ..models import SystemMessage
+from ._base_memory import Memory, MemoryContent
 
 
 class ListMemory(Memory):
@@ -58,22 +58,17 @@ class ListMemory(Memory):
             return []
 
         # Get the most recent memories up to max_memories
-        recent_memories = self._contents[-self._max_memories:]
+        recent_memories = self._contents[-self._max_memories :]
 
         # Format memories into a string
-        memory_strings = []
+        memory_strings: List[str] = []
         for i, memory in enumerate(recent_memories, 1):
-            content = memory.content if isinstance(
-                memory.content, str) else str(memory.content)
+            content = memory.content if isinstance(memory.content, str) else str(memory.content)
             memory_strings.append(f"{i}. {content}")
 
         # Add memories to context if there are any
         if memory_strings:
-            memory_context = (
-                "\nRelevant memory content (in chronological order):\n"
-                + "\n".join(memory_strings)
-                + "\n"
-            )
+            memory_context = "\nRelevant memory content (in chronological order):\n" + "\n".join(memory_strings) + "\n"
             await model_context.add_message(SystemMessage(content=memory_context))
 
         return recent_memories
@@ -95,13 +90,9 @@ class ListMemory(Memory):
             List[MemoryContent]: Most recent memories up to max_memories limit
         """
         _ = query
-        return self._contents[-self._max_memories:]
+        return self._contents[-self._max_memories :]
 
-    async def add(
-        self,
-        content: MemoryContent,
-        cancellation_token: CancellationToken | None = None
-    ) -> None:
+    async def add(self, content: MemoryContent, cancellation_token: CancellationToken | None = None) -> None:
         """Add new content to memory.
 
         Args:
