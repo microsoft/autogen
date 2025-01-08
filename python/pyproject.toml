@@ -18,7 +18,8 @@ dev = [
     "cookiecutter",
     "poethepoet",
     "tomli",
-    "tomli-w"
+    "tomli-w",
+    "chainlit",
 ]
 
 [tool.uv.workspace]
@@ -70,6 +71,7 @@ disallow_any_unimported = true
 
 [tool.pyright]
 include = ["src", "tests", "samples"]
+exclude = ["samples/core_xlang_hello_python_agent/protos"]
 typeCheckingMode = "strict"
 reportUnnecessaryIsInstance = false
 reportMissingTypeStubs = false
@@ -82,14 +84,14 @@ pyright = "python run_task_in_pkgs_if_exist.py pyright"
 mypy = "python run_task_in_pkgs_if_exist.py mypy"
 test = "python run_task_in_pkgs_if_exist.py test"
 coverage = "python run_task_in_pkgs_if_exist.py coverage"
+markdown-code-lint = """python check_md_code_blocks.py ../README.md ./packages/autogen-core/docs/src/**/*.md"""
+samples-code-check = """pyright ./samples"""
 
-check = ["fmt", "lint", "pyright", "mypy", "coverage"]
+check = ["fmt", "lint", "pyright", "mypy", "coverage", "markdown-code-lint", "samples-code-check"]
 
 gen-proto = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --grpc_python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_grpc_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --proto_path ../protos/ agent_worker.proto --proto_path ../protos/ cloudevent.proto"
 
-gen-proto-samples = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/samples/protos --grpc_python_out=./packages/autogen-core/samples/protos --mypy_out=./packages/autogen-core/samples/protos --mypy_grpc_out=./packages/autogen-core/samples/protos --proto_path ../protos/ agent_events.proto"
-
-markdown-code-lint = """python check_md_code_blocks.py ../README.md ./packages/autogen-core/docs/src/**/*.md"""
+gen-proto-samples = "python -m grpc_tools.protoc --python_out=./samples/core_xlang_hello_python_agent/protos --grpc_python_out=./samples/core_xlang_hello_python_agent/protos --mypy_out=./samples/core_xlang_hello_python_agent/protos --mypy_grpc_out=./samples/core_xlang_hello_python_agent/protos --proto_path ../protos/ agent_events.proto"
 
 [[tool.poe.tasks.gen-test-proto.sequence]]
 cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/tests/protos --grpc_python_out=./packages/autogen-core/tests/protos --mypy_out=./packages/autogen-core/tests/protos --mypy_grpc_out=./packages/autogen-core/tests/protos --proto_path ./packages/autogen-core/tests/protos serialization_test.proto"
