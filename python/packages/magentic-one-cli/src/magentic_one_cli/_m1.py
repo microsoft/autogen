@@ -1,10 +1,13 @@
 import argparse
 import asyncio
+import warnings
 
 from autogen_agentchat.ui import Console
-
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.teams.magentic_one import MagenticOne
+
+# Suppress warnings about the requests.Session() not being closed
+warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
 
 def main() -> None:
