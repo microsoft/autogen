@@ -1,4 +1,4 @@
-/autogen/,/autogen/0.2/
+/autogen/,/autogen/stable/
 /autogen/docs/Getting-Started,/autogen/0.2/docs/Getting-Started
 /autogen/docs/installation/,/autogen/0.2/docs/installation/
 /autogen/docs/tutorial/introduction,/autogen/0.2/docs/tutorial/introduction
