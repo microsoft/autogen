@@ -77,6 +77,10 @@ message Subscription {
     }
 }
 
+message SubscriptionList {
+    repeated Subscription subscriptions = 1;
+}
+
 message SubscriptionRequest {
     string request_id = 1;
     Subscription subscription = 2;
@@ -93,8 +97,9 @@ service AgentRpc {
     rpc GetState(AgentId) returns (GetStateResponse);
     rpc SaveState(AgentState) returns (SaveStateResponse);
     rpc RegisterAgent(RegisterAgentTypeRequest) returns (RegisterAgentTypeResponse);
-    rpc AddSubscription(SubscriptionRequest) returns (SubscriptionResponse);
-    rpc RemoveSubscription(SubscriptionRequest) returns (SubscriptionResponse);
+    rpc Subscribe(SubscriptionRequest) returns (SubscriptionResponse);
+    rpc Unsubscribe(SubscriptionRequest) returns (SubscriptionResponse);
+    rpc GetSubscriptions(AgentId) returns (SubscriptionList);
 }
 
 message AgentState {

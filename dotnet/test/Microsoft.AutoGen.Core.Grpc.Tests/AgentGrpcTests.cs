@@ -47,7 +47,7 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
     public async Task Agent_ShouldInitializeCorrectly()
     {
         var (worker, agent) = _fixture.Start();
-        Assert.Equal("AgentWorker", worker.GetType().Name);
+        Assert.Equal("GrpcAgentWorker", worker.GetType().Name);
         var subscriptions = await agent.GetSubscriptionsAsync();
         Assert.Equal(2, subscriptions.Count);
         _fixture.Stop();

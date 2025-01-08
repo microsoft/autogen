@@ -6,11 +6,13 @@ namespace Microsoft.AutoGen.Runtime.Grpc.Abstractions;
 
 public interface IGateway : IGrainObserver
 {
-    ValueTask<RpcResponse> InvokeRequest(RpcRequest request);
-    ValueTask BroadcastEvent(CloudEvent evt);
-    ValueTask StoreAsync(Contracts.AgentState value);
-    ValueTask<Contracts.AgentState> ReadAsync(AgentId agentId);
-    ValueTask<RegisterAgentTypeResponse> RegisterAgentTypeAsync(RegisterAgentTypeRequest request);
-    ValueTask<SubscriptionResponse> AddSubscriptionAsync(SubscriptionRequest request);
-    Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent);
+    ValueTask<RpcResponse> InvokeRequestAsync(RpcRequest request, CancellationToken cancellationToken = default);
+    ValueTask BroadcastEventAsync(CloudEvent evt, CancellationToken cancellationToken = default);
+    ValueTask StoreAsync(Contracts.AgentState value, CancellationToken cancellationToken = default);
+    ValueTask<Contracts.AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default);
+    ValueTask<RegisterAgentTypeResponse> RegisterAgentTypeAsync(RegisterAgentTypeRequest request, CancellationToken cancellationToken = default);
+    ValueTask<SubscriptionResponse> SubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default);
+    ValueTask<SubscriptionResponse> UnsubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default);
+    ValueTask<SubscriptionResponse> GetSubscriptionsAsync(Type type, CancellationToken cancellationToken = default);
+    Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default);
 }

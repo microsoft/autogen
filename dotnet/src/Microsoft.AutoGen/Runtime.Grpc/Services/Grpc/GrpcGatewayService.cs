@@ -42,14 +42,19 @@ public sealed class GrpcGatewayService : AgentRpc.AgentRpcBase
             Success = true // TODO: Implement error handling
         };
     }
-    public override async Task<SubscriptionResponse> AddSubscription(SubscriptionRequest request, ServerCallContext context)
+    public override async Task<SubscriptionResponse> Subscribe(SubscriptionRequest request, ServerCallContext context)
     {
         request.RequestId = context.Peer;
-        return await Gateway.AddSubscriptionAsync(request);
+        return await Gateway.SubscribeAsync(request).ConfigureAwait(true);
+    }
+    public override async Task<SubscriptionResponse> Unsubscribe(SubscriptionRequest request, ServerCallContext context)
+    {
+        request.RequestId = context.Peer;
+        return await Gateway.UnsubscribeAsync(request).ConfigureAwait(true);
     }
     public override async Task<RegisterAgentTypeResponse> RegisterAgent(RegisterAgentTypeRequest request, ServerCallContext context)
     {
         request.RequestId = context.Peer;
-        return await Gateway.RegisterAgentTypeAsync(request);
+        return await Gateway.RegisterAgentTypeAsync(request).ConfigureAwait(true);
     }
 }

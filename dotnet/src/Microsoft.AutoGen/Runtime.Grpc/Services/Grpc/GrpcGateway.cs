@@ -39,7 +39,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         _gatewayRegistry = clusterClient.GetGrain<IRegistryGrain>(0);
         _subscriptions = clusterClient.GetGrain<ISubscriptionsGrain>(0);
     }
-    public async ValueTask<RpcResponse> InvokeRequest(RpcRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<RpcResponse> InvokeRequestAsync(RpcRequest request, CancellationToken cancellationToken = default)
     {
         var agentId = (request.Target.Type, request.Target.Key);
         if (!_agentDirectory.TryGetValue(agentId, out var connection) || connection.Completion.IsCompleted == true)
@@ -66,18 +66,18 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         response.RequestId = originalRequestId;
         return response;
     }
-    public async ValueTask StoreAsync(AgentState value)
+    public async ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
     {
         _ = value.AgentId ?? throw new ArgumentNullException(nameof(value.AgentId));
         var agentState = _clusterClient.GetGrain<IAgentGrain>($"{value.AgentId.Type}:{value.AgentId.Key}");
         await agentState.WriteStateAsync(value, value.ETag);
     }
-    public async ValueTask<AgentState> ReadAsync(AgentId agentId)
+    public async ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
     {
         var agentState = _clusterClient.GetGrain<IAgentGrain>($"{agentId.Type}:{agentId.Key}");
         return await agentState.ReadStateAsync();
     }
-    public async ValueTask<RegisterAgentTypeResponse> RegisterAgentTypeAsync(RegisterAgentTypeRequest request)
+    public async ValueTask<RegisterAgentTypeResponse> RegisterAgentTypeAsync(RegisterAgentTypeRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -102,7 +102,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             };
         }
     }
-    public async ValueTask<SubscriptionResponse> AddSubscriptionAsync(SubscriptionRequest request)
+    public async ValueTask<SubscriptionResponse> SubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
@@ -280,7 +280,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                 // TODO// Activate the worker: load state
             }
             // Forward the message to the gateway and return the result.
-            return await gateway.InvokeRequest(request).ConfigureAwait(true);
+            return await gateway.InvokeRequestAsync(request).ConfigureAwait(true);
         }).ConfigureAwait(false);
     }
     private static async Task InvokeRequestDelegate(GrpcWorkerConnection connection, RpcRequest request, Func<RpcRequest, Task<RpcResponse>> func)
@@ -365,12 +365,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
-
-    async ValueTask<RpcResponse> IGateway.InvokeRequest(RpcRequest request)
-    {
-        return await this.InvokeRequest(request).ConfigureAwait(false);
-    }
-    public async ValueTask BroadcastEvent(CloudEvent evt)
+    public async ValueTask BroadcastEventAsync(CloudEvent evt, CancellationToken cancellationToken = default)
     {
         var tasks = new List<Task>(_workers.Count);
         foreach (var (_, connection) in _supportedAgentTypes)
@@ -380,13 +375,23 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
-    Task IGateway.SendMessageAsync(IConnection connection, CloudEvent cloudEvent)
+    Task IGateway.SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken)
     {
-        return this.SendMessageAsync(connection, cloudEvent);
+        return this.SendMessageAsync(connection, cloudEvent, cancellationToken);
     }
-        public async Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
+    public async Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
         var queue = (GrpcWorkerConnection)connection;
         await queue.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);
+    }
+
+    public ValueTask<SubscriptionResponse> UnsubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<SubscriptionResponse> GetSubscriptionsAsync(Type type, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
     }
 }

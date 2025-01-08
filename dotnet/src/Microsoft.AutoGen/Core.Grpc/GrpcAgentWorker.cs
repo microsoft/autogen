@@ -399,17 +399,21 @@ public sealed class GrpcAgentWorker(
 
     public ValueTask<List<Subscription>> GetSubscriptionsAsync(Type type)
     {
-        throw new NotImplementedException();
+        var agentId = new AgentId { Type = type.Name };
+        var response = _client.GetSubscriptions(agentId);
+        return new ValueTask<List<Subscription>>([.. response.Subscriptions]);
     }
 
     public ValueTask<SubscriptionResponse> SubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var response = _client.Subscribe(request, null, null, cancellationToken);
+        return new ValueTask<SubscriptionResponse>(response);
     }
 
     public ValueTask<SubscriptionResponse> UnsubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        var response = _client.Unsubscribe(request, null, null, cancellationToken);
+        return new ValueTask<SubscriptionResponse>(response);
     }
 }
 
