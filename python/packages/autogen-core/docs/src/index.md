@@ -54,9 +54,9 @@ A framework for building AI agents and applications
 <div class="sd-card-title sd-font-weight-bold docutils">
 
 {fas}`book;pst-color-primary`
-Magentic-One [![PyPi magentic-one](https://img.shields.io/badge/PyPi-magentic--one-blue?logo=pypi)](https://pypi.org/project/magentic-one/)
+Magentic-One CLI [![PyPi magentic-one-cli](https://img.shields.io/badge/PyPi-magentic--one--cli-blue?logo=pypi)](https://pypi.org/project/magentic-one-cli/)
 </div>
-A multi-agent assistant for web and file-based tasks.
+A console-based multi-agent assistant for web and file-based tasks.
 Built on AgentChat.
 
 ```bash
