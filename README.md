@@ -18,6 +18,12 @@
 
 **AutoGen** is a framework for creating intelligent multi-agent systems that can act autonomously or work alongside humans.
 
+### Quick Start
+
+```bash
+pip install autogen-agentchat autogen-ext[openai]
+```
+
 ### Minimal Python Example
 Code for setting up a multi-agent system to plot stock prices:
 ```python
