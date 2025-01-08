@@ -27,7 +27,7 @@ pip install autogen-agentchat autogen-ext[openai]
 ### Minimal Python Example
 Code for setting up a multi-agent system to plot stock prices:
 ```python
-# pip install "autogen-agentchat==0.4.0.dev13" "autogen-ext[openai]==0.4.0.dev13" "yfinance" "matplotlib"
+# pip install "autogen-agentchat" "autogen-ext[openai]" "yfinance" "matplotlib"
 import asyncio
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
