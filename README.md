@@ -49,10 +49,10 @@ asyncio.run(main())
   <p><em>Figure 1. The v0.4 update introduces a cohesive AutoGen ecosystem that includes the framework, developer tools, and applications. The framework’s layered architecture clearly defines each layer’s functionality. It supports both first-party and third-party applications and extensions.</em></p>
 </div>
 
-AutoGen provides everything you need to create intelligent agents, including LLM clients (e.g., OpenAI, AzureOpenAI), multi-agent teams (two-agent or group chats), and capabilities like code/tool execution and human-in-the-loop workflows. AutoGen also provides state-of-the-art agents like [Magentic-One](./python/packages/magentic-one-cli/) for top performance and reliability, supports distributed agents and cross-language support in Python and .NET.
+AutoGen provides everything you need to create intelligent agents, including LLM clients (e.g., OpenAI, AzureOpenAI), multi-agent teams (two-agent or group chats), and capabilities like code/tool execution and human-in-the-loop workflows. 
 
 AutoGen framework uses a modular, extensible design with clearly divided responsibilities between layers. 
-- [Core API](./python/packages/autogen-core/) implements message passing, event-driven agents, and runtime for flexibility and power.
+- [Core API](./python/packages/autogen-core/) implements message passing, event-driven agents, and local and distributed runtime for flexibility and power. It also support cross-language support for .NET and Python.
 - [AgentChat API](./python/packages/autogen-agentchat/) implements a simpler but opinionated API rapid for prototyping.
 - [Extensions API](./python/packages/autogen-ext/) enables first- and third-party extensions continuously expanding framework capabilities. 
 
