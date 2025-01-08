@@ -14,7 +14,7 @@
 
 **AutoGen** is a framework for creating intelligent multi-agent applications that can act autonomously or work alongside humans.
 
-### Quick Start
+## Quick Start
 
 ```bash
 pip install autogen-agentchat autogen-ext[openai]
