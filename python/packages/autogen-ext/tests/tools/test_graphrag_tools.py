@@ -1,3 +1,4 @@
+# mypy: disable-error-code="no-any-unimported"
 import os
 import tempfile
 from typing import Any, AsyncGenerator, Generator
@@ -14,7 +15,7 @@ from graphrag.query.llm.base import BaseLLM, BaseTextEmbedding
 from graphrag.vector_stores.base import BaseVectorStore, VectorStoreDocument, VectorStoreSearchResult
 
 
-class MockLLM(BaseLLM):
+class MockLLM(BaseLLM):  # type: ignore
     def generate(
         self,
         messages: str | list[Any],
@@ -44,7 +45,7 @@ class MockLLM(BaseLLM):
         yield "Mock response"
 
 
-class MockTextEmbedding(BaseTextEmbedding):
+class MockTextEmbedding(BaseTextEmbedding):  # type: ignore
     def embed(self, text: str, **kwargs: Any) -> list[float]:
         return [0.1] * 10
 
@@ -52,7 +53,7 @@ class MockTextEmbedding(BaseTextEmbedding):
         return [0.1] * 10
 
 
-class MockVectorStore(BaseVectorStore):
+class MockVectorStore(BaseVectorStore):  # type: ignore
     def __init__(self, **kwargs: Any) -> None:
         super().__init__(collection_name="mock", **kwargs)
         self.documents: dict[str | int, VectorStoreDocument] = {}

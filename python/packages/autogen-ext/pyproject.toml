@@ -61,6 +61,7 @@ packages = ["src/autogen_ext"]
 dev = [
     "autogen_test_utils",
     "langchain-experimental",
+    "pandas-stubs>=2.2.3.241126",
 ]
 
 [tool.ruff]

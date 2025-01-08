@@ -5,21 +5,21 @@ import pytest
 @pytest.fixture
 def community_df_fixture() -> pd.DataFrame:
     data = {
-        "id": {"0": "d572b27c-a7c1-4a4e-a673-4c0efb9fdbd4", "1": "7fa4296f-74d2-4ffb-abe4-3a16ff4b761c"},
-        "human_readable_id": {"0": 0, "1": 1},
-        "community": {"0": 0, "1": 1},
-        "parent": {"0": -1, "1": -1},
-        "level": {"0": 0, "1": 0},
-        "title": {"0": "Community 0", "1": "Community 1"},
-        "entity_ids": {
-            "0": [
+        "id": ["d572b27c-a7c1-4a4e-a673-4c0efb9fdbd4", "7fa4296f-74d2-4ffb-abe4-3a16ff4b761c"],
+        "human_readable_id": [0, 1],
+        "community": [0, 1],
+        "parent": [-1, -1],
+        "level": [0, 0],
+        "title": ["Community 0", "Community 1"],
+        "entity_ids": [
+            [
                 "beba48a6-a5a6-458f-ae44-0c07f615e52f",
                 "1277ec21-ab15-40e0-96e4-1eda5953a344",
                 "195513fe-6e34-4e4f-ad13-e5fa88678a64",
                 "3fb5e51a-819e-486e-b17c-d72832621cdd",
                 "690a585a-57a9-4abc-b7f5-22051f823b11",
             ],
-            "1": [
+            [
                 "da96b22a-5d6d-4810-bd1d-a6ad71a4cae6",
                 "e28d29b0-20ce-4e51-803d-4e3178c59f49",
                 "fb396b61-faba-4cb5-bd0c-578ac5df7aa1",
@@ -31,15 +31,15 @@ def community_df_fixture() -> pd.DataFrame:
                 "7bb3b3e7-556f-44ce-bd3d-800c7a55d864",
                 "fc28a9b5-cf94-4436-92fe-ef733fb3c69d",
             ],
-        },
-        "relationship_ids": {
-            "0": [
+        ],
+        "relationship_ids": [
+            [
                 "224f8223-feff-43f5-9cb2-960d5a650731",
                 "6d6dc7ac-cc5a-4a1c-bf37-2cba7b7e7340",
                 "8ce25898-f9b3-464a-ac6a-49bd3f898295",
                 "bbea05ce-be5e-4970-b8f0-73414284ab84",
             ],
-            "1": [
+            [
                 "13a99b88-aef5-4935-b5c2-e00d24b125ba",
                 "4d8a7724-430c-4477-a588-bcecff6fb9d8",
                 "6d09a03f-7ecd-4b92-9a78-e8fbf1cea6fd",
@@ -54,21 +54,21 @@ def community_df_fixture() -> pd.DataFrame:
                 "f1a16c4b-f673-49d0-be1a-bbb36ae4e5c8",
                 "fe26f48b-8152-4a70-a2d5-f13023cbae4c",
             ],
-        },
-        "text_unit_ids": {
-            "0": [
+        ],
+        "text_unit_ids": [
+            [
                 "9bcc5581a92c05081bb138322f3dd38589fea781f43c1ef53d208a637a4f37a3f1ee41bd432b20e5257500126b84b62a400befd22dcc92338ebb9d764f59abca"
             ],
-            "1": [
+            [
                 "043185f776c61662fdbc1e50e270edd06f1cc2cdf76158cdff34e8e825ba5bd39453c9e773fc1aca15ab77c837959dc85149e64ef4849c9be0b72512a6fdb00d",
                 "60ee542fe71e676b6cc61f19046c27bfa00ff5e086af7101c8aed2bb992436cb17cd192af0389257da9edcee5f67ab8ccd5f52f91102dcb2da2ecedb08a2bb52",
                 "9c426c886a92062375501320a4ddf890003d2cc62c5face8356bc4361856c4fbb0f4573865cb9026e99b67bf61837d570251aa0a76acb9e448fb6de84c515a1e",
             ],
-        },
-        "period": {"0": "2024-12-16", "1": "2024-12-16"},
-        "size": {"0": 5, "1": 10},
+        ],
+        "period": ["2024-12-16", "2024-12-16"],
+        "size": [5, 10],
     }
-    return pd.DataFrame.from_dict(data)  # type: ignore
+    return pd.DataFrame(data)
 
 
 @pytest.fixture
@@ -89,27 +89,27 @@ def entity_df_fixture() -> pd.DataFrame:
 @pytest.fixture
 def report_df_fixture() -> pd.DataFrame:
     data = {
-        "id": {"0": "53670ddbd42f4518940333eeabe599ed", "1": "2f129d4030324a7688c14eafab50c81c"},
-        "human_readable_id": {"0": 105, "1": 106},
-        "community": {"0": 105, "1": 106},
-        "parent": {"0": 22, "1": 22},
-        "level": {"0": 2, "1": 2},
-        "title": {"0": "Peterson and the Missing Billycock", "1": "Baker Street and Sherlock Holmes Community"},
-        "summary": {
-            "0": "The community centers around Peterson, a commissionaire involved in a mystery concerning a lost hat and a goose. His actions are pivotal in the investigation led by Sherlock Holmes, connecting various entities such as the row, the billycock hat, and multiple newspapers where advertisements were placed.",
-            "1": "The community centers around Baker Street, the iconic residence of Sherlock Holmes, and its connection to the London Underground. Baker Street serves as a significant landmark associated with the famous detective, while the Underground facilitates access to this notable location.",
-        },
-        "full_content": {
-            "0": "# Peterson and the Missing Billycock\\n\\nThe community centers around Peterson, a commissionaire involved in a mystery concerning a lost hat and a goose. His actions are pivotal in the investigation led by Sherlock Holmes, connecting various entities such as the row, the billycock hat, and multiple newspapers where advertisements were placed.\\n\\n## Peterson's central role in the investigation\\n\\nPeterson is a key figure in the mystery involving the missing blue carbuncle, acting as a commissionaire who aids Sherlock Holmes. His involvement is crucial as he not only discovers the lost billycock hat but also plays a significant role in disseminating information related to the case. This highlights his importance in the narrative and the potential impact of his actions on the investigation's outcome. [Data: Entities (333); Relationships (521, 522)]\\n\\n## The significance of the row incident\\n\\nThe row refers to the altercation that prompted Peterson's intervention, leading to the discovery of the hat. This incident is pivotal as it sets the stage for the entire investigation, illustrating how a seemingly minor event can have far-reaching consequences. The altercation not only affects Peterson but also ties into the larger mystery that Holmes is trying to solve. [Data: Entities (339); Relationships (521)]\\n\\n## The billycock hat as a central object\\n\\nThe billycock hat is not just an accessory but a crucial piece of evidence in the investigation. Its discovery by Peterson links him directly to the case and raises questions about its owner, Henry Baker. The hat's significance is underscored by its role in the narrative, as it is the object around which the mystery revolves. [Data: Entities (340); Relationships (522)]\\n\\n## Media involvement through advertisements\\n\\nPeterson's task of placing advertisements in various evening papers, including the Globe, Star, Pall Mall, and others, indicates the media's role in the investigation. This outreach is essential for gathering information about the hat's owner and demonstrates how public engagement can influence the resolution of the case. The involvement of multiple newspapers suggests a broad interest in the mystery, which could amplify its impact on the community. [Data: Entities (355, 356, 357, 358, 359, 360, 361); Relationships (545, 546, 547, 548, 549, 550, 551)]",
-            "1": "# Baker Street and Sherlock Holmes Community\\n\\nThe community centers around Baker Street, the iconic residence of Sherlock Holmes, and its connection to the London Underground. Baker Street serves as a significant landmark associated with the famous detective, while the Underground facilitates access to this notable location.\\n\\n## Baker Street as a cultural landmark\\n\\nBaker Street is not only the residence of Sherlock Holmes but also a symbol of his adventures and detective work. Its association with the fictional detective has made it a notable landmark in London, drawing interest from fans and tourists alike. The street's historical and cultural significance contributes to its status as a must-visit location, enhancing its impact on the community. [Data: Entities (4), Relationships (178)]\\n\\n## Sherlock Holmes's connection to Baker Street\\n\\nSherlock Holmes is intrinsically linked to Baker Street, as it serves as his residence and the hub for his investigations. This relationship is central to the narrative of his character, making Baker Street a vital part of the Sherlock Holmes lore. The detective's activities at this location have become iconic, further solidifying the street's importance in popular culture. [Data: Entities (4), Relationships (178)]\\n\\n## The role of the Underground in accessing Baker Street\\n\\nThe London Underground plays a crucial role in facilitating access to Baker Street, making it easier for visitors to reach this iconic location. The connection between the Underground and Baker Street enhances the street's accessibility, contributing to its popularity as a tourist destination. This relationship underscores the importance of public transportation in connecting significant cultural landmarks. [Data: Entities (548), Relationships (862)]\\n\\n## Baker Street's association with detective work\\n\\nBaker Street is synonymous with detective work, primarily due to its association with Sherlock Holmes. The street is where many of Holmes's investigations take place, making it a focal point for fans of detective fiction. This connection to crime-solving and mystery adds to the allure of Baker Street, attracting those interested in the genre and its history. [Data: Entities (4), Relationships (178)]\\n\\n## Tourism and public interest in Baker Street\\n\\nThe combination of Baker Street's historical significance and its association with Sherlock Holmes has made it a popular tourist destination. Visitors often seek to explore the street and its surroundings, contributing to the local economy and cultural heritage. The public interest in this location highlights the impact of literary figures on real-world places and their ability to draw crowds. [Data: Entities (4), Relationships (178)]",
-        },
-        "rank": {"0": 6.5, "1": 6.5},
-        "rank_explanation": {
-            "0": "The impact severity rating is moderate to high due to the potential implications of the investigation on public interest and media coverage.",
-            "1": "The impact severity rating is moderate due to the cultural significance of Baker Street and its association with Sherlock Holmes, which attracts considerable public interest.",
-        },
-        "findings": {
-            "0": [
+        "id": ["53670ddbd42f4518940333eeabe599ed", "2f129d4030324a7688c14eafab50c81c"],
+        "human_readable_id": [105, 106],
+        "community": [105, 106],
+        "parent": [22, 22],
+        "level": [2, 2],
+        "title": ["Peterson and the Missing Billycock", "Baker Street and Sherlock Holmes Community"],
+        "summary": [
+            "The community centers around Peterson, a commissionaire involved in a mystery concerning a lost hat and a goose. His actions are pivotal in the investigation led by Sherlock Holmes, connecting various entities such as the row, the billycock hat, and multiple newspapers where advertisements were placed.",
+            "The community centers around Baker Street, the iconic residence of Sherlock Holmes, and its connection to the London Underground. Baker Street serves as a significant landmark associated with the famous detective, while the Underground facilitates access to this notable location.",
+        ],
+        "full_content": [
+            "# Peterson and the Missing Billycock\\n\\nThe community centers around Peterson, a commissionaire involved in a mystery concerning a lost hat and a goose. His actions are pivotal in the investigation led by Sherlock Holmes, connecting various entities such as the row, the billycock hat, and multiple newspapers where advertisements were placed.\\n\\n## Peterson's central role in the investigation\\n\\nPeterson is a key figure in the mystery involving the missing blue carbuncle, acting as a commissionaire who aids Sherlock Holmes. His involvement is crucial as he not only discovers the lost billycock hat but also plays a significant role in disseminating information related to the case. This highlights his importance in the narrative and the potential impact of his actions on the investigation's outcome. [Data: Entities (333); Relationships (521, 522)]\\n\\n## The significance of the row incident\\n\\nThe row refers to the altercation that prompted Peterson's intervention, leading to the discovery of the hat. This incident is pivotal as it sets the stage for the entire investigation, illustrating how a seemingly minor event can have far-reaching consequences. The altercation not only affects Peterson but also ties into the larger mystery that Holmes is trying to solve. [Data: Entities (339); Relationships (521)]\\n\\n## The billycock hat as a central object\\n\\nThe billycock hat is not just an accessory but a crucial piece of evidence in the investigation. Its discovery by Peterson links him directly to the case and raises questions about its owner, Henry Baker. The hat's significance is underscored by its role in the narrative, as it is the object around which the mystery revolves. [Data: Entities (340); Relationships (522)]\\n\\n## Media involvement through advertisements\\n\\nPeterson's task of placing advertisements in various evening papers, including the Globe, Star, Pall Mall, and others, indicates the media's role in the investigation. This outreach is essential for gathering information about the hat's owner and demonstrates how public engagement can influence the resolution of the case. The involvement of multiple newspapers suggests a broad interest in the mystery, which could amplify its impact on the community. [Data: Entities (355, 356, 357, 358, 359, 360, 361); Relationships (545, 546, 547, 548, 549, 550, 551)]",
+            "# Baker Street and Sherlock Holmes Community\\n\\nThe community centers around Baker Street, the iconic residence of Sherlock Holmes, and its connection to the London Underground. Baker Street serves as a significant landmark associated with the famous detective, while the Underground facilitates access to this notable location.\\n\\n## Baker Street as a cultural landmark\\n\\nBaker Street is not only the residence of Sherlock Holmes but also a symbol of his adventures and detective work. Its association with the fictional detective has made it a notable landmark in London, drawing interest from fans and tourists alike. The street's historical and cultural significance contributes to its status as a must-visit location, enhancing its impact on the community. [Data: Entities (4), Relationships (178)]\\n\\n## Sherlock Holmes's connection to Baker Street\\n\\nSherlock Holmes is intrinsically linked to Baker Street, as it serves as his residence and the hub for his investigations. This relationship is central to the narrative of his character, making Baker Street a vital part of the Sherlock Holmes lore. The detective's activities at this location have become iconic, further solidifying the street's importance in popular culture. [Data: Entities (4), Relationships (178)]\\n\\n## The role of the Underground in accessing Baker Street\\n\\nThe London Underground plays a crucial role in facilitating access to Baker Street, making it easier for visitors to reach this iconic location. The connection between the Underground and Baker Street enhances the street's accessibility, contributing to its popularity as a tourist destination. This relationship underscores the importance of public transportation in connecting significant cultural landmarks. [Data: Entities (548), Relationships (862)]\\n\\n## Baker Street's association with detective work\\n\\nBaker Street is synonymous with detective work, primarily due to its association with Sherlock Holmes. The street is where many of Holmes's investigations take place, making it a focal point for fans of detective fiction. This connection to crime-solving and mystery adds to the allure of Baker Street, attracting those interested in the genre and its history. [Data: Entities (4), Relationships (178)]\\n\\n## Tourism and public interest in Baker Street\\n\\nThe combination of Baker Street's historical significance and its association with Sherlock Holmes has made it a popular tourist destination. Visitors often seek to explore the street and its surroundings, contributing to the local economy and cultural heritage. The public interest in this location highlights the impact of literary figures on real-world places and their ability to draw crowds. [Data: Entities (4), Relationships (178)]",
+        ],
+        "rank": [6.5, 6.5],
+        "rank_explanation": [
+            "The impact severity rating is moderate to high due to the potential implications of the investigation on public interest and media coverage.",
+            "The impact severity rating is moderate due to the cultural significance of Baker Street and its association with Sherlock Holmes, which attracts considerable public interest.",
+        ],
+        "findings": [
+            [
                 {
                     "explanation": "Peterson is a key figure in the mystery involving the missing blue carbuncle, acting as a commissionaire who aids Sherlock Holmes. His involvement is crucial as he not only discovers the lost billycock hat but also plays a significant role in disseminating information related to the case. This highlights his importance in the narrative and the potential impact of his actions on the investigation's outcome. [Data: Entities (333); Relationships (521, 522)]",
                     "summary": "Peterson's central role in the investigation",
@@ -127,7 +127,7 @@ def report_df_fixture() -> pd.DataFrame:
                     "summary": "Media involvement through advertisements",
                 },
             ],
-            "1": [
+            [
                 {
                     "explanation": "Baker Street is not only the residence of Sherlock Holmes but also a symbol of his adventures and detective work. Its association with the fictional detective has made it a notable landmark in London, drawing interest from fans and tourists alike. The street's historical and cultural significance contributes to its status as a must-visit location, enhancing its impact on the community. [Data: Entities (4), Relationships (178)]",
                     "summary": "Baker Street as a cultural landmark",
@@ -149,90 +149,90 @@ def report_df_fixture() -> pd.DataFrame:
                     "summary": "Tourism and public interest in Baker Street",
                 },
             ],
-        },
-        "full_content_json": {
-            "0": '{\n    "title": "Peterson and the Missing Billycock",\n    "summary": "The community centers around Peterson, a commissionaire involved in a mystery concerning a lost hat and a goose. His actions are pivotal in the investigation led by Sherlock Holmes, connecting various entities such as the row, the billycock hat, and multiple newspapers where advertisements were placed.",\n    "findings": [\n        {\n            "summary": "Peterson\'s central role in the investigation",\n            "explanation": "Peterson is a key figure in the mystery involving the missing blue carbuncle, acting as a commissionaire who aids Sherlock Holmes. His involvement is crucial as he not only discovers the lost billycock hat but also plays a significant role in disseminating information related to the case. This highlights his importance in the narrative and the potential impact of his actions on the investigation\'s outcome. [Data: Entities (333); Relationships (521, 522)]"\n        },\n        {\n            "summary": "The significance of the row incident",\n            "explanation": "The row refers to the altercation that prompted Peterson\'s intervention, leading to the discovery of the hat. This incident is pivotal as it sets the stage for the entire investigation, illustrating how a seemingly minor event can have far-reaching consequences. The altercation not only affects Peterson but also ties into the larger mystery that Holmes is trying to solve. [Data: Entities (339); Relationships (521)]"\n        },\n        {\n            "summary": "The billycock hat as a central object",\n            "explanation": "The billycock hat is not just an accessory but a crucial piece of evidence in the investigation. Its discovery by Peterson links him directly to the case and raises questions about its owner, Henry Baker. The hat\'s significance is underscored by its role in the narrative, as it is the object around which the mystery revolves. [Data: Entities (340); Relationships (522)]"\n        },\n        {\n            "summary": "Media involvement through advertisements",\n            "explanation": "Peterson\'s task of placing advertisements in various evening papers, including the Globe, Star, Pall Mall, and others, indicates the media\'s role in the investigation. This outreach is essential for gathering information about the hat\'s owner and demonstrates how public engagement can influence the resolution of the case. The involvement of multiple newspapers suggests a broad interest in the mystery, which could amplify its impact on the community. [Data: Entities (355, 356, 357, 358, 359, 360, 361); Relationships (545, 546, 547, 548, 549, 550, 551)]"\n        }\n    ],\n    "rating": 6.5,\n    "rating_explanation": "The impact severity rating is moderate to high due to the potential implications of the investigation on public interest and media coverage.",\n    "extra_attributes": {}\n}',
-            "1": '{\n    "title": "Baker Street and Sherlock Holmes Community",\n    "summary": "The community centers around Baker Street, the iconic residence of Sherlock Holmes, and its connection to the London Underground. Baker Street serves as a significant landmark associated with the famous detective, while the Underground facilitates access to this notable location.",\n    "findings": [\n        {\n            "summary": "Baker Street as a cultural landmark",\n            "explanation": "Baker Street is not only the residence of Sherlock Holmes but also a symbol of his adventures and detective work. Its association with the fictional detective has made it a notable landmark in London, drawing interest from fans and tourists alike. The street\'s historical and cultural significance contributes to its status as a must-visit location, enhancing its impact on the community. [Data: Entities (4), Relationships (178)]"\n        },\n        {\n            "summary": "Sherlock Holmes\'s connection to Baker Street",\n            "explanation": "Sherlock Holmes is intrinsically linked to Baker Street, as it serves as his residence and the hub for his investigations. This relationship is central to the narrative of his character, making Baker Street a vital part of the Sherlock Holmes lore. The detective\'s activities at this location have become iconic, further solidifying the street\'s importance in popular culture. [Data: Entities (4), Relationships (178)]"\n        },\n        {\n            "summary": "The role of the Underground in accessing Baker Street",\n            "explanation": "The London Underground plays a crucial role in facilitating access to Baker Street, making it easier for visitors to reach this iconic location. The connection between the Underground and Baker Street enhances the street\'s accessibility, contributing to its popularity as a tourist destination. This relationship underscores the importance of public transportation in connecting significant cultural landmarks. [Data: Entities (548), Relationships (862)]"\n        },\n        {\n            "summary": "Baker Street\'s association with detective work",\n            "explanation": "Baker Street is synonymous with detective work, primarily due to its association with Sherlock Holmes. The street is where many of Holmes\'s investigations take place, making it a focal point for fans of detective fiction. This connection to crime-solving and mystery adds to the allure of Baker Street, attracting those interested in the genre and its history. [Data: Entities (4), Relationships (178)]"\n        },\n        {\n            "summary": "Tourism and public interest in Baker Street",\n            "explanation": "The combination of Baker Street\'s historical significance and its association with Sherlock Holmes has made it a popular tourist destination. Visitors often seek to explore the street and its surroundings, contributing to the local economy and cultural heritage. The public interest in this location highlights the impact of literary figures on real-world places and their ability to draw crowds. [Data: Entities (4), Relationships (178)]"\n        }\n    ],\n    "rating": 6.5,\n    "rating_explanation": "The impact severity rating is moderate due to the cultural significance of Baker Street and its association with Sherlock Holmes, which attracts considerable public interest.",\n    "extra_attributes": {}\n}',
-        },
-        "period": {"0": "2024-12-16", "1": "2024-12-16"},
-        "size": {"0": 10, "1": 2},
+        ],
+        "full_content_json": [
+            '{\n    "title": "Peterson and the Missing Billycock",\n    "summary": "The community centers around Peterson, a commissionaire involved in a mystery concerning a lost hat and a goose. His actions are pivotal in the investigation led by Sherlock Holmes, connecting various entities such as the row, the billycock hat, and multiple newspapers where advertisements were placed.",\n    "findings": [\n        {\n            "summary": "Peterson\'s central role in the investigation",\n            "explanation": "Peterson is a key figure in the mystery involving the missing blue carbuncle, acting as a commissionaire who aids Sherlock Holmes. His involvement is crucial as he not only discovers the lost billycock hat but also plays a significant role in disseminating information related to the case. This highlights his importance in the narrative and the potential impact of his actions on the investigation\'s outcome. [Data: Entities (333); Relationships (521, 522)]"\n        },\n        {\n            "summary": "The significance of the row incident",\n            "explanation": "The row refers to the altercation that prompted Peterson\'s intervention, leading to the discovery of the hat. This incident is pivotal as it sets the stage for the entire investigation, illustrating how a seemingly minor event can have far-reaching consequences. The altercation not only affects Peterson but also ties into the larger mystery that Holmes is trying to solve. [Data: Entities (339); Relationships (521)]"\n        },\n        {\n            "summary": "The billycock hat as a central object",\n            "explanation": "The billycock hat is not just an accessory but a crucial piece of evidence in the investigation. Its discovery by Peterson links him directly to the case and raises questions about its owner, Henry Baker. The hat\'s significance is underscored by its role in the narrative, as it is the object around which the mystery revolves. [Data: Entities (340); Relationships (522)]"\n        },\n        {\n            "summary": "Media involvement through advertisements",\n            "explanation": "Peterson\'s task of placing advertisements in various evening papers, including the Globe, Star, Pall Mall, and others, indicates the media\'s role in the investigation. This outreach is essential for gathering information about the hat\'s owner and demonstrates how public engagement can influence the resolution of the case. The involvement of multiple newspapers suggests a broad interest in the mystery, which could amplify its impact on the community. [Data: Entities (355, 356, 357, 358, 359, 360, 361); Relationships (545, 546, 547, 548, 549, 550, 551)]"\n        }\n    ],\n    "rating": 6.5,\n    "rating_explanation": "The impact severity rating is moderate to high due to the potential implications of the investigation on public interest and media coverage.",\n    "extra_attributes": {}\n}',
+            '{\n    "title": "Baker Street and Sherlock Holmes Community",\n    "summary": "The community centers around Baker Street, the iconic residence of Sherlock Holmes, and its connection to the London Underground. Baker Street serves as a significant landmark associated with the famous detective, while the Underground facilitates access to this notable location.",\n    "findings": [\n        {\n            "summary": "Baker Street as a cultural landmark",\n            "explanation": "Baker Street is not only the residence of Sherlock Holmes but also a symbol of his adventures and detective work. Its association with the fictional detective has made it a notable landmark in London, drawing interest from fans and tourists alike. The street\'s historical and cultural significance contributes to its status as a must-visit location, enhancing its impact on the community. [Data: Entities (4), Relationships (178)]"\n        },\n        {\n            "summary": "Sherlock Holmes\'s connection to Baker Street",\n            "explanation": "Sherlock Holmes is intrinsically linked to Baker Street, as it serves as his residence and the hub for his investigations. This relationship is central to the narrative of his character, making Baker Street a vital part of the Sherlock Holmes lore. The detective\'s activities at this location have become iconic, further solidifying the street\'s importance in popular culture. [Data: Entities (4), Relationships (178)]"\n        },\n        {\n            "summary": "The role of the Underground in accessing Baker Street",\n            "explanation": "The London Underground plays a crucial role in facilitating access to Baker Street, making it easier for visitors to reach this iconic location. The connection between the Underground and Baker Street enhances the street\'s accessibility, contributing to its popularity as a tourist destination. This relationship underscores the importance of public transportation in connecting significant cultural landmarks. [Data: Entities (548), Relationships (862)]"\n        },\n        {\n            "summary": "Baker Street\'s association with detective work",\n            "explanation": "Baker Street is synonymous with detective work, primarily due to its association with Sherlock Holmes. The street is where many of Holmes\'s investigations take place, making it a focal point for fans of detective fiction. This connection to crime-solving and mystery adds to the allure of Baker Street, attracting those interested in the genre and its history. [Data: Entities (4), Relationships (178)]"\n        },\n        {\n            "summary": "Tourism and public interest in Baker Street",\n            "explanation": "The combination of Baker Street\'s historical significance and its association with Sherlock Holmes has made it a popular tourist destination. Visitors often seek to explore the street and its surroundings, contributing to the local economy and cultural heritage. The public interest in this location highlights the impact of literary figures on real-world places and their ability to draw crowds. [Data: Entities (4), Relationships (178)]"\n        }\n    ],\n    "rating": 6.5,\n    "rating_explanation": "The impact severity rating is moderate due to the cultural significance of Baker Street and its association with Sherlock Holmes, which attracts considerable public interest.",\n    "extra_attributes": {}\n}',
+        ],
+        "period": ["2024-12-16", "2024-12-16"],
+        "size": [10, 2],
     }
-    return pd.DataFrame.from_dict(data)  # type: ignore
+    return pd.DataFrame(data)
 
 
 @pytest.fixture
 def entity_embedding_fixture() -> pd.DataFrame:
     data = {
-        "id": {"0": "55536111-6a0d-464f-9b72-616ae5d86c2f", "1": "c60946e6-e4ef-499e-b2f2-79aae5471f50"},
-        "human_readable_id": {"0": 0, "1": 1},
-        "title": {"0": "PROJECT GUTENBERG", "1": "ARTHUR CONAN DOYLE"},
-        "type": {"0": "ORGANIZATION", "1": "PERSON"},
-        "description": {
-            "0": 'Project Gutenberg is a non-profit digital library that offers free access to a vast collection of eBooks, primarily focusing on works that are in the public domain. It provides a wide range of electronic works, including classic literature such as "The Adventures of Sherlock Holmes." The organization is supported by volunteers and donations, enabling it to maintain and expand its offerings of free eBooks to the public.',
-            "1": "Arthur Conan Doyle is the author of The Adventures of Sherlock Holmes, a famous detective fiction series.",
-        },
-        "text_unit_ids": {
-            "0": [
+        "id": ["55536111-6a0d-464f-9b72-616ae5d86c2f", "c60946e6-e4ef-499e-b2f2-79aae5471f50"],
+        "human_readable_id": [0, 1],
+        "title": ["PROJECT GUTENBERG", "ARTHUR CONAN DOYLE"],
+        "type": ["ORGANIZATION", "PERSON"],
+        "description": [
+            'Project Gutenberg is a non-profit digital library that offers free access to a vast collection of eBooks, primarily focusing on works that are in the public domain. It provides a wide range of electronic works, including classic literature such as "The Adventures of Sherlock Holmes." The organization is supported by volunteers and donations, enabling it to maintain and expand its offerings of free eBooks to the public.',
+            "Arthur Conan Doyle is the author of The Adventures of Sherlock Holmes, a famous detective fiction series.",
+        ],
+        "text_unit_ids": [
+            [
                 "678a629f6366c004a2f968c2e77c3d05806c71185826352a62f1dfe5a466d4cc8c189dc82b3a43074f9a05ece829f24caf3cbb43c9240ab89936b9d53cc20239",
                 "3fcdaf5df6aed13d3916fbfd9c76d9959582122362d62b89079ba1375fea6cc2c4bc7e9acb66820c02e871edbce25acf82169c06599f7643f768f6ec5a79e3fa",
                 "98ef7b7dcc2d8472b448144d01d3aae840e1da98dbed56540db3a85f579b04fe15fb9ef441bca80bdd274a369e906359626b32600f56c2697e1bc324367da570",
             ],
-            "1": [
+            [
                 "678a629f6366c004a2f968c2e77c3d05806c71185826352a62f1dfe5a466d4cc8c189dc82b3a43074f9a05ece829f24caf3cbb43c9240ab89936b9d53cc20239"
             ],
-        },
+        ],
     }
-    return pd.DataFrame.from_dict(data)  # type: ignore
+    return pd.DataFrame(data)
 
 
 @pytest.fixture
 def relationship_df_fixture() -> pd.DataFrame:
     data = {
-        "id": {"0": "00fc026b-236a-4428-b836-06f337e6a89f", "1": "8887b459-34c8-45a1-b821-64a73f518fb6"},
-        "human_readable_id": {"0": 0, "1": 1},
-        "source": {"0": "PROJECT GUTENBERG", "1": "ARTHUR CONAN DOYLE"},
-        "target": {"0": "ARTHUR CONAN DOYLE", "1": "SHERLOCK HOLMES"},
-        "description": {
-            "0": "Project Gutenberg offers free access to the works of Arthur Conan Doyle, including The Adventures of Sherlock Holmes.",
-            "1": "Arthur Conan Doyle created the character Sherlock Holmes, who is central to his detective stories.",
-        },
-        "weight": {"0": 7.0, "1": 10.0},
-        "combined_degree": {"0": 13, "1": 111},
-        "text_unit_ids": {
-            "0": [
+        "id": ["00fc026b-236a-4428-b836-06f337e6a89f", "8887b459-34c8-45a1-b821-64a73f518fb6"],
+        "human_readable_id": [0, 1],
+        "source": ["PROJECT GUTENBERG", "ARTHUR CONAN DOYLE"],
+        "target": ["ARTHUR CONAN DOYLE", "SHERLOCK HOLMES"],
+        "description": [
+            "Project Gutenberg offers free access to the works of Arthur Conan Doyle, including The Adventures of Sherlock Holmes.",
+            "Arthur Conan Doyle created the character Sherlock Holmes, who is central to his detective stories.",
+        ],
+        "weight": [7.0, 10.0],
+        "combined_degree": [13, 111],
+        "text_unit_ids": [
+            [
                 "678a629f6366c004a2f968c2e77c3d05806c71185826352a62f1dfe5a466d4cc8c189dc82b3a43074f9a05ece829f24caf3cbb43c9240ab89936b9d53cc20239"
             ],
-            "1": [
+            [
                 "678a629f6366c004a2f968c2e77c3d05806c71185826352a62f1dfe5a466d4cc8c189dc82b3a43074f9a05ece829f24caf3cbb43c9240ab89936b9d53cc20239"
             ],
-        },
+        ],
     }
-    return pd.DataFrame.from_dict(data)  # type: ignore
+    return pd.DataFrame(data)
 
 
 @pytest.fixture
 def text_unit_df_fixture() -> pd.DataFrame:
     data = {
-        "id": {
-            "0": "678a629f6366c004a2f968c2e77c3d05806c71185826352a62f1dfe5a466d4cc8c189dc82b3a43074f9a05ece829f24caf3cbb43c9240ab89936b9d53cc20239",
-            "1": "d4a92a978533a003d4141d5e1f7462af337c1ebc469fc51f1a38961998113dc1d720407d87ae927ab886682859b47a10d485a68ad59fe0895133e8aa1947bf6d",
-        },
-        "human_readable_id": {"0": 1, "1": 2},
-        "text": {
-            "0": "The Project Gutenberg eBook of The Adventures of Sherlock Holmes\\n    \\nThis ebook is for the use of anyone anywhere in the United States and\\nmost other parts of the world at no cost and with almost no restrictions\\nwhatsoever. You may copy it, give it away or re-use it under the terms\\nof the Project Gutenberg License included with this ebook or online\\nat www.gutenberg.org. If you are not located in the United States,\\nyou will have to check the laws of the country where you are located\\nbefore using this eBook.\\n\\nTitle: The Adventures of Sherlock Holmes\\n\\nAuthor: Arthur Conan Doyle\\n\\nRelease date: March 1, 1999 [eBook #1661]\\n                Most recently updated: October 10, 2023\\n\\nLanguage: English\\n\\nCredits: an anonymous Project Gutenberg volunteer and Jose Menendez\\n\\n\\n*** START OF THE PROJECT GUTENBERG EBOOK THE ADVENTURES OF SHERLOCK HOLMES ***\\n\\n\\n\\n\\nThe Adventures of Sherlock Holmes\\n\\nby Arthur Conan Doyle\\n\\n\\nContents\\n\\n   I.     A Scandal in Bohemia\\n   II.    The Red-Headed League\\n   III.   A Case of Identity\\n   IV.    The Boscombe Valley Mystery\\n   V.     The Five Orange Pips\\n   VI.    The Man with the Twisted Lip\\n   VII.   The Adventure of the Blue Carbuncle\\n   VIII.  The Adventure of the Speckled Band\\n   IX.    The Adventure of the Engineer\\u2019s Thumb\\n   X.     The Adventure of the Noble Bachelor\\n   XI.    The Adventure of the Beryl Coronet\\n   XII.   The Adventure of the Copper Beeches\\n\\n\\n\\n\\nI. A SCANDAL IN BOHEMIA\\n\\n\\nI.\\n\\nTo Sherlock Holmes she is always _the_ woman. I have seldom heard him\\nmention her under any other name. In his eyes she eclipses and\\npredominates the whole of her sex. It was not that he felt any emotion\\nakin to love for Irene Adler. All emotions, and that one particularly,\\nwere abhorrent to his cold, precise but admirably balanced mind. He\\nwas, I take it, the most perfect reasoning and observing machine that\\nthe world has seen, but as a lover he would have placed himself in a\\nfalse position. He never spoke of the softer passions, save with a gibe\\nand a sneer. They were admirable things for the observer\\u2014excellent for\\ndrawing the veil from men\\u2019s motives and actions. But for the trained\\nreasoner to admit such intrusions into his own delicate and finely\\nadjusted temperament was to introduce a distracting factor which might\\nthrow a doubt upon all his mental results. Grit in a sensitive\\ninstrument, or a crack in one of his own high-power lenses, would not\\nbe more disturbing than a strong emotion in a nature such as his. And\\nyet there was but one woman to him, and that woman was the late Irene\\nAdler, of dubious and questionable memory.\\n\\nI had seen little of Holmes lately. My marriage had drifted us away\\nfrom each other. My own complete happiness, and the home-centred\\ninterests which rise up around the man who first finds himself master\\nof his own establishment, were sufficient to absorb all my attention,\\nwhile Holmes, who loathed every form of society with his whole Bohemian\\nsoul, remained in our lodgings in Baker Street, buried among his old\\nbooks, and alternating from week to week between cocaine and ambition,\\nthe drowsiness of the drug, and the fierce energy of his own keen\\nnature. He was still, as ever, deeply attracted by the study of crime,\\nand occupied his immense faculties and extraordinary powers of\\nobservation in following out those clues, and clearing up those\\nmysteries which had been abandoned as hopeless by the official police.\\nFrom time to time I heard some vague account of his doings: of his\\nsummons to Odessa in the case of the Trepoff murder, of his clearing up\\nof the singular tragedy of the Atkinson brothers at Trincomalee, and\\nfinally of the mission which he had accomplished so delicately and\\nsuccessfully for the reigning family of Holland. Beyond these signs of\\nhis activity, however, which I merely shared with all the readers of\\nthe daily press, I knew little of my former friend and companion.\\n\\nOne night\\u2014it was on the twentieth of March, 1888\\u2014I was returning from a\\njourney to a patient (for I had now returned to civil practice), when\\nmy way led me through Baker Street. As I passed the well-remembered\\ndoor, which must always be associated in my mind with my wooing, and\\nwith the dark incidents of the Study in Scarlet, I was seized with a\\nkeen desire to see Holmes again, and to know how he was employing his\\nextraordinary powers. His rooms were brilliantly lit, and, even as I\\nlooked up, I saw his tall, spare figure pass twice in a dark silhouette\\nagainst the blind. He was pacing the room swiftly, eagerly, with his\\nhead sunk upon his chest and his hands clasped behind him. To me, who\\nknew his every mood and habit, his attitude and manner told their own\\nstory. He was at work again. He had risen out of his drug-created\\ndreams and was hot upon the scent of some new problem. I rang the bell\\nand was shown up to the chamber which had formerly been in part my own.\\n\\nHis manner was not effusive. It seldom was; but he was glad, I think,\\nto see me. With hardly a word spoken, but with a kindly eye, he waved\\nme to an armchair, threw across his case of cigars, and indicated a\\nspirit case and a gas",
-            "1": " out of his drug-created\\ndreams and was hot upon the scent of some new problem. I rang the bell\\nand was shown up to the chamber which had formerly been in part my own.\\n\\nHis manner was not effusive. It seldom was; but he was glad, I think,\\nto see me. With hardly a word spoken, but with a kindly eye, he waved\\nme to an armchair, threw across his case of cigars, and indicated a\\nspirit case and a gasogene in the corner. Then he stood before the fire\\nand looked me over in his singular introspective fashion.\\n\\n\\u201cWedlock suits you,\\u201d he remarked. \\u201cI think, Watson, that you have put\\non seven and a half pounds since I saw you.\\u201d\\n\\n\\u201cSeven!\\u201d I answered.\\n\\n\\u201cIndeed, I should have thought a little more. Just a trifle more, I\\nfancy, Watson. And in practice again, I observe. You did not tell me\\nthat you intended to go into harness.\\u201d\\n\\n\\u201cThen, how do you know?\\u201d\\n\\n\\u201cI see it, I deduce it. How do I know that you have been getting\\nyourself very wet lately, and that you have a most clumsy and careless\\nservant girl?\\u201d\\n\\n\\u201cMy dear Holmes,\\u201d said I, \\u201cthis is too much. You would certainly have\\nbeen burned, had you lived a few centuries ago. It is true that I had a\\ncountry walk on Thursday and came home in a dreadful mess, but as I\\nhave changed my clothes I can\\u2019t imagine how you deduce it. As to Mary\\nJane, she is incorrigible, and my wife has given her notice, but there,\\nagain, I fail to see how you work it out.\\u201d\\n\\nHe chuckled to himself and rubbed his long, nervous hands together.\\n\\n\\u201cIt is simplicity itself,\\u201d said he; \\u201cmy eyes tell me that on the inside\\nof your left shoe, just where the firelight strikes it, the leather is\\nscored by six almost parallel cuts. Obviously they have been caused by\\nsomeone who has very carelessly scraped round the edges of the sole in\\norder to remove crusted mud from it. Hence, you see, my double\\ndeduction that you had been out in vile weather, and that you had a\\nparticularly malignant boot-slitting specimen of the London slavey. As\\nto your practice, if a gentleman walks into my rooms smelling of\\niodoform, with a black mark of nitrate of silver upon his right\\nforefinger, and a bulge on the right side of his top-hat to show where\\nhe has secreted his stethoscope, I must be dull, indeed, if I do not\\npronounce him to be an active member of the medical profession.\\u201d\\n\\nI could not help laughing at the ease with which he explained his\\nprocess of deduction. \\u201cWhen I hear you give your reasons,\\u201d I remarked,\\n\\u201cthe thing always appears to me to be so ridiculously simple that I\\ncould easily do it myself, though at each successive instance of your\\nreasoning I am baffled until you explain your process. And yet I\\nbelieve that my eyes are as good as yours.\\u201d\\n\\n\\u201cQuite so,\\u201d he answered, lighting a cigarette, and throwing himself\\ndown into an armchair. \\u201cYou see, but you do not observe. The\\ndistinction is clear. For example, you have frequently seen the steps\\nwhich lead up from the hall to this room.\\u201d\\n\\n\\u201cFrequently.\\u201d\\n\\n\\u201cHow often?\\u201d\\n\\n\\u201cWell, some hundreds of times.\\u201d\\n\\n\\u201cThen how many are there?\\u201d\\n\\n\\u201cHow many? I don\\u2019t know.\\u201d\\n\\n\\u201cQuite so! You have not observed. And yet you have seen. That is just\\nmy point. Now, I know that there are seventeen steps, because I have\\nboth seen and observed. By the way, since you are interested in these\\nlittle problems, and since you are good enough to chronicle one or two\\nof my trifling experiences, you may be interested in this.\\u201d He threw\\nover a sheet of thick, pink-tinted notepaper which had been lying open\\nupon the table. \\u201cIt came by the last post,\\u201d said he. \\u201cRead it aloud.\\u201d\\n\\nThe note was undated, and without either signature or address.\\n\\n\\u201cThere will call upon you to-night, at a quarter to eight o\\u2019clock,\\u201d it\\nsaid, \\u201ca gentleman who desires to consult you upon a matter of the very\\ndeepest moment. Your recent services to one of the royal houses of\\nEurope have shown that you are one who may safely be trusted with\\nmatters which are of an importance which can hardly be exaggerated.\\nThis account of you we have from all quarters received. Be in your\\nchamber then at that hour, and do not take it amiss if your visitor\\nwear a mask.\\u201d\\n\\n\\u201cThis is indeed a mystery,\\u201d I remarked. \\u201cWhat do you imagine that it\\nmeans?\\u201d\\n\\n\\u201cI have no data yet. It is a capital mistake to theorise before one has\\ndata. Insensibly one begins to twist facts to suit theories, instead of\\ntheories to suit facts. But the note itself. What do you deduce from\\nit?\\u201d\\n\\nI carefully examined the writing, and the paper upon which it was\\nwritten.\\n\\n\\u201cThe man who wrote it was presumably well to do,\\u201d I remarked,\\nendeavouring to imitate my companion\\u2019s processes. \\u201cSuch paper could not\\nbe bought under half a crown a packet. It is peculiarly strong and\\nstiff.\\u201d\\n\\n\\u201cPeculiar\\u2014that is the very word,\\u201d said Holmes. \\u201cIt is not an English\\npaper at all. Hold it up to the light.\\u201d\\n\\nI did so, and saw a large \\u201cE\\u201d with a small \\u201cg,\\u201d a \\u201cP,\\u201d and a large \\u201cG\\u201d\\nwith a small \\u201ct\\u201d woven into the texture of the paper",
-        },
-        "n_tokens": {"0": 1200, "1": 1200},
-        "document_ids": {
-            "0": [
+        "id": [
+            "678a629f6366c004a2f968c2e77c3d05806c71185826352a62f1dfe5a466d4cc8c189dc82b3a43074f9a05ece829f24caf3cbb43c9240ab89936b9d53cc20239",
+            "d4a92a978533a003d4141d5e1f7462af337c1ebc469fc51f1a38961998113dc1d720407d87ae927ab886682859b47a10d485a68ad59fe0895133e8aa1947bf6d",
+        ],
+        "human_readable_id": [1, 2],
+        "text": [
+            "The Project Gutenberg eBook of The Adventures of Sherlock Holmes\n    \nThis ebook is for the use of anyone anywhere in the United States and\\nmost other parts of the world at no cost and with almost no restrictions\\nwhatsoever. You may copy it, give it away or re-use it under the terms\\nof the Project Gutenberg License included with this ebook or online\\nat www.gutenberg.org. If you are not located in the United States,\\nyou will have to check the laws of the country where you are located\\nbefore using this eBook.\\n\\nTitle: The Adventures of Sherlock Holmes\\n\\nAuthor: Arthur Conan Doyle\\n\\nRelease date: March 1, 1999 [eBook #1661]\\n                Most recently updated: October 10, 2023\\n\\nLanguage: English\\n\\nCredits: an anonymous Project Gutenberg volunteer and Jose Menendez\\n\\n\\n*** START OF THE PROJECT GUTENBERG EBOOK THE ADVENTURES OF SHERLOCK HOLMES ***\\n\\n\\n\\n\\nThe Adventures of Sherlock Holmes\\n\\nby Arthur Conan Doyle\\n\\n\\nContents\\n\\n   I.     A Scandal in Bohemia\\n   II.    The Red-Headed League\\n   III.   A Case of Identity\\n   IV.    The Boscombe Valley Mystery\\n   V.     The Five Orange Pips\\n   VI.    The Man with the Twisted Lip\\n   VII.   The Adventure of the Blue Carbuncle\\n   VIII.  The Adventure of the Speckled Band\\n   IX.    The Adventure of the Engineer's Thumb\\n   X.     The Adventure of the Noble Bachelor\\n   XI.    The Adventure of the Beryl Coronet\\n   XII.   The Adventure of the Copper Beeches\\n\\n\\n\\n\\nI. A SCANDAL IN BOHEMIA\\n\\n\\nI.\\n\\nTo Sherlock Holmes she is always _the_ woman. I have seldom heard him\\nmention her under any other name. In his eyes she eclipses and\\npredominates the whole of her sex. It was not that he felt any emotion\\nakin to love for Irene Adler. All emotions, and that one particularly,\\nwere abhorrent to his cold, precise but admirably balanced mind. He\\nwas, I take it, the most perfect reasoning and observing machine that\\nthe world has seen, but as a lover he would have placed himself in a\\nfalse position. He never spoke of the softer passions, save with a gibe\\nand a sneer. They were admirable things for the observer—excellent for\\ndrawing the veil from men's motives and actions. But for the trained\\nreasoner to admit such intrusions into his own delicate and finely\\nadjusted temperament was to introduce a distracting factor which might\\nthrow a doubt upon all his mental results. Grit in a sensitive\\ninstrument, or a crack in one of his own high-power lenses, would not\\nbe more disturbing than a strong emotion in a nature such as his. And\\nyet there was but one woman to him, and that woman was the late Irene\\nAdler, of dubious and questionable memory.\\n\\nI had seen little of Holmes lately. My marriage had drifted us away\\nfrom each other. My own complete happiness, and the home-centred\\ninterests which rise up around the man who first finds himself master\\nof his own establishment, were sufficient to absorb all my attention,\\nwhile Holmes, who loathed every form of society with his whole Bohemian\\nsoul, remained in our lodgings in Baker Street, buried among his old\\nbooks, and alternating from week to week between cocaine and ambition,\\nthe drowsiness of the drug, and the fierce energy of his own keen\\nnature. He was still, as ever, deeply attracted by the study of crime,\\nand occupied his immense faculties and extraordinary powers of\\nobservation in following out those clues, and clearing up those\\nmysteries which had been abandoned as hopeless by the official police.\\nFrom time to time I heard some vague account of his doings: of his\\nsummons to Odessa in the case of the Trepoff murder, of his clearing up\\nof the singular tragedy of the Atkinson brothers at Trincomalee, and\\nfinally of the mission which he had accomplished so delicately and\\nsuccessfully for the reigning family of Holland. Beyond these signs of\\nhis activity, however, which I merely shared with all the readers of\\nthe daily press, I knew little of my former friend and companion.\\n\\nOne night—it was on the twentieth of March, 1888—I was returning from a\\njourney to a patient (for I had now returned to civil practice), when\\nmy way led me through Baker Street. As I passed the well-remembered\\ndoor, which must always be associated in my mind with my wooing, and\\nwith the dark incidents of the Study in Scarlet, I was seized with a\\nkeen desire to see Holmes again, and to know how he was employing his\\nextraordinary powers. His rooms were brilliantly lit, and, even as I\\nlooked up, I saw his tall, spare figure pass twice in a dark silhouette\\nagainst the blind. He was pacing the room swiftly, eagerly, with his\\nhead sunk upon his chest and his hands clasped behind him. To me, who\\nknew his every mood and habit, his attitude and manner told their own\\nstory. He was at work again. He had risen out of his drug-created\\ndreams and was hot upon the scent of some new problem. I rang the bell\\nand was shown up to the chamber which had formerly been in part my own.\\n\\nHis manner was not effusive. It seldom was; but he was glad, I think,\\nto see me. With hardly a word spoken, but with a kindly eye, he waved\\nme to an armchair, threw across his case of cigars, and indicated a\\nspirit case and a gas",
+            "Some other text",
+        ],
+        "n_tokens": [1200, 1200],
+        "document_ids": [
+            [
                 "c91a6627b1ed0d98ab17595f3983d0659ada68f775a9bf2e1da51aa4c8db30702bda39467ad250ba75bdd6c2c323f4bd420dec1dc7907cdc3b4f3ebe77267e08"
             ],
-            "1": [
+            [
                 "c91a6627b1ed0d98ab17595f3983d0659ada68f775a9bf2e1da51aa4c8db30702bda39467ad250ba75bdd6c2c323f4bd420dec1dc7907cdc3b4f3ebe77267e08"
             ],
-        },
-        "entity_ids": {
-            "0": [
+        ],
+        "entity_ids": [
+            [
                 "55536111-6a0d-464f-9b72-616ae5d86c2f",
                 "c60946e6-e4ef-499e-b2f2-79aae5471f50",
                 "0724d9bf-5dce-44e0-b093-80d4dd2d10a5",
@@ -245,7 +245,7 @@ def text_unit_df_fixture() -> pd.DataFrame:
                 "0e78bf0e-4203-4214-9fa8-8e8458442b61",
                 "a85078a5-59f7-4a53-a140-e35bd19c82af",
             ],
-            "1": [
+            [
                 "3999222a-aa8a-4910-9cab-596497a7f1fd",
                 "86af13ba-3d64-4cef-8511-66b2aaded82e",
                 "6fa5215e-5bf8-4023-ba2a-214cfb351eec",
@@ -255,9 +255,9 @@ def text_unit_df_fixture() -> pd.DataFrame:
                 "c5418966-2204-4278-ace9-8158fff5852a",
                 "dde22643-6ac6-4156-ae41-0e841dc688db",
             ],
-        },
-        "relationship_ids": {
-            "0": [
+        ],
+        "relationship_ids": [
+            [
                 "00fc026b-236a-4428-b836-06f337e6a89f",
                 "8887b459-34c8-45a1-b821-64a73f518fb6",
                 "4f557c1d-dc96-4dbd-9e4c-380955d567c5",
@@ -268,7 +268,7 @@ def text_unit_df_fixture() -> pd.DataFrame:
                 "64f93378-0696-4ccc-9877-c1b26482394a",
                 "79088678-3cfb-4fd9-8a1e-06d4085da97f",
             ],
-            "1": [
+            [
                 "a91785d7-ae05-4860-b46e-8a565aad7832",
                 "ccb8a028-c870-4826-8f93-687aaa5ee23c",
                 "4dd46459-f146-48a3-869a-374cfbcc6ec8",
@@ -277,6 +277,7 @@ def text_unit_df_fixture() -> pd.DataFrame:
                 "14dfce40-9a4d-4e75-9b7a-eeb7b3c19d78",
                 "d048efe6-d7a7-4505-af11-c4b3fc4e25e7",
             ],
-        },
+        ],
     }
-    return pd.DataFrame.from_dict(data)  # type: ignore
+    return pd.DataFrame(data)
+    return pd.DataFrame(data)
