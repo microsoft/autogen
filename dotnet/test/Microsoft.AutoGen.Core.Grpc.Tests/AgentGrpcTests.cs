@@ -47,7 +47,8 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
     public async Task Agent_ShouldInitializeCorrectly()
     {
         var (worker, agent) = _fixture.Start();
-        Assert.Equal("GrpcAgentWorker", worker.GetType().Name);
+        Assert.Equal("Grpc
+        AgentWorker", worker.GetType().Name);
         var subscriptions = await agent.GetSubscriptionsAsync();
         Assert.Equal(2, subscriptions.Count);
         _fixture.Stop();
@@ -100,10 +101,10 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
             { "testdata", "Active" }
         };
         await agent.StoreAsync(new AgentState
-        {
-            AgentId = agent.AgentId,
-            TextData = JsonSerializer.Serialize(state)
-        }).ConfigureAwait(true);
+            {
+                AgentId = agent.AgentId,
+                TextData = JsonSerializer.Serialize(state)
+            }).ConfigureAwait(true);
         var readState = await agent.ReadAsync<AgentState>(agent.AgentId).ConfigureAwait(true);
         var read = JsonSerializer.Deserialize<Dictionary<string, string>>(readState.TextData) ?? new Dictionary<string, string> { { "data", "No state data found" } };
         read.TryGetValue("testdata", out var value);
