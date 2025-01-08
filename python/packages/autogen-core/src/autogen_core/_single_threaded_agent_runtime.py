@@ -309,6 +309,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     )
                 )
                 recipient_agent = await self._get_agent(recipient)
+
                 message_context = MessageContext(
                     sender=message_envelope.sender,
                     topic_id=None,
@@ -474,7 +475,16 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                             "intercept", handler.__class__.__name__, parent=message_envelope.metadata
                         ):
                             try:
-                                temp_message = await handler.on_send(message, sender=sender, recipient=recipient)
+                                message_context = MessageContext(
+                                    sender=sender,
+                                    topic_id=None,
+                                    is_rpc=True,
+                                    cancellation_token=message_envelope.cancellation_token,
+                                    message_id=message_envelope.message_id,
+                                )
+                                temp_message = await handler.on_send(
+                                    message, message_context=message_context, recipient=recipient
+                                )
                                 _warn_if_none(temp_message, "on_send")
                             except BaseException as e:
                                 future.set_exception(e)
@@ -506,7 +516,14 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                             "intercept", handler.__class__.__name__, parent=message_envelope.metadata
                         ):
                             try:
-                                temp_message = await handler.on_publish(message, sender=sender)
+                                message_context = MessageContext(
+                                    sender=sender,
+                                    topic_id=topic_id,
+                                    is_rpc=False,
+                                    cancellation_token=message_envelope.cancellation_token,
+                                    message_id=message_envelope.message_id,
+                                )
+                                temp_message = await handler.on_publish(message, message_context=message_context)
                                 _warn_if_none(temp_message, "on_publish")
                             except BaseException as e:
                                 # TODO: we should raise the intervention exception to the publisher.
@@ -573,10 +590,21 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             raise RuntimeError("Runtime is already started")
         self._run_context = RunContext(self)
 
+    async def close(self) -> None:
+        """Calls :meth:`stop` if applicable and the :meth:`Agent.close` method on all instantiated agents"""
+        # stop the runtime if it hasn't been stopped yet
+        if self._run_context is not None:
+            await self.stop()
+        # close all the agents that have been instantiated
+        for agent_id in self._instantiated_agents:
+            agent = await self._get_agent(agent_id)
+            await agent.close()
+
     async def stop(self) -> None:
         """Immediately stop the runtime message processing loop. The currently processing message will be completed, but all others following it will be discarded."""
         if self._run_context is None:
             raise RuntimeError("Runtime is not started")
+
         await self._run_context.stop()
         self._run_context = None
         self._message_queue = Queue()
@@ -587,6 +615,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         if self._run_context is None:
             raise RuntimeError("Runtime is not started")
         await self._run_context.stop_when_idle()
+
         self._run_context = None
         self._message_queue = Queue()
 
@@ -607,6 +636,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         if self._run_context is None:
             raise RuntimeError("Runtime is not started")
         await self._run_context.stop_when(condition)
+
         self._run_context = None
         self._message_queue = Queue()
 
