@@ -41,7 +41,7 @@ asyncio.run(main())
 ```
 
 
-### Why Use AutoGen?
+## Why Use AutoGen?
 
 <div align="center">
   <img src="autogen-landing.jpg" alt="AutoGen Landing" width="600">
