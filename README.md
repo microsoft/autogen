@@ -24,6 +24,8 @@
 pip install autogen-agentchat autogen-ext[openai]
 ```
 
+If you are upgrading from AutoGen v0.2, please refer to the [Migration Guide](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/migration-guide.html) for detailed instructions on how to update your code and configurations.
+
 ### Minimal Python Example
 Code for setting up a multi-agent system to plot stock prices:
 ```python
