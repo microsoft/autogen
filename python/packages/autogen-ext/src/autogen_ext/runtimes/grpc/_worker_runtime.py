@@ -178,7 +178,32 @@ class HostConnection:
         return await self._recv_queue.get()
 
 
+# TODO: Lots of types need to have protobuf equivalents:
+# Core:
+#   - FunctionCall, CodeResult, possibly CodeBlock
+#   - All the types in https://github.com/microsoft/autogen/blob/main/python/packages/autogen-core/src/autogen_core/models/_types.py
+#
+# Agentchat:
+#   - All the types in https://github.com/microsoft/autogen/blob/main/python/packages/autogen-agentchat/src/autogen_agentchat/messages.py to protobufs.
+#
+# Ext --
+#   CodeExecutor:
+#       - CommandLineCodeResult
+
+
 class GrpcWorkerAgentRuntime(AgentRuntime):
+    """An agent runtime for running remote or cross-language agents.
+
+    Agent messaging uses protobufs from `agent_worker.proto`_ and ``CloudEvent`` from `cloudevent.proto`_.
+
+    Cross-language agents will additionally require all agents use shared protobuf schemas for any message types that are sent between agents.
+
+    .. _agent_worker.proto: https://github.com/microsoft/autogen/blob/main/protos/agent_worker.proto
+
+    .. _cloudevent.proto: https://github.com/microsoft/autogen/blob/main/protos/cloudevent.proto
+
+    """
+
     # TODO: Needs to handle agent close() call
     def __init__(
         self,
