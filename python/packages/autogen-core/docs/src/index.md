@@ -60,7 +60,7 @@ A multi-agent assistant for web and file-based tasks.
 Built on AgentChat.
 
 ```bash
-pip install magentic-one
+pip install magentic-one-cli
 m1 "Find flights from Seattle to Paris and format the result in a table"
 ```
 

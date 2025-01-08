@@ -26,6 +26,7 @@ members = [
     "autogen-test-utils",
     "autogenstudio",
     "component-schema-gen",
+    "magentic-one-cli",
 ]
 
 [manifest.dependency-groups]
@@ -509,6 +510,7 @@ magentic-one = [
 openai = [
     { name = "aiofiles" },
     { name = "openai" },
+    { name = "tiktoken" },
 ]
 video-surfer = [
     { name = "autogen-agentchat" },
@@ -553,6 +555,7 @@ requires-dist = [
     { name = "pillow", marker = "extra == 'web-surfer'", specifier = ">=11.0.0" },
     { name = "playwright", marker = "extra == 'magentic-one'", specifier = ">=1.48.0" },
     { name = "playwright", marker = "extra == 'web-surfer'", specifier = ">=1.48.0" },
+    { name = "tiktoken", marker = "extra == 'openai'", specifier = ">=0.8.0" },
 ]
 
 [package.metadata.requires-dev]
@@ -2462,6 +2465,24 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/a5/43/19b1ef6cbffa4244a217f95cc5f41a6cb4720fed33510a49670b03c5f1a0/lxml-5.3.0-pp310-pypy310_pp73-manylinux_2_28_x86_64.whl", hash = "sha256:6ba0d3dcac281aad8a0e5b14c7ed6f9fa89c8612b47939fc94f80b16e2e9bc83", size = 4351237 },
     { url = "https://files.pythonhosted.org/packages/ba/b2/6a22fb5c0885da3b00e116aee81f0b829ec9ac8f736cd414b4a09413fc7d/lxml-5.3.0-pp310-pypy310_pp73-win_amd64.whl", hash = "sha256:6e91cf736959057f7aac7adfc83481e03615a8e8dd5758aa1d95ea69e8931dba", size = 3487557 },
 ]
+
+[[package]]
+name = "magentic-one-cli"
+version = "0.1.0"
+source = { editable = "packages/magentic-one-cli" }
+dependencies = [
+    { name = "autogen-agentchat" },
+    { name = "autogen-ext", extra = ["magentic-one", "openai"] },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "autogen-agentchat", editable = "packages/autogen-agentchat" },
+    { name = "autogen-ext", extras = ["openai", "magentic-one"], editable = "packages/autogen-ext" },
+]
+
+[package.metadata.requires-dev]
+dev = []
 
 [[package]]
 name = "mako"
