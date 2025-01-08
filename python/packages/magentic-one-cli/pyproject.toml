@@ -32,7 +32,7 @@ include = ["src/**", "tests/*.py"]
 
 [tool.pyright]
 extends = "../../pyproject.toml"
-include = ["src", "tests"]
+include = ["src"]
 
 [tool.pytest.ini_options]
 minversion = "6.0"
@@ -42,4 +42,6 @@ testpaths = ["tests"]
 include = "../../shared_tasks.toml"
 
 [tool.poe.tasks]
-test = "pytest -n auto"
+mypy = "mypy --config-file $POE_ROOT/../../pyproject.toml src"
+test = "true"
+coverage = "true"
