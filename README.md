@@ -53,7 +53,7 @@ asyncio.run(main())
 
 - **Rapid prototyping and flexibility**: AutoGen uses a modular, extensible design with clearly divided responsibilities between layers. The Core API implements message passing, event-driven agents, and runtime for flexibility and power, the AgentChat API implements a simpler but opinionated API rapid for prototyping, or the Extensions API enables first- and third-party extensions continuously expanding framework capabilities. Additionally, AutoGen Studio enables a beautiful GUI for no-code agent development.
 
-- **Community and ecosystem**: Join and contribute to a thriving ecosystem. We host weekly office hours and talks with maintainers and community. We also have a Discord server for real-time chat, GitHub Discussions for Q&A, and a blog for tutorials and updates.
+- **Community and ecosystem**: Join and contribute to a thriving ecosystem. We host weekly office hours and talks with maintainers and community. We also have a [Discord server](https://aka.ms/autogen-discord) for real-time chat, GitHub Discussions for Q&A, and a blog for tutorials and updates.
 
 ## Where to go next?
 
