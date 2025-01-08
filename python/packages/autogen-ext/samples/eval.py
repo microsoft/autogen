@@ -69,182 +69,12 @@ In the afternoon, you go from house to house, speaking with all 100 residents of
     return tasks_with_answers
 
 
-async def train(task_with_answer, max_train_trials, max_test_trials, task_assignment_callback, reset_memory,
-                client, page_log, memory_dir) -> None:
-    page = page_log.begin_page(
-        summary="train",
-        details='',
-        method_call="train")
-    memory = AgenticMemoryController(reset=reset_memory, client=client, page_log=page_log,
-                           memory_dir=memory_dir)
-    await memory.train_on_task(
-        task=task_with_answer["task"],
-        expected_answer=task_with_answer["expected_answer"],
-        task_assignment_callback=task_assignment_callback,
-        final_format_instructions="",
-        max_train_trials=max_train_trials,
-        max_test_trials=max_test_trials)
-    page_log.finish_page(page)
-
-
-async def test(task_with_answer, num_trials, task_assignment_callback, use_memory, reset_memory,
-               client, page_log, memory_dir) -> Tuple[str, int, int]:
-    page = page_log.begin_page(
-        summary="test",
-        details='',
-        method_call="test")
-
-    grader = Grader(client, page_log)
-
-    if use_memory:
-        page.add_lines("Testing with memory.\n", flush=True)
-        memory = AgenticMemoryController(reset=reset_memory, client=client, page_log=page_log,
-                               memory_dir=memory_dir)
-        response, num_successes, num_trials = await memory.test_on_task(
-            task=task_with_answer["task"],
-            expected_answer=task_with_answer["expected_answer"],
-            task_assignment_callback=task_assignment_callback,
-            num_trials=num_trials)
-    else:
-        page.add_lines("Testing without memory.\n", flush=True)
-        response = None
-        num_successes = 0
-        for trial in range(num_trials):
-            page.add_lines("\n-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
-            page.add_lines("Try to solve the task.\n", flush=True)
-            response, _ = await task_assignment_callback(task_with_answer["task"], client, page_log)
-
-            response_is_correct, extracted_answer = await grader.is_response_correct(
-                task_with_answer["task"], response, task_with_answer["expected_answer"])
-            page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
-            if response_is_correct:
-                page.add_lines("Answer is CORRECT.\n", flush=True)
-                num_successes += 1
-            else:
-                page.add_lines("Answer is INCORRECT.\n", flush=True)
-
-    page.add_lines("\nSuccess rate:  {}%\n".format(round((num_successes / num_trials) * 100)), flush=True)
-
-    page_log.finish_page(page)
-    return response, num_successes, num_trials
-
-
-async def test_on_task_with_memory(task_index, task_assignment_callback, client, page_log, memory_dir,
-                                   num_trials, reset_memory):
-    last_response, num_successes, num_trials = await test(
-        task_with_answer=define_tasks_with_answers()[task_index],
-        num_trials=num_trials,
-        task_assignment_callback=task_assignment_callback,
-        use_memory=True,
-        reset_memory=reset_memory,
-        client=client,
-        page_log=page_log,
-        memory_dir=memory_dir)
-    print("SUCCESS RATE:  {}%\n".format(round((num_successes / num_trials) * 100)))
-    return num_successes, num_trials
-
-
-async def test_on_task(task_index, task_assignment_callback, client, page_log, memory_dir, num_trials):
-    last_response, num_successes, num_trials = await test(
-        task_with_answer=define_tasks_with_answers()[task_index],
-        num_trials=num_trials,
-        task_assignment_callback=task_assignment_callback,
-        use_memory=False,
-        reset_memory=False,
-        client=client,
-        page_log=page_log,
-        memory_dir=memory_dir)
-    print("SUCCESS RATE:  {}%\n".format(round((num_successes / num_trials) * 100)))
-    return num_successes, num_trials
-
-
-async def train_and_test(task_index_list, num_loops, max_train_trials, max_test_trials, num_final_test_trials,
-                         task_assignment_callback, client, page_log, memory_dir):
-    page = page_log.begin_page(
-        summary="train_and_test",
-        details='',
-        method_call="train_and_test")
-
-    tasklist = define_tasks_with_answers()
-    task_with_answer_list = [tasklist[task_index] for task_index in task_index_list]
-
-    total_num_successes_list = [0 for _ in task_index_list]
-    total_num_trials = 0
-    for i in range(num_loops):
-        # Always train on the first task.
-        await train(
-            task_with_answer=task_with_answer_list[0],
-            max_train_trials=max_train_trials,
-            max_test_trials=max_test_trials,
-            task_assignment_callback=task_assignment_callback,
-            reset_memory=True,
-            client=client,
-            page_log=page_log,
-            memory_dir=memory_dir)
-
-        # Test on all tasks.
-        for j, task_with_answer in enumerate(task_with_answer_list):
-            last_response, num_successes, num_trials = await test(
-                task_with_answer=task_with_answer,
-                num_trials=num_final_test_trials,
-                task_assignment_callback=task_assignment_callback,
-                use_memory=True,
-                reset_memory=False,
-                client=client,
-                page_log=page_log,
-                memory_dir=memory_dir)
-            page.add_lines("Success rate ({}):  {}%".format(j, round((num_successes / num_trials) * 100)), flush=True)
-            print("SUCCESS RATE ({}):  {}%\n".format(j, round((num_successes / num_trials) * 100)))
-            total_num_successes_list[j] += num_successes
-        total_num_trials += num_final_test_trials
-
-        page.add_lines("")
-
-    page_log.finish_page(page)
-    return total_num_successes_list, total_num_trials
-
-
-async def test_without_memory(task_assignment_callback, client, page_log, memory_dir):
-    page = page_log.begin_page(
-        summary="test_without_memory",
-        details='',
-        method_call="test_without_memory")
-
-    task_index = 5
-    num_trials = 20
-
-    num_successes, num_trials = await test_on_task(task_index, task_assignment_callback, client, page_log,
-                                                   memory_dir, num_trials)
-
-    success_rate = round((num_successes / num_trials) * 100)
-    page.add_lines("\nOverall success rate:  {}%\n".format(success_rate), flush=True)
-
-    page_log.finish_page(page)
-
-
-async def test_with_memory(task_assignment_callback, client, page_log, memory_dir):
-    page = page_log.begin_page(
-        summary="test_with_memory",
-        details='',
-        method_call="test_with_memory")
-
-    task_index = 3
-
-    num_successes, num_trials = await test_on_task_with_memory(task_index, task_assignment_callback, client, page_log,
-                                                               memory_dir=memory_dir,
-                                                               num_trials=3, reset_memory=False)
-    success_rate = round((num_successes / num_trials) * 100)
-    page.add_lines("\nOverall success rate:  {}%\n".format(success_rate), flush=True)
-
-    page_log.finish_page(page)
-
-
-async def test_teachability(apprentice, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
+async def eval_teachability(apprentice, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
     """An evaluation"""
     page = page_log.begin_page(
-        summary="test_teachability",
+        summary="eval_teachability",
         details='',
-        method_call="test_teachability")
+        method_call="eval_teachability")
 
     tasklist = define_tasks_with_answers()
     task_index = 4
@@ -287,21 +117,22 @@ async def test_teachability(apprentice, evaluator, task_assignment_callback, cli
     page_log.finish_page(page)
 
 
-async def test_learning_from_demonstration(apprentice, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
+async def eval_learning_from_demonstration(apprentice, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
     """An evaluation"""
     page = page_log.begin_page(
-        summary="test_learning_from_demonstration",
+        summary="eval_learning_from_demonstration",
         details='',
-        method_call="test_learning_from_demonstration")
+        method_call="eval_learning_from_demonstration")
 
     task_index = 5
+    task_with_answer = define_tasks_with_answers()[task_index]
     num_trials = settings["num_trials"]
 
     # First test after clearing memory.
     page.add_lines("To get a baseline, clear memory, then assign the task.")
-    num_successes, num_trials = await test_on_task_with_memory(task_index, task_assignment_callback, client, page_log,
-                                                               memory_dir=memory_dir,
-                                                               num_trials=num_trials, reset_memory=True)
+    num_successes, num_trials = await evaluator.test(task_with_answer=task_with_answer, num_trials=num_trials,
+        task_assignment_callback=task_assignment_callback, use_memory=True, reset_memory=True, client=client,
+        page_log=page_log, memory_dir=memory_dir)
     success_rate = round((num_successes / num_trials) * 100)
     page.add_lines("\nSuccess rate:  {}%\n".format(success_rate), flush=True)
 
@@ -314,36 +145,59 @@ async def test_learning_from_demonstration(apprentice, evaluator, task_assignmen
 
     # Now test again to see if the demonstration (retrieved from memory) helps.
     page.add_lines("Assign the task again to see if the demonstration helps.")
-    num_successes, num_trials = await test_on_task_with_memory(task_index, task_assignment_callback, client, page_log,
-                                                               memory_dir=memory_dir,
-                                                               num_trials=num_trials, reset_memory=False)
+    num_successes, num_trials = await evaluator.test(task_with_answer=task_with_answer, num_trials=num_trials,
+        task_assignment_callback=task_assignment_callback, use_memory=True, reset_memory=False, client=client,
+        page_log=page_log, memory_dir=memory_dir)
     success_rate = round((num_successes / num_trials) * 100)
     page.add_lines("\nSuccess rate:  {}%\n".format(success_rate), flush=True)
 
     page_log.finish_page(page)
 
 
-async def test_self_teaching(apprentice, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
+async def eval_self_teaching(apprentice, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
     """An evaluation"""
     page = page_log.begin_page(
-        summary="test_self_teaching",
+        summary="eval_self_teaching",
         details='',
-        method_call="test_self_teaching")
+        method_call="eval_self_teaching")
 
     # Choose the tasks from those listed at the top.
     task_index_list = [3, 1]
 
     # Train and test on any number of tasks using memory.
-    total_num_successes_list, total_num_trials = await train_and_test(
-        task_index_list=task_index_list,
-        num_loops=settings["num_loops"],
-        max_train_trials=settings["max_train_trials"],
-        max_test_trials=settings["max_test_trials"],
-        num_final_test_trials=settings["num_final_test_trials"],
-        task_assignment_callback=task_assignment_callback,
-        client=client,
-        page_log=page_log,
-        memory_dir=memory_dir)
+    tasklist = define_tasks_with_answers()
+    task_with_answer_list = [tasklist[task_index] for task_index in task_index_list]
+
+    total_num_successes_list = [0 for _ in task_index_list]
+    total_num_trials = 0
+    for i in range(settings["num_loops"]):
+        # Always train on the first task.
+        memory = AgenticMemoryController(reset=True, client=client, page_log=page_log, memory_dir=memory_dir)
+        task_with_answer = task_with_answer_list[0]
+        await memory.train_on_task(
+            task=task_with_answer["task"],
+            expected_answer=task_with_answer["expected_answer"],
+            task_assignment_callback=task_assignment_callback,
+            final_format_instructions="",
+            max_train_trials=settings["max_train_trials"],
+            max_test_trials=settings["max_test_trials"])
+
+        # Test on all tasks.
+        for j, task_with_answer in enumerate(task_with_answer_list):
+            num_successes, num_trials = await evaluator.test(
+                task_with_answer=task_with_answer,
+                num_trials=settings["num_final_test_trials"],
+                task_assignment_callback=task_assignment_callback,
+                use_memory=True,
+                reset_memory=False,
+                client=client,
+                page_log=page_log,
+                memory_dir=memory_dir)
+            page.add_lines("Success rate ({}):  {}%".format(j, round((num_successes / num_trials) * 100)), flush=True)
+            print("SUCCESS RATE ({}):  {}%\n".format(j, round((num_successes / num_trials) * 100)))
+            total_num_successes_list[j] += num_successes
+        total_num_trials += settings["num_final_test_trials"]
+        page.add_lines("")
 
     for i, total_num_successes in enumerate(total_num_successes_list):
         success_rate = round((total_num_successes / total_num_trials) * 100)
@@ -535,6 +389,47 @@ In responding to every user message, you follow the same multi-step process give
 
         page_log.finish_page(page)
         return response_str, work_history
+
+    async def test(self, task_with_answer, num_trials, task_assignment_callback, use_memory, reset_memory,
+                   client, page_log, memory_dir) -> Tuple[str, int, int]:
+        page = page_log.begin_page(
+            summary="Evaluator.test",
+            details='',
+            method_call="Evaluator.test")
+
+        grader = Grader(client, page_log)
+
+        if use_memory:
+            page.add_lines("Testing with memory.\n", flush=True)
+            memory = AgenticMemoryController(reset=reset_memory, client=client, page_log=page_log,
+                                             memory_dir=memory_dir)
+            response, num_successes, num_trials = await memory.test_on_task(
+                task=task_with_answer["task"],
+                expected_answer=task_with_answer["expected_answer"],
+                task_assignment_callback=task_assignment_callback,
+                num_trials=num_trials)
+        else:
+            page.add_lines("Testing without memory.\n", flush=True)
+            response = None
+            num_successes = 0
+            for trial in range(num_trials):
+                page.add_lines("\n-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
+                page.add_lines("Try to solve the task.\n", flush=True)
+                response, _ = await task_assignment_callback(task_with_answer["task"], client, page_log)
+
+                response_is_correct, extracted_answer = await grader.is_response_correct(
+                    task_with_answer["task"], response, task_with_answer["expected_answer"])
+                page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
+                if response_is_correct:
+                    page.add_lines("Answer is CORRECT.\n", flush=True)
+                    num_successes += 1
+                else:
+                    page.add_lines("Answer is INCORRECT.\n", flush=True)
+
+        page.add_lines("\nSuccess rate:  {}%\n".format(round((num_successes / num_trials) * 100)), flush=True)
+
+        page_log.finish_page(page)
+        return num_successes, num_trials
 
     async def run(self, settings_filepath):
         # Load the settings from yaml.

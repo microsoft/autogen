@@ -26,12 +26,12 @@ apprentice:
     base_agent: thin_agent  # thin_agent or magentic_one
 
 evaluations:
-  - name: test_teachability
+  - name: eval_teachability
 
-  - name: test_learning_from_demonstration
+  - name: eval_learning_from_demonstration
     num_trials: 1  # 1-10
 
-  - name: test_self_teaching
+  - name: eval_self_teaching
     num_loops: 1  # 1-10
     max_train_trials: 2  # 2-10  Move to AMC
     max_test_trials: 1  # 1-3  Move to AMC
