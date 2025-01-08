@@ -56,6 +56,7 @@ AutoGen uses a modular, extensible design with clearly divided responsibilities 
 - [AgentChat API](./python/packages/autogen-agentchat/) implements a simpler but opinionated API rapid for prototyping.
 - [Extensions API](./python/packages/autogen-ext/) enables first- and third-party extensions continuously expanding framework capabilities. 
 - [AutoGen Studio](./python/packages/autogen-studio/) enables a beautiful GUI for no-code agent development.
+- [AutoGen Bench](./python/packages/agbench/) provides a benchmarking suite for evaluating agent performance.
 
 With AutoGen you get to join and contribute to a thriving ecosystem. We host weekly office hours and talks with maintainers and community. We also have a [Discord server](https://aka.ms/autogen-discord) for real-time chat, GitHub Discussions for Q&A, and a blog for tutorials and updates.
 
