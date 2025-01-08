@@ -17,7 +17,8 @@
 ## Quick Start
 
 ```bash
-pip install autogen-agentchat autogen-ext[openai]
+# install the agentchat and the openai client from extensions
+pip install "autogen-agentchat" "autogen-ext[openai]"
 ```
 
 The current stable version is v0.4. If you are upgrading from AutoGen v0.2, please refer to the [Migration Guide](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/migration-guide.html) for detailed instructions on how to update your code and configurations.
@@ -44,14 +45,19 @@ asyncio.run(main())
 ## Why Use AutoGen?
 
 <div align="center">
-  <img src="autogen-landing.jpg" alt="AutoGen Landing" width="600">
+  <img src="autogen-landing.jpg" alt="AutoGen Landing" width="500">
+  <p><em>Figure 1. The v0.4 update introduces a cohesive AutoGen ecosystem that includes the framework, developer tools, and applications. The framework’s layered architecture clearly defines each layer’s functionality. It supports both first-party and third-party applications and extensions.</em></p>
 </div>
 
-- **Essential building blocks for agents**: AutoGen provides everything you need to create intelligent agents, including tools, LLMs, multi-agent teams, and capabilities like code/tool execution and human-in-the-loop workflows. AutoGen also provides state-of-the-art agents like Magentic-One for top performance and reliability, supports distributed agents and cross-language support in Python and .NET.
+AutoGen provides everything you need to create intelligent agents, including LLM clients (e.g., OpenAI, AzureOpenAI), multi-agent teams (two-agent or group chats), and capabilities like code/tool execution and human-in-the-loop workflows. AutoGen also provides state-of-the-art agents like [Magentic-One](./python/packages/magentic-one-cli/) for top performance and reliability, supports distributed agents and cross-language support in Python and .NET.
 
-- **Rapid prototyping and flexibility**: AutoGen uses a modular, extensible design with clearly divided responsibilities between layers. The [Core API](./python/packages/autogen-core/) implements message passing, event-driven agents, and runtime for flexibility and power, the [AgentChat API](./python/packages/autogen-agentchat/) implements a simpler but opinionated API rapid for prototyping, or the [Extensions API](./python/packages/autogen-ext/) enables first- and third-party extensions continuously expanding framework capabilities. Additionally, [AutoGen Studio](./python/packages/autogen-studio/) enables a beautiful GUI for no-code agent development.
+AutoGen uses a modular, extensible design with clearly divided responsibilities between layers. 
+- [Core API](./python/packages/autogen-core/) implements message passing, event-driven agents, and runtime for flexibility and power.
+- [AgentChat API](./python/packages/autogen-agentchat/) implements a simpler but opinionated API rapid for prototyping.
+- [Extensions API](./python/packages/autogen-ext/) enables first- and third-party extensions continuously expanding framework capabilities. 
+- [AutoGen Studio](./python/packages/autogen-studio/) enables a beautiful GUI for no-code agent development.
 
-- **Community and ecosystem**: Join and contribute to a thriving ecosystem. We host weekly office hours and talks with maintainers and community. We also have a [Discord server](https://aka.ms/autogen-discord) for real-time chat, GitHub Discussions for Q&A, and a blog for tutorials and updates.
+With AutoGen you get to join and contribute to a thriving ecosystem. We host weekly office hours and talks with maintainers and community. We also have a [Discord server](https://aka.ms/autogen-discord) for real-time chat, GitHub Discussions for Q&A, and a blog for tutorials and updates.
 
 ## Where to go next?
 
