@@ -19,38 +19,21 @@
 **AutoGen** is a framework for creating intelligent multi-agent systems that can act autonomously or work alongside humans.
 
 ### Minimal Python Example
-Code for setting up a reflection team of AI agents using AutoGen to collaboratively write and critique a poem about the fall season.
+Code for setting up a multi-agent system to plot stock prices:
 ```python
-# pip install 'autogen-agentchat==0.4.0.dev11'
-# pip install 'autogen-ext[openai]==0.4.0.dev11'
+# pip install "autogen-agentchat==0.4.0.dev13" "autogen-ext[openai]==0.4.0.dev13" "yfinance" "matplotlib"
 import asyncio
 from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
-from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.ui import Console
 from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_ext.tools.code_execution import PythonCodeExecutionTool
 
-model_client = OpenAIChatCompletionClient(
-    model="gpt-4o-2024-08-06",
-    # api_key="sk-...",
-)
-
-primary_agent = AssistantAgent(
-    "primary",
-    model_client=model_client,
-    system_message="You are a helpful AI assistant.",
-)
-
-critic_agent = AssistantAgent(
-    "critic",
-    model_client=model_client,
-    system_message="Provide constructive feedback. Respond with 'APPROVE' to when your feedbacks are addressed.",
-)
-
-text_termination = TextMentionTermination("APPROVE")
-
-reflection_team = RoundRobinGroupChat([primary_agent, critic_agent], termination_condition=text_termination)
-asyncio.run(Console(reflection_team.run_stream(task="Write a short poem about fall season.")))
+async def main() -> None:
+    tool = PythonCodeExecutionTool(LocalCommandLineCodeExecutor(work_dir="coding"))
+    agent = AssistantAgent("assistant", OpenAIChatCompletionClient(model="gpt-4o"), tools=[tool], reflect_on_tool_use=True)
+    await Console(agent.run_stream(task="Create a plot of MSFT stock prices in 2024 and save it to a file. Use yfinance and matplotlib."))
+asyncio.run(main())
 ```
 
 ### Why Use AutoGen?
