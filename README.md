@@ -16,7 +16,7 @@
 
 # AutoGen
 
-**AutoGen** is a framework for creating intelligent multi-agent systems that can act autonomously or work alongside humans.
+**AutoGen** is a framework for creating intelligent multi-agent applications that can act autonomously or work alongside humans.
 
 ### Quick Start
 
