@@ -239,24 +239,8 @@ async def test_with_memory(task_assignment_callback, client, page_log, memory_di
     page_log.finish_page(page)
 
 
-async def send_message_to_agent(text, task_assignment_callback, client, page_log, memory_dir,
-                                reset_memory) -> None:
-    page = page_log.begin_page(
-        summary="send_message_to_agent",
-        details="",
-        method_call="send_message_to_agent")
-
-    memory = AgenticMemoryController(reset=reset_memory, client=client, page_log=page_log,
-                           memory_dir=memory_dir)
-    response = await memory.handle_user_message(text, task_assignment_callback)
-
-    page.add_lines("Response:  {}\n".format(response), flush=True)
-
-    page_log.finish_page(page)
-    return response
-
-
-async def test_teachability(task_assignment_callback, client, page_log, memory_dir, settings):
+async def test_teachability(apprentice, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
+    """An evaluation"""
     page = page_log.begin_page(
         summary="test_teachability",
         details='',
@@ -268,11 +252,11 @@ async def test_teachability(task_assignment_callback, client, page_log, memory_d
     task = task_with_answer["task"]
     answer = task_with_answer["expected_answer"]
     grader = Grader(client, page_log)
+    apprentice.start(reset_memory=True)
 
     # First test without memory.
     page.add_lines("\nClear memory, then ask the question.")
-    response = await send_message_to_agent(task, task_assignment_callback, client, page_log, memory_dir,
-                                           reset_memory=True)
+    response = await apprentice.handle_user_message(task, task_assignment_callback)
 
     # Check the response.
     response_is_correct, extracted_answer = await grader.is_response_correct(task, response, answer)
@@ -285,13 +269,11 @@ async def test_teachability(task_assignment_callback, client, page_log, memory_d
     # Give the advice.
     page.add_lines("Give the advice.")
     insight = "When somebody builds something on autogen and wants to contribute it to autogen, instead of creating a new autogen package, it's better for them to implement it in a separate github repo, then just add the autogen-extension topic to that repo. That way their contribution will be automatically discoverable through autogen's page on community extensions:  https://microsoft.github.io/autogen/dev/user-guide/extensions-user-guide/index.html"
-    await send_message_to_agent(insight, task_assignment_callback, client, page_log, memory_dir,
-                                reset_memory=False)
+    await apprentice.handle_user_message(insight, task_assignment_callback)
 
     # Now ask the question again to see if the advice is retrieved from memory.
     page.add_lines("\nAsk the question again to see if the advice is retrieved from memory.")
-    response = await send_message_to_agent(task, task_assignment_callback, client, page_log, memory_dir,
-                                           reset_memory=False)
+    response = await apprentice.handle_user_message(task, task_assignment_callback)
 
     # Check the response.
     response_is_correct, extracted_answer = await grader.is_response_correct(task, response, answer)
@@ -301,22 +283,12 @@ async def test_teachability(task_assignment_callback, client, page_log, memory_d
     else:
         page.add_lines("Answer is INCORRECT.\n", flush=True)
 
+    apprentice.stop()
     page_log.finish_page(page)
 
 
-async def give_demonstration_to_agent(task, demonstration, client, page_log, memory_dir) -> None:
-    page = page_log.begin_page(
-        summary="give_demonstration_to_agent",
-        details="",
-        method_call="give_demonstration_to_agent")
-
-    memory = AgenticMemoryController(reset=False, client=client, page_log=page_log, memory_dir=memory_dir)
-    await memory.learn_from_demonstration(task, demonstration)
-
-    page_log.finish_page(page)
-
-
-async def test_learning_from_demonstration(task_assignment_callback, client, page_log, memory_dir, settings):
+async def test_learning_from_demonstration(apprentice, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
+    """An evaluation"""
     page = page_log.begin_page(
         summary="test_learning_from_demonstration",
         details='',
@@ -337,7 +309,8 @@ async def test_learning_from_demonstration(task_assignment_callback, client, pag
     page.add_lines("Demonstrate a solution to a similar task.")
     demo_task = "You are a telecommunications engineer who wants to build cell phone towers on a stretch of road. Houses are located at mile markers 17, 20, 19, 10, 11, 12, 3, 6. Each cell phone tower can cover houses located next to the road within a 4-mile radius. Find the minimum number of cell phone towers needed to cover all houses next to the road. Your answer should be a positive numerical integer value."
     demonstration = "Sort the houses by location:  3, 6, 10, 11, 12, 17, 19, 20. Then start at one end and place the towers only where absolutely needed. The house at 3 could be served by a tower as far away as mile marker 7, because 3 + 4 = 7, so place a tower at 7. This obviously covers houses up to mile 7. But a coverage radius of 4 miles (in each direction) means a total coverage of 8 miles. So the tower at mile 7 would reach all the way to mile 11, covering the houses at 10 and 11. The next uncovered house would be at mile 12 (not 10), requiring a second tower. It could go at mile 16 (which is 12 + 4) and this tower would reach up to mile 20 (16 + 4), covering the remaining houses. So 2 towers would be enough."
-    await give_demonstration_to_agent(demo_task, demonstration, client, page_log, memory_dir)
+    memory = AgenticMemoryController(reset=False, client=client, page_log=page_log, memory_dir=memory_dir)
+    await memory.learn_from_demonstration(demo_task, demonstration)
 
     # Now test again to see if the demonstration (retrieved from memory) helps.
     page.add_lines("Assign the task again to see if the demonstration helps.")
@@ -350,7 +323,8 @@ async def test_learning_from_demonstration(task_assignment_callback, client, pag
     page_log.finish_page(page)
 
 
-async def test_self_teaching(task_assignment_callback, client, page_log, memory_dir, settings):
+async def test_self_teaching(apprentice, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
+    """An evaluation"""
     page = page_log.begin_page(
         summary="test_self_teaching",
         details='',
@@ -578,8 +552,9 @@ In responding to every user message, you follow the same multi-step process give
             # Create the client, which is used by both the apprentice and the evaluator.
             client = self.create_client(settings["client"])
 
-            # Configure the apprentice.
+            # Create the apprentice.
             apprentice_settings = settings["apprentice"]
+            apprentice = Apprentice(settings["apprentice"], self, client, self.page_log)
 
             # Configure the agentic memory controller.
             agentic_memory_controller_settings = apprentice_settings["agentic_memory_controller"]
@@ -601,7 +576,7 @@ In responding to every user message, you follow the same multi-step process give
             memory_path = agentic_memory_bank_settings["path"]
             for ev in settings["evaluations"]:
                 eval_function = globals()[ev["name"]]
-                await eval_function(task_assignment_callback, client, self.page_log, memory_path, ev)
+                await eval_function(apprentice, self, task_assignment_callback, client, self.page_log, memory_path, ev)
 
             if hasattr(client, "finalize"):
                 # If this is a client wrapper, it needs to be finalized.
@@ -609,6 +584,49 @@ In responding to every user message, you follow the same multi-step process give
 
             self.page_log.flush(final=True)  # Finalize the page log
             self.page_log.finish_page(page)
+
+
+class Apprentice:
+    def __init__(self, settings, evaluator, client, page_log):
+        self.settings = settings
+        self.evaluator = evaluator
+        self.client = client
+        self.page_log = page_log
+        self.memory_settings = settings["agentic_memory_controller"]
+        self.agent_settings = settings["agent_wrapper"]
+        self.memory = None
+        self.agent = None
+
+    def create_memory(self, reset_memory):
+        self.memory = AgenticMemoryController(
+            reset=reset_memory,
+            client=self.client,
+            page_log=self.page_log,
+            memory_dir=self.memory_settings["agentic_memory_bank"]["path"]
+        )
+
+    def create_agent(self):
+        return None
+
+    def start(self, reset_memory):
+        self.create_memory(reset_memory)
+        self.create_agent()
+
+    def stop(self):
+        self.memory = None
+        self.agent = None
+
+    async def handle_user_message(self, text, task_assignment_callback, should_await=True):
+        page = self.page_log.begin_page(
+            summary="Apprentice.handle_user_message",
+            details="",
+            method_call="Apprentice.handle_user_message")
+
+        # Pass the user message through to the memory controller.
+        response = await self.memory.handle_user_message(text, task_assignment_callback, should_await)
+
+        self.page_log.finish_page(page)
+        return response
 
 
 if __name__ == "__main__":
