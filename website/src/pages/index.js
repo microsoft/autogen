@@ -19,10 +19,10 @@ function HomepageHeader() {
               className="button button--secondary button--lg"
               to="/docs/Getting-Started"
             >
-              Get Started
+              Get Started with 0.2
             </Link>
             <p className={styles.buttonTagline}>
-              Current stable version of AutoGen (autogen-agentchat~=0.2)
+              Legacy version of AutoGen (autogen-agentchat~=0.2)
             </p>
           </div>
           <div className={styles.buttonWrapper}>
@@ -31,12 +31,12 @@ function HomepageHeader() {
                 "button button--secondary button--lg",
                 styles.buttonLink
               )}
-              to="https://microsoft.github.io/autogen/dev/"
+              to="https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/migration-guide.html"
             >
-              Preview v0.4
+              Migration guide
             </Link>
             <p className={styles.buttonTagline}>
-              A new event driven, asynchronous architecture for AutoGen
+              Learn how to migrate from AutoGen 0.2 to 0.4
             </p>
           </div>
         </div>
