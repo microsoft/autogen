@@ -38,7 +38,7 @@ deactivate
 Create and activate:
 
 ```bash
-conda create -n autogen python=3.10
+conda create -n autogen python=3.12
 conda activate autogen
 ```
 
@@ -77,15 +77,8 @@ extensions:
 pip install "autogen-ext[openai]==0.4.0.dev13"
 ```
 
-## Install Docker for Code Execution
+If you are using Azure OpenAI with AAD authentication, you need to install the following:
 
-We recommend using Docker for code execution.
-To install Docker, follow the instructions for your operating system on the [Docker website](https://docs.docker.com/get-docker/).
-
-A simple example of how to use Docker for code execution is shown below:
-
-<!-- ```{include} stocksnippet.md
-
-``` -->
-
-To learn more about agents that execute code, see the [agents tutorial](./tutorial/agents.ipynb).
+```bash
+pip install "autogen-ext[azure]==0.4.0.dev13"
+```
