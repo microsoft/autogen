@@ -24,7 +24,7 @@ from autogen_magentic_one.agents.orchestrator import RoundRobinOrchestrator, Led
 from autogen_magentic_one.messages import BroadcastMessage, OrchestrationEvent, RequestReplyMessage, ResetMessage, DeactivateMessage
 from autogen_magentic_one.agents.multimodal_web_surfer import MultimodalWebSurfer
 from autogen_magentic_one.agents.file_surfer import FileSurfer
-from autogen_magentic_one.utils import LogHandler, message_content_to_str, create_completion_client_from_env
+from autogen_magentic_one.utils import LogHandler, message_content_to_str
 
 
 import evaluation_harness
@@ -120,7 +120,8 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     # Create the AzureOpenAI client, with AAD auth
-    client = create_completion_client_from_env()
+    client = ChatCompletionClient.load_component(json.loads(os.environ["CHAT_COMPLETION_CLIENT_CONFIG"]))
+
     # Login assistant
     await runtime.register(
         "LoginAssistant",
