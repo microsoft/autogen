@@ -61,7 +61,7 @@ Alternatively, you can run all the checks with:
 To create a new package, similar to `autogen-core` or `autogen-chat`, use the following:
 
 ```sh
-uv sync
+uv sync --python 3.12
 source .venv/bin/activate
 cookiecutter ./templates/new-package/
 ```

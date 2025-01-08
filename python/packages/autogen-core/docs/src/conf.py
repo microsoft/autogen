@@ -131,7 +131,7 @@ html_theme_options = {
     ]
 }
 
-html_js_files = ["custom-icon.js", "override-switcher-button.js"]
+html_js_files = ["custom-icon.js"]
 html_sidebars = {
     "packages/index": [],
     "user-guide/core-user-guide/**": ["sidebar-nav-bs-core"],
