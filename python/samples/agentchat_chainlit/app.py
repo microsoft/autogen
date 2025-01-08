@@ -1,21 +1,18 @@
 import chainlit as cl
 from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.conditions import TextMentionTermination, MaxMessageTermination
+from autogen_agentchat.base import TaskResult
+from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from autogen_agentchat.base import TaskResult
 
 
 async def get_weather(city: str) -> str:
     return f"The weather in {city} is 73 degrees and Sunny."
 
 
-@cl.on_chat_start
+@cl.on_chat_start  # type: ignore
 async def start_chat():
-    cl.user_session.set(
-        "prompt_history",
-        "",
-    )
+    cl.user_session.set("prompt_history", "")  # type: ignore
 
 
 async def run_team(query: str):
@@ -29,13 +26,13 @@ async def run_team(query: str):
     response_stream = team.run_stream(task=query)
     async for msg in response_stream:
         if hasattr(msg, "content"):
-            msg = cl.Message(content=msg.content, author="Agent Team")
-            await msg.send()
+            cl_msg = cl.Message(content=msg.content, author="Agent Team")  # type: ignore
+            await cl_msg.send()
         if isinstance(msg, TaskResult):
-            msg = cl.Message(content="Termination condition met. Team and Agents are reset.", author="Agent Team")
-            await msg.send()
+            cl_msg = cl.Message(content="Termination condition met. Team and Agents are reset.", author="Agent Team")
+            await cl_msg.send()
 
 
-@cl.on_message
+@cl.on_message  # type: ignore
 async def chat(message: cl.Message):
-    await run_team(message.content)
+    await run_team(message.content)  # type: ignore
