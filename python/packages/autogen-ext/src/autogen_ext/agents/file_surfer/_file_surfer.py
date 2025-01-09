@@ -37,7 +37,7 @@ class FileSurfer(BaseChatAgent):
 
     .. code-block:: bash
 
-        pip install "autogen-ext[file-surfer]==0.4.0.dev13"
+        pip install "autogen-ext[file-surfer]"
 
     Args:
         name (str): The agent's name
