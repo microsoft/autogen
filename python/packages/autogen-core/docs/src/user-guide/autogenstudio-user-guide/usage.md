@@ -13,6 +13,10 @@ The expected usage behavior is that developers use the provided Team Builder int
 
 ## Building an Agent Team
 
+<div style="padding:58.13% 0 0 0;position:relative; border-radius:5px; border-bottom:10px"><iframe src="https://player.vimeo.com/video/1043133833?badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="AutoGen Studio v0.4x - Drag and Drop Interface"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>
+
+<br/>
+
 AutoGen Studio is tied very closely with all of the component abstractions provided by AutoGen AgentChat. This includes - {py:class}`~autogen_agentchat.teams`, {py:class}`~autogen_agentchat.agents`, {py:class}`~autogen_core.models`, {py:class}`~autogen_core.tools`, termination {py:class}`~autogen_agentchat.conditions`.
 
 Users can define these components in the Team Builder interface either via a declarative specification or by dragging and dropping components from a component library.
