@@ -1,3 +1,3 @@
 # AutoGen Core
 
-- [Documentation](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/index.html)
+- [Documentation](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/index.html)
