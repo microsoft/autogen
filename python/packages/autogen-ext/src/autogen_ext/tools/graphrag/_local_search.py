@@ -41,7 +41,6 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
     The search combines local document context with semantic embeddings to find relevant information.
 
     .. note::
-
         This tool requires the :code:`graphrag` extra for the :code:`autogen-ext` package.
         To install:
 
@@ -97,7 +96,7 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
             response_stream = assistant_agent.run_stream(task=query)
             async for msg in response_stream:
                 if hasattr(msg, "content"):
-                    print(f"\nAgent response: {msg.content}")
+                    print(f"Agent response: {msg.content}")
 
 
         if __name__ == "__main__":

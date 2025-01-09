@@ -40,12 +40,12 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
     The search combines graph-based document relationships with semantic embeddings to find relevant information.
 
     .. note::
-
         This tool requires the :code:`graphrag` extra for the :code:`autogen-ext` package.
+
         To install:
 
         .. code-block:: bash
-
+            
             pip install "autogen-agentchat==0.4.0.dev13" "autogen-ext[graphrag]==0.4.0.dev13"
 
         Before using this tool, you must complete the GraphRAG setup and indexing process:
@@ -94,21 +94,14 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
             # Run a sample query
             query = "What is the overall sentiment of the community reports?"
             response_stream = assistant_agent.run_stream(task=query)
+
             async for msg in response_stream:
                 if hasattr(msg, "content"):
-                    print(f"\nAgent response: {msg.content}")
+                    print(f"Agent response: {msg.content}")
 
 
         if __name__ == "__main__":
             asyncio.run(main())
-
-
-    Args:
-        token_encoder (tiktoken.Encoding): The tokenizer used for text encoding
-        llm (BaseLLM): The language model to use for search
-        data_config (DataConfig): Configuration for data source locations and settings
-        context_config (ContextConfig, optional): Configuration for context building. Defaults to default config.
-        mapreduce_config (MapReduceConfig, optional): Configuration for map-reduce operations. Defaults to default config.
     """
 
     def __init__(
