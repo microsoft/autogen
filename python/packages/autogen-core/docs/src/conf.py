@@ -17,8 +17,12 @@ project = "autogen_core"
 copyright = "2024, Microsoft"
 author = "Microsoft"
 version = "0.4"
-release = autogen_core.__version__
 
+release_override = os.getenv("SPHINX_RELEASE_OVERRIDE")
+if release_override is None or release_override == "":
+    release = autogen_core.__version__
+else:
+    release = release_override
 
 sys.path.append(str(Path(".").resolve()))
 

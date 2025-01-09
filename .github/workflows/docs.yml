@@ -32,23 +32,23 @@ jobs:
         version:
           [
             # For main use the workflow target
-            { ref: "${{github.ref}}", dest-dir: dev, uv-version: "0.5.13" },
-            { ref: "v0.4.0", dest-dir: stable, uv-version: "0.5.13" },
-            { ref: "v0.4.0.dev0", dest-dir: "0.4.0.dev0", uv-version: "0.5.11" },
-            { ref: "v0.4.0.dev1", dest-dir: "0.4.0.dev1", uv-version: "0.5.11" },
-            { ref: "v0.4.0.dev2", dest-dir: "0.4.0.dev2", uv-version: "0.5.11" },
-            { ref: "v0.4.0.dev3", dest-dir: "0.4.0.dev3", uv-version: "0.5.11" },
-            { ref: "v0.4.0.dev4", dest-dir: "0.4.0.dev4", uv-version: "0.5.11" },
-            { ref: "v0.4.0.dev5", dest-dir: "0.4.0.dev5", uv-version: "0.5.11" },
-            { ref: "v0.4.0.dev6", dest-dir: "0.4.0.dev6", uv-version: "0.5.11" },
-            { ref: "v0.4.0.dev7", dest-dir: "0.4.0.dev7", uv-version: "0.5.11" },
-            { ref: "v0.4.0.dev8", dest-dir: "0.4.0.dev8", uv-version: "0.5.11" },
-            { ref: "v0.4.0.dev9", dest-dir: "0.4.0.dev9", uv-version: "0.5.11" },
-            { ref: "v0.4.0.dev10", dest-dir: "0.4.0.dev10", uv-version: "0.5.11" },
-            { ref: "v0.4.0.dev11", dest-dir: "0.4.0.dev11", uv-version: "0.5.11" },
-            { ref: "v0.4.0.dev12", dest-dir: "0.4.0.dev12", uv-version: "0.5.13" },
-            { ref: "v0.4.0.dev13", dest-dir: "0.4.0.dev13", uv-version: "0.5.13" },
-            { ref: "v0.4.0", dest-dir: "0.4.0", uv-version: "0.5.13" },
+            { ref: "${{github.ref}}", dest-dir: dev, uv-version: "0.5.13", sphinx-release-override: "dev" },
+            { ref: "v0.4.0.post1", dest-dir: stable, uv-version: "0.5.13", sphinx-release-override: "stable" },
+            { ref: "v0.4.0.dev0", dest-dir: "0.4.0.dev0", uv-version: "0.5.11", sphinx-release-override: "" },
+            { ref: "v0.4.0.dev1", dest-dir: "0.4.0.dev1", uv-version: "0.5.11", sphinx-release-override: "" },
+            { ref: "v0.4.0.dev2", dest-dir: "0.4.0.dev2", uv-version: "0.5.11", sphinx-release-override: "" },
+            { ref: "v0.4.0.dev3", dest-dir: "0.4.0.dev3", uv-version: "0.5.11", sphinx-release-override: "" },
+            { ref: "v0.4.0.dev4", dest-dir: "0.4.0.dev4", uv-version: "0.5.11", sphinx-release-override: "" },
+            { ref: "v0.4.0.dev5", dest-dir: "0.4.0.dev5", uv-version: "0.5.11", sphinx-release-override: "" },
+            { ref: "v0.4.0.dev6", dest-dir: "0.4.0.dev6", uv-version: "0.5.11", sphinx-release-override: "" },
+            { ref: "v0.4.0.dev7", dest-dir: "0.4.0.dev7", uv-version: "0.5.11", sphinx-release-override: "" },
+            { ref: "v0.4.0.dev8", dest-dir: "0.4.0.dev8", uv-version: "0.5.11", sphinx-release-override: "" },
+            { ref: "v0.4.0.dev9", dest-dir: "0.4.0.dev9", uv-version: "0.5.11", sphinx-release-override: "" },
+            { ref: "v0.4.0.dev10", dest-dir: "0.4.0.dev10", uv-version: "0.5.11", sphinx-release-override: "" },
+            { ref: "v0.4.0.dev11", dest-dir: "0.4.0.dev11", uv-version: "0.5.11", sphinx-release-override: "" },
+            { ref: "v0.4.0.dev12", dest-dir: "0.4.0.dev12", uv-version: "0.5.13", sphinx-release-override: "" },
+            { ref: "v0.4.0.dev13", dest-dir: "0.4.0.dev13", uv-version: "0.5.13", sphinx-release-override: "" },
+            { ref: "v0.4.0.post1", dest-dir: "0.4.0", uv-version: "0.5.13", sphinx-release-override: "" },
           ]
     steps:
       - name: Checkout
@@ -73,6 +73,7 @@ jobs:
         env:
           PY_DOCS_DIR: ${{ matrix.version.dest-dir }}/
           PY_SWITCHER_VERSION: ${{ matrix.version.dest-dir }}
+          SPHINX_RELEASE_OVERRIDE: ${{ matrix.version.sphinx-release-override }}
       - uses: actions/upload-artifact@v4
         with:
           path: "./python/docs-staging"
