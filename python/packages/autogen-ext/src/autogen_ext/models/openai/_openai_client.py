@@ -172,8 +172,8 @@ def system_message_to_oai(message: SystemMessage) -> ChatCompletionSystemMessage
         content=message.content,
         role="system",
     )
-    
-    
+
+
 def developer_message_to_oai(message: DeveloperMessage) -> ChatCompletionDeveloperMessageParam:
     return ChatCompletionDeveloperMessageParam(
         content=message.content,

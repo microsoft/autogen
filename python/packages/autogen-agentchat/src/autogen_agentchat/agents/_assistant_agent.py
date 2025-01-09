@@ -239,9 +239,7 @@ class AssistantAgent(BaseChatAgent):
         system_message: (
             str | None
         ) = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
-        developer_message: (
-            str | None
-        ) = None,
+        developer_message: (str | None) = None,
         reflect_on_tool_use: bool = False,
         tool_call_summary_format: str = "{result}",
     ):
@@ -334,7 +332,7 @@ class AssistantAgent(BaseChatAgent):
         inner_messages: List[AgentEvent | ChatMessage] = []
 
         # Generate an inference result based on the current model context.
-        if self._developer_messages:
+        if len(self._developer_messages) > 0:
             llm_messages = self._developer_messages + await self._model_context.get_messages()
         else:
             llm_messages = self._system_messages + await self._model_context.get_messages()
@@ -390,7 +388,7 @@ class AssistantAgent(BaseChatAgent):
 
         if self._reflect_on_tool_use:
             # Generate another inference result based on the tool call and result.
-            if self._developer_messages:
+            if len(self._developer_messages) > 0:
                 llm_messages = self._developer_messages + await self._model_context.get_messages()
             else:
                 llm_messages = self._system_messages + await self._model_context.get_messages()

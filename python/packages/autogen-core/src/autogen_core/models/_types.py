@@ -10,10 +10,12 @@ from .. import FunctionCall, Image
 class SystemMessage(BaseModel):
     content: str
     type: Literal["SystemMessage"] = "SystemMessage"
-    
+
+
 class DeveloperMessage(BaseModel):
     content: str
     type: Literal["DeveloperMessage"] = "DeveloperMessage"
+
 
 class UserMessage(BaseModel):
     content: Union[str, List[Union[str, Image]]]
