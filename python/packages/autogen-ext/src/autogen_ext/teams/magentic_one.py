@@ -1,5 +1,5 @@
 import warnings
-from typing import List
+from typing import Callable, List, Optional
 
 from autogen_agentchat.agents import CodeExecutorAgent, UserProxyAgent
 from autogen_agentchat.base import ChatAgent
@@ -116,17 +116,18 @@ class MagenticOne(MagenticOneGroupChat):
 
     """
 
-    def __init__(self, client: ChatCompletionClient, hil_mode: bool = False):
+    def __init__(self, client: ChatCompletionClient, hil_mode: bool = False, input_func: Optional[Callable[[str], str]] = None):
         self.client = client
         self._validate_client_capabilities(client)
 
         fs = FileSurfer("FileSurfer", model_client=client)
         ws = MultimodalWebSurfer("WebSurfer", model_client=client)
         coder = MagenticOneCoderAgent("Coder", model_client=client)
-        executor = CodeExecutorAgent("Executor", code_executor=LocalCommandLineCodeExecutor())
+        executor = CodeExecutorAgent(
+            "Executor", code_executor=LocalCommandLineCodeExecutor())
         agents: List[ChatAgent] = [fs, ws, coder, executor]
         if hil_mode:
-            user_proxy = UserProxyAgent("User")
+            user_proxy = UserProxyAgent("User", input_func=input_func)
             agents.append(user_proxy)
         super().__init__(agents, model_client=client)
 

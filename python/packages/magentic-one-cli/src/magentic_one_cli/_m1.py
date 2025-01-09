@@ -7,7 +7,8 @@ from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.teams.magentic_one import MagenticOne
 
 # Suppress warnings about the requests.Session() not being closed
-warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
+warnings.filterwarnings(
+    action="ignore", message="unclosed", category=ResourceWarning)
 
 
 def main() -> None:
@@ -32,13 +33,15 @@ def main() -> None:
             "For more information, refer to the following paper: https://arxiv.org/abs/2411.04468"
         )
     )
-    parser.add_argument("task", type=str, nargs=1, help="The task to be executed by MagenticOne.")
-    parser.add_argument("--no-hil", action="store_true", help="Disable human-in-the-loop mode.")
+    parser.add_argument("task", type=str, nargs=1,
+                        help="The task to be executed by MagenticOne.")
+    parser.add_argument("--no-hil", action="store_true",
+                        help="Disable human-in-the-loop mode.")
     args = parser.parse_args()
 
     async def run_task(task: str, hil_mode: bool) -> None:
         client = OpenAIChatCompletionClient(model="gpt-4o")
-        m1 = MagenticOne(client=client, hil_mode=hil_mode)
+        m1 = MagenticOne(client=client, hil_mode=hil_mode, input_func=input)
         await Console(m1.run_stream(task=task), output_stats=False)
 
     task = args.task[0]
