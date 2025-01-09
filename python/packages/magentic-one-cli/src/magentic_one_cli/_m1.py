@@ -20,11 +20,11 @@ def main() -> None:
 
     Arguments:
     task (str): The task to be executed by MagenticOne.
-    --no-hil: Optional flag to disable human-in-the-loop mode.
+    --hil: Optional flag to enable human-in-the-loop mode.
 
     Example usage:
     python magentic_one_cli.py "example task"
-    python magentic_one_cli.py --no-hil "example task"
+    python magentic_one_cli.py --hil "example task"
     """
     parser = argparse.ArgumentParser(
         description=(
@@ -33,7 +33,7 @@ def main() -> None:
         )
     )
     parser.add_argument("task", type=str, nargs=1, help="The task to be executed by MagenticOne.")
-    parser.add_argument("--no-hil", action="store_true", help="Disable human-in-the-loop mode.")
+    parser.add_argument("--hil", action="store_true", help="Enable human-in-the-loop mode.")
     args = parser.parse_args()
 
     async def run_task(task: str, hil_mode: bool) -> None:
@@ -42,7 +42,7 @@ def main() -> None:
         await Console(m1.run_stream(task=task), output_stats=False)
 
     task = args.task[0]
-    asyncio.run(run_task(task, not args.no_hil))
+    asyncio.run(run_task(task, args.hil))
 
 
 if __name__ == "__main__":
