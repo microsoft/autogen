@@ -409,14 +409,14 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         # TODO: allow custom handling.
         # For now we raise an error if images are present and vision is not supported
-        if self.capabilities["vision"] is False:
+        if self.model_info["vision"] is False:
             for message in messages:
                 if isinstance(message, UserMessage):
                     if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
                         raise ValueError("Model does not support vision and image was provided")
 
         if json_output is not None:
-            if self.capabilities["json_output"] is False and json_output is True:
+            if self.model_info["json_output"] is False and json_output is True:
                 raise ValueError("Model does not support JSON output")
 
             if json_output is True:
@@ -424,13 +424,13 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             else:
                 create_args["response_format"] = {"type": "text"}
 
-        if self.capabilities["json_output"] is False and json_output is True:
+        if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output")
 
         oai_messages_nested = [to_oai_type(m) for m in messages]
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]
 
-        if self.capabilities["function_calling"] is False and len(tools) > 0:
+        if self.model_info["function_calling"] is False and len(tools) > 0:
             raise ValueError("Model does not support function calling")
         future: Union[Task[ParsedChatCompletion[BaseModel]], Task[ChatCompletion]]
         if len(tools) > 0:
@@ -622,14 +622,14 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         # TODO: allow custom handling.
         # For now we raise an error if images are present and vision is not supported
-        if self.capabilities["vision"] is False:
+        if self.model_info["vision"] is False:
             for message in messages:
                 if isinstance(message, UserMessage):
                     if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
                         raise ValueError("Model does not support vision and image was provided")
 
         if json_output is not None:
-            if self.capabilities["json_output"] is False and json_output is True:
+            if self.model_info["json_output"] is False and json_output is True:
                 raise ValueError("Model does not support JSON output")
 
             if json_output is True:
