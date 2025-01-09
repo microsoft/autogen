@@ -78,17 +78,16 @@ dev = [
 
 [tool.ruff]
 extend = "../../pyproject.toml"
-exclude = ["build", "dist", "src/autogen_core/application/protos", "tests/protos", "samples/protos"]
-include = ["src/**", "samples/*.py", "docs/**/*.ipynb", "tests/**"]
+exclude = ["build", "dist", "src/autogen_core/application/protos", "tests/protos"]
+include = ["src/**", "docs/**/*.ipynb", "tests/**"]
 
 [tool.ruff.lint.per-file-ignores]
-"samples/**.py" = ["T20"]
 "docs/**.ipynb" = ["T20"]
 
 [tool.pyright]
 extends = "../../pyproject.toml"
-include = ["src", "tests", "samples"]
-exclude = ["src/autogen_core/application/protos", "tests/protos", "samples/protos"]
+include = ["src", "tests"]
+exclude = ["src/autogen_core/application/protos", "tests/protos"]
 reportDeprecated = true
 
 [tool.pytest.ini_options]
