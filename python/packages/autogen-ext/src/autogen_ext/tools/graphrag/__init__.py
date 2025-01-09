@@ -1,5 +1,4 @@
 from ._config import (
-    EmbeddingConfig,
     GlobalContextConfig,
     GlobalDataConfig,
     LocalContextConfig,
@@ -23,5 +22,4 @@ __all__ = [
     "LocalSearchToolReturn",
     "MapReduceConfig",
     "SearchConfig",
-    "EmbeddingConfig",
 ]

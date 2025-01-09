@@ -1,5 +1,3 @@
-from typing import Callable, Literal, Optional
-
 from pydantic import BaseModel
 
 
@@ -59,16 +57,3 @@ class SearchConfig(BaseModel):
     max_tokens: int = 1500
     temperature: float = 0.0
     response_type: str = "multiple paragraphs"
-
-
-class EmbeddingConfig(BaseModel):
-    api_key: Optional[str] = None
-    model: str
-    api_base: Optional[str] = None
-    deployment_name: Optional[str] = None
-    api_version: Optional[str] = None
-    api_type: Literal["azure", "openai"] = "openai"
-    organization: Optional[str] = None
-    azure_ad_token_provider: Optional[Callable[[], str]] = None
-    max_retries: int = 10
-    request_timeout: float = 180.0

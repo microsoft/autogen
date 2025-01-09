@@ -39,7 +39,7 @@ class MockLLM(BaseLLM):  # type: ignore
     ) -> str:
         return "Mock response"
 
-    async def astream_generate(
+    async def astream_generate(  # type: ignore
         self, messages: str | list[Any], callbacks: list[BaseLLMCallback] | None = None, **kwargs: Any
     ) -> AsyncGenerator[str, None]:
         yield "Mock response"
