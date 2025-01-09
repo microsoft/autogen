@@ -1,7 +1,7 @@
 var version = DOCUMENTATION_OPTIONS.VERSION;
 if (version === "stable") {
   var styles = `
-s#bd-header-version-warning {
+#bd-header-version-warning {
   display: none;
 }
   `
