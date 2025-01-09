@@ -51,7 +51,9 @@ def test_memory_protocol_runtime_checkable() -> None:
 
 def test_list_memory_basic_properties() -> None:
     """Test basic properties of ListMemory."""
-    memory = ListMemory(name="test_memory", max_memories=3)
+    memory = ListMemory(
+        name="test_memory",
+    )
     assert memory.name == "test_memory"
     assert isinstance(memory, Memory)
 
@@ -74,7 +76,7 @@ async def test_list_memory_empty() -> None:
 @pytest.mark.asyncio
 async def test_list_memory_add_and_query() -> None:
     """Test adding and querying memory contents."""
-    memory = ListMemory(max_memories=3)
+    memory = ListMemory()
 
     content1 = MemoryContent(content="test1", mime_type=MemoryMimeType.TEXT, timestamp=datetime.now())
     content2 = MemoryContent(content={"key": "value"}, mime_type=MemoryMimeType.JSON, timestamp=datetime.now())
@@ -91,7 +93,7 @@ async def test_list_memory_add_and_query() -> None:
 @pytest.mark.asyncio
 async def test_list_memory_max_memories() -> None:
     """Test max_memories limit is enforced."""
-    memory = ListMemory(max_memories=3)
+    memory = ListMemory()
 
     for i in range(5):
         await memory.add(MemoryContent(content=f"test{i}", mime_type=MemoryMimeType.TEXT))
@@ -104,7 +106,7 @@ async def test_list_memory_max_memories() -> None:
 @pytest.mark.asyncio
 async def test_list_memory_update_context() -> None:
     """Test context updating with memory contents."""
-    memory = ListMemory(max_memories=3)
+    memory = ListMemory()
     context = BufferedChatCompletionContext(buffer_size=3)
 
     await memory.add(MemoryContent(content="test1", mime_type=MemoryMimeType.TEXT))

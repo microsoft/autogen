@@ -59,7 +59,7 @@ class Memory(Protocol):
 
     async def query(
         self,
-        query: MemoryContent,
+        query: str | MemoryContent,
         cancellation_token: CancellationToken | None = None,
         **kwargs: Any,
     ) -> List[MemoryContent]:

@@ -10,43 +10,77 @@ class ListMemory(Memory):
     """Simple chronological list-based memory implementation.
 
     This memory implementation stores contents in a list and retrieves them in
-    chronological order. It has an `update_context` method that updates model contexts by appending all stored
-    memories, limited by the configured maximum number of memories.
+    chronological order. It has an `update_context` method that updates model contexts
+    by appending all stored memories.
+
+    The memory content can be directly accessed and modified through the content property,
+    allowing external applications to manage memory contents directly.
 
     Example:
-        ```python
-        # Initialize memory with custom config
-        memory = ListMemory(name="chat_history", config=ListMemoryConfig(max_memories=5))
+         .. code-block:: python
+             # Initialize memory
+             memory = ListMemory(name="chat_history")
 
-        # Add memory content
-        content = MemoryContent(content="User prefers formal language")
-        await memory.add(content)
+             # Add memory content
+             content = MemoryContent(content="User prefers formal language")
+             await memory.add(content)
 
-        # Update a model context with memory
-        memory_contents = await memory.update_context(model_context)
-        ```
+             # Directly modify memory contents
+             memory.content = [MemoryContent(content="New preference")]
+
+             # Update a model context with memory
+             memory_contents = await memory.update_context(model_context)
+
 
     Attributes:
         name (str): Identifier for this memory instance
-        config (ListMemoryConfig): Configuration controlling memory behavior
+        content (List[MemoryContent]): Direct access to memory contents
     """
 
-    def __init__(self, name: str | None = None, max_memories: int = 5) -> None:
+    def __init__(self, name: str | None = None) -> None:
+        """Initialize ListMemory.
+
+        Args:
+            name: Optional identifier for this memory instance
+        """
         self._name = name or "default_list_memory"
-        self._max_memories = max_memories
         self._contents: List[MemoryContent] = []
 
     @property
     def name(self) -> str:
+        """Get the memory instance identifier.
+
+        Returns:
+            str: Memory instance name
+        """
         return self._name
+
+    @property
+    def content(self) -> List[MemoryContent]:
+        """Get the current memory contents.
+
+        Returns:
+            List[MemoryContent]: List of stored memory contents
+        """
+        return self._contents
+
+    @content.setter
+    def content(self, value: List[MemoryContent]) -> None:
+        """Set the memory contents.
+
+        Args:
+            value: New list of memory contents to store
+        """
+        self._contents = value
 
     async def update_context(
         self,
         model_context: ChatCompletionContext,
     ) -> List[MemoryContent]:
-        """Update the model context by appending recent memory content.
+        """Update the model context by appending memory content.
 
-        This method mutates the provided model_context by adding the most recent memories (as a :class:`SystemMessage`), up to the configured maximum number of memories.
+        This method mutates the provided model_context by adding all memories as a
+        SystemMessage.
 
         Args:
             model_context: The context to update. Will be mutated if memories exist.
@@ -57,29 +91,21 @@ class ListMemory(Memory):
         if not self._contents:
             return []
 
-        # Get the most recent memories up to max_memories
-        recent_memories = self._contents[-self._max_memories :]
+        memory_strings = [f"{i}. {str(memory.content)}" for i, memory in enumerate(self._contents, 1)]
 
-        # Format memories into a string
-        memory_strings: List[str] = []
-        for i, memory in enumerate(recent_memories, 1):
-            content = memory.content if isinstance(memory.content, str) else str(memory.content)
-            memory_strings.append(f"{i}. {content}")
-
-        # Add memories to context if there are any
         if memory_strings:
             memory_context = "\nRelevant memory content (in chronological order):\n" + "\n".join(memory_strings) + "\n"
             await model_context.add_message(SystemMessage(content=memory_context))
 
-        return recent_memories
+        return self._contents
 
     async def query(
         self,
-        query: MemoryContent,
+        query: str | MemoryContent = "",
         cancellation_token: CancellationToken | None = None,
         **kwargs: Any,
     ) -> List[MemoryContent]:
-        """Return most recent memories without any filtering.
+        """Return all memories without any filtering.
 
         Args:
             query: Ignored in this implementation
@@ -87,10 +113,10 @@ class ListMemory(Memory):
             **kwargs: Additional parameters (ignored)
 
         Returns:
-            List[MemoryContent]: Most recent memories up to max_memories limit
+            List[MemoryContent]: All stored memories
         """
-        _ = query
-        return self._contents[-self._max_memories :]
+        _ = query, cancellation_token, kwargs
+        return self._contents
 
     async def add(self, content: MemoryContent, cancellation_token: CancellationToken | None = None) -> None:
         """Add new content to memory.
