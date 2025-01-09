@@ -33,7 +33,7 @@ jobs:
           [
             # For main use the workflow target
             { ref: "${{github.ref}}", dest-dir: dev, uv-version: "0.5.13" },
-            { ref: "${{github.ref}}", dest-dir: stable, uv-version: "0.5.13" },
+            { ref: "v0.4.0", dest-dir: stable, uv-version: "0.5.13" },
             { ref: "v0.4.0.dev0", dest-dir: "0.4.0.dev0", uv-version: "0.5.11" },
             { ref: "v0.4.0.dev1", dest-dir: "0.4.0.dev1", uv-version: "0.5.11" },
             { ref: "v0.4.0.dev2", dest-dir: "0.4.0.dev2", uv-version: "0.5.11" },
@@ -48,6 +48,7 @@ jobs:
             { ref: "v0.4.0.dev11", dest-dir: "0.4.0.dev11", uv-version: "0.5.11" },
             { ref: "v0.4.0.dev12", dest-dir: "0.4.0.dev12", uv-version: "0.5.13" },
             { ref: "v0.4.0.dev13", dest-dir: "0.4.0.dev13", uv-version: "0.5.13" },
+            { ref: "v0.4.0", dest-dir: "0.4.0", uv-version: "0.5.13" },
           ]
     steps:
       - name: Checkout
