@@ -41,12 +41,14 @@ class StringSimilarityMap:
         self.uid_text_dict = {}
         self.last_string_pair_id = 0
         if (not reset) and os.path.exists(self.path_to_dict):
-            print("\nLOADING STRING SIMILARITY MAP FROM DISK  {}".format(self.path_to_dict))
-            print("    Location = {}".format(self.path_to_dict))
+            if self.verbosity >= 1:
+                print("\nLOADING STRING SIMILARITY MAP FROM DISK  {}".format(self.path_to_dict))
+                print("    Location = {}".format(self.path_to_dict))
             with open(self.path_to_dict, "rb") as f:
                 self.uid_text_dict = pickle.load(f)
                 self.last_string_pair_id = len(self.uid_text_dict)
-                print("\n{} STRING PAIRS LOADED".format(len(self.uid_text_dict)))
+                if self.verbosity >= 1:
+                    print("\n{} STRING PAIRS LOADED".format(len(self.uid_text_dict)))
                 if self.verbosity >= 3:
                     self.list_string_pairs()
 
@@ -67,10 +69,12 @@ class StringSimilarityMap:
         for file in os.listdir("mem_text"):
             os.remove(os.path.join("mem_text", file))
 
-        print("LIST OF STRING PAIRS")
+        if self.verbosity >= 1:
+            print("LIST OF STRING PAIRS")
         for uid, text in self.uid_text_dict.items():
             input_text, output_text = text
-            print("  ID: {}\n    INPUT TEXT: {}\n    OUTPUT TEXT: {}".format(uid, input_text, output_text))
+            if self.verbosity >= 1:
+                print("  ID: {}\n    INPUT TEXT: {}\n    OUTPUT TEXT: {}".format(uid, input_text, output_text))
             # Save the input string to a file with the same name as the string-pair ID in the mem_text dir, which is a subdir of the dir containing this file.
             with open("mem_text/{}.txt".format(uid), "w") as file:
                 file.write("  ID: {}\n    INPUT TEXT: {}\n    OUTPUT TEXT: {}".format(uid, input_text, output_text))
@@ -82,7 +86,8 @@ class StringSimilarityMap:
 
     def reset_db(self):
         """Forces immediate deletion of the DB's contents, in memory and on disk."""
-        print("\nCLEARING STRING-PAIR MAP")
+        if self.verbosity >= 1:
+            print("\nCLEARING STRING-PAIR MAP")
         self.db_client.delete_collection("string-pairs")
         self.vec_db = self.db_client.create_collection("string-pairs")
         self.uid_text_dict = {}

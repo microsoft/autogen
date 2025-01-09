@@ -1,5 +1,5 @@
-from typing import Callable
 from ._agentic_memory_controller import AgenticMemoryController
+from ._agent_wrapper import AgentWrapper
 
 
 class FastLearner:
@@ -9,24 +9,24 @@ class FastLearner:
         self.client = client
         self.page_log = page_log
 
-        # Create the AgenticMemoryController, which creates the AgenticMemoryBank.
-        self.memory_controller_settings = settings["AgenticMemoryController"]
-        self.memory_controller = AgenticMemoryController(
-            reset=False,
-            client=self.client,
-            page_log=self.page_log,
-            memory_dir=self.memory_controller_settings["AgenticMemoryBank"]["path"]
-        )
-
         # Create the agent wrapper, which creates the base agent.
         self.agent_settings = settings["AgentWrapper"]
-        self.agent = None
+        self.agent = AgentWrapper(settings=self.agent_settings, client=self.client, page_log=self.page_log)
+
+        # Create the AgenticMemoryController, which creates the AgenticMemoryBank.
+        self.memory_controller = AgenticMemoryController(
+            settings=self.settings["AgenticMemoryController"],
+            agent=self.agent,
+            reset=False,
+            client=self.client,
+            page_log=self.page_log
+        )
 
     def reset_memory(self):
         if self.memory_controller is not None:
             self.memory_controller.reset_memory()
 
-    async def handle_user_message(self, text, task_assignment_callback, should_await=True):
+    async def handle_user_message(self, text, should_await=True):
         """A foreground operation, intended for immediate response to the user."""
         page = self.page_log.begin_page(
             summary="FastLearner.handle_user_message",
@@ -34,7 +34,7 @@ class FastLearner:
             method_call="FastLearner.handle_user_message")
 
         # Pass the user message through to the memory controller.
-        response = await self.memory_controller.handle_user_message(text, task_assignment_callback, should_await)
+        response = await self.memory_controller.handle_user_message(text, should_await)
 
         self.page_log.finish_page(page)
         return response
@@ -51,8 +51,7 @@ class FastLearner:
 
         self.page_log.finish_page(page)
 
-    async def assign_task(self, task: str, task_assignment_callback: Callable, use_memory: bool = True,
-                          should_await: bool = True):
+    async def assign_task(self, task: str, use_memory: bool = True, should_await: bool = True):
         """
         Assigns a task to the agent, along with any relevant insights/memories.
         """
@@ -62,13 +61,12 @@ class FastLearner:
             method_call="FastLearner.assign_task")
 
         # Pass the task through to the memory controller.
-        response = await self.memory_controller.assign_task(task, task_assignment_callback, use_memory, should_await)
+        response = await self.memory_controller.assign_task(task, use_memory, should_await)
 
         self.page_log.finish_page(page)
         return response
 
-    async def train_on_task(self, task, expected_answer, task_assignment_callback, final_format_instructions,
-                            max_train_trials, max_test_trials):
+    async def train_on_task(self, task, expected_answer, final_format_instructions, max_train_trials, max_test_trials):
         """A background operation, not intended for immediate response."""
         page = self.page_log.begin_page(
             summary="FastLearner.train_on_task",
@@ -76,8 +74,7 @@ class FastLearner:
             method_call="FastLearner.train_on_task")
 
         # Pass the task through to the memory controller.
-        await self.memory_controller.train_on_task(
-            task, expected_answer, task_assignment_callback, final_format_instructions,
+        await self.memory_controller.train_on_task(task, expected_answer, final_format_instructions,
             max_train_trials, max_test_trials)
 
         self.page_log.finish_page(page)

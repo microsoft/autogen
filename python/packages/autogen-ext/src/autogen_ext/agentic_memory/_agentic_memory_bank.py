@@ -17,23 +17,22 @@ class AgenticMemoryBank:
     """
     Stores task-completion insights in a vector DB for later retrieval.
     """
-    def __init__(
-        self,
+    def __init__(self,
+        settings: Dict,
         verbosity: Optional[int] = 0,
         reset: Optional[bool] = False,
-        memory_dir: str = "tmp/memory",
         page_log=None,
     ):
         """
         Args:
             - verbosity (Optional, int): 1 to print memory operations, 0 to omit them. 3+ to print string-pair lists.
             - reset (Optional, bool): True to clear the DB before starting. Default False
-            - memory_dir (Optional, str): path to the directory where this run's memory data is stored.
             - page_log (Optional, PageLog): the PageLog object to use for logging.
         """
-        memory_dir = os.path.expanduser(memory_dir)
-        path_to_db_dir = os.path.join(memory_dir, "string_map")
-        self.path_to_dict = os.path.join(memory_dir, "uid_insight_dict.pkl")
+        self.settings = settings
+        memory_dir_path = os.path.expanduser(self.settings["path"])
+        path_to_db_dir = os.path.join(memory_dir_path, "string_map")
+        self.path_to_dict = os.path.join(memory_dir_path, "uid_insight_dict.pkl")
 
         self.page_log = page_log
         parent_page = self.page_log.last_page()

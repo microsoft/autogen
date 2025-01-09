@@ -5,11 +5,14 @@ from ._grader import Grader
 
 
 class AgenticMemoryController:
-    def __init__(self, reset, client, page_log, memory_dir):
+    def __init__(self, settings, agent, reset, client, page_log):
+        self.settings = settings
+        self.agent = agent
         self.client = client
         self.page_log = page_log
         self.prompter = Prompter(client, page_log)
-        self.memory_bank = AgenticMemoryBank(verbosity=0, reset=reset, memory_dir=memory_dir, page_log=page_log)
+        self.memory_bank = AgenticMemoryBank(self.settings["AgenticMemoryBank"],
+                                             verbosity=0, reset=reset, page_log=page_log)
         self.grader = Grader(client, page_log)
 
     def reset_memory(self):
@@ -18,7 +21,6 @@ class AgenticMemoryController:
     async def train_on_task(self,
                             task: str,  # The task to be completed.
                             expected_answer: str,  # The expected answer to the task.
-                            task_assignment_callback: Callable,  # The function through which to assign the task.
                             final_format_instructions: str,  # Instructions for formatting the final response, if any.
                             max_train_trials: int,  # The maximum number of training trials to attempt.
                             max_test_trials: int,  # The number of successful test trials to qualify as success.
@@ -33,8 +35,7 @@ class AgenticMemoryController:
 
         # Attempt to create useful new memories.
         page.add_lines("Iterate on the task, possibly discovering a useful new insight.\n", flush=True)
-        _, insight = await self._iterate_on_task(task, expected_answer, task_assignment_callback,
-                                                final_format_instructions, max_train_trials, max_test_trials)
+        _, insight = await self._iterate_on_task(task, expected_answer, final_format_instructions, max_train_trials, max_test_trials)
         if insight is None:
             page.add_lines("No useful insight was discovered.\n", flush=True)
         else:
@@ -44,7 +45,7 @@ class AgenticMemoryController:
 
         self.page_log.finish_page(page)
 
-    async def test_on_task(self, task: str, expected_answer: str, task_assignment_callback: Callable, num_trials=1):
+    async def test_on_task(self, task: str, expected_answer: str, num_trials=1):
         """
         Assigns a task to the completion agent, along with any relevant insights/memories.
         """
@@ -70,7 +71,7 @@ class AgenticMemoryController:
 
             # Attempt to solve the task.
             page.add_lines("Try to solve the task.\n", flush=True)
-            response, _ = await task_assignment_callback(task_plus_insights, self.client, self.page_log)
+            response, _ = await self.agent.assign_task(task_plus_insights)
 
             response_is_correct, extracted_answer = await self.grader.is_response_correct(
                 task, response, expected_answer)
@@ -188,8 +189,7 @@ class AgenticMemoryController:
                 memory_section += ('- ' + mem + '\n')
         return memory_section
 
-    async def _test_for_failure(self, task: str, task_plus_insights: str, expected_answer: str,
-                                assign_task_to_completer: Callable, num_trials: int):
+    async def _test_for_failure(self, task: str, task_plus_insights: str, expected_answer: str, num_trials: int):
         """
         Attempts to solve the given task multiple times to find a failure case to learn from.
         """
@@ -209,7 +209,7 @@ class AgenticMemoryController:
 
             # Attempt to solve the task.
             page.add_lines("Try to solve the task.", flush=True)
-            response, work_history = await assign_task_to_completer(task_plus_insights, self.client, self.page_log)
+            response, work_history = await self.agent.assign_task(task_plus_insights)
 
             response_is_correct, extracted_answer = await self.grader.is_response_correct(
                 task, response, expected_answer)
@@ -224,7 +224,7 @@ class AgenticMemoryController:
         self.page_log.finish_page(page)
         return failure_found, response, work_history
 
-    async def _iterate_on_task(self, task: str, expected_answer: str, assign_task_to_completer: Callable,
+    async def _iterate_on_task(self, task: str, expected_answer: str,
                               final_format_instructions: str, max_train_trials: int, max_test_trials: int):
         page = self.page_log.begin_page(
             summary="AgenticMemoryController._iterate_on_task",
@@ -257,7 +257,7 @@ class AgenticMemoryController:
 
             # Can we find a failure case to learn from?
             failure_found, response, work_history = await self._test_for_failure(
-                task, task_plus_insights, expected_answer, assign_task_to_completer, max_test_trials)
+                task, task_plus_insights, expected_answer, max_test_trials)
             if not failure_found:
                 # No. Time to exit the loop.
                 page.add_lines("\nResponse is CORRECT.\n  Stop looking for insights.\n", flush=True)
@@ -289,7 +289,7 @@ class AgenticMemoryController:
         self.page_log.finish_page(page)
         return final_response, successful_insight
 
-    async def assign_task(self, task: str, task_assignment_callback: Callable, use_memory: bool = True,
+    async def assign_task(self, task: str, use_memory: bool = True,
                           should_await: bool = True):
         """
         Assigns a task to the agent, along with any relevant insights/memories.
@@ -312,34 +312,26 @@ class AgenticMemoryController:
         # Attempt to solve the task.
         page.add_lines("Try to solve the task.\n", flush=True)
         if should_await:
-            response, _ = await task_assignment_callback(task, self.client, self.page_log)
+            response, _ = await self.agent.assign_task(task)
         else:
-            response, _ = task_assignment_callback(task, self.client, self.page_log)
-
-        # page.add_lines("Response:  {}\n".format(response), flush=True)
+            response, _ = self.agent.assign_task(task)
 
         self.page_log.finish_page(page)
         return response
 
-    async def handle_user_message(self, text, task_assignment_callback, should_await=True):
+    async def handle_user_message(self, text, should_await=True):
         page = self.page_log.begin_page(
             summary="AgenticMemoryController.handle_user_message",
             details="",
             method_call="AgenticMemoryController.handle_user_message")
 
-        # task = await self.prompter.extract_task(text)
-        # page.add_lines("Task:  {}".format(task), flush=True)
-
         advice = await self.prompter.extract_advice(text)
         page.add_lines("Advice:  {}".format(advice), flush=True)
 
         if advice is not None:
-            print("Adding advice to memory.")
             await self.add_insight_without_task_to_memory(advice)
 
-        print("Passing task to completion agent.")
-        response = await self.assign_task(text, task_assignment_callback, use_memory=(advice is None),
-                                          should_await=should_await)
+        response = await self.assign_task(text, use_memory=(advice is None), should_await=should_await)
 
         self.page_log.finish_page(page)
         return response

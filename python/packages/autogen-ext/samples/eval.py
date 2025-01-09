@@ -4,19 +4,7 @@ import asyncio
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
 from azure.identity import DefaultAzureCredential, ChainedTokenCredential, AzureCliCredential, get_bearer_token_provider
-from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.teams import MagenticOneGroupChat
-from autogen_ext.agents.web_surfer import MultimodalWebSurfer
-from autogen_ext.agents.web_surfer._utils import message_content_to_str
-from autogen_agentchat.ui._console import Console
-from autogen_core.models import (
-    SystemMessage,
-    UserMessage,
-)
-from typing import (
-    Callable,
-    Tuple,
-)
+from typing import Tuple
 from autogen_ext.agentic_memory import FastLearner, PageLog, Grader, ClientWrapper
 
 
@@ -70,7 +58,7 @@ In the afternoon, you go from house to house, speaking with all 100 residents of
     return tasks_with_answers
 
 
-async def eval_teachability(fast_learner, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
+async def eval_teachability(fast_learner, evaluator, client, page_log, settings):
     """An evaluation"""
     page = page_log.begin_page(
         summary="eval_teachability",
@@ -87,7 +75,7 @@ async def eval_teachability(fast_learner, evaluator, task_assignment_callback, c
 
     # First test without memory.
     page.add_lines("\nClear memory, then ask the question.")
-    response = await fast_learner.handle_user_message(task, task_assignment_callback)
+    response = await fast_learner.handle_user_message(task)
 
     # Check the response.
     response_is_correct, extracted_answer = await grader.is_response_correct(task, response, answer)
@@ -100,11 +88,11 @@ async def eval_teachability(fast_learner, evaluator, task_assignment_callback, c
     # Give the advice.
     page.add_lines("Give the advice.")
     insight = "When somebody builds something on autogen and wants to contribute it to autogen, instead of creating a new autogen package, it's better for them to implement it in a separate github repo, then just add the autogen-extension topic to that repo. That way their contribution will be automatically discoverable through autogen's page on community extensions:  https://microsoft.github.io/autogen/dev/user-guide/extensions-user-guide/index.html"
-    await fast_learner.handle_user_message(insight, task_assignment_callback)
+    await fast_learner.handle_user_message(insight)
 
     # Now ask the question again to see if the advice is retrieved from memory.
     page.add_lines("\nAsk the question again to see if the advice is retrieved from memory.")
-    response = await fast_learner.handle_user_message(task, task_assignment_callback)
+    response = await fast_learner.handle_user_message(task)
 
     # Check the response.
     response_is_correct, extracted_answer = await grader.is_response_correct(task, response, answer)
@@ -117,7 +105,7 @@ async def eval_teachability(fast_learner, evaluator, task_assignment_callback, c
     page_log.finish_page(page)
 
 
-async def eval_learning_from_demonstration(fast_learner, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
+async def eval_learning_from_demonstration(fast_learner, evaluator, client, page_log, settings):
     """An evaluation"""
     page = page_log.begin_page(
         summary="eval_learning_from_demonstration",
@@ -133,8 +121,7 @@ async def eval_learning_from_demonstration(fast_learner, evaluator, task_assignm
     page.add_lines("To get a baseline, clear memory, then assign the task.")
     num_successes, num_trials = await evaluator.test_fast_learner(
         fast_learner=fast_learner, task_with_answer=task_with_answer, num_trials=num_trials,
-        task_assignment_callback=task_assignment_callback, use_memory=True, client=client,
-        page_log=page_log)
+        use_memory=True, client=client, page_log=page_log)
     success_rate = round((num_successes / num_trials) * 100)
     page.add_lines("\nSuccess rate:  {}%\n".format(success_rate), flush=True)
 
@@ -148,15 +135,14 @@ async def eval_learning_from_demonstration(fast_learner, evaluator, task_assignm
     page.add_lines("Assign the task again to see if the demonstration helps.")
     num_successes, num_trials = await evaluator.test_fast_learner(
         fast_learner=fast_learner, task_with_answer=task_with_answer, num_trials=num_trials,
-        task_assignment_callback=task_assignment_callback, use_memory=True, client=client,
-        page_log=page_log)
+        use_memory=True, client=client, page_log=page_log)
     success_rate = round((num_successes / num_trials) * 100)
     page.add_lines("\nSuccess rate:  {}%\n".format(success_rate), flush=True)
 
     page_log.finish_page(page)
 
 
-async def eval_self_teaching(fast_learner, evaluator, task_assignment_callback, client, page_log, memory_dir, settings):
+async def eval_self_teaching(fast_learner, evaluator, client, page_log, settings):
     """An evaluation"""
     page = page_log.begin_page(
         summary="eval_self_teaching",
@@ -180,7 +166,6 @@ async def eval_self_teaching(fast_learner, evaluator, task_assignment_callback, 
         await fast_learner.train_on_task(
             task=task_with_answer["task"],
             expected_answer=task_with_answer["expected_answer"],
-            task_assignment_callback=task_assignment_callback,
             final_format_instructions="",
             max_train_trials=settings["max_train_trials"],
             max_test_trials=settings["max_test_trials"])
@@ -189,8 +174,7 @@ async def eval_self_teaching(fast_learner, evaluator, task_assignment_callback, 
         for j, task_with_answer in enumerate(task_with_answer_list):
             num_successes, num_trials = await evaluator.test_fast_learner(
                 fast_learner=fast_learner, task_with_answer=task_with_answer, num_trials=settings["num_final_test_trials"],
-                task_assignment_callback=task_assignment_callback, use_memory=True, client=client,
-                page_log=page_log)
+                use_memory=True, client=client, page_log=page_log)
 
             page.add_lines("Success rate ({}):  {}%".format(j, round((num_successes / num_trials) * 100)), flush=True)
             print("SUCCESS RATE ({}):  {}%\n".format(j, round((num_successes / num_trials) * 100)))
@@ -313,83 +297,7 @@ class Evaluator:
         self.page_log.append_entry_line("  temperature:  {}".format(settings["temperature"]))
         return client
 
-    async def assign_task_to_magentic_one(self, task, model_client, page_log) -> Tuple[str, str]:
-        page = page_log.begin_page(
-            summary="assign_task_to_magentic_one",
-            details='',
-            method_call="assign_task_to_magentic_one")
-
-        page.add_lines(task)
-
-        general_agent = AssistantAgent(
-            "general_agent",
-            model_client,
-            description="A general GPT-4o AI assistant capable of performing a variety of tasks.", )
-
-        web_surfer = MultimodalWebSurfer(
-            name="web_surfer",
-            model_client=model_client,
-            downloads_folder="logs",
-            debug_dir="logs",
-            to_save_screenshots=True,
-        )
-
-        team = MagenticOneGroupChat(
-            [general_agent, web_surfer],
-            model_client=model_client,
-            max_turns=20,
-        )
-
-        # Get the team's text response to the task.
-        stream = team.run_stream(task=task)
-        task_result = await Console(stream)
-        response_str = "\n".join([message_content_to_str(message.content) for message in task_result.messages])
-        page.add_lines("\n-----  RESPONSE  -----\n\n{}\n".format(response_str), flush=True)
-
-        # MagenticOne's response is the chat history, which we use here as the work history.
-        work_history = response_str
-
-        page_log.finish_page(page)
-        return response_str, work_history
-
-    async def assign_task_to_client(self, task, client, page_log):
-        page = page_log.begin_page(
-            summary="assign_task_to_client",
-            details='',
-            method_call="assign_task_to_client")
-
-        page.add_lines(task)
-
-        system_message_content = """You are a helpful and thoughtful assistant.
-In responding to every user message, you follow the same multi-step process given here:
-1. Explain your understanding of the user message in detail, covering all the important points.
-2. List as many possible responses as you can think of.
-3. Carefully list and weigh the pros and cons (if any) of each possible response.
-4. Critique the pros and cons above, looking for any flaws in your reasoning. But don't make up flaws that don't exist.
-5. Decide on the best response, looping back to step 1 if none of the responses are satisfactory.
-6. Finish by providing your final response in the particular format requested by the user."""
-
-        system_message = SystemMessage(content=system_message_content)
-        user_message = UserMessage(content=task, source="User")
-
-        input_messages = [system_message] + [user_message]
-        response = await client.create(input_messages)
-        response_str = response.content
-
-        # Log the model call
-        page_log.add_model_call(description="Ask the model",
-                                details="to complete the task", input_messages=input_messages,
-                                response=response,
-                                num_input_tokens=0, caller='assign_task_to_client')
-        page.add_lines("\n-----  RESPONSE  -----\n\n{}\n".format(response_str), flush=True)
-
-        # Use the response as the work history as well.
-        work_history = response_str
-
-        page_log.finish_page(page)
-        return response_str, work_history
-
-    async def test_fast_learner(self, fast_learner, task_with_answer, num_trials, task_assignment_callback, use_memory,
+    async def test_fast_learner(self, fast_learner, task_with_answer, num_trials, use_memory,
                    client, page_log) -> Tuple[int, int]:
         page = page_log.begin_page(
             summary="Evaluator.test_fast_learner",
@@ -405,8 +313,7 @@ In responding to every user message, you follow the same multi-step process give
             page.add_lines("\n-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
             page.add_lines("Try to solve the task.\n", flush=True)
             task = task_with_answer["task"]
-            response = await fast_learner.assign_task(task, task_assignment_callback,
-                                                      should_await=True, use_memory=use_memory)
+            response = await fast_learner.assign_task(task, use_memory=use_memory)
             response_is_correct, extracted_answer = await grader.is_response_correct(
                 task, response, task_with_answer["expected_answer"])
             page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
@@ -437,30 +344,12 @@ In responding to every user message, you follow the same multi-step process give
             client = self.create_client(settings["client"])
 
             # Create the fast_learner.
-            fast_learner_settings = settings["FastLearner"]
-            fast_learner = FastLearner(fast_learner_settings, self, client, self.page_log)
+            fast_learner = FastLearner(settings["FastLearner"], self, client, self.page_log)
 
-            # Configure the agentic memory controller.
-            agentic_memory_controller_settings = fast_learner_settings["AgenticMemoryController"]
-            agentic_memory_bank_settings = agentic_memory_controller_settings["AgenticMemoryBank"]
-
-            # Configure the agent wrapper.
-            agent_wrapper_settings = fast_learner_settings["AgentWrapper"]
-
-            # Configure the base agent.
-            base_agent = agent_wrapper_settings["base_agent"]
-            if base_agent == "MagenticOneGroupChat":
-                task_assignment_callback = self.assign_task_to_magentic_one
-            elif base_agent == "thin_agent":
-                task_assignment_callback = self.assign_task_to_client
-            else:
-                assert False, "Invalid base agent"
-
-            # Execute each evaluations.
-            memory_path = agentic_memory_bank_settings["path"]
-            for ev in settings["evaluations"]:
-                eval_function = globals()[ev["name"]]
-                await eval_function(fast_learner, self, task_assignment_callback, client, self.page_log, memory_path, ev)
+            # Execute each evaluation.
+            for evaluation in settings["evaluations"]:
+                eval_function = globals()[evaluation["name"]]
+                await eval_function(fast_learner, self, client, self.page_log, evaluation)
 
             if hasattr(client, "finalize"):
                 # If this is a client wrapper, it needs to be finalized.
