@@ -14,9 +14,10 @@ from autogen_core.models import (
     UserMessage,
 )
 from typing import (
+    Callable,
     Tuple,
 )
-from autogen_ext.agentic_memory import AgenticMemoryController, PageLog, Grader, ClientWrapper
+from autogen_ext.agentic_memory import FastLearner, PageLog, Grader, ClientWrapper
 
 
 def define_tasks_with_answers():
@@ -82,7 +83,7 @@ async def eval_teachability(fast_learner, evaluator, task_assignment_callback, c
     task = task_with_answer["task"]
     answer = task_with_answer["expected_answer"]
     grader = Grader(client, page_log)
-    fast_learner.start(reset_memory=True)
+    fast_learner.reset_memory()
 
     # First test without memory.
     page.add_lines("\nClear memory, then ask the question.")
@@ -113,7 +114,6 @@ async def eval_teachability(fast_learner, evaluator, task_assignment_callback, c
     else:
         page.add_lines("Answer is INCORRECT.\n", flush=True)
 
-    fast_learner.stop()
     page_log.finish_page(page)
 
 
@@ -127,12 +127,14 @@ async def eval_learning_from_demonstration(fast_learner, evaluator, task_assignm
     task_index = 5
     task_with_answer = define_tasks_with_answers()[task_index]
     num_trials = settings["num_trials"]
+    fast_learner.reset_memory()
 
-    # First test after clearing memory.
+    # Start by clearing memory then running a baseline test.
     page.add_lines("To get a baseline, clear memory, then assign the task.")
-    num_successes, num_trials = await evaluator.test(task_with_answer=task_with_answer, num_trials=num_trials,
-        task_assignment_callback=task_assignment_callback, use_memory=True, reset_memory=True, client=client,
-        page_log=page_log, memory_dir=memory_dir)
+    num_successes, num_trials = await evaluator.test_fast_learner(
+        fast_learner=fast_learner, task_with_answer=task_with_answer, num_trials=num_trials,
+        task_assignment_callback=task_assignment_callback, use_memory=True, client=client,
+        page_log=page_log)
     success_rate = round((num_successes / num_trials) * 100)
     page.add_lines("\nSuccess rate:  {}%\n".format(success_rate), flush=True)
 
@@ -140,14 +142,14 @@ async def eval_learning_from_demonstration(fast_learner, evaluator, task_assignm
     page.add_lines("Demonstrate a solution to a similar task.")
     demo_task = "You are a telecommunications engineer who wants to build cell phone towers on a stretch of road. Houses are located at mile markers 17, 20, 19, 10, 11, 12, 3, 6. Each cell phone tower can cover houses located next to the road within a 4-mile radius. Find the minimum number of cell phone towers needed to cover all houses next to the road. Your answer should be a positive numerical integer value."
     demonstration = "Sort the houses by location:  3, 6, 10, 11, 12, 17, 19, 20. Then start at one end and place the towers only where absolutely needed. The house at 3 could be served by a tower as far away as mile marker 7, because 3 + 4 = 7, so place a tower at 7. This obviously covers houses up to mile 7. But a coverage radius of 4 miles (in each direction) means a total coverage of 8 miles. So the tower at mile 7 would reach all the way to mile 11, covering the houses at 10 and 11. The next uncovered house would be at mile 12 (not 10), requiring a second tower. It could go at mile 16 (which is 12 + 4) and this tower would reach up to mile 20 (16 + 4), covering the remaining houses. So 2 towers would be enough."
-    memory = AgenticMemoryController(reset=False, client=client, page_log=page_log, memory_dir=memory_dir)
-    await memory.learn_from_demonstration(demo_task, demonstration)
+    await fast_learner.learn_from_demonstration(demo_task, demonstration)
 
     # Now test again to see if the demonstration (retrieved from memory) helps.
     page.add_lines("Assign the task again to see if the demonstration helps.")
-    num_successes, num_trials = await evaluator.test(task_with_answer=task_with_answer, num_trials=num_trials,
-        task_assignment_callback=task_assignment_callback, use_memory=True, reset_memory=False, client=client,
-        page_log=page_log, memory_dir=memory_dir)
+    num_successes, num_trials = await evaluator.test_fast_learner(
+        fast_learner=fast_learner, task_with_answer=task_with_answer, num_trials=num_trials,
+        task_assignment_callback=task_assignment_callback, use_memory=True, client=client,
+        page_log=page_log)
     success_rate = round((num_successes / num_trials) * 100)
     page.add_lines("\nSuccess rate:  {}%\n".format(success_rate), flush=True)
 
@@ -161,6 +163,8 @@ async def eval_self_teaching(fast_learner, evaluator, task_assignment_callback, 
         details='',
         method_call="eval_self_teaching")
 
+    fast_learner.reset_memory()
+
     # Choose the tasks from those listed at the top.
     task_index_list = [3, 1]
 
@@ -172,9 +176,8 @@ async def eval_self_teaching(fast_learner, evaluator, task_assignment_callback, 
     total_num_trials = 0
     for i in range(settings["num_loops"]):
         # Always train on the first task.
-        memory = AgenticMemoryController(reset=True, client=client, page_log=page_log, memory_dir=memory_dir)
         task_with_answer = task_with_answer_list[0]
-        await memory.train_on_task(
+        await fast_learner.train_on_task(
             task=task_with_answer["task"],
             expected_answer=task_with_answer["expected_answer"],
             task_assignment_callback=task_assignment_callback,
@@ -184,15 +187,11 @@ async def eval_self_teaching(fast_learner, evaluator, task_assignment_callback, 
 
         # Test on all tasks.
         for j, task_with_answer in enumerate(task_with_answer_list):
-            num_successes, num_trials = await evaluator.test(
-                task_with_answer=task_with_answer,
-                num_trials=settings["num_final_test_trials"],
-                task_assignment_callback=task_assignment_callback,
-                use_memory=True,
-                reset_memory=False,
-                client=client,
-                page_log=page_log,
-                memory_dir=memory_dir)
+            num_successes, num_trials = await evaluator.test_fast_learner(
+                fast_learner=fast_learner, task_with_answer=task_with_answer, num_trials=settings["num_final_test_trials"],
+                task_assignment_callback=task_assignment_callback, use_memory=True, client=client,
+                page_log=page_log)
+
             page.add_lines("Success rate ({}):  {}%".format(j, round((num_successes / num_trials) * 100)), flush=True)
             print("SUCCESS RATE ({}):  {}%\n".format(j, round((num_successes / num_trials) * 100)))
             total_num_successes_list[j] += num_successes
@@ -390,44 +389,34 @@ In responding to every user message, you follow the same multi-step process give
         page_log.finish_page(page)
         return response_str, work_history
 
-    async def test(self, task_with_answer, num_trials, task_assignment_callback, use_memory, reset_memory,
-                   client, page_log, memory_dir) -> Tuple[str, int, int]:
+    async def test_fast_learner(self, fast_learner, task_with_answer, num_trials, task_assignment_callback, use_memory,
+                   client, page_log) -> Tuple[int, int]:
         page = page_log.begin_page(
-            summary="Evaluator.test",
+            summary="Evaluator.test_fast_learner",
             details='',
-            method_call="Evaluator.test")
+            method_call="Evaluator.test_fast_learner")
+
+        page.add_lines("Testing the fast learner on the given task.\n", flush=True)
 
         grader = Grader(client, page_log)
+        num_successes = 0
 
-        if use_memory:
-            page.add_lines("Testing with memory.\n", flush=True)
-            memory = AgenticMemoryController(reset=reset_memory, client=client, page_log=page_log,
-                                             memory_dir=memory_dir)
-            response, num_successes, num_trials = await memory.test_on_task(
-                task=task_with_answer["task"],
-                expected_answer=task_with_answer["expected_answer"],
-                task_assignment_callback=task_assignment_callback,
-                num_trials=num_trials)
-        else:
-            page.add_lines("Testing without memory.\n", flush=True)
-            response = None
-            num_successes = 0
-            for trial in range(num_trials):
-                page.add_lines("\n-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
-                page.add_lines("Try to solve the task.\n", flush=True)
-                response, _ = await task_assignment_callback(task_with_answer["task"], client, page_log)
-
-                response_is_correct, extracted_answer = await grader.is_response_correct(
-                    task_with_answer["task"], response, task_with_answer["expected_answer"])
-                page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
-                if response_is_correct:
-                    page.add_lines("Answer is CORRECT.\n", flush=True)
-                    num_successes += 1
-                else:
-                    page.add_lines("Answer is INCORRECT.\n", flush=True)
+        for trial in range(num_trials):
+            page.add_lines("\n-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
+            page.add_lines("Try to solve the task.\n", flush=True)
+            task = task_with_answer["task"]
+            response = await fast_learner.assign_task(task, task_assignment_callback,
+                                                      should_await=True, use_memory=use_memory)
+            response_is_correct, extracted_answer = await grader.is_response_correct(
+                task, response, task_with_answer["expected_answer"])
+            page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
+            if response_is_correct:
+                page.add_lines("Answer is CORRECT.\n", flush=True)
+                num_successes += 1
+            else:
+                page.add_lines("Answer is INCORRECT.\n", flush=True)
 
         page.add_lines("\nSuccess rate:  {}%\n".format(round((num_successes / num_trials) * 100)), flush=True)
-
         page_log.finish_page(page)
         return num_successes, num_trials
 
@@ -440,9 +429,9 @@ In responding to every user message, you follow the same multi-step process give
             # Create the PageLog.
             self.page_log = PageLog(evaluator_settings["PageLog"])
             page = self.page_log.begin_page(
-                summary="main",
+                summary="Evaluator.main",
                 details='',
-                method_call="main")
+                method_call="Evaluator.main")
 
             # Create the client, which is used by both the fast_learner and the evaluator.
             client = self.create_client(settings["client"])
@@ -479,49 +468,6 @@ In responding to every user message, you follow the same multi-step process give
 
             self.page_log.flush(final=True)  # Finalize the page log
             self.page_log.finish_page(page)
-
-
-class FastLearner:
-    def __init__(self, settings, evaluator, client, page_log):
-        self.settings = settings
-        self.evaluator = evaluator
-        self.client = client
-        self.page_log = page_log
-        self.memory_settings = settings["AgenticMemoryController"]
-        self.agent_settings = settings["AgentWrapper"]
-        self.memory = None
-        self.agent = None
-
-    def create_memory(self, reset_memory):
-        self.memory = AgenticMemoryController(
-            reset=reset_memory,
-            client=self.client,
-            page_log=self.page_log,
-            memory_dir=self.memory_settings["AgenticMemoryBank"]["path"]
-        )
-
-    def create_agent(self):
-        return None
-
-    def start(self, reset_memory):
-        self.create_memory(reset_memory)
-        self.create_agent()
-
-    def stop(self):
-        self.memory = None
-        self.agent = None
-
-    async def handle_user_message(self, text, task_assignment_callback, should_await=True):
-        page = self.page_log.begin_page(
-            summary="FastLearner.handle_user_message",
-            details="",
-            method_call="FastLearner.handle_user_message")
-
-        # Pass the user message through to the memory controller.
-        response = await self.memory.handle_user_message(text, task_assignment_callback, should_await)
-
-        self.page_log.finish_page(page)
-        return response
 
 
 if __name__ == "__main__":

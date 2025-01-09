@@ -56,6 +56,10 @@ class AgenticMemoryBank:
         if reset:
             self.reset_insights()
 
+    def reset(self):
+        self.string_map.reset_db()
+        self.reset_insights()
+
     def reset_insights(self):
         """Forces immediate deletion of the insights, in memory and on disk."""
         self.uid_insight_dict = {}

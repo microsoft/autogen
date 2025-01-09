@@ -12,6 +12,9 @@ class AgenticMemoryController:
         self.memory_bank = AgenticMemoryBank(verbosity=0, reset=reset, memory_dir=memory_dir, page_log=page_log)
         self.grader = Grader(client, page_log)
 
+    def reset_memory(self):
+        self.memory_bank.reset()
+
     async def train_on_task(self,
                             task: str,  # The task to be completed.
                             expected_answer: str,  # The expected answer to the task.
@@ -286,23 +289,25 @@ class AgenticMemoryController:
         self.page_log.finish_page(page)
         return final_response, successful_insight
 
-    async def execute_task(self, task: str, task_assignment_callback: Callable, should_await: bool,
-                           should_retrieve_insights: bool = True):
+    async def assign_task(self, task: str, task_assignment_callback: Callable, use_memory: bool = True,
+                          should_await: bool = True):
         """
-        Assigns a task to the completion agent, along with any relevant insights/memories.
+        Assigns a task to the agent, along with any relevant insights/memories.
         """
         page = self.page_log.begin_page(
-            summary="AgenticMemoryController.execute_task",
+            summary="AgenticMemoryController.assign_task",
             details="",
-            method_call="AgenticMemoryController.execute_task")
+            method_call="AgenticMemoryController.assign_task")
 
-        if should_retrieve_insights:
+        if use_memory:
             # Try to retrieve any relevant memories from the DB.
             filtered_insights = await self.retrieve_relevant_insights(task)
             if len(filtered_insights) > 0:
                 page.add_lines("Relevant insights were retrieved from memory.\n", flush=True)
                 memory_section = self.format_memory_section(filtered_insights)
                 task = task + '\n\n' + memory_section
+                # if len(memory_section) > 0:  # Best to include this condition, but it will require new recordings.
+                #     task = task + '\n\n' + memory_section
 
         # Attempt to solve the task.
         page.add_lines("Try to solve the task.\n", flush=True)
@@ -333,8 +338,8 @@ class AgenticMemoryController:
             await self.add_insight_without_task_to_memory(advice)
 
         print("Passing task to completion agent.")
-        response = await self.execute_task(text, task_assignment_callback, should_await,
-                                           should_retrieve_insights=(advice is None))
+        response = await self.assign_task(text, task_assignment_callback, use_memory=(advice is None),
+                                          should_await=should_await)
 
         self.page_log.finish_page(page)
         return response
