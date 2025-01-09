@@ -18,6 +18,7 @@ __all__ = [
     "ModelCapabilities",
     "ChatCompletionClient",
     "SystemMessage",
+    "DeveloperMessage",
     "UserMessage",
     "AssistantMessage",
     "FunctionExecutionResult",
