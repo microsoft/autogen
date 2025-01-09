@@ -249,9 +249,7 @@ class AssistantAgent(BaseChatAgent):
         self._model_client = model_client
         self._memory = None
         if memory is not None:
-            if isinstance(memory, Memory):
-                self._memory = [memory]
-            elif isinstance(memory, list):
+            if isinstance(memory, list):
                 self._memory = memory
             else:
                 raise TypeError(f"Expected Memory, List[Memory], or None, got {type(memory)}")
