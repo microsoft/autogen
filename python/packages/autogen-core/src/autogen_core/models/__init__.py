@@ -9,6 +9,7 @@ from ._types import (
     LLMMessage,
     RequestUsage,
     SystemMessage,
+    DeveloperMessage,
     TopLogprob,
     UserMessage,
 )
