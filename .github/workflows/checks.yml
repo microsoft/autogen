@@ -58,6 +58,7 @@ jobs:
             "./packages/agbench",
             "./packages/autogen-ext",
             "./packages/autogen-agentchat",
+            "./packages/magentic-one-cli",
           ]
     steps:
       - uses: actions/checkout@v4
@@ -86,6 +87,7 @@ jobs:
             "./packages/agbench",
             "./packages/autogen-ext",
             "./packages/autogen-agentchat",
+            "./packages/magentic-one-cli",
           ]
     steps:
       - uses: actions/checkout@v4
@@ -132,7 +134,7 @@ jobs:
           source ${{ github.workspace }}/python/.venv/bin/activate
           poe --directory ${{ matrix.package }} test
         working-directory: ./python
-  
+
   codecov:
     runs-on: ubuntu-latest
     strategy:
@@ -213,7 +215,7 @@ jobs:
           source ${{ github.workspace }}/python/.venv/bin/activate
           poe --directory ${{ matrix.package }} docs-check-examples
         working-directory: ./python
-  
+
   samples-code-check:
     runs-on: ubuntu-latest
     steps:

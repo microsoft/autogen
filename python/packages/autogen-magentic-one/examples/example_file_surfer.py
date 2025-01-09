@@ -3,14 +3,17 @@ to navigate the file system. The human user and the file surfer agent takes turn
 to write input or perform actions, orchestrated by an round-robin orchestrator agent."""
 
 import asyncio
+import json
 import logging
+import os
 
 from autogen_core import EVENT_LOGGER_NAME, AgentId, AgentProxy, SingleThreadedAgentRuntime
+from autogen_core.models._model_client import ChatCompletionClient
 from autogen_magentic_one.agents.file_surfer import FileSurfer
 from autogen_magentic_one.agents.orchestrator import RoundRobinOrchestrator
 from autogen_magentic_one.agents.user_proxy import UserProxy
 from autogen_magentic_one.messages import RequestReplyMessage
-from autogen_magentic_one.utils import LogHandler, create_completion_client_from_env
+from autogen_magentic_one.utils import LogHandler
 
 
 async def main() -> None:
@@ -18,7 +21,7 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     # Get an appropriate client
-    client = create_completion_client_from_env()
+    client = ChatCompletionClient.load_component(json.loads(os.environ["CHAT_COMPLETION_CLIENT_CONFIG"]))
 
     # Register agents.
     await FileSurfer.register(runtime, "file_surfer", lambda: FileSurfer(model_client=client))

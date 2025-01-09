@@ -10,6 +10,7 @@ from autogen_core import SingleThreadedAgentRuntime
 from autogen_core import EVENT_LOGGER_NAME
 from autogen_core import AgentId, AgentProxy
 from autogen_core import DefaultTopicId
+from autogen_core.models._model_client import ChatCompletionClient
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 from autogen_core.code_executor import CodeBlock
@@ -19,7 +20,7 @@ from autogen_magentic_one.agents.multimodal_web_surfer import MultimodalWebSurfe
 from autogen_magentic_one.agents.orchestrator import LedgerOrchestrator
 from autogen_magentic_one.agents.user_proxy import UserProxy
 from autogen_magentic_one.messages import BroadcastMessage
-from autogen_magentic_one.utils import LogHandler, create_completion_client_from_env
+from autogen_magentic_one.utils import LogHandler
 from autogen_core.models import UserMessage
 from threading import Lock
 
@@ -60,7 +61,9 @@ class MagenticOneHelper:
         logger.handlers = [self.log_handler]
 
         # Create client
-        client = create_completion_client_from_env(model="gpt-4o")
+        client = ChatCompletionClient.load_component(json.loads(os.environ["CHAT_COMPLETION_CLIENT_CONFIG"]))
+        assert client.model_info["family"] == "gpt-4o", "This example requires the gpt-4o model"
+
 
         # Set up code executor
         self.code_executor = DockerCommandLineCodeExecutor(work_dir=self.logs_dir)
