@@ -1,4 +1,5 @@
 import asyncio
+from autogen_agentchat.messages import TextMessage
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
 from autogen_ext.tools.graphrag import (
     GlobalSearchTool,
@@ -57,7 +58,7 @@ async def main():
     
     response_stream = team.run_stream(task=query)
     async for msg in response_stream:
-        if hasattr(msg, "content"):
+        if isinstance(msg, TextMessage) and hasattr(msg, "content"):
             print(f"\nAgent response: {msg.content}")
 
 
