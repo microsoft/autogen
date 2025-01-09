@@ -1,10 +1,10 @@
-import pytest
 from datetime import datetime
 from typing import List
 
+import pytest
 from autogen_core import CancellationToken
-from autogen_core.model_context import ChatCompletionContext, BufferedChatCompletionContext
-from autogen_core.memory import Memory, MemoryContent, MemoryMimeType, ListMemory
+from autogen_core.memory import ListMemory, Memory, MemoryContent, MemoryMimeType
+from autogen_core.model_context import BufferedChatCompletionContext, ChatCompletionContext
 
 
 def test_memory_protocol_attributes() -> None:
