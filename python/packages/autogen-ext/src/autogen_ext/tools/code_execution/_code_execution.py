@@ -30,7 +30,7 @@ class PythonCodeExecutionTool(BaseTool[CodeExecutionInput, CodeExecutionResult])
 
     .. code-block:: bash
 
-        pip install "autogen-agentchat" "autogen-ext[openai]" "yfinance" "matplotlib"
+        pip install -U "autogen-agentchat" "autogen-ext[openai]" "yfinance" "matplotlib"
 
     .. code-block:: python
 

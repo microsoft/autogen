@@ -61,7 +61,7 @@ Install the `autogen-agentchat` package using pip:
 
 ```bash
 
-pip install "autogen-agentchat"
+pip install -U "autogen-agentchat"
 ```
 
 ```{note}
