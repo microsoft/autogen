@@ -9,7 +9,6 @@
 [![Documentation](https://img.shields.io/badge/Documentation-AutoGen-blue?logo=read-the-docs)](https://microsoft.github.io/autogen/)
 </div>
 
-
 # AutoGen
 
 **AutoGen** is a framework for creating multi-agent AI applications that can act autonomously or work alongside humans.
@@ -17,30 +16,27 @@
 ## Installation
 
 ```bash
-# install the agentchat and the openai client from extensions
+# Install AgentChat and OpenAI client from Extensions
 pip install "autogen-agentchat" "autogen-ext[openai]"
 ```
 
 The current stable version is v0.4. If you are upgrading from AutoGen v0.2, please refer to the [Migration Guide](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/migration-guide.html) for detailed instructions on how to update your code and configurations.
 
 ### Minimal Python Example
-Code for setting up an agent to plot stock prices:
+
+Code below demonstrates how to create an assistant agent using OpenAI's GPT-4o model.
+
 ```python
-# pip install "autogen-agentchat" "autogen-ext[openai]" "yfinance" "matplotlib"
 import asyncio
 from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.ui import Console
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_ext.tools.code_execution import PythonCodeExecutionTool
 
 async def main() -> None:
-    tool = PythonCodeExecutionTool(LocalCommandLineCodeExecutor(work_dir="coding"))
-    agent = AssistantAgent("assistant", OpenAIChatCompletionClient(model="gpt-4o"), tools=[tool], reflect_on_tool_use=True)
-    await Console(agent.run_stream(task="Create a plot of MSFT stock prices in 2024 and save it to a file. Use yfinance and matplotlib."))
+    agent = AssistantAgent("assistant", OpenAIChatCompletionClient(model="gpt-4o"))
+    print(agent.run(task="Say 'Hello World!'"))
+
 asyncio.run(main())
 ```
-
 
 ## Why Use AutoGen?
 
@@ -51,6 +47,7 @@ asyncio.run(main())
 The AutoGen ecosystem provides everything you need to create AI agents, especially multi-agent workflows -- framework, developer tools, and applications.
 
 The *framework* uses a layered and extensible design. Layers have clearly divided responsibilities and build on top of layers below. This design enables you to use the framework at different levels of abstraction, from high-level APIs to low-level components.
+
 - [Core API](./python/packages/autogen-core/) implements message passing, event-driven agents, and local and distributed runtime for flexibility and power. It also support cross-language support for .NET and Python.
 - [AgentChat API](./python/packages/autogen-agentchat/) implements a simpler but opinionated API rapid for prototyping. This API is built on top of the Core API and is closest to what users of v0.2 are familiar with and supports familiar multi-agent patterns such as two-agent chat or group chats.
 - [Extensions API](./python/packages/autogen-ext/) enables first- and third-party extensions continuously expanding framework capabilities. It support specific implementation of LLM clients (e.g., OpenAI, AzureOpenAI), and capabilities such as code execution.
@@ -82,12 +79,11 @@ With AutoGen you get to join and contribute to a thriving ecosystem. We host wee
 
 </div>
 
-_*Releasing soon_
+**Releasing soon*
 
 Interested in contributing? See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to get started. We welcome contributions of all kinds, including bug fixes, new features, and documentation improvements. Join our community and help us make AutoGen better!
 
 Have questions? Check out our [Frequently Asked Questions (FAQ)](./FAQ.md) for answers to common queries. If you don't find what you're looking for, feel free to ask in our [GitHub Discussions](https://github.com/microsoft/autogen/discussions) or join our [Discord server](https://aka.ms/autogen-discord) for real-time support.
-
 
 ## Legal Notices
 
