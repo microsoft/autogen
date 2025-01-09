@@ -17,7 +17,7 @@
 
 ```bash
 # Install AgentChat and OpenAI client from Extensions
-pip install "autogen-agentchat" "autogen-ext[openai]"
+pip install -U "autogen-agentchat" "autogen-ext[openai]"
 ```
 
 The current stable version is v0.4. If you are upgrading from AutoGen v0.2, please refer to the [Migration Guide](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/migration-guide.html) for detailed instructions on how to update your code and configurations.
@@ -44,7 +44,7 @@ Create a group chat team with an assistant agent, a web surfer agent, and a user
 for web browsing tasks. You need to install [playwright](https://playwright.dev/python/docs/library).
 
 ```python
-# pip install autogen-agentchat autogen-ext[openai,web-surfer]
+# pip install -U autogen-agentchat autogen-ext[openai,web-surfer]
 # playwright install
 import asyncio
 from autogen_agentchat.agents import AssistantAgent, UserProxyAgent

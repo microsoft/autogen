@@ -23,7 +23,7 @@ class MagenticOne(MagenticOneGroupChat):
 
     .. code-block:: bash
 
-        pip install "autogen-ext[magentic-one]==0.4.0.dev13"
+        pip install "autogen-ext[magentic-one]"
 
 
     Args:

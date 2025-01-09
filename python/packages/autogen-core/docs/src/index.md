@@ -105,7 +105,7 @@ Get Started
 <div class="sd-card-title sd-font-weight-bold docutils">
 
 {fas}`people-group;pst-color-primary` AgentChat
-[![PyPi autogen-agentchat](https://img.shields.io/badge/PyPi-autogen--agentchat-blue?logo=pypi)](https://pypi.org/project/autogen-agentchat/0.4.0.dev13/)
+[![PyPi autogen-agentchat](https://img.shields.io/badge/PyPi-autogen--agentchat-blue?logo=pypi)](https://pypi.org/project/autogen-agentchat/)
 
 </div>
 A programming framework for building conversational single and multi-agent applications.
@@ -136,7 +136,7 @@ Get Started
 
 :::
 
-:::{grid-item-card} {fas}`cube;pst-color-primary` Core [![PyPi autogen-core](https://img.shields.io/badge/PyPi-autogen--core-blue?logo=pypi)](https://pypi.org/project/autogen-core/0.4.0.dev13/)
+:::{grid-item-card} {fas}`cube;pst-color-primary` Core [![PyPi autogen-core](https://img.shields.io/badge/PyPi-autogen--core-blue?logo=pypi)](https://pypi.org/project/autogen-core/)
 :shadow: none
 :margin: 2 0 0 0
 :columns: 12 12 12 12
@@ -159,7 +159,7 @@ Get Started
 
 :::
 
-:::{grid-item-card} {fas}`puzzle-piece;pst-color-primary` Extensions [![PyPi autogen-ext](https://img.shields.io/badge/PyPi-autogen--ext-blue?logo=pypi)](https://pypi.org/project/autogen-ext/0.4.0.dev13/)
+:::{grid-item-card} {fas}`puzzle-piece;pst-color-primary` Extensions [![PyPi autogen-ext](https://img.shields.io/badge/PyPi-autogen--ext-blue?logo=pypi)](https://pypi.org/project/autogen-ext/)
 :shadow: none
 :margin: 2 0 0 0
 :columns: 12 12 12 12

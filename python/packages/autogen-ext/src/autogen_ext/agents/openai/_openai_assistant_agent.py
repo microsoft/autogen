@@ -84,7 +84,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
     .. code-block:: bash
 
-        pip install "autogen-ext[openai]==0.4.0.dev13"
+        pip install "autogen-ext[openai]"
 
 
     This agent leverages the OpenAI Assistant API to create AI assistants with capabilities like:

@@ -61,7 +61,7 @@ Install the `autogen-agentchat` package using pip:
 
 ```bash
 
-pip install "autogen-agentchat==0.4.0.dev13"
+pip install -U "autogen-agentchat"
 ```
 
 ```{note}
@@ -74,7 +74,7 @@ To use the OpenAI and Azure OpenAI models, you need to install the following
 extensions:
 
 ```bash
-pip install "autogen-ext[openai]==0.4.0.dev13"
+pip install "autogen-ext[openai]"
 ```
 
 If you are using Azure OpenAI with AAD authentication, you need to install the following:
