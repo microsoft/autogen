@@ -13,7 +13,7 @@ customPostCssPlugin = () => {
 };
 
 module.exports = {
-  title: "AutoGen",
+  title: "AutoGen 0.2",
   tagline: "An Open-Source Programming Framework for Agentic AI",
   url: "https://microsoft.github.io",
   baseUrl: "/autogen/0.2/",
@@ -21,7 +21,7 @@ module.exports = {
   onBrokenMarkdownLinks: "warn",
   favicon: "img/ag.ico",
   organizationName: "Microsoft", // Usually your GitHub org/user name.
-  projectName: "AutoGen", // Usually your repo name.
+  projectName: "AutoGen 0.2", // Usually your repo name.
   scripts: [
     {
       src: "/autogen/js/custom.js",
@@ -187,7 +187,7 @@ module.exports = {
     announcementBar: {
       id: "newdocs",
       content:
-        'Go <a href="/autogen/dev">here</a> to view the documentation for the work in progress version of AutoGen 0.4.',
+        '<a href="https://microsoft.github.io/autogen/stable/">AutoGen 0.4</a> has been released. Read the migration guide <a href="https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/migration-guide.html">here</a>.',
       backgroundColor: "#fafbfc",
       textColor: "#091E42",
       isCloseable: true,
