@@ -112,18 +112,15 @@ A programming framework for building conversational single and multi-agent appli
 Built on Core.
 
 ```python
-# pip install "autogen-agentchat==0.4.0.dev13" "autogen-ext[openai]==0.4.0.dev13" "yfinance" "matplotlib"
+# pip install -U "autogen-agentchat" "autogen-ext[openai]"
 import asyncio
 from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.ui import Console
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_ext.tools.code_execution import PythonCodeExecutionTool
 
 async def main() -> None:
-    tool = PythonCodeExecutionTool(LocalCommandLineCodeExecutor(work_dir="coding"))
-    agent = AssistantAgent("assistant", OpenAIChatCompletionClient(model="gpt-4o"), tools=[tool], reflect_on_tool_use=True)
-    await Console(agent.run_stream(task="Create a plot of MSFT stock prices in 2024 and save it to a file. Use yfinance and matplotlib."))
+    agent = AssistantAgent("assistant", OpenAIChatCompletionClient(model="gpt-4o"))
+    print(agent.run(task="Say 'Hello World!'"))
+
 asyncio.run(main())
 ```
 
