@@ -1,10 +1,13 @@
 import argparse
 import asyncio
+import warnings
 
 from autogen_agentchat.ui import Console
-
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.teams.magentic_one import MagenticOne
+
+# Suppress warnings about the requests.Session() not being closed
+warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
 
 def main() -> None:
@@ -36,7 +39,7 @@ def main() -> None:
     async def run_task(task: str, hil_mode: bool) -> None:
         client = OpenAIChatCompletionClient(model="gpt-4o")
         m1 = MagenticOne(client=client, hil_mode=hil_mode)
-        await Console(m1.run_stream(task=task))
+        await Console(m1.run_stream(task=task), output_stats=False)
 
     task = args.task[0]
     asyncio.run(run_task(task, not args.no_hil))
