@@ -1,7 +1,9 @@
-from typing import Any, Optional, Protocol
+from typing import Generic, Optional, Protocol, TypeVar
+
+T = TypeVar("T")
 
 
-class CacheStore(Protocol):
+class CacheStore(Protocol, Generic[T]):
     """
     This protocol defines the basic interface for store/cache operations.
 
@@ -9,7 +11,7 @@ class CacheStore(Protocol):
     such as redis or diskcache interfaces.
     """
 
-    def get(self, key: Any, default: Optional[Any] = None) -> Optional[Any]:
+    def get(self, key: str, default: Optional[T] = None) -> Optional[T]:
         """
         Retrieve an item from the store.
 
@@ -23,7 +25,7 @@ class CacheStore(Protocol):
         """
         ...
 
-    def set(self, key: Any, value: Any) -> None:
+    def set(self, key: str, value: T) -> None:
         """
         Set an item in the store.
 

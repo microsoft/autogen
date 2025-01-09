@@ -1,4 +1,4 @@
-from ._cache import ChatCompletionCache
+from ._cache import CHAT_CACHE_VALUE_TYPE, ChatCompletionCache
 from ._model_client import ChatCompletionClient, ModelCapabilities, ModelFamily, ModelInfo  # type: ignore
 from ._replay_chat_completion_client import ReplayChatCompletionClient
 from ._types import (
@@ -17,6 +17,7 @@ from ._types import (
 
 __all__ = [
     "ModelCapabilities",
+    "CHAT_CACHE_VALUE_TYPE",
     "ChatCompletionCache",
     "ChatCompletionClient",
     "SystemMessage",

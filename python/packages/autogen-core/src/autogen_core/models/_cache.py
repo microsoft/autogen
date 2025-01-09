@@ -17,6 +17,8 @@ from ._types import (
     RequestUsage,
 )
 
+CHAT_CACHE_VALUE_TYPE = Union[CreateResult, List[Union[str, CreateResult]]]
+
 
 class ChatCompletionCache(ChatCompletionClient):
     """
@@ -24,7 +26,7 @@ class ChatCompletionCache(ChatCompletionClient):
     Cache hits do not contribute to token usage of the original client.
     """
 
-    def __init__(self, client: ChatCompletionClient, store: CacheStore):
+    def __init__(self, client: ChatCompletionClient, store: CacheStore[CHAT_CACHE_VALUE_TYPE]):
         """
         Initialize a new ChatCompletionCache.
 

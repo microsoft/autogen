@@ -5,7 +5,7 @@ from autogen_core import CacheStore
 
 def test_set_and_get_object_key_value() -> None:
     mock_store = Mock(spec=CacheStore)
-    test_key = object()
+    test_key = "test_key"
     test_value = object()
     mock_store.set(test_key, test_value)
     mock_store.get.return_value = test_value
