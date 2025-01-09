@@ -31,19 +31,19 @@ How to install AgentChat
 Build your first agent
 :::
 
-:::{grid-item-card} {fas}`graduation-cap;pst-color-primary` Tutorial
-:link: ./tutorial/models.html
+:::{grid-item-card} {fas}`school;pst-color-primary` Tutorial
+:link: ./tutorial/index.html
 
 Step-by-step guide to using AgentChat, learn about agents, teams, and more
 :::
 
-:::{grid-item-card} {fas}`book;pst-color-primary` Selector Group Chat
+:::{grid-item-card} {fas}`sitemap;pst-color-primary` Selector Group Chat
 :link: ./selector-group-chat.html
 
 Multi-agent coordination through a shared context and centralized, customizable selector
 :::
 
-:::{grid-item-card} {fas}`book;pst-color-primary` Swarm
+:::{grid-item-card} {fas}`dove;pst-color-primary` Swarm
 :link: ./swarm.html
 
 Multi-agent coordination through a shared context and localized, tool-based selector
@@ -82,6 +82,7 @@ migration-guide
 :hidden:
 :caption: Tutorial
 
+tutorial/index
 tutorial/models
 tutorial/messages
 tutorial/agents
