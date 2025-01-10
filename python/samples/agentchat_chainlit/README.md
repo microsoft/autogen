@@ -104,5 +104,5 @@ team = RoundRobinGroupChat(
 In this example, we created a basic AutoGen team with a single agent in a RoundRobinGroupChat team. There are a few ways you can extend this example:
 
 - Add more [agents](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/agents.html) to the team.
-- Explor custom agents that sent multimodal messages
+- Explore custom agents that sent multimodal messages
 - Explore more [team](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/teams.html) types beyond the `RoundRobinGroupChat`.
