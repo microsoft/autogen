@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.AutoGen.Runtime.Grpc;
 
 namespace Microsoft.AutoGen.Core.Grpc;
 
@@ -20,6 +21,7 @@ public static class AgentsApp
     {
         builder ??= WebApplication.CreateBuilder();
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
+        builder.AddOrleans();
         builder.AddGrpcAgentWorker()
             .AddAgents(agentTypes);
         builder.AddServiceDefaults();
