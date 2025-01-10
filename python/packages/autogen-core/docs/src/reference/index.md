@@ -8,8 +8,8 @@ myst:
 # API Reference
 
 ```{toctree}
-:hidden:
 :caption: AutoGen AgentChat
+:maxdepth: 2
 
 python/autogen_agentchat
 python/autogen_agentchat.messages
@@ -22,8 +22,8 @@ python/autogen_agentchat.state
 ```
 
 ```{toctree}
-:hidden:
 :caption: AutoGen Core
+:maxdepth: 2
 
 python/autogen_core
 python/autogen_core.code_executor
@@ -36,8 +36,8 @@ python/autogen_core.logging
 ```
 
 ```{toctree}
-:hidden:
 :caption: AutoGen Extensions
+:maxdepth: 2
 
 python/autogen_ext.agents.magentic_one
 python/autogen_ext.agents.openai
@@ -45,6 +45,7 @@ python/autogen_ext.agents.web_surfer
 python/autogen_ext.agents.file_surfer
 python/autogen_ext.agents.video_surfer
 python/autogen_ext.agents.video_surfer.tools
+python/autogen_ext.auth.azure
 python/autogen_ext.teams.magentic_one
 python/autogen_ext.models.openai
 python/autogen_ext.models.replay
@@ -55,27 +56,3 @@ python/autogen_ext.code_executors.docker
 python/autogen_ext.code_executors.azure
 python/autogen_ext.runtimes.grpc
 ```
-
-<!-- ::::{grid} 1 2 2 3
-:margin: 4 4 0 0
-:gutter: 1
-
-:::{grid-item-card} {fas}`people-group;pst-color-primary` <br> AutoGen AgentChat
-:link: python/autogen_agentchat/autogen_agentchat
-:link-type: doc
-:class-item: api-card
-:::
-
-:::{grid-item-card} {fas}`cube;pst-color-primary` <br> AutoGen Core
-:link: python/autogen_core/autogen_core
-:link-type: doc
-:class-item: api-card
-:::
-
-:::{grid-item-card} {fas}`puzzle-piece;pst-color-primary` <br> AutoGen Extensions
-:link: python/autogen_ext/autogen_ext
-:link-type: doc
-:class-item: api-card
-:::
-
-:::: -->

@@ -27,7 +27,6 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_core.tools import FunctionTool, Tool
-from typing_extensions import deprecated
 
 from .. import EVENT_LOGGER_NAME
 from ..base import Handoff as HandoffBase
@@ -46,18 +45,6 @@ from ..state import AssistantAgentState
 from ._base_chat_agent import BaseChatAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
-
-
-@deprecated("Moved to autogen_agentchat.base.Handoff. Will remove in 0.4.0.", stacklevel=2)
-class Handoff(HandoffBase):
-    """[DEPRECATED] Handoff configuration. Moved to :class:`autogen_agentchat.base.Handoff`. Will remove in 0.4.0."""
-
-    def model_post_init(self, __context: Any) -> None:
-        warnings.warn(
-            "Handoff was moved to autogen_agentchat.base.Handoff. Importing from this will be removed in 0.4.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
 
 
 class AssistantAgent(BaseChatAgent):
