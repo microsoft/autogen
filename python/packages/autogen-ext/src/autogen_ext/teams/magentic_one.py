@@ -116,7 +116,12 @@ class MagenticOne(MagenticOneGroupChat):
 
     """
 
-    def __init__(self, client: ChatCompletionClient, hil_mode: bool = False):
+    def __init__(
+        self,
+        client: ChatCompletionClient,
+        hil_mode: bool = False,
+        input_func: UserProxyAgent.InputFuncType | None = None,
+    ):
         self.client = client
         self._validate_client_capabilities(client)
 
@@ -126,7 +131,7 @@ class MagenticOne(MagenticOneGroupChat):
         executor = CodeExecutorAgent("Executor", code_executor=LocalCommandLineCodeExecutor())
         agents: List[ChatAgent] = [fs, ws, coder, executor]
         if hil_mode:
-            user_proxy = UserProxyAgent("User")
+            user_proxy = UserProxyAgent("User", input_func=input_func)
             agents.append(user_proxy)
         super().__init__(agents, model_client=client)
 

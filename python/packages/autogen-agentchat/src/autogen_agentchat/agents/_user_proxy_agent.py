@@ -12,7 +12,6 @@ from ._base_chat_agent import BaseChatAgent
 # Define input function types more precisely
 SyncInputFunc = Callable[[str], str]
 AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
-InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
 
 
 # TODO: ainput doesn't seem to play nicely with jupyter.
@@ -108,6 +107,8 @@ class UserProxyAgent(BaseChatAgent):
                 except BaseException as e:
                     print(f"BaseException: {e}")
     """
+
+    InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
 
     def __init__(
         self,

@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+from asyncio import Lock
 from typing import AsyncGenerator, List, Optional, TypeVar, cast
 
 from aioconsole import aprint  # type: ignore
@@ -22,11 +23,20 @@ def _is_output_a_tty() -> bool:
 T = TypeVar("T", bound=TaskResult | Response)
 
 
+class NoopLock:
+    async def __aenter__(self) -> None:
+        pass
+
+    async def __aexit__(self, exc_type: Optional[type], exc: Optional[BaseException], tb: Optional[object]) -> None:
+        pass
+
+
 async def Console(
     stream: AsyncGenerator[AgentEvent | ChatMessage | T, None],
     *,
     no_inline_images: bool = False,
     output_stats: bool = True,
+    output_lock: Lock | None = None,
 ) -> T:
     """
     Consumes the message stream from :meth:`~autogen_agentchat.base.TaskRunner.run_stream`
@@ -47,6 +57,8 @@ async def Console(
     start_time = time.time()
     total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
 
+    actual_lock: Lock | NoopLock = output_lock or NoopLock()
+
     last_processed: Optional[T] = None
 
     async for message in stream:
@@ -61,7 +73,8 @@ async def Console(
                     f"Total completion tokens: {total_usage.completion_tokens}\n"
                     f"Duration: {duration:.2f} seconds\n"
                 )
-                await aprint(output, end="")
+                async with actual_lock:
+                    await aprint(output, end="")
             # mypy ignore
             last_processed = message  # type: ignore
 
@@ -75,7 +88,8 @@ async def Console(
                     output += f"[Prompt tokens: {message.chat_message.models_usage.prompt_tokens}, Completion tokens: {message.chat_message.models_usage.completion_tokens}]\n"
                 total_usage.completion_tokens += message.chat_message.models_usage.completion_tokens
                 total_usage.prompt_tokens += message.chat_message.models_usage.prompt_tokens
-            await aprint(output, end="")
+            async with actual_lock:
+                await aprint(output, end="")
 
             # Print summary.
             if output_stats:
@@ -90,7 +104,8 @@ async def Console(
                     f"Total completion tokens: {total_usage.completion_tokens}\n"
                     f"Duration: {duration:.2f} seconds\n"
                 )
-                await aprint(output, end="")
+                async with actual_lock:
+                    await aprint(output, end="")
             # mypy ignore
             last_processed = message  # type: ignore
 
@@ -103,7 +118,8 @@ async def Console(
                     output += f"[Prompt tokens: {message.models_usage.prompt_tokens}, Completion tokens: {message.models_usage.completion_tokens}]\n"
                 total_usage.completion_tokens += message.models_usage.completion_tokens
                 total_usage.prompt_tokens += message.models_usage.prompt_tokens
-            await aprint(output, end="")
+            async with actual_lock:
+                await aprint(output, end="")
 
     if last_processed is None:
         raise ValueError("No TaskResult or Response was processed.")

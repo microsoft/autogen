@@ -1,8 +1,11 @@
 import argparse
 import asyncio
 import warnings
+from typing import Optional
 
+from aioconsole import ainput  # type: ignore
 from autogen_agentchat.ui import Console
+from autogen_core import CancellationToken
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.teams.magentic_one import MagenticOne
 
@@ -37,9 +40,18 @@ def main() -> None:
     args = parser.parse_args()
 
     async def run_task(task: str, hil_mode: bool) -> None:
+        output_lock = asyncio.Lock()
+
+        async def cancellable_input(prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
+            async with output_lock:
+                task: asyncio.Task[str] = ainput(prompt)  # type: ignore
+                if cancellation_token is not None:
+                    cancellation_token.link_future(task)
+                return await task
+
         client = OpenAIChatCompletionClient(model="gpt-4o")
-        m1 = MagenticOne(client=client, hil_mode=hil_mode)
-        await Console(m1.run_stream(task=task), output_stats=False)
+        m1 = MagenticOne(client=client, hil_mode=hil_mode, input_func=cancellable_input)
+        await Console(m1.run_stream(task=task), output_stats=False, output_lock=output_lock)
 
     task = args.task[0]
     asyncio.run(run_task(task, not args.no_hil))
