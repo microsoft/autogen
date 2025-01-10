@@ -1,11 +1,12 @@
-import sys
+import sys, os
 import yaml
 import asyncio
+import importlib
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
 from azure.identity import DefaultAzureCredential, ChainedTokenCredential, AzureCliCredential, get_bearer_token_provider
 from typing import Tuple
-from autogen_ext.agentic_memory import FastLearner, PageLog, Grader, ClientWrapper
+from autogen_ext.agentic_memory import PageLog, Grader, ClientWrapper
 
 
 def define_tasks_with_answers():
@@ -340,11 +341,28 @@ class Evaluator:
                 details='',
                 method_call="Evaluator.main")
 
-            # Create the client, which is used by both the fast_learner and the evaluator.
+            # Create the client, passed to both the fast_learner and the evaluator.
             client = self.create_client(settings["client"])
 
-            # Create the fast_learner.
-            fast_learner = FastLearner(settings["FastLearner"], self, client, self.page_log)
+            # Create the specified fast_learner implementation.
+            fast_learner_settings = settings["FastLearner"]
+            module_path = fast_learner_settings["module_path"]
+            try:
+                module = importlib.import_module(module_path)
+            except ModuleNotFoundError:
+                print('Failed to import {}'.format(module_path))
+                raise
+            class_name = fast_learner_settings["class_name"]
+            try:
+                fast_learner_class = getattr(module, class_name)
+            except AttributeError:
+                print('Failed to import {}.{}'.format(module_path, class_name))
+                raise
+            try:
+                fast_learner = fast_learner_class(fast_learner_settings, self, client, self.page_log)
+            except Exception as err:
+                print("Error creating \"{}\": {}".format(fast_learner_class, err))
+                raise
 
             # Execute each evaluation.
             for evaluation in settings["evaluations"]:

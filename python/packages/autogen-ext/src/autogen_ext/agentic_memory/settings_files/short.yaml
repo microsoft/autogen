@@ -19,6 +19,8 @@ client:
     session_name: short-3
 
 FastLearner:
+  class_name: Apprentice
+  module_path: autogen_ext.agentic_memory.fast_learners.apprentice
   AgenticMemoryController:
     AgenticMemoryBank:
       path: ~/agentic_memory_bank/temp
