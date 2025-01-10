@@ -1,12 +1,19 @@
 [
     {
-        "name": "0.2 (stable)",
-        "version": "0.2-stable",
-        "url": "/autogen/0.2/"
+        "name": "0.4.0 (stable)",
+        "version": "stable",
+        "url": "/autogen/stable/",
+        "preferred": true
     },
     {
+        "name": "dev (main)",
         "version": "dev",
         "url": "/autogen/dev/"
+    },
+    {
+        "name": "0.2",
+        "version": "0.2",
+        "url": "/autogen/0.2/"
     },
     {
         "name": "0.4.0.dev0",
@@ -76,7 +83,6 @@
     {
         "name": "0.4.0.dev13",
         "version": "0.4.0.dev13",
-        "url": "/autogen/0.4.0.dev13/",
-        "preferred": true
+        "url": "/autogen/0.4.0.dev13/"
     }
 ]
