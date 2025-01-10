@@ -118,3 +118,19 @@ Args:
     agent_type (str): Agent type to handle this subscription
 """
 ```
+
+## Docs when adding a new API
+
+Now that 0.4.0 is out, we should ensure the docs between versions are easy to navigate. To this end, added or changed APIs should have the following added to their docstrings respectively:
+
+```rst
+.. versionadded:: v0.4.1
+
+   Here's a version added message.
+
+.. versionchanged:: v0.4.1
+
+   Here's a version changed message.
+```
+
+See [here](https://pydata-sphinx-theme.readthedocs.io/en/stable/examples/kitchen-sink/admonitions.html#versionadded) for how they are rendered.
