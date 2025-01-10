@@ -1,7 +1,7 @@
 
 Evaluator:
   PageLog:
-    path: ~/pagelogs/temp
+    path: ~/pagelogs/temp2
 
 client:
   provider: trapi  # openai, azure_openai, or trapi

@@ -8,7 +8,7 @@ from autogen_core.models import (
     CreateResult,
 )
 
-from ._utils import UserContent
+from .._utils import UserContent
 
 
 class Grader:

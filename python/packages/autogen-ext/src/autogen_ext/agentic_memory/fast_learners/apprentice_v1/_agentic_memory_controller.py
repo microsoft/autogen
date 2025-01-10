@@ -1,7 +1,7 @@
 from typing import Callable, List
 from ._prompter import Prompter
 from ._agentic_memory_bank import AgenticMemoryBank
-from ._grader import Grader
+from ...eval_framework._grader import Grader
 
 
 class AgenticMemoryController:
