@@ -17,47 +17,54 @@ from ._types import (
     RequestUsage,
 )
 
-CHAT_CACHE_VALUE_TYPE = Union[CreateResult, List[Union[str, CreateResult]]]
-
 
 class ChatCompletionCache(ChatCompletionClient):
     """
     A wrapper around a ChatCompletionClient that caches creation results from an underlying client.
     Cache hits do not contribute to token usage of the original client.
+
+    Typical Usage:
+
+        Lets use caching with `openai` as an example:
+
+        .. code-block:: bash
+
+            pip install "autogen-ext[openai]==0.4.0.dev13"
+
+        And use it as:
+
+        .. code-block:: python
+
+            # Initialize the original client
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+            openai_client = OpenAIChatCompletionClient(
+                model="gpt-4o-2024-08-06",
+                # api_key="sk-...", # Optional if you have an OPENAI_API_KEY environment variable set.
+            )
+
+            # Then initialize the CacheStore. Either a Redis store:
+            import redis
+
+            redis_client = redis.Redis(host="localhost", port=6379, db=0)
+
+            # or diskcache:
+            from diskcache import Cache
+
+            diskcache_client = Cache("/tmp/diskcache")
+
+            # Then initialize the ChatCompletionCache with the store:
+            from autogen_core.models import ChatCompletionCache
+
+            # Cached client
+            cached_client = ChatCompletionCache(openai_client, diskcache_client)
+
+        You can now use the `cached_client` as you would the original client, but with caching enabled.
     """
 
-    def __init__(self, client: ChatCompletionClient, store: CacheStore[CHAT_CACHE_VALUE_TYPE]):
+    def __init__(self, client: ChatCompletionClient, store: CacheStore):
         """
         Initialize a new ChatCompletionCache.
-
-        First initialize (for eg) a Redis store:
-
-        ```python
-        import redis
-
-        redis_client = redis.Redis(host="localhost", port=6379, db=0)
-        ```
-
-        or diskcache store:
-
-        ```python
-        from diskcache import Cache
-
-        diskcache_client = Cache("/tmp/diskcache")
-        ```
-
-        Then initialize the ChatCompletionCache with the store:
-
-        ```python
-        from autogen_core.models import ChatCompletionCache
-        from autogen_ext.models import OpenAIChatCompletionClient
-
-        # Original client
-        client = OpenAIChatCompletionClient(...)
-
-        # Cached version
-        cached_client = ChatCompletionCache(client, redis_client)
-        ```
 
         Args:
             client (ChatCompletionClient): The original ChatCompletionClient to wrap.

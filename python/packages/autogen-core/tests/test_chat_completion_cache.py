@@ -1,10 +1,9 @@
 import copy
-from typing import List, Optional, Tuple, Union
+from typing import Any, List, Optional, Tuple, Union
 
 import pytest
 from autogen_core import CacheStore
 from autogen_core.models import (
-    CHAT_CACHE_VALUE_TYPE,
     ChatCompletionCache,
     ChatCompletionClient,
     CreateResult,
@@ -15,15 +14,16 @@ from autogen_core.models import (
 )
 
 
-class DictStore(CacheStore[CHAT_CACHE_VALUE_TYPE]):
+class DictStore(CacheStore):
     def __init__(self) -> None:
-        self._store: dict[str, CHAT_CACHE_VALUE_TYPE] = {}
+        self._store: dict[str, Any] = {}
 
-    def get(self, key: str, default: Optional[CHAT_CACHE_VALUE_TYPE] = None) -> Optional[CHAT_CACHE_VALUE_TYPE]:
+    def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:
         return self._store.get(key, default)
 
-    def set(self, key: str, value: CHAT_CACHE_VALUE_TYPE) -> None:
+    def set(self, key: str, value: Any) -> Optional[Any]:
         self._store[key] = value
+        return None
 
 
 def get_test_data() -> Tuple[list[str], list[str], SystemMessage, ChatCompletionClient, ChatCompletionCache]:
