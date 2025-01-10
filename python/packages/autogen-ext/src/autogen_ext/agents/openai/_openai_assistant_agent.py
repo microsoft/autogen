@@ -109,6 +109,8 @@ class OpenAIAssistantAgent(BaseChatAgent):
     * Vector store integration for efficient file search
     * Automatic file parsing and embedding
 
+    You can use an existing thread or assistant by providing the `thread_id` or `assistant_id` parameters.
+
     Example:
         .. code-block:: python
 
@@ -160,6 +162,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         instructions (str): System instructions for the assistant
         tools (Optional[Iterable[Union[Literal["code_interpreter", "file_search"], Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]]]]): Tools the assistant can use
         assistant_id (Optional[str]): ID of existing assistant to use
+        thread_id (Optional[str]): ID of existing thread to use
         metadata (Optional[object]): Additional metadata for the assistant
         response_format (Optional[AssistantResponseFormatOptionParam]): Response format settings
         temperature (Optional[float]): Temperature for response generation
