@@ -1,15 +1,18 @@
+import asyncio
 import os
 import sys
 import time
-from asyncio import Lock
-from typing import AsyncGenerator, List, Optional, TypeVar, cast
+from inspect import iscoroutinefunction
+from typing import AsyncGenerator, Dict, List, Optional, TypeVar, cast
 
 from aioconsole import aprint  # type: ignore
 from autogen_core import Image
+from autogen_core._cancellation_token import CancellationToken
 from autogen_core.models import RequestUsage
 
+from autogen_agentchat.agents._user_proxy_agent import UserProxyAgent
 from autogen_agentchat.base import Response, TaskResult
-from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage
+from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage, UserInputRequestedEvent
 
 
 def _is_running_in_iterm() -> bool:
@@ -23,12 +26,45 @@ def _is_output_a_tty() -> bool:
 T = TypeVar("T", bound=TaskResult | Response)
 
 
-class NoopLock:
-    async def __aenter__(self) -> None:
-        pass
+class UserInputManager:
+    def __init__(self, callback: UserProxyAgent.InputFuncType = UserProxyAgent.DEFAULT_INPUT_FUNC):
+        self.input_events: Dict[str, asyncio.Event] = {}
+        self.callback = callback
 
-    async def __aexit__(self, exc_type: Optional[type], exc: Optional[BaseException], tb: Optional[object]) -> None:
-        pass
+    def get_wrapped_callback(self) -> UserProxyAgent.AsyncInputFunc:
+        async def user_input_func_wrapper(prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
+            # Lookup the event for the prompt, if it exists wait for it.
+            # If it doesn't exist, create it and store it.
+            # Get request ID:
+            request_id = UserProxyAgent.InputRequestContext.request_id()
+            if request_id in self.input_events:
+                event = self.input_events[request_id]
+            else:
+                event = asyncio.Event()
+                self.input_events[request_id] = event
+
+            await event.wait()
+
+            del self.input_events[request_id]
+
+            if iscoroutinefunction(self.callback):
+                # Cast to AsyncInputFunc for proper typing
+                async_func = cast(UserProxyAgent.AsyncInputFunc, self.callback)
+                return await async_func(prompt, cancellation_token)
+            else:
+                # Cast to SyncInputFunc for proper typing
+                sync_func = cast(UserProxyAgent.SyncInputFunc, self.callback)
+                loop = asyncio.get_event_loop()
+                return await loop.run_in_executor(None, sync_func, prompt)
+
+        return user_input_func_wrapper
+
+    def notify_event_received(self, request_id: str) -> None:
+        if request_id in self.input_events:
+            self.input_events[request_id].set()
+        else:
+            event = asyncio.Event()
+            self.input_events[request_id] = event
 
 
 async def Console(
@@ -36,7 +72,7 @@ async def Console(
     *,
     no_inline_images: bool = False,
     output_stats: bool = True,
-    output_lock: Lock | None = None,
+    user_input_manager: UserInputManager | None = None,
 ) -> T:
     """
     Consumes the message stream from :meth:`~autogen_agentchat.base.TaskRunner.run_stream`
@@ -57,8 +93,6 @@ async def Console(
     start_time = time.time()
     total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
 
-    actual_lock: Lock | NoopLock = output_lock or NoopLock()
-
     last_processed: Optional[T] = None
 
     async for message in stream:
@@ -73,8 +107,8 @@ async def Console(
                     f"Total completion tokens: {total_usage.completion_tokens}\n"
                     f"Duration: {duration:.2f} seconds\n"
                 )
-                async with actual_lock:
-                    await aprint(output, end="")
+                await aprint(output, end="")
+
             # mypy ignore
             last_processed = message  # type: ignore
 
@@ -88,8 +122,7 @@ async def Console(
                     output += f"[Prompt tokens: {message.chat_message.models_usage.prompt_tokens}, Completion tokens: {message.chat_message.models_usage.completion_tokens}]\n"
                 total_usage.completion_tokens += message.chat_message.models_usage.completion_tokens
                 total_usage.prompt_tokens += message.chat_message.models_usage.prompt_tokens
-            async with actual_lock:
-                await aprint(output, end="")
+            await aprint(output, end="")
 
             # Print summary.
             if output_stats:
@@ -104,11 +137,14 @@ async def Console(
                     f"Total completion tokens: {total_usage.completion_tokens}\n"
                     f"Duration: {duration:.2f} seconds\n"
                 )
-                async with actual_lock:
-                    await aprint(output, end="")
+                await aprint(output, end="")
+
             # mypy ignore
             last_processed = message  # type: ignore
-
+        # We don't want to print UserInputRequestedEvent messages, we just use them to signal the user input event.
+        elif isinstance(message, UserInputRequestedEvent):
+            if user_input_manager is not None:
+                user_input_manager.notify_event_received(message.request_id)
         else:
             # Cast required for mypy to be happy
             message = cast(AgentEvent | ChatMessage, message)  # type: ignore
@@ -118,8 +154,7 @@ async def Console(
                     output += f"[Prompt tokens: {message.models_usage.prompt_tokens}, Completion tokens: {message.models_usage.completion_tokens}]\n"
                 total_usage.completion_tokens += message.models_usage.completion_tokens
                 total_usage.prompt_tokens += message.models_usage.prompt_tokens
-            async with actual_lock:
-                await aprint(output, end="")
+            await aprint(output, end="")
 
     if last_processed is None:
         raise ValueError("No TaskResult or Response was processed.")
