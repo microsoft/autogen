@@ -6,11 +6,10 @@ from typing_extensions import Self
 from pydantic import BaseModel
 
 from ..messages import AgentEvent, ChatMessage, StopMessage
-from autogen_core import Component, ComponentModel, ComponentLoader
+from autogen_core import Component, ComponentModel
 
 
-class TerminatedException(BaseException):
-    ...
+class TerminatedException(BaseException): ...
 
 
 class TerminationCondition(ABC, Component[Any]):
@@ -49,6 +48,7 @@ class TerminationCondition(ABC, Component[Any]):
     """
 
     component_type = "termination"
+    # component_config_schema = BaseModel  # type: ignore
 
     @property
     @abstractmethod
@@ -79,21 +79,21 @@ class TerminationCondition(ABC, Component[Any]):
 
     def __and__(self, other: "TerminationCondition") -> "TerminationCondition":
         """Combine two termination conditions with an AND operation."""
-        return _AndTerminationCondition(self, other)
+        return AndTerminationCondition(self, other)
 
     def __or__(self, other: "TerminationCondition") -> "TerminationCondition":
         """Combine two termination conditions with an OR operation."""
-        return _OrTerminationCondition(self, other)
+        return OrTerminationCondition(self, other)
 
 
 class AndTerminationConditionConfig(BaseModel):
-    conditions:  List[ComponentModel]
+    conditions: List[ComponentModel]
 
 
-class _AndTerminationCondition(TerminationCondition, Component[AndTerminationConditionConfig]):
-
+class AndTerminationCondition(TerminationCondition, Component[AndTerminationConditionConfig]):
     component_config_schema = AndTerminationConditionConfig
     component_type = "termination"
+    component_provider_override = "autogen_agentchat.base.AndTerminationCondition"
 
     def __init__(self, *conditions: TerminationCondition) -> None:
         self._conditions = conditions
@@ -105,8 +105,7 @@ class _AndTerminationCondition(TerminationCondition, Component[AndTerminationCon
 
     async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
         if self.terminated:
-            raise TerminatedException(
-                "Termination condition has already been reached.")
+            raise TerminatedException("Termination condition has already been reached.")
         # Check all remaining conditions.
         stop_messages = await asyncio.gather(
             *[condition(messages) for condition in self._conditions if not condition.terminated]
@@ -118,10 +117,8 @@ class _AndTerminationCondition(TerminationCondition, Component[AndTerminationCon
         if any(stop_message is None for stop_message in stop_messages):
             # If any remaining condition has not reached termination, it is not terminated.
             return None
-        content = ", ".join(
-            stop_message.content for stop_message in self._stop_messages)
-        source = ", ".join(
-            stop_message.source for stop_message in self._stop_messages)
+        content = ", ".join(stop_message.content for stop_message in self._stop_messages)
+        source = ", ".join(stop_message.source for stop_message in self._stop_messages)
         return StopMessage(content=content, source=source)
 
     async def reset(self) -> None:
@@ -131,19 +128,12 @@ class _AndTerminationCondition(TerminationCondition, Component[AndTerminationCon
 
     def _to_config(self) -> AndTerminationConditionConfig:
         """Convert the AND termination condition to a config."""
-        return AndTerminationConditionConfig(
-            conditions=[condition.dump_component()
-                        for condition in self._conditions]
-        )
+        return AndTerminationConditionConfig(conditions=[condition.dump_component() for condition in self._conditions])
 
     @classmethod
     def _from_config(cls, config: AndTerminationConditionConfig) -> Self:
         """Create an AND termination condition from a config."""
-        conditions = [
-            ComponentLoader.load_component(
-                condition_model, TerminationCondition)
-            for condition_model in config.conditions
-        ]
+        conditions = [TerminationCondition.load_component(condition_model) for condition_model in config.conditions]
         return cls(*conditions)
 
 
@@ -152,9 +142,10 @@ class OrTerminationConditionConfig(BaseModel):
     """List of termination conditions where any one being satisfied is sufficient."""
 
 
-class _OrTerminationCondition(TerminationCondition, Component[OrTerminationConditionConfig]):
+class OrTerminationCondition(TerminationCondition, Component[OrTerminationConditionConfig]):
     component_config_schema = OrTerminationConditionConfig
     component_type = "termination"
+    component_provider_override = "autogen_agentchat.base.OrTerminationCondition"
 
     def __init__(self, *conditions: TerminationCondition) -> None:
         self._conditions = conditions
@@ -165,14 +156,11 @@ class _OrTerminationCondition(TerminationCondition, Component[OrTerminationCondi
 
     async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
         if self.terminated:
-            raise RuntimeError(
-                "Termination condition has already been reached")
+            raise RuntimeError("Termination condition has already been reached")
         stop_messages = await asyncio.gather(*[condition(messages) for condition in self._conditions])
         if any(stop_message is not None for stop_message in stop_messages):
-            content = ", ".join(
-                stop_message.content for stop_message in stop_messages if stop_message is not None)
-            source = ", ".join(
-                stop_message.source for stop_message in stop_messages if stop_message is not None)
+            content = ", ".join(stop_message.content for stop_message in stop_messages if stop_message is not None)
+            source = ", ".join(stop_message.source for stop_message in stop_messages if stop_message is not None)
             return StopMessage(content=content, source=source)
         return None
 
@@ -182,17 +170,10 @@ class _OrTerminationCondition(TerminationCondition, Component[OrTerminationCondi
 
     def _to_config(self) -> OrTerminationConditionConfig:
         """Convert the OR termination condition to a config."""
-        return OrTerminationConditionConfig(
-            conditions=[condition.dump_component()
-                        for condition in self._conditions]
-        )
+        return OrTerminationConditionConfig(conditions=[condition.dump_component() for condition in self._conditions])
 
     @classmethod
     def _from_config(cls, config: OrTerminationConditionConfig) -> Self:
         """Create an OR termination condition from a config."""
-        conditions = [
-            ComponentLoader.load_component(
-                condition_model, TerminationCondition)
-            for condition_model in config.conditions
-        ]
+        conditions = [TerminationCondition.load_component(condition_model) for condition_model in config.conditions]
         return cls(*conditions)
