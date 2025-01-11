@@ -9,9 +9,9 @@ myst:
 
 There are two ways to install AutoGen Studio - from PyPi or from source. We **recommend installing from PyPi** unless you plan to modify the source code.
 
-## 1. Create a Virtual Environment (optional)
+## Create a Virtual Environment (Recommended)
 
-When installing AgentChat locally, we recommend using a virtual environment for the installation. This will ensure that the dependencies for AgentChat are isolated from the rest of your system.
+We recommend using a virtual environment as this will ensure that the dependencies for AutoGen Studio are isolated from the rest of your system.
 
 ``````{tab-set}
 
@@ -59,7 +59,7 @@ conda deactivate
 
 ## Install Using pip (Recommended)
 
-We recommend using a virtual environment (e.g., conda) to avoid conflicts with existing Python packages. With Python 3.10 or newer active in your virtual environment, use pip to install AutoGen Studio:
+You can install AutoGen Studio using pip, the Python package manager.
 
 ```bash
 pip install -U autogenstudio
@@ -110,7 +110,7 @@ AutoGen Studio also takes several parameters to customize the application:
 - `--host <host>` argument to specify the host address. By default, it is set to `localhost`.
 - `--appdir <appdir>` argument to specify the directory where the app files (e.g., database and generated user files) are stored. By default, it is set to the a `.autogenstudio` directory in the user's home directory.
 - `--port <port>` argument to specify the port number. By default, it is set to `8080`.
-- `--upgrade-database` argument to upgrade the database schema (assuming there are changes in the version you are installing). By default, it is set to `False`.
+- `--upgrade-database` argument to force-upgrade it's internal database schema (assuming there are changes in the version you are installing). By default, it is set to `False`.
 - `--reload` argument to enable auto-reloading of the server when changes are made to the code. By default, it is set to `False`.
 - `--database-uri` argument to specify the database URI. Example values include `sqlite:///database.sqlite` for SQLite and `postgresql+psycopg://user:password@localhost/dbname` for PostgreSQL. If this is not specified, the database URI defaults to a `autogen.db` file in the `--appdir` directory.
 
