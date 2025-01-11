@@ -12,6 +12,10 @@ from ..base import Response
 from ..messages import AgentEvent, ChatMessage, HandoffMessage, TextMessage, UserInputRequestedEvent
 from ._base_chat_agent import BaseChatAgent
 
+SyncInputFunc = Callable[[str], str]
+AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
+InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
+
 
 # TODO: ainput doesn't seem to play nicely with jupyter.
 #       No input window appears in this case.
@@ -107,12 +111,6 @@ class UserProxyAgent(BaseChatAgent):
                     print(f"BaseException: {e}")
     """
 
-    # Define input function types more precisely
-    SyncInputFunc = Callable[[str], str]
-    AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
-    InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
-    DEFAULT_INPUT_FUNC: ClassVar[InputFuncType] = cancellable_input
-
     class InputRequestContext:
         def __init__(self) -> None:
             raise RuntimeError(
@@ -171,11 +169,11 @@ class UserProxyAgent(BaseChatAgent):
         try:
             if self._is_async:
                 # Cast to AsyncInputFunc for proper typing
-                async_func = cast(UserProxyAgent.AsyncInputFunc, self.input_func)
+                async_func = cast(AsyncInputFunc, self.input_func)
                 return await async_func(prompt, cancellation_token)
             else:
                 # Cast to SyncInputFunc for proper typing
-                sync_func = cast(UserProxyAgent.SyncInputFunc, self.input_func)
+                sync_func = cast(SyncInputFunc, self.input_func)
                 loop = asyncio.get_event_loop()
                 return await loop.run_in_executor(None, sync_func, prompt)
 

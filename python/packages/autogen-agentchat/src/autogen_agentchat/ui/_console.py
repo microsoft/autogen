@@ -3,14 +3,13 @@ import os
 import sys
 import time
 from inspect import iscoroutinefunction
-from typing import AsyncGenerator, Dict, List, Optional, TypeVar, cast
+from typing import AsyncGenerator, Awaitable, Callable, Dict, List, Optional, TypeVar, Union, cast
 
 from aioconsole import aprint  # type: ignore
-from autogen_core import Image
-from autogen_core._cancellation_token import CancellationToken
+from autogen_core import CancellationToken, Image
 from autogen_core.models import RequestUsage
 
-from autogen_agentchat.agents._user_proxy_agent import UserProxyAgent
+from autogen_agentchat.agents import UserProxyAgent
 from autogen_agentchat.base import Response, TaskResult
 from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage, UserInputRequestedEvent
 
@@ -23,15 +22,19 @@ def _is_output_a_tty() -> bool:
     return sys.stdout.isatty()
 
 
+SyncInputFunc = Callable[[str], str]
+AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
+InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
+
 T = TypeVar("T", bound=TaskResult | Response)
 
 
 class UserInputManager:
-    def __init__(self, callback: UserProxyAgent.InputFuncType = UserProxyAgent.DEFAULT_INPUT_FUNC):
+    def __init__(self, callback: InputFuncType):
         self.input_events: Dict[str, asyncio.Event] = {}
         self.callback = callback
 
-    def get_wrapped_callback(self) -> UserProxyAgent.AsyncInputFunc:
+    def get_wrapped_callback(self) -> AsyncInputFunc:
         async def user_input_func_wrapper(prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
             # Lookup the event for the prompt, if it exists wait for it.
             # If it doesn't exist, create it and store it.
@@ -49,11 +52,11 @@ class UserInputManager:
 
             if iscoroutinefunction(self.callback):
                 # Cast to AsyncInputFunc for proper typing
-                async_func = cast(UserProxyAgent.AsyncInputFunc, self.callback)
+                async_func = cast(AsyncInputFunc, self.callback)
                 return await async_func(prompt, cancellation_token)
             else:
                 # Cast to SyncInputFunc for proper typing
-                sync_func = cast(UserProxyAgent.SyncInputFunc, self.callback)
+                sync_func = cast(SyncInputFunc, self.callback)
                 loop = asyncio.get_event_loop()
                 return await loop.run_in_executor(None, sync_func, prompt)
 
