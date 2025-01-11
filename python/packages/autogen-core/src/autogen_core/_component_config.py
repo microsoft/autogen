@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import importlib
 import warnings
-from typing import Any, ClassVar, Dict, Generic, Literal, Protocol, Type, cast, overload, runtime_checkable
+from typing import Any, ClassVar, Dict, Generic, List, Literal, Protocol, Type, cast, overload, runtime_checkable
 
 from pydantic import BaseModel
 from typing_extensions import Self, TypeVar
@@ -243,9 +243,9 @@ class Component(ComponentConfigImpl[ConfigT], ComponentLoader, Generic[ConfigT])
                 return cls(value=config.value)
     """
 
-    required_class_vars = ["component_config_schema", "component_type"]
+    required_class_vars: ClassVar[List[str]] = ["component_config_schema", "component_type"]
 
-    def __init_subclass__(cls, **kwargs: Any):
+    def __init_subclass__(cls, **kwargs: Any) -> None:
         super().__init_subclass__(**kwargs)
 
         # TODO: validate provider is loadable
