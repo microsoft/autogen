@@ -1,7 +1,7 @@
 from typing import Callable, List
 from ._prompter import Prompter
 from ._agentic_memory_bank import AgenticMemoryBank
-from ...eval_framework._grader import Grader
+from ._grader import Grader
 
 
 class AgenticMemoryController:
@@ -22,8 +22,6 @@ class AgenticMemoryController:
                             task: str,  # The task to be completed.
                             expected_answer: str,  # The expected answer to the task.
                             final_format_instructions: str,  # Instructions for formatting the final response, if any.
-                            max_train_trials: int,  # The maximum number of training trials to attempt.
-                            max_test_trials: int,  # The number of successful test trials to qualify as success.
                             ):
         """
         Repeatedly assigns a task to the completion agent, and tries to learn from failures by creating useful insights as memories.
@@ -35,7 +33,8 @@ class AgenticMemoryController:
 
         # Attempt to create useful new memories.
         page.add_lines("Iterate on the task, possibly discovering a useful new insight.\n", flush=True)
-        _, insight = await self._iterate_on_task(task, expected_answer, final_format_instructions, max_train_trials, max_test_trials)
+        _, insight = await self._iterate_on_task(task, expected_answer, final_format_instructions,
+            self.settings["max_train_trials"], self.settings["max_test_trials"])
         if insight is None:
             page.add_lines("No useful insight was discovered.\n", flush=True)
         else:

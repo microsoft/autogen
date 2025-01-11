@@ -167,9 +167,7 @@ async def eval_self_teaching(fast_learner, evaluator, client, page_log, settings
         await fast_learner.train_on_task(
             task=task_with_answer["task"],
             expected_answer=task_with_answer["expected_answer"],
-            final_format_instructions="",
-            max_train_trials=settings["max_train_trials"],
-            max_test_trials=settings["max_test_trials"])
+            final_format_instructions="")
 
         # Test on all tasks.
         for j, task_with_answer in enumerate(task_with_answer_list):
@@ -218,9 +216,8 @@ class Evaluator:
 
     def create_oai_client(self, settings):
         # Create an OpenAI client
-        model_name = "gpt-4o-2024-08-06"
         client = OpenAIChatCompletionClient(
-            model=model_name,
+            model=settings["model"],
             api_key=settings["api_key"],
             temperature=settings["temperature"],
             max_tokens=settings["max_tokens"],
@@ -230,17 +227,20 @@ class Evaluator:
             max_retries=settings["max_retries"],
         )
         self.page_log.append_entry_line("Client:  {}".format(client._resolved_model))
-        self.page_log.append_entry_line("  created through OpenAI directly")
+        self.page_log.append_entry_line("  created through OpenAI")
         self.page_log.append_entry_line("  temperature:  {}".format(settings["temperature"]))
         return client
 
     def create_aoai_client(self, settings):
         # Create an Azure OpenAI client
+        model = settings["model"]
+        azure_deployment = model + "-eval"
+        if model == "gpt-4o-2024-08-06":
+            azure_endpoint = "https://agentic2.openai.azure.com/"
+        else:
+            azure_endpoint = "https://agentic1.openai.azure.com/"
         token_provider = get_bearer_token_provider(DefaultAzureCredential(),
                                                    "https://cognitiveservices.azure.com/.default")
-        azure_deployment = "gpt-4o-2024-08-06-eval"
-        model = "gpt-4o-2024-08-06"
-        azure_endpoint = "https://agentic2.openai.azure.com/"
         client = AzureOpenAIChatCompletionClient(
             azure_endpoint=azure_endpoint,
             azure_ad_token_provider=token_provider,
@@ -275,8 +275,13 @@ class Evaluator:
                 # managed_identity_client_id=os.environ.get("DEFAULT_IDENTITY_CLIENT_ID"),  # See the TRAPI docs
             )
         ), "api://trapi/.default")
-        model = "gpt-4o-2024-08-06"  # This is (for instance) the OpenAI model name, which is used to look up capabilities.
-        azure_deployment = 'gpt-4o_2024-08-06'  # This is DeploymentName in the table at https://aka.ms/trapi/models
+        model = settings["model"]
+        if model == "gpt-4o-2024-08-06":
+            azure_deployment = 'gpt-4o_2024-08-06' # This is DeploymentName in the table at https://aka.ms/trapi/models
+        elif model == "gpt-4o-2024-05-13":
+            azure_deployment = 'gpt-4o_2024-05-13'
+        elif model == "o1-preview":
+            azure_deployment = 'o1-preview_2024-09-12'
         trapi_suffix = 'msraif/shared'  # This is TRAPISuffix (without /openai) in the table at https://aka.ms/trapi/models
         endpoint = f'https://trapi.research.microsoft.com/{trapi_suffix}'
         api_version = '2024-10-21'  # From https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation#latest-ga-api-release
