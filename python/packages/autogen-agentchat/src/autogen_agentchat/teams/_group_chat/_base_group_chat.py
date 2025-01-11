@@ -395,7 +395,8 @@ class BaseGroupChat(Team, ABC):
             await self._runtime.stop_when_idle()
             await self._output_message_queue.put(None)
 
-        shutdown_task: asyncio.Task[None] | None = None
+        shutdown_task = asyncio.create_task(stop_runtime())
+
         try:
             # Run the team by sending the start message to the group chat manager.
             # The group chat manager will start the group chat by relaying the message to the participants
@@ -405,9 +406,6 @@ class BaseGroupChat(Team, ABC):
                 recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
                 cancellation_token=cancellation_token,
             )
-
-            # After sending the start message, we create the shutdown task that will wait for the runtime to become idle.
-            shutdown_task = asyncio.create_task(stop_runtime())
 
             # Collect the output messages in order.
             output_messages: List[AgentEvent | ChatMessage] = []
