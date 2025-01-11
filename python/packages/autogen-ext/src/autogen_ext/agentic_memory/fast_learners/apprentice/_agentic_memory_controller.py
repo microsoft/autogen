@@ -21,7 +21,6 @@ class AgenticMemoryController:
     async def train_on_task(self,
                             task: str,  # The task to be completed.
                             expected_answer: str,  # The expected answer to the task.
-                            final_format_instructions: str,  # Instructions for formatting the final response, if any.
                             ):
         """
         Repeatedly assigns a task to the completion agent, and tries to learn from failures by creating useful insights as memories.
@@ -33,7 +32,7 @@ class AgenticMemoryController:
 
         # Attempt to create useful new memories.
         page.add_lines("Iterate on the task, possibly discovering a useful new insight.\n", flush=True)
-        _, insight = await self._iterate_on_task(task, expected_answer, final_format_instructions,
+        _, insight = await self._iterate_on_task(task, expected_answer,
             self.settings["max_train_trials"], self.settings["max_test_trials"])
         if insight is None:
             page.add_lines("No useful insight was discovered.\n", flush=True)
@@ -223,8 +222,7 @@ class AgenticMemoryController:
         self.page_log.finish_page(page)
         return failure_found, response, work_history
 
-    async def _iterate_on_task(self, task: str, expected_answer: str,
-                              final_format_instructions: str, max_train_trials: int, max_test_trials: int):
+    async def _iterate_on_task(self, task: str, expected_answer: str, max_train_trials: int, max_test_trials: int):
         page = self.page_log.begin_page(
             summary="AgenticMemoryController._iterate_on_task",
             details="",
@@ -278,7 +276,7 @@ class AgenticMemoryController:
             # Try to learn from this failure.
             page.add_lines("\nResponse is INCORRECT. Try to learn from this failure.\n", flush=True)
             insight = await self.prompter.learn_from_failure(
-                task, memory_section, response, expected_answer, work_history, final_format_instructions, new_insights)
+                task, memory_section, response, expected_answer, work_history, new_insights)
             page.add_lines("\nInsight:  {}\n".format(insight), flush=True)
             new_insights.append(insight)
             last_insight = insight

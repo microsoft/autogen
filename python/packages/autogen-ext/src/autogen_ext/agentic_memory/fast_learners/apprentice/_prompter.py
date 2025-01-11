@@ -95,7 +95,7 @@ class Prompter:
         self._chat_history = []
 
     async def learn_from_failure(self, task_description, memory_section, final_response, expected_answer,
-                                 work_history, final_format_instructions, insights):
+                                 work_history, insights):
         # Try to create an insight to help avoid this failure in the future.
 
         sys_message = """- You are a patient and thorough teacher.
@@ -107,10 +107,6 @@ class Prompter:
 
         if len(memory_section) > 0:
             user_message.append(memory_section)
-
-        if len(final_format_instructions) > 0:
-            user_message.append("# The following answer-formatting instructions were given to the students:\n")
-            user_message.append(final_format_instructions)
 
         user_message.append("# Here's the expected answer, which would have been correct:\n")
         user_message.append(expected_answer)

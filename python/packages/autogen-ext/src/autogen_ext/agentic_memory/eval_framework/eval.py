@@ -166,8 +166,7 @@ async def eval_self_teaching(fast_learner, evaluator, client, page_log, settings
         task_with_answer = task_with_answer_list[0]
         await fast_learner.train_on_task(
             task=task_with_answer["task"],
-            expected_answer=task_with_answer["expected_answer"],
-            final_format_instructions="")
+            expected_answer=task_with_answer["expected_answer"])
 
         # Test on all tasks.
         for j, task_with_answer in enumerate(task_with_answer_list):

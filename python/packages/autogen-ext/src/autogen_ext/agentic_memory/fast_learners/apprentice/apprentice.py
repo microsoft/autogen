@@ -66,7 +66,7 @@ class Apprentice:
         self.page_log.finish_page(page)
         return response
 
-    async def train_on_task(self, task, expected_answer, final_format_instructions):
+    async def train_on_task(self, task, expected_answer):
         """A background operation, not intended for immediate response."""
         page = self.page_log.begin_page(
             summary="Apprentice.train_on_task",
@@ -74,6 +74,6 @@ class Apprentice:
             method_call="Apprentice.train_on_task")
 
         # Pass the task through to the memory controller.
-        await self.memory_controller.train_on_task(task, expected_answer, final_format_instructions)
+        await self.memory_controller.train_on_task(task, expected_answer)
 
         self.page_log.finish_page(page)
