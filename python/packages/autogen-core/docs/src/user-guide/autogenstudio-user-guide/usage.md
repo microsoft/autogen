@@ -49,7 +49,7 @@ Here's an example of a declarative team specification:
 This example shows a team with a single agent, using the `RoundRobinGroupChat` type and a `MaxMessageTermination` condition limited to 3 messages.
 
 ```{note}
-Work is currently in progress to make the entire AgentChat API [declarative](/user-guide/core-user-guide/framework/component-config.html). This will allow all agentchat components to be `dumped` into the same declarative specification format used by AGS.
+Work is currently in progress to make the entire AgentChat API declarative. This will allow all agentchat components to be `dumped` into the same declarative specification format used by AGS.
 ```
 
 ## Building an Agent Team
