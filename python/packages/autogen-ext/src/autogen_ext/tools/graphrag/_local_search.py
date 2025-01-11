@@ -63,9 +63,8 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
     .. code-block:: python
 
         import asyncio
-        from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
+        from autogen_ext.models.openai import OpenAIChatCompletionClient
         from autogen_ext.tools.graphrag import LocalSearchTool
-        from azure.identity import DefaultAzureCredential, get_bearer_token_provider
         from autogen_agentchat.agents import AssistantAgent
 
 
