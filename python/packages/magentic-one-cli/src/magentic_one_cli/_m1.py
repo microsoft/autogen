@@ -3,7 +3,7 @@ import asyncio
 import warnings
 
 from autogen_agentchat.ui import Console
-from autogen_agentchat.ui._console import UserInputManager
+from autogen_agentchat.ui import UserInputManager
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.teams.magentic_one import MagenticOne
 
