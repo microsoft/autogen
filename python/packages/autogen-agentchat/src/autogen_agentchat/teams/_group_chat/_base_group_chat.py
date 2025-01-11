@@ -406,7 +406,6 @@ class BaseGroupChat(Team, ABC):
                 recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
                 cancellation_token=cancellation_token,
             )
-
             # Collect the output messages in order.
             output_messages: List[AgentEvent | ChatMessage] = []
             # Yield the messsages until the queue is empty.
@@ -426,8 +425,7 @@ class BaseGroupChat(Team, ABC):
 
         finally:
             # Wait for the shutdown task to finish.
-            if shutdown_task is not None:
-                await shutdown_task
+            await shutdown_task
 
             # Clear the output message queue.
             while not self._output_message_queue.empty():
