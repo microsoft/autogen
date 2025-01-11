@@ -95,7 +95,7 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
             response_stream = assistant_agent.run_stream(task=query)
 
             async for msg in response_stream:
-                if hasattr(msg, "content"):
+                if isinstance(msg, TextMessage) and hasattr(msg, "content"):
                     print(f"Agent response: {msg.content}")
 
 
