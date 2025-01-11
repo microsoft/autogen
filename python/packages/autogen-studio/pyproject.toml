@@ -37,6 +37,7 @@ dependencies = [
     "autogen-agentchat==0.4.0",
     "autogen-ext[magentic-one]==0.4.0",
     "azure-identity",
+    "tiktoken"
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
 
