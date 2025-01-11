@@ -1,7 +1,8 @@
 import pytest
-from autogen_agentchat.conditions import StopMessageTermination, MaxMessageTermination
-from autogen_agentchat.messages import StopMessage, TextMessage
-from autogen_core import ComponentLoader
+from autogen_agentchat.base import OrTerminationCondition
+from autogen_agentchat.conditions import MaxMessageTermination, StopMessageTermination
+from autogen_agentchat.messages import StopMessage
+from autogen_core import ComponentLoader, ComponentModel
 
 
 @pytest.mark.asyncio
@@ -11,13 +12,19 @@ async def test_termination_declarative() -> None:
     max_term = MaxMessageTermination(5)
     stop_term = StopMessageTermination()
 
-    # Test basic serialization/deserialization
+    # Test basic serialization
     max_config = max_term.dump_component()
+    assert isinstance(max_config, ComponentModel)
     assert max_config.provider == "autogen_agentchat.conditions.MaxMessageTermination"
-    assert max_config.config["max_messages"] == 5
-    loaded_max = ComponentLoader.load_component(max_config)
+    assert max_config.config.get("max_messages") == 5
+
+    # Test basic deserialization
+    loaded_max = ComponentLoader.load_component(max_config, MaxMessageTermination)
     assert isinstance(loaded_max, MaxMessageTermination)
-    assert loaded_max._max_messages == 5
+    # Use public interface to verify state
+    messages = [StopMessage(content="msg", source="test") for _ in range(5)]
+    result = await loaded_max(messages)
+    assert isinstance(result, StopMessage)
 
     # Test composition and complex serialization
     or_term = max_term | stop_term
@@ -25,10 +32,20 @@ async def test_termination_declarative() -> None:
     assert or_config.provider == "autogen_agentchat.base.OrTerminationCondition"
     assert len(or_config.config["conditions"]) == 2
 
-    # Test behavior after deserialization
-    loaded_or = ComponentLoader.load_component(or_config)
-    messages = [StopMessage(content="stop", source="test")]
-    result = await loaded_or(messages)
+    # Verify nested conditions are correctly serialized
+    conditions = or_config.config["conditions"]
+    assert conditions[0]["provider"] == "autogen_agentchat.conditions.MaxMessageTermination"
+    assert conditions[1]["provider"] == "autogen_agentchat.conditions.StopMessageTermination"
+
+    # Test behavior of loaded composite condition
+    loaded_or = OrTerminationCondition.load_component(or_config)
+
+    # Test with stop message
+    stop_messages = [StopMessage(content="stop", source="test")]
+    result = await loaded_or(stop_messages)
     assert isinstance(result, StopMessage)
+    assert loaded_or.terminated
+
+    # Test reset functionality
     await loaded_or.reset()
     assert not loaded_or.terminated

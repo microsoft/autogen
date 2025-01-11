@@ -1,12 +1,12 @@
 import time
 from typing import List, Sequence
 
+from autogen_core import Component
 from pydantic import BaseModel
+from typing_extensions import Self
 
 from ..base import TerminatedException, TerminationCondition
 from ..messages import AgentEvent, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage
-from autogen_core import Component
-from typing_extensions import Self
 
 
 class StopMessageTerminationConfig(BaseModel):

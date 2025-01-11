@@ -1,12 +1,12 @@
 import asyncio
 from abc import ABC, abstractmethod
 from typing import Any, List, Sequence
+
+from autogen_core import Component, ComponentModel
+from pydantic import BaseModel
 from typing_extensions import Self
 
-from pydantic import BaseModel
-
 from ..messages import AgentEvent, ChatMessage, StopMessage
-from autogen_core import Component, ComponentModel
 
 
 class TerminatedException(BaseException): ...
