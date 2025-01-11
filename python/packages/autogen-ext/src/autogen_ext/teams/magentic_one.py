@@ -1,9 +1,10 @@
 import warnings
-from typing import List
+from typing import Awaitable, Callable, List, Optional, Union
 
 from autogen_agentchat.agents import CodeExecutorAgent, UserProxyAgent
 from autogen_agentchat.base import ChatAgent
 from autogen_agentchat.teams import MagenticOneGroupChat
+from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient
 
 from autogen_ext.agents.file_surfer import FileSurfer
@@ -11,6 +12,10 @@ from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.models.openai._openai_client import BaseOpenAIChatCompletionClient
+
+SyncInputFunc = Callable[[str], str]
+AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
+InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
 
 
 class MagenticOne(MagenticOneGroupChat):
@@ -120,7 +125,7 @@ class MagenticOne(MagenticOneGroupChat):
         self,
         client: ChatCompletionClient,
         hil_mode: bool = False,
-        input_func: UserProxyAgent.InputFuncType | None = None,
+        input_func: InputFuncType | None = None,
     ):
         self.client = client
         self._validate_client_capabilities(client)

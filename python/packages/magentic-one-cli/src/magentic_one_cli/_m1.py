@@ -1,18 +1,16 @@
 import argparse
 import asyncio
-from typing import Optional
 import warnings
+from typing import Optional
 
-from autogen_agentchat.ui import Console
-from autogen_agentchat.ui import UserInputManager
+from aioconsole import ainput  # type: ignore
+from autogen_agentchat.ui import Console, UserInputManager
 from autogen_core import CancellationToken
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.teams.magentic_one import MagenticOne
 
 # Suppress warnings about the requests.Session() not being closed
 warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
-
-
 
 
 async def cancellable_input(prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
