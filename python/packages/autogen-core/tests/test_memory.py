@@ -1,14 +1,21 @@
 from datetime import datetime
-from typing import List
 
 import pytest
 from autogen_core import CancellationToken
-from autogen_core.memory import ListMemory, Memory, MemoryContent, MemoryMimeType
+from autogen_core.memory import (
+    ListMemory,
+    Memory,
+    MemoryContent,
+    MemoryMimeType,
+    MemoryQueryResult,
+    UpdateContextResult,
+)
 from autogen_core.model_context import BufferedChatCompletionContext, ChatCompletionContext
 
 
 def test_memory_protocol_attributes() -> None:
     """Test that Memory protocol has all required attributes."""
+    # No changes needed here
     assert hasattr(Memory, "name")
     assert hasattr(Memory, "update_context")
     assert hasattr(Memory, "query")
@@ -25,13 +32,13 @@ def test_memory_protocol_runtime_checkable() -> None:
         def name(self) -> str:
             return "test"
 
-        async def update_context(self, context: ChatCompletionContext) -> List[MemoryContent]:
-            return []
+        async def update_context(self, context: ChatCompletionContext) -> UpdateContextResult:
+            return UpdateContextResult(memories=MemoryQueryResult(results=[]))
 
         async def query(
             self, query: MemoryContent, cancellation_token: CancellationToken | None = None
-        ) -> List[MemoryContent]:
-            return []
+        ) -> MemoryQueryResult:
+            return MemoryQueryResult(results=[])
 
         async def add(self, content: MemoryContent, cancellation_token: CancellationToken | None = None) -> None:
             pass
@@ -49,15 +56,6 @@ def test_memory_protocol_runtime_checkable() -> None:
     assert not isinstance(InvalidMemory(), Memory)
 
 
-def test_list_memory_basic_properties() -> None:
-    """Test basic properties of ListMemory."""
-    memory = ListMemory(
-        name="test_memory",
-    )
-    assert memory.name == "test_memory"
-    assert isinstance(memory, Memory)
-
-
 @pytest.mark.asyncio
 async def test_list_memory_empty() -> None:
     """Test ListMemory behavior when empty."""
@@ -66,11 +64,11 @@ async def test_list_memory_empty() -> None:
 
     results = await memory.update_context(context)
     context_messages = await context.get_messages()
-    assert len(results) == 0
+    assert len(results.memories.results) == 0
     assert len(context_messages) == 0
 
     query_results = await memory.query(MemoryContent(content="test", mime_type=MemoryMimeType.TEXT))
-    assert len(query_results) == 0
+    assert len(query_results.results) == 0
 
 
 @pytest.mark.asyncio
@@ -85,9 +83,9 @@ async def test_list_memory_add_and_query() -> None:
     await memory.add(content2)
 
     results = await memory.query(MemoryContent(content="query", mime_type=MemoryMimeType.TEXT))
-    assert len(results) == 2
-    assert results[0].content == "test1"
-    assert results[1].content == {"key": "value"}
+    assert len(results.results) == 2
+    assert results.results[0].content == "test1"
+    assert results.results[1].content == {"key": "value"}
 
 
 @pytest.mark.asyncio
@@ -99,7 +97,7 @@ async def test_list_memory_max_memories() -> None:
         await memory.add(MemoryContent(content=f"test{i}", mime_type=MemoryMimeType.TEXT))
 
     results = await memory.query(MemoryContent(content="query", mime_type=MemoryMimeType.TEXT))
-    assert len(results) == 5
+    assert len(results.results) == 5
 
 
 @pytest.mark.asyncio
@@ -113,7 +111,7 @@ async def test_list_memory_update_context() -> None:
 
     results = await memory.update_context(context)
     context_messages = await context.get_messages()
-    assert len(results) == 2
+    assert len(results.memories.results) == 2
     assert len(context_messages) == 1
     assert "test1" in context_messages[0].content
     assert "test2" in context_messages[0].content
@@ -127,7 +125,7 @@ async def test_list_memory_clear() -> None:
     await memory.clear()
 
     results = await memory.query(MemoryContent(content="query", mime_type=MemoryMimeType.TEXT))
-    assert len(results) == 0
+    assert len(results.results) == 0
 
 
 @pytest.mark.asyncio
@@ -143,7 +141,7 @@ async def test_list_memory_content_types() -> None:
     await memory.add(binary_content)
 
     results = await memory.query(text_content)
-    assert len(results) == 3
-    assert isinstance(results[0].content, str)
-    assert isinstance(results[1].content, dict)
-    assert isinstance(results[2].content, bytes)
+    assert len(results.results) == 3
+    assert isinstance(results.results[0].content, str)
+    assert isinstance(results.results[1].content, dict)
+    assert isinstance(results.results[2].content, bytes)

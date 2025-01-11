@@ -3,7 +3,7 @@ from typing import Any, List
 from .._cancellation_token import CancellationToken
 from ..model_context import ChatCompletionContext
 from ..models import SystemMessage
-from ._base_memory import Memory, MemoryContent
+from ._base_memory import Memory, MemoryContent, MemoryQueryResult, UpdateContextResult
 
 
 class ListMemory(Memory):
@@ -76,7 +76,7 @@ class ListMemory(Memory):
     async def update_context(
         self,
         model_context: ChatCompletionContext,
-    ) -> List[MemoryContent]:
+    ) -> UpdateContextResult:
         """Update the model context by appending memory content.
 
         This method mutates the provided model_context by adding all memories as a
@@ -86,10 +86,11 @@ class ListMemory(Memory):
             model_context: The context to update. Will be mutated if memories exist.
 
         Returns:
-            List[MemoryContent]: List of memories that were added to the context
+            UpdateContextResult containing the memories that were added to the context
         """
+
         if not self._contents:
-            return []
+            return UpdateContextResult(memories=MemoryQueryResult(results=[]))
 
         memory_strings = [f"{i}. {str(memory.content)}" for i, memory in enumerate(self._contents, 1)]
 
@@ -97,14 +98,14 @@ class ListMemory(Memory):
             memory_context = "\nRelevant memory content (in chronological order):\n" + "\n".join(memory_strings) + "\n"
             await model_context.add_message(SystemMessage(content=memory_context))
 
-        return self._contents
+        return UpdateContextResult(memories=MemoryQueryResult(results=self._contents))
 
     async def query(
         self,
         query: str | MemoryContent = "",
         cancellation_token: CancellationToken | None = None,
         **kwargs: Any,
-    ) -> List[MemoryContent]:
+    ) -> MemoryQueryResult:
         """Return all memories without any filtering.
 
         Args:
@@ -113,10 +114,10 @@ class ListMemory(Memory):
             **kwargs: Additional parameters (ignored)
 
         Returns:
-            List[MemoryContent]: All stored memories
+            MemoryQueryResult containing all stored memories
         """
         _ = query, cancellation_token, kwargs
-        return self._contents
+        return MemoryQueryResult(results=self._contents)
 
     async def add(self, content: MemoryContent, cancellation_token: CancellationToken | None = None) -> None:
         """Add new content to memory.

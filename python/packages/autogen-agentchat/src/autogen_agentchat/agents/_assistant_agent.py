@@ -342,9 +342,11 @@ class AssistantAgent(BaseChatAgent):
         # Update the model context with memory content.
         if self._memory:
             for memory in self._memory:
-                memory_query_result = await memory.update_context(self._model_context)
-                if memory_query_result and len(memory_query_result) > 0:
-                    memory_query_event_msg = MemoryQueryEvent(content=memory_query_result, source=self.name)
+                update_context_result = await memory.update_context(self._model_context)
+                if update_context_result and len(update_context_result.memories.results) > 0:
+                    memory_query_event_msg = MemoryQueryEvent(
+                        content=update_context_result.memories.results, source=self.name
+                    )
                     inner_messages.append(memory_query_event_msg)
                     yield memory_query_event_msg
 

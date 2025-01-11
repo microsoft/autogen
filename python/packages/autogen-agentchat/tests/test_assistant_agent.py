@@ -18,7 +18,7 @@ from autogen_agentchat.messages import (
     ToolCallSummaryMessage,
 )
 from autogen_core import Image
-from autogen_core.memory import ListMemory, Memory, MemoryContent, MemoryMimeType
+from autogen_core.memory import ListMemory, Memory, MemoryContent, MemoryMimeType, MemoryQueryResult
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import LLMMessage
 from autogen_core.models._model_client import ModelFamily
@@ -543,7 +543,7 @@ async def test_run_with_memory(monkeypatch: pytest.MonkeyPatch) -> None:
 
     empty_context = BufferedChatCompletionContext(buffer_size=2)
     empty_results = await memory.update_context(empty_context)
-    assert len(empty_results) == 0
+    assert len(empty_results.memories.results) == 0
 
     # Test various content types
     memory = ListMemory()
@@ -551,9 +551,16 @@ async def test_run_with_memory(monkeypatch: pytest.MonkeyPatch) -> None:
     await memory.add(MemoryContent(content={"key": "value"}, mime_type=MemoryMimeType.JSON))
     await memory.add(MemoryContent(content=Image.from_base64(b64_image_str), mime_type=MemoryMimeType.IMAGE))
 
+    # Test query functionality
+    query_result = await memory.query(MemoryContent(content="", mime_type=MemoryMimeType.TEXT))
+    assert isinstance(query_result, MemoryQueryResult)
+    # Should have all three memories we added
+    assert len(query_result.results) == 3
+
     # Test clear and cleanup
     await memory.clear()
-    assert await memory.query(MemoryContent(content="", mime_type=MemoryMimeType.TEXT)) == []
+    empty_query = await memory.query(MemoryContent(content="", mime_type=MemoryMimeType.TEXT))
+    assert len(empty_query.results) == 0
     await memory.close()  # Should not raise
 
     # Test invalid memory type
@@ -576,6 +583,8 @@ async def test_run_with_memory(monkeypatch: pytest.MonkeyPatch) -> None:
     assert len(result.messages) > 0
     memory_event = next((msg for msg in result.messages if isinstance(msg, MemoryQueryEvent)), None)
     assert memory_event is not None
+    assert len(memory_event.content) > 0
+    assert isinstance(memory_event.content[0], MemoryContent)
 
     # Test memory protocol
     class BadMemory:

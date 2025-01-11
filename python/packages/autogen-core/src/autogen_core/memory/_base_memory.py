@@ -33,6 +33,14 @@ class MemoryContent(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
+class MemoryQueryResult(BaseModel):
+    results: List[MemoryContent]
+
+
+class UpdateContextResult(BaseModel):
+    memories: MemoryQueryResult
+
+
 @runtime_checkable
 class Memory(Protocol):
     """Protocol defining the interface for memory implementations."""
@@ -45,7 +53,7 @@ class Memory(Protocol):
     async def update_context(
         self,
         model_context: ChatCompletionContext,
-    ) -> List[MemoryContent]:
+    ) -> UpdateContextResult:
         """
         Update the provided model context using relevant memory content.
 
@@ -53,7 +61,7 @@ class Memory(Protocol):
             model_context: The context to update.
 
         Returns:
-            List of memory entries with relevance scores
+            UpdateContextResult containing relevant memories
         """
         ...
 
@@ -62,7 +70,7 @@ class Memory(Protocol):
         query: str | MemoryContent,
         cancellation_token: CancellationToken | None = None,
         **kwargs: Any,
-    ) -> List[MemoryContent]:
+    ) -> MemoryQueryResult:
         """
         Query the memory store and return relevant entries.
 
@@ -72,7 +80,7 @@ class Memory(Protocol):
             **kwargs: Additional implementation-specific parameters
 
         Returns:
-            List of memory entries with relevance scores
+            MemoryQueryResult containing memory entries with relevance scores
         """
         ...
 
