@@ -10,7 +10,7 @@ myst:
 First-part maintained extensions are available in the `autogen-ext` package.
 
 ```sh
-pip install "autogen-ext==0.4.0.dev13"
+pip install "autogen-ext"
 ```
 
 Extras:

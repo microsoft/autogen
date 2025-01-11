@@ -22,7 +22,7 @@ class VideoSurfer(AssistantAgent):
 
     .. code-block:: bash
 
-        pip install "autogen-ext[video-surfer]==0.4.0.dev13"
+        pip install "autogen-ext[video-surfer]"
 
     This agent utilizes various tools to extract information from the video, such as its length, screenshots at specific timestamps, and audio transcriptions. It processes these elements to provide detailed answers to user queries.
 

@@ -297,6 +297,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 for key in required_keys:
                     if (
                         key not in progress_ledger
+                        or not isinstance(progress_ledger[key], dict)
                         or "answer" not in progress_ledger[key]
                         or "reason" not in progress_ledger[key]
                     ):
@@ -305,7 +306,9 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 if not key_error:
                     break
                 await self._log_message(f"Failed to parse ledger information, retrying: {ledger_str}")
-            except json.JSONDecodeError:
+            except (json.JSONDecodeError, TypeError):
+                key_error = True
+                await self._log_message("Invalid ledger format encountered, retrying...")
                 continue
         if key_error:
             raise ValueError("Failed to parse ledger information after multiple retries.")

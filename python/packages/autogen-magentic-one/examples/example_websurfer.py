@@ -4,15 +4,17 @@ The human user and the web surfer agent takes turn to write input or perform act
 orchestrated by an round-robin orchestrator agent."""
 
 import asyncio
+import json
 import logging
 import os
 
 from autogen_core import EVENT_LOGGER_NAME, AgentId, AgentProxy, SingleThreadedAgentRuntime
+from autogen_core.models import ChatCompletionClient
 from autogen_magentic_one.agents.multimodal_web_surfer import MultimodalWebSurfer
 from autogen_magentic_one.agents.orchestrator import RoundRobinOrchestrator
 from autogen_magentic_one.agents.user_proxy import UserProxy
 from autogen_magentic_one.messages import RequestReplyMessage
-from autogen_magentic_one.utils import LogHandler, create_completion_client_from_env
+from autogen_magentic_one.utils import LogHandler
 
 # NOTE: Don't forget to 'playwright install --with-deps chromium'
 
@@ -22,7 +24,8 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     # Create an appropriate client
-    client = create_completion_client_from_env(model="gpt-4o")
+    client = ChatCompletionClient.load_component(json.loads(os.environ["CHAT_COMPLETION_CLIENT_CONFIG"]))
+    assert client.model_info["family"] == "gpt-4o", "This example requires the gpt-4o model"
 
     # Register agents.
     await MultimodalWebSurfer.register(runtime, "WebSurfer", MultimodalWebSurfer)
