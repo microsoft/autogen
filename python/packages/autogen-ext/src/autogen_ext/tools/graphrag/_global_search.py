@@ -64,6 +64,7 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
 
         import asyncio
         from autogen_ext.models.openai import OpenAIChatCompletionClient
+        from autogen_agentchat.messages import TextMessage
         from autogen_ext.tools.graphrag import GlobalSearchTool
         from autogen_agentchat.agents import AssistantAgent
 

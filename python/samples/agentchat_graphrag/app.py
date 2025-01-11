@@ -61,6 +61,7 @@ async def main(model_config: Dict[str, Any]) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a GraphRAG search with an agent.")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging.")
+    # See agentchat_chainlit/model_config_template.json for model_config.json
     parser.add_argument(
         "--model-config", type=str, help="Path to the model configuration file.", default="model_config.json"
     )
