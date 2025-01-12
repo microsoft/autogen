@@ -9,54 +9,14 @@ from typing import Tuple
 from autogen_ext.agentic_memory import PageLog, Grader, ClientWrapper
 
 
-def define_tasks_with_answers():
-    tasks_with_answers = []
-
-    # Task index 0
-    tasks_with_answers.append({
-        "task": """You ask 100 people: 'How many of you are liars?' They all answer: 'At least one of us is not a liar.' But you know that at least one of the 100 is a liar. How many of them are liars?""",
-        "expected_answer": "100"})
-
-    # Task index 1
-    tasks_with_answers.append({
-        "task": """You are Van Helsing, a renowned vampire hunter. A Count of Moldova, La\u021bcu IV, son of  Costea, has tasked you with investigating the village of \u0218irnea in neighboring Wallachia. The Count's advisors have reported that a vampire was spotted crossing the border near the village, and would like you to investigate it.
-
-You travel to the village of \u0218irnea, and you begin your investigation. One night, just before dawn, you catch a glimpse of a man in a long black cape with red lining leaping from roof-top to roof-top with superhuman agility. It's a vampire! You try to chase the creature back to its home, but the creature is too fast. However, because of the remoteness of the village, you know with absolute certainty that the vampire must be a resident of the village. You decide that your best course of action will be to visit all 100 residents of the town during the day. You know something about vampires and humans that will make your investigation possible; humans always tell the truth, but vampires always lie.
-
-In the afternoon, you go from house to house, speaking with all 100 residents of \u0218irnea. You ask everyone the same question: \"How many vampires are living in \u0218irnea\". Everyone in the village gives the same response, \"At least one of us is a human.\"\n\nHow many residents of \u0218irnea have been turned into vampires?""",
-        "expected_answer": "100"})
-
-    # Task index 2
-    tasks_with_answers.append({
-        "task": """Three guards stand at a door. You need to determine how many of them are truthful, and you already know for a fact that at least one of them never tells the truth. You ask each one 'How many guards here always tell the truth?' Each one says 'One or more of us always tells the truth'. How many of the guards always tell the truth?""",
-        "expected_answer": "None of them do"})
-
-    # Task index 3
-    tasks_with_answers.append({
-        "task": """You ask ten people 'How many of you are liars?' They all answer 'At least one of us is not a liar.' You happen to know that at least one of them IS a liar. How many of them are liars in total?""",
-        "expected_answer": "All of them are liars."})
-
-    # Task index 4
-    tasks_with_answers.append({
-        "task": "As a contribution to autogen, can I create a new autogen package for a copilot extension agent that I built on autogen?",
-        "expected_answer": "It's best to have your agent in its own repo, then add the autogen-extension topic to that repo."})
-
-    # Task index 5
-    tasks_with_answers.append({
-        "task": "You are a telecommunications engineer who wants to build cell phone towers on a stretch of road. Houses are located at mile markers 16, 17, 19, 11, 9, 10, 2, 5, 4. Each cell phone tower can cover houses located next to the road within a 4-mile radius. Find the minimum number of cell phone towers needed to cover all houses next to the road. Your answer should be a positive numerical integer value.",
-        "expected_answer": "2"})
-
-    # Task index 6
-    tasks_with_answers.append({
-        "task": "What is 4^4?",
-        "expected_answer": "256"})
-
-    # Task index 7
-    tasks_with_answers.append({
-        "task": "What is 3^3?",
-        "expected_answer": "27"})
-
-    return tasks_with_answers
+def get_task_by_name(task_name):
+    path_to_this_file = os.path.abspath(__file__)
+    dir_of_this_file = os.path.dirname(path_to_this_file)
+    task_filepath = os.path.join(dir_of_this_file, 'tasks', task_name + '.yaml')
+    with open(task_filepath, "r") as file:
+        task = yaml.load(file, Loader=yaml.FullLoader)
+        assert task["name"] == task_name
+        return task
 
 
 async def eval_teachability(fast_learner, evaluator, client, page_log, settings):
@@ -66,20 +26,18 @@ async def eval_teachability(fast_learner, evaluator, client, page_log, settings)
         details='',
         method_call="eval_teachability")
 
-    tasklist = define_tasks_with_answers()
-    task_index = 4
-    task_with_answer = tasklist[task_index]
-    task = task_with_answer["task"]
-    answer = task_with_answer["expected_answer"]
+    task_details = get_task_by_name("autogen_package")
+    task_description = task_details["task_description"]
+    answer = task_details["expected_answer"]
     grader = Grader(client, page_log)
     fast_learner.reset_memory()
 
     # First test without memory.
     page.add_lines("\nClear memory, then ask the question.")
-    response = await fast_learner.handle_user_message(task)
+    response = await fast_learner.handle_user_message(task_description)
 
     # Check the response.
-    response_is_correct, extracted_answer = await grader.is_response_correct(task, response, answer)
+    response_is_correct, extracted_answer = await grader.is_response_correct(task_description, response, answer)
     page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
     if response_is_correct:
         page.add_lines("Answer is CORRECT.\n", flush=True)
@@ -93,10 +51,10 @@ async def eval_teachability(fast_learner, evaluator, client, page_log, settings)
 
     # Now ask the question again to see if the advice is retrieved from memory.
     page.add_lines("\nAsk the question again to see if the advice is retrieved from memory.")
-    response = await fast_learner.handle_user_message(task)
+    response = await fast_learner.handle_user_message(task_description)
 
     # Check the response.
-    response_is_correct, extracted_answer = await grader.is_response_correct(task, response, answer)
+    response_is_correct, extracted_answer = await grader.is_response_correct(task_description, response, answer)
     page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
     if response_is_correct:
         page.add_lines("Answer is CORRECT.\n", flush=True)
@@ -113,15 +71,14 @@ async def eval_learning_from_demonstration(fast_learner, evaluator, client, page
         details='',
         method_call="eval_learning_from_demonstration")
 
-    task_index = 5
-    task_with_answer = define_tasks_with_answers()[task_index]
+    task_details = get_task_by_name("cell_towers")
     num_trials = settings["num_trials"]
     fast_learner.reset_memory()
 
     # Start by clearing memory then running a baseline test.
     page.add_lines("To get a baseline, clear memory, then assign the task.")
     num_successes, num_trials = await evaluator.test_fast_learner(
-        fast_learner=fast_learner, task_with_answer=task_with_answer, num_trials=num_trials,
+        fast_learner=fast_learner, task_details=task_details, num_trials=num_trials,
         use_memory=True, client=client, page_log=page_log)
     success_rate = round((num_successes / num_trials) * 100)
     page.add_lines("\nSuccess rate:  {}%\n".format(success_rate), flush=True)
@@ -135,7 +92,7 @@ async def eval_learning_from_demonstration(fast_learner, evaluator, client, page
     # Now test again to see if the demonstration (retrieved from memory) helps.
     page.add_lines("Assign the task again to see if the demonstration helps.")
     num_successes, num_trials = await evaluator.test_fast_learner(
-        fast_learner=fast_learner, task_with_answer=task_with_answer, num_trials=num_trials,
+        fast_learner=fast_learner, task_details=task_details, num_trials=num_trials,
         use_memory=True, client=client, page_log=page_log)
     success_rate = round((num_successes / num_trials) * 100)
     page.add_lines("\nSuccess rate:  {}%\n".format(success_rate), flush=True)
@@ -152,26 +109,20 @@ async def eval_self_teaching(fast_learner, evaluator, client, page_log, settings
 
     fast_learner.reset_memory()
 
-    # Choose the tasks from those listed at the top.
-    task_index_list = [3, 1]
-
-    # Train and test on any number of tasks using memory.
-    tasklist = define_tasks_with_answers()
-    task_with_answer_list = [tasklist[task_index] for task_index in task_index_list]
-
-    total_num_successes_list = [0 for _ in task_index_list]
+    task_details_list = [get_task_by_name("10_liars"), get_task_by_name("100_vampires")]
+    total_num_successes_list = [0 for _ in range(len(task_details_list))]
     total_num_trials = 0
     for i in range(settings["num_loops"]):
-        # Always train on the first task.
-        task_with_answer = task_with_answer_list[0]
+        # Always train on the first task in the list.
+        task_details = task_details_list[0]
         await fast_learner.train_on_task(
-            task=task_with_answer["task"],
-            expected_answer=task_with_answer["expected_answer"])
+            task=task_details["task_description"],
+            expected_answer=task_details["expected_answer"])
 
-        # Test on all tasks.
-        for j, task_with_answer in enumerate(task_with_answer_list):
+        # Test on all tasks in the list.
+        for j, task_details in enumerate(task_details_list):
             num_successes, num_trials = await evaluator.test_fast_learner(
-                fast_learner=fast_learner, task_with_answer=task_with_answer, num_trials=settings["num_final_test_trials"],
+                fast_learner=fast_learner, task_details=task_details, num_trials=settings["num_final_test_trials"],
                 use_memory=True, client=client, page_log=page_log)
 
             page.add_lines("Success rate ({}):  {}%".format(j, round((num_successes / num_trials) * 100)), flush=True)
@@ -302,7 +253,7 @@ class Evaluator:
         self.page_log.append_entry_line("  temperature:  {}".format(settings["temperature"]))
         return client
 
-    async def test_fast_learner(self, fast_learner, task_with_answer, num_trials, use_memory,
+    async def test_fast_learner(self, fast_learner, task_details, num_trials, use_memory,
                    client, page_log) -> Tuple[int, int]:
         page = page_log.begin_page(
             summary="Evaluator.test_fast_learner",
@@ -317,10 +268,10 @@ class Evaluator:
         for trial in range(num_trials):
             page.add_lines("\n-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
             page.add_lines("Try to solve the task.\n", flush=True)
-            task = task_with_answer["task"]
-            response = await fast_learner.assign_task(task, use_memory=use_memory)
+            task_description = task_details["task_description"]
+            response = await fast_learner.assign_task(task_description, use_memory=use_memory)
             response_is_correct, extracted_answer = await grader.is_response_correct(
-                task, response, task_with_answer["expected_answer"])
+                task_description, response, task_details["expected_answer"])
             page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
             if response_is_correct:
                 page.add_lines("Answer is CORRECT.\n", flush=True)
