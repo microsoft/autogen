@@ -30,11 +30,14 @@ FastLearner:
     base_agent: thin_agent  # MagenticOneGroupChat, thin_agent, etc.
 
 evaluations:
-  - name: eval_teachability
+  - function_name: eval_teachability
+    module_path: autogen_ext.agentic_memory.eval_framework.evaluations.eval_teachability
 
-  - name: eval_learning_from_demonstration
+  - function_name: eval_learning_from_demonstration
+    module_path: autogen_ext.agentic_memory.eval_framework.evaluations.eval_learning_from_demonstration
     num_trials: 1  # 1-10
 
-  - name: eval_self_teaching
+  - function_name: eval_self_teaching
+    module_path: autogen_ext.agentic_memory.eval_framework.evaluations.eval_self_teaching
     num_loops: 1  # 1-10
     num_final_test_trials: 1  # 1-3
