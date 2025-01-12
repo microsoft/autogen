@@ -3,7 +3,7 @@ from __future__ import annotations
 import importlib
 import warnings
 from abc import ABC, abstractmethod
-from typing import Any, ClassVar, Dict, Generic, Literal, Type, cast, overload, runtime_checkable
+from typing import Any, ClassVar, Dict, Generic, Literal, Type, cast, overload
 
 from pydantic import BaseModel
 from typing_extensions import Self, TypeVar
@@ -213,7 +213,7 @@ class ComponentLoader:
         module = importlib.import_module(module_path)
         component_class = cast(Component[BaseModel], module.__getattribute__(class_name))
 
-        if not isinstance(component_class, Component):
+        if not is_component_class(component_class):
             raise TypeError("Invalid component class")
 
         # We need to check the schema is valid
@@ -310,10 +310,15 @@ class Component(
     ...
 
 
-def is_component_class(cls: type) -> bool:
+def is_component_class(cls: type | Any) -> bool:
     return (
         issubclass(cls, ComponentFromConfig)
         and issubclass(cls, ComponentToConfig)
         and issubclass(cls, ComponentSchemaType)
         and issubclass(cls, ComponentLoader)
+    ) or (
+        isinstance(cls, ComponentFromConfig)
+        and isinstance(cls, ComponentToConfig)
+        and isinstance(cls, ComponentSchemaType)
+        and isinstance(cls, ComponentLoader)
     )
