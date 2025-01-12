@@ -7,6 +7,7 @@
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-Company?style=flat&logo=linkedin&logoColor=white)](https://www.linkedin.com/company/105812540)
 [![Discord](https://img.shields.io/badge/discord-chat-green?logo=discord)](https://aka.ms/autogen-discord)
 [![Documentation](https://img.shields.io/badge/Documentation-AutoGen-blue?logo=read-the-docs)](https://microsoft.github.io/autogen/)
+
 </div>
 
 # AutoGen
@@ -74,13 +75,13 @@ asyncio.run(main())
 
 The AutoGen ecosystem provides everything you need to create AI agents, especially multi-agent workflows -- framework, developer tools, and applications.
 
-The *framework* uses a layered and extensible design. Layers have clearly divided responsibilities and build on top of layers below. This design enables you to use the framework at different levels of abstraction, from high-level APIs to low-level components.
+The _framework_ uses a layered and extensible design. Layers have clearly divided responsibilities and build on top of layers below. This design enables you to use the framework at different levels of abstraction, from high-level APIs to low-level components.
 
 - [Core API](./python/packages/autogen-core/) implements message passing, event-driven agents, and local and distributed runtime for flexibility and power. It also support cross-language support for .NET and Python.
 - [AgentChat API](./python/packages/autogen-agentchat/) implements a simpler but opinionated API rapid for prototyping. This API is built on top of the Core API and is closest to what users of v0.2 are familiar with and supports familiar multi-agent patterns such as two-agent chat or group chats.
 - [Extensions API](./python/packages/autogen-ext/) enables first- and third-party extensions continuously expanding framework capabilities. It support specific implementation of LLM clients (e.g., OpenAI, AzureOpenAI), and capabilities such as code execution.
 
-The ecosystem also supports two essential *developer tools*:
+The ecosystem also supports two essential _developer tools_:
 
 <div align="center">
   <img src="https://media.githubusercontent.com/media/microsoft/autogen/refs/heads/main/python/packages/autogen-studio/docs/ags_screen.png" alt="AutoGen Studio Screenshot" width="500">
@@ -97,17 +98,17 @@ With AutoGen you get to join and contribute to a thriving ecosystem. We host wee
 
 <div align="center">
 
-|                      | [![Python](https://img.shields.io/badge/AutoGen-Python-blue?logo=python&logoColor=white)](./python)                                                                                     | [![.NET](https://img.shields.io/badge/AutoGen-.NET-green?logo=.net&logoColor=white)](./dotnet)              | [![Studio](https://img.shields.io/badge/AutoGen-Studio-purple?logo=visual-studio&logoColor=white)](./python/packages/autogen-studio)              |
-|----------------------|--------------------------------------------------------------------------------------------|-------------------|-------------------|
-| Installation    | [![Installation](https://img.shields.io/badge/Install-blue)](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/installation.html) | *    | [![Install](https://img.shields.io/badge/Install-purple)](https://microsoft.github.io/autogen/dev/user-guide/autogenstudio-user-guide/installation.html)    |
-| Quickstart | [![Quickstart](https://img.shields.io/badge/Quickstart-blue)](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/quickstart.html#) | *    | *    |
-| Tutorial        | [![Tutorial](https://img.shields.io/badge/Tutorial-blue)](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/models.html)  | *| * |
-| API Reference   | [![API](https://img.shields.io/badge/Docs-blue)](https://microsoft.github.io/autogen/dev/reference/index.html#) | *    | [![API](https://img.shields.io/badge/Docs-purple)](https://microsoft.github.io/autogen/dev/user-guide/autogenstudio-user-guide/usage.html) |
-| Packages        | [![PyPi autogen-core](https://img.shields.io/badge/PyPi-autogen--core-blue?logo=pypi)](https://pypi.org/project/autogen-core/) <br> [![PyPi autogen-agentchat](https://img.shields.io/badge/PyPi-autogen--agentchat-blue?logo=pypi)](https://pypi.org/project/autogen-agentchat/) <br> [![PyPi autogen-ext](https://img.shields.io/badge/PyPi-autogen--ext-blue?logo=pypi)](https://pypi.org/project/autogen-ext/) | *    | [![PyPi autogenstudio](https://img.shields.io/badge/PyPi-autogenstudio-purple?logo=pypi)](https://pypi.org/project/autogenstudio/) |
+|               | [![Python](https://img.shields.io/badge/AutoGen-Python-blue?logo=python&logoColor=white)](./python)                                                                                                                                                                                                                                                                                                                | [![.NET](https://img.shields.io/badge/AutoGen-.NET-green?logo=.net&logoColor=white)](./dotnet) | [![Studio](https://img.shields.io/badge/AutoGen-Studio-purple?logo=visual-studio&logoColor=white)](./python/packages/autogen-studio)                     |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Installation  | [![Installation](https://img.shields.io/badge/Install-blue)](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/installation.html)                                                                                                                                                                                                                                                            | \*                                                                                             | [![Install](https://img.shields.io/badge/Install-purple)](https://microsoft.github.io/autogen/dev/user-guide/autogenstudio-user-guide/installation.html) |
+| Quickstart    | [![Quickstart](https://img.shields.io/badge/Quickstart-blue)](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/quickstart.html#)                                                                                                                                                                                                                                                            | \*                                                                                             | [![Usage](https://img.shields.io/badge/Quickstart-blue)](https://microsoft.github.io/autogen/dev/user-guide/autogenstudio-user-guide/usage.html#)        |
+| Tutorial      | [![Tutorial](https://img.shields.io/badge/Tutorial-blue)](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/models.html)                                                                                                                                                                                                                                                            | \*                                                                                             | [![Usage](https://img.shields.io/badge/Quickstart-blue)](https://microsoft.github.io/autogen/dev/user-guide/autogenstudio-user-guide/usage.html#)        |
+| API Reference | [![API](https://img.shields.io/badge/Docs-blue)](https://microsoft.github.io/autogen/dev/reference/index.html#)                                                                                                                                                                                                                                                                                                    | \*                                                                                             | [![API](https://img.shields.io/badge/Docs-purple)](https://microsoft.github.io/autogen/dev/user-guide/autogenstudio-user-guide/usage.html)               |
+| Packages      | [![PyPi autogen-core](https://img.shields.io/badge/PyPi-autogen--core-blue?logo=pypi)](https://pypi.org/project/autogen-core/) <br> [![PyPi autogen-agentchat](https://img.shields.io/badge/PyPi-autogen--agentchat-blue?logo=pypi)](https://pypi.org/project/autogen-agentchat/) <br> [![PyPi autogen-ext](https://img.shields.io/badge/PyPi-autogen--ext-blue?logo=pypi)](https://pypi.org/project/autogen-ext/) | \*                                                                                             | [![PyPi autogenstudio](https://img.shields.io/badge/PyPi-autogenstudio-purple?logo=pypi)](https://pypi.org/project/autogenstudio/)                       |
 
 </div>
 
-**Releasing soon*
+\*_Releasing soon_
 
 Interested in contributing? See [CONTRIBUTING.md](./CONTRIBUTING.md) for guidelines on how to get started. We welcome contributions of all kinds, including bug fixes, new features, and documentation improvements. Join our community and help us make AutoGen better!
 
