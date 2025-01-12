@@ -2,7 +2,7 @@ import os
 
 import pytest
 from autogen_core import CancellationToken
-from autogen_core.models import CreateResult, SystemMessage, UserMessage
+from autogen_core.models import CreateResult, LLMMessage, SystemMessage, UserMessage
 from autogen_core.tools import BaseTool
 from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
 from pydantic import BaseModel
@@ -21,7 +21,7 @@ class CalculatorResult(BaseModel):
 
 
 class CalculatorTool(BaseTool[CalculatorArgs, CalculatorResult]):
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__(
             args_type=CalculatorArgs,
             return_type=CalculatorResult,
@@ -58,7 +58,7 @@ async def test_sk_chat_completion_with_tools(sk_client: AzureChatCompletion) -> 
     tool = CalculatorTool()
 
     # Test messages
-    messages = [
+    messages: list[LLMMessage] = [
         SystemMessage(content="You are a helpful assistant."),
         UserMessage(content="What is 2 + 2?", source="user"),
     ]
@@ -81,7 +81,7 @@ async def test_sk_chat_completion_without_tools(sk_client: AzureChatCompletion) 
     kernel = Kernel(memory=NullMemory())
 
     # Test messages
-    messages = [
+    messages: list[LLMMessage] = [
         SystemMessage(content="You are a helpful assistant."),
         UserMessage(content="Say hello!", source="user"),
     ]
@@ -107,7 +107,7 @@ async def test_sk_chat_completion_stream_with_tools(sk_client: AzureChatCompleti
     tool = CalculatorTool()
 
     # Test messages
-    messages = [
+    messages: list[LLMMessage] = [
         SystemMessage(content="You are a helpful assistant."),
         UserMessage(content="What is 2 + 2?", source="user"),
     ]
@@ -135,7 +135,7 @@ async def test_sk_chat_completion_stream_without_tools(sk_client: AzureChatCompl
     kernel = Kernel(memory=NullMemory())
 
     # Test messages
-    messages = [
+    messages: list[LLMMessage] = [
         SystemMessage(content="You are a helpful assistant."),
         UserMessage(content="Say hello!", source="user"),
     ]
