@@ -1,3 +1,5 @@
+# File-free version of a GAIA L1 task.
+
 name: cell_towers
 
 task_description: You are a telecommunications engineer who wants to build cell phone towers on a stretch of road.

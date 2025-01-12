@@ -1,3 +1,5 @@
+# Similar to the 100 vampires task, for testing generalization from one to the other.
+
 name: 10_liars
 
 task_description: 'You ask ten people ''How many of you are liars?''

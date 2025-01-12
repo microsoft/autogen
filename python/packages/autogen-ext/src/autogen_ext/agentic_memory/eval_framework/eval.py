@@ -2,11 +2,9 @@ import sys, os
 import yaml
 import asyncio
 import importlib
-from autogen_ext.models.openai import OpenAIChatCompletionClient
-from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
-from azure.identity import DefaultAzureCredential, ChainedTokenCredential, AzureCliCredential, get_bearer_token_provider
 from typing import Tuple
-from autogen_ext.agentic_memory import PageLog, Grader, ClientWrapper
+from autogen_ext.agentic_memory import PageLog, Grader
+from autogen_ext.agentic_memory.eval_framework.clients._client_creator import ClientCreator
 
 
 def get_task_by_name(task_name):
@@ -126,7 +124,6 @@ async def eval_self_teaching(fast_learner, evaluator, client, page_log, settings
                 use_memory=True, client=client, page_log=page_log)
 
             page.add_lines("Success rate ({}):  {}%".format(j, round((num_successes / num_trials) * 100)), flush=True)
-            print("SUCCESS RATE ({}):  {}%\n".format(j, round((num_successes / num_trials) * 100)))
             total_num_successes_list[j] += num_successes
         total_num_trials += settings["num_final_test_trials"]
         page.add_lines("")
@@ -141,117 +138,7 @@ async def eval_self_teaching(fast_learner, evaluator, client, page_log, settings
 class Evaluator:
     def __init__(self):
         self.page_log = None
-
-    def create_client(self, settings):
-        client = None
-        provider = settings["provider"]
-        if provider == "openai":
-            client = self.create_oai_client(settings)
-        elif provider == "azure_openai":
-            client = self.create_aoai_client(settings)
-        elif provider == "trapi":
-            client = self.create_trapi_client(settings)
-        else:
-            assert False, "Invalid client provider"
-
-        # Check if the client should be wrapped.
-        if "ClientWrapper" in settings:
-            wrapper_settings = settings["ClientWrapper"]
-            if wrapper_settings["enabled"]:
-                # Wrap the client.
-                client = ClientWrapper(
-                    client, wrapper_settings["mode"], wrapper_settings["session_name"], self.page_log)
-
-        return client
-
-    def create_oai_client(self, settings):
-        # Create an OpenAI client
-        client = OpenAIChatCompletionClient(
-            model=settings["model"],
-            api_key=settings["api_key"],
-            temperature=settings["temperature"],
-            max_tokens=settings["max_tokens"],
-            presence_penalty=settings["presence_penalty"],
-            frequency_penalty=settings["frequency_penalty"],
-            top_p=settings["top_p"],
-            max_retries=settings["max_retries"],
-        )
-        self.page_log.append_entry_line("Client:  {}".format(client._resolved_model))
-        self.page_log.append_entry_line("  created through OpenAI")
-        self.page_log.append_entry_line("  temperature:  {}".format(settings["temperature"]))
-        return client
-
-    def create_aoai_client(self, settings):
-        # Create an Azure OpenAI client
-        model = settings["model"]
-        azure_deployment = model + "-eval"
-        if model == "gpt-4o-2024-08-06":
-            azure_endpoint = "https://agentic2.openai.azure.com/"
-        else:
-            azure_endpoint = "https://agentic1.openai.azure.com/"
-        token_provider = get_bearer_token_provider(DefaultAzureCredential(),
-                                                   "https://cognitiveservices.azure.com/.default")
-        client = AzureOpenAIChatCompletionClient(
-            azure_endpoint=azure_endpoint,
-            azure_ad_token_provider=token_provider,
-            azure_deployment=azure_deployment,
-            api_version="2024-06-01",
-            model=model,
-            temperature=settings["temperature"],
-            max_tokens=settings["max_tokens"],
-            presence_penalty=settings["presence_penalty"],
-            frequency_penalty=settings["frequency_penalty"],
-            top_p=settings["top_p"],
-            max_retries=settings["max_retries"],
-        )
-        self.page_log.append_entry_line("Client:  {}".format(client._resolved_model))
-        self.page_log.append_entry_line("  created through Azure OpenAI")
-        self.page_log.append_entry_line("  temperature:  {}".format(settings["temperature"]))
-        return client
-
-    def create_trapi_client(self, settings):
-        # Create an Azure OpenAI client through TRAPI
-        token_provider = get_bearer_token_provider(ChainedTokenCredential(
-            AzureCliCredential(),
-            DefaultAzureCredential(
-                exclude_cli_credential=True,
-                # Exclude other credentials we are not interested in.
-                exclude_environment_credential=True,
-                exclude_shared_token_cache_credential=True,
-                exclude_developer_cli_credential=True,
-                exclude_powershell_credential=True,
-                exclude_interactive_browser_credential=True,
-                exclude_visual_studio_code_credentials=True,
-                # managed_identity_client_id=os.environ.get("DEFAULT_IDENTITY_CLIENT_ID"),  # See the TRAPI docs
-            )
-        ), "api://trapi/.default")
-        model = settings["model"]
-        if model == "gpt-4o-2024-08-06":
-            azure_deployment = 'gpt-4o_2024-08-06' # This is DeploymentName in the table at https://aka.ms/trapi/models
-        elif model == "gpt-4o-2024-05-13":
-            azure_deployment = 'gpt-4o_2024-05-13'
-        elif model == "o1-preview":
-            azure_deployment = 'o1-preview_2024-09-12'
-        trapi_suffix = 'msraif/shared'  # This is TRAPISuffix (without /openai) in the table at https://aka.ms/trapi/models
-        endpoint = f'https://trapi.research.microsoft.com/{trapi_suffix}'
-        api_version = '2024-10-21'  # From https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation#latest-ga-api-release
-        client = AzureOpenAIChatCompletionClient(
-            azure_ad_token_provider=token_provider,
-            model=model,
-            azure_deployment=azure_deployment,
-            azure_endpoint=endpoint,
-            api_version=api_version,
-            temperature=settings["temperature"],
-            max_tokens=settings["max_tokens"],
-            presence_penalty=settings["presence_penalty"],
-            frequency_penalty=settings["frequency_penalty"],
-            top_p=settings["top_p"],
-            max_retries=settings["max_retries"],
-        )
-        self.page_log.append_entry_line("Client:  {}".format(client._resolved_model))
-        self.page_log.append_entry_line("  created through TRAPI")
-        self.page_log.append_entry_line("  temperature:  {}".format(settings["temperature"]))
-        return client
+        self.client_creator = None
 
     async def test_fast_learner(self, fast_learner, task_details, num_trials, use_memory,
                    client, page_log) -> Tuple[int, int]:
@@ -297,7 +184,8 @@ class Evaluator:
                 method_call="Evaluator.main")
 
             # Create the client, passed to both the fast_learner and the evaluator.
-            client = self.create_client(settings["client"])
+            client_creator = ClientCreator(settings=settings["client"], page_log=self.page_log)
+            client = client_creator.create_client()
 
             # Create the specified fast_learner implementation.
             fast_learner_settings = settings["FastLearner"]
