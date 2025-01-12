@@ -66,7 +66,7 @@ class MultimodalWebSurfer(BaseChatAgent):
 
     .. code-block:: bash
 
-        pip install "autogen-ext[web-surfer]==0.4.0.dev13"
+        pip install "autogen-ext[web-surfer]"
 
     It launches a chromium browser and allows the playwright to interact with the web browser and can perform a variety of actions. The browser is launched on the first call to the agent and is reused for subsequent calls.
 

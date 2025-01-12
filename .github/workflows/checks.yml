@@ -58,6 +58,7 @@ jobs:
             "./packages/agbench",
             "./packages/autogen-ext",
             "./packages/autogen-agentchat",
+            "./packages/magentic-one-cli",
           ]
     steps:
       - uses: actions/checkout@v4
@@ -86,6 +87,7 @@ jobs:
             "./packages/agbench",
             "./packages/autogen-ext",
             "./packages/autogen-agentchat",
+            "./packages/magentic-one-cli",
           ]
     steps:
       - uses: actions/checkout@v4
@@ -132,7 +134,7 @@ jobs:
           source ${{ github.workspace }}/python/.venv/bin/activate
           poe --directory ${{ matrix.package }} test
         working-directory: ./python
-  
+
   codecov:
     runs-on: ubuntu-latest
     strategy:
@@ -213,7 +215,25 @@ jobs:
           source ${{ github.workspace }}/python/.venv/bin/activate
           poe --directory ${{ matrix.package }} docs-check-examples
         working-directory: ./python
-  
+
+  samples-code-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe samples-code-check
+        working-directory: ./python
+
   markdown-code-lint:
     runs-on: ubuntu-latest
     steps:

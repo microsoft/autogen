@@ -119,28 +119,39 @@ playwright install --with-deps chromium
 
 ## Environment Configuration for Chat Completion Client
 
-This guide outlines how to configure your environment to use the `create_completion_client_from_env` function, which reads environment variables to return an appropriate `ChatCompletionClient`.
+This guide outlines how to structure the config to load a ChatCompletionClient for Magentic-One.
+
+```python
+from autogen_core.models import ChatCompletionClient
+
+config = {}
+client = ChatCompletionClient.load_component(config)
+```
 
 Currently, Magentic-One only supports OpenAI's GPT-4o as the underlying LLM.
 
 ### Azure OpenAI service
 
-To configure for Azure OpenAI service, set the following environment variables:
-
-- `CHAT_COMPLETION_PROVIDER='azure'`
-- `CHAT_COMPLETION_KWARGS_JSON` with the following JSON structure:
+To configure for Azure OpenAI service, use the following config:
 
 ```json
 {
-  "api_version": "2024-02-15-preview",
-  "azure_endpoint": "REPLACE_WITH_YOUR_ENDPOINT",
-  "model_capabilities": {
-    "function_calling": true,
-    "json_output": true,
-    "vision": true
-  },
-  "azure_ad_token_provider": "DEFAULT",
-  "model": "gpt-4o-2024-05-13"
+    "provider": "AzureOpenAIChatCompletionClient",
+    "config": {
+        "model": "gpt-4o-2024-05-13",
+        "azure_endpoint": "https://{your-custom-endpoint}.openai.azure.com/",
+        "azure_deployment": "{your-azure-deployment}",
+        "api_version": "2024-06-01",
+        "azure_ad_token_provider": {
+            "provider": "autogen_ext.models.openai.AzureTokenProvider",
+            "config": {
+                "provider_kind": "DefaultAzureCredential",
+                "scopes": [
+                    "https://cognitiveservices.azure.com/.default"
+                ]
+            }
+        }
+    }
 }
 ```
 
@@ -150,19 +161,34 @@ Log in to Azure using `az login`, and then run the examples. The account used mu
 
 Note that even if you are the owner of the subscription, you still need to grant the necessary Azure Cognitive Services OpenAI permissions to call the API.
 
+Or, to use an API key:
+```json
+{
+    "provider": "AzureOpenAIChatCompletionClient",
+    "config": {
+        "model": "gpt-4o-2024-05-13",
+        "azure_endpoint": "https://{your-custom-endpoint}.openai.azure.com/",
+        "azure_deployment": "{your-azure-deployment}",
+        "api_version": "2024-06-01",
+        "api_key": "REPLACE_WITH_YOUR_API_KEY"
+    }
+}
+```
+
 ### With OpenAI
 
-To configure for OpenAI, set the following environment variables:
-
-- `CHAT_COMPLETION_PROVIDER='openai'`
-- `CHAT_COMPLETION_KWARGS_JSON` with the following JSON structure:
+To configure for OpenAI, use the following config:
 
 ```json
 {
-  "api_key": "REPLACE_WITH_YOUR_API",
-  "model": "gpt-4o-2024-05-13"
+  "provider": "OpenAIChatCompletionClient",
+  "config": {
+      "model": "gpt-4o-2024-05-13",
+      "api_key": "REPLACE_WITH_YOUR_API_KEY"
+  }
 }
 ```
+
 Feel free to replace the model with newer versions of gpt-4o if needed.
 
 ### Other Keys (Optional)
