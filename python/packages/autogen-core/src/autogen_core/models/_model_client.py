@@ -4,10 +4,11 @@ import warnings
 from abc import ABC, abstractmethod
 from typing import Literal, Mapping, Optional, Sequence, TypeAlias
 
+from pydantic import BaseModel
 from typing_extensions import Any, AsyncGenerator, Required, TypedDict, Union, deprecated
 
 from .. import CancellationToken
-from .._component_config import ComponentLoader
+from .._component_config import ComponentBase
 from ..tools import Tool, ToolSchema
 from ._types import CreateResult, LLMMessage, RequestUsage
 
@@ -47,7 +48,7 @@ class ModelInfo(TypedDict, total=False):
     """Model family should be one of the constants from :py:class:`ModelFamily` or a string representing an unknown model family."""
 
 
-class ChatCompletionClient(ABC, ComponentLoader):
+class ChatCompletionClient(ComponentBase[BaseModel], ABC):
     # Caching has to be handled internally as they can depend on the create args that were stored in the constructor
     @abstractmethod
     async def create(

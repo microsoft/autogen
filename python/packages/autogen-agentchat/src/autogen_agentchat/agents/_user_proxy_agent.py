@@ -1,15 +1,17 @@
 import asyncio
+import uuid
+from contextlib import contextmanager
+from contextvars import ContextVar
 from inspect import iscoroutinefunction
-from typing import Awaitable, Callable, Optional, Sequence, Union, cast
+from typing import Any, AsyncGenerator, Awaitable, Callable, ClassVar, Generator, Optional, Sequence, Union, cast
 
 from aioconsole import ainput  # type: ignore
 from autogen_core import CancellationToken
 
 from ..base import Response
-from ..messages import ChatMessage, HandoffMessage, TextMessage
+from ..messages import AgentEvent, ChatMessage, HandoffMessage, TextMessage, UserInputRequestedEvent
 from ._base_chat_agent import BaseChatAgent
 
-# Define input function types more precisely
 SyncInputFunc = Callable[[str], str]
 AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
 InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
@@ -109,6 +111,33 @@ class UserProxyAgent(BaseChatAgent):
                     print(f"BaseException: {e}")
     """
 
+    class InputRequestContext:
+        def __init__(self) -> None:
+            raise RuntimeError(
+                "InputRequestContext cannot be instantiated. It is a static class that provides context management for user input requests."
+            )
+
+        _INPUT_REQUEST_CONTEXT_VAR: ClassVar[ContextVar[str]] = ContextVar("_INPUT_REQUEST_CONTEXT_VAR")
+
+        @classmethod
+        @contextmanager
+        def populate_context(cls, ctx: str) -> Generator[None, Any, None]:
+            """:meta private:"""
+            token = UserProxyAgent.InputRequestContext._INPUT_REQUEST_CONTEXT_VAR.set(ctx)
+            try:
+                yield
+            finally:
+                UserProxyAgent.InputRequestContext._INPUT_REQUEST_CONTEXT_VAR.reset(token)
+
+        @classmethod
+        def request_id(cls) -> str:
+            try:
+                return cls._INPUT_REQUEST_CONTEXT_VAR.get()
+            except LookupError as e:
+                raise RuntimeError(
+                    "InputRequestContext.runtime() must be called within the input callback of a UserProxyAgent."
+                ) from e
+
     def __init__(
         self,
         name: str,
@@ -153,9 +182,15 @@ class UserProxyAgent(BaseChatAgent):
         except Exception as e:
             raise RuntimeError(f"Failed to get user input: {str(e)}") from e
 
-    async def on_messages(
-        self, messages: Sequence[ChatMessage], cancellation_token: Optional[CancellationToken] = None
-    ) -> Response:
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+        async for message in self.on_messages_stream(messages, cancellation_token):
+            if isinstance(message, Response):
+                return message
+        raise AssertionError("The stream should have returned the final result.")
+
+    async def on_messages_stream(
+        self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         """Handle incoming messages by requesting user input."""
         try:
             # Check for handoff first
@@ -164,15 +199,18 @@ class UserProxyAgent(BaseChatAgent):
                 f"Handoff received from {handoff.source}. Enter your response: " if handoff else "Enter your response: "
             )
 
-            user_input = await self._get_input(prompt, cancellation_token)
+            request_id = str(uuid.uuid4())
+
+            input_requested_event = UserInputRequestedEvent(request_id=request_id, source=self.name)
+            yield input_requested_event
+            with UserProxyAgent.InputRequestContext.populate_context(request_id):
+                user_input = await self._get_input(prompt, cancellation_token)
 
             # Return appropriate message type based on handoff presence
             if handoff:
-                return Response(
-                    chat_message=HandoffMessage(content=user_input, target=handoff.source, source=self.name)
-                )
+                yield Response(chat_message=HandoffMessage(content=user_input, target=handoff.source, source=self.name))
             else:
-                return Response(chat_message=TextMessage(content=user_input, source=self.name))
+                yield Response(chat_message=TextMessage(content=user_input, source=self.name))
 
         except asyncio.CancelledError:
             raise
