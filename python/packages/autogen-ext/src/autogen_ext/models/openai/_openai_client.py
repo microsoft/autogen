@@ -1114,7 +1114,7 @@ class AzureOpenAIChatCompletionClient(
                 "azure_deployment": "{your-azure-deployment}",
                 "api_version": "2024-06-01",
                 "azure_ad_token_provider": {
-                    "provider": "autogen_ext.models.openai.AzureTokenProvider",
+                    "provider": "autogen_ext.auth.azure.AzureTokenProvider",
                     "config": {
                         "provider_kind": "DefaultAzureCredential",
                         "scopes": ["https://cognitiveservices.azure.com/.default"],
