@@ -84,7 +84,7 @@ Built on AgentChat.
 
 ```bash
 pip install autogenstudio
-autogenstudio ui --port 8080
+autogenstudio ui --port 8080 --appdir ./myapp
 ```
 
 +++
