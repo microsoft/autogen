@@ -16,6 +16,8 @@
 
 ## Installation
 
+AutoGen requires **Python 3.10 or later**.
+
 ```bash
 # Install AgentChat and OpenAI client from Extensions
 pip install -U "autogen-agentchat" "autogen-ext[openai]"
