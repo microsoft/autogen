@@ -26,7 +26,7 @@ async def Console(
     stream: AsyncGenerator[AgentEvent | ChatMessage | T, None],
     *,
     no_inline_images: bool = False,
-    output_stats: bool = False, 
+    output_stats: bool = False,
 ) -> T:
     """
     Consumes the message stream from :meth:`~autogen_agentchat.base.TaskRunner.run_stream`
