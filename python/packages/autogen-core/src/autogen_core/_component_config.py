@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import importlib
 import warnings
-from abc import ABC, abstractmethod
 from typing import Any, ClassVar, Dict, Generic, Literal, Type, TypeGuard, cast, overload
 
 from pydantic import BaseModel
@@ -50,9 +49,8 @@ WELL_KNOWN_PROVIDERS = {
 }
 
 
-class ComponentFromConfig(ABC, Generic[FromConfigT]):
+class ComponentFromConfig(Generic[FromConfigT]):
     @classmethod
-    @abstractmethod
     def _from_config(cls, config: FromConfigT) -> Self:
         """Create a new instance of the component from a configuration object.
 
@@ -64,7 +62,7 @@ class ComponentFromConfig(ABC, Generic[FromConfigT]):
 
         :meta public:
         """
-        ...
+        raise NotImplementedError("This component does not support dumping to config")
 
     @classmethod
     def _from_config_past_version(cls, config: Dict[str, Any], version: int) -> Self:
@@ -84,7 +82,7 @@ class ComponentFromConfig(ABC, Generic[FromConfigT]):
         raise NotImplementedError("This component does not support loading from past versions")
 
 
-class ComponentToConfig(ABC, Generic[ToConfigT]):
+class ComponentToConfig(Generic[ToConfigT]):
     """The two methods a class must implement to be a component.
 
     Args:
@@ -98,7 +96,6 @@ class ComponentToConfig(ABC, Generic[ToConfigT]):
     component_provider_override: ClassVar[str | None] = None
     """Override the provider string for the component. This should be used to prevent internal module names being a part of the module name."""
 
-    @abstractmethod
     def _to_config(self) -> ToConfigT:
         """Dump the configuration that would be requite to create a new instance of a component matching the configuration of this instance.
 
@@ -107,7 +104,7 @@ class ComponentToConfig(ABC, Generic[ToConfigT]):
 
         :meta public:
         """
-        ...
+        raise NotImplementedError("This component does not support dumping to config")
 
     def dump_component(self) -> ComponentModel:
         """Dump the component to a model that can be loaded back in.
@@ -258,22 +255,25 @@ class ComponentSchemaType(Generic[ConfigT]):
     def __init_subclass__(cls, **kwargs: Any):
         super().__init_subclass__(**kwargs)
 
-        # TODO: validate provider is loadable
-        for var in cls.required_class_vars:
-            if not hasattr(cls, var):
-                warnings.warn(
-                    f"Class variable '{var}' must be defined in {cls.__name__} to be a valid component", stacklevel=2
-                )
+        if cls.__name__ != "Component" and not cls.__name__ == "_ConcreteComponent":
+            # TODO: validate provider is loadable
+            for var in cls.required_class_vars:
+                if not hasattr(cls, var):
+                    warnings.warn(
+                        f"Class variable '{var}' must be defined in {cls.__name__} to be a valid component",
+                        stacklevel=2,
+                    )
+
+
+class ComponentBase(ComponentToConfig[ConfigT], ComponentLoader, Generic[ConfigT]): ...
 
 
 class Component(
     ComponentFromConfig[ConfigT],
-    ComponentToConfig[ConfigT],
     ComponentSchemaType[ConfigT],
-    ComponentLoader,
     Generic[ConfigT],
 ):
-    """To create a component class, inherit from this class. Then implement two class variables:
+    """To create a component class, inherit from this class for the concrete class and ComponentBase on the interface. Then implement two class variables:
 
     - :py:attr:`component_config_schema` - A Pydantic model class which represents the configuration of the component. This is also the type parameter of Component.
     - :py:attr:`component_type` - What is the logical type of the component.
@@ -307,10 +307,27 @@ class Component(
                 return cls(value=config.value)
     """
 
-    ...
+    def __init_subclass__(cls, **kwargs: Any):
+        super().__init_subclass__(**kwargs)
+
+        if not is_component_class(cls):
+            warnings.warn(
+                f"Component class '{cls.__name__}' must subclass the following: ComponentFromConfig, ComponentToConfig, ComponentSchemaType, ComponentLoader, individually or with ComponentBase and Component. Look at the component config documentation or how OpenAIChatCompletionClient does it.",
+                stacklevel=2,
+            )
 
 
-def is_component_instance(cls: Any) -> TypeGuard[Component[BaseModel]]:
+# Should never be used directly, only for type checking
+class _ConcreteComponent(
+    ComponentFromConfig[ConfigT],
+    ComponentSchemaType[ConfigT],
+    ComponentToConfig[ConfigT],
+    ComponentLoader,
+    Generic[ConfigT],
+): ...
+
+
+def is_component_instance(cls: Any) -> TypeGuard[_ConcreteComponent[BaseModel]]:
     return (
         isinstance(cls, ComponentFromConfig)
         and isinstance(cls, ComponentToConfig)
@@ -319,7 +336,7 @@ def is_component_instance(cls: Any) -> TypeGuard[Component[BaseModel]]:
     )
 
 
-def is_component_class(cls: type) -> TypeGuard[Type[Component[BaseModel]]]:
+def is_component_class(cls: type) -> TypeGuard[Type[_ConcreteComponent[BaseModel]]]:
     return (
         issubclass(cls, ComponentFromConfig)
         and issubclass(cls, ComponentToConfig)

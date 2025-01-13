@@ -6,13 +6,14 @@ from typing import Any
 from autogen_core import (
     BaseAgent,
     Component,
+    ComponentBase,
+    ComponentModel,
     DefaultTopicId,
     MessageContext,
     RoutedAgent,
     default_subscription,
     message_handler,
 )
-from autogen_core._component_config import ComponentModel
 from pydantic import BaseModel
 
 
@@ -76,7 +77,7 @@ class MyInnerConfig(BaseModel):
     inner_message: str
 
 
-class MyInnerComponent(Component[MyInnerConfig]):
+class MyInnerComponent(ComponentBase[MyInnerConfig], Component[MyInnerConfig]):
     component_config_schema = MyInnerConfig
     component_type = "custom"
 
@@ -96,7 +97,7 @@ class MyOuterConfig(BaseModel):
     inner_class: ComponentModel
 
 
-class MyOuterComponent(Component[MyOuterConfig]):
+class MyOuterComponent(ComponentBase[MyOuterConfig], Component[MyOuterConfig]):
     component_config_schema = MyOuterConfig
     component_type = "custom"
 

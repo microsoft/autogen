@@ -14,6 +14,7 @@ from ._cancellation_token import CancellationToken
 from ._closure_agent import ClosureAgent, ClosureContext
 from ._component_config import (
     Component,
+    ComponentBase,
     ComponentFromConfig,
     ComponentLoader,
     ComponentModel,
@@ -116,6 +117,7 @@ __all__ = [
     "EVENT_LOGGER_NAME",
     "TRACE_LOGGER_NAME",
     "Component",
+    "ComponentBase",
     "ComponentFromConfig",
     "ComponentLoader",
     "ComponentModel",
