@@ -1,8 +1,8 @@
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Any, List, Sequence
+from typing import List, Sequence
 
-from autogen_core import Component, ComponentModel
+from autogen_core import Component, ComponentBase, ComponentModel
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -12,7 +12,7 @@ from ..messages import AgentEvent, ChatMessage, StopMessage
 class TerminatedException(BaseException): ...
 
 
-class TerminationCondition(ABC, Component[Any]):
+class TerminationCondition(ABC, ComponentBase[BaseModel]):
     """A stateful condition that determines when a conversation should be terminated.
 
     A termination condition is a callable that takes a sequence of ChatMessage objects
