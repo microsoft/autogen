@@ -25,6 +25,13 @@ pip install -U "autogen-agentchat" "autogen-ext[openai]"
 
 The current stable version is v0.4. If you are upgrading from AutoGen v0.2, please refer to the [Migration Guide](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/migration-guide.html) for detailed instructions on how to update your code and configurations.
 
+```bash
+# Install AutoGen Studio for no-code GUI
+pip install -U "autogenstudio"
+```
+
+## Quickstart
+
 ### Hello World
 
 Create an assistant agent using OpenAI's GPT-4o model.
@@ -67,6 +74,15 @@ async def main() -> None:
     await Console(team.run_stream(task="Find information about AutoGen and write a short summary."))
 
 asyncio.run(main())
+```
+
+### AutoGen Studio
+
+Use AutoGen Studio to prototype and run multi-agent workflows without writing code.
+
+```bash
+# Run AutoGen Studio on http://localhost:8080
+autogenstudio ui --port 8080 --appdir ./my-app
 ```
 
 ## Why Use AutoGen?
