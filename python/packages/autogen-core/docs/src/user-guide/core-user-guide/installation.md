@@ -67,13 +67,13 @@ To use the OpenAI and Azure OpenAI models, you need to install the following
 extensions:
 
 ```bash
-pip install "autogen-ext[openai]==0.4.0.dev13"
+pip install "autogen-ext[openai]"
 ```
 
 If you are using Azure OpenAI with AAD authentication, you need to install the following:
 
 ```bash
-pip install "autogen-ext[azure]==0.4.0.dev13"
+pip install "autogen-ext[azure]"
 ```
 
 ## Install Docker for Code Execution (Optional)
