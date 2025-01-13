@@ -87,3 +87,12 @@ makefile          text eol=lf
 *.jpeg filter=lfs diff=lfs merge=lfs -text
 python/packages/autogen-magentic-one/imgs/autogen-magentic-one-example.png filter=lfs diff=lfs merge=lfs -text
 python/packages/autogen-magentic-one/imgs/autogen-magentic-one-agents.png filter=lfs diff=lfs merge=lfs -text
+
+python/packages/autogen-magentic-one/tests/browser_utils/test_files/test_blog.html linguist-vendored
+python/packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos/*.py linguist-generated
+python/packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos/*.pyi linguist-generated
+python/packages/autogen-ext/tests/protos/*.py linguist-generated
+python/packages/autogen-ext/tests/protos/*.pyi linguist-generated
+docs/** linguist-documentation
+python/packages/autogen-core/docs/** linguist-documentation
+dotnet/website/** linguist-documentation

@@ -5,16 +5,19 @@ round-robin orchestrator agent. The code snippets are executed inside a docker c
 """
 
 import asyncio
+import json
 import logging
+import os
 
 from autogen_core import EVENT_LOGGER_NAME, AgentId, AgentProxy, SingleThreadedAgentRuntime
 from autogen_core.code_executor import CodeBlock
+from autogen_core.models._model_client import ChatCompletionClient
 from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 from autogen_magentic_one.agents.coder import Coder, Executor
 from autogen_magentic_one.agents.orchestrator import RoundRobinOrchestrator
 from autogen_magentic_one.agents.user_proxy import UserProxy
 from autogen_magentic_one.messages import RequestReplyMessage
-from autogen_magentic_one.utils import LogHandler, create_completion_client_from_env
+from autogen_magentic_one.utils import LogHandler
 
 
 async def confirm_code(code: CodeBlock) -> bool:
@@ -29,9 +32,10 @@ async def main() -> None:
     # Create the runtime.
     runtime = SingleThreadedAgentRuntime()
 
+    model_client = ChatCompletionClient.load_component(json.loads(os.environ["CHAT_COMPLETION_CLIENT_CONFIG"]))
     async with DockerCommandLineCodeExecutor() as code_executor:
         # Register agents.
-        await Coder.register(runtime, "Coder", lambda: Coder(model_client=create_completion_client_from_env()))
+        await Coder.register(runtime, "Coder", lambda: Coder(model_client=model_client))
         coder = AgentProxy(AgentId("Coder", "default"), runtime)
 
         await Executor.register(

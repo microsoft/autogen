@@ -17,8 +17,12 @@ project = "autogen_core"
 copyright = "2024, Microsoft"
 author = "Microsoft"
 version = "0.4"
-release = autogen_core.__version__
 
+release_override = os.getenv("SPHINX_RELEASE_OVERRIDE")
+if release_override is None or release_override == "":
+    release = autogen_core.__version__
+else:
+    release = release_override
 
 sys.path.append(str(Path(".").resolve()))
 
@@ -33,6 +37,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.intersphinx",
     "sphinx.ext.graphviz",
+    "sphinxext.rediraffe",
     "sphinx_design",
     "sphinx_copybutton",
     "_extension.gallery_directive",
@@ -114,10 +119,9 @@ html_theme_options = {
         }
     ],
 
-    "announcement": 'AutoGen 0.4 is a work in progress. Go <a href="/autogen/0.2/">here</a> to find the 0.2 documentation.',
     "footer_start": ["copyright"],
     "footer_center": ["footer-middle-links"],
-    "footer_end": ["theme-version"],
+    "footer_end": ["theme-version", "version-banner-override"],
     "pygments_light_style": "xcode",
     "pygments_dark_style": "monokai",
     "navbar_start": ["navbar-logo", "version-switcher"],
@@ -126,10 +130,12 @@ html_theme_options = {
         "version_match": switcher_version,
     },
     "show_version_warning_banner": True,
-
+    "external_links": [
+      {"name": "0.2 Docs", "url": "https://microsoft.github.io/autogen/0.2/"},
+    ]
 }
 
-html_js_files = ["custom-icon.js", "override-switcher-button.js"]
+html_js_files = ["custom-icon.js", "banner-override.js"]
 html_sidebars = {
     "packages/index": [],
     "user-guide/core-user-guide/**": ["sidebar-nav-bs-core"],
@@ -164,6 +170,11 @@ nb_mime_priority_overrides = [
   ('code_lint', 'image/png', 100),
   ('code_lint', 'text/plain', 100)
 ]
+
+rediraffe_redirects = {
+    "user-guide/agentchat-user-guide/tutorial/selector-group-chat.ipynb": "user-guide/agentchat-user-guide/selector-group-chat.ipynb",
+    "user-guide/agentchat-user-guide/tutorial/swarm.ipynb": "user-guide/agentchat-user-guide/swarm.ipynb",
+}
 
 
 def setup_to_main(

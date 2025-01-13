@@ -1,6 +1,7 @@
 #!/usr/bin/env python3 -m pytest
 
 import asyncio
+import json
 import os
 import re
 from json import dumps
@@ -12,6 +13,7 @@ from autogen_core import AgentId, AgentProxy, FunctionCall, SingleThreadedAgentR
 from autogen_core.models import (
     UserMessage,
 )
+from autogen_core.models._model_client import ChatCompletionClient
 from autogen_core.tools._base import ToolSchema
 from autogen_magentic_one.agents.multimodal_web_surfer import MultimodalWebSurfer
 from autogen_magentic_one.agents.multimodal_web_surfer.tool_definitions import (
@@ -25,11 +27,6 @@ from autogen_magentic_one.agents.multimodal_web_surfer.tool_definitions import (
 from autogen_magentic_one.agents.orchestrator import RoundRobinOrchestrator
 from autogen_magentic_one.agents.user_proxy import UserProxy
 from autogen_magentic_one.messages import BroadcastMessage
-from autogen_magentic_one.utils import (
-    ENVIRON_KEY_CHAT_COMPLETION_KWARGS_JSON,
-    ENVIRON_KEY_CHAT_COMPLETION_PROVIDER,
-    create_completion_client_from_env,
-)
 from conftest import MOCK_CHAT_COMPLETION_KWARGS, reason
 from openai import AuthenticationError
 
@@ -57,7 +54,7 @@ skip_all = False
 # Search currently does not require an API key
 skip_bing = False
 
-if os.getenv(ENVIRON_KEY_CHAT_COMPLETION_KWARGS_JSON):
+if os.getenv("CHAT_COMPLETION_CLIENT_CONFIG"):
     skip_openai = False
 else:
     skip_openai = True
@@ -99,14 +96,10 @@ async def make_browser_request(browser: MultimodalWebSurfer, tool: ToolSchema, a
 @pytest.mark.skip(reason="Need to fix this test to use a local website instead of a public one.")
 @pytest.mark.asyncio
 async def test_web_surfer() -> None:
-    env = {
-        ENVIRON_KEY_CHAT_COMPLETION_PROVIDER: "openai",
-        ENVIRON_KEY_CHAT_COMPLETION_KWARGS_JSON: MOCK_CHAT_COMPLETION_KWARGS,
-    }
-
     runtime = SingleThreadedAgentRuntime()
     # Create an appropriate client
-    client = create_completion_client_from_env(env)
+    config = {"provider": "OpenAIChatCompletionClient", "config": json.loads(MOCK_CHAT_COMPLETION_KWARGS)}
+    client = ChatCompletionClient.load_component(config)
 
     # Register agents.
 
@@ -183,7 +176,7 @@ async def test_web_surfer_oai() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     # Create an appropriate client
-    client = create_completion_client_from_env()
+    client = ChatCompletionClient.load_component(json.loads(os.environ["CHAT_COMPLETION_CLIENT_CONFIG"]))
 
     # Register agents.
     await MultimodalWebSurfer.register(
@@ -247,14 +240,10 @@ async def test_web_surfer_oai() -> None:
 )
 @pytest.mark.asyncio
 async def test_web_surfer_bing() -> None:
-    env = {
-        ENVIRON_KEY_CHAT_COMPLETION_PROVIDER: "openai",
-        ENVIRON_KEY_CHAT_COMPLETION_KWARGS_JSON: MOCK_CHAT_COMPLETION_KWARGS,
-    }
-
     runtime = SingleThreadedAgentRuntime()
     # Create an appropriate client
-    client = create_completion_client_from_env(env)
+    config = {"provider": "OpenAIChatCompletionClient", "config": json.loads(MOCK_CHAT_COMPLETION_KWARGS)}
+    client = ChatCompletionClient.load_component(config)
 
     # Register agents.
     await MultimodalWebSurfer.register(
