@@ -121,6 +121,7 @@ class BaseAgent(ABC, Agent):
         recipient: AgentId,
         *,
         cancellation_token: CancellationToken | None = None,
+        message_id: str | None = None,
     ) -> Any:
         """See :py:meth:`autogen_core.AgentRuntime.send_message` for more information."""
         if cancellation_token is None:
@@ -131,6 +132,7 @@ class BaseAgent(ABC, Agent):
             sender=self.id,
             recipient=recipient,
             cancellation_token=cancellation_token,
+            message_id=message_id,
         )
 
     async def publish_message(
@@ -148,6 +150,9 @@ class BaseAgent(ABC, Agent):
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         warnings.warn("load_state not implemented", stacklevel=2)
+        pass
+
+    async def close(self) -> None:
         pass
 
     @classmethod

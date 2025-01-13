@@ -33,12 +33,14 @@ class AgentProxy:
         *,
         sender: AgentId,
         cancellation_token: CancellationToken | None = None,
+        message_id: str | None = None,
     ) -> Any:
         return await self._runtime.send_message(
             message,
             recipient=self._agent,
             sender=sender,
             cancellation_token=cancellation_token,
+            message_id=message_id,
         )
 
     async def save_state(self) -> Mapping[str, Any]:

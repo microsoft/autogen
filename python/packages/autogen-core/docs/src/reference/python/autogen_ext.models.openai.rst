@@ -6,3 +6,4 @@ autogen\_ext.models.openai
    :members:
    :undoc-members:
    :show-inheritance:
+   :member-order: bysource

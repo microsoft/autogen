@@ -11,7 +11,6 @@ from typing import (
     List,
     Mapping,
     Sequence,
-    Tuple,
 )
 
 from autogen_core import CancellationToken, FunctionCall
@@ -28,7 +27,6 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_core.tools import FunctionTool, Tool
-from typing_extensions import deprecated
 
 from .. import EVENT_LOGGER_NAME
 from ..base import Handoff as HandoffBase
@@ -49,18 +47,6 @@ from ._base_chat_agent import BaseChatAgent
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
-@deprecated("Moved to autogen_agentchat.base.Handoff. Will remove in 0.4.0.", stacklevel=2)
-class Handoff(HandoffBase):
-    """[DEPRECATED] Handoff configuration. Moved to :class:`autogen_agentchat.base.Handoff`. Will remove in 0.4.0."""
-
-    def model_post_init(self, __context: Any) -> None:
-        warnings.warn(
-            "Handoff was moved to autogen_agentchat.base.Handoff. Importing from this will be removed in 0.4.0.",
-            DeprecationWarning,
-            stacklevel=2,
-        )
-
-
 class AssistantAgent(BaseChatAgent):
     """An agent that provides assistance with tool use.
 
@@ -72,13 +58,17 @@ class AssistantAgent(BaseChatAgent):
     the inner messages as they are created, and the :class:`~autogen_agentchat.base.Response`
     object as the last item before closing the generator.
 
-
     .. note::
 
         The caller must only pass the new messages to the agent on each call
         to the :meth:`on_messages` or :meth:`on_messages_stream` method.
         The agent maintains its state between calls to these methods.
         Do not pass the entire conversation history to the agent on each call.
+
+    .. note::
+        The assistant agent is not thread-safe or coroutine-safe.
+        It should not be shared between multiple tasks or coroutines, and it should
+        not call its methods concurrently.
 
     Tool call behavior:
 
@@ -87,6 +77,12 @@ class AssistantAgent(BaseChatAgent):
         - When `reflect_on_tool_use` is False (default), the tool call results are returned as a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. `tool_call_summary_format` can be used to customize the tool call summary.
         - When `reflect_on_tool_use` is True, the another model inference is made using the tool calls and results, and the text response is returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
 
+    .. note::
+        By default, the tool call results are returned as response when tool calls are made.
+        So it is recommended to pay attention to the formatting of the tools return values,
+        especially if another agent is expecting them in a specific format.
+        Use `tool_call_summary_format` to customize the tool call summary, if needed.
+
     Hand off behavior:
 
     * If a handoff is triggered, a :class:`~autogen_agentchat.messages.HandoffMessage` will be returned in :attr:`~autogen_agentchat.base.Response.chat_message`.
@@ -94,18 +90,15 @@ class AssistantAgent(BaseChatAgent):
 
 
     .. note::
-        The assistant agent is not thread-safe or coroutine-safe.
-        It should not be shared between multiple tasks or coroutines, and it should
-        not call its methods concurrently.
-
-    .. note::
-        By default, the tool call results are returned as response when tool calls are made.
-        So it is recommended to pay attention to the formatting of the tools return values,
-        especially if another agent is expecting them in a specific format.
-        Use `tool_call_summary_format` to customize the tool call summary, if needed.
-
-    .. note::
         If multiple handoffs are detected, only the first handoff is executed.
+
+
+    Limit context size sent to the model:
+
+    You can limit the number of messages sent to the model by setting
+    the `model_context` parameter to a :class:`~autogen_core.model_context.BufferedChatCompletionContext`.
+    This will limit the number of recent messages sent to the model and can be useful
+    when the model has a limit on the number of tokens it can process.
 
 
     Args:
@@ -256,7 +249,7 @@ class AssistantAgent(BaseChatAgent):
             self._system_messages = [SystemMessage(content=system_message)]
         self._tools: List[Tool] = []
         if tools is not None:
-            if model_client.capabilities["function_calling"] is False:
+            if model_client.model_info["function_calling"] is False:
                 raise ValueError("The model does not support function calling.")
             for tool in tools:
                 if isinstance(tool, Tool):
@@ -277,7 +270,7 @@ class AssistantAgent(BaseChatAgent):
         self._handoff_tools: List[Tool] = []
         self._handoffs: Dict[str, HandoffBase] = {}
         if handoffs is not None:
-            if model_client.capabilities["function_calling"] is False:
+            if model_client.model_info["function_calling"] is False:
                 raise ValueError("The model does not support function calling, which is needed for handoffs.")
             for handoff in handoffs:
                 if isinstance(handoff, str):
@@ -305,7 +298,7 @@ class AssistantAgent(BaseChatAgent):
         self._is_running = False
 
     @property
-    def produced_message_types(self) -> Tuple[type[ChatMessage], ...]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         """The types of messages that the assistant agent produces."""
         message_types: List[type[ChatMessage]] = [TextMessage]
         if self._handoffs:
@@ -325,7 +318,7 @@ class AssistantAgent(BaseChatAgent):
     ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         # Add messages to the model context.
         for msg in messages:
-            if isinstance(msg, MultiModalMessage) and self._model_client.capabilities["vision"] is False:
+            if isinstance(msg, MultiModalMessage) and self._model_client.model_info["vision"] is False:
                 raise ValueError("The model does not support vision.")
             await self._model_context.add_message(UserMessage(content=msg.content, source=msg.source))
 
