@@ -8,12 +8,12 @@ encoding_model: cl100k_base # this needs to be matched to your model!
 
 llm:
   api_key: null
-  type: azure_openai_chat # or azure_openai_chat
+  type: openai_chat # or azure_openai_chat
   model: gpt-4o
   model_supports_json: true # recommended if this is available for your model.
   audience: "https://cognitiveservices.azure.com/.default"
-  api_base: https://<resource-name>.openai.azure.com
-  api_version: 2024-08-01-preview
+  # api_base: https://<resource-name>.openai.azure.com
+  # api_version: 2024-08-01-preview
   deployment_name: gpt-4o
 
 parallelization:
@@ -26,15 +26,15 @@ embeddings:
   async_mode: threaded # or asyncio
   vector_store:
     type: lancedb
-    db_uri: 'data\output\lancedb'
+    db_uri: 'data/output/lancedb'
     container_name: default
     overwrite: true
   llm:
     api_key: null
-    type: azure_openai_embedding # or azure_openai_embedding
+    type: openai_embedding # or azure_openai_embedding
     model: text-embedding-3-small
-    api_base: https://<resource-name>.openai.azure.com
-    api_version: "2023-05-15"
+    # api_base: https://<resource-name>.openai.azure.com
+    # api_version: "2023-05-15"
     audience: "https://cognitiveservices.azure.com/.default"
     deployment_name: text-embedding-3-small
 
