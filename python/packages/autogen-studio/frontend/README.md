@@ -1,8 +1,8 @@
-# AutoGen Studio front end
+# AutoGen Studio frontend
 
 ## 🚀 Running UI in Dev Mode
 
-Run the UI in dev mode (make changes and see them reflected in the browser with hotreloading):
+Run the UI in dev mode (make changes and see them reflected in the browser with hot reloading):
 
 ```bash
 yarn install
@@ -24,9 +24,9 @@ The core of the app can be found in the `src` folder. To add pages, add a new fo
 
 Core logic for each component should be written in the `src/components` folder and then imported in pages as needed.
 
-## connecting to front end
+## Connecting to backend
 
-the front end makes request to the backend api and expects it at /api on localhost port 8081
+The frontend makes requests to the backend api and expects it at /api on localhost port 8081.
 
 ## setting env variables for the UI
 

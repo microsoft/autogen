@@ -31,45 +31,47 @@ Project Structure:
 
 There are two ways to install AutoGen Studio - from PyPi or from source. We **recommend installing from PyPi** unless you plan to modify the source code.
 
-### Install from PyPi
+### Install from PyPi (Recommended)
 
-  We recommend using a virtual environment (e.g., conda) to avoid conflicts with existing Python packages. With Python 3.10 or newer active in your virtual environment, use pip to install AutoGen Studio:
+We recommend using a virtual environment (e.g., conda) to avoid conflicts with existing Python packages. With Python 3.10 or newer active in your virtual environment, use pip to install AutoGen Studio:
 
-  ```bash
-  pip install autogenstudio
-  ```
+```bash
+pip install -U autogenstudio
+```
 
 ### Install from Source
 
-  _Note: This approach requires some familiarity with building interfaces in React._
+_Note: This approach requires some familiarity with building interfaces in React._
 
-  You have two options for installing from source; manually or using a dev container.
+You have two options for installing from source: manually or using a dev container.
 
 #### A) Install from source manually
 
-  1. Ensure you have Python 3.10+ and Node.js (version above 14.15.0) installed.
-  2. Clone the AutoGen Studio repository and install its Python dependencies using `pip install -e .`
-  3. Navigate to the `python/packages/autogen-studio/frontend` directory, install the dependencies, and build the UI:
-    ```bash
-    npm install -g gatsby-cli
-    npm install --global yarn
-    cd frontend
-    yarn install
-    yarn build
-    # For Windows users, to build the frontend, you may need alternative commands to build the frontend.
-    gatsby clean && rmdir /s /q ..\\autogenstudio\\web\\ui 2>nul & (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenstudio\\web\\ui
-    ```
+1. Ensure you have Python 3.10+ and Node.js (version above 14.15.0) installed.
+2. Clone the AutoGen Studio repository and install its Python dependencies using `pip install -e .`
+3. Navigate to the `python/packages/autogen-studio/frontend` directory, install the dependencies, and build the UI:
 
-#### B)  Install from Source using dev container
+  ```bash
+  npm install -g gatsby-cli
+  npm install --global yarn
+  cd frontend
+  yarn install
+  yarn build
+  # Windows users may need alternative commands to build the frontend:
+  gatsby clean && rmdir /s /q ..\\autogenstudio\\web\\ui 2>nul & (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenstudio\\web\\ui
+  ```
 
-  1. Clone the AutoGen Studio repository.
-  2. In vscode, open to the `python/packages/autogen-studio/` folder.
-  3. Open in Container TODO: describe how
-  4. Build the UI:
-    ```bash
-    cd frontend
-    yarn build
-    ```
+#### B)  Install from Source using a dev container
+
+1. Clone the AutoGen Studio repository.
+2. In vscode, open to the `python/packages/autogen-studio/` folder.
+3. Open in Container TODO: describe how
+4. Build the UI:
+
+  ```bash
+  cd frontend
+  yarn build
+  ```
 
 ### Running the Application
 
@@ -79,12 +81,12 @@ Once installed, run the web UI by entering the following in your terminal:
 autogenstudio ui --port 8081
 ```
 
-This will start the application on the specified port. Open your web browser and go to `http://localhost:8081/` to begin using AutoGen Studio.
+This command will start the application on the specified port. Open your web browser and go to <http://localhost:8081/> to use AutoGen Studio.
 
 AutoGen Studio also takes several parameters to customize the application:
 
 - `--host <host>` argument to specify the host address. By default, it is set to `localhost`. Y
-- `--appdir <appdir>` argument to specify the directory where the app files (e.g., database and generated user files) are stored. By default, it is set to the a `.autogenstudio` directory in the user's home directory.
+- `--appdir <appdir>` argument to specify the directory where the app files (e.g., database and generated user files) are stored. By default, it is set to the `.autogenstudio` directory in the user's home directory.
 - `--port <port>` argument to specify the port number. By default, it is set to `8080`.
 - `--reload` argument to enable auto-reloading of the server when changes are made to the code. By default, it is set to `False`.
 - `--database-uri` argument to specify the database URI. Example values include `sqlite:///database.sqlite` for SQLite and `postgresql+psycopg://user:password@localhost/dbname` for PostgreSQL. If this is not specified, the database URIL defaults to a `database.sqlite` file in the `--appdir` directory.
@@ -92,7 +94,7 @@ AutoGen Studio also takes several parameters to customize the application:
 
 Now that you have AutoGen Studio installed and running, you are ready to explore its capabilities, including defining and modifying agent workflows, interacting with agents and sessions, and expanding agent skills.
 
-#### Local front end development server
+#### Local frontend development server
 
 See `./frontend/README.md`
 
