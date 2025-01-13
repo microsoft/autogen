@@ -64,7 +64,7 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
 
         import asyncio
         from autogen_ext.models.openai import OpenAIChatCompletionClient
-        from autogen_agentchat.messages import TextMessage
+        from autogen_agentchat.ui import Console
         from autogen_ext.tools.graphrag import GlobalSearchTool
         from autogen_agentchat.agents import AssistantAgent
 
@@ -93,11 +93,7 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
 
             # Run a sample query
             query = "What is the overall sentiment of the community reports?"
-            response_stream = assistant_agent.run_stream(task=query)
-
-            async for msg in response_stream:
-                if isinstance(msg, TextMessage) and hasattr(msg, "content"):
-                    print(f"Agent response: {msg.content}")
+            await Console(assistant_agent.run_stream(task=query))
 
 
         if __name__ == "__main__":

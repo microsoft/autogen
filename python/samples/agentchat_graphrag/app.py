@@ -4,13 +4,12 @@ import json
 import logging
 from typing import Any, Dict
 from autogen_agentchat.messages import TextMessage
+from autogen_agentchat.ui import Console
 from autogen_ext.tools.graphrag import (
     GlobalSearchTool,
     LocalSearchTool,
 )
 from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.conditions import TextMentionTermination, MaxMessageTermination
-from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_core.models import ChatCompletionClient
 
 
@@ -41,27 +40,18 @@ async def main(model_config: Dict[str, Any]) -> None:
         )
     )
 
-    # Set up the team
-    termination = TextMentionTermination("TERMINATE") | MaxMessageTermination(10)
-    team = RoundRobinGroupChat(
-        participants=[assistant_agent],
-        termination_condition=termination
-    )
 
     # Run a sample query
     query = "What does the station-master says about Dr. Becher?"
     print(f"\nQuery: {query}")
     
-    response_stream = team.run_stream(task=query)
-    async for msg in response_stream:
-        if isinstance(msg, TextMessage) and hasattr(msg, "content"):
-            print(f"\nAgent response: {msg.content}")
+    await Console(assistant_agent.run_stream(task=query))
+
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a GraphRAG search with an agent.")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging.")
-    # See agentchat_chainlit/model_config_template.json for model_config.json
     parser.add_argument(
         "--model-config", type=str, help="Path to the model configuration file.", default="model_config.json"
     )

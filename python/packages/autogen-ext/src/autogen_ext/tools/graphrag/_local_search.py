@@ -64,7 +64,7 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
 
         import asyncio
         from autogen_ext.models.openai import OpenAIChatCompletionClient
-        from autogen_agentchat.messages import TextMessage
+        from autogen_agentchat.ui import Console
         from autogen_ext.tools.graphrag import LocalSearchTool
         from autogen_agentchat.agents import AssistantAgent
 
@@ -93,10 +93,7 @@ class LocalSearchTool(BaseTool[LocalSearchToolArgs, LocalSearchToolReturn]):
 
             # Run a sample query
             query = "What does the station-master say about Dr. Becher?"
-            response_stream = assistant_agent.run_stream(task=query)
-            async for msg in response_stream:
-                if isinstance(msg, TextMessage) and hasattr(msg, "content"):
-                    print(f"Agent response: {msg.content}")
+            await Console(assistant_agent.run_stream(task=query))
 
 
         if __name__ == "__main__":
