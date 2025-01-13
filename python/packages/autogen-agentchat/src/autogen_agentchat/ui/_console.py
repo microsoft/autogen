@@ -26,18 +26,23 @@ async def Console(
     stream: AsyncGenerator[AgentEvent | ChatMessage | T, None],
     *,
     no_inline_images: bool = False,
-    output_stats: bool = True,
+    output_stats: bool = False,
 ) -> T:
     """
     Consumes the message stream from :meth:`~autogen_agentchat.base.TaskRunner.run_stream`
     or :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream` and renders the messages to the console.
     Returns the last processed TaskResult or Response.
 
+    .. note::
+
+        `output_stats` is experimental and the stats may not be accurate.
+        It will be improved in future releases.
+
     Args:
         stream (AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None] | AsyncGenerator[AgentEvent | ChatMessage | Response, None]): Message stream to render.
             This can be from :meth:`~autogen_agentchat.base.TaskRunner.run_stream` or :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream`.
         no_inline_images (bool, optional): If terminal is iTerm2 will render images inline. Use this to disable this behavior. Defaults to False.
-        output_stats (bool, optional): If True, will output a summary of the messages and inline token usage info. Defaults to True.
+        output_stats (bool, optional): (Experimental) If True, will output a summary of the messages and inline token usage info. Defaults to False.
 
     Returns:
         last_processed: A :class:`~autogen_agentchat.base.TaskResult` if the stream is from :meth:`~autogen_agentchat.base.TaskRunner.run_stream`
