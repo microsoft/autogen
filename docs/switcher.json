@@ -1,6 +1,6 @@
 [
     {
-        "name": "0.4.0 (stable)",
+        "name": "0.4.1 (stable)",
         "version": "stable",
         "url": "/autogen/stable/",
         "preferred": true
@@ -14,6 +14,11 @@
         "name": "0.2",
         "version": "0.2",
         "url": "/autogen/0.2/"
+    },
+    {
+        "name": "0.4.0",
+        "version": "0.4.0",
+        "url": "/autogen/0.4.0/"
     },
     {
         "name": "0.4.0.dev0",
