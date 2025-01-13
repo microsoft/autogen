@@ -477,7 +477,7 @@ dev = [
 
 [[package]]
 name = "autogen-ext"
-version = "0.4.0"
+version = "0.4.1"
 source = { editable = "packages/autogen-ext" }
 dependencies = [
     { name = "autogen-core" },
