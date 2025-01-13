@@ -16,7 +16,7 @@ class TokenProviderConfig(BaseModel):
 class AzureTokenProvider(Component[TokenProviderConfig]):
     component_type = "token_provider"
     component_config_schema = TokenProviderConfig
-    component_provider_override = "autogen_ext.models.openai.AzureTokenProvider"
+    component_provider_override = "autogen_ext.auth.azure.AzureTokenProvider"
 
     def __init__(self, credential: TokenProvider, *scopes: str):
         self.credential = credential
