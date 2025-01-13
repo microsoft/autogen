@@ -21,33 +21,32 @@ Local Search: Local search focuses on a specific subset of the data, such as a p
 
 By combining these search strategies, GraphRAG ensures comprehensive and context-sensitive responses from the multi-agent team.
 
+
 ## Setup
 
 To set up the project, follow these steps:
 
-1. Download the plain text version of "The Adventures of Sherlock Holmes" from [Project Gutenberg](https://www.gutenberg.org/ebooks/1661) and save it to `data/input/sherlock_book.txt`.
-
-2. Adjust the `settings.yaml` file with your LLM and embedding configuration. Ensure that the API keys and other necessary details are correctly set.
-
-3. Replace the LLM client and credentials in `app.py` as needed to match your setup.
-
-4. Run the `graphrag prompt-tune` command to tune the prompts. This step adjusts the prompts to better fit the context of the downloaded text.
-
-5. After tuning, run the `graphrag index` command to index the data. This process will create the necessary data structures for performing searches.
-
-The outputs will be located in the `data/output/` directory.
-
-## Running the Sample
-
-The sample is currently configured to use Azure OpenAI
-
-2. Install the required Python packages by running:
+1. Install the required Python packages by running:
 
 ```bash
 pip install -r requirements.txt
 ```
 
-3. Run the sample by executing the following command:
+2. Download the plain text version of "The Adventures of Sherlock Holmes" from [Project Gutenberg](https://www.gutenberg.org/ebooks/1661) and save it to `data/input/sherlock_book.txt`.
+
+3. Adjust the `settings.yaml` file with your LLM and embedding configuration. Ensure that the API keys and other necessary details are correctly set.
+
+4. Create a model_config.json file with the Assistant model configuration. Use the `model_config_template.json` file as a reference.
+
+5. Run the `graphrag prompt-tune` command to tune the prompts. This step adjusts the prompts to better fit the context of the downloaded text.
+
+6. After tuning, run the `graphrag index` command to index the data. This process will create the necessary data structures for performing searches. The indexing may take some time, at least 10 minutes on most machines, depending on the connection to the model API.
+
+The outputs will be located in the `data/output/` directory.
+
+## Running the Sample
+
+Run the sample by executing the following command:
 
 ```bash
 python app.py
