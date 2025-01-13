@@ -327,6 +327,7 @@ def assert_valid_name(name: str) -> str:
         raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
     return name
 
+
 def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
     if stop_reason is None:
         return "unknown"
