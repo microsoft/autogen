@@ -58,28 +58,8 @@ semantic-kernel-google = [
     "semantic-kernel[google]>=1.17.1",
 ]
 
-semantic-kernel-azure = [
-    "semantic-kernel[azure]>=1.17.1",
-]
-
-semantic-kernel-mongo = [
-    "semantic-kernel[mongo]>=1.17.1",
-]
-
-semantic-kernel-chroma = [
-    "semantic-kernel[chroma]>=1.17.1",
-]
-
 semantic-kernel-hugging-face = [
     "semantic-kernel[hugging_face]>=1.17.1",
-]
-
-semantic-kernel-notebooks = [
-    "semantic-kernel[notebooks]>=1.17.1",
-]
-
-semantic-kernel-milvus = [
-    "semantic-kernel[milvus]>=1.17.1",
 ]
 
 semantic-kernel-mistralai = [
@@ -98,30 +78,6 @@ semantic-kernel-anthropic = [
     "semantic-kernel[anthropic]>=1.17.1",
 ]
 
-semantic-kernel-pinecone = [
-    "semantic-kernel[pinecone]>=1.17.1",
-]
-
-semantic-kernel-postgres = [
-    "semantic-kernel[postgres]>=1.17.1",
-]
-
-semantic-kernel-qdrant = [
-    "semantic-kernel[qdrant]>=1.17.1",
-]
-
-semantic-kernel-redis = [
-    "semantic-kernel[redis]>=1.17.1",
-]
-
-semantic-kernel-usearch = [
-    "semantic-kernel[usearch]>=1.17.1",
-]
-
-semantic-kernel-weaviate = [
-    "semantic-kernel[weaviate]>=1.17.1",
-]
-
 semantic-kernel-pandas = [
     "semantic-kernel[pandas]>=1.17.1",
 ]
@@ -135,7 +91,7 @@ semantic-kernel-dapr = [
 ]
 
 semantic-kernel-all = [
-    "semantic-kernel[azure,chroma,google,hugging_face,mongo,notebooks,milvus,mistralai,ollama,onnx,anthropic,pinecone,postgres,qdrant,redis,usearch,weaviate,pandas,aws,dapr]>=1.17.1",
+    "semantic-kernel[google,hugging_face,mistralai,ollama,onnx,anthropic,usearch,pandas,aws,dapr]>=1.17.1",
 ]
 
 [tool.hatch.build.targets.wheel]
