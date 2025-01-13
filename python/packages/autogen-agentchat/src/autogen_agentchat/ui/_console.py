@@ -1,14 +1,17 @@
+import asyncio
 import os
 import sys
 import time
-from typing import AsyncGenerator, List, Optional, TypeVar, cast
+from inspect import iscoroutinefunction
+from typing import AsyncGenerator, Awaitable, Callable, Dict, List, Optional, TypeVar, Union, cast
 
 from aioconsole import aprint  # type: ignore
-from autogen_core import Image
+from autogen_core import CancellationToken, Image
 from autogen_core.models import RequestUsage
 
+from autogen_agentchat.agents import UserProxyAgent
 from autogen_agentchat.base import Response, TaskResult
-from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage
+from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage, UserInputRequestedEvent
 
 
 def _is_running_in_iterm() -> bool:
@@ -19,7 +22,52 @@ def _is_output_a_tty() -> bool:
     return sys.stdout.isatty()
 
 
+SyncInputFunc = Callable[[str], str]
+AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
+InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
+
 T = TypeVar("T", bound=TaskResult | Response)
+
+
+class UserInputManager:
+    def __init__(self, callback: InputFuncType):
+        self.input_events: Dict[str, asyncio.Event] = {}
+        self.callback = callback
+
+    def get_wrapped_callback(self) -> AsyncInputFunc:
+        async def user_input_func_wrapper(prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
+            # Lookup the event for the prompt, if it exists wait for it.
+            # If it doesn't exist, create it and store it.
+            # Get request ID:
+            request_id = UserProxyAgent.InputRequestContext.request_id()
+            if request_id in self.input_events:
+                event = self.input_events[request_id]
+            else:
+                event = asyncio.Event()
+                self.input_events[request_id] = event
+
+            await event.wait()
+
+            del self.input_events[request_id]
+
+            if iscoroutinefunction(self.callback):
+                # Cast to AsyncInputFunc for proper typing
+                async_func = cast(AsyncInputFunc, self.callback)
+                return await async_func(prompt, cancellation_token)
+            else:
+                # Cast to SyncInputFunc for proper typing
+                sync_func = cast(SyncInputFunc, self.callback)
+                loop = asyncio.get_event_loop()
+                return await loop.run_in_executor(None, sync_func, prompt)
+
+        return user_input_func_wrapper
+
+    def notify_event_received(self, request_id: str) -> None:
+        if request_id in self.input_events:
+            self.input_events[request_id].set()
+        else:
+            event = asyncio.Event()
+            self.input_events[request_id] = event
 
 
 async def Console(
@@ -27,6 +75,7 @@ async def Console(
     *,
     no_inline_images: bool = False,
     output_stats: bool = False,
+    user_input_manager: UserInputManager | None = None,
 ) -> T:
     """
     Consumes the message stream from :meth:`~autogen_agentchat.base.TaskRunner.run_stream`
@@ -67,6 +116,7 @@ async def Console(
                     f"Duration: {duration:.2f} seconds\n"
                 )
                 await aprint(output, end="")
+
             # mypy ignore
             last_processed = message  # type: ignore
 
@@ -96,9 +146,13 @@ async def Console(
                     f"Duration: {duration:.2f} seconds\n"
                 )
                 await aprint(output, end="")
+
             # mypy ignore
             last_processed = message  # type: ignore
-
+        # We don't want to print UserInputRequestedEvent messages, we just use them to signal the user input event.
+        elif isinstance(message, UserInputRequestedEvent):
+            if user_input_manager is not None:
+                user_input_manager.notify_event_received(message.request_id)
         else:
             # Cast required for mypy to be happy
             message = cast(AgentEvent | ChatMessage, message)  # type: ignore
