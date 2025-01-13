@@ -3,7 +3,6 @@ import asyncio
 import json
 import logging
 from typing import Any, Dict
-from autogen_agentchat.messages import TextMessage
 from autogen_agentchat.ui import Console
 from autogen_ext.tools.graphrag import (
     GlobalSearchTool,
