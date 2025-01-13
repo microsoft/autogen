@@ -30,7 +30,7 @@ Project Structure:
 
 There are two ways to install AutoGen Studio - from PyPi or from source. We **recommend installing from PyPi** unless you plan to modify the source code.
 
-1.  **Install from PyPi**
+#### 1.  Install from PyPi
 
     We recommend using a virtual environment (e.g., conda) to avoid conflicts with existing Python packages. With Python 3.10 or newer active in your virtual environment, use pip to install AutoGen Studio:
 
@@ -38,7 +38,7 @@ There are two ways to install AutoGen Studio - from PyPi or from source. We **re
     pip install autogenstudio
     ```
 
-2.  **Install from Source**
+#### 2.  Install from Source
 
     > Note: This approach requires some familiarity with building interfaces in React.
 
@@ -57,6 +57,30 @@ There are two ways to install AutoGen Studio - from PyPi or from source. We **re
       npm install --global yarn
       cd frontend
       yarn install
+      yarn build
+      ```
+
+For Windows users, to build the frontend, you may need alternative commands to build the frontend.
+
+```bash
+
+  gatsby clean && rmdir /s /q ..\\autogenstudio\\web\\ui 2>nul & (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenstudio\\web\\ui
+
+```
+
+#### 3.  Install from Source using dev container
+
+    > Note: This approach requires some familiarity with building interfaces in React.
+
+    If you prefer to install from source, ensure you have Python 3.10+ and Node.js (version above 14.15.0) installed. Here's how you get started:
+
+    1. Clone the AutoGen Studio repository.
+    2. Navigate to the `python/packages/autogen-studio/` directory
+    3. Open in devcontainer
+    4. Build the UI:
+
+      ```bash
+      cd frontend
       yarn build
       ```
 
