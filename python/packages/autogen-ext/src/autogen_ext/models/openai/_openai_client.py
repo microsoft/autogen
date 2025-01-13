@@ -30,6 +30,7 @@ from autogen_core import (
     Image,
     MessageHandlerContext,
 )
+from autogen_core.models import FinishReasons
 from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
     AssistantMessage,
@@ -325,6 +326,21 @@ def assert_valid_name(name: str) -> str:
     if len(name) > 64:
         raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
     return name
+
+
+def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
+    if stop_reason is None:
+        return "unknown"
+
+    # Convert to lower case
+    stop_reason = stop_reason.lower()
+
+    KNOWN_STOP_MAPPINGS: Dict[str, FinishReasons] = {
+        "end_turn": "stop",
+        "tool_calls": "function_calls",
+    }
+
+    return KNOWN_STOP_MAPPINGS.get(stop_reason, "unknown")
 
 
 class BaseOpenAIChatCompletionClient(ChatCompletionClient):
@@ -747,8 +763,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         else:
             prompt_tokens = 0
 
-        if stop_reason is None:
-            raise ValueError("No stop reason found")
+        if stop_reason == "function_call":
+            raise ValueError("Function calls are not supported in this context")
 
         content: Union[str, List[FunctionCall]]
         if len(content_deltas) > 1:
@@ -770,13 +786,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
         )
-        if stop_reason == "function_call":
-            raise ValueError("Function calls are not supported in this context")
-        if stop_reason == "tool_calls":
-            stop_reason = "function_calls"
 
         result = CreateResult(
-            finish_reason=stop_reason,  # type: ignore
+            finish_reason=normalize_stop_reason(stop_reason),
             content=content,
             usage=usage,
             cached=False,

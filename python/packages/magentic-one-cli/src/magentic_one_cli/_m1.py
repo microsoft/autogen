@@ -1,13 +1,23 @@
 import argparse
 import asyncio
 import warnings
+from typing import Optional
 
-from autogen_agentchat.ui import Console
+from aioconsole import ainput  # type: ignore
+from autogen_agentchat.ui import Console, UserInputManager
+from autogen_core import CancellationToken
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.teams.magentic_one import MagenticOne
 
 # Suppress warnings about the requests.Session() not being closed
 warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
+
+
+async def cancellable_input(prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
+    task: asyncio.Task[str] = asyncio.create_task(ainput(prompt))  # type: ignore
+    if cancellation_token is not None:
+        cancellation_token.link_future(task)
+    return await task
 
 
 def main() -> None:
@@ -37,9 +47,10 @@ def main() -> None:
     args = parser.parse_args()
 
     async def run_task(task: str, hil_mode: bool) -> None:
+        input_manager = UserInputManager(callback=cancellable_input)
         client = OpenAIChatCompletionClient(model="gpt-4o")
-        m1 = MagenticOne(client=client, hil_mode=hil_mode)
-        await Console(m1.run_stream(task=task), output_stats=False)
+        m1 = MagenticOne(client=client, hil_mode=hil_mode, input_func=input_manager.get_wrapped_callback())
+        await Console(m1.run_stream(task=task), output_stats=False, user_input_manager=input_manager)
 
     task = args.task[0]
     asyncio.run(run_task(task, not args.no_hil))

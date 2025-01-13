@@ -84,7 +84,7 @@ Built on AgentChat.
 
 ```bash
 pip install autogenstudio
-autogenstudio ui --port 8080
+autogenstudio ui --port 8080 --appdir ./myapp
 ```
 
 +++
@@ -109,7 +109,7 @@ Get Started
 
 </div>
 A programming framework for building conversational single and multi-agent applications.
-Built on Core.
+Built on Core. Requires Python 3.10+.
 
 ```python
 # pip install -U "autogen-agentchat" "autogen-ext[openai]"
@@ -119,7 +119,7 @@ from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 async def main() -> None:
     agent = AssistantAgent("assistant", OpenAIChatCompletionClient(model="gpt-4o"))
-    print(agent.run(task="Say 'Hello World!'"))
+    print(await agent.run(task="Say 'Hello World!'"))
 
 asyncio.run(main())
 ```
