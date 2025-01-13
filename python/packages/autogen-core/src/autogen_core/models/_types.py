@@ -52,7 +52,7 @@ class RequestUsage:
     completion_tokens: int
 
 
-FinishReasons = Literal["stop", "length", "function_calls", "content_filter"]
+FinishReasons = Literal["stop", "length", "function_calls", "content_filter", "unknown"]
 
 
 @dataclass
