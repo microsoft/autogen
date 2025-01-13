@@ -17,8 +17,12 @@ project = "autogen_core"
 copyright = "2024, Microsoft"
 author = "Microsoft"
 version = "0.4"
-release = autogen_core.__version__
 
+release_override = os.getenv("SPHINX_RELEASE_OVERRIDE")
+if release_override is None or release_override == "":
+    release = autogen_core.__version__
+else:
+    release = release_override
 
 sys.path.append(str(Path(".").resolve()))
 
@@ -117,7 +121,7 @@ html_theme_options = {
 
     "footer_start": ["copyright"],
     "footer_center": ["footer-middle-links"],
-    "footer_end": ["theme-version"],
+    "footer_end": ["theme-version", "version-banner-override"],
     "pygments_light_style": "xcode",
     "pygments_dark_style": "monokai",
     "navbar_start": ["navbar-logo", "version-switcher"],
@@ -131,7 +135,7 @@ html_theme_options = {
     ]
 }
 
-html_js_files = ["custom-icon.js"]
+html_js_files = ["custom-icon.js", "banner-override.js"]
 html_sidebars = {
     "packages/index": [],
     "user-guide/core-user-guide/**": ["sidebar-nav-bs-core"],

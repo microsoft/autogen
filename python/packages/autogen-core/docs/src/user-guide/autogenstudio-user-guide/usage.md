@@ -7,51 +7,103 @@ myst:
 
 # Usage
 
-The expected usage behavior is that developers use the provided Team Builder interface to to define teams - create agents, attach tools and models to agents, and define termination conditions. Once the team is defined, users can run the team in the Playground to interact with the team to accomplish tasks.
+AutoGen Studio provides a Team Builder interface where developers can define multiple components and behaviors. Users can create teams, add agents to teams, attach tools and models to agents, and define team termination conditions.
+After defining a team, users can test it in the Playground view to accomplish various tasks through direct interaction.
 
 ![AutoGen Studio](https://media.githubusercontent.com/media/microsoft/autogen/refs/heads/main/python/packages/autogen-studio/docs/ags_screen.png)
 
+## Declarative Specification of Componenents
+
+AutoGen Studio uses a declarative specification system to build its GUI components. At runtime, the AGS API loads these specifications into AutoGen AgentChat objects to address tasks.
+
+Here's an example of a declarative team specification:
+
+```json
+{
+  "version": "1.0.0",
+  "component_type": "team",
+  "name": "sample_team",
+  "participants": [
+    {
+      "component_type": "agent",
+      "name": "assistant_agent",
+      "agent_type": "AssistantAgent",
+      "system_message": "You are a helpful assistant. Solve tasks carefully. When done respond with TERMINATE",
+      "model_client": {
+        "component_type": "model",
+        "model": "gpt-4o-2024-08-06",
+        "model_type": "OpenAIChatCompletionClient"
+      },
+      "tools": []
+    }
+  ],
+  "team_type": "RoundRobinGroupChat",
+  "termination_condition": {
+    "component_type": "termination",
+    "termination_type": "MaxMessageTermination",
+    "max_messages": 3
+  }
+}
+```
+
+This example shows a team with a single agent, using the `RoundRobinGroupChat` type and a `MaxMessageTermination` condition limited to 3 messages.
+
+```{note}
+Work is currently in progress to make the entire AgentChat API declarative. This will allow all agentchat components to be `dumped` into the same declarative specification format used by AGS.
+```
+
 ## Building an Agent Team
 
-AutoGen Studio is tied very closely with all of the component abstractions provided by AutoGen AgentChat. This includes - {py:class}`~autogen_agentchat.teams`, {py:class}`~autogen_agentchat.agents`, {py:class}`~autogen_core.models`, {py:class}`~autogen_core.tools`, termination {py:class}`~autogen_agentchat.conditions`.
+<div style="padding:58.13% 0 0 0;position:relative; border-radius:5px; border-bottom:10px"><iframe src="https://player.vimeo.com/video/1043133833?badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="AutoGen Studio v0.4x - Drag and Drop Interface"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>
 
-Users can define these components in the Team Builder interface either via a declarative specification or by dragging and dropping components from a component library.
+<br/>
+
+AutoGen Studio integrates closely with all component abstractions provided by AutoGen AgentChat, including {py:class}`~autogen_agentchat.teams`, {py:class}`~autogen_agentchat.agents`, {py:class}`~autogen_core.models`, {py:class}`~autogen_core.tools`, and termination {py:class}`~autogen_agentchat.conditions`.
+
+The Team Builder interface allows users to define components through either declarative specification or drag-and-drop functionality:
+
+Team Builder Operations:
+
+- Create a new team
+  - Edit Team JSON directly (toggle visual builder mode off) or
+  - Use the visual builder, drag-and-drop components from the library:
+    - Teams: Add agents and termination conditions
+    - Agents: Add models and tools
+- Save team configurations
+
+Component Library Management:
+
+- Create new galleries via Gallery -> New Gallery
+- Edit gallery JSON as needed
+- Set a **default** gallery (click pin icon in sidebar) to make components available in Team Builder
 
 ## Interactively Running Teams
 
-AutoGen Studio Playground allows users to interactively test teams on tasks and review resulting artifacts (such as images, code, and text).
+The AutoGen Studio Playground enables users to:
 
-Users can also review the “inner monologue” of team as they address tasks, and view profiling information such as costs associated with the run (such as number of turns, number of tokens etc.), and agent actions (such as whether tools were called and the outcomes of code execution).
+- Test teams on specific tasks
+- Review generated artifacts (images, code, text)
+- Monitor team "inner monologue" during task execution
+- View performance metrics (turn count, token usage)
+- Track agent actions (tool usage, code execution results)
 
 ## Importing and Reusing Team Configurations
 
-AutoGen Studio provides a Gallery view which provides a built-in default gallery. A Gallery is simply is a collection of components - teams, agents, models tools etc. Furthermore, users can import components from 3rd party community sources either by providing a URL to a JSON Gallery spec or pasting in the gallery JSON. This allows users to reuse and share team configurations with others.
+AutoGen Studio's Gallery view offers a default component collection and supports importing external configurations:
 
-- Gallery -> New Gallery -> Import
-- Set as default gallery (in side bar, by clicking pin icon)
-- Reuse components in Team Builder. Team Builder -> Sidebar -> From Gallery
+- Create/Import galleries through Gallery -> New Gallery -> Import
+- Set default galleries via sidebar pin icon
+- Access components in Team Builder through Sidebar -> From Gallery
 
-### Using AutoGen Studio Teams in a Python Application
+### Python Integration
 
-An exported team can be easily integrated into any Python application using the `TeamManager` class with just two lines of code. Underneath, the `TeamManager` rehydrates the team specification into AutoGen AgentChat agents that are subsequently used to address tasks.
+Team configurations can be integrated into Python applications using the `TeamManager` class:
 
 ```python
-
 from autogenstudio.teammanager import TeamManager
 
 tm = TeamManager()
-result_stream =  tm.run(task="What is the weather in New York?", team_config="team.json") # or wm.run_stream(..)
-
+result_stream = tm.run(task="What is the weather in New York?", team_config="team.json") # or wm.run_stream(..)
 ```
 
-To export a team configuration, click on the export button in the Team Builder interface. This will generate a JSON file that can be used to rehydrate the team in a Python application.
-
-<!-- ### Deploying AutoGen Studio Teams as APIs
-
-The team can be launched as an API endpoint from the command line using the autogenstudio commandline tool.
-
-```bash
-autogenstudio serve --team=team.json --port=5000
-```
-
-Similarly, the team launch command above can be wrapped into a Dockerfile that can be deployed on cloud services like Azure Container Apps or Azure Web Apps. -->
+To export team configurations, use the export button in Team Builder to generate a JSON file for Python application use.

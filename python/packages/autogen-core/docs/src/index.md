@@ -84,7 +84,7 @@ Built on AgentChat.
 
 ```bash
 pip install autogenstudio
-autogenstudio ui --port 8080
+autogenstudio ui --port 8080 --appdir ./myapp
 ```
 
 +++
@@ -105,25 +105,22 @@ Get Started
 <div class="sd-card-title sd-font-weight-bold docutils">
 
 {fas}`people-group;pst-color-primary` AgentChat
-[![PyPi autogen-agentchat](https://img.shields.io/badge/PyPi-autogen--agentchat-blue?logo=pypi)](https://pypi.org/project/autogen-agentchat/0.4.0.dev13/)
+[![PyPi autogen-agentchat](https://img.shields.io/badge/PyPi-autogen--agentchat-blue?logo=pypi)](https://pypi.org/project/autogen-agentchat/)
 
 </div>
 A programming framework for building conversational single and multi-agent applications.
-Built on Core.
+Built on Core. Requires Python 3.10+.
 
 ```python
-# pip install "autogen-agentchat==0.4.0.dev13" "autogen-ext[openai]==0.4.0.dev13" "yfinance" "matplotlib"
+# pip install -U "autogen-agentchat" "autogen-ext[openai]"
 import asyncio
 from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.ui import Console
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogen_ext.tools.code_execution import PythonCodeExecutionTool
 
 async def main() -> None:
-    tool = PythonCodeExecutionTool(LocalCommandLineCodeExecutor(work_dir="coding"))
-    agent = AssistantAgent("assistant", OpenAIChatCompletionClient(model="gpt-4o"), tools=[tool], reflect_on_tool_use=True)
-    await Console(agent.run_stream(task="Create a plot of MSFT stock prices in 2024 and save it to a file. Use yfinance and matplotlib."))
+    agent = AssistantAgent("assistant", OpenAIChatCompletionClient(model="gpt-4o"))
+    print(await agent.run(task="Say 'Hello World!'"))
+
 asyncio.run(main())
 ```
 
@@ -139,7 +136,7 @@ Get Started
 
 :::
 
-:::{grid-item-card} {fas}`cube;pst-color-primary` Core [![PyPi autogen-core](https://img.shields.io/badge/PyPi-autogen--core-blue?logo=pypi)](https://pypi.org/project/autogen-core/0.4.0.dev13/)
+:::{grid-item-card} {fas}`cube;pst-color-primary` Core [![PyPi autogen-core](https://img.shields.io/badge/PyPi-autogen--core-blue?logo=pypi)](https://pypi.org/project/autogen-core/)
 :shadow: none
 :margin: 2 0 0 0
 :columns: 12 12 12 12
@@ -162,7 +159,7 @@ Get Started
 
 :::
 
-:::{grid-item-card} {fas}`puzzle-piece;pst-color-primary` Extensions [![PyPi autogen-ext](https://img.shields.io/badge/PyPi-autogen--ext-blue?logo=pypi)](https://pypi.org/project/autogen-ext/0.4.0.dev13/)
+:::{grid-item-card} {fas}`puzzle-piece;pst-color-primary` Extensions [![PyPi autogen-ext](https://img.shields.io/badge/PyPi-autogen--ext-blue?logo=pypi)](https://pypi.org/project/autogen-ext/)
 :shadow: none
 :margin: 2 0 0 0
 :columns: 12 12 12 12

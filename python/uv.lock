@@ -347,7 +347,7 @@ wheels = [
 
 [[package]]
 name = "autogen-agentchat"
-version = "0.4.0.dev13"
+version = "0.4.0"
 source = { editable = "packages/autogen-agentchat" }
 dependencies = [
     { name = "aioconsole" },
@@ -362,7 +362,7 @@ requires-dist = [
 
 [[package]]
 name = "autogen-core"
-version = "0.4.0.dev13"
+version = "0.4.0"
 source = { editable = "packages/autogen-core" }
 dependencies = [
     { name = "jsonref" },
@@ -477,7 +477,7 @@ dev = [
 
 [[package]]
 name = "autogen-ext"
-version = "0.4.0.dev13"
+version = "0.4.0"
 source = { editable = "packages/autogen-ext" }
 dependencies = [
     { name = "autogen-core" },
@@ -652,7 +652,7 @@ requires-dist = [
 
 [[package]]
 name = "autogenstudio"
-version = "0.4.0.dev41"
+version = "0.4.0"
 source = { editable = "packages/autogen-studio" }
 dependencies = [
     { name = "aiofiles" },
@@ -660,6 +660,7 @@ dependencies = [
     { name = "autogen-agentchat" },
     { name = "autogen-core" },
     { name = "autogen-ext", extra = ["magentic-one"] },
+    { name = "azure-identity" },
     { name = "fastapi" },
     { name = "loguru" },
     { name = "numpy" },
@@ -690,6 +691,7 @@ requires-dist = [
     { name = "autogen-agentchat", editable = "packages/autogen-agentchat" },
     { name = "autogen-core", editable = "packages/autogen-core" },
     { name = "autogen-ext", extras = ["magentic-one"], editable = "packages/autogen-ext" },
+    { name = "azure-identity" },
     { name = "fastapi" },
     { name = "fastapi", marker = "extra == 'web'" },
     { name = "loguru" },
@@ -2468,7 +2470,7 @@ wheels = [
 
 [[package]]
 name = "magentic-one-cli"
-version = "0.1.0"
+version = "0.2.0"
 source = { editable = "packages/magentic-one-cli" }
 dependencies = [
     { name = "autogen-agentchat" },
