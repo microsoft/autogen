@@ -12,35 +12,34 @@
 			"nvmVersion": "latest"
 		}
 	},
-
 	"portsAttributes": {
 		"8000": {
 			"label": "Frontend develop"
 		},
 		"8081": {
 			"label": "AutoGen Studio"
+		},
+		"9000": {
+			"label": "Frontend serve (production)"
 		}
 	},
 
+	// Use 'postCreateCommand' to install dependencies after the container is created.
+	"postCreateCommand": "bash .devcontainer/post-create-command.sh",
+
 	// Performance optimizations for Windows
 	"mounts": [
-    "source=${localWorkspaceFolderBasename}-node_modules,target=/workspace/frontend/node_modules,type=volume",
-    "source=${localWorkspaceFolderBasename}-yarn-cache,target=/usr/local/share/.cache/yarn,type=volume"
+	"source=node_modules,target=/workspace/frontend/node_modules,type=volume",
+	"source=yarn-cache,target=/usr/local/share/.cache/yarn,type=volume"
 	],
+	// Add workspaceMount for better performance
+	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind",
+	"workspaceFolder": "/workspace",
+
 	"containerEnv": {
         "npm_config_cache": "/tmp/.npm",
         "YARN_CACHE_FOLDER": "/tmp/.yarn-cache",
         "PYTHONUNBUFFERED": "1",
-        "PIP_NO_CACHE_DIR": "false",
-		// Use this to enable Gatsby polling when Docker is used
-		"CHOKIDAR_USEPOLLING":"true",
-		// This is used for Hot Module + Reloading with Gatsby
-		"INTERNAL_STATUS_PORT":"5001"
-	},
-	// Add workspaceMount for better performance
-	"workspaceMount": "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached",
-	"workspaceFolder": "/workspace",
-
-	// Use 'postCreateCommand' to install dependencies after the container is created.
-	"postCreateCommand": "mkdir -p frontend/node_modules && sudo chown vscode frontend/node_modules && pip install --upgrade pip gunicorn && pip install -e . && npm install -g gatsby-cli && cd frontend && yarn install --cache-folder /tmp/.yarn-cache"
+        "PIP_NO_CACHE_DIR": "false"
+	}
 }

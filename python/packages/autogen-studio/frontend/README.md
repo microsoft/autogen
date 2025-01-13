@@ -1,17 +1,22 @@
+# AutoGen Studio front end
+
 ## 🚀 Running UI in Dev Mode
 
 Run the UI in dev mode (make changes and see them reflected in the browser with hotreloading):
 
-- yarn install
-- yarn start
+```bash
+yarn install
+yarn start               # local development
+yarn start --host 0.0.0.0  # in container (enables external access)
+```
 
-This should start the server on port 8000.
+This should start the server on [port 8000](http://localhost:8000).
 
 ## Design Elements
 
-- **Gatsby**: The app is created in Gatsby. A guide on bootstrapping a Gatsby app can be found here - https://www.gatsbyjs.com/docs/quick-start/.
+- **Gatsby**: The app is created in Gatsby. A guide on bootstrapping a Gatsby app can be found here - <https://www.gatsbyjs.com/docs/quick-start/>.
   This provides an overview of the project file structure include functionality of files like `gatsby-config.js`, `gatsby-node.js`, `gatsby-browser.js` and `gatsby-ssr.js`.
-- **TailwindCSS**: The app uses TailwindCSS for styling. A guide on using TailwindCSS with Gatsby can be found here - https://tailwindcss.com/docs/guides/gatsby.https://tailwindcss.com/docs/guides/gatsby . This will explain the functionality in tailwind.config.js and postcss.config.js.
+- **TailwindCSS**: The app uses TailwindCSS for styling. A guide on using TailwindCSS with Gatsby can be found here - <https://tailwindcss.com/docs/guides/gatsby.https://tailwindcss.com/docs/guides/gatsby> . This will explain the functionality in tailwind.config.js and postcss.config.js.
 
 ## Modifying the UI, Adding Pages
 
