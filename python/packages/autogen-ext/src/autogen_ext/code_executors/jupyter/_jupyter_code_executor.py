@@ -78,6 +78,10 @@ class JupyterCodeExecutor(CodeExecutor):
             outputs.append(result.output)
             output_files.extend(result.output_files)
 
+            # Stop execution if one code block fails
+            if exit_code != 0:
+                break
+
         return JupyterCodeResult(exit_code=exit_code, output="\n".join(outputs), output_files=output_files)
 
     async def _execute_code_block(
