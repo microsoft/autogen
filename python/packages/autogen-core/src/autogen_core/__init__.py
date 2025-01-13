@@ -21,6 +21,7 @@ from ._component_config import (
     ComponentToConfig,
     ComponentType,
     is_component_class,
+    is_component_instance,
 )
 from ._constants import (
     EVENT_LOGGER_NAME as EVENT_LOGGER_NAME_ALIAS,
@@ -122,6 +123,7 @@ __all__ = [
     "ComponentToConfig",
     "ComponentType",
     "is_component_class",
+    "is_component_instance",
     "DropMessage",
     "InterventionHandler",
     "DefaultInterventionHandler",
