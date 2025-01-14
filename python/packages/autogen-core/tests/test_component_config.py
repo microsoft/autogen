@@ -4,7 +4,7 @@ import json
 from typing import Any, Dict
 
 import pytest
-from autogen_core import Component, ComponentLoader, ComponentModel
+from autogen_core import Component, ComponentBase, ComponentLoader, ComponentModel
 from autogen_core._component_config import _type_to_provider_str  # type: ignore
 from autogen_core.models import ChatCompletionClient
 from autogen_test_utils import MyInnerComponent, MyOuterComponent
@@ -16,7 +16,7 @@ class MyConfig(BaseModel):
     info: str
 
 
-class MyComponent(Component[MyConfig]):
+class MyComponent(ComponentBase[MyConfig], Component[MyConfig]):
     component_config_schema = MyConfig
     component_type = "custom"
 
@@ -95,7 +95,7 @@ def test_cannot_import_locals() -> None:
     class InvalidModelClientConfig(BaseModel):
         info: str
 
-    class MyInvalidModelClient(Component[InvalidModelClientConfig]):
+    class MyInvalidModelClient(ComponentBase[InvalidModelClientConfig], Component[InvalidModelClientConfig]):
         component_config_schema = InvalidModelClientConfig
         component_type = "model"
 
@@ -119,7 +119,7 @@ class InvalidModelClientConfig(BaseModel):
     info: str
 
 
-class MyInvalidModelClient(Component[InvalidModelClientConfig]):
+class MyInvalidModelClient(ComponentBase[InvalidModelClientConfig], Component[InvalidModelClientConfig]):
     component_config_schema = InvalidModelClientConfig
     component_type = "model"
 
@@ -143,7 +143,7 @@ def test_type_error_on_creation() -> None:
 
 with pytest.warns(UserWarning):
 
-    class MyInvalidMissingAttrs(Component[InvalidModelClientConfig]):
+    class MyInvalidMissingAttrs(ComponentBase[InvalidModelClientConfig], Component[InvalidModelClientConfig]):
         def __init__(self, info: str):
             self.info = info
 
@@ -189,7 +189,7 @@ def test_config_optional_values() -> None:
     assert component.__class__ == MyComponent
 
 
-class ConfigProviderOverrided(Component[MyConfig]):
+class ConfigProviderOverrided(ComponentBase[MyConfig], Component[MyConfig]):
     component_provider_override = "InvalidButStillOverridden"
     component_config_schema = MyConfig
     component_type = "custom"
@@ -215,7 +215,7 @@ class MyConfig2(BaseModel):
     info2: str
 
 
-class ComponentNonOneVersion(Component[MyConfig2]):
+class ComponentNonOneVersion(ComponentBase[MyConfig2], Component[MyConfig2]):
     component_config_schema = MyConfig2
     component_version = 2
     component_type = "custom"
@@ -231,7 +231,7 @@ class ComponentNonOneVersion(Component[MyConfig2]):
         return cls(info=config.info2)
 
 
-class ComponentNonOneVersionWithUpgrade(Component[MyConfig2]):
+class ComponentNonOneVersionWithUpgrade(ComponentBase[MyConfig2], Component[MyConfig2]):
     component_config_schema = MyConfig2
     component_version = 2
     component_type = "custom"
