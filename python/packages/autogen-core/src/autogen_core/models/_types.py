@@ -12,6 +12,11 @@ class SystemMessage(BaseModel):
     type: Literal["SystemMessage"] = "SystemMessage"
 
 
+class DeveloperMessage(BaseModel):
+    content: str
+    type: Literal["DeveloperMessage"] = "DeveloperMessage"
+
+
 class UserMessage(BaseModel):
     content: Union[str, List[Union[str, Image]]]
 
@@ -42,7 +47,8 @@ class FunctionExecutionResultMessage(BaseModel):
 
 
 LLMMessage = Annotated[
-    Union[SystemMessage, UserMessage, AssistantMessage, FunctionExecutionResultMessage], Field(discriminator="type")
+    Union[SystemMessage, DeveloperMessage, UserMessage, AssistantMessage, FunctionExecutionResultMessage],
+    Field(discriminator="type"),
 ]
 
 

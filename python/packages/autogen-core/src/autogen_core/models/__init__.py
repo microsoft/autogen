@@ -9,6 +9,7 @@ from ._types import (
     LLMMessage,
     RequestUsage,
     SystemMessage,
+    DeveloperMessage,
     TopLogprob,
     UserMessage,
 )
@@ -17,6 +18,7 @@ __all__ = [
     "ModelCapabilities",
     "ChatCompletionClient",
     "SystemMessage",
+    "DeveloperMessage",
     "UserMessage",
     "AssistantMessage",
     "FunctionExecutionResult",

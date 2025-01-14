@@ -44,6 +44,7 @@ from autogen_core.models import (
     ModelInfo,
     RequestUsage,
     SystemMessage,
+    DeveloperMessage,
     TopLogprob,
     UserMessage,
 )
@@ -59,6 +60,7 @@ from openai.types.chat import (
     ChatCompletionMessageToolCallParam,
     ChatCompletionRole,
     ChatCompletionSystemMessageParam,
+    ChatCompletionDeveloperMessageParam,
     ChatCompletionToolMessageParam,
     ChatCompletionToolParam,
     ChatCompletionUserMessageParam,
@@ -173,6 +175,13 @@ def system_message_to_oai(message: SystemMessage) -> ChatCompletionSystemMessage
     )
 
 
+def developer_message_to_oai(message: DeveloperMessage) -> ChatCompletionDeveloperMessageParam:
+    return ChatCompletionDeveloperMessageParam(
+        content=message.content,
+        role="developer",
+    )
+
+
 def func_call_to_oai(message: FunctionCall) -> ChatCompletionMessageToolCallParam:
     return ChatCompletionMessageToolCallParam(
         id=message.id,
@@ -213,6 +222,8 @@ def assistant_message_to_oai(
 def to_oai_type(message: LLMMessage) -> Sequence[ChatCompletionMessageParam]:
     if isinstance(message, SystemMessage):
         return [system_message_to_oai(message)]
+    elif isinstance(message, DeveloperMessage):
+        return [developer_message_to_oai(message)]
     elif isinstance(message, UserMessage):
         return [user_message_to_oai(message)]
     elif isinstance(message, AssistantMessage):

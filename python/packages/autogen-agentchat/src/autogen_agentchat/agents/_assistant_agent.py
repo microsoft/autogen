@@ -24,6 +24,7 @@ from autogen_core.models import (
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     SystemMessage,
+    DeveloperMessage,
     UserMessage,
 )
 from autogen_core.tools import FunctionTool, Tool
@@ -238,15 +239,20 @@ class AssistantAgent(BaseChatAgent):
         system_message: (
             str | None
         ) = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
+        developer_message: (str | None) = None,
         reflect_on_tool_use: bool = False,
         tool_call_summary_format: str = "{result}",
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client
-        if system_message is None:
+        if system_message is None or developer_message is not None:
             self._system_messages = []
         else:
             self._system_messages = [SystemMessage(content=system_message)]
+        if developer_message is None:
+            self._developer_messages = []
+        else:
+            self._developer_messages = [DeveloperMessage(content=developer_message)]
         self._tools: List[Tool] = []
         if tools is not None:
             if model_client.model_info["function_calling"] is False:
@@ -326,7 +332,10 @@ class AssistantAgent(BaseChatAgent):
         inner_messages: List[AgentEvent | ChatMessage] = []
 
         # Generate an inference result based on the current model context.
-        llm_messages = self._system_messages + await self._model_context.get_messages()
+        if len(self._developer_messages) > 0:
+            llm_messages = self._developer_messages + await self._model_context.get_messages()
+        else:
+            llm_messages = self._system_messages + await self._model_context.get_messages()
         result = await self._model_client.create(
             llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
         )
@@ -379,7 +388,10 @@ class AssistantAgent(BaseChatAgent):
 
         if self._reflect_on_tool_use:
             # Generate another inference result based on the tool call and result.
-            llm_messages = self._system_messages + await self._model_context.get_messages()
+            if len(self._developer_messages) > 0:
+                llm_messages = self._developer_messages + await self._model_context.get_messages()
+            else:
+                llm_messages = self._system_messages + await self._model_context.get_messages()
             result = await self._model_client.create(llm_messages, cancellation_token=cancellation_token)
             assert isinstance(result.content, str)
             # Add the response to the model context.
