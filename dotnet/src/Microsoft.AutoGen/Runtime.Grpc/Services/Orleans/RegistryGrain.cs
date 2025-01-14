@@ -240,17 +240,21 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
         await state.WriteStateAsync().ConfigureAwait(false);
     }
 
-    public ValueTask<Dictionary<string, List<string>>> GetSubscriptions(string agentType)
+    public ValueTask<List<Subscription>> GetSubscriptions(string agentType)
     {
-        var subscriptions = new Dictionary<string, List<string>>();
+        var subscriptions = new List<Subscription>();
         if (state.State.AgentsToTopicsMap.TryGetValue(agentType, out var topics))
         {
             foreach (var topic in topics)
             {
-                if (state.State.TopicToAgentTypesMap.TryGetValue(topic, out var agents))
+                subscriptions.Add(new Subscription
                 {
-                    subscriptions[topic] = agents.ToList();
-                }
+                    TypeSubscription = new TypeSubscription
+                    {
+                        AgentType = agentType,
+                        TopicType = topic
+                    }
+                });
             }
         }
         return new(subscriptions);

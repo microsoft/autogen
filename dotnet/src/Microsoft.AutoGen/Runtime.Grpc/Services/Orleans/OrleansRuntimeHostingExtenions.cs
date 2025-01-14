@@ -3,7 +3,6 @@
 
 using System.Configuration;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AutoGen.Runtime.Grpc.Abstractions;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -41,12 +40,7 @@ public static class OrleansRuntimeHostingExtenions
                 var cosmosDbconnectionString = builder.Configuration.GetValue<string>("Orleans:CosmosDBConnectionString") ??
                     throw new ConfigurationErrorsException(
                         "Orleans:CosmosDBConnectionString is missing from configuration. This is required for persistence in production environments.");
-                siloBuilder.Configure<ClusterOptions>(options =>
-                {
-                    //TODO: make this configurable
-                    options.ClusterId = "AutoGen-cluster";
-                    options.ServiceId = "AutoGen-cluster";
-                });
+
                 siloBuilder.Configure<SiloMessagingOptions>(options =>
                 {
                     options.ResponseTimeout = TimeSpan.FromMinutes(3);
@@ -86,7 +80,6 @@ public static class OrleansRuntimeHostingExtenions
               .AddMemoryGrainStorage("PubSubStore");
             }
         });
-        builder.Services.AddSingleton<IRegistryGrain, RegistryGrain>();
 
         return builder;
     }

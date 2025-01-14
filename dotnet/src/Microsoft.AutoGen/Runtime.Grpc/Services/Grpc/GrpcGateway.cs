@@ -349,7 +349,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         };
         await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
     }
-
     private async ValueTask DispatchEventToAgentsAsync(IEnumerable<string> agentTypes, CloudEvent evt)
     {
         var tasks = new List<Task>(agentTypes.Count());
@@ -375,9 +374,9 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
-    Task IGateway.SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken)
+    Task IGateway.SendMessageAsync(IConnection connection, CloudEvent cloudEvent)
     {
-        return this.SendMessageAsync(connection, cloudEvent, cancellationToken);
+        return this.SendMessageAsync(connection, cloudEvent, default);
     }
     public async Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
@@ -385,13 +384,70 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         await queue.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);
     }
 
-    public ValueTask<SubscriptionResponse> UnsubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<SubscriptionResponse> UnsubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        try
+        {
+            await _gatewayRegistry.UnsubscribeAsync(request).ConfigureAwait(true);
+            return new SubscriptionResponse
+            {
+                Success = true,
+                RequestId = request.RequestId
+            };
+        }
+        catch (Exception ex)
+        {
+            return new SubscriptionResponse
+            {
+                Success = false,
+                RequestId = request.RequestId,
+                Error = ex.Message
+            };
+        }
     }
 
-    public ValueTask<SubscriptionResponse> GetSubscriptionsAsync(Type type, CancellationToken cancellationToken = default)
+    public ValueTask<List<Subscription>> GetSubscriptionsAsync(Type type, CancellationToken cancellationToken = default)
     {
-        throw new NotImplementedException();
+        return _gatewayRegistry.GetSubscriptions(nameof(type));
+    }
+
+    async ValueTask<RpcResponse> IGateway.InvokeRequestAsync(RpcRequest request)
+    {
+        return await InvokeRequestAsync(request, default).ConfigureAwait(false);
+    }
+
+    async ValueTask IGateway.BroadcastEventAsync(CloudEvent evt)
+    {
+        await BroadcastEventAsync(evt, default).ConfigureAwait(false);
+    }
+
+    ValueTask IGateway.StoreAsync(AgentState value)
+    {
+        return StoreAsync(value, default);
+    }
+
+    ValueTask<AgentState> IGateway.ReadAsync(AgentId agentId)
+    {
+        return ReadAsync(agentId, default);
+    }
+
+    ValueTask<RegisterAgentTypeResponse> IGateway.RegisterAgentTypeAsync(RegisterAgentTypeRequest request)
+    {
+        return RegisterAgentTypeAsync(request, default);
+    }
+
+    ValueTask<SubscriptionResponse> IGateway.SubscribeAsync(SubscriptionRequest request)
+    {
+        return SubscribeAsync(request, default);
+    }
+
+    ValueTask<SubscriptionResponse> IGateway.UnsubscribeAsync(SubscriptionRequest request)
+    {
+        return UnsubscribeAsync(request, default);
+    }
+
+    ValueTask<List<Subscription>> IGateway.GetSubscriptionsAsync(Type type)
+    {
+        return GetSubscriptionsAsync(type, default);
     }
 }

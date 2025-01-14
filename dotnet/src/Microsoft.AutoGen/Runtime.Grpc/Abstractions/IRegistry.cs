@@ -81,5 +81,5 @@ public interface IRegistry
     /// </summary>
     /// <param name="agentType">The type of the agent.</param>
     /// <returns>A task representing the asynchronous operation, with the subscriptions as the result.</returns>
-    ValueTask<Dictionary<string, List<string>>> GetSubscriptions(string agentType);
+    ValueTask<List<Subscription>> GetSubscriptions(string agentType);
 }
