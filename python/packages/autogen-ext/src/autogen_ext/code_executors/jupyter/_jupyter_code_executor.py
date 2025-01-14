@@ -36,7 +36,7 @@ class JupyterCodeExecutor(CodeExecutor):
         timeout: int = 60,
         output_dir: Path = Path("."),
     ):
-        """A code executor class that executes code statefully using nbclient.
+        """A code executor class that executes code statefully using [nbclient](https://github.com/jupyter/nbclient).
 
         Args:
             kernel_name (str): The kernel name to use. By default, "python3".
@@ -95,14 +95,12 @@ class JupyterCodeExecutor(CodeExecutor):
         Returns:
             JupyterCodeResult: The result of the code execution.
         """
-        execute_task = asyncio.create_task(
-            self._execute_cell(
-                nbformat.new_code_cell(silence_pip(code_block.code, code_block.language))  # type: ignore
-            )
+        execute_coro = self._execute_cell(
+            nbformat.new_code_cell(silence_pip(code_block.code, code_block.language))  # type: ignore
         )
 
-        cancellation_token.link_future(execute_task)
-        output_cell = await asyncio.wait_for(asyncio.shield(execute_task), timeout=self._timeout)
+        cancellation_token.link_future(execute_coro)
+        output_cell = await asyncio.wait_for(asyncio.shield(execute_coro), timeout=self._timeout)
 
         outputs: list[str] = []
         output_files: list[Path] = []
