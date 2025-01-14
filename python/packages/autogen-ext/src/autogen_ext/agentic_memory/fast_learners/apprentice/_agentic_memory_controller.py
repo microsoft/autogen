@@ -286,8 +286,7 @@ class AgenticMemoryController:
         self.page_log.finish_page(page)
         return final_response, successful_insight
 
-    async def assign_task(self, task: str, use_memory: bool = True,
-                          should_await: bool = True):
+    async def assign_task(self, task: str, use_memory: bool = True, should_await: bool = True):
         """
         Assigns a task to the agent, along with any relevant insights/memories.
         """
