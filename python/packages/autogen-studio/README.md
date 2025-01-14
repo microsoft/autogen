@@ -35,7 +35,7 @@ We recommend using a virtual environment (e.g., conda) to avoid conflicts with e
 pip install -U autogenstudio
 ```
 
-### Install from Source
+### Install from source
 
 _Note: This approach requires some familiarity with building interfaces in React._
 
@@ -57,13 +57,12 @@ You have two options for installing from source: manually or using a dev contain
   gatsby clean && rmdir /s /q ..\\autogenstudio\\web\\ui 2>nul & (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenstudio\\web\\ui
   ```
 
-#### B)  Install from Source using a dev container
+#### B)  Install from source using a dev container
 
-1. Follow the [Dev Containers tutorial](https://code.visualstudio.com/docs/devcontainers/tutorial) to install Visual Studio Code, Docker and relevant extensions.
+1. Follow the [Dev Containers tutorial](https://code.visualstudio.com/docs/devcontainers/tutorial) to install VS Code, Docker and relevant extensions.
 2. Clone the AutoGen Studio repository.
-3. In Visual Studio Code, open to the `python/packages/autogen-studio/` folder.
-4. Open in Container TODO: describe how
-5. Build the UI:
+3. Open `python/packages/autogen-studio/`in VS Code. Click the blue button in bottom the corner or press F1 and select _"Dev Containers: Reopen in Container"_.
+4. Build the UI:
 
   ```bash
   cd frontend
