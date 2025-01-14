@@ -60,7 +60,7 @@ A console-based multi-agent assistant for web and file-based tasks.
 Built on AgentChat.
 
 ```bash
-pip install magentic-one-cli
+pip install -U magentic-one-cli
 m1 "Find flights from Seattle to Paris and format the result in a table"
 ```
 
@@ -83,7 +83,7 @@ An app for prototyping and managing agents without writing code.
 Built on AgentChat.
 
 ```bash
-pip install autogenstudio
+pip install -U autogenstudio
 autogenstudio ui --port 8080 --appdir ./myapp
 ```
 

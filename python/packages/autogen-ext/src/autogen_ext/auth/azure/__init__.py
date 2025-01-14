@@ -1,6 +1,6 @@
 from typing import List
 
-from autogen_core import Component
+from autogen_core import Component, ComponentBase
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -13,10 +13,10 @@ class TokenProviderConfig(BaseModel):
     scopes: List[str]
 
 
-class AzureTokenProvider(Component[TokenProviderConfig]):
+class AzureTokenProvider(ComponentBase[TokenProviderConfig], Component[TokenProviderConfig]):
     component_type = "token_provider"
     component_config_schema = TokenProviderConfig
-    component_provider_override = "autogen_ext.models.openai.AzureTokenProvider"
+    component_provider_override = "autogen_ext.auth.azure.AzureTokenProvider"
 
     def __init__(self, credential: TokenProvider, *scopes: str):
         self.credential = credential

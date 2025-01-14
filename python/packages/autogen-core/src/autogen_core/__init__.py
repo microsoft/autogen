@@ -14,10 +14,15 @@ from ._cancellation_token import CancellationToken
 from ._closure_agent import ClosureAgent, ClosureContext
 from ._component_config import (
     Component,
-    ComponentConfigImpl,
+    ComponentBase,
+    ComponentFromConfig,
     ComponentLoader,
     ComponentModel,
+    ComponentSchemaType,
+    ComponentToConfig,
     ComponentType,
+    is_component_class,
+    is_component_instance,
 )
 from ._constants import (
     EVENT_LOGGER_NAME as EVENT_LOGGER_NAME_ALIAS,
@@ -112,10 +117,15 @@ __all__ = [
     "EVENT_LOGGER_NAME",
     "TRACE_LOGGER_NAME",
     "Component",
+    "ComponentBase",
+    "ComponentFromConfig",
     "ComponentLoader",
-    "ComponentConfigImpl",
     "ComponentModel",
+    "ComponentSchemaType",
+    "ComponentToConfig",
     "ComponentType",
+    "is_component_class",
+    "is_component_instance",
     "DropMessage",
     "InterventionHandler",
     "DefaultInterventionHandler",

@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "magentic-one-cli"
-version = "0.2.0"
+version = "0.2.1"
 license = {file = "LICENSE-CODE"}
 description = "Magentic-One is a generalist multi-agent system, built on `AutoGen-AgentChat`, for solving complex web and file-based tasks. This package installs the `m1` command-line utility to quickly get started with Magentic-One."
 readme = "README.md"
@@ -15,8 +15,8 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "autogen-agentchat>=0.4.0,<0.5",
-    "autogen-ext[openai,magentic-one]>=0.4.0,<0.5",
+    "autogen-agentchat>=0.4.1,<0.5",
+    "autogen-ext[openai,magentic-one]>=0.4.1,<0.5",
 ]
 
 [project.scripts]
