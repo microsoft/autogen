@@ -59,10 +59,11 @@ You have two options for installing from source: manually or using a dev contain
 
 #### B)  Install from Source using a dev container
 
-1. Clone the AutoGen Studio repository.
-2. In vscode, open to the `python/packages/autogen-studio/` folder.
-3. Open in Container TODO: describe how
-4. Build the UI:
+1. Follow the [Dev Containers tutorial](https://code.visualstudio.com/docs/devcontainers/tutorial) to install Visual Studio Code, Docker and relevant extensions.
+2. Clone the AutoGen Studio repository.
+3. In Visual Studio Code, open to the `python/packages/autogen-studio/` folder.
+4. Open in Container TODO: describe how
+5. Build the UI:
 
   ```bash
   cd frontend
