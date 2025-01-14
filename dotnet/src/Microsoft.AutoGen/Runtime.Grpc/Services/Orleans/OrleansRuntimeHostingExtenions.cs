@@ -28,6 +28,7 @@ public static class OrleansRuntimeHostingExtenions
                 siloBuilder.UseLocalhostClustering()
                        .AddMemoryStreams("StreamProvider")
                        .AddMemoryGrainStorage("PubSubStore")
+                       .AddMemoryGrainStorage("AgentRegistryStore")
                        .AddMemoryGrainStorage("AgentStateStore");
 
                 siloBuilder.UseInMemoryReminderService();
