@@ -8,8 +8,8 @@ from pydantic import BaseModel
 from typing_extensions import NotRequired
 
 from .. import CancellationToken
+from .._component_config import ComponentBase
 from .._function_utils import normalize_annotated_type
-from .._component_config import ComponentBase, Component
 
 T = TypeVar("T", bound=BaseModel, contravariant=True)
 
@@ -27,10 +27,7 @@ class ToolSchema(TypedDict):
 
 
 @runtime_checkable
-class Tool(Protocol, ComponentBase[BaseModel]):
-
-    component_type = "tool"
-
+class Tool(Protocol):
     @property
     def name(self) -> str: ...
 
@@ -48,8 +45,7 @@ class Tool(Protocol, ComponentBase[BaseModel]):
 
     def return_value_as_string(self, value: Any) -> str: ...
 
-    async def run_json(
-        self, args: Mapping[str, Any], cancellation_token: CancellationToken) -> Any: ...
+    async def run_json(self, args: Mapping[str, Any], cancellation_token: CancellationToken) -> Any: ...
 
     def save_state_json(self) -> Mapping[str, Any]: ...
 
@@ -61,14 +57,9 @@ ReturnT = TypeVar("ReturnT", bound=BaseModel, covariant=True)
 StateT = TypeVar("StateT", bound=BaseModel)
 
 
-class BaseToolConfig(BaseModel):
-    name: str
-    description: str
-    args_type: Type[Any]
-    return_type: Type[Any]
+class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
+    component_type = "tool"
 
-
-class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], Component[BaseToolConfig]):
     def __init__(
         self,
         args_type: Type[ArgsT],
@@ -87,8 +78,7 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], Component[BaseToolConfig]):
         model_schema: Dict[str, Any] = self._args_type.model_json_schema()
 
         if "$defs" in model_schema:
-            model_schema = cast(Dict[str, Any], jsonref.replace_refs(
-                obj=model_schema, proxies=False))  # type: ignore
+            model_schema = cast(Dict[str, Any], jsonref.replace_refs(obj=model_schema, proxies=False))  # type: ignore
             del model_schema["$defs"]
 
         tool_schema = ToolSchema(
@@ -132,8 +122,7 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], Component[BaseToolConfig]):
         return str(value)
 
     @abstractmethod
-    async def run(self, args: ArgsT,
-                  cancellation_token: CancellationToken) -> ReturnT: ...
+    async def run(self, args: ArgsT, cancellation_token: CancellationToken) -> ReturnT: ...
 
     async def run_json(self, args: Mapping[str, Any], cancellation_token: CancellationToken) -> Any:
         return_value = await self.run(self._args_type.model_validate(args), cancellation_token)
@@ -145,16 +134,8 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], Component[BaseToolConfig]):
     def load_state_json(self, state: Mapping[str, Any]) -> None:
         pass
 
-    def _to_config(self) -> BaseToolConfig:
-        return BaseToolConfig(
-            name=self._name,
-            description=self._description,
-            args_type=self._args_type,
-            return_type=self._return_type,
-        )
 
-
-class BaseToolWithState(BaseTool[ArgsT, ReturnT], ABC, Generic[ArgsT, ReturnT, StateT]):
+class BaseToolWithState(BaseTool[ArgsT, ReturnT], ABC, Generic[ArgsT, ReturnT, StateT], ComponentBase[BaseModel]):
     def __init__(
         self,
         args_type: Type[ArgsT],
@@ -165,6 +146,8 @@ class BaseToolWithState(BaseTool[ArgsT, ReturnT], ABC, Generic[ArgsT, ReturnT, S
     ) -> None:
         super().__init__(args_type, return_type, name, description)
         self._state_type = state_type
+
+    component_type = "tool"
 
     @abstractmethod
     def save_state(self) -> StateT: ...

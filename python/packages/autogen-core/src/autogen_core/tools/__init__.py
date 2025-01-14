@@ -1,3 +1,4 @@
+from ..code_executor import ImportFromModule
 from ._base import BaseTool, BaseToolWithState, ParametersSchema, Tool, ToolSchema
 from ._function_tool import FunctionTool
 
@@ -8,4 +9,5 @@ __all__ = [
     "BaseTool",
     "BaseToolWithState",
     "FunctionTool",
+    "ImportFromModule",
 ]
