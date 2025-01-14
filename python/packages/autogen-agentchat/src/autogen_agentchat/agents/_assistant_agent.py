@@ -14,6 +14,7 @@ from typing import (
 )
 
 from autogen_core import CancellationToken, FunctionCall
+from autogen_core.memory import Memory
 from autogen_core.model_context import (
     ChatCompletionContext,
     UnboundedChatCompletionContext,
@@ -35,6 +36,7 @@ from ..messages import (
     AgentEvent,
     ChatMessage,
     HandoffMessage,
+    MemoryQueryEvent,
     MultiModalMessage,
     TextMessage,
     ToolCallExecutionEvent,
@@ -120,6 +122,7 @@ class AssistantAgent(BaseChatAgent):
             will be returned as the response.
             Available variables: `{tool_name}`, `{arguments}`, `{result}`.
             For example, `"{tool_name}: {result}"` will create a summary like `"tool_name: result"`.
+        memory (Sequence[Memory] | None, optional): The memory store to use for the agent. Defaults to `None`.
 
     Raises:
         ValueError: If tool names are not unique.
@@ -240,9 +243,20 @@ class AssistantAgent(BaseChatAgent):
         ) = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
         reflect_on_tool_use: bool = False,
         tool_call_summary_format: str = "{result}",
+        memory: Sequence[Memory] | None = None,
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client
+        self._memory = None
+        if memory is not None:
+            if isinstance(memory, list):
+                self._memory = memory
+            else:
+                raise TypeError(f"Expected Memory, List[Memory], or None, got {type(memory)}")
+
+        self._system_messages: List[
+            SystemMessage | UserMessage | AssistantMessage | FunctionExecutionResultMessage
+        ] = []
         if system_message is None:
             self._system_messages = []
         else:
@@ -324,6 +338,17 @@ class AssistantAgent(BaseChatAgent):
 
         # Inner messages.
         inner_messages: List[AgentEvent | ChatMessage] = []
+
+        # Update the model context with memory content.
+        if self._memory:
+            for memory in self._memory:
+                update_context_result = await memory.update_context(self._model_context)
+                if update_context_result and len(update_context_result.memories.results) > 0:
+                    memory_query_event_msg = MemoryQueryEvent(
+                        content=update_context_result.memories.results, source=self.name
+                    )
+                    inner_messages.append(memory_query_event_msg)
+                    yield memory_query_event_msg
 
         # Generate an inference result based on the current model context.
         llm_messages = self._system_messages + await self._model_context.get_messages()
