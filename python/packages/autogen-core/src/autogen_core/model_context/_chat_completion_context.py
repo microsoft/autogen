@@ -4,9 +4,10 @@ from typing import Any, List, Mapping
 from pydantic import BaseModel, Field
 
 from ..models import LLMMessage
+from .._component_config import ComponentBase
 
 
-class ChatCompletionContext(ABC):
+class ChatCompletionContext(ABC, ComponentBase[BaseModel]):
     """An abstract base class for defining the interface of a chat completion context.
     A chat completion context lets agents store and retrieve LLM messages.
     It can be implemented with different recall strategies.
@@ -14,6 +15,8 @@ class ChatCompletionContext(ABC):
     Args:
         initial_messages (List[LLMMessage] | None): The initial messages.
     """
+
+    component_type = "chat_completion_context"
 
     def __init__(self, initial_messages: List[LLMMessage] | None = None) -> None:
         self._messages: List[LLMMessage] = initial_messages or []
@@ -33,7 +36,8 @@ class ChatCompletionContext(ABC):
         return ChatCompletionContextState(messages=self._messages).model_dump()
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
-        self._messages = ChatCompletionContextState.model_validate(state).messages
+        self._messages = ChatCompletionContextState.model_validate(
+            state).messages
 
 
 class ChatCompletionContextState(BaseModel):

@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, AsyncGenerator, List, Mapping, Sequence
 
-from autogen_core import CancellationToken
+from autogen_core import CancellationToken, ComponentBase
+from pydantic import BaseModel
 
 from ..base import ChatAgent, Response, TaskResult
 from ..messages import (
@@ -13,7 +14,7 @@ from ..messages import (
 from ..state import BaseState
 
 
-class BaseChatAgent(ChatAgent, ABC):
+class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
     """Base class for a chat agent.
 
     This abstract class provides a base implementation for a :class:`ChatAgent`.
@@ -35,10 +36,13 @@ class BaseChatAgent(ChatAgent, ABC):
         This design principle must be followed when creating a new agent.
     """
 
+    component_type = "agent"
+
     def __init__(self, name: str, description: str) -> None:
         self._name = name
         if self._name.isidentifier() is False:
-            raise ValueError("The agent name must be a valid Python identifier.")
+            raise ValueError(
+                "The agent name must be a valid Python identifier.")
         self._description = description
 
     @property
@@ -129,7 +133,8 @@ class BaseChatAgent(ChatAgent, ABC):
                     input_messages.append(msg)
                     output_messages.append(msg)
                 else:
-                    raise ValueError(f"Invalid message type in sequence: {type(msg)}")
+                    raise ValueError(
+                        f"Invalid message type in sequence: {type(msg)}")
         response = await self.on_messages(input_messages, cancellation_token)
         if response.inner_messages is not None:
             output_messages += response.inner_messages
@@ -168,7 +173,8 @@ class BaseChatAgent(ChatAgent, ABC):
                     output_messages.append(msg)
                     yield msg
                 else:
-                    raise ValueError(f"Invalid message type in sequence: {type(msg)}")
+                    raise ValueError(
+                        f"Invalid message type in sequence: {type(msg)}")
         async for message in self.on_messages_stream(input_messages, cancellation_token):
             if isinstance(message, Response):
                 yield message.chat_message
