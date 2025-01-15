@@ -128,10 +128,8 @@ async def test_run_websurfer(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.messages[2].content == "Hello"
     # check internal web surfer state
     assert len(agent._chat_history) == 2  # pyright: ignore[reportPrivateUsage]
-    # pyright: ignore[reportPrivateUsage]
-    assert agent._chat_history[0].content == "task"
-    # pyright: ignore[reportPrivateUsage]
-    assert agent._chat_history[1].content == "Hello"
+    assert agent._chat_history[0].content == "task"  # pyright: ignore[reportPrivateUsage]
+    assert agent._chat_history[1].content == "Hello"  # pyright: ignore[reportPrivateUsage]
     url_after_no_tool = agent._page.url  # pyright: ignore[reportPrivateUsage]
 
     # run again

@@ -17,7 +17,6 @@ from typing import (
     Sequence,
     cast,
 )
-from typing_extensions import Self
 from urllib.parse import quote_plus
 
 import aiofiles
@@ -25,7 +24,7 @@ import PIL.Image
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage, TextMessage
-from autogen_core import EVENT_LOGGER_NAME, CancellationToken, FunctionCall, Component, ComponentModel
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, ComponentModel, FunctionCall
 from autogen_core import Image as AGImage
 from autogen_core.models import (
     AssistantMessage,
@@ -38,6 +37,7 @@ from autogen_core.models import (
 from PIL import Image
 from playwright.async_api import BrowserContext, Download, Page, Playwright, async_playwright
 from pydantic import BaseModel
+from typing_extensions import Self
 
 from ._events import WebSurferEvent
 from ._prompts import WEB_SURFER_OCR_PROMPT, WEB_SURFER_QA_PROMPT, WEB_SURFER_QA_SYSTEM_MESSAGE, WEB_SURFER_TOOL_PROMPT
@@ -340,7 +340,8 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         if self.to_save_screenshots:
             current_timestamp = "_" + int(time.time()).__str__()
             screenshot_png_name = "screenshot" + current_timestamp + ".png"
-            await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))
+
+            await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))  # type: ignore
             self.logger.info(
                 WebSurferEvent(
                     source=self.name,
@@ -369,8 +370,8 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         if self.to_save_screenshots:
             current_timestamp = "_" + int(time.time()).__str__()
             screenshot_png_name = "screenshot" + current_timestamp + ".png"
-            # type: ignore
-            await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))
+
+            await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))  # type: ignore
             self.logger.info(
                 WebSurferEvent(
                     source=self.name,
@@ -728,8 +729,8 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         if self.to_save_screenshots:
             current_timestamp = "_" + int(time.time()).__str__()
             screenshot_png_name = "screenshot" + current_timestamp + ".png"
-            # type: ignore
-            async with aiofiles.open(os.path.join(self.debug_dir, screenshot_png_name), "wb") as file:
+
+            async with aiofiles.open(os.path.join(self.debug_dir, screenshot_png_name), "wb") as file:  # type: ignore
                 await file.write(new_screenshot)  # type: ignore
             self.logger.info(
                 WebSurferEvent(
