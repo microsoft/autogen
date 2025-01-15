@@ -14,30 +14,29 @@ function HomepageHeader() {
         <h1 className="hero__title">{siteConfig.title}</h1>
         <p className="hero__subtitle">{siteConfig.tagline}</p>
         <div className={styles.buttons}>
-          <div className={styles.buttonWrapper}>
-            <Link
-              className="button button--secondary button--lg"
-              to="/docs/Getting-Started"
-            >
-              Get Started
-            </Link>
-            <p className={styles.buttonTagline}>
-              Current stable version of AutoGen (autogen-agentchat~=0.2)
-            </p>
-          </div>
+
           <div className={styles.buttonWrapper}>
             <Link
               className={clsx(
                 "button button--secondary button--lg",
                 styles.buttonLink
               )}
-              to="https://microsoft.github.io/autogen/dev/"
+              to="https://microsoft.github.io/autogen/stable/"
             >
-              Preview v0.4
+              Get started with 0.4
             </Link>
             <p className={styles.buttonTagline}>
-              A new event driven, asynchronous architecture for AutoGen
+            The new event driven, asynchronous architecture for AutoGen
             </p>
+          </div>
+          <div className={styles.buttonWrapper}>
+            <Link
+              className="button button--secondary button--lg"
+              to="/docs/Getting-Started"
+            >
+              Continue with 0.2
+            </Link>
+            <p className={styles.buttonTagline}></p>
           </div>
         </div>
       </div>
