@@ -304,6 +304,15 @@ async def test_function_tool() -> None:
     sync_tool = FunctionTool(
         func=sync_func, description="Multiply string", global_imports=[ImportFromModule("typing", ("Dict",))]
     )
+    invalid_import_sync_tool = FunctionTool(
+        func=sync_func, description="Multiply string", global_imports=[ImportFromModule("invalid_module (", ("Dict",))]
+    )
+
+    invalid_import_config = invalid_import_sync_tool.dump_component()
+    # check that invalid import raises an error
+    with pytest.raises(RuntimeError):
+        _ = FunctionTool.load_component(invalid_import_config, FunctionTool)
+
     async_tool = FunctionTool(
         func=async_func,
         description="Add numbers",
