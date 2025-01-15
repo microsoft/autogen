@@ -57,7 +57,7 @@ conda deactivate
 
 ``````
 
-## Install Using pip (Recommended)
+## Install from PyPi (Recommended)
 
 You can install AutoGen Studio using pip, the Python package manager.
 
@@ -65,19 +65,17 @@ You can install AutoGen Studio using pip, the Python package manager.
 pip install -U autogenstudio
 ```
 
-### Install from Source\*\*
+## Install from source
 
-> Note: This approach requires some familiarity with building interfaces in React.
+_Note: This approach requires some familiarity with building interfaces in React._
 
-If you prefer to install from source, ensure you have Python 3.10+ and Node.js (version above 14.15.0) installed. Here's how you get started:
+You have two options for installing from source: manually or using a dev container.
 
-- Clone the AutoGen Studio repository and install its Python dependencies:
+### A) Install from source manually
 
-  ```bash
-  pip install -e .
-  ```
-
-- Navigate to the `samples/apps/autogen-studio/frontend` directory, install dependencies, and build the UI:
+1. Ensure you have Python 3.10+ and Node.js (version above 14.15.0) installed.
+2. Clone the AutoGen Studio repository and install its Python dependencies using `pip install -e .`
+3. Navigate to the `python/packages/autogen-studio/frontend` directory, install the dependencies, and build the UI:
 
   ```bash
   npm install -g gatsby-cli
@@ -85,33 +83,39 @@ If you prefer to install from source, ensure you have Python 3.10+ and Node.js (
   cd frontend
   yarn install
   yarn build
+  # Windows users may need alternative commands to build the frontend:
+  gatsby clean && rmdir /s /q ..\\autogenstudio\\web\\ui 2>nul & (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenstudio\\web\\ui
   ```
 
-For Windows users, to build the frontend, you may need alternative commands to build the frontend.
+### B)  Install from source using a dev container
 
-```bash
+1. Follow the [Dev Containers tutorial](https://code.visualstudio.com/docs/devcontainers/tutorial) to install VS Code, Docker and relevant extensions.
+2. Clone the AutoGen Studio repository.
+3. Open `python/packages/autogen-studio/`in VS Code. Click the blue button in bottom the corner or press F1 and select _"Dev Containers: Reopen in Container"_.
+4. Build the UI:
 
-  gatsby clean && rmdir /s /q ..\\autogenstudio\\web\\ui 2>nul & (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenstudio\\web\\ui
-
-```
+  ```bash
+  cd frontend
+  yarn build
+  ```
 
 ## Running the Application
 
-Once installed, run the web UI by entering the following in a terminal:
+Once installed, run the web UI by entering the following in your terminal:
 
 ```bash
-autogenstudio ui --port 8081 --appdir /path/to/folder
+autogenstudio ui --port 8081
 ```
 
-This will start the application on the specified port. Open your web browser and go to `http://localhost:8081/` to begin using AutoGen Studio.
+This command will start the application on the specified port. Open your web browser and go to <http://localhost:8081/> to use AutoGen Studio.
 
 AutoGen Studio also takes several parameters to customize the application:
 
 - `--host <host>` argument to specify the host address. By default, it is set to `localhost`.
-- `--appdir <appdir>` argument to specify the directory where the app files (e.g., database and generated user files) are stored. By default, it is set to the a `.autogenstudio` directory in the user's home directory.
+- `--appdir <appdir>` argument to specify the directory where the app files (e.g., database and generated user files) are stored. By default, it is set to the `.autogenstudio` directory in the user's home directory.
 - `--port <port>` argument to specify the port number. By default, it is set to `8080`.
-- `--upgrade-database` argument to force-upgrade it's internal database schema (assuming there are changes in the version you are installing). By default, it is set to `False`.
 - `--reload` argument to enable auto-reloading of the server when changes are made to the code. By default, it is set to `False`.
-- `--database-uri` argument to specify the database URI. Example values include `sqlite:///database.sqlite` for SQLite and `postgresql+psycopg://user:password@localhost/dbname` for PostgreSQL. If this is not specified, the database URI defaults to a `autogen.db` file in the `--appdir` directory.
+- `--database-uri` argument to specify the database URI. Example values include `sqlite:///database.sqlite` for SQLite and `postgresql+psycopg://user:password@localhost/dbname` for PostgreSQL. If this is not specified, the database URL defaults to a `database.sqlite` file in the `--appdir` directory.
+- `--upgrade-database` argument to upgrade the database schema to the latest version. By default, it is set to `False`.
 
 Now that you have AutoGen Studio installed and running, you are ready to explore its capabilities, including defining and modifying agent workflows, interacting with agents and sessions, and expanding agent skills.
