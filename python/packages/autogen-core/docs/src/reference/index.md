@@ -53,6 +53,7 @@ python/autogen_ext.tools.langchain
 python/autogen_ext.tools.code_execution
 python/autogen_ext.code_executors.local
 python/autogen_ext.code_executors.docker
+python/autogen_ext.code_executors.jupyter
 python/autogen_ext.code_executors.azure
 python/autogen_ext.runtimes.grpc
 ```

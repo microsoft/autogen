@@ -30,19 +30,66 @@ class JupyterCodeResult(CodeResult):
 
 
 class JupyterCodeExecutor(CodeExecutor):
+    """A code executor class that executes code statefully using [nbclient](https://github.com/jupyter/nbclient).
+
+    Example of using it directly:
+
+    .. code-block:: python
+
+        import asyncio
+        from autogen_core import CancellationToken
+        from autogen_core.code_executor import CodeBlock
+        from autogen_ext.code_executors.jupyter import JupyterCodeExecutor
+
+
+        async def main() -> None:
+            async with JupyterCodeExecutor() as executor:
+                cancel_token = CancellationToken()
+                code_blocks = [CodeBlock(code="print('hello world!')", language="python")]
+                code_result = await executor.execute_code_blocks(code_blocks, cancel_token)
+                print(code_result)
+
+
+        asyncio.run(main())
+        import asyncio
+
+    Example of using it inside a :class:`~autogen_ext.tools.code_execution.PythonCodeExecutionTool`:
+
+    .. code-block:: python
+
+        import asyncio
+        from autogen_agentchat.agents import AssistantAgent
+        from autogen_ext.code_executors.jupyter import JupyterCodeExecutor
+        from autogen_ext.models.openai import OpenAIChatCompletionClient
+        from autogen_ext.tools.code_execution import PythonCodeExecutionTool
+
+
+        async def main() -> None:
+            executor = JupyterCodeExecutor()
+            await executor.start()
+            tool = PythonCodeExecutionTool(executor)
+            model_client = OpenAIChatCompletionClient(model="gpt-4o")
+            agent = AssistantAgent("assistant", model_client=model_client, tools=[tool])
+            result = await agent.run(task="What is the 10th Fibonacci number? Use Python to calculate it.")
+            print(result)
+            await executor.stop()
+
+
+        asyncio.run(main())
+
+
+    Args:
+        kernel_name (str): The kernel name to use. By default, "python3".
+        timeout (int): The timeout for code execution, by default 60.
+        output_dir (Path): The directory to save output files, by default ".".
+    """
+
     def __init__(
         self,
         kernel_name: str = "python3",
         timeout: int = 60,
         output_dir: Path = Path("."),
     ):
-        """A code executor class that executes code statefully using [nbclient](https://github.com/jupyter/nbclient).
-
-        Args:
-            kernel_name (str): The kernel name to use. By default, "python3".
-            timeout (int): The timeout for code execution, by default 60.
-            output_dir (Path): The directory to save output files, by default ".".
-        """
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
 
