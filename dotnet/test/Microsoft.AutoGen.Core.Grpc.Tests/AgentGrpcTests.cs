@@ -216,6 +216,7 @@ public sealed class GrpcRuntimeFixture
 {
     public GrpcRuntimeFixture()
     {
+        Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
         AppHost = StartAppHostAsync().GetAwaiter().GetResult();
     }
 
