@@ -27,6 +27,7 @@ file-surfer = [
     "autogen-agentchat==0.4.1",
     "markitdown>=0.0.1a2",
 ]
+graphrag = ["graphrag>=1.0.1"]
 web-surfer = [
     "autogen-agentchat==0.4.1",
     "playwright>=1.48.0",
@@ -57,6 +58,7 @@ packages = ["src/autogen_ext"]
 dev = [
     "autogen_test_utils",
     "langchain-experimental",
+    "pandas-stubs>=2.2.3.241126",
 ]
 
 [tool.ruff]

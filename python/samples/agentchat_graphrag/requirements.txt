@@ -1,0 +1,2 @@
+autogen-agentchat>=0.4.0,<0.5
+autogen-ext[graphrag,openai,azure]>=0.4.0,<0.5
