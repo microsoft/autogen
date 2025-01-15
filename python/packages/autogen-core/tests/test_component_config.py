@@ -4,14 +4,14 @@ import json
 from typing import Any, Dict
 
 import pytest
-from autogen_core import Component, ComponentBase, ComponentLoader, ComponentModel, CancellationToken
+from autogen_core import CancellationToken, Component, ComponentBase, ComponentLoader, ComponentModel
 from autogen_core._component_config import _type_to_provider_str  # type: ignore
+from autogen_core.code_executor import ImportFromModule
 from autogen_core.models import ChatCompletionClient
+from autogen_core.tools import FunctionTool
 from autogen_test_utils import MyInnerComponent, MyOuterComponent
 from pydantic import BaseModel, ValidationError
 from typing_extensions import Self
-from autogen_core.tools import FunctionTool
-from autogen_core.code_executor import ImportFromModule
 
 
 class MyConfig(BaseModel):

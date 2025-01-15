@@ -10,9 +10,7 @@ from autogen_agentchat.conditions import (
     TimeoutTermination,
     TokenUsageTermination,
 )
-from autogen_core import ComponentLoader, ComponentModel, CancellationToken
-from autogen_core.tools import FunctionTool
-from autogen_core.code_executor import ImportFromModule
+from autogen_core import ComponentLoader, ComponentModel
 
 
 @pytest.mark.asyncio
