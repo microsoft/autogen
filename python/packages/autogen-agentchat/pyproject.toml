@@ -16,7 +16,6 @@ classifiers = [
 ]
 dependencies = [
     "autogen-core==0.4.1",
-    "aioconsole>=0.8.1"
 ]
 
 [tool.ruff]

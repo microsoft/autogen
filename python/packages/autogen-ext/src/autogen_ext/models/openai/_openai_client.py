@@ -30,13 +30,13 @@ from autogen_core import (
     Image,
     MessageHandlerContext,
 )
-from autogen_core.models import FinishReasons
 from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     ChatCompletionTokenLogprob,
     CreateResult,
+    FinishReasons,
     FunctionExecutionResultMessage,
     LLMMessage,
     ModelCapabilities,  # type: ignore
