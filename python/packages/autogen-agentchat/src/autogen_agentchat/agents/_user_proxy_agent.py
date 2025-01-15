@@ -22,8 +22,7 @@ InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
 # TODO: ainput doesn't seem to play nicely with jupyter.
 #       No input window appears in this case.
 async def cancellable_input(prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
-    task: asyncio.Task[str] = asyncio.create_task(
-        ainput(prompt))  # type: ignore
+    task: asyncio.Task[str] = asyncio.create_task(ainput(prompt))  # type: ignore
     if cancellation_token is not None:
         cancellation_token.link_future(task)
     return await task
@@ -132,20 +131,17 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
                 "InputRequestContext cannot be instantiated. It is a static class that provides context management for user input requests."
             )
 
-        _INPUT_REQUEST_CONTEXT_VAR: ClassVar[ContextVar[str]] = ContextVar(
-            "_INPUT_REQUEST_CONTEXT_VAR")
+        _INPUT_REQUEST_CONTEXT_VAR: ClassVar[ContextVar[str]] = ContextVar("_INPUT_REQUEST_CONTEXT_VAR")
 
         @classmethod
         @contextmanager
         def populate_context(cls, ctx: str) -> Generator[None, Any, None]:
             """:meta private:"""
-            token = UserProxyAgent.InputRequestContext._INPUT_REQUEST_CONTEXT_VAR.set(
-                ctx)
+            token = UserProxyAgent.InputRequestContext._INPUT_REQUEST_CONTEXT_VAR.set(ctx)
             try:
                 yield
             finally:
-                UserProxyAgent.InputRequestContext._INPUT_REQUEST_CONTEXT_VAR.reset(
-                    token)
+                UserProxyAgent.InputRequestContext._INPUT_REQUEST_CONTEXT_VAR.reset(token)
 
         @classmethod
         def request_id(cls) -> str:
@@ -179,8 +175,7 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
             if messages[-1].target == self.name:
                 return messages[-1]
             else:
-                raise RuntimeError(
-                    f"Handoff message target does not match agent name: {messages[-1].source}")
+                raise RuntimeError(f"Handoff message target does not match agent name: {messages[-1].source}")
         return None
 
     async def _get_input(self, prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
@@ -205,8 +200,7 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
         async for message in self.on_messages_stream(messages, cancellation_token):
             if isinstance(message, Response):
                 return message
-        raise AssertionError(
-            "The stream should have returned the final result.")
+        raise AssertionError("The stream should have returned the final result.")
 
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
@@ -221,8 +215,7 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
 
             request_id = str(uuid.uuid4())
 
-            input_requested_event = UserInputRequestedEvent(
-                request_id=request_id, source=self.name)
+            input_requested_event = UserInputRequestedEvent(request_id=request_id, source=self.name)
             yield input_requested_event
             with UserProxyAgent.InputRequestContext.populate_context(request_id):
                 user_input = await self._get_input(prompt, cancellation_token)

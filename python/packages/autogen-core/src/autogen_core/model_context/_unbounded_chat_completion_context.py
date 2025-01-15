@@ -1,11 +1,11 @@
 from typing import List
 
 from pydantic import BaseModel
+from typing_extensions import Self
 
+from .._component_config import Component
 from ..models import LLMMessage
 from ._chat_completion_context import ChatCompletionContext
-from .._component_config import Component
-from typing_extensions import Self
 
 
 class UnboundedChatCompletionContextConfig(BaseModel):
@@ -26,5 +26,5 @@ class UnboundedChatCompletionContext(ChatCompletionContext, Component[UnboundedC
         return UnboundedChatCompletionContextConfig()
 
     @classmethod
-    def _from_config(cls, config) -> Self:
+    def _from_config(cls, config: UnboundedChatCompletionContextConfig) -> Self:
         return cls()

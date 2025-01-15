@@ -3,8 +3,8 @@ from typing import Any, List, Mapping
 
 from pydantic import BaseModel, Field
 
-from ..models import LLMMessage
 from .._component_config import ComponentBase
+from ..models import LLMMessage
 
 
 class ChatCompletionContext(ABC, ComponentBase[BaseModel]):
@@ -36,8 +36,7 @@ class ChatCompletionContext(ABC, ComponentBase[BaseModel]):
         return ChatCompletionContextState(messages=self._messages).model_dump()
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
-        self._messages = ChatCompletionContextState.model_validate(
-            state).messages
+        self._messages = ChatCompletionContextState.model_validate(state).messages
 
 
 class ChatCompletionContextState(BaseModel):

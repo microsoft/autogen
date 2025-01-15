@@ -1,11 +1,11 @@
 from typing import List
 
 from pydantic import BaseModel
+from typing_extensions import Self
 
+from .._component_config import Component
 from ..models import FunctionExecutionResultMessage, LLMMessage
 from ._chat_completion_context import ChatCompletionContext
-from .._component_config import Component
-from typing_extensions import Self
 
 
 class BufferedChatCompletionContextConfig(BaseModel):
@@ -33,7 +33,7 @@ class BufferedChatCompletionContext(ChatCompletionContext, Component[BufferedCha
 
     async def get_messages(self) -> List[LLMMessage]:
         """Get at most `buffer_size` recent messages."""
-        messages = self._messages[-self._buffer_size:]
+        messages = self._messages[-self._buffer_size :]
         # Handle the first message is a function call result message.
         if messages and isinstance(messages[0], FunctionExecutionResultMessage):
             # Remove the first message from the list.
@@ -44,5 +44,5 @@ class BufferedChatCompletionContext(ChatCompletionContext, Component[BufferedCha
         return BufferedChatCompletionContextConfig(buffer_size=self._buffer_size, initial_messages=self._messages)
 
     @classmethod
-    def _from_config(cls, config) -> Self:
+    def _from_config(cls, config: BufferedChatCompletionContextConfig) -> Self:
         return cls(**config.model_dump())

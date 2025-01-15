@@ -1,12 +1,12 @@
 from typing import List
 
 from pydantic import BaseModel
+from typing_extensions import Self
 
+from .._component_config import Component
 from .._types import FunctionCall
 from ..models import AssistantMessage, FunctionExecutionResultMessage, LLMMessage, UserMessage
 from ._chat_completion_context import ChatCompletionContext
-from .._component_config import Component
-from typing_extensions import Self
 
 
 class HeadAndTailChatCompletionContextConfig(BaseModel):
@@ -51,7 +51,7 @@ class HeadAndTailChatCompletionContext(ChatCompletionContext, Component[HeadAndT
             # Remove the last message from the head.
             head_messages = head_messages[:-1]
 
-        tail_messages = self._messages[-self._tail_size:]
+        tail_messages = self._messages[-self._tail_size :]
         # Handle the first message is a function call result message.
         if tail_messages and isinstance(tail_messages[0], FunctionExecutionResultMessage):
             # Remove the first message from the tail.
@@ -63,8 +63,7 @@ class HeadAndTailChatCompletionContext(ChatCompletionContext, Component[HeadAndT
             # return all messages.
             return self._messages
 
-        placeholder_messages = [UserMessage(
-            content=f"Skipped {num_skipped} messages.", source="System")]
+        placeholder_messages = [UserMessage(content=f"Skipped {num_skipped} messages.", source="System")]
         return head_messages + placeholder_messages + tail_messages
 
     def _to_config(self) -> HeadAndTailChatCompletionContextConfig:
@@ -73,7 +72,5 @@ class HeadAndTailChatCompletionContext(ChatCompletionContext, Component[HeadAndT
         )
 
     @classmethod
-    def _from_config(cls, config) -> Self:
-        return cls(
-            head_size=config.head_size, tail_size=config.tail_size, initial_messages=config.initial_messages
-        )
+    def _from_config(cls, config: HeadAndTailChatCompletionContextConfig) -> Self:
+        return cls(head_size=config.head_size, tail_size=config.tail_size, initial_messages=config.initial_messages)
