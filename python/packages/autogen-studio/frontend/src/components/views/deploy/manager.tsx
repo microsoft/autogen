@@ -31,10 +31,10 @@ export const DeployManager: React.FC = () => {
   }, [guides, currentGuide]);
 
   return (
-    <div className="relative flex h-full w-full">
+    <div className="relative    flex h-full w-full">
       {/* Sidebar */}
       <div
-        className={`absolute left-0 top-0 h-full transition-all duration-200 ease-in-out ${
+        className={`absolute  left-0 top-0 h-full transition-all duration-200 ease-in-out ${
           isSidebarOpen ? "w-64" : "w-12"
         }`}
       >
@@ -50,7 +50,7 @@ export const DeployManager: React.FC = () => {
 
       {/* Main Content */}
       <div
-        className={`flex-1 transition-all -mr-6 duration-200 ${
+        className={`flex-1 transition-all max-w-5xl  -mr-6 duration-200 ${
           isSidebarOpen ? "ml-64" : "ml-12"
         }`}
       >

@@ -77,27 +77,27 @@ You have two options for installing from source: manually or using a dev contain
 2. Clone the AutoGen Studio repository and install its Python dependencies using `pip install -e .`
 3. Navigate to the `python/packages/autogen-studio/frontend` directory, install the dependencies, and build the UI:
 
-  ```bash
-  npm install -g gatsby-cli
-  npm install --global yarn
-  cd frontend
-  yarn install
-  yarn build
-  # Windows users may need alternative commands to build the frontend:
-  gatsby clean && rmdir /s /q ..\\autogenstudio\\web\\ui 2>nul & (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenstudio\\web\\ui
-  ```
+```bash
+npm install -g gatsby-cli
+npm install --global yarn
+cd frontend
+yarn install
+yarn build
+# Windows users may need alternative commands to build the frontend:
+gatsby clean && rmdir /s /q ..\\autogenstudio\\web\\ui 2>nul & (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenstudio\\web\\ui
+```
 
-### B)  Install from source using a dev container
+### B) Install from source using a dev container
 
 1. Follow the [Dev Containers tutorial](https://code.visualstudio.com/docs/devcontainers/tutorial) to install VS Code, Docker and relevant extensions.
 2. Clone the AutoGen Studio repository.
 3. Open `python/packages/autogen-studio/`in VS Code. Click the blue button in bottom the corner or press F1 and select _"Dev Containers: Reopen in Container"_.
 4. Build the UI:
 
-  ```bash
-  cd frontend
-  yarn build
-  ```
+```bash
+cd frontend
+yarn build
+```
 
 ## Running the Application
 
