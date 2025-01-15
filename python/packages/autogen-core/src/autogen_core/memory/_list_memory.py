@@ -17,32 +17,43 @@ class ListMemory(Memory):
     allowing external applications to manage memory contents directly.
 
     Example:
-         .. code-block:: python
-             # Initialize memory
-             memory = ListMemory(name="chat_history")
 
-             # Add memory content
-             content = MemoryContent(content="User prefers formal language")
-             await memory.add(content)
+        .. code-block:: python
 
-             # Directly modify memory contents
-             memory.content = [MemoryContent(content="New preference")]
-
-             # Update a model context with memory
-             memory_contents = await memory.update_context(model_context)
+            import asyncio
+            from autogen_core.memory import ListMemory, MemoryContent
+            from autogen_core.model_context import BufferedChatCompletionContext
 
 
-    Attributes:
-        name (str): Identifier for this memory instance
-        content (List[MemoryContent]): Direct access to memory contents
+            async def main() -> None:
+                # Initialize memory
+                memory = ListMemory(name="chat_history")
+
+                # Add memory content
+                content = MemoryContent(content="User prefers formal language", mime_type="text/plain")
+                await memory.add(content)
+
+                # Directly modify memory contents
+                memory.content = [MemoryContent(content="New preference", mime_type="text/plain")]
+
+                # Create a model context
+                model_context = BufferedChatCompletionContext(buffer_size=10)
+
+                # Update a model context with memory
+                await memory.update_context(model_context)
+
+                # See the updated model context
+                print(await model_context.get_messages())
+
+
+            asyncio.run(main())
+
+    Args:
+        name: Optional identifier for this memory instance
+
     """
 
     def __init__(self, name: str | None = None) -> None:
-        """Initialize ListMemory.
-
-        Args:
-            name: Optional identifier for this memory instance
-        """
         self._name = name or "default_list_memory"
         self._contents: List[MemoryContent] = []
 

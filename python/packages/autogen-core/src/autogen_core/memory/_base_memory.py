@@ -1,4 +1,3 @@
-from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Protocol, Union, runtime_checkable
 
@@ -23,32 +22,47 @@ ContentType = Union[str, bytes, Dict[str, Any], Image]
 
 
 class MemoryContent(BaseModel):
+    """A memory content item."""
+
     content: ContentType
+    """The content of the memory item. It can be a string, bytes, dict, or :class:`~autogen_core.Image`."""
+
     mime_type: MemoryMimeType | str
+    """The MIME type of the memory content."""
+
     metadata: Dict[str, Any] | None = None
-    timestamp: datetime | None = None
-    source: str | None = None
-    score: float | None = None
+    """Metadata associated with the memory item."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
 
 class MemoryQueryResult(BaseModel):
+    """Result of a memory :meth:`~autogen_core.memory.Memory.query` operation."""
+
     results: List[MemoryContent]
 
 
 class UpdateContextResult(BaseModel):
+    """Result of a memory :meth:`~autogen_core.memory.Memory.update_context` operation."""
+
     memories: MemoryQueryResult
 
 
 @runtime_checkable
 class Memory(Protocol):
-    """Protocol defining the interface for memory implementations."""
+    """Protocol defining the interface for memory implementations.
 
-    @property
-    def name(self) -> str | None:
-        """The name of this memory implementation."""
-        ...
+    A memory is the storage for data that can be used to enrich or modify the model context.
+
+    A memory implementation can use any storage mechanism, such as a list, a database, or a file system.
+    It can also use any retrieval mechanism, such as vector search or text search.
+    It is up to the implementation to decide how to store and retrieve data.
+
+    It is also a memory implementation's responsibility to update the model context
+    with relevant memory content based on the current model context and querying the memory store.
+
+    See :class:`~autogen_core.memory.ListMemory` for an example implementation.
+    """
 
     async def update_context(
         self,
