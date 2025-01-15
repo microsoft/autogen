@@ -1,29 +1,17 @@
 import copy
-from typing import Any, List, Optional, Tuple, Union
+from typing import List, Tuple, Union
 
 import pytest
-from autogen_core import CacheStore
+from autogen_core import InMemoryStore
 from autogen_core.models import (
-    ChatCompletionCache,
     ChatCompletionClient,
     CreateResult,
     LLMMessage,
-    ReplayChatCompletionClient,
     SystemMessage,
     UserMessage,
 )
-
-
-class DictStore(CacheStore):
-    def __init__(self) -> None:
-        self._store: dict[str, Any] = {}
-
-    def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:
-        return self._store.get(key, default)
-
-    def set(self, key: str, value: Any) -> Optional[Any]:
-        self._store[key] = value
-        return None
+from autogen_ext.models.cache import CHAT_CACHE_VALUE_TYPE, ChatCompletionCache
+from autogen_ext.models.replay import ReplayChatCompletionClient
 
 
 def get_test_data() -> Tuple[list[str], list[str], SystemMessage, ChatCompletionClient, ChatCompletionCache]:
@@ -33,7 +21,8 @@ def get_test_data() -> Tuple[list[str], list[str], SystemMessage, ChatCompletion
     system_prompt = SystemMessage(content="This is a system prompt")
     replay_client = ReplayChatCompletionClient(responses)
     replay_client.set_cached_bool_value(False)
-    cached_client = ChatCompletionCache(replay_client, store=DictStore())
+    store = InMemoryStore[CHAT_CACHE_VALUE_TYPE]()
+    cached_client = ChatCompletionCache(replay_client, store)
 
     return responses, prompts, system_prompt, replay_client, cached_client
 

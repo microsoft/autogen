@@ -1,15 +1,16 @@
-from typing import Any, Optional, Protocol
+from typing import Any, Dict, Generic, Optional, Protocol, TypeVar, cast
+
+T = TypeVar("T")
 
 
-class CacheStore(Protocol):
+class CacheStore(Protocol, Generic[T]):
     """
     This protocol defines the basic interface for store/cache operations.
 
-    Allows duck-typing with any object that implements the get and set methods,
-    such as redis or diskcache interfaces.
+    Sub-classes should handle the lifecycle of underlying storage.
     """
 
-    def get(self, key: str, default: Optional[Any] = None) -> Optional[Any]:
+    def get(self, key: str, default: Optional[T] = None) -> Optional[T]:
         """
         Retrieve an item from the store.
 
@@ -23,7 +24,7 @@ class CacheStore(Protocol):
         """
         ...
 
-    def set(self, key: str, value: Any) -> Optional[Any]:
+    def set(self, key: str, value: T) -> None:
         """
         Set an item in the store.
 
@@ -32,3 +33,14 @@ class CacheStore(Protocol):
             value: The value to be stored in the store.
         """
         ...
+
+
+class InMemoryStore(CacheStore[T]):
+    def __init__(self) -> None:
+        self.store: Dict[str, Any] = {}
+
+    def get(self, key: str, default: Optional[T] = None) -> Optional[T]:
+        return cast(Optional[T], self.store.get(key, default))
+
+    def set(self, key: str, value: T) -> None:
+        self.store[key] = value

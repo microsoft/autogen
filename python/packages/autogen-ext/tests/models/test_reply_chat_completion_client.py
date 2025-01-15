@@ -12,13 +12,8 @@ from autogen_core import (
     default_subscription,
     message_handler,
 )
-from autogen_core.models import (
-    ChatCompletionClient,
-    CreateResult,
-    ReplayChatCompletionClient,
-    SystemMessage,
-    UserMessage,
-)
+from autogen_core.models import ChatCompletionClient, CreateResult, SystemMessage, UserMessage
+from autogen_ext.models.replay import ReplayChatCompletionClient
 
 
 @dataclass

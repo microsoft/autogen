@@ -10,7 +10,7 @@ from ._agent_proxy import AgentProxy
 from ._agent_runtime import AgentRuntime
 from ._agent_type import AgentType
 from ._base_agent import BaseAgent
-from ._cache_store import CacheStore
+from ._cache_store import CacheStore, InMemoryStore
 from ._cancellation_token import CancellationToken
 from ._closure_agent import ClosureAgent, ClosureContext
 from ._component_config import (
@@ -87,6 +87,7 @@ __all__ = [
     "AgentRuntime",
     "BaseAgent",
     "CacheStore",
+    "InMemoryStore",
     "CancellationToken",
     "AgentInstantiationContext",
     "TopicId",

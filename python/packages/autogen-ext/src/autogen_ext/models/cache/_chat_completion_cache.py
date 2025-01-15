@@ -3,74 +3,80 @@ import json
 import warnings
 from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union, cast
 
-from .._cache_store import CacheStore
-from .._cancellation_token import CancellationToken
-from ..tools import Tool, ToolSchema
-from ._model_client import (
+from autogen_core import CacheStore, CancellationToken
+from autogen_core.models import (
     ChatCompletionClient,
-    ModelCapabilities,  # type: ignore
-    ModelInfo,
-)
-from ._types import (
     CreateResult,
     LLMMessage,
+    ModelCapabilities,  # type: ignore
+    ModelInfo,
     RequestUsage,
 )
+from autogen_core.tools import Tool, ToolSchema
+
+CHAT_CACHE_VALUE_TYPE = Union[CreateResult, List[Union[str, CreateResult]]]
 
 
 class ChatCompletionCache(ChatCompletionClient):
     """
-    A wrapper around a ChatCompletionClient that caches creation results from an underlying client.
+    A wrapper around a :class:`~autogen_ext.models.cache.ChatCompletionClient` that caches
+    creation results from an underlying client.
     Cache hits do not contribute to token usage of the original client.
 
     Typical Usage:
 
-        Lets use caching with `openai` as an example:
+    Lets use caching on disk with `openai` client as an example.
+    First install `autogen-ext` with the required packages:
 
-        .. code-block:: bash
+    .. code-block:: bash
 
-            pip install "autogen-ext[openai]==0.4.0.dev13"
+        pip install -U "autogen-ext[openai, diskcache]"
 
-        And use it as:
+    And use it as:
 
-        .. code-block:: python
+    .. code-block:: python
 
-            # Initialize the original client
-            from autogen_ext.models.openai import OpenAIChatCompletionClient
+        import asyncio
+        import tempfile
 
-            openai_client = OpenAIChatCompletionClient(
-                model="gpt-4o-2024-08-06",
-                # api_key="sk-...", # Optional if you have an OPENAI_API_KEY environment variable set.
-            )
+        from autogen_core.models import UserMessage
+        from autogen_ext.models.openai import OpenAIChatCompletionClient
+        from autogen_ext.models.cache import ChatCompletionCache, CHAT_CACHE_VALUE_TYPE
+        from autogen_ext.cache_store.diskcache import DiskCacheStore
+        from diskcache import Cache
 
-            # Then initialize the CacheStore. Either a Redis store:
-            import redis
 
-            redis_client = redis.Redis(host="localhost", port=6379, db=0)
+        async def main():
+            with tempfile.TemporaryDirectory() as tmpdirname:
+                # Initialize the original client
+                openai_model_client = OpenAIChatCompletionClient(model="gpt-4o")
 
-            # or diskcache:
-            from diskcache import Cache
+                # Then initialize the CacheStore, in this case with diskcache.Cache.
+                # You can also use redis like:
+                # from autogen_ext.cache_store.redis import RedisStore
+                # import redis
+                # redis_instance = redis.Redis()
+                # cache_store = RedisCacheStore[CHAT_CACHE_VALUE_TYPE](redis_instance)
+                cache_store = DiskCacheStore[CHAT_CACHE_VALUE_TYPE](Cache(tmpdirname))
+                cache_client = ChatCompletionCache(openai_model_client, cache_store)
 
-            diskcache_client = Cache("/tmp/diskcache")
+                response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
+                print(response)  # Should print response from OpenAI
+                response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
+                print(response)  # Should print cached response
 
-            # Then initialize the ChatCompletionCache with the store:
-            from autogen_core.models import ChatCompletionCache
 
-            # Cached client
-            cached_client = ChatCompletionCache(openai_client, diskcache_client)
+        asyncio.run(main())
 
-        You can now use the `cached_client` as you would the original client, but with caching enabled.
+    You can now use the `cached_client` as you would the original client, but with caching enabled.
+
+    Args:
+        client (ChatCompletionClient): The original ChatCompletionClient to wrap.
+        store (CacheStore): A store object that implements get and set methods.
+            The user is responsible for managing the store's lifecycle & clearing it (if needed).
     """
 
-    def __init__(self, client: ChatCompletionClient, store: CacheStore):
-        """
-        Initialize a new ChatCompletionCache.
-
-        Args:
-            client (ChatCompletionClient): The original ChatCompletionClient to wrap.
-            store (CacheStore): A store object that implements get and set methods.
-                The user is responsible for managing the store's lifecycle & clearing it (if needed).
-        """
+    def __init__(self, client: ChatCompletionClient, store: CacheStore[CHAT_CACHE_VALUE_TYPE]):
         self.client = client
         self.store = store
 
