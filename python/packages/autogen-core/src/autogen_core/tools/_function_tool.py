@@ -1,5 +1,6 @@
 import asyncio
 import functools
+from textwrap import dedent
 from typing import Any, Callable, Sequence
 
 from pydantic import BaseModel
@@ -120,7 +121,7 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
 
     def _to_config(self) -> FunctionToolConfig:
         return FunctionToolConfig(
-            source_code=to_code(self._func),
+            source_code=dedent(to_code(self._func)),
             global_imports=self._global_imports,
             name=self.name,
             description=self.description,
