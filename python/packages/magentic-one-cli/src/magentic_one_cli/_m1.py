@@ -3,7 +3,6 @@ import asyncio
 import warnings
 from typing import Optional
 
-from aioconsole import ainput  # type: ignore
 from autogen_agentchat.ui import Console, UserInputManager
 from autogen_core import CancellationToken
 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -14,7 +13,7 @@ warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWa
 
 
 async def cancellable_input(prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
-    task: asyncio.Task[str] = asyncio.create_task(ainput(prompt))  # type: ignore
+    task: asyncio.Task[str] = asyncio.create_task(asyncio.to_thread(input, prompt))
     if cancellation_token is not None:
         cancellation_token.link_future(task)
     return await task

@@ -5,7 +5,6 @@ import time
 from inspect import iscoroutinefunction
 from typing import AsyncGenerator, Awaitable, Callable, Dict, List, Optional, TypeVar, Union, cast
 
-from aioconsole import aprint  # type: ignore
 from autogen_core import CancellationToken, Image
 from autogen_core.models import RequestUsage
 
@@ -68,6 +67,10 @@ class UserInputManager:
         else:
             event = asyncio.Event()
             self.input_events[request_id] = event
+
+
+def aprint(output: str, end: str = "\n") -> Awaitable[None]:
+    return asyncio.to_thread(print, output, end=end)
 
 
 async def Console(
