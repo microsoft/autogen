@@ -40,8 +40,7 @@ public sealed class GrpcAgentWorker(
     private Task? _readTask;
     private Task? _writeTask;
 
-    IServiceProvider IAgentWorker.ServiceProvider => throw new NotImplementedException();
-
+    IServiceProvider IAgentWorker.ServiceProvider => ServiceProvider;
     public void Dispose()
     {
         _outboundMessagesChannel.Writer.TryComplete();
