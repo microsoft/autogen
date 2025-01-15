@@ -10,6 +10,7 @@ from autogen_agentchat.base import Handoff, TaskResult
 from autogen_agentchat.messages import (
     ChatMessage,
     HandoffMessage,
+    MemoryQueryEvent,
     MultiModalMessage,
     TextMessage,
     ToolCallExecutionEvent,
@@ -17,6 +18,7 @@ from autogen_agentchat.messages import (
     ToolCallSummaryMessage,
 )
 from autogen_core import Image
+from autogen_core.memory import ListMemory, Memory, MemoryContent, MemoryMimeType, MemoryQueryResult
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import LLMMessage
 from autogen_core.models._model_client import ModelFamily
@@ -508,4 +510,85 @@ async def test_model_context(monkeypatch: pytest.MonkeyPatch) -> None:
 
     # Check if the mock client is called with only the last two messages.
     assert len(mock.calls) == 1
-    assert len(mock.calls[0]) == 3  # 2 message from the context + 1 system message
+    # 2 message from the context + 1 system message
+    assert len(mock.calls[0]) == 3
+
+
+@pytest.mark.asyncio
+async def test_run_with_memory(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = "gpt-4o-2024-05-13"
+    chat_completions = [
+        ChatCompletion(
+            id="id1",
+            choices=[
+                Choice(
+                    finish_reason="stop",
+                    index=0,
+                    message=ChatCompletionMessage(content="Hello", role="assistant"),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
+        ),
+    ]
+    b64_image_str = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
+    mock = _MockChatCompletion(chat_completions)
+    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
+
+    # Test basic memory properties and empty context
+    memory = ListMemory(name="test_memory")
+    assert memory.name == "test_memory"
+
+    empty_context = BufferedChatCompletionContext(buffer_size=2)
+    empty_results = await memory.update_context(empty_context)
+    assert len(empty_results.memories.results) == 0
+
+    # Test various content types
+    memory = ListMemory()
+    await memory.add(MemoryContent(content="text content", mime_type=MemoryMimeType.TEXT))
+    await memory.add(MemoryContent(content={"key": "value"}, mime_type=MemoryMimeType.JSON))
+    await memory.add(MemoryContent(content=Image.from_base64(b64_image_str), mime_type=MemoryMimeType.IMAGE))
+
+    # Test query functionality
+    query_result = await memory.query(MemoryContent(content="", mime_type=MemoryMimeType.TEXT))
+    assert isinstance(query_result, MemoryQueryResult)
+    # Should have all three memories we added
+    assert len(query_result.results) == 3
+
+    # Test clear and cleanup
+    await memory.clear()
+    empty_query = await memory.query(MemoryContent(content="", mime_type=MemoryMimeType.TEXT))
+    assert len(empty_query.results) == 0
+    await memory.close()  # Should not raise
+
+    # Test invalid memory type
+    with pytest.raises(TypeError):
+        AssistantAgent(
+            "test_agent",
+            model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+            memory="invalid",  # type: ignore
+        )
+
+    # Test with agent
+    memory2 = ListMemory()
+    await memory2.add(MemoryContent(content="test instruction", mime_type=MemoryMimeType.TEXT))
+
+    agent = AssistantAgent(
+        "test_agent", model_client=OpenAIChatCompletionClient(model=model, api_key=""), memory=[memory2]
+    )
+
+    result = await agent.run(task="test task")
+    assert len(result.messages) > 0
+    memory_event = next((msg for msg in result.messages if isinstance(msg, MemoryQueryEvent)), None)
+    assert memory_event is not None
+    assert len(memory_event.content) > 0
+    assert isinstance(memory_event.content[0], MemoryContent)
+
+    # Test memory protocol
+    class BadMemory:
+        pass
+
+    assert not isinstance(BadMemory(), Memory)
+    assert isinstance(ListMemory(), Memory)
