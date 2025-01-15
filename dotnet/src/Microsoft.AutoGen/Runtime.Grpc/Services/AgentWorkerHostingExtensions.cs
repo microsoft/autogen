@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.AutoGen.Core;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
 public static class AgentWorkerHostingExtensions
@@ -17,6 +18,10 @@ public static class AgentWorkerHostingExtensions
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
 
         builder.Services.AddGrpc();
+        builder.Services.AddKeyedSingleton("AgentsMetadata", (sp, key) =>
+        {
+            return ReflectionHelper.GetAgentsMetadata(AppDomain.CurrentDomain.GetAssemblies());
+        });
         builder.Services.AddSingleton<GrpcGateway>();
         builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<GrpcGateway>());
 

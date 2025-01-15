@@ -52,6 +52,11 @@ public sealed class GrpcGatewayService : AgentRpc.AgentRpcBase
         request.RequestId = context.Peer;
         return await Gateway.UnsubscribeAsync(request).ConfigureAwait(true);
     }
+    public override async Task<SubscriptionList> GetSubscriptions(AgentId request, ServerCallContext context)
+    {
+        var subscriptions = await Gateway.GetSubscriptionsAsync(request.Type);
+        return new SubscriptionList { Subscriptions = { subscriptions } };
+    }
     public override async Task<RegisterAgentTypeResponse> RegisterAgent(RegisterAgentTypeRequest request, ServerCallContext context)
     {
         request.RequestId = context.Peer;

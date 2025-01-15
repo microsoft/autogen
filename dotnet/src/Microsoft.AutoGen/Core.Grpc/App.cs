@@ -4,7 +4,6 @@ using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
 using Microsoft.AspNetCore.Builder;
-using Microsoft.AutoGen.Runtime.Grpc;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -21,12 +20,10 @@ public static class AgentsApp
     {
         builder ??= WebApplication.CreateBuilder();
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-        builder.AddOrleans();
         builder.AddGrpcAgentWorker()
             .AddAgents(agentTypes);
         builder.AddServiceDefaults();
         var app = builder.Build();
-        app.MapDefaultEndpoints();
         Host = app;
         await app.StartAsync().ConfigureAwait(false);
         return Host;

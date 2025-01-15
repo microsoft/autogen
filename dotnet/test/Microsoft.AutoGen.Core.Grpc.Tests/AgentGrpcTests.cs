@@ -217,13 +217,23 @@ public sealed class GrpcRuntimeFixture
     public GrpcRuntimeFixture()
     {
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
+        Environment.SetEnvironmentVariable("ASPNETCORE_HTTPS_PORTS", "53071");
+        Environment.SetEnvironmentVariable("AGENT_HOST", "https://localhost:53071");
         AppHost = StartAppHostAsync().GetAwaiter().GetResult();
+        Environment.SetEnvironmentVariable("ASPNETCORE_URLS", "https://+;http://+");
+        Client = StartClientAsync().GetAwaiter().GetResult();
     }
 
-    private static async Task<IHost> StartAppHostAsync()
+    private static async Task<IHost> StartClientAsync()
     {
         return await AgentsApp.StartAsync().ConfigureAwait(false);
     }
+    private static async Task<IHost> StartAppHostAsync()
+    {
+        return await Microsoft.AutoGen.Runtime.Grpc.Host.StartAsync(local: false, useGrpc: true).ConfigureAwait(false);
+
+    }
+    public IHost Client { get; }
     public IHost AppHost { get; }
 
     /// <summary>
@@ -232,8 +242,8 @@ public sealed class GrpcRuntimeFixture
     /// <returns>IAgentWorker, TestAgent</returns>
     public (IAgentWorker, TestAgent) Start()
     {
-        var agent = ActivatorUtilities.CreateInstance<TestAgent>(AppHost.Services);
-        var worker = AppHost.Services.GetRequiredService<IAgentWorker>();
+        var agent = ActivatorUtilities.CreateInstance<TestAgent>(Client.Services);
+        var worker = Client.Services.GetRequiredService<IAgentWorker>();
         Agent.Initialize(worker, agent);
         return (worker, agent);
     }

@@ -410,6 +410,10 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         return _gatewayRegistry.GetSubscriptions(nameof(type));
     }
+    public ValueTask<List<Subscription>> GetSubscriptionsAsync(string type, CancellationToken cancellationToken = default)
+    {
+        return _gatewayRegistry.GetSubscriptions(type);
+    }
 
     async ValueTask<RpcResponse> IGateway.InvokeRequestAsync(RpcRequest request)
     {
