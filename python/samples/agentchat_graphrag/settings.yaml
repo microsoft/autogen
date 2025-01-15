@@ -11,10 +11,10 @@ llm:
   type: openai_chat # or azure_openai_chat
   model: gpt-4o
   model_supports_json: true # recommended if this is available for your model.
-  audience: "https://cognitiveservices.azure.com/.default"
+  # audience: "https://cognitiveservices.azure.com/.default"
   # api_base: https://<resource-name>.openai.azure.com
   # api_version: 2024-08-01-preview
-  deployment_name: gpt-4o
+  # deployment_name: gpt-4o
 
 parallelization:
   stagger: 0.3
@@ -35,8 +35,8 @@ embeddings:
     model: text-embedding-3-small
     # api_base: https://<resource-name>.openai.azure.com
     # api_version: "2023-05-15"
-    audience: "https://cognitiveservices.azure.com/.default"
-    deployment_name: text-embedding-3-small
+    # audience: "https://cognitiveservices.azure.com/.default"
+    # deployment_name: text-embedding-3-small
 
 ### Input settings ###
 
