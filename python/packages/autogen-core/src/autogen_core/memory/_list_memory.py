@@ -51,10 +51,6 @@ class ListMemory(Memory):
     Args:
         name: Optional identifier for this memory instance
 
-
-    Attributes:
-        name (str): Identifier for this memory instance
-        content (List[MemoryContent]): Direct access to memory contents
     """
 
     def __init__(self, name: str | None = None) -> None:
