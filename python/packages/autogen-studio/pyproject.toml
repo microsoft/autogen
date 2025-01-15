@@ -33,9 +33,9 @@ dependencies = [
     "alembic",
     "loguru",
     "pyyaml",
-    "autogen-core==0.4.0",
-    "autogen-agentchat==0.4.0",
-    "autogen-ext[magentic-one, openai, azure]==0.4.0",
+    "autogen-core==0.4.2",
+    "autogen-agentchat==0.4.2",
+    "autogen-ext[magentic-one, openai, azure]==0.4.2",
     "azure-identity"
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
