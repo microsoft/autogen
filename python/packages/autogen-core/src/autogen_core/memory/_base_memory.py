@@ -1,4 +1,3 @@
-from datetime import datetime
 from enum import Enum
 from typing import Any, Dict, List, Protocol, Union, runtime_checkable
 
@@ -33,9 +32,6 @@ class MemoryContent(BaseModel):
 
     metadata: Dict[str, Any] | None = None
     """Metadata associated with the memory item."""
-
-    timestamp: datetime | None = None
-    """The timestamp associated with the memory item."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
