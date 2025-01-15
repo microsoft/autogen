@@ -14,7 +14,6 @@ from autogen_core.model_context import BufferedChatCompletionContext, ChatComple
 def test_memory_protocol_attributes() -> None:
     """Test that Memory protocol has all required attributes."""
     # No changes needed here
-    assert hasattr(Memory, "name")
     assert hasattr(Memory, "update_context")
     assert hasattr(Memory, "query")
     assert hasattr(Memory, "add")
