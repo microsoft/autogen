@@ -128,8 +128,10 @@ async def test_run_websurfer(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.messages[2].content == "Hello"
     # check internal web surfer state
     assert len(agent._chat_history) == 2  # pyright: ignore[reportPrivateUsage]
-    assert agent._chat_history[0].content == "task"  # pyright: ignore[reportPrivateUsage]
-    assert agent._chat_history[1].content == "Hello"  # pyright: ignore[reportPrivateUsage]
+    # pyright: ignore[reportPrivateUsage]
+    assert agent._chat_history[0].content == "task"
+    # pyright: ignore[reportPrivateUsage]
+    assert agent._chat_history[1].content == "Hello"
     url_after_no_tool = agent._page.url  # pyright: ignore[reportPrivateUsage]
 
     # run again
@@ -145,3 +147,38 @@ async def test_run_websurfer(monkeypatch: pytest.MonkeyPatch) -> None:
     )  # type: ignore
     url_after_sleep = agent._page.url  # type: ignore
     assert url_after_no_tool == url_after_sleep
+
+
+@pytest.mark.asyncio
+async def test_run_websurfer_declarative(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = "gpt-4o-2024-05-13"
+    chat_completions = [
+        ChatCompletion(
+            id="id1",
+            choices=[
+                Choice(
+                    finish_reason="stop",
+                    index=0,
+                    message=ChatCompletionMessage(content="Response to message 3", role="assistant"),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        ),
+    ]
+    mock = _MockChatCompletion(chat_completions)
+    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
+
+    agent = MultimodalWebSurfer(
+        "WebSurfer", model_client=OpenAIChatCompletionClient(model=model, api_key=""), use_ocr=False
+    )
+
+    agent_config = agent.dump_component()
+    assert agent_config.provider == "autogen_ext.agents.web_surfer.MultimodalWebSurfer"
+    assert agent_config.config["name"] == "WebSurfer"
+
+    loaded_agent = MultimodalWebSurfer.load_component(agent_config)
+    assert isinstance(loaded_agent, MultimodalWebSurfer)
+    assert loaded_agent.name == "WebSurfer"
