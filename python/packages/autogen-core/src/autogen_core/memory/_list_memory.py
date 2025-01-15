@@ -22,7 +22,7 @@ class ListMemory(Memory):
 
             import asyncio
             from autogen_core.memory import ListMemory, MemoryContent
-            from autoget_core.model_context import BufferedChatCompletionContext
+            from autogen_core.model_context import BufferedChatCompletionContext
 
 
             async def main() -> None:
@@ -30,11 +30,11 @@ class ListMemory(Memory):
                 memory = ListMemory(name="chat_history")
 
                 # Add memory content
-                content = MemoryContent(content="User prefers formal language")
+                content = MemoryContent(content="User prefers formal language", mime_type="text/plain")
                 await memory.add(content)
 
                 # Directly modify memory contents
-                memory.content = [MemoryContent(content="New preference")]
+                memory.content = [MemoryContent(content="New preference", mime_type="text/plain")]
 
                 # Create a model context
                 model_context = BufferedChatCompletionContext(buffer_size=10)

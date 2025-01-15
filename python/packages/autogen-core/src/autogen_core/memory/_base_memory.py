@@ -64,11 +64,6 @@ class Memory(Protocol):
     See :class:`~autogen_core.memory.ListMemory` for an example implementation.
     """
 
-    @property
-    def name(self) -> str | None:
-        """The name of this memory implementation."""
-        ...
-
     async def update_context(
         self,
         model_context: ChatCompletionContext,
