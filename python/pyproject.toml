@@ -22,6 +22,12 @@ dev = [
     "chainlit",
 ]
 
+[tool.uv]
+override-dependencies = [
+    "tenacity==9.0.0",
+    "aiofiles==24.1.0",
+    "chainlit==2.0.1",
+]
 [tool.uv.workspace]
 members = ["packages/*"]
 
@@ -31,9 +37,10 @@ autogen-agentchat = { workspace = true }
 autogen-core = { workspace = true }
 autogen-ext = { workspace = true }
 autogen-magentic-one = { workspace = true }
-autogenstudio = { workspace = true }
 autogen-test-utils = { workspace = true }
+autogenstudio = { workspace = true }
 component-schema-gen = { workspace = true }
+magentic-one-cli = { workspace = true }
 
 [tool.ruff]
 line-length = 120

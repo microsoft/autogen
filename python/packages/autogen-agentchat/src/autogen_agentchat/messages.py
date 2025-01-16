@@ -8,6 +8,7 @@ from abc import ABC
 from typing import List, Literal
 
 from autogen_core import FunctionCall, Image
+from autogen_core.memory import MemoryContent
 from autogen_core.models import FunctionExecutionResult, RequestUsage
 from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import Annotated
@@ -103,25 +104,51 @@ class ToolCallSummaryMessage(BaseChatMessage):
     type: Literal["ToolCallSummaryMessage"] = "ToolCallSummaryMessage"
 
 
+class UserInputRequestedEvent(BaseAgentEvent):
+    """An event signaling a that the user proxy has requested user input. Published prior to invoking the input callback."""
+
+    request_id: str
+    """Identifier for the user input request."""
+
+    content: Literal[""] = ""
+    """Empty content for compat with consumers expecting a content field."""
+
+    type: Literal["UserInputRequestedEvent"] = "UserInputRequestedEvent"
+
+
+class MemoryQueryEvent(BaseAgentEvent):
+    """An event signaling the results of memory queries."""
+
+    content: List[MemoryContent]
+    """The memory query results."""
+
+    type: Literal["MemoryQueryEvent"] = "MemoryQueryEvent"
+
+
 ChatMessage = Annotated[
     TextMessage | MultiModalMessage | StopMessage | ToolCallSummaryMessage | HandoffMessage, Field(discriminator="type")
 ]
 """Messages for agent-to-agent communication only."""
 
 
-AgentEvent = Annotated[ToolCallRequestEvent | ToolCallExecutionEvent, Field(discriminator="type")]
+AgentEvent = Annotated[
+    ToolCallRequestEvent | ToolCallExecutionEvent | MemoryQueryEvent | UserInputRequestedEvent,
+    Field(discriminator="type"),
+]
 """Events emitted by agents and teams when they work, not used for agent-to-agent communication."""
 
 
 __all__ = [
+    "AgentEvent",
     "BaseMessage",
-    "TextMessage",
+    "ChatMessage",
+    "HandoffMessage",
     "MultiModalMessage",
     "StopMessage",
-    "HandoffMessage",
-    "ToolCallRequestEvent",
+    "TextMessage",
     "ToolCallExecutionEvent",
+    "ToolCallRequestEvent",
     "ToolCallSummaryMessage",
-    "ChatMessage",
-    "AgentEvent",
+    "MemoryQueryEvent",
+    "UserInputRequestedEvent",
 ]

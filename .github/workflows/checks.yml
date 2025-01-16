@@ -18,6 +18,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          version: "0.5.18"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -36,6 +37,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          version: "0.5.18"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -58,12 +60,14 @@ jobs:
             "./packages/agbench",
             "./packages/autogen-ext",
             "./packages/autogen-agentchat",
+            "./packages/magentic-one-cli",
           ]
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          version: "0.5.18"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -86,12 +90,14 @@ jobs:
             "./packages/agbench",
             "./packages/autogen-ext",
             "./packages/autogen-agentchat",
+            "./packages/magentic-one-cli",
           ]
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          version: "0.5.18"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -119,6 +125,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          version: "0.5.18"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -132,7 +139,7 @@ jobs:
           source ${{ github.workspace }}/python/.venv/bin/activate
           poe --directory ${{ matrix.package }} test
         working-directory: ./python
-  
+
   codecov:
     runs-on: ubuntu-latest
     strategy:
@@ -149,6 +156,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          version: "0.5.18"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -182,6 +190,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          version: "0.5.18"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -203,6 +212,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          version: "0.5.18"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -213,7 +223,7 @@ jobs:
           source ${{ github.workspace }}/python/.venv/bin/activate
           poe --directory ${{ matrix.package }} docs-check-examples
         working-directory: ./python
-  
+
   samples-code-check:
     runs-on: ubuntu-latest
     steps:
@@ -221,6 +231,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          version: "0.5.18"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -239,6 +250,7 @@ jobs:
       - uses: astral-sh/setup-uv@v3
         with:
           enable-cache: true
+          version: "0.5.18"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
@@ -257,6 +269,7 @@ jobs:
       - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          version: "0.5.18"
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"

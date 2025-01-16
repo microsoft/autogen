@@ -36,6 +36,7 @@ from autogen_core.models import (
     ChatCompletionClient,
     ChatCompletionTokenLogprob,
     CreateResult,
+    FinishReasons,
     FunctionExecutionResultMessage,
     LLMMessage,
     ModelCapabilities,  # type: ignore
@@ -327,6 +328,21 @@ def assert_valid_name(name: str) -> str:
     return name
 
 
+def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
+    if stop_reason is None:
+        return "unknown"
+
+    # Convert to lower case
+    stop_reason = stop_reason.lower()
+
+    KNOWN_STOP_MAPPINGS: Dict[str, FinishReasons] = {
+        "end_turn": "stop",
+        "tool_calls": "function_calls",
+    }
+
+    return KNOWN_STOP_MAPPINGS.get(stop_reason, "unknown")
+
+
 class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     def __init__(
         self,
@@ -409,14 +425,14 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         # TODO: allow custom handling.
         # For now we raise an error if images are present and vision is not supported
-        if self.capabilities["vision"] is False:
+        if self.model_info["vision"] is False:
             for message in messages:
                 if isinstance(message, UserMessage):
                     if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
                         raise ValueError("Model does not support vision and image was provided")
 
         if json_output is not None:
-            if self.capabilities["json_output"] is False and json_output is True:
+            if self.model_info["json_output"] is False and json_output is True:
                 raise ValueError("Model does not support JSON output")
 
             if json_output is True:
@@ -424,13 +440,13 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             else:
                 create_args["response_format"] = {"type": "text"}
 
-        if self.capabilities["json_output"] is False and json_output is True:
+        if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output")
 
         oai_messages_nested = [to_oai_type(m) for m in messages]
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]
 
-        if self.capabilities["function_calling"] is False and len(tools) > 0:
+        if self.model_info["function_calling"] is False and len(tools) > 0:
             raise ValueError("Model does not support function calling")
         future: Union[Task[ParsedChatCompletion[BaseModel]], Task[ChatCompletion]]
         if len(tools) > 0:
@@ -622,14 +638,14 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         # TODO: allow custom handling.
         # For now we raise an error if images are present and vision is not supported
-        if self.capabilities["vision"] is False:
+        if self.model_info["vision"] is False:
             for message in messages:
                 if isinstance(message, UserMessage):
                     if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
                         raise ValueError("Model does not support vision and image was provided")
 
         if json_output is not None:
-            if self.capabilities["json_output"] is False and json_output is True:
+            if self.model_info["json_output"] is False and json_output is True:
                 raise ValueError("Model does not support JSON output")
 
             if json_output is True:
@@ -747,8 +763,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         else:
             prompt_tokens = 0
 
-        if stop_reason is None:
-            raise ValueError("No stop reason found")
+        if stop_reason == "function_call":
+            raise ValueError("Function calls are not supported in this context")
 
         content: Union[str, List[FunctionCall]]
         if len(content_deltas) > 1:
@@ -770,13 +786,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
         )
-        if stop_reason == "function_call":
-            raise ValueError("Function calls are not supported in this context")
-        if stop_reason == "tool_calls":
-            stop_reason = "function_calls"
 
         result = CreateResult(
-            finish_reason=stop_reason,  # type: ignore
+            finish_reason=normalize_stop_reason(stop_reason),
             content=content,
             usage=usage,
             cached=False,
@@ -931,7 +943,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
 
     .. code-block:: bash
 
-        pip install "autogen-ext[openai]==0.4.0.dev13"
+        pip install "autogen-ext[openai]"
 
     The following code snippet shows how to use the client with an OpenAI model:
 
@@ -1062,7 +1074,7 @@ class AzureOpenAIChatCompletionClient(
 
         .. code-block:: bash
 
-            pip install "autogen-ext[openai,azure]==0.4.0.dev13"
+            pip install "autogen-ext[openai,azure]"
 
     To use the client, you need to provide your deployment id, Azure Cognitive Services endpoint,
     api version, and model capabilities.
@@ -1102,7 +1114,7 @@ class AzureOpenAIChatCompletionClient(
                 "azure_deployment": "{your-azure-deployment}",
                 "api_version": "2024-06-01",
                 "azure_ad_token_provider": {
-                    "provider": "autogen_ext.models.openai.AzureTokenProvider",
+                    "provider": "autogen_ext.auth.azure.AzureTokenProvider",
                     "config": {
                         "provider_kind": "DefaultAzureCredential",
                         "scopes": ["https://cognitiveservices.azure.com/.default"],

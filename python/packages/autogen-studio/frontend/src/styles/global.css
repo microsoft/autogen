@@ -44,10 +44,10 @@ html {
 
 body {
   padding: 0px 64px 0px 64px;
-  @apply px-4 md:px-8 lg:px-16 w-full !important;
+  @apply px-4 md:px-4 lg:px-8 w-full !important;
   margin: 0px auto;
   min-width: 300px;
-  max-width: 1900px;
+  /* max-width: 1900px; */
   background: transparent;
   height: 100%;
   /* border: 2px solid green; */
