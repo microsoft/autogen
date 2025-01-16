@@ -24,9 +24,10 @@ dev = [
 
 [tool.uv]
 override-dependencies = [
-    "tenacity==9.0.0",
-    "aiofiles==24.1.0",
-    "chainlit==2.0.1",
+    "tenacity>=9.0.0",
+    "aiofiles>=24.1.0",
+    "chainlit>=2.0.1",
+    "httpx>=0.27.0",
 ]
 [tool.uv.workspace]
 members = ["packages/*"]
