@@ -71,11 +71,15 @@ Team Builder Operations:
     - Agents: Add models and tools
 - Save team configurations
 
-Component Library Management:
+## Gallery - Sharing and Reusing Components
+
+A Gallery is a collection of components - teams, agents, models, tools, and terminations - that can be shared and reused across projects.
+
+Users can create a local gallery or import a gallery (from a URL, a JSON file import or simply by copying and pasting the JSON). At any given time, users can select any of the current Gallery items as a **default gallery**. This **default gallery** will be used to populate the Team Builder sidebar with components.
 
 - Create new galleries via Gallery -> New Gallery
 - Edit gallery JSON as needed
-- Set a **default** gallery (click pin icon in sidebar) to make components available in Team Builder
+- Set a **default** gallery (click pin icon in sidebar) to make components available in Team Builder.
 
 ## Interactively Running Teams
 

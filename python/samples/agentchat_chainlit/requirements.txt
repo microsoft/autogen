@@ -1,2 +1,2 @@
 chainlit
-autogen-agentchat>=0.4.1,<0.5
+autogen-agentchat>=0.4.2,<0.5
