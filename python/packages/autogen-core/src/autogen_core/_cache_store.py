@@ -1,4 +1,4 @@
-from typing import Any, Dict, Generic, Optional, Protocol, TypeVar, cast
+from typing import Dict, Generic, Optional, Protocol, TypeVar
 
 T = TypeVar("T")
 
@@ -37,10 +37,10 @@ class CacheStore(Protocol, Generic[T]):
 
 class InMemoryStore(CacheStore[T]):
     def __init__(self) -> None:
-        self.store: Dict[str, Any] = {}
+        self.store: Dict[str, T] = {}
 
     def get(self, key: str, default: Optional[T] = None) -> Optional[T]:
-        return cast(Optional[T], self.store.get(key, default))
+        return self.store.get(key, default)
 
     def set(self, key: str, value: T) -> None:
         self.store[key] = value
