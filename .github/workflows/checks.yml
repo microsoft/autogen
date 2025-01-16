@@ -148,7 +148,7 @@ jobs:
 
   codecov:
     runs-on: ubuntu-latest
-    needs: [test-and-coverage]
+    needs: [test]
     strategy:
       matrix:
         package:
