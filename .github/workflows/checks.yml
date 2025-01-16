@@ -140,8 +140,15 @@ jobs:
           poe --directory ${{ matrix.package }} test
         working-directory: ./python
 
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: coverage-${{ matrix.package }}
+          path: ${{ matrix.package }}/coverage.xml
+
   codecov:
     runs-on: ubuntu-latest
+    needs: [test-and-coverage]
     strategy:
       matrix:
         package:
@@ -153,31 +160,16 @@ jobs:
           ]
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
+      - uses: actions/download-artifact@v3
         with:
-          enable-cache: true
-          version: "0.5.18"
-      - uses: actions/setup-python@v5
+          name: coverage-${{ matrix.package }}
+          path: ./
+      - uses: codecov/codecov-action@v5
         with:
-          python-version: "3.11"
-      - name: Run uv sync
-        run: |
-          uv sync --locked --all-extras
-
-        working-directory: ./python
-      - name: Run task
-        run: |
-          source ${{ github.workspace }}/python/.venv/bin/activate
-          poe --directory ${{ matrix.package }} coverage
-        working-directory: ./python
-      - name: Upload coverage
-        uses: codecov/codecov-action@v5
-        with:
-          fail_ci_if_error: true # optional (default = false)
-          files: ${{ matrix.package }}/coverage.xml # optional
-          flags: unittests # optional
-          name: codecov-umbrella # optional
-          verbose: true # optional (default = false)
+          files: ./coverage.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
   docs:

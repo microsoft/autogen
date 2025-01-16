@@ -81,14 +81,9 @@ include = "../../shared_tasks.toml"
 [tool.poe.tasks]
 test.sequence = [
     "playwright install",
-    "pytest -n auto",
-]
-test.default_item_type = "cmd"
-coverage.sequence = [
-    "playwright install",
     "pytest -n auto --cov=src --cov-report=term-missing --cov-report=xml",
 ]
-coverage.default_item_type = "cmd"
+test.default_item_type = "cmd"
 mypy = "mypy --config-file ../../pyproject.toml --exclude src/autogen_ext/runtimes/grpc/protos --exclude tests/protos src tests"
 
 [tool.mypy]
