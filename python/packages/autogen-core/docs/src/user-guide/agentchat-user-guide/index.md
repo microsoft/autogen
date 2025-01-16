@@ -91,6 +91,8 @@ tutorial/human-in-the-loop
 tutorial/termination
 tutorial/custom-agents
 tutorial/state
+tutorial/declarative
+tutorial/memory
 ```
 
 ```{toctree}

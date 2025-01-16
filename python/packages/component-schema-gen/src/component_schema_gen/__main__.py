@@ -5,7 +5,8 @@ from typing import Any, DefaultDict, Dict, List, TypeVar
 from autogen_core import ComponentModel
 from autogen_core._component_config import (
     WELL_KNOWN_PROVIDERS,
-    ComponentConfigImpl,
+    ComponentSchemaType,
+    ComponentToConfig,
     _type_to_provider_str,  # type: ignore
 )
 from autogen_ext.auth.azure import AzureTokenProvider
@@ -17,9 +18,12 @@ all_defs: Dict[str, Any] = {}
 T = TypeVar("T", bound=BaseModel)
 
 
-def build_specific_component_schema(component: type[ComponentConfigImpl[T]], provider_str: str) -> Dict[str, Any]:
+def build_specific_component_schema(component: type[ComponentSchemaType[T]], provider_str: str) -> Dict[str, Any]:
     model = component.component_config_schema  # type: ignore
     model_schema = model.model_json_schema()
+
+    # We can't specify component to be the union of two types, so we assert it here
+    assert issubclass(component, ComponentToConfig)
 
     component_model_schema = ComponentModel.model_json_schema()
     if "$defs" not in component_model_schema:
@@ -70,7 +74,9 @@ def main() -> None:
     for key, value in WELL_KNOWN_PROVIDERS.items():
         reverse_provider_lookup_table[value].append(key)
 
-    def add_type(type: type[ComponentConfigImpl[T]]) -> None:
+    def add_type(type: type[ComponentSchemaType[T]]) -> None:
+        # We can't specify component to be the union of two types, so we assert it here
+        assert issubclass(type, ComponentToConfig)
         canonical = type.component_provider_override or _type_to_provider_str(type)
         reverse_provider_lookup_table[canonical].append(canonical)
         for provider_str in reverse_provider_lookup_table[canonical]:

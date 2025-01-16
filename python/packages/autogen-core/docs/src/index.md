@@ -60,7 +60,7 @@ A console-based multi-agent assistant for web and file-based tasks.
 Built on AgentChat.
 
 ```bash
-pip install magentic-one-cli
+pip install -U magentic-one-cli
 m1 "Find flights from Seattle to Paris and format the result in a table"
 ```
 
@@ -83,8 +83,8 @@ An app for prototyping and managing agents without writing code.
 Built on AgentChat.
 
 ```bash
-pip install autogenstudio
-autogenstudio ui --port 8080
+pip install -U autogenstudio
+autogenstudio ui --port 8080 --appdir ./myapp
 ```
 
 +++
@@ -109,7 +109,7 @@ Get Started
 
 </div>
 A programming framework for building conversational single and multi-agent applications.
-Built on Core.
+Built on Core. Requires Python 3.10+.
 
 ```python
 # pip install -U "autogen-agentchat" "autogen-ext[openai]"
@@ -119,7 +119,7 @@ from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 async def main() -> None:
     agent = AssistantAgent("assistant", OpenAIChatCompletionClient(model="gpt-4o"))
-    print(agent.run(task="Say 'Hello World!'"))
+    print(await agent.run(task="Say 'Hello World!'"))
 
 asyncio.run(main())
 ```
