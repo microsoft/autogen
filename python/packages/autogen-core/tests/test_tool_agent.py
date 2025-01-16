@@ -11,10 +11,11 @@ from autogen_core.models import (
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
-    ModelCapabilities,
+    ModelCapabilities,  # type: ignore
     RequestUsage,
     UserMessage,
 )
+from autogen_core.models._model_client import ModelFamily, ModelInfo
 from autogen_core.tool_agent import (
     InvalidToolArgumentsException,
     ToolAgent,
@@ -138,8 +139,12 @@ async def test_caller_loop() -> None:
             return 0
 
         @property
-        def capabilities(self) -> ModelCapabilities:
-            return ModelCapabilities(vision=False, function_calling=True, json_output=False)
+        def capabilities(self) -> ModelCapabilities:  # type: ignore
+            return ModelCapabilities(vision=False, function_calling=True, json_output=False)  # type: ignore
+
+        @property
+        def model_info(self) -> ModelInfo:
+            return ModelInfo(vision=False, function_calling=True, json_output=False, family=ModelFamily.UNKNOWN)
 
     client = MockChatCompletionClient()
     tools: List[Tool] = [FunctionTool(_pass_function, name="pass", description="Pass function")]

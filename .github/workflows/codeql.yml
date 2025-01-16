@@ -76,6 +76,7 @@ jobs:
     - uses: astral-sh/setup-uv@v5
       with:
         enable-cache: true
+        version: "0.5.18"
     - run: uv sync --locked --all-extras
       working-directory: ./python
     - name: Prepare python venv
@@ -100,6 +101,11 @@ jobs:
     # to build your code.
     # ℹ️ Command-line programs to run using the OS shell.
     # 📚 See https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idstepsrun
+    - if: matrix.build-mode == 'manual'
+      name: Setup .NET 8.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
     - if: matrix.build-mode == 'manual'
       shell: bash
       working-directory: dotnet
