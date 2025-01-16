@@ -4,17 +4,12 @@ from typing import Any, Literal, Mapping, Optional, Sequence
 from autogen_core import FunctionCall
 from autogen_core._cancellation_token import CancellationToken
 from autogen_core.models import (
-    AssistantMessage,
     ChatCompletionClient,
     CreateResult,
-    FunctionExecutionResult,
-    FunctionExecutionResultMessage,
     LLMMessage,
     ModelFamily,
     ModelInfo,
     RequestUsage,
-    SystemMessage,
-    UserMessage,
 )
 from autogen_core.tools import BaseTool, Tool, ToolSchema
 from semantic_kernel.connectors.ai.chat_completion_client_base import ChatCompletionClientBase
@@ -24,7 +19,6 @@ from semantic_kernel.contents.chat_history import ChatHistory
 from semantic_kernel.contents.chat_message_content import ChatMessageContent
 from semantic_kernel.contents.function_call_content import FunctionCallContent
 from semantic_kernel.contents.streaming_chat_message_content import StreamingChatMessageContent
-from semantic_kernel.contents.utils.author_role import AuthorRole
 from semantic_kernel.functions.kernel_plugin import KernelPlugin
 from semantic_kernel.kernel import Kernel
 from typing_extensions import AsyncGenerator, Union
@@ -149,8 +143,11 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             asyncio.run(main())
     """
 
-    def __init__(self, sk_client: ChatCompletionClientBase):
+    def __init__(self, sk_client: ChatCompletionClientBase, model_info: Optional[ModelInfo] = None):
         self._sk_client = sk_client
+        self._model_info = model_info or ModelInfo(
+            vision=False, function_calling=False, json_output=False, family=ModelFamily.UNKNOWN
+        )
         self._total_prompt_tokens = 0
         self._total_completion_tokens = 0
         self._tools_plugin: Optional[KernelPlugin] = None
@@ -182,24 +179,6 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                     chat_history.add_tool_message(result.content)
 
         return chat_history
-
-    def _convert_from_chat_message(self, message: ChatMessageContent, source: str = "assistant") -> LLMMessage:
-        """Convert SK ChatMessageContent to Autogen LLMMessage"""
-        if message.role == AuthorRole.SYSTEM:
-            return SystemMessage(content=message.content)
-
-        elif message.role == AuthorRole.USER:
-            return UserMessage(content=message.content, source=source)
-
-        elif message.role == AuthorRole.ASSISTANT:
-            return AssistantMessage(content=message.content, source=source)
-
-        elif message.role == AuthorRole.TOOL:
-            return FunctionExecutionResultMessage(
-                content=[FunctionExecutionResult(content=message.content, call_id="")]
-            )
-
-        raise ValueError(f"Unknown role: {message.role}")
 
     def _build_execution_settings(
         self, extra_create_args: Mapping[str, Any], tools: Sequence[Tool | ToolSchema]
@@ -413,13 +392,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
 
     @property
     def model_info(self) -> ModelInfo:
-        # Return something consistent with the underlying SK client
-        return ModelInfo(  # type: ignore
-            vision=False,
-            function_calling=self._sk_client.SUPPORTS_FUNCTION_CALLING,
-            json_output=False,
-            model_family=ModelFamily.UNKNOWN,
-        )
+        return self._model_info
 
     @property
     def capabilities(self) -> ModelInfo:

@@ -4,7 +4,7 @@ from unittest.mock import AsyncMock
 
 import pytest
 from autogen_core import CancellationToken
-from autogen_core.models import CreateResult, LLMMessage, SystemMessage, UserMessage
+from autogen_core.models import CreateResult, LLMMessage, ModelFamily, ModelInfo, SystemMessage, UserMessage
 from autogen_core.tools import BaseTool
 from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta
@@ -344,3 +344,36 @@ async def test_sk_chat_completion_stream_without_tools(sk_client: AzureChatCompl
     assert final_chunk.usage.prompt_tokens >= 0
     assert final_chunk.usage.completion_tokens >= 0
     assert not final_chunk.cached
+
+
+@pytest.mark.asyncio
+async def test_sk_chat_completion_default_model_info(sk_client: AzureChatCompletion) -> None:
+    # Create adapter with default model_info
+    adapter = SKChatCompletionAdapter(sk_client)
+
+    # Verify default model_info values
+    assert adapter.model_info["vision"] is False
+    assert adapter.model_info["function_calling"] is False
+    assert adapter.model_info["json_output"] is False
+    assert adapter.model_info["family"] == ModelFamily.UNKNOWN
+
+    # Verify capabilities returns the same ModelInfo
+    assert adapter.capabilities == adapter.model_info
+
+
+@pytest.mark.asyncio
+async def test_sk_chat_completion_custom_model_info(sk_client: AzureChatCompletion) -> None:
+    # Create custom model info
+    custom_model_info = ModelInfo(vision=True, function_calling=True, json_output=True, family=ModelFamily.GPT_4)
+
+    # Create adapter with custom model_info
+    adapter = SKChatCompletionAdapter(sk_client, model_info=custom_model_info)
+
+    # Verify custom model_info values
+    assert adapter.model_info["vision"] is True
+    assert adapter.model_info["function_calling"] is True
+    assert adapter.model_info["json_output"] is True
+    assert adapter.model_info["family"] == ModelFamily.GPT_4
+
+    # Verify capabilities returns the same ModelInfo
+    assert adapter.capabilities == adapter.model_info
