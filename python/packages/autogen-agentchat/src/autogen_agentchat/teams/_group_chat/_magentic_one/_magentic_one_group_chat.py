@@ -1,8 +1,10 @@
 import logging
 from typing import Callable, List
+from typing_extensions import Self
+from pydantic import BaseModel 
 
 from autogen_core.models import ChatCompletionClient
-
+from autogen_core import Component, ComponentModel
 from .... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ....base import ChatAgent, TerminationCondition
 from .._base_group_chat import BaseGroupChat
@@ -13,7 +15,18 @@ trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
-class MagenticOneGroupChat(BaseGroupChat):
+
+class MagenticOneGroupChatConfig(BaseModel):
+    """The declarative configuration for a MagenticOneGroupChat."""
+    
+    participants: List[ComponentModel]
+    model_client: ComponentModel 
+    termination_condition: ComponentModel | None
+    max_turns: int | None
+    max_stalls: int
+    final_answer_prompt: str
+
+class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig]):
     """A team that runs a group chat with participants managed by the MagenticOneOrchestrator.
 
     The orchestrator handles the conversation flow, ensuring that the task is completed
@@ -73,6 +86,9 @@ class MagenticOneGroupChat(BaseGroupChat):
             }
     """
 
+    component_config_schema = MagenticOneGroupChatConfig
+    component_provider_override = "autogen_agentchat.teams.MagenticOneGroupChat"
+
     def __init__(
         self,
         participants: List[ChatAgent],
@@ -116,4 +132,31 @@ class MagenticOneGroupChat(BaseGroupChat):
             self._max_stalls,
             self._final_answer_prompt,
             termination_condition,
+        )
+
+
+    def _to_config(self) -> MagenticOneGroupChatConfig:
+        participants= []  # [p.dump_component() for p in self.participants], 
+        termination_condition = self._termination_condition.dump_component() if self._termination_condition else None
+        return MagenticOneGroupChatConfig(
+            participants=participants,
+            model_client=self._model_client.dump_component(),
+            termination_condition=termination_condition,
+            max_turns=self._max_turns,
+            max_stalls=self._max_stalls,
+            final_answer_prompt=self._final_answer_prompt,
+        )
+
+    @classmethod
+    def _from_config(cls, config: MagenticOneGroupChatConfig) -> Self:
+        participants = [BaseGroupChat.load_component(participant) for participant in config.participants]
+        model_client = config.model_client.load_component()
+        termination_condition = config.termination_condition.load_component() if config.termination_condition else None
+        return cls(
+            participants,
+            model_client,
+            termination_condition=termination_condition,
+            max_turns=config.max_turns,
+            max_stalls=config.max_stalls,
+            final_answer_prompt=config.final_answer_prompt,
         )

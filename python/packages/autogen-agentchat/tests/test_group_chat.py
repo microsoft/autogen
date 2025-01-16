@@ -1082,3 +1082,18 @@ async def test_round_robin_group_chat_with_message_list() -> None:
     # Test with empty message list
     with pytest.raises(ValueError, match="Task list cannot be empty"):
         await team.run(task=[])
+
+
+@pytest.mark.asyncio
+async def test_declarative_groupchats() -> None:
+    # Create a simple team with echo agents
+    agent1 = _EchoAgent("Agent1", "First agent")
+    agent2 = _EchoAgent("Agent2", "Second agent")
+    termination = MaxMessageTermination(4)  # Stop after 4 messages
+    round_robin_team = RoundRobinGroupChat([agent1, agent2], termination_condition=termination)
+
+    round_robin_team_config = round_robin_team.dump_component()
+    assert round_robin_team_config.provider == "autogen_agentchat.teams.RoundRobinGroupChat"
+
+    round_robin_team_loaded = RoundRobinGroupChat.load_component(round_robin_team_config)
+    assert round_robin_team_loaded.component_type == "team" 

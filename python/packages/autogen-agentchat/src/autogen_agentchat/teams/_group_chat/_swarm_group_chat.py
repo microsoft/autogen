@@ -1,11 +1,13 @@
 from typing import Any, Callable, List, Mapping
 
+from pydantic import BaseModel
+
 from ...base import ChatAgent, TerminationCondition
 from ...messages import AgentEvent, ChatMessage, HandoffMessage
 from ...state import SwarmManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
-
+from autogen_core import ComponentModel, Component
 
 class SwarmGroupChatManager(BaseGroupChatManager):
     """A group chat manager that selects the next speaker based on handoff message only."""
@@ -91,8 +93,14 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         self._current_turn = swarm_state.current_turn
         self._current_speaker = swarm_state.current_speaker
 
+class SwarmConfig(BaseModel):
+    """The declarative configuration for Swarm."""
 
-class Swarm(BaseGroupChat):
+    participants: List[ComponentModel]
+    termination_condition: ComponentModel | None
+    max_turns: int | None
+
+class Swarm(BaseGroupChat, Component[SwarmConfig]):
     """A group chat team that selects the next speaker based on handoff message only.
 
     The first participant in the list of participants is the initial speaker.
@@ -180,6 +188,9 @@ class Swarm(BaseGroupChat):
             asyncio.run(main())
     """
 
+    component_config_schema = SwarmConfig
+    component_provider_override = "autogen_agentchat.teams.Swarm"
+
     def __init__(
         self,
         participants: List[ChatAgent],
@@ -216,4 +227,20 @@ class Swarm(BaseGroupChat):
                 max_turns,
             )
 
-        return _factory
+        return _factory 
+
+
+    def _to_config(self) -> SwarmConfig:
+        participants = [] # [participant.dump_component() for participant in self._participants]
+        termination_condition = self._termination_condition.dump_component() if self._termination_condition else None
+        return SwarmConfig(
+            participants=participants,
+            termination_condition=termination_condition,
+            max_turns=self._max_turns,
+        )
+
+    @classmethod 
+    def _from_config(cls, config: SwarmConfig) -> "Swarm":
+        participants = [BaseGroupChat.load_component(participant) for participant in config.participants]
+        termination_condition = TerminationCondition.load_component(config.termination_condition) if config.termination_condition else None
+        return cls(participants, termination_condition=termination_condition, max_turns=config.max_turns)

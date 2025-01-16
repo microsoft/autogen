@@ -1,8 +1,10 @@
 import logging
 import re
 from typing import Any, Callable, Dict, List, Mapping, Sequence
-
+from pydantic import BaseModel
+from typing_extensions import Self
 from autogen_core.models import ChatCompletionClient, SystemMessage
+from autogen_core import Component, ComponentModel
 
 from ... import TRACE_LOGGER_NAME
 from ...base import ChatAgent, TerminationCondition
@@ -183,8 +185,18 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                 mentions[name] = count
         return mentions
 
+class SelectorGroupChatConfig(BaseModel):
+    """The declarative configuration for SelectorGroupChat."""
 
-class SelectorGroupChat(BaseGroupChat):
+    participants: List[ComponentModel]
+    model_client: ComponentModel
+    termination_condition: ComponentModel | None
+    max_turns: int | None
+    selector_prompt: str
+    allow_repeated_speaker: bool
+    # selector_func: ComponentModel | None
+
+class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
     """A group chat team that have participants takes turn to publish a message
     to all, using a ChatCompletion model to select the next speaker after each message.
 
@@ -321,6 +333,9 @@ class SelectorGroupChat(BaseGroupChat):
             asyncio.run(main())
     """
 
+    component_config_schema = SelectorGroupChatConfig
+    component_provider_override = "autogen_agentchat.teams.SelectorGroupChat"
+
     def __init__(
         self,
         participants: List[ChatAgent],
@@ -381,3 +396,33 @@ Read the above conversation. Then select the next role from {participants} to pl
             self._allow_repeated_speaker,
             self._selector_func,
         )
+
+    
+    def _to_config(self) -> SelectorGroupChatConfig:
+        return SelectorGroupChatConfig(
+            participants= [] , # [p.dump_component() for p in self.participants], 
+            model_client=self._model_client.dump_component(),
+            termination_condition=self.termination_condition.dump_component() if self.termination_condition else None,
+            max_turns=self.max_turns,
+            selector_prompt=self._selector_prompt,
+            allow_repeated_speaker=self._allow_repeated_speaker,
+            # selector_func=self._selector_func.dump_component() if self._selector_func else None,
+        )
+
+    @classmethod
+
+    def _from_config(cls, config: SelectorGroupChatConfig) -> Self: 
+        return cls(
+            participants = [BaseGroupChat.load_component(participant) for participant in config.participants],
+            model_client=ChatCompletionClient.load_component(config.model_client),
+            termination_condition=TerminationCondition.load_component(config.termination_condition)
+            if config.termination_condition
+            else None,
+            max_turns=config.max_turns,
+            selector_prompt=config.selector_prompt,
+            allow_repeated_speaker=config.allow_repeated_speaker,
+            # selector_func=ComponentLoader.load_component(config.selector_func, Callable[[Sequence[AgentEvent | ChatMessage]], str | None])
+            # if config.selector_func
+            # else None,
+        )
+
