@@ -15,8 +15,8 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "autogen-agentchat>=0.4.1,<0.5",
-    "autogen-ext[openai,magentic-one]>=0.4.1,<0.5",
+    "autogen-agentchat>=0.4.2,<0.5",
+    "autogen-ext[openai,magentic-one]>=0.4.2,<0.5",
 ]
 
 [project.scripts]
