@@ -35,7 +35,7 @@ dependencies = [
     "pyyaml",
     "autogen-core>=0.4.2,<0.5",
     "autogen-agentchat>=0.4.2,<0.5",
-    "autogen-ext[magentic-one, openai, azure]==0.4.2",
+    "autogen-ext[magentic-one, openai, azure]>=0.4.2,<0.5",
     "azure-identity"
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
