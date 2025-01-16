@@ -1,5 +1,3 @@
-from datetime import datetime
-
 import pytest
 from autogen_core import CancellationToken
 from autogen_core.memory import (
@@ -16,7 +14,6 @@ from autogen_core.model_context import BufferedChatCompletionContext, ChatComple
 def test_memory_protocol_attributes() -> None:
     """Test that Memory protocol has all required attributes."""
     # No changes needed here
-    assert hasattr(Memory, "name")
     assert hasattr(Memory, "update_context")
     assert hasattr(Memory, "query")
     assert hasattr(Memory, "add")
@@ -76,8 +73,8 @@ async def test_list_memory_add_and_query() -> None:
     """Test adding and querying memory contents."""
     memory = ListMemory()
 
-    content1 = MemoryContent(content="test1", mime_type=MemoryMimeType.TEXT, timestamp=datetime.now())
-    content2 = MemoryContent(content={"key": "value"}, mime_type=MemoryMimeType.JSON, timestamp=datetime.now())
+    content1 = MemoryContent(content="test1", mime_type=MemoryMimeType.TEXT)
+    content2 = MemoryContent(content={"key": "value"}, mime_type=MemoryMimeType.JSON)
 
     await memory.add(content1)
     await memory.add(content2)
