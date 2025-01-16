@@ -91,8 +91,7 @@ tutorial/human-in-the-loop
 tutorial/termination
 tutorial/custom-agents
 tutorial/state
-tutorial/declarative
-tutorial/memory
+
 ```
 
 ```{toctree}
@@ -103,6 +102,8 @@ tutorial/memory
 selector-group-chat
 swarm
 magentic-one
+advanced/memory
+advanced/serialize-components
 ```
 
 ```{toctree}
