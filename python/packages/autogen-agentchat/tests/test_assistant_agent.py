@@ -627,3 +627,16 @@ async def test_assistant_agent_declarative(monkeypatch: pytest.MonkeyPatch) -> N
 
     agent2 = AssistantAgent.load_component(agent_config)
     assert agent2.name == agent.name
+
+    agent3 = AssistantAgent(
+        "test_agent",
+        model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+        model_context=model_context,
+        tools=[
+            _pass_function,
+            _fail_function,
+            FunctionTool(_echo_function, description="Echo"),
+        ],
+    )
+    with pytest.raises(NotImplementedError):
+        agent3.dump_component()

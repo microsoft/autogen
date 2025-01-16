@@ -56,7 +56,7 @@ class AssistantAgentConfig(BaseModel):
 
     name: str
     model_client: ComponentModel
-    tools: List[Any] | None = None
+    # tools: List[Any] | None = None # TBD
     handoffs: List[HandoffBase | str] | None = None
     model_context: ComponentModel | None = None
     description: str
@@ -245,7 +245,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             See `o1 beta limitations <https://platform.openai.com/docs/guides/reasoning#beta-limitations>`_ for more details.
     """
 
-    component_type = "agent"
     component_config_schema = AssistantAgentConfig
     component_provider_override = "autogen_agentchat.agents.AssistantAgent"
 
@@ -485,10 +484,16 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
     def _to_config(self) -> AssistantAgentConfig:
         """Convert the assistant agent to a declarative config."""
+
+        # raise an error if tools is not empty until it is implemented
+        # TBD : Implement serializing tools and remove this check.
+        if self._tools and len(self._tools) > 0:
+            raise NotImplementedError("Serializing tools is not implemented yet.")
+
         return AssistantAgentConfig(
             name=self.name,
             model_client=self._model_client.dump_component(),
-            tools=[],
+            # tools=[], # TBD
             handoffs=list(self._handoffs.values()),
             model_context=self._model_context.dump_component(),
             description=self.description,
@@ -505,7 +510,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         return cls(
             name=config.name,
             model_client=ChatCompletionClient.load_component(config.model_client),
-            tools=[],
+            # tools=[], # TBD
             handoffs=config.handoffs,
             model_context=None,
             description=config.description,
