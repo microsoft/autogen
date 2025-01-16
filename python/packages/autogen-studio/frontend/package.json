@@ -16,6 +16,10 @@
     "clean": "gatsby clean",
     "typecheck": "tsc --noEmit"
   },
+  "resolutions": {
+    "cookie": "^0.7.1",
+    "path-to-regexp": "^0.1.12"
+  },
   "dependencies": {
     "@dagrejs/dagre": "^1.1.4",
     "@dnd-kit/core": "^6.2.0",

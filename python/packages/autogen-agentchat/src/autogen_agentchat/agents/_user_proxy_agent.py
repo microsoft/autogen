@@ -5,7 +5,6 @@ from contextvars import ContextVar
 from inspect import iscoroutinefunction
 from typing import Any, AsyncGenerator, Awaitable, Callable, ClassVar, Generator, Optional, Sequence, Union, cast
 
-from aioconsole import ainput  # type: ignore
 from autogen_core import CancellationToken
 
 from ..base import Response
@@ -17,10 +16,9 @@ AsyncInputFunc = Callable[[str, Optional[CancellationToken]], Awaitable[str]]
 InputFuncType = Union[SyncInputFunc, AsyncInputFunc]
 
 
-# TODO: ainput doesn't seem to play nicely with jupyter.
-#       No input window appears in this case.
+# TODO: check if using to_thread fixes this in jupyter
 async def cancellable_input(prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
-    task: asyncio.Task[str] = asyncio.create_task(ainput(prompt))  # type: ignore
+    task: asyncio.Task[str] = asyncio.create_task(asyncio.to_thread(input, prompt))
     if cancellation_token is not None:
         cancellation_token.link_future(task)
     return await task

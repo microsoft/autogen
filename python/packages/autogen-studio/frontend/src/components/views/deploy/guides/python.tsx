@@ -5,7 +5,7 @@ import { Download } from "lucide-react";
 
 const PythonGuide: React.FC = () => {
   return (
-    <div className="max-w-4xl">
+    <div className="">
       <h1 className="tdext-2xl font-bold mb-6">
         Using AutoGen Studio Teams in Python Code and REST API
       </h1>
