@@ -88,5 +88,4 @@ ignore = ["B008"]
 fmt = "ruff format"
 format.ref = "fmt"
 lint = "ruff check"
-test = "pytest -n 0"
-coverage = "pytest -n 0 --cov=autogenstudio --cov-report=term-missing"
+test = "pytest -n 0 --cov=autogenstudio --cov-report=term-missing"
