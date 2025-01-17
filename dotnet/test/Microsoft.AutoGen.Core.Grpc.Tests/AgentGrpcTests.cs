@@ -18,7 +18,6 @@ namespace Microsoft.AutoGen.Core.Grpc.Tests;
 [Collection(GrpcClusterFixtureCollection.Name)]
 public class AgentGrpcTests(GrpcRuntimeFixture fixture)
 {
-    private readonly IServiceProvider _serviceProvider = fixture.AppHost.Services;
     private readonly GrpcRuntimeFixture _fixture = fixture;
     // need a variable to store the runtime instance
     public static WebApplication? Host { get; private set; }
@@ -30,7 +29,7 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
     [Fact]
     public async Task Agent_ShouldThrowException_WhenNotInitialized()
     {
-        var agent = ActivatorUtilities.CreateInstance<TestAgent>(_serviceProvider);
+        var agent = ActivatorUtilities.CreateInstance<TestAgent>(_fixture.Client.Services);
         await Assert.ThrowsAsync<UninitializedAgentWorker.AgentInitalizedIncorrectlyException>(
             async () =>
             {
@@ -130,12 +129,18 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
             }
         }
         Assert.True(found);
+/*         await AgentsApp.PublishMessageAsync("TestEvent", new TextMessage()
+        {
+            Source = "TestEvent",
+            TextMessage_ = "buffer"
+        }, local: false).ConfigureAwait(true);
+ */         
         await agent.PublishMessageAsync(new TextMessage()
         {
             Source = "TestEvent",
             TextMessage_ = "buffer"
         }).ConfigureAwait(true);
-        await Task.Delay(100);
+        await Task.Delay(10000);
         Assert.True(TestAgent.ReceivedMessages.ContainsKey("TestEvent"));
         _fixture.Stop();
     }
@@ -156,7 +161,7 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
     [Fact]
     public async Task DelegateMessageToTestAgentAsync()
     {
-        var client = _fixture.AppHost.Services.GetRequiredService<Client>();
+        var client = _fixture.Client.Services.GetRequiredService<Client>();
         await client.PublishMessageAsync(new TextMessage()
         {
             Source = nameof(DelegateMessageToTestAgentAsync),
@@ -234,7 +239,7 @@ public sealed class GrpcRuntimeFixture
 
     }
     public IHost Client { get; }
-    public IHost AppHost { get; }
+    public IHost? AppHost { get; }
 
     /// <summary>
     /// Start - starts the agent
@@ -253,7 +258,7 @@ public sealed class GrpcRuntimeFixture
     /// <returns>void</returns>
     public void Stop()
     {
-        IHostApplicationLifetime hostApplicationLifetime = AppHost.Services.GetRequiredService<IHostApplicationLifetime>();
+        IHostApplicationLifetime hostApplicationLifetime = Client.Services.GetRequiredService<IHostApplicationLifetime>();
         hostApplicationLifetime.StopApplication();
     }
 }
