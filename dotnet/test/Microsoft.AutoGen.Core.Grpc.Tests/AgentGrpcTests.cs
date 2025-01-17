@@ -129,12 +129,7 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
             }
         }
         Assert.True(found);
-/*         await AgentsApp.PublishMessageAsync("TestEvent", new TextMessage()
-        {
-            Source = "TestEvent",
-            TextMessage_ = "buffer"
-        }, local: false).ConfigureAwait(true);
- */         
+  
         await agent.PublishMessageAsync(new TextMessage()
         {
             Source = "TestEvent",
