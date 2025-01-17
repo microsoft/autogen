@@ -75,6 +75,8 @@ def serve(
 
     os.environ["AUTOGENSTUDIO_API_DOCS"] = str(docs)
     os.environ["AUTOGENSTUDIO_TEAM_FILE"] = team
+    os.environ["AUTOGENSTUDIO_HOST"] = host
+    os.environ["AUTOGENSTUDIO_PORT"] = str(port)
 
     # validate the team file
     if not os.path.exists(team):
@@ -86,6 +88,7 @@ def serve(
         port=port,
         workers=workers,
         reload=False,
+        log_level="info",
     )
 
 

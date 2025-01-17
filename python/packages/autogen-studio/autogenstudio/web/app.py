@@ -31,12 +31,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Lifecycle manager for the FastAPI application.
     Handles initialization and cleanup of application resources.
     """
-    # Startup
-    logger.info("Initializing application...")
+
     try:
         # Initialize managers (DB, Connection, Team)
         await init_managers(initializer.database_uri, initializer.config_dir, initializer.app_root)
-        logger.info("Managers initialized successfully")
 
         # Any other initialization code
         logger.info("Application startup complete")
