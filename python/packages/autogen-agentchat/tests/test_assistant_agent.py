@@ -592,3 +592,51 @@ async def test_run_with_memory(monkeypatch: pytest.MonkeyPatch) -> None:
 
     assert not isinstance(BadMemory(), Memory)
     assert isinstance(ListMemory(), Memory)
+
+
+@pytest.mark.asyncio
+async def test_assistant_agent_declarative(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = "gpt-4o-2024-05-13"
+    chat_completions = [
+        ChatCompletion(
+            id="id1",
+            choices=[
+                Choice(
+                    finish_reason="stop",
+                    index=0,
+                    message=ChatCompletionMessage(content="Response to message 3", role="assistant"),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        ),
+    ]
+    mock = _MockChatCompletion(chat_completions)
+    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
+    model_context = BufferedChatCompletionContext(buffer_size=2)
+    agent = AssistantAgent(
+        "test_agent",
+        model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+        model_context=model_context,
+    )
+
+    agent_config = agent.dump_component()
+    assert agent_config.provider == "autogen_agentchat.agents.AssistantAgent"
+
+    agent2 = AssistantAgent.load_component(agent_config)
+    assert agent2.name == agent.name
+
+    agent3 = AssistantAgent(
+        "test_agent",
+        model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+        model_context=model_context,
+        tools=[
+            _pass_function,
+            _fail_function,
+            FunctionTool(_echo_function, description="Echo"),
+        ],
+    )
+    with pytest.raises(NotImplementedError):
+        agent3.dump_component()

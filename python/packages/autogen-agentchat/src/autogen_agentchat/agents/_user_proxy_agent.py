@@ -5,7 +5,9 @@ from contextvars import ContextVar
 from inspect import iscoroutinefunction
 from typing import Any, AsyncGenerator, Awaitable, Callable, ClassVar, Generator, Optional, Sequence, Union, cast
 
-from autogen_core import CancellationToken
+from autogen_core import CancellationToken, Component
+from pydantic import BaseModel
+from typing_extensions import Self
 
 from ..base import Response
 from ..messages import AgentEvent, ChatMessage, HandoffMessage, TextMessage, UserInputRequestedEvent
@@ -24,7 +26,15 @@ async def cancellable_input(prompt: str, cancellation_token: Optional[Cancellati
     return await task
 
 
-class UserProxyAgent(BaseChatAgent):
+class UserProxyAgentConfig(BaseModel):
+    """Declarative configuration for the UserProxyAgent."""
+
+    name: str
+    description: str = "A human user"
+    input_func: str | None = None
+
+
+class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
     """An agent that can represent a human user through an input function.
 
     This agent can be used to represent a human user in a chat system by providing a custom input function.
@@ -108,6 +118,10 @@ class UserProxyAgent(BaseChatAgent):
                 except BaseException as e:
                     print(f"BaseException: {e}")
     """
+
+    component_type = "agent"
+    component_provider_override = "autogen_agentchat.agents.UserProxyAgent"
+    component_config_schema = UserProxyAgentConfig
 
     class InputRequestContext:
         def __init__(self) -> None:
@@ -218,3 +232,11 @@ class UserProxyAgent(BaseChatAgent):
     async def on_reset(self, cancellation_token: Optional[CancellationToken] = None) -> None:
         """Reset agent state."""
         pass
+
+    def _to_config(self) -> UserProxyAgentConfig:
+        # TODO: Add ability to serialie input_func
+        return UserProxyAgentConfig(name=self.name, description=self.description, input_func=None)
+
+    @classmethod
+    def _from_config(cls, config: UserProxyAgentConfig) -> Self:
+        return cls(name=config.name, description=config.description, input_func=None)

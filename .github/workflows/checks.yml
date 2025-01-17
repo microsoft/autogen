@@ -132,6 +132,7 @@ jobs:
       - name: Run uv sync
         run: |
           uv sync --locked --all-extras
+          echo "PKG_NAME=$(basename '${{ matrix.package }}')" >> $GITHUB_ENV
 
         working-directory: ./python
       - name: Run task
@@ -140,8 +141,20 @@ jobs:
           poe --directory ${{ matrix.package }} test
         working-directory: ./python
 
+      - name: Move coverage file
+        run: |
+          mv ${{ matrix.package }}/coverage.xml coverage_${{ env.PKG_NAME }}.xml
+        working-directory: ./python
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ env.PKG_NAME }}
+          path: ./python/coverage_${{ env.PKG_NAME }}.xml
+
   codecov:
     runs-on: ubuntu-latest
+    needs: [test]
     strategy:
       matrix:
         package:
@@ -153,31 +166,20 @@ jobs:
           ]
     steps:
       - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-        with:
-          enable-cache: true
-          version: "0.5.18"
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - name: Run uv sync
+      - name: Set up environment
         run: |
-          uv sync --locked --all-extras
-
-        working-directory: ./python
-      - name: Run task
-        run: |
-          source ${{ github.workspace }}/python/.venv/bin/activate
-          poe --directory ${{ matrix.package }} coverage
-        working-directory: ./python
-      - name: Upload coverage
-        uses: codecov/codecov-action@v5
+          echo "PKG_NAME=$(basename '${{ matrix.package }}')" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
         with:
-          fail_ci_if_error: true # optional (default = false)
-          files: ${{ matrix.package }}/coverage.xml # optional
-          flags: unittests # optional
-          name: codecov-umbrella # optional
-          verbose: true # optional (default = false)
+          name: coverage-${{ env.PKG_NAME }}
+          path: ./
+      - uses: codecov/codecov-action@v5
+        with:
+          files: coverage_${{ env.PKG_NAME }}.xml
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: true
           token: ${{ secrets.CODECOV_TOKEN }}
 
   docs:
