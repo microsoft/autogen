@@ -30,13 +30,13 @@ from autogen_core import (
     Image,
     MessageHandlerContext,
 )
-from autogen_core.models import FinishReasons
 from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     ChatCompletionTokenLogprob,
     CreateResult,
+    FinishReasons,
     FunctionExecutionResultMessage,
     LLMMessage,
     ModelCapabilities,  # type: ignore
@@ -575,7 +575,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 for x in choice.logprobs.content
             ]
         response = CreateResult(
-            finish_reason=finish_reason,  # type: ignore
+            finish_reason=normalize_stop_reason(finish_reason),
             content=content,
             usage=usage,
             cached=False,

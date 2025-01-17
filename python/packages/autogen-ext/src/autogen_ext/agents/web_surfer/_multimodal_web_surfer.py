@@ -24,7 +24,7 @@ import PIL.Image
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage, TextMessage
-from autogen_core import EVENT_LOGGER_NAME, CancellationToken, FunctionCall
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, ComponentModel, FunctionCall
 from autogen_core import Image as AGImage
 from autogen_core.models import (
     AssistantMessage,
@@ -36,6 +36,8 @@ from autogen_core.models import (
 )
 from PIL import Image
 from playwright.async_api import BrowserContext, Download, Page, Playwright, async_playwright
+from pydantic import BaseModel
+from typing_extensions import Self
 
 from ._events import WebSurferEvent
 from ._prompts import WEB_SURFER_OCR_PROMPT, WEB_SURFER_QA_PROMPT, WEB_SURFER_QA_SYSTEM_MESSAGE, WEB_SURFER_TOOL_PROMPT
@@ -58,7 +60,23 @@ from ._utils import message_content_to_str
 from .playwright_controller import PlaywrightController
 
 
-class MultimodalWebSurfer(BaseChatAgent):
+class MultimodalWebSurferConfig(BaseModel):
+    name: str
+    model_client: ComponentModel
+    downloads_folder: str | None = None
+    description: str | None = None
+    debug_dir: str | None = None
+    headless: bool = True
+    start_page: str | None = "https://www.bing.com/"
+    animate_actions: bool = False
+    to_save_screenshots: bool = False
+    use_ocr: bool = False
+    browser_channel: str | None = None
+    browser_data_dir: str | None = None
+    to_resize_viewport: bool = True
+
+
+class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
     """
     MultimodalWebSurfer is a multimodal agent that acts as a web surfer that can search the web and visit web pages.
 
@@ -143,6 +161,10 @@ class MultimodalWebSurfer(BaseChatAgent):
 
             asyncio.run(main())
     """
+
+    component_type = "agent"
+    component_config_schema = MultimodalWebSurferConfig
+    component_provider_override = "autogen_ext.agents.web_surfer.MultimodalWebSurfer"
 
     DEFAULT_DESCRIPTION = """
     A helpful assistant with access to a web browser.
@@ -242,7 +264,8 @@ class MultimodalWebSurfer(BaseChatAgent):
             TOOL_SLEEP,
             TOOL_HOVER,
         ]
-        self.n_lines_page_text = 50  # Number of lines of text to extract from the page in the absence of OCR
+        # Number of lines of text to extract from the page in the absence of OCR
+        self.n_lines_page_text = 50
         self.did_lazy_init = False  # flag to check if we have initialized the browser
 
     async def _lazy_init(
@@ -317,7 +340,8 @@ class MultimodalWebSurfer(BaseChatAgent):
         if self.to_save_screenshots:
             current_timestamp = "_" + int(time.time()).__str__()
             screenshot_png_name = "screenshot" + current_timestamp + ".png"
-            await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))
+
+            await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))  # type: ignore
             self.logger.info(
                 WebSurferEvent(
                     source=self.name,
@@ -346,6 +370,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         if self.to_save_screenshots:
             current_timestamp = "_" + int(time.time()).__str__()
             screenshot_png_name = "screenshot" + current_timestamp + ".png"
+
             await self._page.screenshot(path=os.path.join(self.debug_dir, screenshot_png_name))  # type: ignore
             self.logger.info(
                 WebSurferEvent(
@@ -704,6 +729,7 @@ class MultimodalWebSurfer(BaseChatAgent):
         if self.to_save_screenshots:
             current_timestamp = "_" + int(time.time()).__str__()
             screenshot_png_name = "screenshot" + current_timestamp + ".png"
+
             async with aiofiles.open(os.path.join(self.debug_dir, screenshot_png_name), "wb") as file:  # type: ignore
                 await file.write(new_screenshot)  # type: ignore
             self.logger.info(
@@ -861,3 +887,38 @@ class MultimodalWebSurfer(BaseChatAgent):
         scaled_screenshot.close()
         assert isinstance(response.content, str)
         return response.content
+
+    def _to_config(self) -> MultimodalWebSurferConfig:
+        return MultimodalWebSurferConfig(
+            name=self.name,
+            model_client=self._model_client.dump_component(),
+            downloads_folder=self.downloads_folder,
+            description=self.description,
+            debug_dir=self.debug_dir,
+            headless=self.headless,
+            start_page=self.start_page,
+            animate_actions=self.animate_actions,
+            to_save_screenshots=self.to_save_screenshots,
+            use_ocr=self.use_ocr,
+            browser_channel=self.browser_channel,
+            browser_data_dir=self.browser_data_dir,
+            to_resize_viewport=self.to_resize_viewport,
+        )
+
+    @classmethod
+    def _from_config(cls, config: MultimodalWebSurferConfig) -> Self:
+        return cls(
+            name=config.name,
+            model_client=ChatCompletionClient.load_component(config.model_client),
+            downloads_folder=config.downloads_folder,
+            description=config.description or cls.DEFAULT_DESCRIPTION,
+            debug_dir=config.debug_dir,
+            headless=config.headless,
+            start_page=config.start_page or cls.DEFAULT_START_PAGE,
+            animate_actions=config.animate_actions,
+            to_save_screenshots=config.to_save_screenshots,
+            use_ocr=config.use_ocr,
+            browser_channel=config.browser_channel,
+            browser_data_dir=config.browser_data_dir,
+            to_resize_viewport=config.to_resize_viewport,
+        )

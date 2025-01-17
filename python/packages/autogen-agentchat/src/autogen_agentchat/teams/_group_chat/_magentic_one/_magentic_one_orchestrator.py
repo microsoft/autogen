@@ -286,6 +286,15 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             try:
                 assert isinstance(ledger_str, str)
                 progress_ledger = json.loads(ledger_str)
+
+                # If the team consists of a single agent, deterministically set the next speaker
+                if len(self._participant_topic_types) == 1:
+                    progress_ledger["next_speaker"] = {
+                        "reason": "The team consists of only one agent.",
+                        "answer": self._participant_topic_types[0],
+                    }
+
+                # Validate the structure
                 required_keys = [
                     "is_request_satisfied",
                     "is_progress_being_made",
@@ -293,6 +302,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                     "instruction_or_question",
                     "next_speaker",
                 ]
+
                 key_error = False
                 for key in required_keys:
                     if (
@@ -303,6 +313,15 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                     ):
                         key_error = True
                         break
+
+                # Validate the next speaker if the task is not yet complete
+                if (
+                    not progress_ledger["is_request_satisfied"]["answer"]
+                    and progress_ledger["next_speaker"]["answer"] not in self._participant_topic_types
+                ):
+                    key_error = True
+                    break
+
                 if not key_error:
                     break
                 await self._log_message(f"Failed to parse ledger information, retrying: {ledger_str}")
@@ -313,6 +332,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         if key_error:
             raise ValueError("Failed to parse ledger information after multiple retries.")
         await self._log_message(f"Progress Ledger: {progress_ledger}")
+
         # Check for task completion
         if progress_ledger["is_request_satisfied"]["answer"]:
             await self._log_message("Task completed, preparing final answer...")
