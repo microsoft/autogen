@@ -13,7 +13,7 @@ from typing import (
     Sequence,
 )
 
-from autogen_core import CancellationToken, FunctionCall
+from autogen_core import CancellationToken, Component, ComponentModel, FunctionCall
 from autogen_core.memory import Memory
 from autogen_core.model_context import (
     ChatCompletionContext,
@@ -28,6 +28,8 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_core.tools import FunctionTool, Tool
+from pydantic import BaseModel
+from typing_extensions import Self
 
 from .. import EVENT_LOGGER_NAME
 from ..base import Handoff as HandoffBase
@@ -49,7 +51,21 @@ from ._base_chat_agent import BaseChatAgent
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
-class AssistantAgent(BaseChatAgent):
+class AssistantAgentConfig(BaseModel):
+    """The declarative configuration for the assistant agent."""
+
+    name: str
+    model_client: ComponentModel
+    # tools: List[Any] | None = None # TBD
+    handoffs: List[HandoffBase | str] | None = None
+    model_context: ComponentModel | None = None
+    description: str
+    system_message: str | None = None
+    reflect_on_tool_use: bool
+    tool_call_summary_format: str
+
+
+class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     """An agent that provides assistance with tool use.
 
     The :meth:`on_messages` returns a :class:`~autogen_agentchat.base.Response`
@@ -228,6 +244,9 @@ class AssistantAgent(BaseChatAgent):
             So the `system_message` should be set to `None` and the `tools` and `handoffs` should not be set.
             See `o1 beta limitations <https://platform.openai.com/docs/guides/reasoning#beta-limitations>`_ for more details.
     """
+
+    component_config_schema = AssistantAgentConfig
+    component_provider_override = "autogen_agentchat.agents.AssistantAgent"
 
     def __init__(
         self,
@@ -462,3 +481,40 @@ class AssistantAgent(BaseChatAgent):
         assistant_agent_state = AssistantAgentState.model_validate(state)
         # Load the model context state.
         await self._model_context.load_state(assistant_agent_state.llm_context)
+
+    def _to_config(self) -> AssistantAgentConfig:
+        """Convert the assistant agent to a declarative config."""
+
+        # raise an error if tools is not empty until it is implemented
+        # TBD : Implement serializing tools and remove this check.
+        if self._tools and len(self._tools) > 0:
+            raise NotImplementedError("Serializing tools is not implemented yet.")
+
+        return AssistantAgentConfig(
+            name=self.name,
+            model_client=self._model_client.dump_component(),
+            # tools=[], # TBD
+            handoffs=list(self._handoffs.values()),
+            model_context=self._model_context.dump_component(),
+            description=self.description,
+            system_message=self._system_messages[0].content
+            if self._system_messages and isinstance(self._system_messages[0].content, str)
+            else None,
+            reflect_on_tool_use=self._reflect_on_tool_use,
+            tool_call_summary_format=self._tool_call_summary_format,
+        )
+
+    @classmethod
+    def _from_config(cls, config: AssistantAgentConfig) -> Self:
+        """Create an assistant agent from a declarative config."""
+        return cls(
+            name=config.name,
+            model_client=ChatCompletionClient.load_component(config.model_client),
+            # tools=[], # TBD
+            handoffs=config.handoffs,
+            model_context=None,
+            description=config.description,
+            system_message=config.system_message,
+            reflect_on_tool_use=config.reflect_on_tool_use,
+            tool_call_summary_format=config.tool_call_summary_format,
+        )
