@@ -11,6 +11,11 @@ from autogen_agentchat.conditions import (
     TokenUsageTermination,
 )
 from autogen_core import ComponentLoader, ComponentModel
+from autogen_core.model_context import (
+    BufferedChatCompletionContext,
+    HeadAndTailChatCompletionContext,
+    UnboundedChatCompletionContext,
+)
 
 
 @pytest.mark.asyncio
@@ -92,3 +97,35 @@ async def test_termination_declarative() -> None:
     # Test loading complex composition
     loaded_composite = ComponentLoader.load_component(composite_config)
     assert isinstance(loaded_composite, AndTerminationCondition)
+
+
+@pytest.mark.asyncio
+async def test_chat_completion_context_declarative() -> None:
+    unbounded_context = UnboundedChatCompletionContext()
+    buffered_context = BufferedChatCompletionContext(buffer_size=5)
+    head_tail_context = HeadAndTailChatCompletionContext(head_size=3, tail_size=2)
+
+    # Test serialization
+    unbounded_config = unbounded_context.dump_component()
+    assert unbounded_config.provider == "autogen_core.model_context.UnboundedChatCompletionContext"
+
+    buffered_config = buffered_context.dump_component()
+    assert buffered_config.provider == "autogen_core.model_context.BufferedChatCompletionContext"
+    assert buffered_config.config["buffer_size"] == 5
+
+    head_tail_config = head_tail_context.dump_component()
+    assert head_tail_config.provider == "autogen_core.model_context.HeadAndTailChatCompletionContext"
+    assert head_tail_config.config["head_size"] == 3
+    assert head_tail_config.config["tail_size"] == 2
+
+    # Test deserialization
+    loaded_unbounded = ComponentLoader.load_component(unbounded_config, UnboundedChatCompletionContext)
+    assert isinstance(loaded_unbounded, UnboundedChatCompletionContext)
+
+    loaded_buffered = ComponentLoader.load_component(buffered_config, BufferedChatCompletionContext)
+
+    assert isinstance(loaded_buffered, BufferedChatCompletionContext)
+
+    loaded_head_tail = ComponentLoader.load_component(head_tail_config, HeadAndTailChatCompletionContext)
+
+    assert isinstance(loaded_head_tail, HeadAndTailChatCompletionContext)

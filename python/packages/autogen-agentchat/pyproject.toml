@@ -35,5 +35,4 @@ testpaths = ["tests"]
 include = "../../shared_tasks.toml"
 
 [tool.poe.tasks]
-test = "pytest -n auto"
-coverage = "pytest -n auto --cov=src --cov-report=term-missing --cov-report=xml"
+test = "pytest -n auto --cov=src --cov-report=term-missing --cov-report=xml"
