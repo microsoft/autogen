@@ -30,12 +30,22 @@ async def confirm_code(code: CodeBlock) -> bool:
 
 
 async def main(logs_dir: str, hil_mode: bool, save_screenshots: bool) -> None:
+    # Ensure the environment variable is set
+    config_str = os.environ.get("CHAT_COMPLETION_CLIENT_CONFIG")
+    if not config_str:
+        raise ValueError("CHAT_COMPLETION_CLIENT_CONFIG environment variable is not set")
+
+    try:
+        config = json.loads(config_str)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"Invalid JSON in CHAT_COMPLETION_CLIENT_CONFIG: {e}")
+
     # Create the runtime.
     runtime = SingleThreadedAgentRuntime()
 
     # Create an appropriate client
-    client = ChatCompletionClient.load_component(json.loads(os.environ["CHAT_COMPLETION_CLIENT_CONFIG"]))
-    assert client.model_info["family"] == "gpt-4o", "This example requires the gpt-4o model"
+    client = ChatCompletionClient.load_component(config)
+    assert client.model_info["family"] == "llama", "This example requires the llama model"
 
     async with DockerCommandLineCodeExecutor(work_dir=logs_dir) as code_executor:
         # Register agents.
@@ -112,7 +122,7 @@ if __name__ == "__main__":
         os.makedirs(args.logs_dir)
 
     logger = logging.getLogger(EVENT_LOGGER_NAME)
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)  # Set to DEBUG to capture debug logs
     log_handler = LogHandler(filename=os.path.join(args.logs_dir, "log.jsonl"))
     logger.handlers = [log_handler]
     asyncio.run(main(args.logs_dir, args.hil_mode, args.save_screenshots))

@@ -5,6 +5,7 @@ from autogen_core.models import (
     ChatCompletionClient,
 )
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
+from autogen_ext.models.huggingface import HuggingFaceChatCompletionClient  # Add this line
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 
@@ -44,4 +45,13 @@ def get_chat_completion_client_from_envs(**kwargs: Any) -> ChatCompletionClient:
                 "json_output": True,
             }
         return AzureOpenAIChatCompletionClient(**kwargs)  # type: ignore
+    elif api_type == "llama":  # Add this block
+        # Check Hugging Face API key.
+        api_key = os.getenv("HUGGINGFACE_API_KEY")
+        if api_key is None:
+            raise ValueError("HUGGINGFACE_API_KEY is not set")
+        kwargs["api_key"] = api_key
+        kwargs["model"] = os.getenv("HUGGINGFACE_MODEL", "meta-llama/Llama-2-7b-chat-hf")
+        kwargs["huggingface_endpoint"] = os.getenv("HUGGINGFACE_ENDPOINT", "http://localhost:8000/")
+        return HuggingFaceChatCompletionClient(**kwargs)
     raise ValueError(f"Unknown API type: {api_type}")
