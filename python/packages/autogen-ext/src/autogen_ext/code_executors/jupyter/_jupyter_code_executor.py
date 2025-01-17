@@ -32,6 +32,10 @@ class JupyterCodeResult(CodeResult):
 class JupyterCodeExecutor(CodeExecutor):
     """A code executor class that executes code statefully using [nbclient](https://github.com/jupyter/nbclient).
 
+    .. danger::
+
+        This will execute code on the local machine. If being used with LLM generated code, caution should be used.
+
     Example of using it directly:
 
     .. code-block:: python
@@ -51,9 +55,8 @@ class JupyterCodeExecutor(CodeExecutor):
 
 
         asyncio.run(main())
-        import asyncio
 
-    Example of using it inside a :class:`~autogen_ext.tools.code_execution.PythonCodeExecutionTool`:
+    Example of using it with :class:`~autogen_ext.tools.code_execution.PythonCodeExecutionTool`:
 
     .. code-block:: python
 
@@ -65,14 +68,39 @@ class JupyterCodeExecutor(CodeExecutor):
 
 
         async def main() -> None:
-            executor = JupyterCodeExecutor()
-            await executor.start()
-            tool = PythonCodeExecutionTool(executor)
-            model_client = OpenAIChatCompletionClient(model="gpt-4o")
-            agent = AssistantAgent("assistant", model_client=model_client, tools=[tool])
-            result = await agent.run(task="What is the 10th Fibonacci number? Use Python to calculate it.")
-            print(result)
-            await executor.stop()
+            async with JupyterCodeExecutor() as executor:
+                tool = PythonCodeExecutionTool(executor)
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")
+                agent = AssistantAgent("assistant", model_client=model_client, tools=[tool])
+                result = await agent.run(task="What is the 10th Fibonacci number? Use Python to calculate it.")
+                print(result)
+
+
+        asyncio.run(main())
+
+    Example of using it inside a :class:`~autogen_agentchat.agents._code_executor_agent.CodeExecutorAgent`:
+
+    .. code-block:: python
+        import asyncio
+        from autogen_agentchat.agents import CodeExecutorAgent
+        from autogen_agentchat.messages import TextMessage
+        from autogen_ext.code_executors.jupyter import JupyterCodeExecutor
+        from autogen_core import CancellationToken
+
+
+        async def main() -> None:
+            async with JupyterCodeExecutor() as executor:
+                code_executor_agent = CodeExecutorAgent("code_executor", code_executor=executor)
+                task = TextMessage(
+                    content='''Here is some code
+            ```python
+            print('Hello world')
+            ```
+            ''',
+                    source="user",
+                )
+                response = await code_executor_agent.on_messages([task], CancellationToken())
+                print(response.chat_message)
 
 
         asyncio.run(main())
