@@ -24,16 +24,23 @@ public class OllamaAgent : IStreamingAgent
     private readonly string _modelName;
     private readonly string _systemMessage;
     private readonly OllamaReplyOptions? _replyOptions;
+    private readonly Tool[]? _tools;
 
     public OllamaAgent(HttpClient httpClient, string name, string modelName,
         string systemMessage = "You are a helpful AI assistant",
-        OllamaReplyOptions? replyOptions = null)
+        OllamaReplyOptions? replyOptions = null, Tool[]? tools = null)
     {
         Name = name;
         _httpClient = httpClient;
         _modelName = modelName;
         _systemMessage = systemMessage;
         _replyOptions = replyOptions;
+        _tools = tools;
+
+        if (_httpClient.BaseAddress == null)
+        {
+            throw new InvalidOperationException($"Please add the base address to httpClient");
+        }
     }
 
     public async Task<IMessage> GenerateReplyAsync(
@@ -97,7 +104,8 @@ public class OllamaAgent : IStreamingAgent
         var request = new ChatRequest
         {
             Model = _modelName,
-            Messages = await BuildChatHistory(messages)
+            Messages = await BuildChatHistory(messages),
+            Tools = _tools
         };
 
         if (options is OllamaReplyOptions replyOptions)
