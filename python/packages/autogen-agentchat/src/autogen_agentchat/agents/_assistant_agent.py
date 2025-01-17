@@ -76,17 +76,21 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     the inner messages as they are created, and the :class:`~autogen_agentchat.base.Response`
     object as the last item before closing the generator.
 
-    .. note::
+    .. attention::
 
         The caller must only pass the new messages to the agent on each call
         to the :meth:`on_messages` or :meth:`on_messages_stream` method.
         The agent maintains its state between calls to these methods.
         Do not pass the entire conversation history to the agent on each call.
 
-    .. note::
+    .. warning::
         The assistant agent is not thread-safe or coroutine-safe.
         It should not be shared between multiple tasks or coroutines, and it should
         not call its methods concurrently.
+
+    The following diagram shows how the assistant agent works:
+    
+    .. image:: ../../images/assistant-agent.svg
 
     Tool call behavior:
 
@@ -95,7 +99,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         - When `reflect_on_tool_use` is False (default), the tool call results are returned as a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. `tool_call_summary_format` can be used to customize the tool call summary.
         - When `reflect_on_tool_use` is True, the another model inference is made using the tool calls and results, and the text response is returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
 
-    .. note::
+    .. tip::
         By default, the tool call results are returned as response when tool calls are made.
         So it is recommended to pay attention to the formatting of the tools return values,
         especially if another agent is expecting them in a specific format.
