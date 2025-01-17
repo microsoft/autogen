@@ -10,7 +10,7 @@ authors = [
 description = "AutoGen Studio"
 readme = "README.md"
 license = {file = "LICENSE-CODE"}
-requires-python = ">=3.9, <3.13"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -35,7 +35,7 @@ dependencies = [
     "pyyaml",
     "autogen-core>=0.4.2,<0.5",
     "autogen-agentchat>=0.4.2,<0.5",
-    "autogen-ext[magentic-one, openai, azure]==0.4.2",
+    "autogen-ext[magentic-one, openai, azure]>=0.4.2,<0.5",
     "azure-identity"
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
@@ -88,5 +88,4 @@ ignore = ["B008"]
 fmt = "ruff format"
 format.ref = "fmt"
 lint = "ruff check"
-test = "pytest -n 0"
-coverage = "pytest -n 0 --cov=autogenstudio --cov-report=term-missing"
+test = "pytest -n 0 --cov=autogenstudio --cov-report=term-missing"
