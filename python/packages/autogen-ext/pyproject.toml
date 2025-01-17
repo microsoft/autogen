@@ -46,6 +46,12 @@ video-surfer = [
     "ffmpeg-python",
     "openai-whisper",
 ]
+diskcache = [
+    "diskcache>=5.6.3"
+]
+redis = [
+    "redis>=5.2.1"
+]
 
 grpc = [
     "grpcio~=1.62.0", # TODO: update this once we have a stable version.

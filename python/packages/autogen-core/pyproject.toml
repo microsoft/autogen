@@ -72,6 +72,8 @@ dev = [
     "autogen_ext==0.4.3",
 
     # Documentation tooling
+    "diskcache",
+    "redis",
     "sphinx-autobuild",
 ]
 
