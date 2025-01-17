@@ -89,7 +89,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         not call its methods concurrently.
 
     The following diagram shows how the assistant agent works:
-    
+
     .. image:: ../../images/assistant-agent.svg
 
     Tool call behavior:
@@ -98,6 +98,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     * When the model returns tool calls, they will be executed right away:
         - When `reflect_on_tool_use` is False (default), the tool call results are returned as a :class:`~autogen_agentchat.messages.ToolCallSummaryMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`. `tool_call_summary_format` can be used to customize the tool call summary.
         - When `reflect_on_tool_use` is True, the another model inference is made using the tool calls and results, and the text response is returned as a :class:`~autogen_agentchat.messages.TextMessage` in :attr:`~autogen_agentchat.base.Response.chat_message`.
+    * If the model returns multiple tool calls, they will be executed concurrently. To disable parallel tool calls you need to configure the model client. For example, set `parallel_tool_calls=False` for :class:`~autogen_ext.models.openai.OpenAIChatCompletionClient` and :class:`~autogen_ext.models.openai.AzureOpenAIChatCompletionClient`.
 
     .. tip::
         By default, the tool call results are returned as response when tool calls are made.
@@ -108,11 +109,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     Hand off behavior:
 
     * If a handoff is triggered, a :class:`~autogen_agentchat.messages.HandoffMessage` will be returned in :attr:`~autogen_agentchat.base.Response.chat_message`.
-    * If there are tool calls, they will also be executed right away before returning the handoff.
+    * If there are tool calls, they will also be executed right away before returning the handoff. The tool call messages will be added to :attr:`~autogen_agentchat.messages.HandoffMessage.context` and sent to the target agent.
 
 
     .. note::
         If multiple handoffs are detected, only the first handoff is executed.
+        To avoid this, disable parallel tool calls in the model client configuration.
 
 
     Limit context size sent to the model:
