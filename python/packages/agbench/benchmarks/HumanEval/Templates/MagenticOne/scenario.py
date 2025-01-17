@@ -13,7 +13,6 @@ from autogen_core.models import (
 from autogen_magentic_one.agents.coder import Coder, Executor
 from autogen_magentic_one.agents.orchestrator import RoundRobinOrchestrator
 from autogen_magentic_one.messages import BroadcastMessage, OrchestrationEvent
-from autogen_magentic_one.utils import create_completion_client_from_env
 
 
 async def main() -> None:
@@ -21,7 +20,8 @@ async def main() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     # Create the AzureOpenAI client
-    client = create_completion_client_from_env()
+    client = ChatCompletionClient.load_component(json.loads(os.environ["CHAT_COMPLETION_CLIENT_CONFIG"]))
+
 
     # Register agents.
     await runtime.register(

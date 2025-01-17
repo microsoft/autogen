@@ -49,15 +49,6 @@ AutoGen Studio offers four main interfaces to help you build and manage multi-ag
    - Setup and test endpoints based on a team configuration
    - Run teams in a docker container
 
-This revision improves clarity by:
-
-- Organizing capabilities into clearly numbered sections
-- Using more precise language
-- Breaking down complex features into digestible points
-- Maintaining consistent formatting and structure
-- Eliminating awkward phrasing and grammatical issues
-- Adding context about how each interface serves users
-
 ### Roadmap
 
 Review project roadmap and issues [here](https://github.com/microsoft/autogen/issues/4006) .

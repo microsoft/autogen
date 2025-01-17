@@ -1,11 +1,9 @@
 from typing import Awaitable, Callable, Dict, List, Literal, Optional, Union
 
 from autogen_core import ComponentModel
-from autogen_core.models import ModelCapabilities
+from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
 from pydantic import BaseModel
 from typing_extensions import Required, TypedDict
-
-from .._azure_token_provider import AzureTokenProvider
 
 
 class ResponseFormat(TypedDict):
@@ -34,7 +32,8 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     api_key: str
     timeout: Union[float, None]
     max_retries: int
-    model_capabilities: ModelCapabilities
+    model_capabilities: ModelCapabilities  # type: ignore
+    model_info: ModelInfo
     """What functionality the model supports, determined by default from model name but is overriden if value passed."""
 
 
@@ -50,20 +49,10 @@ class AzureOpenAIClientConfiguration(BaseOpenAIClientConfiguration, total=False)
     azure_deployment: str
     api_version: Required[str]
     azure_ad_token: str
-    azure_ad_token_provider: AsyncAzureADTokenProvider | AzureTokenProvider
-
-
-__all__ = [
-    "AzureOpenAIClientConfiguration",
-    "OpenAIClientConfiguration",
-    "AzureOpenAIClientConfigurationConfigModel",
-    "OpenAIClientConfigurationConfigModel",
-]
+    azure_ad_token_provider: AsyncAzureADTokenProvider  # Or AzureTokenProvider
 
 
 # Pydantic equivalents of the above TypedDicts
-
-
 class CreateArgumentsConfigModel(BaseModel):
     frequency_penalty: float | None = None
     logit_bias: Dict[str, int] | None = None
@@ -83,7 +72,8 @@ class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
     api_key: str | None = None
     timeout: float | None = None
     max_retries: int | None = None
-    model_capabilities: ModelCapabilities | None = None
+    model_capabilities: ModelCapabilities | None = None  # type: ignore
+    model_info: ModelInfo | None = None
 
 
 # See OpenAI docs for explanation of these parameters

@@ -5,10 +5,12 @@ from typing import Any, DefaultDict, Dict, List, TypeVar
 from autogen_core import ComponentModel
 from autogen_core._component_config import (
     WELL_KNOWN_PROVIDERS,
-    ComponentConfigImpl,
+    ComponentSchemaType,
+    ComponentToConfig,
     _type_to_provider_str,  # type: ignore
 )
-from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, AzureTokenProvider, OpenAIChatCompletionClient
+from autogen_ext.auth.azure import AzureTokenProvider
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 from pydantic import BaseModel
 
 all_defs: Dict[str, Any] = {}
@@ -16,9 +18,12 @@ all_defs: Dict[str, Any] = {}
 T = TypeVar("T", bound=BaseModel)
 
 
-def build_specific_component_schema(component: type[ComponentConfigImpl[T]], provider_str: str) -> Dict[str, Any]:
+def build_specific_component_schema(component: type[ComponentSchemaType[T]], provider_str: str) -> Dict[str, Any]:
     model = component.component_config_schema  # type: ignore
     model_schema = model.model_json_schema()
+
+    # We can't specify component to be the union of two types, so we assert it here
+    assert issubclass(component, ComponentToConfig)
 
     component_model_schema = ComponentModel.model_json_schema()
     if "$defs" not in component_model_schema:
@@ -53,7 +58,7 @@ def build_specific_component_schema(component: type[ComponentConfigImpl[T]], pro
     return component_model_schema
 
 
-def main():
+def main() -> None:
     outer_model_schema: Dict[str, Any] = {
         "type": "object",
         "$ref": "#/$defs/ComponentModel",
@@ -69,7 +74,9 @@ def main():
     for key, value in WELL_KNOWN_PROVIDERS.items():
         reverse_provider_lookup_table[value].append(key)
 
-    def add_type(type: type[ComponentConfigImpl[T]]):
+    def add_type(type: type[ComponentSchemaType[T]]) -> None:
+        # We can't specify component to be the union of two types, so we assert it here
+        assert issubclass(type, ComponentToConfig)
         canonical = type.component_provider_override or _type_to_provider_str(type)
         reverse_provider_lookup_table[canonical].append(canonical)
         for provider_str in reverse_provider_lookup_table[canonical]:

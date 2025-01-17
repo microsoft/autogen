@@ -4,10 +4,8 @@ import base64
 import re
 from io import BytesIO
 from pathlib import Path
-from typing import Any, cast
+from typing import Any, Dict, cast
 
-import aiohttp
-from openai.types.chat import ChatCompletionContentPartImageParam
 from PIL import Image as PILImage
 from pydantic import GetCoreSchemaHandler, ValidationInfo
 from pydantic_core import core_schema
@@ -15,6 +13,32 @@ from typing_extensions import Literal
 
 
 class Image:
+    """Represents an image.
+
+
+    Example:
+
+        Loading an image from a URL:
+
+        .. code-block:: python
+
+            from autogen_core import Image
+            from PIL import Image as PILImage
+            import aiohttp
+            import asyncio
+
+
+            async def from_url(url: str) -> Image:
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url) as response:
+                        content = await response.read()
+                        return Image.from_pil(PILImage.open(content))
+
+
+            image = asyncio.run(from_url("https://example.com/image"))
+
+    """
+
     def __init__(self, image: PILImage.Image):
         self.image: PILImage.Image = image.convert("RGB")
 
@@ -30,13 +54,6 @@ class Image:
         # A URI. Remove the prefix and decode the base64 string.
         base64_data = re.sub(r"data:image/(?:png|jpeg);base64,", "", uri)
         return cls.from_base64(base64_data)
-
-    @classmethod
-    async def from_url(cls, url: str) -> Image:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                content = await response.read()
-                return cls(PILImage.open(content))
 
     @classmethod
     def from_base64(cls, base64_str: str) -> Image:
@@ -60,7 +77,9 @@ class Image:
     def data_uri(self) -> str:
         return _convert_base64_to_data_uri(self.to_base64())
 
-    def to_openai_format(self, detail: Literal["auto", "low", "high"] = "auto") -> ChatCompletionContentPartImageParam:
+    # Returns openai.types.chat.ChatCompletionContentPartImageParam, which is a TypedDict
+    # We don't use the explicit type annotation so that we can avoid a dependency on the OpenAI Python SDK in this package.
+    def to_openai_format(self, detail: Literal["auto", "low", "high"] = "auto") -> Dict[str, Any]:
         return {"type": "image_url", "image_url": {"url": self.data_uri, "detail": detail}}
 
     @classmethod

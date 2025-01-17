@@ -28,6 +28,7 @@ from autogen_core import (
     Component,
     FunctionCall,
     Image,
+    MessageHandlerContext,
 )
 from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
@@ -35,9 +36,12 @@ from autogen_core.models import (
     ChatCompletionClient,
     ChatCompletionTokenLogprob,
     CreateResult,
+    FinishReasons,
     FunctionExecutionResultMessage,
     LLMMessage,
-    ModelCapabilities,
+    ModelCapabilities,  # type: ignore
+    ModelFamily,
+    ModelInfo,
     RequestUsage,
     SystemMessage,
     TopLogprob,
@@ -48,6 +52,7 @@ from openai import AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
     ChatCompletion,
     ChatCompletionAssistantMessageParam,
+    ChatCompletionContentPartImageParam,
     ChatCompletionContentPartParam,
     ChatCompletionContentPartTextParam,
     ChatCompletionMessageParam,
@@ -66,8 +71,6 @@ from openai.types.chat.chat_completion_chunk import Choice as ChunkChoice
 from openai.types.shared_params import FunctionDefinition, FunctionParameters
 from pydantic import BaseModel
 from typing_extensions import Self, Unpack
-
-from autogen_ext.models.openai._azure_token_provider import AzureTokenProvider
 
 from . import _model_info
 from .config import (
@@ -94,32 +97,6 @@ required_create_args: Set[str] = set(["model"])
 def _azure_openai_client_from_config(config: Mapping[str, Any]) -> AsyncAzureOpenAI:
     # Take a copy
     copied_config = dict(config).copy()
-
-    import warnings
-
-    if "azure_deployment" not in copied_config and "model" in copied_config:
-        warnings.warn(
-            "Previous behavior of using the model name as the deployment name is deprecated and will be removed in 0.4. Please specify azure_deployment",
-            stacklevel=2,
-        )
-
-    if "azure_endpoint" not in copied_config and "base_url" in copied_config:
-        warnings.warn(
-            "Previous behavior of using the base_url as the endpoint is deprecated and will be removed in 0.4. Please specify azure_endpoint",
-            stacklevel=2,
-        )
-
-    # Do some fixups
-    copied_config["azure_deployment"] = copied_config.get("azure_deployment", config.get("model"))
-    if copied_config["azure_deployment"] is not None:
-        if "." in copied_config["azure_deployment"]:
-            warnings.warn(
-                "Previous behavior stripping '.' from the deployment name is deprecated and will be removed in 0.4",
-                stacklevel=2,
-            )
-            copied_config["azure_deployment"] = copied_config["azure_deployment"].replace(".", "")
-    copied_config["azure_endpoint"] = copied_config.get("azure_endpoint", copied_config.pop("base_url", None))
-
     # Shave down the config to just the AzureOpenAIChatCompletionClient kwargs
     azure_config = {k: v for k, v in copied_config.items() if k in aopenai_init_kwargs}
     return AsyncAzureOpenAI(**azure_config)
@@ -179,7 +156,7 @@ def user_message_to_oai(message: UserMessage) -> ChatCompletionUserMessageParam:
             elif isinstance(part, Image):
                 # TODO: support url based images
                 # TODO: support specifying details
-                parts.append(part.to_openai_format())
+                parts.append(cast(ChatCompletionContentPartImageParam, part.to_openai_format()))
             else:
                 raise ValueError(f"Unknown content type: {part}")
         return ChatCompletionUserMessageParam(
@@ -351,18 +328,45 @@ def assert_valid_name(name: str) -> str:
     return name
 
 
+def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
+    if stop_reason is None:
+        return "unknown"
+
+    # Convert to lower case
+    stop_reason = stop_reason.lower()
+
+    KNOWN_STOP_MAPPINGS: Dict[str, FinishReasons] = {
+        "end_turn": "stop",
+        "tool_calls": "function_calls",
+    }
+
+    return KNOWN_STOP_MAPPINGS.get(stop_reason, "unknown")
+
+
 class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     def __init__(
         self,
         client: Union[AsyncOpenAI, AsyncAzureOpenAI],
+        *,
         create_args: Dict[str, Any],
-        model_capabilities: Optional[ModelCapabilities] = None,
+        model_capabilities: Optional[ModelCapabilities] = None,  # type: ignore
+        model_info: Optional[ModelInfo] = None,
     ):
         self._client = client
-        if model_capabilities is None:
-            self._model_capabilities = _model_info.get_capabilities(create_args["model"])
-        else:
-            self._model_capabilities = model_capabilities
+        if model_capabilities is None and model_info is None:
+            try:
+                self._model_info = _model_info.get_info(create_args["model"])
+            except KeyError as err:
+                raise ValueError("model_info is required when model name is not a valid OpenAI model") from err
+        elif model_capabilities is not None and model_info is not None:
+            raise ValueError("model_capabilities and model_info are mutually exclusive")
+        elif model_capabilities is not None and model_info is None:
+            warnings.warn("model_capabilities is deprecated, use model_info instead", DeprecationWarning, stacklevel=2)
+            info = cast(ModelInfo, model_capabilities)
+            info["family"] = ModelFamily.UNKNOWN
+            self._model_info = info
+        elif model_capabilities is None and model_info is not None:
+            self._model_info = model_info
 
         self._resolved_model: Optional[str] = None
         if "model" in create_args:
@@ -371,7 +375,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if (
             "response_format" in create_args
             and create_args["response_format"]["type"] == "json_object"
-            and not self._model_capabilities["json_output"]
+            and not self._model_info["json_output"]
         ):
             raise ValueError("Model does not support JSON output")
 
@@ -386,6 +390,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     async def create(
         self,
         messages: Sequence[LLMMessage],
+        *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
@@ -420,14 +425,14 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         # TODO: allow custom handling.
         # For now we raise an error if images are present and vision is not supported
-        if self.capabilities["vision"] is False:
+        if self.model_info["vision"] is False:
             for message in messages:
                 if isinstance(message, UserMessage):
                     if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
                         raise ValueError("Model does not support vision and image was provided")
 
         if json_output is not None:
-            if self.capabilities["json_output"] is False and json_output is True:
+            if self.model_info["json_output"] is False and json_output is True:
                 raise ValueError("Model does not support JSON output")
 
             if json_output is True:
@@ -435,13 +440,13 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             else:
                 create_args["response_format"] = {"type": "text"}
 
-        if self.capabilities["json_output"] is False and json_output is True:
+        if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output")
 
         oai_messages_nested = [to_oai_type(m) for m in messages]
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]
 
-        if self.capabilities["function_calling"] is False and len(tools) > 0:
+        if self.model_info["function_calling"] is False and len(tools) > 0:
             raise ValueError("Model does not support function calling")
         future: Union[Task[ParsedChatCompletion[BaseModel]], Task[ChatCompletion]]
         if len(tools) > 0:
@@ -506,18 +511,26 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if use_beta_client:
             result = cast(ParsedChatCompletion[Any], result)
 
-        if result.usage is not None:
-            logger.info(
-                LLMCallEvent(
-                    prompt_tokens=result.usage.prompt_tokens,
-                    completion_tokens=result.usage.completion_tokens,
-                )
-            )
-
         usage = RequestUsage(
             # TODO backup token counting
             prompt_tokens=result.usage.prompt_tokens if result.usage is not None else 0,
             completion_tokens=(result.usage.completion_tokens if result.usage is not None else 0),
+        )
+
+        # If we are running in the context of a handler we can get the agent_id
+        try:
+            agent_id = MessageHandlerContext.agent_id()
+        except RuntimeError:
+            agent_id = None
+
+        logger.info(
+            LLMCallEvent(
+                messages=cast(Dict[str, Any], oai_messages),
+                response=result.model_dump(),
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+                agent_id=agent_id,
+            )
         )
 
         if self._resolved_model is not None:
@@ -569,8 +582,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             logprobs=logprobs,
         )
 
-        _add_usage(self._actual_usage, usage)
-        _add_usage(self._total_usage, usage)
+        self._total_usage = _add_usage(self._total_usage, usage)
+        self._actual_usage = _add_usage(self._actual_usage, usage)
 
         # TODO - why is this cast needed?
         return response
@@ -578,11 +591,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     async def create_stream(
         self,
         messages: Sequence[LLMMessage],
+        *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
-        *,
         max_consecutive_empty_chunk_tolerance: int = 0,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         """
@@ -625,14 +638,14 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         # TODO: allow custom handling.
         # For now we raise an error if images are present and vision is not supported
-        if self.capabilities["vision"] is False:
+        if self.model_info["vision"] is False:
             for message in messages:
                 if isinstance(message, UserMessage):
                     if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
                         raise ValueError("Model does not support vision and image was provided")
 
         if json_output is not None:
-            if self.capabilities["json_output"] is False and json_output is True:
+            if self.model_info["json_output"] is False and json_output is True:
                 raise ValueError("Model does not support JSON output")
 
             if json_output is True:
@@ -750,8 +763,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         else:
             prompt_tokens = 0
 
-        if stop_reason is None:
-            raise ValueError("No stop reason found")
+        if stop_reason == "function_call":
+            raise ValueError("Function calls are not supported in this context")
 
         content: Union[str, List[FunctionCall]]
         if len(content_deltas) > 1:
@@ -773,21 +786,17 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             prompt_tokens=prompt_tokens,
             completion_tokens=completion_tokens,
         )
-        if stop_reason == "function_call":
-            raise ValueError("Function calls are not supported in this context")
-        if stop_reason == "tool_calls":
-            stop_reason = "function_calls"
 
         result = CreateResult(
-            finish_reason=stop_reason,  # type: ignore
+            finish_reason=normalize_stop_reason(stop_reason),
             content=content,
             usage=usage,
             cached=False,
             logprobs=logprobs,
         )
 
-        _add_usage(self._actual_usage, usage)
-        _add_usage(self._total_usage, usage)
+        self._total_usage = _add_usage(self._total_usage, usage)
+        self._actual_usage = _add_usage(self._actual_usage, usage)
 
         yield result
 
@@ -797,7 +806,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     def total_usage(self) -> RequestUsage:
         return self._total_usage
 
-    def count_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+    def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         model = self._create_args["model"]
         try:
             encoding = tiktoken.encoding_for_model(model)
@@ -886,13 +895,18 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         num_tokens += 12
         return num_tokens
 
-    def remaining_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+    def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         token_limit = _model_info.get_token_limit(self._create_args["model"])
-        return token_limit - self.count_tokens(messages, tools)
+        return token_limit - self.count_tokens(messages, tools=tools)
 
     @property
-    def capabilities(self) -> ModelCapabilities:
-        return self._model_capabilities
+    def capabilities(self) -> ModelCapabilities:  # type: ignore
+        warnings.warn("capabilities is deprecated, use model_info instead", DeprecationWarning, stacklevel=2)
+        return self._model_info
+
+    @property
+    def model_info(self) -> ModelInfo:
+        return self._model_info
 
 
 class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenAIClientConfigurationConfigModel]):
@@ -905,52 +919,79 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
     for additional model clients.
 
     Args:
-        model (str): The model to use. **Required.**
-        api_key (str): The API key to use. **Required if 'OPENAI_API_KEY' is not found in the environment variables.**
-        timeout (optional, int): The timeout for the request in seconds.
-        max_retries (optional, int): The maximum number of retries to attempt.
-        organization_id (optional, str): The organization ID to use.
+        model (str): Which OpenAI model to use.
+        api_key (optional, str): The API key to use. **Required if 'OPENAI_API_KEY' is not found in the environment variables.**
+        organization (optional, str): The organization ID to use.
         base_url (optional, str): The base URL to use. **Required if the model is not hosted on OpenAI.**
-        model_capabilities (optional, ModelCapabilities): The capabilities of the model. **Required if the model name is not a valid OpenAI model.**
+        timeout: (optional, float): The timeout for the request in seconds.
+        max_retries (optional, int): The maximum number of retries to attempt.
+        model_info (optional, ModelInfo): The capabilities of the model. **Required if the model name is not a valid OpenAI model.**
+        frequency_penalty (optional, float):
+        logit_bias: (optional, dict[str, int]):
+        max_tokens (optional, int):
+        n (optional, int):
+        presence_penalty (optional, float):
+        response_format (optional, literal["json_object", "text"]):
+        seed (optional, int):
+        stop (optional, str | List[str]):
+        temperature (optional, float):
+        top_p (optional, float):
+        user (optional, str):
+
 
     To use this client, you must install the `openai` extension:
 
-        .. code-block:: bash
+    .. code-block:: bash
 
-            pip install "autogen-ext[openai]==0.4.0.dev11"
+        pip install "autogen-ext[openai]"
 
     The following code snippet shows how to use the client with an OpenAI model:
 
-        .. code-block:: python
+    .. code-block:: python
 
-            from autogen_ext.models.openai import OpenAIChatCompletionClient
-            from autogen_core.models import UserMessage
+        from autogen_ext.models.openai import OpenAIChatCompletionClient
+        from autogen_core.models import UserMessage
 
-            openai_client = OpenAIChatCompletionClient(
-                model="gpt-4o-2024-08-06",
-                # api_key="sk-...", # Optional if you have an OPENAI_API_KEY environment variable set.
-            )
+        openai_client = OpenAIChatCompletionClient(
+            model="gpt-4o-2024-08-06",
+            # api_key="sk-...", # Optional if you have an OPENAI_API_KEY environment variable set.
+        )
 
-            result = await openai_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
-            print(result)
+        result = await openai_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
+        print(result)
 
 
     To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model capabilities:
 
-        .. code-block:: python
+    .. code-block:: python
 
-            from autogen_ext.models.openai import OpenAIChatCompletionClient
+        from autogen_ext.models.openai import OpenAIChatCompletionClient
 
-            custom_model_client = OpenAIChatCompletionClient(
-                model="custom-model-name",
-                base_url="https://custom-model.com/reset/of/the/path",
-                api_key="placeholder",
-                model_capabilities={
-                    "vision": True,
-                    "function_calling": True,
-                    "json_output": True,
-                },
-            )
+        custom_model_client = OpenAIChatCompletionClient(
+            model="custom-model-name",
+            base_url="https://custom-model.com/reset/of/the/path",
+            api_key="placeholder",
+            model_capabilities={
+                "vision": True,
+                "function_calling": True,
+                "json_output": True,
+            },
+        )
+
+    To load the client from a configuration, you can use the `load_component` method:
+
+    .. code-block:: python
+
+        from autogen_core.models import ChatCompletionClient
+
+        config = {
+            "provider": "OpenAIChatCompletionClient",
+            "config": {"model": "gpt-4o", "api_key": "REPLACE_WITH_YOUR_API_KEY"},
+        }
+
+        client = ChatCompletionClient.load_component(config)
+
+    To view the full list of available configuration options, see the :py:class:`OpenAIClientConfigurationConfigModel` class.
 
     """
 
@@ -962,16 +1003,23 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         if "model" not in kwargs:
             raise ValueError("model is required for OpenAIChatCompletionClient")
 
-        model_capabilities: Optional[ModelCapabilities] = None
+        model_capabilities: Optional[ModelCapabilities] = None  # type: ignore
         copied_args = dict(kwargs).copy()
         if "model_capabilities" in kwargs:
             model_capabilities = kwargs["model_capabilities"]
             del copied_args["model_capabilities"]
 
+        model_info: Optional[ModelInfo] = None
+        if "model_info" in kwargs:
+            model_info = kwargs["model_info"]
+            del copied_args["model_info"]
+
         client = _openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
         self._raw_config: Dict[str, Any] = copied_args
-        super().__init__(client, create_args, model_capabilities)
+        super().__init__(
+            client=client, create_args=create_args, model_capabilities=model_capabilities, model_info=model_info
+        )
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
@@ -998,21 +1046,35 @@ class AzureOpenAIChatCompletionClient(
     """Chat completion client for Azure OpenAI hosted models.
 
     Args:
+
+        model (str): Which OpenAI model to use.
         azure_endpoint (str): The endpoint for the Azure model. **Required for Azure models.**
-        model (str): The deployment ID for the Azure model. **Required for Azure models.**
+        azure_deployment (str): Deployment name for the Azure model. **Required for Azure models.**
         api_version (str): The API version to use. **Required for Azure models.**
         azure_ad_token (str): The Azure AD token to use. Provide this or `azure_ad_token_provider` for token-based authentication.
-        azure_ad_token_provider (Callable[[], Awaitable[str]]): The Azure AD token provider to use. Provide this or `azure_ad_token` for token-based authentication.
-        model_capabilities (ModelCapabilities): The capabilities of the model if default resolved values are not correct.
+        azure_ad_token_provider (optional, Callable[[], Awaitable[str]] | AzureTokenProvider): The Azure AD token provider to use. Provide this or `azure_ad_token` for token-based authentication.
         api_key (optional, str): The API key to use, use this if you are using key based authentication. It is optional if you are using Azure AD token based authentication or `AZURE_OPENAI_API_KEY` environment variable.
-        timeout (optional, int): The timeout for the request in seconds.
+        timeout: (optional, float): The timeout for the request in seconds.
         max_retries (optional, int): The maximum number of retries to attempt.
+        model_info (optional, ModelInfo): The capabilities of the model. **Required if the model name is not a valid OpenAI model.**
+        frequency_penalty (optional, float):
+        logit_bias: (optional, dict[str, int]):
+        max_tokens (optional, int):
+        n (optional, int):
+        presence_penalty (optional, float):
+        response_format (optional, literal["json_object", "text"]):
+        seed (optional, int):
+        stop (optional, str | List[str]):
+        temperature (optional, float):
+        top_p (optional, float):
+        user (optional, str):
+
 
     To use this client, you must install the `azure` and `openai` extensions:
 
         .. code-block:: bash
 
-            pip install "autogen-ext[openai,azure]==0.4.0.dev11"
+            pip install "autogen-ext[openai,azure]"
 
     To use the client, you need to provide your deployment id, Azure Cognitive Services endpoint,
     api version, and model capabilities.
@@ -1038,6 +1100,39 @@ class AzureOpenAIChatCompletionClient(
                 # api_key="sk-...", # For key-based authentication. `AZURE_OPENAI_API_KEY` environment variable can also be used instead.
             )
 
+    To load the client that uses identity based aith from a configuration, you can use the `load_component` method:
+
+    .. code-block:: python
+
+        from autogen_core.models import ChatCompletionClient
+
+        config = {
+            "provider": "AzureOpenAIChatCompletionClient",
+            "config": {
+                "model": "gpt-4o-2024-05-13",
+                "azure_endpoint": "https://{your-custom-endpoint}.openai.azure.com/",
+                "azure_deployment": "{your-azure-deployment}",
+                "api_version": "2024-06-01",
+                "azure_ad_token_provider": {
+                    "provider": "autogen_ext.auth.azure.AzureTokenProvider",
+                    "config": {
+                        "provider_kind": "DefaultAzureCredential",
+                        "scopes": ["https://cognitiveservices.azure.com/.default"],
+                    },
+                },
+            },
+        }
+
+        client = ChatCompletionClient.load_component(config)
+
+
+    To view the full list of available configuration options, see the :py:class:`AzureOpenAIClientConfigurationConfigModel` class.
+
+
+    .. note::
+
+        Right now only `DefaultAzureCredential` is supported with no additional args passed to it.
+
     See `here <https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/managed-identity#chat-completions>`_ for how to use the Azure client directly or for more info.
 
     """
@@ -1047,16 +1142,23 @@ class AzureOpenAIChatCompletionClient(
     component_provider_override = "autogen_ext.models.openai.AzureOpenAIChatCompletionClient"
 
     def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
-        model_capabilities: Optional[ModelCapabilities] = None
+        model_capabilities: Optional[ModelCapabilities] = None  # type: ignore
         copied_args = dict(kwargs).copy()
         if "model_capabilities" in kwargs:
             model_capabilities = kwargs["model_capabilities"]
             del copied_args["model_capabilities"]
 
+        model_info: Optional[ModelInfo] = None
+        if "model_info" in kwargs:
+            model_info = kwargs["model_info"]
+            del copied_args["model_info"]
+
         client = _azure_openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
         self._raw_config: Dict[str, Any] = copied_args
-        super().__init__(client, create_args, model_capabilities)
+        super().__init__(
+            client=client, create_args=create_args, model_capabilities=model_capabilities, model_info=model_info
+        )
 
     def __getstate__(self) -> Dict[str, Any]:
         state = self.__dict__.copy()
@@ -1068,8 +1170,9 @@ class AzureOpenAIChatCompletionClient(
         self._client = _azure_openai_client_from_config(state["_raw_config"])
 
     def _to_config(self) -> AzureOpenAIClientConfigurationConfigModel:
-        copied_config = self._raw_config.copy()
+        from ...auth.azure import AzureTokenProvider
 
+        copied_config = self._raw_config.copy()
         if "azure_ad_token_provider" in copied_config:
             if not isinstance(copied_config["azure_ad_token_provider"], AzureTokenProvider):
                 raise ValueError("azure_ad_token_provider must be a AzureTokenProvider to be component serialized")
@@ -1082,6 +1185,8 @@ class AzureOpenAIChatCompletionClient(
 
     @classmethod
     def _from_config(cls, config: AzureOpenAIClientConfigurationConfigModel) -> Self:
+        from ...auth.azure import AzureTokenProvider
+
         copied_config = config.model_copy().model_dump(exclude_none=True)
         if "azure_ad_token_provider" in copied_config:
             copied_config["azure_ad_token_provider"] = AzureTokenProvider.load_component(
