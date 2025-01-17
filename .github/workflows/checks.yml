@@ -144,12 +144,13 @@ jobs:
       - name: Move coverage file (optional)
         run: |
           mv ${{ matrix.package }}/coverage.xml coverage_${{ env.PKG_NAME }}.xml
+        working-directory: ./python
 
       - name: Upload coverage artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: coverage-${{ env.PKG_NAME }}
-          path: coverage_${{ env.PKG_NAME }}.xml
+          path: ./python/coverage_${{ env.PKG_NAME }}.xml
 
   codecov:
     runs-on: ubuntu-latest
