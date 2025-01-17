@@ -166,13 +166,17 @@ jobs:
           ]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v3
+      - name: Set up environment
+        run: |
+          echo "PKG_NAME=$(basename '${{ matrix.package }}')" >> $GITHUB_ENV
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
         with:
-          name: coverage-${{ matrix.package }}
+          name: coverage-${{ env.PKG_NAME }}
           path: ./
       - uses: codecov/codecov-action@v5
         with:
-          files: ./coverage.xml
+          files: coverage_${{ env.PKG_NAME }}.xml
           flags: unittests
           name: codecov-umbrella
           fail_ci_if_error: true
