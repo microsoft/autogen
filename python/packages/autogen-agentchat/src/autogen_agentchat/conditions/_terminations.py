@@ -16,7 +16,6 @@ class StopMessageTerminationConfig(BaseModel):
 class StopMessageTermination(TerminationCondition, Component[StopMessageTerminationConfig]):
     """Terminate the conversation if a StopMessage is received."""
 
-    component_type = "termination"
     component_config_schema = StopMessageTerminationConfig
     component_provider_override = "autogen_agentchat.conditions.StopMessageTermination"
 
@@ -58,7 +57,6 @@ class MaxMessageTermination(TerminationCondition, Component[MaxMessageTerminatio
         max_messages: The maximum number of messages allowed in the conversation.
     """
 
-    component_type = "termination"
     component_config_schema = MaxMessageTerminationConfig
     component_provider_override = "autogen_agentchat.conditions.MaxMessageTermination"
 
@@ -104,7 +102,6 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
         text: The text to look for in the messages.
     """
 
-    component_type = "termination"
     component_config_schema = TextMentionTerminationConfig
     component_provider_override = "autogen_agentchat.conditions.TextMentionTermination"
 
@@ -159,7 +156,6 @@ class TokenUsageTermination(TerminationCondition, Component[TokenUsageTerminatio
         ValueError: If none of max_total_token, max_prompt_token, or max_completion_token is provided.
     """
 
-    component_type = "termination"
     component_config_schema = TokenUsageTerminationConfig
     component_provider_override = "autogen_agentchat.conditions.TokenUsageTermination"
 
@@ -234,7 +230,6 @@ class HandoffTermination(TerminationCondition, Component[HandoffTerminationConfi
         target (str): The target of the handoff message.
     """
 
-    component_type = "termination"
     component_config_schema = HandoffTerminationConfig
     component_provider_override = "autogen_agentchat.conditions.HandoffTermination"
 
@@ -279,7 +274,6 @@ class TimeoutTermination(TerminationCondition, Component[TimeoutTerminationConfi
         timeout_seconds: The maximum duration in seconds before terminating the conversation.
     """
 
-    component_type = "termination"
     component_config_schema = TimeoutTerminationConfig
     component_provider_override = "autogen_agentchat.conditions.TimeoutTermination"
 
@@ -339,7 +333,6 @@ class ExternalTermination(TerminationCondition, Component[ExternalTerminationCon
 
     """
 
-    component_type = "termination"
     component_config_schema = ExternalTerminationConfig
     component_provider_override = "autogen_agentchat.conditions.ExternalTermination"
 
@@ -389,7 +382,6 @@ class SourceMatchTermination(TerminationCondition, Component[SourceMatchTerminat
         TerminatedException: If the termination condition has already been reached.
     """
 
-    component_type = "termination"
     component_config_schema = SourceMatchTerminationConfig
     component_provider_override = "autogen_agentchat.conditions.SourceMatchTermination"
 
