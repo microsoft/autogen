@@ -66,6 +66,18 @@ Sample code and use cases
 
 How to migrate from AutoGen 0.2.x to 0.4.x.
 :::
+
+:::{grid-item-card} {fas}`save;pst-color-primary` Serialize Components
+:link: ./serialize-components.html
+
+Serialize and deserialize components
+:::
+
+:::{grid-item-card} {fas}`brain;pst-color-primary` Memory
+:link: ./memory.html
+
+Add memory capabilities to your agents
+:::
 ::::
 
 ```{toctree}
@@ -102,8 +114,8 @@ tutorial/state
 selector-group-chat
 swarm
 magentic-one
-advanced/memory
-advanced/serialize-components
+memory
+serialize-components
 ```
 
 ```{toctree}
