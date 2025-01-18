@@ -296,10 +296,10 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
-        """
-        Create a chat completion using the Semantic Kernel client.
+        """Create a chat completion using the Semantic Kernel client.
 
         The `extra_create_args` dictionary can include two special keys:
+
         1) `"kernel"` (required):
             An instance of :class:`semantic_kernel.Kernel` used to execute the request.
             If not provided, a ValueError is raised.
@@ -376,10 +376,10 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
-        """
-        Create a streaming chat completion using the Semantic Kernel client.
+        """Create a streaming chat completion using the Semantic Kernel client.
 
         The `extra_create_args` dictionary can include two special keys:
+        
         1) `"kernel"` (required):
             An instance of :class:`semantic_kernel.Kernel` used to execute the request.
             If not provided, a ValueError is raised.
