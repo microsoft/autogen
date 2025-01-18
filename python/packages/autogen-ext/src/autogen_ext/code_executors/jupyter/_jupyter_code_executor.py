@@ -126,7 +126,7 @@ class JupyterCodeExecutor(CodeExecutor):
         self._output_dir = output_dir
         # TODO: Forward arguments perhaps?
         self._client = NotebookClient(
-            nb=nbformat.new_notebook(),
+            nb=nbformat.new_notebook(),  # type: ignore
             kernel_name=self._kernel_name,
             timeout=self._timeout,
             allow_errors=True,
@@ -170,12 +170,14 @@ class JupyterCodeExecutor(CodeExecutor):
         Returns:
             JupyterCodeResult: The result of the code execution.
         """
-        execute_coro = self._execute_cell(
-            nbformat.new_code_cell(silence_pip(code_block.code, code_block.language))  # type: ignore
+        execute_task = asyncio.create_task(
+            self._execute_cell(
+                nbformat.new_code_cell(silence_pip(code_block.code, code_block.language))  # type: ignore
+            )
         )
 
-        cancellation_token.link_future(execute_coro)
-        output_cell = await asyncio.wait_for(asyncio.shield(execute_coro), timeout=self._timeout)
+        cancellation_token.link_future(execute_task)
+        output_cell = await asyncio.wait_for(asyncio.shield(execute_task), timeout=self._timeout)
 
         outputs: list[str] = []
         output_files: list[Path] = []
@@ -206,6 +208,8 @@ class JupyterCodeExecutor(CodeExecutor):
                                 output_files.append(path)
                             case _:
                                 outputs.append(json.dumps(content))
+                case _:
+                    pass
 
         return JupyterCodeResult(exit_code=exit_code, output="\n".join(outputs), output_files=output_files)
 
