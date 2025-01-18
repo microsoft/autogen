@@ -19,11 +19,13 @@ public static class AgentsApp
     {
         builder ??= new HostApplicationBuilder();
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-        if (! local) 
+        if (!local)
         {
             builder.AddGrpcAgentWorker()
             .AddAgents(agentTypes);
-        } else {
+        }
+        else
+        {
             builder.AddAgentWorker()
             .AddAgents(agentTypes);
         }

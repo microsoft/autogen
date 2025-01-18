@@ -90,12 +90,14 @@ public sealed class GrpcAgentWorker(
 
                             break;
                         case Message.MessageOneofCase.RegisterAgentTypeResponse:
-                            if (!message.RegisterAgentTypeResponse.Success){
+                            if (!message.RegisterAgentTypeResponse.Success)
+                            {
                                 _logger.LogError($"Failed to register agent type '{message.RegisterAgentTypeResponse.Error}'");
                             }
                             break;
                         case Message.MessageOneofCase.AddSubscriptionResponse:
-                            if (!message.AddSubscriptionResponse.Success){
+                            if (!message.AddSubscriptionResponse.Success)
+                            {
                                 _logger.LogError($"Failed to add subscription '{message.AddSubscriptionResponse.Error}'");
                             }
                             break;
@@ -326,7 +328,7 @@ public sealed class GrpcAgentWorker(
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         _channel = GetChannel();
-        _logger.LogInformation("Starting GrpcAgentWorker, connecting to gRPC endpoint "+ Environment.GetEnvironmentVariable("AGENT_HOST"));
+        _logger.LogInformation("Starting GrpcAgentWorker, connecting to gRPC endpoint " + Environment.GetEnvironmentVariable("AGENT_HOST"));
 
         StartCore();
 
