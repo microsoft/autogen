@@ -44,6 +44,8 @@ public static class GrpcAgentWorkerHostBuilderExtensions
             });
         });
         builder.Services.AddSingleton<IAgentWorker, GrpcAgentWorker>();
+        builder.Services.AddSingleton<Client>();
+
         return builder;
     }
 }
