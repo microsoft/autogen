@@ -156,7 +156,7 @@ public sealed class GrpcAgentWorker(
             {
                 // we could not connect to the endpoint - most likely we have the wrong port or failed ssl
                 // we need to let the user know what port we tried to connect to and then do backoff and retry
-                _logger.LogError(ex, "Error connecting to GRPC endpoint {Endpoint}.", channel.ToString());
+                _logger.LogError(ex, "Error connecting to GRPC endpoint {Endpoint}.", Environment.GetEnvironmentVariable("AGENT_HOST"));
                 break;
             }
             catch (Exception ex) when (!_shutdownCts.IsCancellationRequested)
@@ -326,7 +326,7 @@ public sealed class GrpcAgentWorker(
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         _channel = GetChannel();
-        _logger.LogInformation("Starting GrpcAgentWorker, connecting to gRPC endpoint "+ _client.ToString());
+        _logger.LogInformation("Starting GrpcAgentWorker, connecting to gRPC endpoint "+ Environment.GetEnvironmentVariable("AGENT_HOST"));
 
         StartCore();
 
