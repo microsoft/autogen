@@ -59,7 +59,7 @@ dev = [
 
 [[package]]
 name = "accelerate"
-version = "1.2.1"
+version = "1.3.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "huggingface-hub" },
@@ -70,9 +70,9 @@ dependencies = [
     { name = "safetensors" },
     { name = "torch" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/42/09/7947691b7d44bfc739da4a44cc47d6a6d75e6fe9adf047c5234d7cb6be64/accelerate-1.2.1.tar.gz", hash = "sha256:03e161fc69d495daf2b9b5c8d5b43d06e2145520c04727b5bda56d49f1a43ab5", size = 341652 }
+sdist = { url = "https://files.pythonhosted.org/packages/85/15/0fab0260ab4069e5224e637d2e400538bb27b0dfc36f17daf68db9770d78/accelerate-1.3.0.tar.gz", hash = "sha256:518631c0adb80bd3d42fb29e7e2dc2256bcd7c786b0ba9119bbaa08611b36d9c", size = 342758 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c2/60/a585c806d6c0ec5f8149d44eb202714792802f484e6e2b1bf96b23bd2b00/accelerate-1.2.1-py3-none-any.whl", hash = "sha256:be1cbb958cf837e7cdfbde46b812964b1b8ae94c9c7d94d921540beafcee8ddf", size = 336355 },
+    { url = "https://files.pythonhosted.org/packages/73/de/64508cb91af013aaba214752309c0967568a4219d50a4ea30e822af3c976/accelerate-1.3.0-py3-none-any.whl", hash = "sha256:5788d9e6a7a9f80fed665cf09681c4dddd9dc056bea656db4140ffc285ce423e", size = 336647 },
 ]
 
 [[package]]
@@ -273,7 +273,7 @@ wheels = [
 
 [[package]]
 name = "anthropic"
-version = "0.43.0"
+version = "0.43.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -284,9 +284,9 @@ dependencies = [
     { name = "sniffio" },
     { name = "typing-extensions" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/e1/0a/973d2ac6c9f7d1be41829c7b878cbe399385b25cc2ebe80ad0eec9999b8c/anthropic-0.43.0.tar.gz", hash = "sha256:06801f01d317a431d883230024318d48981758058bf7e079f33fb11f64b5a5c1", size = 194826 }
+sdist = { url = "https://files.pythonhosted.org/packages/ca/d8/238c2bc59e41a787e7b62460adfc7b2edd88f28b0a14e292801a72725369/anthropic-0.43.1.tar.gz", hash = "sha256:c7f13e4b7b515ac4a3111142310b214527c0fc561485e5bc9b582e49fe3adba2", size = 195298 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d7/88/ded3ba979a2218a448cbc1a1e762d998b92f30529452c5104b35b6cb71f8/anthropic-0.43.0-py3-none-any.whl", hash = "sha256:f748a703f77b3244975e1aace3a935840dc653a4714fb6bba644f97cc76847b4", size = 207867 },
+    { url = "https://files.pythonhosted.org/packages/89/2b/63b167d76401f759c8c4ff0266042e60aac6fd3cc0685b27437ceaaf95eb/anthropic-0.43.1-py3-none-any.whl", hash = "sha256:20759c25cd0f4072eb966b0180a41c061c156473bbb674da6a3f1e92e1ad78f8", size = 208170 },
 ]
 
 [[package]]
@@ -597,6 +597,39 @@ openai = [
 redis = [
     { name = "redis" },
 ]
+semantic-kernel-all = [
+    { name = "semantic-kernel", extra = ["anthropic", "aws", "dapr", "google", "hugging-face", "mistralai", "ollama", "onnx", "pandas", "usearch"] },
+]
+semantic-kernel-anthropic = [
+    { name = "semantic-kernel", extra = ["anthropic"] },
+]
+semantic-kernel-aws = [
+    { name = "semantic-kernel", extra = ["aws"] },
+]
+semantic-kernel-core = [
+    { name = "semantic-kernel" },
+]
+semantic-kernel-dapr = [
+    { name = "semantic-kernel", extra = ["dapr"] },
+]
+semantic-kernel-google = [
+    { name = "semantic-kernel", extra = ["google"] },
+]
+semantic-kernel-hugging-face = [
+    { name = "semantic-kernel", extra = ["hugging-face"] },
+]
+semantic-kernel-mistralai = [
+    { name = "semantic-kernel", extra = ["mistralai"] },
+]
+semantic-kernel-ollama = [
+    { name = "semantic-kernel", extra = ["ollama"] },
+]
+semantic-kernel-onnx = [
+    { name = "semantic-kernel", extra = ["onnx"] },
+]
+semantic-kernel-pandas = [
+    { name = "semantic-kernel", extra = ["pandas"] },
+]
 video-surfer = [
     { name = "autogen-agentchat" },
     { name = "ffmpeg-python" },
@@ -644,6 +677,17 @@ requires-dist = [
     { name = "playwright", marker = "extra == 'magentic-one'", specifier = ">=1.48.0" },
     { name = "playwright", marker = "extra == 'web-surfer'", specifier = ">=1.48.0" },
     { name = "redis", marker = "extra == 'redis'", specifier = ">=5.2.1" },
+    { name = "semantic-kernel", marker = "extra == 'semantic-kernel-core'", specifier = ">=1.17.1" },
+    { name = "semantic-kernel", extras = ["anthropic"], marker = "extra == 'semantic-kernel-anthropic'", specifier = ">=1.17.1" },
+    { name = "semantic-kernel", extras = ["aws"], marker = "extra == 'semantic-kernel-aws'", specifier = ">=1.17.1" },
+    { name = "semantic-kernel", extras = ["dapr"], marker = "extra == 'semantic-kernel-dapr'", specifier = ">=1.17.1" },
+    { name = "semantic-kernel", extras = ["google"], marker = "extra == 'semantic-kernel-google'", specifier = ">=1.17.1" },
+    { name = "semantic-kernel", extras = ["google", "hugging-face", "mistralai", "ollama", "onnx", "anthropic", "usearch", "pandas", "aws", "dapr"], marker = "extra == 'semantic-kernel-all'", specifier = ">=1.17.1" },
+    { name = "semantic-kernel", extras = ["hugging-face"], marker = "extra == 'semantic-kernel-hugging-face'", specifier = ">=1.17.1" },
+    { name = "semantic-kernel", extras = ["mistralai"], marker = "extra == 'semantic-kernel-mistralai'", specifier = ">=1.17.1" },
+    { name = "semantic-kernel", extras = ["ollama"], marker = "extra == 'semantic-kernel-ollama'", specifier = ">=1.17.1" },
+    { name = "semantic-kernel", extras = ["onnx"], marker = "extra == 'semantic-kernel-onnx'", specifier = ">=1.17.1" },
+    { name = "semantic-kernel", extras = ["pandas"], marker = "extra == 'semantic-kernel-pandas'", specifier = ">=1.17.1" },
     { name = "tiktoken", marker = "extra == 'openai'", specifier = ">=0.8.0" },
 ]
 
@@ -968,30 +1012,30 @@ wheels = [
 
 [[package]]
 name = "boto3"
-version = "1.36.0"
+version = "1.36.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "botocore" },
     { name = "jmespath" },
     { name = "s3transfer" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/c8/c6/ec86c6eafc942dbddffcaa4eb623373bf94ecf38fab0ab3e7f9fe7051e62/boto3-1.36.0.tar.gz", hash = "sha256:159898f51c2997a12541c0e02d6e5a8fe2993ddb307b9478fd9a339f98b57e00", size = 111035 }
+sdist = { url = "https://files.pythonhosted.org/packages/3a/e9/c0b2fa75efc4007ea1af21bc2fcbedf6e545c517fb90904d7f59850e02bf/boto3-1.36.2.tar.gz", hash = "sha256:fde1c29996b77274a60b7bc9f741525afa6267bb1716eb644a764fb7c124a0d2", size = 110998 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c0/36/b91f560a0ed11f7f90ac59554cbc52340158ce24db879a7c8faa68ff1cef/boto3-1.36.0-py3-none-any.whl", hash = "sha256:d0ca7a58ce25701a52232cc8df9d87854824f1f2964b929305722ebc7959d5a9", size = 139165 },
+    { url = "https://files.pythonhosted.org/packages/17/c2/72a92794237b43f64141e156bc3a58bc36d18631f1a614e1e97a48b56447/boto3-1.36.2-py3-none-any.whl", hash = "sha256:76cfc9a705be46e8d22607efacc8d688c064f923d785a01c00b28e9a96425d1a", size = 139166 },
 ]
 
 [[package]]
 name = "botocore"
-version = "1.36.0"
+version = "1.36.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "jmespath" },
     { name = "python-dateutil" },
     { name = "urllib3" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/4b/0a/b0e565de60e9cf3ab92aa892b84eb89eec43fef816e39c1f5a2e635755bd/botocore-1.36.0.tar.gz", hash = "sha256:0232029ff9ae3f5b50cdb25cbd257c16f87402b6d31a05bd6483638ee6434c4b", size = 13499529 }
+sdist = { url = "https://files.pythonhosted.org/packages/c6/93/353b70cea6447e37789fc2d6f761fc12ae36fb4adb6f558055de8cdf655f/botocore-1.36.2.tar.gz", hash = "sha256:a1fe6610983f0214b0c7655fe6990b6a731746baf305b182976fc7b568fc3cb0", size = 13505440 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0b/87/c5aa3eeb820937ac1c00c0e2172aaacbfba2b2de2467b8162bef6b6f5b1f/botocore-1.36.0-py3-none-any.whl", hash = "sha256:b54b11f0cfc47fc1243ada0f7f461266c279968487616720fa8ebb02183917d7", size = 13297503 },
+    { url = "https://files.pythonhosted.org/packages/0c/fe/c066e8cb069027c12dbcf9066a7a4f3e9d2a31b10c7b174a8455ef1d0f46/botocore-1.36.2-py3-none-any.whl", hash = "sha256:bc3b7e3b573a48af2bd7116b80fe24f9a335b0b67314dcb2697a327d009abf29", size = 13302324 },
 ]
 
 [[package]]
@@ -2024,7 +2068,7 @@ wheels = [
 
 [[package]]
 name = "google-cloud-bigquery"
-version = "3.28.0"
+version = "3.27.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-api-core", extra = ["grpc"] },
@@ -2035,9 +2079,9 @@ dependencies = [
     { name = "python-dateutil" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/01/71/6bf23975ad8e865afb2b1ac2cfa22dbb332a24754763391820fc1402a662/google_cloud_bigquery-3.28.0.tar.gz", hash = "sha256:161f9f424400f7bd0a4885ee80027f0030f4f5ff6feaaa1c30bb12c2c5a0e783", size = 465074 }
+sdist = { url = "https://files.pythonhosted.org/packages/c0/05/633ce6686b1fed2cd364fa4698bfa6d586263cd4795d012584f8097061e1/google_cloud_bigquery-3.27.0.tar.gz", hash = "sha256:379c524054d7b090fa56d0c22662cc6e6458a6229b6754c0e7177e3a73421d2c", size = 456964 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/81/10/696686774a87909b14b6a29e4f5819754c2269029437354627d04d5b6279/google_cloud_bigquery-3.28.0-py2.py3-none-any.whl", hash = "sha256:29a0ed6ea19eab9bf59429f66d7a2b20ebea78597e76ed6fb653a581486e90c8", size = 243738 },
+    { url = "https://files.pythonhosted.org/packages/f5/40/4b11a4a8839de8ce802a3ccd60b34e70ce10d13d434a560534ba98f0ea3f/google_cloud_bigquery-3.27.0-py2.py3-none-any.whl", hash = "sha256:b53b0431e5ba362976a4cd8acce72194b4116cdf8115030c7b339b884603fcc3", size = 240100 },
 ]
 
 [[package]]
@@ -6004,14 +6048,14 @@ wheels = [
 
 [[package]]
 name = "s3transfer"
-version = "0.11.0"
+version = "0.11.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "botocore" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/82/e0/5f98a2974fa8c041848ff1acb657b50546ea1505fc1f50e3424120cee557/s3transfer-0.11.0.tar.gz", hash = "sha256:6563eda054c33bdebef7cbf309488634651c47270d828e594d151cd289fb7cf7", size = 146986 }
+sdist = { url = "https://files.pythonhosted.org/packages/1a/aa/fdd958c626b00e3f046d4004363e7f1a2aba4354f78d65ceb3b217fa5eb8/s3transfer-0.11.1.tar.gz", hash = "sha256:3f25c900a367c8b7f7d8f9c34edc87e300bde424f779dc9f0a8ae4f9df9264f6", size = 146952 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/19/74/940311734dfbe36bf06ed86e4c367c8fb2b137448762c4724142180411fb/s3transfer-0.11.0-py3-none-any.whl", hash = "sha256:f43b03931c198743569bbfb6a328a53f4b2b4ec723cd7c01fab68e3119db3f8b", size = 84113 },
+    { url = "https://files.pythonhosted.org/packages/5f/ce/22673f4a85ccc640735b4f8d12178a0f41b5d3c6eda7f33756d10ce56901/s3transfer-0.11.1-py3-none-any.whl", hash = "sha256:8fa0aa48177be1f3425176dfe1ab85dcd3d962df603c3dbfc585e6bf857ef0ff", size = 84111 },
 ]
 
 [[package]]
@@ -7077,7 +7121,7 @@ name = "triton"
 version = "3.1.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
-    { name = "filelock" },
+    { name = "filelock", marker = "(platform_machine != 'aarch64' and sys_platform == 'linux') or (sys_platform != 'darwin' and sys_platform != 'linux')" },
 ]
 wheels = [
     { url = "https://files.pythonhosted.org/packages/98/29/69aa56dc0b2eb2602b553881e34243475ea2afd9699be042316842788ff5/triton-3.1.0-cp310-cp310-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6b0dd10a925263abbe9fa37dcde67a5e9b2383fc269fdf59f5657cac38c5d1d8", size = 209460013 },
