@@ -132,6 +132,10 @@ jobs:
     - name: Prepare python venv
       run: |
         source ${{ github.workspace }}/python/.venv/bin/activate
+    - name: Setup .NET 8.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
     - name: Setup .NET 9.0
       uses: actions/setup-dotnet@v4
       with:
