@@ -47,7 +47,7 @@ public static class GrpcAgentWorkerHostBuilderExtensions
             });
         });
         builder.Services.AddSingleton<IAgentWorker, GrpcAgentWorker>();
-                builder.Services.AddKeyedSingleton("EventTypes", (sp, key) =>
+        builder.Services.AddKeyedSingleton("EventTypes", (sp, key) =>
         {
             var interfaceType = typeof(IMessage);
             var pairs = AppDomain.CurrentDomain.GetAssemblies()
@@ -114,8 +114,14 @@ public static class GrpcAgentWorkerHostBuilderExtensions
             }
             return new EventTypes(typeRegistry, types, eventsMap);
         });
-        builder.Services.AddSingleton<Client>();
-
+        builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<IAgentWorker>());
+        builder.Services.AddSingleton((s) =>
+        {
+            var worker = s.GetRequiredService<IAgentWorker>();
+            var client = ActivatorUtilities.CreateInstance<Client>(s);
+            return client;
+        });
+        builder.Services.AddSingleton(new AgentApplicationBuilder(builder));
         return builder;
     }
     private static MessageDescriptor? GetMessageDescriptor(Type type)
