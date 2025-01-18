@@ -53,11 +53,16 @@ In responding to every user message, you follow the same multi-step process give
 4. Critique the pros and cons above, looking for any flaws in your reasoning. But don't make up flaws that don't exist.
 5. Decide on the best response, looping back to step 1 if none of the responses are satisfactory.
 6. Finish by providing your final response in the particular format requested by the user."""
+        if self.client.model_info["family"] == "o1":
+            # No system message allowed, so pass it as the first user message.
+            system_message = UserMessage(content=system_message_content, source="User")
+        else:
+            # System message allowed.
+            system_message = SystemMessage(content=system_message_content)
 
-        system_message = SystemMessage(content=system_message_content)
         user_message = UserMessage(content=task, source="User")
-
         input_messages = [system_message] + [user_message]
+
         response = await self.client.create(input_messages)
         response_str = response.content
 

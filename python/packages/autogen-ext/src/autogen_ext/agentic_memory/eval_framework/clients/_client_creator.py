@@ -31,51 +31,65 @@ class ClientCreator:
 
         return client
 
+    def add_shared_args(self, args):
+        args["model"] = self.settings["model"]
+        args["max_completion_tokens"] = self.settings["max_completion_tokens"]
+        args["max_retries"] = self.settings["max_retries"]
+
+    def add_family_args(self, args):
+        # Does the model name start with 'o1'?
+        if not args["model"].startswith("o1"):
+            # No. A few more things can be specified.
+            args["temperature"] = self.settings["temperature"]
+            args["presence_penalty"] = self.settings["presence_penalty"]
+            args["frequency_penalty"] = self.settings["frequency_penalty"]
+            args["top_p"] = self.settings["top_p"]
 
     def create_oai_client(self):
         # Create an OpenAI client
-        client = OpenAIChatCompletionClient(
-            model=self.settings["model"],
-            api_key=self.settings["api_key"],
-            temperature=self.settings["temperature"],
-            max_tokens=self.settings["max_tokens"],
-            presence_penalty=self.settings["presence_penalty"],
-            frequency_penalty=self.settings["frequency_penalty"],
-            top_p=self.settings["top_p"],
-            max_retries=self.settings["max_retries"],
-        )
+        args = {"api_key": self.settings["api_key"]}
+        self.add_shared_args(args)
+        self.add_family_args(args)
+
+        client = OpenAIChatCompletionClient(**args)
+
         self.page_log.append_entry_line("Client:  {}".format(client._resolved_model))
         self.page_log.append_entry_line("  created through OpenAI")
-        self.page_log.append_entry_line("  temperature:  {}".format(self.settings["temperature"]))
         return client
 
 
     def create_aoai_client(self):
         # Create an Azure OpenAI client
         model = self.settings["model"]
-        azure_deployment = model + "-eval"
         if model == "gpt-4o-2024-08-06":
+            azure_deployment = 'gpt-4o-2024-08-06-eval'  # This is DeploymentName in the table at https://aka.ms/trapi/models
             azure_endpoint = "https://agentic2.openai.azure.com/"
-        else:
+        elif model == "gpt-4o-2024-05-13":
+            azure_deployment = 'gpt-4o-2024-05-13-eval'
             azure_endpoint = "https://agentic1.openai.azure.com/"
+        elif model == "o1-preview":
+            azure_deployment = 'o1-preview-2024-09-12-eval'
+            azure_endpoint = "https://agentic1.openai.azure.com/"
+        else:
+            assert False, "Unsupported model"
+
         token_provider = get_bearer_token_provider(DefaultAzureCredential(),
                                                    "https://cognitiveservices.azure.com/.default")
-        client = AzureOpenAIChatCompletionClient(
-            azure_endpoint=azure_endpoint,
-            azure_ad_token_provider=token_provider,
-            azure_deployment=azure_deployment,
-            api_version="2024-06-01",
-            model=model,
-            temperature=self.settings["temperature"],
-            max_tokens=self.settings["max_tokens"],
-            presence_penalty=self.settings["presence_penalty"],
-            frequency_penalty=self.settings["frequency_penalty"],
-            top_p=self.settings["top_p"],
-            max_retries=self.settings["max_retries"],
-        )
+        api_version = '2024-12-01-preview'  # From https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation#latest-ga-api-release
+
+        args = {
+            "azure_ad_token_provider": token_provider,
+            "azure_deployment": azure_deployment,
+            "azure_endpoint": azure_endpoint,
+            "api_version": api_version,
+        }
+        self.add_shared_args(args)
+        self.add_family_args(args)
+
+        client = AzureOpenAIChatCompletionClient(**args)
+
         self.page_log.append_entry_line("Client:  {}".format(client._resolved_model))
         self.page_log.append_entry_line("  created through Azure OpenAI")
-        self.page_log.append_entry_line("  temperature:  {}".format(self.settings["temperature"]))
         return client
 
 
@@ -95,6 +109,7 @@ class ClientCreator:
                 # managed_identity_client_id=os.environ.get("DEFAULT_IDENTITY_CLIENT_ID"),  # See the TRAPI docs
             )
         ), "api://trapi/.default")
+        api_version = '2024-12-01-preview'  # From https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation#latest-ga-api-release
         model = self.settings["model"]
         if model == "gpt-4o-2024-08-06":
             azure_deployment = 'gpt-4o_2024-08-06'  # This is DeploymentName in the table at https://aka.ms/trapi/models
@@ -102,24 +117,25 @@ class ClientCreator:
             azure_deployment = 'gpt-4o_2024-05-13'
         elif model == "o1-preview":
             azure_deployment = 'o1-preview_2024-09-12'
+        elif model == "o1":
+            azure_deployment = 'o1_2024-12-17'
+        else:
+            assert False, "Unsupported model"
         trapi_suffix = 'msraif/shared'  # This is TRAPISuffix (without /openai) in the table at https://aka.ms/trapi/models
         endpoint = f'https://trapi.research.microsoft.com/{trapi_suffix}'
-        api_version = '2024-10-21'  # From https://learn.microsoft.com/en-us/azure/ai-services/openai/api-version-deprecation#latest-ga-api-release
-        client = AzureOpenAIChatCompletionClient(
-            azure_ad_token_provider=token_provider,
-            model=model,
-            azure_deployment=azure_deployment,
-            azure_endpoint=endpoint,
-            api_version=api_version,
-            temperature=self.settings["temperature"],
-            max_tokens=self.settings["max_tokens"],
-            presence_penalty=self.settings["presence_penalty"],
-            frequency_penalty=self.settings["frequency_penalty"],
-            top_p=self.settings["top_p"],
-            max_retries=self.settings["max_retries"],
-        )
+
+        args = {
+            "azure_ad_token_provider": token_provider,
+            "azure_deployment": azure_deployment,
+            "azure_endpoint": endpoint,
+            "api_version": api_version,
+        }
+        self.add_shared_args(args)
+        self.add_family_args(args)
+
+        client = AzureOpenAIChatCompletionClient(**args)
+
         self.page_log.append_entry_line("Client:  {}".format(client._resolved_model))
         self.page_log.append_entry_line("  created through TRAPI")
-        self.page_log.append_entry_line("  temperature:  {}".format(self.settings["temperature"]))
         return client
 

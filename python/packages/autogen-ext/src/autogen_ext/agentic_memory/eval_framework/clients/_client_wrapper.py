@@ -27,6 +27,7 @@ class ClientWrapper:
         self.mode = mode
         self.page_log = page_log
         self.next_item_index = 0
+        self.model_info = {"family": self.base_client.model_info["family"]}
         self.path_to_output_file = os.path.join(os.path.expanduser("~/sessions/"), session_name + ".yaml")
         if page_log is not None:
             page.add_lines("Wrapping the base client in a ClientWrapper.")

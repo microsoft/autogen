@@ -22,13 +22,18 @@ class Grader:
         # Create the chat history
         self._chat_history: List[LLMMessage] = []
 
-    async def call_model(self, details, user_content: UserContent = None, system_message=None, keep_these_messages=True):
+    async def call_model(self, details, user_content: UserContent = None, system_message_content=None, keep_these_messages=True):
         # Prepare the input message list
-        user_message = UserMessage(content=user_content, source="User")
-        if system_message is None:
-            system_message = "You are a helpful assistant."
-        system_message = SystemMessage(content=system_message)
+        if system_message_content is None:
+            system_message_content = "You are a helpful assistant."
+        if self.client.model_info["family"] == "o1":
+            # No system message allowed, so pass it as the first user message.
+            system_message = UserMessage(content=system_message_content, source="User")
+        else:
+            # System message allowed.
+            system_message = SystemMessage(content=system_message_content)
 
+        user_message = UserMessage(content=user_content, source="User")
         input_messages = [system_message] + self._chat_history + [user_message]
 
         # Call the model.
@@ -80,7 +85,7 @@ class Grader:
         user_message.append(response_to_be_graded)
         self.clear_history()
         extracted_answer, _ = await self.call_model(
-            system_message=sys_message,
+            system_message_content=sys_message,
             user_content=user_message,
             details="to extract the answer")
         page.add_lines("Extracted answer: " + extracted_answer)
@@ -101,7 +106,7 @@ class Grader:
         user_message.append(extracted_answer)
         self.clear_history()
         decision, _ = await self.call_model(
-            system_message=sys_message,
+            system_message_content=sys_message,
             user_content=user_message,
             details="to check the answer for correctness")
         page.add_lines("Decision: " + decision)

@@ -28,12 +28,16 @@ class Prompter:
 
     async def call_model(self, details, user_content: UserContent = None, system_message_content=None, keep_these_messages=True):
         # Prepare the input message list
-        user_message = UserMessage(content=user_content, source="User")
-
         if system_message_content is None:
             system_message_content = self.default_system_message_content
-        system_message = SystemMessage(content=system_message_content)
+        if self.client.model_info["family"] == "o1":
+            # No system message allowed, so pass it as the first user message.
+            system_message = UserMessage(content=system_message_content, source="User")
+        else:
+            # System message allowed.
+            system_message = SystemMessage(content=system_message_content)
 
+        user_message = UserMessage(content=user_content, source="User")
         input_messages = [system_message] + self._chat_history + [user_message]
 
         # Double check the types of the input messages.

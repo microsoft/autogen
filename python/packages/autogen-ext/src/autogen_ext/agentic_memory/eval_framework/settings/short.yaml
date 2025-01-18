@@ -1,14 +1,14 @@
 
 Evaluator:
   PageLog:
-    path: ~/pagelogs/temp3
+    path: ~/pagelogs/temp4
 
 client:
-  model: gpt-4o-2024-08-06  # gpt-4o-2024-05-13, gpt-4o-2024-08-06 etc.
+  model: gpt-4o-2024-08-06  # gpt-4o-2024-05-13, gpt-4o-2024-08-06, o1-preview, o1, etc.
   provider: trapi  # openai, azure_openai, or trapi
   api_key: sk-  # only for openai
   temperature: 0.8
-  max_tokens: 4096
+  max_completion_tokens: 4096
   presence_penalty: 0.0
   frequency_penalty: 0.0
   top_p: 1.0
