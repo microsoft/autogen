@@ -379,7 +379,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         """Create a streaming chat completion using the Semantic Kernel client.
 
         The `extra_create_args` dictionary can include two special keys:
-        
+
         1) `"kernel"` (required):
             An instance of :class:`semantic_kernel.Kernel` used to execute the request.
             If not provided, a ValueError is raised.
