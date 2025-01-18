@@ -35,28 +35,48 @@ class KernelFunctionFromTool(KernelFunction):
     Example usage:
         .. code-block:: python
 
-            # 1) Create an Autogen tool
+            from pydantic import BaseModel
+            from autogen_core.tools import BaseTool
+            from autogen_core import CancellationToken
+            from autogen_ext.tools.semantic_kernel import KernelFunctionFromTool
+            from semantic_kernel.functions.kernel_plugin import KernelPlugin
+            from semantic_kernel.kernel import Kernel
+
+
+            # 1) Define input/output models
+            class CalculatorArgs(BaseModel):
+                a: float
+                b: float
+
+
+            class CalculatorResult(BaseModel):
+                result: float
+
+
+            # 2) Create an Autogen tool
             class CalculatorTool(BaseTool[CalculatorArgs, CalculatorResult]):
                 def __init__(self) -> None:
-                    super().__init__(name="calculator", description="Add two numbers together")
+                    super().__init__(
+                        args_type=CalculatorArgs,
+                        return_type=CalculatorResult,
+                        name="calculator",
+                        description="Add two numbers together",
+                    )
+
+                async def run(self, args: CalculatorArgs, cancellation_token: CancellationToken) -> CalculatorResult:
+                    return CalculatorResult(result=args.a + args.b)
 
 
-            # 2) Convert to Semantic Kernel function
+            # 3) Convert to Semantic Kernel function
             calc_tool = CalculatorTool()
             kernel_function = KernelFunctionFromTool(calc_tool, plugin_name="math")
 
-            # 3) Add to Semantic Kernel plugin/kernel
+            # 4) Add to Semantic Kernel plugin/kernel
             plugin = KernelPlugin(name="math")
             plugin.functions[calc_tool.name] = kernel_function
+            kernel = Kernel()
             kernel.add_plugin(plugin)
     """
-
-    class Config:
-        # Hide fields that are not JSON-serializable from the generated schema
-        fields = {
-            "invocation_duration_histogram": {"exclude": True},
-            "streaming_duration_histogram": {"exclude": True},
-        }
 
     def __init__(self, tool: BaseTool[InputT, OutputT], plugin_name: str | None = None):
         # Build up KernelFunctionMetadata. You can also parse the tool's schema for parameters.
