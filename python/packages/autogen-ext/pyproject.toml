@@ -56,6 +56,10 @@ redis = [
 grpc = [
     "grpcio~=1.62.0", # TODO: update this once we have a stable version.
 ]
+jupyter-executor = [
+    "ipykernel>=6.29.5",
+    "nbclient>=0.10.2",
+]
 
 semantic-kernel-core = [
     "semantic-kernel>=1.17.1",
