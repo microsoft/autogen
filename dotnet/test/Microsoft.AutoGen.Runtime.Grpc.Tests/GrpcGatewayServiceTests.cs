@@ -30,9 +30,9 @@ public class GrpcGatewayServiceTests
         var service = new GrpcGatewayService(gateway);
         using var client = new TestGrpcClient();
 
-        gateway.WorkersCount.Should().Be(0);
+        gateway._workers.Count.Should().Be(0);
         await service.OpenChannel(client.RequestStream, client.ResponseStream, client.CallContext);
-        gateway.WorkersCount.Should().Be(1);
+        gateway._workers.Count.Should().Be(1);
     }
 
     [Fact]

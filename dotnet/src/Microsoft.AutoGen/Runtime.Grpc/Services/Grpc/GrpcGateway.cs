@@ -30,7 +30,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
     // RPC
     private readonly ConcurrentDictionary<(GrpcWorkerConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
-    public int WorkersCount => _workers.Count;
     public GrpcGateway(IClusterClient clusterClient, ILogger<GrpcGateway> logger)
     {
         _logger = logger;
@@ -146,22 +145,13 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             _logger.LogWarning(exception, "Error removing worker from registry.");
         }
     }
-    internal async Task<string> ConnectToWorkerProcess(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
+    internal Task ConnectToWorkerProcess(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {
         _logger.LogInformation("Received new connection from {Peer}.", context.Peer);
         var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
-        var connectionId = Guid.NewGuid().ToString();
         _workers[workerProcess] = workerProcess;
-        _workersByConnection[connectionId] = workerProcess;
-
-        var completion = new TaskCompletionSource<Task>();
-        var _ = Task.Run(() =>
-        {
-            completion.SetResult(workerProcess.Connect());
-        });
-
-        await completion.Task;
-        return connectionId;
+        _workersByConnection[context.Peer] = workerProcess;
+        return workerProcess.Completion;
     }
     internal async Task SendMessageAsync(GrpcWorkerConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {

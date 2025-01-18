@@ -150,10 +150,15 @@ public sealed class GrpcAgentWorker(
                 _logger.LogError(ex, "Error connecting to GRPC endpoint {Endpoint}. Check port and SSL settings.", channel.ToString());
                 break;
             }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.OK)
+            {
+                _logger.LogError(ex, "Error writing to channel, continuing (Status OK). {ex}", channel.ToString());
+                break;
+            }
             catch (Exception ex) when (!_shutdownCts.IsCancellationRequested)
             {
                 item.WriteCompletionSource?.TrySetException(ex);
-                _logger.LogError(ex, "Error writing to channel.");
+                _logger.LogError(ex, $"Error writing to channel.{ex}");
                 channel = RecreateChannel(channel);
                 continue;
             }
@@ -208,12 +213,22 @@ public sealed class GrpcAgentWorker(
                 agents.Add(agentType);
             }
             var topicTypes = agentType.GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
-            var response = await _client.RegisterAgentAsync(new RegisterAgentTypeRequest
+/*             var response = await _client.RegisterAgentAsync(new RegisterAgentTypeRequest
             {
                 Type = type,
                 Topics = { topicTypes },
                 Events = { events }
-            }, null, null, cancellationToken);
+            }, null, null, cancellationToken); */
+            await WriteChannelAsync(new Message
+            {
+                RegisterAgentTypeRequest = new RegisterAgentTypeRequest
+                {
+                    RequestId = Guid.NewGuid().ToString(),
+                    Type = type,
+                    Topics = { topicTypes },
+                    Events = { events }
+                }
+            }, cancellationToken).ConfigureAwait(false);
 
             foreach (var topic in topicTypes)
             {
