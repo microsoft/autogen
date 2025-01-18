@@ -75,7 +75,11 @@ public sealed class GrpcAgentWorker(
                             message.Response.RequestId = request.OriginalRequestId;
                             request.Agent.ReceiveMessage(message);
                             break;
-
+                        case Message.MessageOneofCase.RegisterAgentTypeResponse:
+                            if (!message.RegisterAgentTypeResponse.Success){
+                                _logger.LogError($"Failed to register agent type '{message.RegisterAgentTypeResponse.Error}'");
+                            }
+                            break;
                         case Message.MessageOneofCase.CloudEvent:
                             var item = message.CloudEvent;
                             if (!_agentsForEvent.TryGetValue(item.Type, out var agents))
