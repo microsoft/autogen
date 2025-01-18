@@ -80,6 +80,11 @@ public sealed class GrpcAgentWorker(
                                 _logger.LogError($"Failed to register agent type '{message.RegisterAgentTypeResponse.Error}'");
                             }
                             break;
+                        case Message.MessageOneofCase.SubscriptionResponse:
+                            if (!message.SubscriptionResponse.Success){
+                                _logger.LogError($"Failed to add subscription '{message.SubscriptionResponse.Error}'");
+                            }
+                            break;
                         case Message.MessageOneofCase.CloudEvent:
                             var item = message.CloudEvent;
                             if (!_agentsForEvent.TryGetValue(item.Type, out var agents))
