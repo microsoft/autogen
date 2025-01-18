@@ -81,6 +81,7 @@ class JupyterCodeExecutor(CodeExecutor):
     Example of using it inside a :class:`~autogen_agentchat.agents._code_executor_agent.CodeExecutorAgent`:
 
     .. code-block:: python
+
         import asyncio
         from autogen_agentchat.agents import CodeExecutorAgent
         from autogen_agentchat.messages import TextMessage
