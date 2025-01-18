@@ -575,7 +575,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 for x in choice.logprobs.content
             ]
         response = CreateResult(
-            finish_reason=finish_reason,  # type: ignore
+            finish_reason=normalize_stop_reason(finish_reason),
             content=content,
             usage=usage,
             cached=False,

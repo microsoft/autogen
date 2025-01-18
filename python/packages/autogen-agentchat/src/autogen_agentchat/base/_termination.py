@@ -48,7 +48,6 @@ class TerminationCondition(ABC, ComponentBase[BaseModel]):
     """
 
     component_type = "termination"
-    # component_config_schema = BaseModel  # type: ignore
 
     @property
     @abstractmethod
