@@ -9,7 +9,7 @@ from typing import List, Literal
 
 from autogen_core import FunctionCall, Image
 from autogen_core.memory import MemoryContent
-from autogen_core.models import FunctionExecutionResult, RequestUsage
+from autogen_core.models import FunctionExecutionResult, LLMMessage, RequestUsage
 from pydantic import BaseModel, ConfigDict, Field
 from typing_extensions import Annotated
 
@@ -73,6 +73,9 @@ class HandoffMessage(BaseChatMessage):
 
     content: str
     """The handoff message to the target agent."""
+
+    context: List[LLMMessage] = []
+    """The model context to be passed to the target agent."""
 
     type: Literal["HandoffMessage"] = "HandoffMessage"
 

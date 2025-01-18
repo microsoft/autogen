@@ -33,7 +33,14 @@ from autogen_agentchat.teams._group_chat._round_robin_group_chat import RoundRob
 from autogen_agentchat.teams._group_chat._selector_group_chat import SelectorGroupChatManager
 from autogen_agentchat.teams._group_chat._swarm_group_chat import SwarmGroupChatManager
 from autogen_agentchat.ui import Console
-from autogen_core import AgentId, CancellationToken
+from autogen_core import AgentId, CancellationToken, FunctionCall
+from autogen_core.models import (
+    AssistantMessage,
+    FunctionExecutionResult,
+    FunctionExecutionResultMessage,
+    LLMMessage,
+    UserMessage,
+)
 from autogen_core.tools import FunctionTool
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -984,6 +991,136 @@ async def test_swarm_pause_and_resume() -> None:
     result = await team.run()
     assert len(result.messages) == 1
     assert result.messages[0].content == "Transferred to second_agent."
+
+
+@pytest.mark.asyncio
+async def test_swarm_with_parallel_tool_calls(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = "gpt-4o-2024-05-13"
+    chat_completions = [
+        ChatCompletion(
+            id="id1",
+            choices=[
+                Choice(
+                    finish_reason="tool_calls",
+                    index=0,
+                    message=ChatCompletionMessage(
+                        content=None,
+                        tool_calls=[
+                            ChatCompletionMessageToolCall(
+                                id="1",
+                                type="function",
+                                function=Function(
+                                    name="tool1",
+                                    arguments=json.dumps({}),
+                                ),
+                            ),
+                            ChatCompletionMessageToolCall(
+                                id="2",
+                                type="function",
+                                function=Function(
+                                    name="tool2",
+                                    arguments=json.dumps({}),
+                                ),
+                            ),
+                            ChatCompletionMessageToolCall(
+                                id="3",
+                                type="function",
+                                function=Function(
+                                    name="handoff_to_agent2",
+                                    arguments=json.dumps({}),
+                                ),
+                            ),
+                        ],
+                        role="assistant",
+                    ),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        ),
+        ChatCompletion(
+            id="id2",
+            choices=[
+                Choice(finish_reason="stop", index=0, message=ChatCompletionMessage(content="Hello", role="assistant"))
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        ),
+        ChatCompletion(
+            id="id2",
+            choices=[
+                Choice(
+                    finish_reason="stop", index=0, message=ChatCompletionMessage(content="TERMINATE", role="assistant")
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        ),
+    ]
+    mock = _MockChatCompletion(chat_completions)
+    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
+
+    expected_handoff_context: List[LLMMessage] = [
+        AssistantMessage(
+            source="agent1",
+            content=[
+                FunctionCall(id="1", name="tool1", arguments="{}"),
+                FunctionCall(id="2", name="tool2", arguments="{}"),
+            ],
+        ),
+        FunctionExecutionResultMessage(
+            content=[
+                FunctionExecutionResult(content="tool1", call_id="1"),
+                FunctionExecutionResult(content="tool2", call_id="2"),
+            ]
+        ),
+    ]
+
+    def tool1() -> str:
+        return "tool1"
+
+    def tool2() -> str:
+        return "tool2"
+
+    agent1 = AssistantAgent(
+        "agent1",
+        model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+        handoffs=[Handoff(target="agent2", name="handoff_to_agent2", message="handoff to agent2")],
+        tools=[tool1, tool2],
+    )
+    agent2 = AssistantAgent(
+        "agent2",
+        model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+    )
+    termination = TextMentionTermination("TERMINATE")
+    team = Swarm([agent1, agent2], termination_condition=termination)
+    result = await team.run(task="task")
+    assert len(result.messages) == 6
+    assert result.messages[0] == TextMessage(content="task", source="user")
+    assert isinstance(result.messages[1], ToolCallRequestEvent)
+    assert isinstance(result.messages[2], ToolCallExecutionEvent)
+    assert result.messages[3] == HandoffMessage(
+        content="handoff to agent2",
+        target="agent2",
+        source="agent1",
+        context=expected_handoff_context,
+    )
+    assert result.messages[4].content == "Hello"
+    assert result.messages[4].source == "agent2"
+    assert result.messages[5].content == "TERMINATE"
+    assert result.messages[5].source == "agent2"
+
+    # Verify the tool calls are in agent2's context.
+    agent2_model_ctx_messages = await agent2._model_context.get_messages()  # pyright: ignore
+    assert agent2_model_ctx_messages[0] == UserMessage(content="task", source="user")
+    assert agent2_model_ctx_messages[1] == expected_handoff_context[0]
+    assert agent2_model_ctx_messages[2] == expected_handoff_context[1]
 
 
 @pytest.mark.asyncio
