@@ -9,7 +9,7 @@ from autogen_core.models import (
     RequestUsage,
 )
 from autogen_core.tools import Tool, ToolSchema
-from autogen_ext.agentic_memory import PageLog
+from autogen_ext.apprentice import PageLog
 
 
 class ClientWrapper:

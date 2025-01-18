@@ -1,4 +1,4 @@
-from autogen_ext.agentic_memory import PageLog, Grader
+from autogen_ext.apprentice import PageLog, Grader
 
 
 async def eval_teachability(fast_learner, evaluator, client, page_log, settings):

@@ -11,7 +11,7 @@ from autogen_core.models import (
 
 from autogen_core import FunctionCall, Image
 
-from ..._utils import message_content_to_str, UserContent, text_from_user_content, single_image_from_user_content
+from ._utils import message_content_to_str, UserContent, text_from_user_content, single_image_from_user_content
 
 
 class Prompter:

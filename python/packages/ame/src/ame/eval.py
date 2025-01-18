@@ -3,8 +3,8 @@ import yaml
 import asyncio
 import importlib
 from typing import Tuple
-from autogen_ext.agentic_memory import PageLog, Grader
-from autogen_ext.agentic_memory.eval_framework.clients._client_creator import ClientCreator
+from autogen_ext.apprentice import PageLog, Grader
+from ame.clients._client_creator import ClientCreator
 
 
 class Evaluator:
@@ -68,7 +68,7 @@ class Evaluator:
             client = client_creator.create_client()
 
             # Create the specified fast_learner implementation.
-            fast_learner_settings = settings["FastLearner"]
+            fast_learner_settings = settings["fast_learning_agent"]
             module_path = fast_learner_settings["module_path"]
             try:
                 module = importlib.import_module(module_path)

@@ -1,7 +1,7 @@
 
 Evaluator:
   PageLog:
-    path: ~/pagelogs/base
+    path: ~/pagelogs/temp4
 
 client:
   model: gpt-4o-2024-08-06  # gpt-4o-2024-05-13, gpt-4o-2024-08-06, o1-preview, o1, etc.
@@ -14,13 +14,13 @@ client:
   top_p: 1.0
   max_retries: 65535
   ClientWrapper:  # Provides record & replay functionality
-    enabled: 0  # Only works for thin_agent currently
+    enabled: 1  # Only works for thin_agent currently
     mode: check-replay  # pass-through, record, or check-replay
     session_name: short-3
 
-FastLearner:
+fast_learning_agent:
   class_name: Apprentice
-  module_path: autogen_ext.agentic_memory.fast_learners.apprentice
+  module_path: autogen_ext.apprentice
   AgenticMemoryController:
     max_train_trials: 2  # 2-10
     max_test_trials: 1  # 1-3
@@ -30,7 +30,14 @@ FastLearner:
     base_agent: thin_agent  # MagenticOneGroupChat, thin_agent, etc.
 
 evaluations:
-  - function_name: eval_without_learning
-    module_path: autogen_ext.agentic_memory.eval_framework.evaluations.eval_without_learning
-    task_name: 10_liars
-    num_trials: 1
+  - function_name: eval_teachability
+    module_path: ame.evaluations.eval_teachability
+
+  - function_name: eval_learning_from_demonstration
+    module_path: ame.evaluations.eval_learning_from_demonstration
+    num_trials: 1  # 1-10
+
+  - function_name: eval_self_teaching
+    module_path: ame.evaluations.eval_self_teaching
+    num_loops: 1  # 1-10
+    num_final_test_trials: 1  # 1-3
