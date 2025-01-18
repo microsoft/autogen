@@ -158,6 +158,7 @@ autodoc_default_options = {
 }
 
 autodoc_pydantic_model_show_config_summary = False
+autodoc_pydantic_model_show_json_error_strategy = "coerce"
 python_use_unqualified_type_names = True
 autodoc_preserve_defaults = True
 
