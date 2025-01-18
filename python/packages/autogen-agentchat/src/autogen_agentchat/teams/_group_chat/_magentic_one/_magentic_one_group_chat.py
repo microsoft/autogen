@@ -5,6 +5,7 @@ from pydantic import BaseModel
 
 from autogen_core.models import ChatCompletionClient
 from autogen_core import Component, ComponentModel
+from ....agents import BaseChatAgent
 from .... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ....base import ChatAgent, TerminationCondition
 from .._base_group_chat import BaseGroupChat
@@ -21,8 +22,8 @@ class MagenticOneGroupChatConfig(BaseModel):
     
     participants: List[ComponentModel]
     model_client: ComponentModel 
-    termination_condition: ComponentModel | None
-    max_turns: int | None
+    termination_condition: ComponentModel | None = None
+    max_turns: int | None = None
     max_stalls: int
     final_answer_prompt: str
 
@@ -136,7 +137,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
 
 
     def _to_config(self) -> MagenticOneGroupChatConfig:
-        participants= []  # [p.dump_component() for p in self.participants], 
+        participants= [participant.dump_component() for participant in self._participants] 
         termination_condition = self._termination_condition.dump_component() if self._termination_condition else None
         return MagenticOneGroupChatConfig(
             participants=participants,
@@ -149,9 +150,9 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
 
     @classmethod
     def _from_config(cls, config: MagenticOneGroupChatConfig) -> Self:
-        participants = [BaseGroupChat.load_component(participant) for participant in config.participants]
-        model_client = config.model_client.load_component()
-        termination_condition = config.termination_condition.load_component() if config.termination_condition else None
+        participants = [BaseChatAgent.load_component(participant) for participant in config.participants]
+        model_client = ChatCompletionClient.load_component(config.model_client)
+        termination_condition = TerminationCondition.load_component(config.termination_condition) if config.termination_condition else None
         return cls(
             participants,
             model_client,

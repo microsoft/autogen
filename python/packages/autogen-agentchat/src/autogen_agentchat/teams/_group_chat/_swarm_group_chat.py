@@ -2,6 +2,7 @@ from typing import Any, Callable, List, Mapping
 
 from pydantic import BaseModel
 
+from ...agents import BaseChatAgent
 from ...base import ChatAgent, TerminationCondition
 from ...messages import AgentEvent, ChatMessage, HandoffMessage
 from ...state import SwarmManagerState
@@ -97,8 +98,8 @@ class SwarmConfig(BaseModel):
     """The declarative configuration for Swarm."""
 
     participants: List[ComponentModel]
-    termination_condition: ComponentModel | None
-    max_turns: int | None
+    termination_condition: ComponentModel | None = None
+    max_turns: int | None = None
 
 class Swarm(BaseGroupChat, Component[SwarmConfig]):
     """A group chat team that selects the next speaker based on handoff message only.
@@ -231,7 +232,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
 
 
     def _to_config(self) -> SwarmConfig:
-        participants = [] # [participant.dump_component() for participant in self._participants]
+        participants =   [participant.dump_component() for participant in self._participants]
         termination_condition = self._termination_condition.dump_component() if self._termination_condition else None
         return SwarmConfig(
             participants=participants,
@@ -241,6 +242,6 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
 
     @classmethod 
     def _from_config(cls, config: SwarmConfig) -> "Swarm":
-        participants = [BaseGroupChat.load_component(participant) for participant in config.participants]
+        participants = [BaseChatAgent.load_component(participant) for participant in config.participants]
         termination_condition = TerminationCondition.load_component(config.termination_condition) if config.termination_condition else None
         return cls(participants, termination_condition=termination_condition, max_turns=config.max_turns)

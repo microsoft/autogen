@@ -7,6 +7,7 @@ from autogen_core.models import ChatCompletionClient, SystemMessage
 from autogen_core import Component, ComponentModel
 
 from ... import TRACE_LOGGER_NAME
+from ...agents import BaseChatAgent
 from ...base import ChatAgent, TerminationCondition
 from ...messages import (
     AgentEvent,
@@ -190,8 +191,8 @@ class SelectorGroupChatConfig(BaseModel):
 
     participants: List[ComponentModel]
     model_client: ComponentModel
-    termination_condition: ComponentModel | None
-    max_turns: int | None
+    termination_condition: ComponentModel | None = None
+    max_turns: int | None = None
     selector_prompt: str
     allow_repeated_speaker: bool
     # selector_func: ComponentModel | None
@@ -400,10 +401,10 @@ Read the above conversation. Then select the next role from {participants} to pl
     
     def _to_config(self) -> SelectorGroupChatConfig:
         return SelectorGroupChatConfig(
-            participants= [] , # [p.dump_component() for p in self.participants], 
+            participants = [participant.dump_component() for participant in self._participants]  ,
             model_client=self._model_client.dump_component(),
-            termination_condition=self.termination_condition.dump_component() if self.termination_condition else None,
-            max_turns=self.max_turns,
+            termination_condition=self._termination_condition.dump_component() if self._termination_condition else None,
+            max_turns=self._max_turns,
             selector_prompt=self._selector_prompt,
             allow_repeated_speaker=self._allow_repeated_speaker,
             # selector_func=self._selector_func.dump_component() if self._selector_func else None,
@@ -413,7 +414,7 @@ Read the above conversation. Then select the next role from {participants} to pl
 
     def _from_config(cls, config: SelectorGroupChatConfig) -> Self: 
         return cls(
-            participants = [BaseGroupChat.load_component(participant) for participant in config.participants],
+            participants = [BaseChatAgent.load_component(participant) for participant in config.participants],
             model_client=ChatCompletionClient.load_component(config.model_client),
             termination_condition=TerminationCondition.load_component(config.termination_condition)
             if config.termination_condition

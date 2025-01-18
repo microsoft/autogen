@@ -1088,10 +1088,15 @@ async def test_round_robin_group_chat_with_message_list() -> None:
 @pytest.mark.asyncio
 async def test_declarative_groupchats_with_config() -> None:
     # Create basic agents and components for testing
-    agent1 = _EchoAgent("Agent1", "First agent")
-    agent2 = _EchoAgent("Agent2", "Second agent")
+    agent1 =  AssistantAgent(
+            "agent_1", model_client=OpenAIChatCompletionClient(model="gpt-4o-2024-05-13", api_key=""),
+            handoffs=["agent_2"],
+        )
+    agent2 = AssistantAgent(
+        "agent_2", model_client=OpenAIChatCompletionClient(model="gpt-4o-2024-05-13", api_key="") 
+    )
     termination = MaxMessageTermination(4)
-    model_client = ReplayChatCompletionClient(["test"])
+    model_client = OpenAIChatCompletionClient(model="gpt-4o-2024-05-13", api_key="")
 
     # Test round robin - verify config is preserved
     round_robin = RoundRobinGroupChat(

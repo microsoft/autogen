@@ -10,6 +10,8 @@ from ._base_group_chat_manager import BaseGroupChatManager
 from autogen_core import ComponentModel, Component
 from typing_extensions import Self
 
+from ...agents import BaseChatAgent
+
 class RoundRobinGroupChatManager(BaseGroupChatManager):
     """A group chat manager that selects the next speaker in a round-robin fashion."""
 
@@ -68,8 +70,8 @@ class RoundRobinGroupChatConfig(BaseModel):
     """The declarative configuration RoundRobinGroupChat."""
 
     participants: List[ComponentModel]
-    termination_condition: ComponentModel | None
-    max_turns: int | None
+    termination_condition: ComponentModel | None = None
+    max_turns: int | None = None
 
 class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
     """A team that runs a group chat with participants taking turns in a round-robin fashion
@@ -181,8 +183,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
         return _factory
 
     def _to_config(self) -> RoundRobinGroupChatConfig:
-        # participants = [participant.dump_component() for participant in self._participants]
-        participants = []
+        participants = [participant.dump_component() for participant in self._participants]  
         termination_condition = self._termination_condition.dump_component() if self._termination_condition else None
         return RoundRobinGroupChatConfig(
             participants=participants,
@@ -192,6 +193,6 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
 
     @classmethod
     def _from_config(cls, config: RoundRobinGroupChatConfig) -> Self:
-        participants = [BaseGroupChat.load_component(participant) for participant in config.participants]
+        participants = [BaseChatAgent.load_component(participant) for participant in config.participants]
         termination_condition = TerminationCondition.load_component(config.termination_condition) if config.termination_condition else None
         return cls(participants, termination_condition=termination_condition, max_turns=config.max_turns)
