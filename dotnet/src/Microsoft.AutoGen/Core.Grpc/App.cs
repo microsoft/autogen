@@ -19,8 +19,14 @@ public static class AgentsApp
     {
         builder ??= new HostApplicationBuilder();
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-        builder.AddGrpcAgentWorker()
+        if (! local) 
+        {
+            builder.AddGrpcAgentWorker()
             .AddAgents(agentTypes);
+        } else {
+            builder.AddAgentWorker()
+            .AddAgents(agentTypes);
+        }
         var app = builder.Build();
         Host = app;
         await app.StartAsync().ConfigureAwait(false);

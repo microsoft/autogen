@@ -24,6 +24,7 @@ public sealed class GrpcAgentWorker(
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
     private readonly ConcurrentDictionary<(string Type, string Key), Agent> _agents = new();
     private readonly ConcurrentDictionary<string, (Agent Agent, string OriginalRequestId)> _pendingRequests = new();
+    private readonly ConcurrentDictionary<string, HashSet<Type>> _agentsForEvent = new();
     private readonly Channel<(Message Message, TaskCompletionSource WriteCompletionSource)> _outboundMessagesChannel = Channel.CreateBounded<(Message, TaskCompletionSource)>(new BoundedChannelOptions(1024)
     {
         AllowSynchronousContinuations = true,
@@ -76,20 +77,19 @@ public sealed class GrpcAgentWorker(
                             break;
 
                         case Message.MessageOneofCase.CloudEvent:
-
-                            // HACK: Send the message to an instance of each agent type
-                            // where AgentId = (namespace: event.Namespace, name: agentType)
-                            // i.e, assume each agent type implicitly subscribes to each event.
-
                             var item = message.CloudEvent;
-
-                            foreach (var (typeName, _) in _agentTypes)
+                            if (!_agentsForEvent.TryGetValue(item.Type, out var agents))
                             {
-                                var agent = GetOrActivateAgent(new AgentId { Type = typeName, Key = item.Source });
+                                _logger.LogError($"This worker can't handle the event type '{item.Type}'.");
+                                break;
+                            }
+                            foreach (var a in agents)
+                            {
+                                var agent = GetOrActivateAgent(new AgentId { Type = a.Name, Key = item.GetSubject() });
                                 agent.ReceiveMessage(message);
                             }
-
                             break;
+
                         default:
                             throw new InvalidOperationException($"Unexpected message '{message}'.");
                     }
@@ -147,7 +147,7 @@ public sealed class GrpcAgentWorker(
             {
                 // we could not connect to the endpoint - most likely we have the wrong port or failed ssl
                 // we need to let the user know what port we tried to connect to and then do backoff and retry
-                _logger.LogError(ex, "Error connecting to GRPC endpoint {Endpoint}.", channel.ToString());
+                _logger.LogError(ex, "Error connecting to GRPC endpoint {Endpoint}. Check port and SSL settings.", channel.ToString());
                 break;
             }
             catch (Exception ex) when (!_shutdownCts.IsCancellationRequested)
@@ -177,6 +177,7 @@ public sealed class GrpcAgentWorker(
             if (_agentTypes.TryGetValue(agentId.Type, out var agentType))
             {
                 agent = (Agent)ActivatorUtilities.CreateInstance(ServiceProvider, agentType, this);
+                Agent.Initialize(this, agent);
                 _agents.TryAdd((agentId.Type, agentId.Key), agent);
             }
             else
@@ -195,21 +196,24 @@ public sealed class GrpcAgentWorker(
             var events = agentType.GetInterfaces()
             .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
             .Select(i => ReflectionHelper.GetMessageDescriptor(i.GetGenericArguments().First())?.FullName);
-            //var state = agentType.BaseType?.GetGenericArguments().First();
-            var topicTypes = agentType.GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
-
-            //TODO: do something with the response (like retry on error)
-            await WriteChannelAsync(new Message
+            // add the agentType to the list of agent types that handle the event
+            foreach (var evt in events)
             {
-                RegisterAgentTypeRequest = new RegisterAgentTypeRequest
+                if (!_agentsForEvent.TryGetValue(evt!, out var agents))
                 {
-                    Type = type,
-                    RequestId = Guid.NewGuid().ToString(),
-                    //TopicTypes = { topicTypes },
-                    //StateType = state?.Name,
-                    //Events = { events }
+                    agents = new HashSet<Type>();
+                    _agentsForEvent[evt!] = agents;
                 }
-            }, cancellationToken).ConfigureAwait(false);
+
+                agents.Add(agentType);
+            }
+            var topicTypes = agentType.GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
+            var response = await _client.RegisterAgentAsync(new RegisterAgentTypeRequest
+            {
+                Type = type,
+                Topics = { topicTypes },
+                Events = { events }
+            }, null, null, cancellationToken);
 
             foreach (var topic in topicTypes)
             {
@@ -228,7 +232,8 @@ public sealed class GrpcAgentWorker(
                         }
                     }
                 };
-                await WriteChannelAsync(subscriptionRequest, cancellationToken).ConfigureAwait(true);
+                await _client.SubscribeAsync(subscriptionRequest.SubscriptionRequest, null, null, cancellationToken);
+                //await WriteChannelAsync(subscriptionRequest, cancellationToken).ConfigureAwait(true);
                 foreach (var e in events)
                 {
                     subscriptionRequest = new Message
@@ -246,7 +251,8 @@ public sealed class GrpcAgentWorker(
                             }
                         }
                     };
-                    await WriteChannelAsync(subscriptionRequest, cancellationToken).ConfigureAwait(true);
+                    await _client.SubscribeAsync(subscriptionRequest.SubscriptionRequest, null, null, cancellationToken);
+                    //await WriteChannelAsync(subscriptionRequest, cancellationToken).ConfigureAwait(true);
                 }
             }
         }
