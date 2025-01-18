@@ -52,11 +52,11 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         import asyncio
         from semantic_kernel import Kernel
         from semantic_kernel.memory.null_memory import NullMemory
-        from semantic_kernel.connectors.ai.open_ai.services.azure_chat_completion import (
-            AzureChatCompletion,
+        from semantic_kernel.connectors.ai.open_ai.services.azure_chat_completion import AzureChatCompletion
+        from semantic_kernel.connectors.ai.open_ai.prompt_execution_settings.azure_chat_prompt_execution_settings import (
             AzureChatPromptExecutionSettings,
         )
-        from semantic_kernel.connectors.ai.google.google_ai import GoogleAIChatCompletion,
+        from semantic_kernel.connectors.ai.google.google_ai import GoogleAIChatCompletion
         from semantic_kernel.connectors.ai.ollama import OllamaChatCompletion, OllamaChatPromptExecutionSettings
         from autogen_core.models import SystemMessage, UserMessage, LLMMessage
         from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
@@ -100,9 +100,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             api_key = "<AZURE_OPENAI_API_KEY>"
 
             azure_client = AzureChatCompletion(deployment_name=deployment_name, endpoint=endpoint, api_key=api_key)
-            azure_request_settings = AzureChatPromptExecutionSettings(
-                options={"temperature": 0.8},
-            )
+            azure_request_settings = AzureChatPromptExecutionSettings(temperature=0.8)
             azure_adapter = SKChatCompletionAdapter(sk_client=azure_client, default_prompt_settings=azure_request_settings)
 
             # ----------------------------------------------------------------
@@ -110,7 +108,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             # ----------------------------------------------------------------
             google_api_key = "<GCP_API_KEY>"
             google_model = "gemini-1.5-flash"
-            google_client = GoogleAIChatCompletion(model=google_model, api_key=google_api_key)
+            google_client = GoogleAIChatCompletion(gemini_model_id=google_model, api_key=google_api_key)
             google_adapter = SKChatCompletionAdapter(sk_client=google_client)
 
             # ----------------------------------------------------------------
@@ -137,25 +135,33 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             # 4) Prepare messages for a chat completion
             messages: list[LLMMessage] = [
                 SystemMessage(content="You are a helpful assistant."),
-                UserMessage(content="What is 2 + 2?"),
+                UserMessage(content="What is 2 + 2?", source="user"),
             ]
 
-            # 5) Invoke chat completion with the Azure adapter (as an example)
-            #    Provide the kernel in extra_create_args, and pass the tool and optional prompt settings.
-            #    The same pattern applies to Google or Ollama adapters.
-            result = await azure_adapter.create(
+            # 5) Invoke chat completion with different adapters
+            # Azure example
+            azure_result = await azure_adapter.create(
                 messages=messages,
                 tools=[calc_tool],
                 extra_create_args={"kernel": kernel, "prompt_execution_settings": azure_request_settings},
             )
+            print("Azure result:", azure_result.content)
 
-            # Print or use the result
-            print("Result content:", result.content)
-            print("Finish reason:", result.finish_reason)
+            # Google example
+            google_result = await google_adapter.create(
+                messages=messages,
+                tools=[calc_tool],
+                extra_create_args={"kernel": kernel},
+            )
+            print("Google result:", google_result.content)
 
-            # Note: Tools are invoked if the model calls them (function calls).
-            # If the model simply returns text, you get text.
-            # You can also stream with `create_stream(...)` using the same approach.
+            # Ollama example
+            ollama_result = await ollama_adapter.create(
+                messages=messages,
+                tools=[calc_tool],
+                extra_create_args={"kernel": kernel, "prompt_execution_settings": request_settings},
+            )
+            print("Ollama result:", ollama_result.content)
 
 
         if __name__ == "__main__":
