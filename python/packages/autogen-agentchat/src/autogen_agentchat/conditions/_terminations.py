@@ -106,7 +106,7 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
     component_config_schema = TextMentionTerminationConfig
     component_provider_override = "autogen_agentchat.conditions.TextMentionTermination"
 
-    def __init__(self, text: str, sources: list[str] | None = None) -> None:
+    def __init__(self, text: str, sources: Sequence[str] | None = None) -> None:
         self._text = text
         self._terminated = False
         self._sources = sources
