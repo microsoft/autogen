@@ -156,7 +156,7 @@ public sealed class GrpcAgentWorker(
             {
                 // we could not connect to the endpoint - most likely we have the wrong port or failed ssl
                 // we need to let the user know what port we tried to connect to and then do backoff and retry
-                _logger.LogError(ex, "Error connecting to GRPC endpoint {Endpoint}. Check port and SSL settings.", channel.ToString());
+                _logger.LogError(ex, "Error connecting to GRPC endpoint {Endpoint}.", Environment.GetEnvironmentVariable("AGENT_HOST"));
                 break;
             }
             catch (RpcException ex) when (ex.StatusCode == StatusCode.OK)
