@@ -347,7 +347,7 @@ public sealed class GrpcAgentWorker(
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         _channel = GetChannel();
-        _logger.LogInformation("Starting GrpcAgentWorker, connecting to gRPC endpoint "+ _client.ToString());
+        _logger.LogInformation("Starting GrpcAgentWorker, connecting to gRPC endpoint "+ Environment.GetEnvironmentVariable("AGENT_HOST"));
 
         StartCore();
 
