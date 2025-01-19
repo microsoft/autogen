@@ -22,16 +22,16 @@ var agentTypes = new AgentTypes(new Dictionary<string, Type>
 {
     { "HelloAIAgents", typeof(HelloAIAgent) }
 });
-var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
+var local = true;
+if (Environment.GetEnvironmentVariable("AGENT_HOST") != null) { local = false; }
+var app = await Microsoft.AutoGen.Core.Grpc.AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
-}, builder, agentTypes, local: true);
-
-await app.WaitForShutdownAsync();
+}, local: local).ConfigureAwait(false);
 
 namespace Hello
 {
-    [TopicSubscription("agents")]
+    [TopicSubscription("HelloAgents")]
     public class HelloAgent(
         [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry,
         IHostApplicationLifetime hostApplicationLifetime) : ConsoleAgent(

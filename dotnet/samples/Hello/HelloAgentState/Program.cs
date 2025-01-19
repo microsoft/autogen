@@ -7,16 +7,18 @@ using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 
 // send a message to the agent
-var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
+var local = true;
+if (Environment.GetEnvironmentVariable("AGENT_HOST") != null) { local = false; }
+var app = await Microsoft.AutoGen.Core.Grpc.AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
-}, local: false);
+}, local: local).ConfigureAwait(false);
 
 await app.WaitForShutdownAsync();
 
 namespace Hello
 {
-    [TopicSubscription("agents")]
+    [TopicSubscription("HelloAgents")]
     public class HelloAgent(
         IHostApplicationLifetime hostApplicationLifetime,
         [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry) : Agent(
