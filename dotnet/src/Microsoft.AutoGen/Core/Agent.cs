@@ -293,16 +293,23 @@ public abstract class Agent
     /// Publishes a message asynchronously.
     /// </summary>
     /// <typeparam name="T">The type of the message.</typeparam>
-    /// <param name="event">The message to publish.</param>
-    /// <param name="key">The source of the message.</param>
     /// <param name="token">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async ValueTask PublishMessageAsync<T>(T @event, string? topic = null, string? key = null, CancellationToken token = default) where T : IMessage
+    public async ValueTask PublishMessageAsync<T>(T message, string? source = null, CancellationToken token = default) where T : IMessage
     {
-        var k = string.IsNullOrWhiteSpace(key) ? AgentId.Key : key;
-        var topicType = string.IsNullOrWhiteSpace(topic) ? "default" : topic;
-        var evt = @event.ToCloudEvent(k, topicType);
-        await PublishEventAsync(evt, token).ConfigureAwait(false);
+        var topicTypes = this.GetType().GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
+        if (!topicTypes.Any())
+        {
+            topicTypes = topicTypes.Append(string.IsNullOrWhiteSpace(source) ? this.AgentId.Type + "." + this.AgentId.Key : source);
+        }
+        foreach (var topic in topicTypes)
+        {
+            await PublishMessageAsync(topic, message, source, token).ConfigureAwait(false);
+        }
+    }
+    public async ValueTask PublishMessageAsync<T>(string topic, T message, string? source = null, CancellationToken token = default) where T : IMessage
+    {
+        await PublishEventAsync(topic, message, token).ConfigureAwait(false);
     }
     public async ValueTask PublishEventAsync(CloudEvent item, CancellationToken cancellationToken = default)
     {
