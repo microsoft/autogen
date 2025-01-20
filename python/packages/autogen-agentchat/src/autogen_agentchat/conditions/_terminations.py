@@ -100,14 +100,16 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
 
     Args:
         text: The text to look for in the messages.
+        sources: Check only messages of the specified agents for the text to look for.
     """
 
     component_config_schema = TextMentionTerminationConfig
     component_provider_override = "autogen_agentchat.conditions.TextMentionTermination"
 
-    def __init__(self, text: str) -> None:
+    def __init__(self, text: str, sources: Sequence[str] | None = None) -> None:
         self._text = text
         self._terminated = False
+        self._sources = sources
 
     @property
     def terminated(self) -> bool:
@@ -117,6 +119,9 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
         if self._terminated:
             raise TerminatedException("Termination condition has already been reached")
         for message in messages:
+            if self._sources is not None and message.source not in self._sources:
+                continue
+
             if isinstance(message.content, str) and self._text in message.content:
                 self._terminated = True
                 return StopMessage(content=f"Text '{self._text}' mentioned", source="TextMentionTermination")
