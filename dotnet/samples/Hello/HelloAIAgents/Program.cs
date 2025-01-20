@@ -18,13 +18,13 @@ if (Environment.GetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING") == null
 }
 builder.Configuration["ConectionStrings:HelloAIAgents"] = Environment.GetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING");
 builder.AddChatCompletionService("HelloAIAgents");
-var agentTypes = new AgentTypes(new Dictionary<string, Type>
+var _ = new AgentTypes(new Dictionary<string, Type>
 {
     { "HelloAIAgents", typeof(HelloAIAgent) }
 });
 var local = true;
 if (Environment.GetEnvironmentVariable("AGENT_HOST") != null) { local = false; }
-var app = await Microsoft.AutoGen.Core.Grpc.AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
+var _ = await Microsoft.AutoGen.Core.Grpc.AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
 }, local: local).ConfigureAwait(false);

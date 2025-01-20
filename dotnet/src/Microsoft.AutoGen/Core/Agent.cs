@@ -289,27 +289,58 @@ public abstract class Agent
         // Return the result from the already-completed task
         return await completion.Task.ConfigureAwait(false);
     }
+
+    private string SetTopic(string? topic = null , string? source = null, string? key = null)
+    {
+        if (string.IsNullOrWhiteSpace(topic))
+        {
+            topic = this.AgentId.Type + "." + this.AgentId.Key;
+        }
+        topic = topic + "." + source + "." + key;
+        return topic;
+    }
+
     /// <summary>
     /// Publishes a message asynchronously.
     /// </summary>
     /// <typeparam name="T">The type of the message.</typeparam>
     /// <param name="token">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async ValueTask PublishMessageAsync<T>(T message, string? source = null, CancellationToken token = default) where T : IMessage
+    public async ValueTask PublishMessageAsync<T>(T message, string topic, string source, string key, CancellationToken token = default) where T : IMessage
     {
+        
         var topicTypes = this.GetType().GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
         if (!topicTypes.Any())
         {
             topicTypes = topicTypes.Append(string.IsNullOrWhiteSpace(source) ? this.AgentId.Type + "." + this.AgentId.Key : source);
         }
-        foreach (var topic in topicTypes)
+        topicTypes = topicTypes.Append(SetTopic(topic, source, key));
+        foreach (var t in topicTypes)
         {
-            await PublishMessageAsync(topic, message, source, token).ConfigureAwait(false);
+            await PublishEventAsync(t, message, token).ConfigureAwait(false);
         }
     }
-    public async ValueTask PublishMessageAsync<T>(string topic, T message, string? source = null, CancellationToken token = default) where T : IMessage
+    public async ValueTask PublishMessageAsync<T>(T message, string topic, string source, CancellationToken token = default) where T : IMessage
     {
-        await PublishEventAsync(topic, message, token).ConfigureAwait(false);
+        string key = this.AgentId.Key;
+        await PublishMessageAsync(message, topic, source, key, token).ConfigureAwait(false);
+    }
+    public async ValueTask PublishMessageAsync<T>(T message, string topic, CancellationToken token = default) where T : IMessage
+    {
+        string source = this.AgentId.Type;
+        string key = this.AgentId.Key;
+        await PublishMessageAsync(message, topic, source, key, token).ConfigureAwait(false);
+    }
+    public async ValueTask PublishMessageAsync<T>(T message, CancellationToken token = default) where T : IMessage
+    {
+        string topic = "";
+        string source = this.AgentId.Type;
+        string key = this.AgentId.Key;
+        await PublishMessageAsync(message, topic, source, key, token).ConfigureAwait(false);
+    }
+    public async ValueTask PublishEventAsync(string topic, IMessage message, CancellationToken cancellationToken = default)
+    {
+        await PublishEventAsync(message.ToCloudEvent(key: GetType().Name, topic: topic), cancellationToken).ConfigureAwait(false);
     }
     public async ValueTask PublishEventAsync(CloudEvent item, CancellationToken cancellationToken = default)
     {
@@ -390,9 +421,5 @@ public abstract class Agent
         }
         // otherwise, complain
         _logger.LogError($"No handler found for type {item.GetType().FullName}");
-    }
-    public async ValueTask PublishEventAsync(string topic, IMessage evt, CancellationToken cancellationToken = default)
-    {
-        await PublishEventAsync(evt.ToCloudEvent(key: GetType().Name, topic: topic), cancellationToken).ConfigureAwait(false);
     }
 }

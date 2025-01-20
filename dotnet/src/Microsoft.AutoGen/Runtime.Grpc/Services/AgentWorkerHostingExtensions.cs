@@ -3,10 +3,10 @@
 
 using System.Diagnostics;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
-using Microsoft.AutoGen.Core;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
 public static class AgentWorkerHostingExtensions
