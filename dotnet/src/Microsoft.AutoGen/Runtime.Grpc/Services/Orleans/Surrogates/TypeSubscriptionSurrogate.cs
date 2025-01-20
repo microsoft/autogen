@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// TypeSubscription.cs
+// TypeSubscriptionSurrogate.cs
 
 using Microsoft.AutoGen.Contracts;
 
