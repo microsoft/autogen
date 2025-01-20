@@ -539,20 +539,32 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if self._resolved_model is not None:
             if self._resolved_model != result.model:
                 warnings.warn(
-                    f"Resolved model mismatch: {self._resolved_model} != {result.model}. Model mapping may be incorrect.",
+                    f"Resolved model mismatch: {self._resolved_model} != {result.model}. "
+                    "Model mapping in autogen_ext.models.openai may be incorrect.",
                     stacklevel=2,
                 )
 
         # Limited to a single choice currently.
         choice: Union[ParsedChoice[Any], ParsedChoice[BaseModel], Choice] = result.choices[0]
-        if choice.finish_reason == "function_call":
-            raise ValueError("Function calls are not supported in this context")
 
+        # Detect whether it is a function call or not.
+        # We don't rely on choice.finish_reason as it is not always accurate, depending on the API used.
         content: Union[str, List[FunctionCall]]
-        if choice.finish_reason == "tool_calls":
-            assert choice.message.tool_calls is not None
-            assert choice.message.function_call is None
-
+        if choice.message.function_call is not None:
+            raise ValueError("function_call is deprecated and is not supported by this model client.")
+        elif choice.message.tool_calls is not None:
+            if choice.finish_reason != "tool_calls":
+                warnings.warn(
+                    f"finish reason mismatch: {choice.finish_reason} != tool_calls "
+                    "when tool_calls are present. Finish reason may not be accurate.",
+                    stacklevel=2,
+                )
+            if choice.message.content is not None and choice.message.content != "":
+                warnings.warn(
+                    "Both tool_calls and content are present in the message. "
+                    "This is unexpected. content will be ignored.",
+                    stacklevel=2,
+                )
             # NOTE: If OAI response type changes, this will need to be updated
             content = [
                 FunctionCall(
@@ -566,6 +578,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         else:
             finish_reason = choice.finish_reason
             content = choice.message.content or ""
+
         logprobs: Optional[List[ChatCompletionTokenLogprob]] = None
         if choice.logprobs and choice.logprobs.content:
             logprobs = [
