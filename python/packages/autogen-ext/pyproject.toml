@@ -56,6 +56,11 @@ redis = [
 grpc = [
     "grpcio~=1.62.0", # TODO: update this once we have a stable version.
 ]
+
+azure-ai-inference = [
+    "azure-ai-inference>=1.0.0b7",
+]
+
 jupyter-executor = [
     "ipykernel>=6.29.5",
     "nbclient>=0.10.2",
@@ -103,9 +108,6 @@ semantic-kernel-dapr = [
 
 semantic-kernel-all = [
     "semantic-kernel[google,hugging_face,mistralai,ollama,onnx,anthropic,usearch,pandas,aws,dapr]>=1.17.1",
-]
-azure-ai-inference = [
-    "azure-ai-inference>=1.0.0b6",
 ]
 
 [tool.hatch.build.targets.wheel]

@@ -1,22 +1,30 @@
-from typing import TypedDict, Union, Optional, List, Dict, Any
-from azure.ai.inference.models import (
-    ChatCompletionsResponseFormat,
-    ChatCompletionsToolDefinition,
-    ChatCompletionsToolChoicePreset,
-    ChatCompletionsNamedToolChoice,
-)
+from typing import Any, Dict, List, Literal, Optional, TypedDict, Union
 
+from autogen_core.models import ModelInfo
+from azure.ai.inference.models import (
+    ChatCompletionsNamedToolChoice,
+    ChatCompletionsToolChoicePreset,
+    ChatCompletionsToolDefinition,
+)
 from azure.core.credentials import AzureKeyCredential
 from azure.core.credentials_async import AsyncTokenCredential
-from autogen_core.models import ModelCapabilities
 
 GITHUB_MODELS_ENDPOINT = "https://models.inference.ai.azure.com"
+
+
+class JsonSchemaFormat(TypedDict, total=False):
+    """Represents the same fields as azure.ai.inference.models.JsonSchemaFormat."""
+
+    name: str
+    schema: Dict[str, Any]
+    description: Optional[str]
+    strict: Optional[bool]
 
 
 class AzureAIClientArguments(TypedDict, total=False):
     endpoint: str
     credential: Union[AzureKeyCredential, AsyncTokenCredential]
-    model_capabilities: ModelCapabilities
+    model_info: ModelInfo
 
 
 class AzureAICreateArguments(TypedDict, total=False):
@@ -25,7 +33,7 @@ class AzureAICreateArguments(TypedDict, total=False):
     temperature: Optional[float]
     top_p: Optional[float]
     max_tokens: Optional[int]
-    response_format: Optional[ChatCompletionsResponseFormat]
+    response_format: Optional[Literal["text", "json_object"]]
     stop: Optional[List[str]]
     tools: Optional[List[ChatCompletionsToolDefinition]]
     tool_choice: Optional[Union[str, ChatCompletionsToolChoicePreset, ChatCompletionsNamedToolChoice]]

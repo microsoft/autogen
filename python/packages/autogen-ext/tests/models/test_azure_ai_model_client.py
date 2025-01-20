@@ -1,32 +1,24 @@
 import asyncio
 from datetime import datetime
-from typing import AsyncGenerator, Any
+from typing import Any, AsyncGenerator, List
 
 import pytest
+from autogen_core import CancellationToken
+from autogen_core.models import CreateResult, UserMessage
+from autogen_ext.models.azure import AzureAIChatCompletionClient
 from azure.ai.inference.aio import (
     ChatCompletionsClient,
 )
-
-
 from azure.ai.inference.models import (
     ChatChoice,
+    ChatCompletions,
     ChatResponseMessage,
     CompletionsUsage,
-    ChatCompletionsResponseFormatJSON,
-)
-
-from azure.ai.inference.models import (
-    ChatCompletions,
-    StreamingChatCompletionsUpdate,
     StreamingChatChoiceUpdate,
+    StreamingChatCompletionsUpdate,
     StreamingChatResponseMessageUpdate,
 )
-
 from azure.core.credentials import AzureKeyCredential
-
-from autogen_core import CancellationToken
-from autogen_core.models import UserMessage
-from autogen_ext.models.azure import AzureAIChatCompletionClient
 
 
 async def _mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
@@ -79,10 +71,11 @@ async def test_azure_ai_chat_completion_client() -> None:
     client = AzureAIChatCompletionClient(
         endpoint="endpoint",
         credential=AzureKeyCredential("api_key"),
-        model_capabilities={
+        model_info={
             "json_output": False,
             "function_calling": False,
             "vision": False,
+            "family": "unknown",
         },
         model="model",
     )
@@ -96,10 +89,11 @@ async def test_azure_ai_chat_completion_client_create(monkeypatch: pytest.Monkey
     client = AzureAIChatCompletionClient(
         endpoint="endpoint",
         credential=AzureKeyCredential("api_key"),
-        model_capabilities={
+        model_info={
             "json_output": False,
             "function_calling": False,
             "vision": False,
+            "family": "unknown",
         },
     )
     result = await client.create(messages=[UserMessage(content="Hello", source="user")])
@@ -109,14 +103,15 @@ async def test_azure_ai_chat_completion_client_create(monkeypatch: pytest.Monkey
 @pytest.mark.asyncio
 async def test_azure_ai_chat_completion_client_create_stream(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(ChatCompletionsClient, "complete", _mock_create)
-    chunks = []
+    chunks: List[str | CreateResult] = []
     client = AzureAIChatCompletionClient(
         endpoint="endpoint",
         credential=AzureKeyCredential("api_key"),
-        model_capabilities={
+        model_info={
             "json_output": False,
             "function_calling": False,
             "vision": False,
+            "family": "unknown",
         },
     )
     async for chunk in client.create_stream(messages=[UserMessage(content="Hello", source="user")]):
@@ -134,10 +129,11 @@ async def test_azure_ai_chat_completion_client_create_cancel(monkeypatch: pytest
     client = AzureAIChatCompletionClient(
         endpoint="endpoint",
         credential=AzureKeyCredential("api_key"),
-        model_capabilities={
+        model_info={
             "json_output": False,
             "function_calling": False,
             "vision": False,
+            "family": "unknown",
         },
     )
     task = asyncio.create_task(
@@ -155,10 +151,11 @@ async def test_azure_ai_chat_completion_client_create_stream_cancel(monkeypatch:
     client = AzureAIChatCompletionClient(
         endpoint="endpoint",
         credential=AzureKeyCredential("api_key"),
-        model_capabilities={
+        model_info={
             "json_output": False,
             "function_calling": False,
             "vision": False,
+            "family": "unknown",
         },
     )
     stream = client.create_stream(

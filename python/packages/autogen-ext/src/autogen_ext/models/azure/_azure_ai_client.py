@@ -1,48 +1,59 @@
 import asyncio
 import re
-import warnings
 from asyncio import Task
-from typing import Sequence, Optional, Mapping, Any, List, Unpack, Dict, cast
 from inspect import getfullargspec
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Unpack, cast
+
+from autogen_core import CancellationToken, FunctionCall, Image
+from autogen_core.models import (
+    AssistantMessage,
+    ChatCompletionClient,
+    CreateResult,
+    FinishReasons,
+    FunctionExecutionResultMessage,
+    LLMMessage,
+    ModelInfo,
+    RequestUsage,
+    SystemMessage,
+    UserMessage,
+)
+from autogen_core.tools import Tool, ToolSchema
 from azure.ai.inference.aio import ChatCompletionsClient
 from azure.ai.inference.models import (
+    AssistantMessage as AzureAssistantMessage,
+)
+from azure.ai.inference.models import (
     ChatCompletions,
-    CompletionsFinishReason,
     ChatCompletionsToolCall,
     ChatCompletionsToolDefinition,
-    FunctionDefinition,
+    CompletionsFinishReason,
     ContentItem,
-    TextContentItem,
+    FunctionDefinition,
     ImageContentItem,
-    ImageUrl,
     ImageDetailLevel,
+    ImageUrl,
+    StreamingChatChoiceUpdate,
     StreamingChatCompletionsUpdate,
-    SystemMessage as AzureSystemMessage,
-    UserMessage as AzureUserMessage,
-    AssistantMessage as AzureAssistantMessage,
-    ToolMessage as AzureToolMessage,
+    TextContentItem,
+)
+from azure.ai.inference.models import (
     FunctionCall as AzureFunctionCall,
 )
 from azure.ai.inference.models import (
-    ChatCompletionsResponseFormatJSON,
+    SystemMessage as AzureSystemMessage,
+)
+from azure.ai.inference.models import (
+    ToolMessage as AzureToolMessage,
+)
+from azure.ai.inference.models import (
+    UserMessage as AzureUserMessage,
 )
 from typing_extensions import AsyncGenerator, Union
 
-from autogen_core import CancellationToken
-from autogen_core import FunctionCall, Image
-from autogen_core.models import (
-    ChatCompletionClient,
-    LLMMessage,
-    CreateResult,
-    ModelCapabilities,
-    RequestUsage,
-    UserMessage,
-    SystemMessage,
-    AssistantMessage,
-    FunctionExecutionResultMessage,
+from autogen_ext.models.azure.config import (
+    GITHUB_MODELS_ENDPOINT,
+    AzureAIChatCompletionClientConfig,
 )
-from autogen_core.tools import Tool, ToolSchema
-from autogen_ext.models.azure.config import AzureAIChatCompletionClientConfig, GITHUB_MODELS_ENDPOINT
 
 create_kwargs = set(getfullargspec(ChatCompletionsClient.complete).kwonlyargs)
 
@@ -59,12 +70,11 @@ def convert_tools(tools: Sequence[Tool | ToolSchema]) -> List[ChatCompletionsToo
         else:
             assert isinstance(tool, dict)
             tool_schema = tool.copy()
-        # tool_schema["parameters"] = {k:v for k,v in tool_schema["parameters"].items()}
-        # azure_ai_schema = {k:v for k,v in tool_schema["parameters"].items()}
 
-        for key, value in tool_schema["parameters"]["properties"].items():
-            if "title" in value.keys():
-                del value["title"]
+        if "parameters" in tool_schema:
+            for value in tool_schema["parameters"]["properties"].values():
+                if "title" in value.keys():
+                    del value["title"]
 
         result.append(
             ChatCompletionsToolDefinition(
@@ -162,7 +172,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
     Args:
         endpoint (str): The endpoint to use. **Required.**
         credentials (union, AzureKeyCredential, AsyncTokenCredential): The credentials to use. **Required**
-        model_capabilities (ModelCapabilities): The capabilities of the model. **Required.**
+        model_info (ModelInfo): The model family and capabilities of the model. **Required.**
         model (str): The name of the model. **Required if model is hosted on GitHub Models.**
         frequency_penalty: (optional,float)
         presence_penalty: (optional,float)
@@ -180,7 +190,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
         .. code-block:: bash
 
-            pip install 'autogen-ext[azure-ai-inference]==0.4.0.dev11'
+            pip install "autogen-ext[azure-ai-inference]"
 
     The following code snippet shows how to use the client:
 
@@ -193,21 +203,22 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             client = AzureAIChatCompletionClient(
                 endpoint="endpoint",
                 credential=AzureKeyCredential("api_key"),
-                model_capabilities={
+                model_info={
                     "json_output": False,
                     "function_calling": False,
                     "vision": False,
+                    "family": "unknown",
                 },
             )
 
-            result = await client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
+            result = await client.create([UserMessage(content="What is the capital of France?", source="user")])
             print(result)
 
     """
 
     def __init__(self, **kwargs: Unpack[AzureAIChatCompletionClientConfig]):
-        config = self._validate_config(kwargs)
-        self._model_capabilities = config["model_capabilities"]
+        config = self._validate_config(kwargs)  # type: ignore
+        self._model_info = config["model_info"]  # type: ignore
         self._client = self._create_client(config)
         self._create_args = self._prepare_create_args(config)
 
@@ -215,29 +226,25 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
 
     @staticmethod
-    def _validate_config(config: Dict) -> AzureAIChatCompletionClientConfig:
+    def _validate_config(config: Dict[str, Any]) -> AzureAIChatCompletionClientConfig:
         if "endpoint" not in config:
             raise ValueError("endpoint is required for AzureAIChatCompletionClient")
         if "credential" not in config:
             raise ValueError("credential is required for AzureAIChatCompletionClient")
-        if "model_capabilities" not in config:
-            raise ValueError("model_capabilities is required for AzureAIChatCompletionClient")
+        if "model_info" not in config:
+            raise ValueError("model_info is required for AzureAIChatCompletionClient")
         if _is_github_model(config["endpoint"]) and "model" not in config:
             raise ValueError("model is required for when using a Github model with AzureAIChatCompletionClient")
-        return config
+        return cast(AzureAIChatCompletionClientConfig, config)
 
     @staticmethod
-    def _create_client(config: AzureAIChatCompletionClientConfig):
+    def _create_client(config: AzureAIChatCompletionClientConfig) -> ChatCompletionsClient:
         return ChatCompletionsClient(**config)
 
     @staticmethod
-    def _prepare_create_args(config: Mapping[str, Any]) -> Mapping[str, Any]:
+    def _prepare_create_args(config: Mapping[str, Any]) -> Dict[str, Any]:
         create_args = {k: v for k, v in config.items() if k in create_kwargs}
         return create_args
-        # self._endpoint = config.pop("endpoint")
-        # self._credential = config.pop("credential")
-        # self._model_capabilities = config.pop("model_capabilities")
-        # self._create_args = config.copy()
 
     def add_usage(self, usage: RequestUsage):
         self._total_usage = RequestUsage(
@@ -245,9 +252,35 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             self._total_usage.completion_tokens + usage.completion_tokens,
         )
 
+    def _validate_model_info(
+        self,
+        messages: Sequence[LLMMessage],
+        tools: Sequence[Tool | ToolSchema],
+        json_output: Optional[bool],
+        create_args: Dict[str, Any],
+    ) -> None:
+        if self.model_info["vision"] is False:
+            for message in messages:
+                if isinstance(message, UserMessage):
+                    if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
+                        raise ValueError("Model does not support vision and image was provided")
+
+        if json_output is not None:
+            if self.model_info["json_output"] is False and json_output is True:
+                raise ValueError("Model does not support JSON output")
+
+            if json_output is True and "response_format" not in create_args:
+                create_args["response_format"] = "json_object"
+
+        if self.model_info["json_output"] is False and json_output is True:
+            raise ValueError("Model does not support JSON output")
+        if self.model_info["function_calling"] is False and len(tools) > 0:
+            raise ValueError("Model does not support function calling")
+
     async def create(
         self,
         messages: Sequence[LLMMessage],
+        *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
@@ -261,23 +294,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
 
-        if self.capabilities["vision"] is False:
-            for message in messages:
-                if isinstance(message, UserMessage):
-                    if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
-                        raise ValueError("Model does not support vision and image was provided")
-
-        if json_output is not None:
-            if self.capabilities["json_output"] is False and json_output is True:
-                raise ValueError("Model does not support JSON output")
-
-            if json_output is True and "response_format" not in create_args:
-                create_args["response_format"] = ChatCompletionsResponseFormatJSON()
-
-        if self.capabilities["json_output"] is False and json_output is True:
-            raise ValueError("Model does not support JSON output")
-        if self.capabilities["function_calling"] is False and len(tools) > 0:
-            raise ValueError("Model does not support function calling")
+        self._validate_model_info(messages, tools, json_output, create_args)
 
         azure_messages_nested = [to_azure_message(msg) for msg in messages]
         azure_messages = [item for sublist in azure_messages_nested for item in sublist]
@@ -286,11 +303,11 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
         if len(tools) > 0:
             converted_tools = convert_tools(tools)
-            task = asyncio.create_task(
+            task = asyncio.create_task(  # type: ignore
                 self._client.complete(messages=azure_messages, tools=converted_tools, **create_args)
             )
         else:
-            task = asyncio.create_task(
+            task = asyncio.create_task(  # type: ignore
                 self._client.complete(
                     messages=azure_messages,
                     **create_args,
@@ -321,7 +338,10 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             ]
             finish_reason = "function_calls"
         else:
-            finish_reason = choice.finish_reason.value
+            if isinstance(choice.finish_reason, CompletionsFinishReason):
+                finish_reason = choice.finish_reason.value
+            else:
+                finish_reason = choice.finish_reason  # type: ignore
             content = choice.message.content or ""
 
         response = CreateResult(
@@ -338,6 +358,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
     async def create_stream(
         self,
         messages: Sequence[LLMMessage],
+        *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
@@ -347,32 +368,14 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         if not create_kwargs.issuperset(extra_create_args_keys):
             raise ValueError(f"Extra create args are invalid: {extra_create_args_keys - create_kwargs}")
 
-        create_args = self._create_args.copy()
+        create_args: Dict[str, Any] = self._create_args.copy()
         create_args.update(extra_create_args)
 
-        if self.capabilities["vision"] is False:
-            for message in messages:
-                if isinstance(message, UserMessage):
-                    if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
-                        raise ValueError("Model does not support vision and image was provided")
-
-        if json_output is not None:
-            if self.capabilities["json_output"] is False and json_output is True:
-                raise ValueError("Model does not support JSON output")
-
-            if json_output is True and "response_format" not in create_args:
-                create_args["response_format"] = ChatCompletionsResponseFormatJSON()
-
-        if self.capabilities["json_output"] is False and json_output is True:
-            raise ValueError("Model does not support JSON output")
-        if self.capabilities["function_calling"] is False and len(tools) > 0:
-            raise ValueError("Model does not support function calling")
+        self._validate_model_info(messages, tools, json_output, create_args)
 
         # azure_messages = [to_azure_message(m) for m in messages]
         azure_messages_nested = [to_azure_message(msg) for msg in messages]
         azure_messages = [item for sublist in azure_messages_nested for item in sublist]
-
-        # task: Task[StreamingChatCompletionsUpdate]
 
         if len(tools) > 0:
             converted_tools = convert_tools(tools)
@@ -388,23 +391,31 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             cancellation_token.link_future(task)
 
         # result: ChatCompletions = await task
-        finish_reason = None
+        finish_reason: Optional[FinishReasons] = None
         content_deltas: List[str] = []
         full_tool_calls: Dict[str, FunctionCall] = {}
         prompt_tokens = 0
         completion_tokens = 0
         chunk: Optional[StreamingChatCompletionsUpdate] = None
-        async for chunk in await task:
-            choice = chunk.choices[0] if len(chunk.choices) > 0 else cast(StreamingChatCompletionsUpdate, None)
-            if choice.finish_reason is not None:
-                finish_reason = choice.finish_reason.value
+        choice: Optional[StreamingChatChoiceUpdate] = None
+        async for chunk in await task:  # type: ignore
+            assert isinstance(chunk, StreamingChatCompletionsUpdate)
+            choice = chunk.choices[0] if len(chunk.choices) > 0 else None
+            if choice and choice.finish_reason is not None:
+                if isinstance(choice.finish_reason, CompletionsFinishReason):
+                    finish_reason = choice.finish_reason.value
+                else:
+                    if choice.finish_reason in ["stop", "length", "function_calls", "content_filter", "unknown"]:
+                        finish_reason = choice.finish_reason  # type: ignore
+                    else:
+                        raise ValueError(f"Unexpected finish reason: {choice.finish_reason}")
 
             # We first try to load the content
-            if choice.delta.content is not None:
+            if choice and choice.delta.content is not None:
                 content_deltas.append(choice.delta.content)
                 yield choice.delta.content
             # Otherwise, we try to load the tool calls
-            if choice.delta.tool_calls is not None:
+            if choice and choice.delta.tool_calls is not None:
                 for tool_call_chunk in choice.delta.tool_calls:
                     # print(tool_call_chunk)
                     if "index" in tool_call_chunk:
@@ -414,14 +425,9 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                     if idx not in full_tool_calls:
                         full_tool_calls[idx] = FunctionCall(id="", arguments="", name="")
 
-                    if tool_call_chunk.id is not None:
-                        full_tool_calls[idx].id += tool_call_chunk.id
-
-                    if tool_call_chunk.function is not None:
-                        if tool_call_chunk.function.name is not None:
-                            full_tool_calls[idx].name += tool_call_chunk.function.name
-                        if tool_call_chunk.function.arguments is not None:
-                            full_tool_calls[idx].arguments += tool_call_chunk.function.arguments
+                    full_tool_calls[idx].id += tool_call_chunk.id
+                    full_tool_calls[idx].name += tool_call_chunk.function.name
+                    full_tool_calls[idx].arguments += tool_call_chunk.function.arguments
 
         if chunk and chunk.usage:
             prompt_tokens = chunk.usage.prompt_tokens
@@ -449,7 +455,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         )
 
         result = CreateResult(
-            finish_reason=finish_reason,  # type: ignore
+            finish_reason=finish_reason,
             content=content,
             usage=usage,
             cached=False,
@@ -465,15 +471,19 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
     def total_usage(self) -> RequestUsage:
         return self._total_usage
 
-    def count_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+    def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         return 0
 
-    def remaining_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+    def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         return 0
 
     @property
-    def capabilities(self) -> ModelCapabilities:
-        return self._model_capabilities
+    def model_info(self) -> ModelInfo:
+        return self._model_info
+
+    @property
+    def capabilities(self) -> ModelInfo:
+        return self.model_info
 
     def __del__(self):
         # TODO: This is a hack to close the open client
