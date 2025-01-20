@@ -30,7 +30,9 @@ fast_learning_agent:
     base_agent: thin_agent  # MagenticOneGroupChat, thin_agent, etc.
 
 evaluations:
-  - function_name: eval_without_learning
-    module_path: ame.evaluations.eval_without_learning
-    task_name: 10_liars
-    num_trials: 1
+  - eval_function:
+      function_name: eval_without_learning
+      module_path: ame.eval_functions.eval_without_learning
+      num_trials: 1  # 1-10
+    runs:
+      - task_file: 10_liars

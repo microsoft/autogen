@@ -1,7 +1,5 @@
 # A simple test that doesn't require memory.
 
-name: 3_to_third
-
 task_description: What is 3^3?
 
 expected_answer: '27'

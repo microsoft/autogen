@@ -11,16 +11,31 @@ class Evaluator:
     def __init__(self):
         self.page_log = None
 
-    def get_task_details_by_name(self, task_name):
+    def get_task_description_and_answer_from_file(self, task_filename):
         path_to_this_file = os.path.abspath(__file__)
         dir_of_this_file = os.path.dirname(path_to_this_file)
-        task_filepath = os.path.join(dir_of_this_file, 'tasks', task_name + '.yaml')
+        task_filepath = os.path.join(dir_of_this_file, 'task_data', 'tasks', task_filename + '.yaml')
         with open(task_filepath, "r") as file:
             task_details = yaml.load(file, Loader=yaml.FullLoader)
-            assert task_details["name"] == task_name
-            return task_details
+            return task_details["task_description"], task_details["expected_answer"]
 
-    async def test_fast_learner(self, fast_learner, task_details, num_trials,
+    def get_advice_from_file(self, advice_filename):
+        path_to_this_file = os.path.abspath(__file__)
+        dir_of_this_file = os.path.dirname(path_to_this_file)
+        task_filepath = os.path.join(dir_of_this_file, 'task_data', 'advice', advice_filename + '.yaml')
+        with open(task_filepath, "r") as file:
+            advice_dict = yaml.load(file, Loader=yaml.FullLoader)
+            return advice_dict["advice"]
+
+    def get_demo_from_file(self, demo_filename):
+        path_to_this_file = os.path.abspath(__file__)
+        dir_of_this_file = os.path.dirname(path_to_this_file)
+        task_filepath = os.path.join(dir_of_this_file, 'task_data', 'demos', demo_filename + '.yaml')
+        with open(task_filepath, "r") as file:
+            demo_dict = yaml.load(file, Loader=yaml.FullLoader)
+            return demo_dict["demo"]
+
+    async def test_fast_learner(self, fast_learner, task_description, expected_answer, num_trials,
                                 use_memory, client, page_log) -> Tuple[int, int]:
         page = page_log.begin_page(
             summary="Evaluator.test_fast_learner",
@@ -35,10 +50,9 @@ class Evaluator:
         for trial in range(num_trials):
             page.add_lines("\n-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
             page.add_lines("Try to solve the task.\n", flush=True)
-            task_description = task_details["task_description"]
             response = await fast_learner.assign_task(task_description, use_memory=use_memory)
             response_is_correct, extracted_answer = await grader.is_response_correct(
-                task_description, response, task_details["expected_answer"])
+                task_description, response, expected_answer)
             page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
             if response_is_correct:
                 page.add_lines("Answer is CORRECT.\n", flush=True)
@@ -89,19 +103,24 @@ class Evaluator:
 
             # Execute each evaluation.
             for evaluation_settings in settings["evaluations"]:
-                module_path = evaluation_settings["module_path"]
+                # Import the function.
+                function_settings = evaluation_settings["eval_function"]
+                module_path = function_settings["module_path"]
                 try:
                     module = importlib.import_module(module_path)
                 except ModuleNotFoundError:
                     print('Failed to import {}'.format(module_path))
                     raise
-                function_name = evaluation_settings["function_name"]
+                function_name = function_settings["function_name"]
                 try:
                     eval_function = getattr(module, function_name)
                 except AttributeError:
                     print('Failed to import {}.{}'.format(module_path, function_name))
                     raise
-                await eval_function(fast_learner, self, client, self.page_log, evaluation_settings)
+
+                # Call the eval function for each listed run.
+                for run_dict in evaluation_settings["runs"]:
+                    await eval_function(fast_learner, self, client, self.page_log, function_settings, run_dict)
 
             if hasattr(client, "finalize"):
                 # If this is a client wrapper, it needs to be finalized.

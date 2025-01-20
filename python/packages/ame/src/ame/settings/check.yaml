@@ -30,14 +30,27 @@ fast_learning_agent:
     base_agent: thin_agent  # MagenticOneGroupChat, thin_agent, etc.
 
 evaluations:
-  - function_name: eval_teachability
-    module_path: ame.evaluations.eval_teachability
+  - eval_function:
+      function_name: eval_teachability
+      module_path: ame.eval_functions.eval_teachability
+    runs:
+      - task_file: autogen_package
+        advice_file: add_topic
 
-  - function_name: eval_learning_from_demonstration
-    module_path: ame.evaluations.eval_learning_from_demonstration
-    num_trials: 1  # 1-10
+  - eval_function:
+      function_name: eval_learning_from_demonstration
+      module_path: ame.eval_functions.eval_learning_from_demonstration
+      num_trials: 1  # 1-10
+    runs:
+      - task_1_file: cell_towers_1  # The task being tested.
+        task_2_file: cell_towers_2  # A similar but different task.
+        demo_2_file: cell_towers_2_demo  # A demonstration of solving task 2.
 
-  - function_name: eval_self_teaching
-    module_path: ame.evaluations.eval_self_teaching
-    num_loops: 1  # 1-10
-    num_final_test_trials: 1  # 1-3
+  - eval_function:
+      function_name: eval_self_teaching
+      module_path: ame.eval_functions.eval_self_teaching
+      num_loops: 1  # 1-10
+      num_final_test_trials: 1  # 1-3
+    runs:
+      - task_file_1: 10_liars  # Train and test on this task.
+        task_file_2: 100_vampires  # Test generalization on a different, similar task.

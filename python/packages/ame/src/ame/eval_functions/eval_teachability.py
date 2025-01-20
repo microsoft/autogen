@@ -1,17 +1,20 @@
 from autogen_ext.apprentice import PageLog, Grader
 
 
-async def eval_teachability(fast_learner, evaluator, client, page_log, settings):
+async def eval_teachability(fast_learner, evaluator, client, page_log, settings, run_dict):
     """An evaluation"""
     page = page_log.begin_page(
         summary="eval_teachability",
         details='',
         method_call="eval_teachability")
 
-    task_details = evaluator.get_task_details_by_name("autogen_package")
-    task_description = task_details["task_description"]
-    answer = task_details["expected_answer"]
-    grader = Grader(client, page_log)
+    # This eval function needs 2 data strings for each run.
+    task_file = run_dict["task_file"]  # The task being tested.
+    advice_file = run_dict["advice_file"]  # Advice for solving such tasks.
+
+    # Get the actual task and advice strings from their files.
+    task_description, expected_answer = evaluator.get_task_description_and_answer_from_file(task_file)
+    advice = evaluator.get_advice_from_file(advice_file)
 
     # First test without memory.
     fast_learner.reset_memory()
@@ -19,7 +22,8 @@ async def eval_teachability(fast_learner, evaluator, client, page_log, settings)
     response = await fast_learner.handle_user_message(task_description)
 
     # Check the response.
-    response_is_correct, extracted_answer = await grader.is_response_correct(task_description, response, answer)
+    grader = Grader(client, page_log)
+    response_is_correct, extracted_answer = await grader.is_response_correct(task_description, response, expected_answer)
     page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
     if response_is_correct:
         page.add_lines("Answer is CORRECT.\n", flush=True)
@@ -28,7 +32,6 @@ async def eval_teachability(fast_learner, evaluator, client, page_log, settings)
 
     # Give advice that should help solve this task.
     page.add_lines("Give the advice.")
-    advice = "When somebody builds something on autogen and wants to contribute it to autogen, instead of creating a new autogen package, it's better for them to implement it in a separate github repo, then just add the autogen-extension topic to that repo. That way their contribution will be automatically discoverable through autogen's page on community extensions:  https://microsoft.github.io/autogen/dev/user-guide/extensions-user-guide/index.html"
     await fast_learner.handle_user_message(advice)
 
     # Now ask the question again to see if the advice helps.
@@ -36,7 +39,7 @@ async def eval_teachability(fast_learner, evaluator, client, page_log, settings)
     response = await fast_learner.handle_user_message(task_description)
 
     # Check the response.
-    response_is_correct, extracted_answer = await grader.is_response_correct(task_description, response, answer)
+    response_is_correct, extracted_answer = await grader.is_response_correct(task_description, response, expected_answer)
     page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
     if response_is_correct:
         page.add_lines("Answer is CORRECT.\n", flush=True)
