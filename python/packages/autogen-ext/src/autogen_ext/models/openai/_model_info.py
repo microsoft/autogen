@@ -8,7 +8,7 @@ _MODEL_POINTERS = {
     "o1": "o1-2024-12-17",
     "o1-preview": "o1-preview-2024-09-12",
     "o1-mini": "o1-mini-2024-09-12",
-    "gpt-4o": "gpt-4o-2024-11-20",
+    "gpt-4o": "gpt-4o-2024-08-06",
     "gpt-4o-mini": "gpt-4o-mini-2024-07-18",
     "gpt-4-turbo": "gpt-4-turbo-2024-04-09",
     "gpt-4-turbo-preview": "gpt-4-0125-preview",
