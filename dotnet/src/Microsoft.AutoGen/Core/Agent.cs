@@ -43,7 +43,7 @@ public abstract class Agent : IHandle
         ILogger<Agent>? logger = null)
     {
         EventTypes = eventTypes;
-        AgentId = new AgentId(this.GetType().Name, new Guid().ToString());
+        AgentId = new AgentId(this.GetType().Name, Guid.NewGuid().ToString()); ;
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<Agent>();
         _handlersByMessageType = new(GetType().GetHandlersLookupTable());
         Messenger = AgentMessengerFactory.Create(worker, DistributedContextPropagator.Current);
@@ -272,9 +272,19 @@ public abstract class Agent : IHandle
 
     public async ValueTask PublishMessageAsync<T>(T message, string? source = null, CancellationToken token = default) where T : IMessage
     {
-        var src = string.IsNullOrWhiteSpace(source) ? this.AgentId.Key : source;
-        var evt = message.ToCloudEvent(src);
-        await PublishEventAsync(evt, token).ConfigureAwait(false);
+        var topicTypes = this.GetType().GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
+        if (!topicTypes.Any())
+        {
+            topicTypes = topicTypes.Append(string.IsNullOrWhiteSpace(source) ? this.AgentId.Type + "." + this.AgentId.Key : source);
+        }
+        foreach (var topic in topicTypes)
+        {
+            await PublishMessageAsync(topic, message, source, token).ConfigureAwait(false);
+        }
+    }
+    public async ValueTask PublishMessageAsync<T>(string topic, T message, string? source = null, CancellationToken token = default) where T : IMessage
+    {
+        await PublishEventAsync(topic, message, token).ConfigureAwait(false);
     }
 
     public async ValueTask PublishEventAsync(CloudEvent item, CancellationToken cancellationToken = default)
@@ -353,8 +363,8 @@ public abstract class Agent : IHandle
         // otherwise, complain
         throw new InvalidOperationException($"No handler found for type {item.GetType().FullName}");
     }
-    public async ValueTask PublishEventAsync(string topic, IMessage evt, CancellationToken cancellationToken = default)
+    public async ValueTask PublishEventAsync(string topic, IMessage message, CancellationToken cancellationToken = default)
     {
-        await PublishEventAsync(evt.ToCloudEvent(topic), cancellationToken).ConfigureAwait(false);
+        await PublishEventAsync(message.ToCloudEvent(topic), cancellationToken).ConfigureAwait(false);
     }
 }

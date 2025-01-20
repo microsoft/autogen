@@ -7,7 +7,7 @@ using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 
 // send a message to the agent
-var builder = WebApplication.CreateBuilder();
+var builder = new HostApplicationBuilder();
 // put these in your environment or appsettings.json
 builder.Configuration["HelloAIAgents:ModelType"] = "azureopenai";
 builder.Configuration["HelloAIAgents:LlmModelName"] = "gpt-3.5-turbo";
