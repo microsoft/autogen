@@ -182,7 +182,7 @@ Match roles in the role set to each expert in expert set.
     {agent_details}
 
     Hint:
-    # Only respond with the name of the agent that is most suited to execute the function and nothing else.if there is no agent that is most suited to execute the function, respond with exectly"None"
+    # Only respond with the name of the agent that is most suited to execute the function and nothing else.if there is no agent that is most suited to execute the function, respond with exactly "None"
     """
 
     UPDATED_AGENT_SYSTEM_MESSAGE = """
