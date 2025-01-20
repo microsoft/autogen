@@ -290,7 +290,7 @@ public abstract class Agent
         return await completion.Task.ConfigureAwait(false);
     }
 
-    private string SetTopic(string? topic = null , string? source = null, string? key = null)
+    private string SetTopic(string? topic = null, string? source = null, string? key = null)
     {
         if (string.IsNullOrWhiteSpace(topic))
         {
@@ -308,7 +308,7 @@ public abstract class Agent
     /// <returns>A task representing the asynchronous operation.</returns>
     public async ValueTask PublishMessageAsync<T>(T message, string topic, string source, string key, CancellationToken token = default) where T : IMessage
     {
-        
+
         var topicTypes = this.GetType().GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
         if (!topicTypes.Any())
         {
