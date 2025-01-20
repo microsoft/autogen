@@ -373,11 +373,14 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             self._resolved_model = _model_info.resolve_model(create_args["model"])
 
         if (
-            "response_format" in create_args
-            and create_args["response_format"]["type"] == "json_object"
-            and not self._model_info["json_output"]
+            not self._model_info["json_output"]
+            and "response_format" in create_args
+            and (
+                isinstance(create_args["response_format"], dict)
+                and create_args["response_format"]["type"] == "json_object"
+            )
         ):
-            raise ValueError("Model does not support JSON output")
+            raise ValueError("Model does not support JSON output.")
 
         self._create_args = create_args
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
@@ -433,7 +436,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         if json_output is not None:
             if self.model_info["json_output"] is False and json_output is True:
-                raise ValueError("Model does not support JSON output")
+                raise ValueError("Model does not support JSON output.")
 
             if json_output is True:
                 create_args["response_format"] = {"type": "json_object"}
@@ -441,7 +444,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 create_args["response_format"] = {"type": "text"}
 
         if self.model_info["json_output"] is False and json_output is True:
-            raise ValueError("Model does not support JSON output")
+            raise ValueError("Model does not support JSON output.")
 
         oai_messages_nested = [to_oai_type(m) for m in messages]
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]
