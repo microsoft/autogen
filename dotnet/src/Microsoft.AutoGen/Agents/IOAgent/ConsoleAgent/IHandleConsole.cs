@@ -10,7 +10,7 @@ namespace Microsoft.AutoGen.Agents;
 public interface IHandleConsole : IHandle<Output>, IHandle<Input>
 {
     AgentId AgentId { get; }
-    ValueTask PublishMessageAsync<T>(T message, string? topic = null, string? source = null, string? key = null, CancellationToken token = default) where T : IMessage;
+    ValueTask PublishMessageAsync<T>(T message, CancellationToken token = default) where T : IMessage;
 
     async Task IHandle<Output>.Handle(Output item, CancellationToken cancellationToken)
     {

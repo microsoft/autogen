@@ -24,10 +24,11 @@ var _ = new AgentTypes(new Dictionary<string, Type>
 });
 var local = true;
 if (Environment.GetEnvironmentVariable("AGENT_HOST") != null) { local = false; }
-var _ = await Microsoft.AutoGen.Core.Grpc.AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
+var app = await Microsoft.AutoGen.Core.Grpc.AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
 }, local: local).ConfigureAwait(false);
+await app.WaitForShutdownAsync();
 
 namespace Hello
 {
