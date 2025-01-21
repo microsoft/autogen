@@ -63,6 +63,7 @@ from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.ui import Console
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
+
 async def main() -> None:
     model_client = OpenAIChatCompletionClient(model="gpt-4o")
     assistant = AssistantAgent("assistant", model_client)
