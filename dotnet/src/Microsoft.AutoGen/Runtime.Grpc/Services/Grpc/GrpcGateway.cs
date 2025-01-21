@@ -145,13 +145,13 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             _logger.LogWarning(exception, "Error removing worker from registry.");
         }
     }
-    internal Task ConnectToWorkerProcess(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
+    internal async Task ConnectToWorkerProcess(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {
         _logger.LogInformation("Received new connection from {Peer}.", context.Peer);
         var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
+        await workerProcess.Connect().ConfigureAwait(false);
         _workers[workerProcess] = workerProcess;
         _workersByConnection[context.Peer] = workerProcess;
-        return workerProcess.Completion;
     }
     internal async Task SendMessageAsync(GrpcWorkerConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
