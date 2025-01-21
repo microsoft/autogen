@@ -216,7 +216,11 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         var registry = _clusterClient.GetGrain<IRegistryGrain>(0);
         //intentionally blocking
         var targetAgentTypes = new List<string>();
-        targetAgentTypes.AddRange(await registry.GetSubscribedAndHandlingAgents(evt.Source, evt.Type).ConfigureAwait(true));
+        var handlers = await registry.GetSubscribedAndHandlingAgents(evt.Source, evt.Type).ConfigureAwait(true);
+        if (handlers is not null && handlers.Any())
+        {
+            targetAgentTypes.AddRange(handlers);
+        }
         // alternate path    
         // get the event type and then send to all agents that are subscribed to that event type
         var eventType = evt.Type;
@@ -226,9 +230,11 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         if (_subscriptionsByTopic.TryGetValue(eventType, out var agentTypesList)) { agentTypes.AddRange(agentTypesList); }
         if (_subscriptionsByTopic.TryGetValue(source, out var agentTypesList2)) { agentTypes.AddRange(agentTypesList2); }
         if (_subscriptionsByTopic.TryGetValue(source + "." + eventType, out var agentTypesList3)) { agentTypes.AddRange(agentTypesList3); }
-        agentTypes = agentTypes.Distinct().ToList();
-        targetAgentTypes.AddRange(agentTypes);
-     
+        if (agentTypes is not null && agentTypes.Any())
+        {
+            agentTypes = agentTypes.Distinct().ToList();
+            targetAgentTypes.AddRange(agentTypes);
+        }
         // instead of an exact match, we can also check for a prefix match where key starts with the eventType
         if (_subscriptionsByTopic.Keys.Any(key => key.StartsWith(eventType)))
         {
@@ -244,7 +250,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
         if (targetAgentTypes is not null && targetAgentTypes.Any())
         {
-            await DispatchEventToAgentsAsync(targetAgentTypes, evt).ConfigureAwait(false);
+            await DispatchEventToAgentsAsync(targetAgentTypes.Distinct(), evt).ConfigureAwait(false);
         }
         else
         {
