@@ -10,6 +10,8 @@ class ClientCreator:
         self.page_log = page_log
 
     def create_client(self):
+        page = self.page_log.begin_page(summary="ClientCreator.create_client")
+
         # A few args are shared by all clients.
         args = {}
         args["model"] = self.settings["model"]
@@ -35,8 +37,8 @@ class ClientCreator:
             assert False, "Invalid client provider"
 
         # Log some details.
-        self.page_log.append_entry_line("Client:  {}".format(client._resolved_model))
-        self.page_log.append_entry_line(source)
+        page.add_lines("Client:  {}".format(client._resolved_model))
+        page.add_lines(source)
 
         # Check if the client should be wrapped.
         if "ClientWrapper" in self.settings:
@@ -45,6 +47,8 @@ class ClientCreator:
                 # Wrap the client.
                 client = ClientWrapper(
                     client, wrapper_settings["mode"], wrapper_settings["session_name"], self.page_log)
+
+        self.page_log.finish_page(page)
         return client
 
     def create_oai_client(self, args):

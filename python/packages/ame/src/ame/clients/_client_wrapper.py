@@ -80,8 +80,7 @@ class ClientWrapper:
         # Get the next recorded turn.
         if self.next_item_index >= len(self.recorded_items):
             error_str = "No more recorded items to check."
-            self.page_log.append_exit_line(error_str)
-            self.page_log.flush(final=True)
+            self.page_log.add_lines(error_str, flush=True)
             raise ValueError(error_str)
         recorded_turn = self.recorded_items[self.next_item_index]
         self.next_item_index += 1
@@ -89,8 +88,7 @@ class ClientWrapper:
         # Check the current message list against the recorded message list.
         if "messages" not in recorded_turn:
             error_str = "Recorded turn doesn't contain a messages field. Perhaps a result was recorded instead."
-            self.page_log.append_exit_line(error_str)
-            self.page_log.flush(final=True)
+            self.page_log.add_lines(error_str, flush=True)
             raise ValueError(error_str)
         recorded_messages = recorded_turn["messages"]
         current_messages = self.convert_messages(messages)
@@ -98,8 +96,7 @@ class ClientWrapper:
             error_str = "Current message list doesn't match the recorded message list."
             self.page_log.add_message_content(recorded_messages, "recorded message list")
             self.page_log.add_message_content(current_messages, "current message list")
-            self.page_log.append_exit_line(error_str)
-            self.page_log.flush(final=True)  # Finalize the page log
+            self.page_log.add_lines(error_str, flush=True)
             raise ValueError(error_str)
         assert current_messages == recorded_messages
 
@@ -125,30 +122,27 @@ class ClientWrapper:
         # Check a result.
         if self.next_item_index >= len(self.recorded_items):
             error_str = "No more recorded items to check."
-            self.page_log.append_exit_line(error_str)
-            self.page_log.flush(final=True)
+            self.page_log.add_lines(error_str, flush=True)
             raise ValueError(error_str)
         recorded_result = self.recorded_items[self.next_item_index]
         self.next_item_index += 1
 
         if "result" not in recorded_result:
             error_str = "Recorded turn doesn't contain a result field. Perhaps a turn was recorded instead."
-            self.page_log.append_exit_line(error_str)
-            self.page_log.flush(final=True)
+            self.page_log.add_lines(error_str, flush=True)
             raise ValueError(error_str)
         if result != recorded_result["result"]:
             error_str = "Recorded result ({}) doesn't match the current result ({}).".format(recorded_result["result"], result)
-            self.page_log.append_exit_line(error_str)
-            self.page_log.flush(final=True)
+            self.page_log.add_lines(error_str, flush=True)
             raise ValueError(error_str)
 
     def finalize(self) -> None:
         self.report_result("Total items = " + str(self.next_item_index))
         if self.mode == "record":
             self.save()
-            self.page_log.append_exit_line("Recorded session was saved to: " + self.path_to_output_file)
+            self.page_log.add_lines("Recorded session was saved to: " + self.path_to_output_file)
         elif self.mode == "check-replay":
-            self.page_log.append_exit_line("Recorded session was fully replayed and checked.")
+            self.page_log.add_lines("Recorded session was fully replayed and checked.")
 
     def save(self) -> None:
         # Save the recorded messages and responses to disk.

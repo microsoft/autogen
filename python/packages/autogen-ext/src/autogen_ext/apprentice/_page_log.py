@@ -20,10 +20,8 @@ class Page:
     def __init__(self, page_log, index, summary, indent_level, show_in_overview=True, final=True):
         self.page_log = page_log
         self.index_str = str(index)
-        self.link_text = None
         self.full_link = None
         self.file_title = None
-        self.unindented_line_text = None
         self.line_text = None
         self.indentation_text = None
         self.summary = summary
@@ -35,19 +33,17 @@ class Page:
         self.flush()
 
     def compose_line(self, flush=False):
-        self.link_text = self.index_str + '  ' + self.summary
+        self.file_title = self.index_str + '  ' + self.summary
         self.indentation_text = ""
         for i in range(self.indent_level):
             self.indentation_text += "|&emsp;"
-        self.file_title = self.link_text
         self.full_link = self.link_to_page_file()
-        self.unindented_line_text = self.full_link
-        self.line_text = self.indentation_text + self.unindented_line_text
+        self.line_text = self.indentation_text + self.full_link
         if flush:
             self.flush()
 
     def link_to_page_file(self):
-        return f'<a href="{self.index_str}.html">{self.link_text}</a>'
+        return f'<a href="{self.index_str}.html">{self.file_title}</a>'
 
     def add_lines(self, line, flush=False):
         # If the string 'line' consists of multiple lines, separate them into a list.
@@ -100,8 +96,6 @@ class PageLog:
         self.page_stack = PageStack()
         self.pages = []
         self.last_page_id = 0
-        self.entry_lines = []
-        self.exit_lines = []
         self.name = "0 Overview"
         self.create_run_dir()
         self.flush()
@@ -150,9 +144,14 @@ class PageLog:
 
         if len(self.page_stack.stack) > 0:
             # Insert a link to the new page into the calling page.
-            self.page_stack.stack[-1].add_lines(page.unindented_line_text, flush=True)
+            self.add_lines('\n' + page.full_link, flush=True)
 
         return page
+
+    def add_lines(self, line, flush=False):
+        # Add lines to the current page (at the top of the page stack).
+        page = self.page_stack.top()
+        page.add_lines(line, flush=flush)
 
     def message_source(self, message):
         source = "UNKNOWN"
@@ -233,18 +232,6 @@ class PageLog:
         page.flush()
         return page
 
-    def prepend_entry_line(self, line):
-        self.entry_lines.insert(0, line)
-
-    def append_entry_line(self, line):
-        self.entry_lines.append(line)
-
-    def prepend_exit_line(self, line):
-        self.exit_lines.insert(0, line)
-        
-    def append_exit_line(self, line):
-        self.exit_lines.append(line)
-
     def link_to_local_file(self, file_path):
         file_name = os.path.basename(file_path)
         link = f'<a href="{file_name}">{file_name}</a>'
@@ -255,16 +242,12 @@ class PageLog:
         overview_path = os.path.join(self.log_dir, self.name + ".html")
         with open(overview_path, "w") as f:
             f.write(self.html_opening("0 Overview", final=final))
-            f.write(f"<h3>{self.name}</h3>\n")
-            for line in self.entry_lines:
-                f.write(line + "\n")
+            f.write(f"<h3>{self.name}</h3>")
             f.write("\n")
             for page in self.pages:
                 if page.show_in_overview:
                     f.write(page.line_text + "\n")
             f.write("\n")
-            for line in self.exit_lines:
-                f.write(line + "\n")
             f.write(self.html_closing())
         time.sleep(0.1)
 
@@ -283,7 +266,7 @@ class PageLog:
         # Perform a set of logging actions that are often performed at the end of a caller's method.
         page = self.page_stack.top()
         page.final = True
-        page.add_lines("LEAVE {}".format(page.summary), flush=True)
+        page.add_lines("\nLEAVE {}".format(page.summary), flush=True)
         self.page_stack.pop()
 
 
