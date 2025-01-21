@@ -216,15 +216,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         var registry = _clusterClient.GetGrain<IRegistryGrain>(0);
         //intentionally blocking
         var targetAgentTypes = await registry.GetSubscribedAndHandlingAgents(evt.Source, evt.Type).ConfigureAwait(true);
-        //verify targetAgentTypes is not null
-        if (targetAgentTypes is null || targetAgentTypes.Count == 0)
-        {
-            _logger.LogWarning("No agents found registered for event {Event}.", evt);
-        }
-        else
-        {
-            await DispatchEventToAgentsAsync(targetAgentTypes, evt).ConfigureAwait(false);
-        }
         // alternate path    
         // get the event type and then send to all agents that are subscribed to that event type
         var eventType = evt.Type;
@@ -235,12 +226,10 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         if (_subscriptionsByTopic.TryGetValue(source, out var agentTypesList2)) { agentTypes.AddRange(agentTypesList2); }
         if (_subscriptionsByTopic.TryGetValue(source + "." + eventType, out var agentTypesList3)) { agentTypes.AddRange(agentTypesList3); }
         agentTypes = agentTypes.Distinct().ToList();
-        if (agentTypes.Count > 0)
-        {
-            await DispatchEventToAgentsAsync(agentTypes, evt: evt).ConfigureAwait(false);
-        }
+        targetAgentTypes.AddRange(agentTypes);
+     
         // instead of an exact match, we can also check for a prefix match where key starts with the eventType
-        else if (_subscriptionsByTopic.Keys.Any(key => key.StartsWith(eventType)))
+        if (_subscriptionsByTopic.Keys.Any(key => key.StartsWith(eventType)))
         {
             _subscriptionsByTopic.Where(
                 kvp => kvp.Key.StartsWith(eventType))
@@ -249,8 +238,12 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                 .ToList()
                 .ForEach(async agentType =>
                 {
-                    await DispatchEventToAgentsAsync(new List<string> { agentType }, evt).ConfigureAwait(false);
+                    targetAgentTypes.Add(agentType);
                 });
+        }
+        if (targetAgentTypes is not null && targetAgentTypes.Any())
+        {
+            await DispatchEventToAgentsAsync(targetAgentTypes, evt).ConfigureAwait(false);
         }
         else
         {
