@@ -22,7 +22,7 @@ class Grader:
         # Create the chat history
         self._chat_history: List[LLMMessage] = []
 
-    async def call_model(self, details, user_content: UserContent = None, system_message_content=None, keep_these_messages=True):
+    async def call_model(self, summary, user_content: UserContent = None, system_message_content=None, keep_these_messages=True):
         # Prepare the input message list
         if system_message_content is None:
             system_message_content = "You are a helpful assistant."
@@ -45,8 +45,7 @@ class Grader:
         assert isinstance(response_message, AssistantMessage)
 
         # Log the model call
-        parent_page = self.page_log.add_model_call(description="Ask the model",
-            details=details, input_messages=input_messages, response=response, caller='Grader')
+        self.page_log.add_model_call(summary=summary, input_messages=input_messages, response=response)
 
         # Manage the chat history
         if keep_these_messages:
@@ -54,7 +53,7 @@ class Grader:
             self._chat_history.append(response_message)
 
         # Return the response as a string for now
-        return response_string, parent_page
+        return response_string
 
     def remove_last_turn(self):
         if len(self._chat_history) > 0:
@@ -65,10 +64,7 @@ class Grader:
 
     async def is_response_correct(self, task_description, response_to_be_graded, correct_answer):
         # Returns only the insights that the client verifies are relevant to the task.
-        page = self.page_log.begin_page(
-            summary="Grader.is_response_correct",
-            details="",
-            method_call="Grader.is_response_correct")
+        page = self.page_log.begin_page(summary="Grader.is_response_correct")
 
         sys_message = """You are a helpful and thoughtful assistant."""
 
@@ -84,10 +80,8 @@ class Grader:
         user_message.append("\n# Text that may contain an answer")
         user_message.append(response_to_be_graded)
         self.clear_history()
-        extracted_answer, _ = await self.call_model(
-            system_message_content=sys_message,
-            user_content=user_message,
-            details="to extract the answer")
+        extracted_answer = await self.call_model(summary="Ask the model to extract the answer",
+                                                 system_message_content=sys_message, user_content=user_message)
         page.add_lines("Extracted answer: " + extracted_answer)
 
         user_message = ["""Your job is to decide whether a given answer to a task is correct or not.
@@ -105,10 +99,8 @@ class Grader:
         user_message.append("\n# Answer to be graded")
         user_message.append(extracted_answer)
         self.clear_history()
-        decision, _ = await self.call_model(
-            system_message_content=sys_message,
-            user_content=user_message,
-            details="to check the answer for correctness")
+        decision = await self.call_model(summary="Ask the model to check the answer for correctness",
+                                         system_message_content=sys_message, user_content=user_message)
         page.add_lines("Decision: " + decision)
 
         self.page_log.finish_page(page)

@@ -17,7 +17,7 @@ from autogen_core.models import (
 
 
 class Page:
-    def __init__(self, page_log, index, summary, details, method_call, indent_level, show_in_overview=True, final=True):
+    def __init__(self, page_log, index, summary, indent_level, show_in_overview=True, final=True):
         self.page_log = page_log
         self.index_str = str(index)
         self.link_text = None
@@ -27,31 +27,24 @@ class Page:
         self.line_text = None
         self.indentation_text = None
         self.summary = summary
-        self.details = details
-        self.method_call = method_call
         self.indent_level = indent_level
         self.show_in_overview = show_in_overview
         self.final = final
-        self.compose_line(details)
+        self.compose_line()
         self.lines = []
         self.flush()
 
-    def compose_line(self, details, flush=False):
-        self.details = details
+    def compose_line(self, flush=False):
         self.link_text = self.index_str + '  ' + self.summary
         self.indentation_text = ""
         for i in range(self.indent_level):
             self.indentation_text += "|&emsp;"
-        self.file_title = self.link_text + ' ' + self.details
+        self.file_title = self.link_text
         self.full_link = self.link_to_page_file()
-        self.unindented_line_text = self.full_link + ' ' + self.details
+        self.unindented_line_text = self.full_link
         self.line_text = self.indentation_text + self.unindented_line_text
         if flush:
             self.flush()
-
-    def update_details(self, details):
-        self.compose_line(details, flush=True)
-        self.page_log.flush()
 
     def link_to_page_file(self):
         return f'<a href="{self.index_str}.html">{self.link_text}</a>'
@@ -85,10 +78,6 @@ class Page:
         self.add_lines('\n' + description)
         self.add_lines(self.link_to_image(target_image_filename, description), flush=True)
 
-    def delete_last_line(self):
-        if len(self.lines) > 0:
-            self.lines.pop()
-
     def flush(self):
         page_path = os.path.join(self.page_log.log_dir, self.index_str + ".html")
         with open(page_path, "w") as f:
@@ -115,7 +104,6 @@ class PageLog:
         self.exit_lines = []
         self.name = "0 Overview"
         self.create_run_dir()
-        self.token_counts_path = self.create_token_counts_file()
         self.flush()
 
     def get_next_page_id(self):
@@ -127,17 +115,6 @@ class PageLog:
         if os.path.exists(self.log_dir):
             shutil.rmtree(self.log_dir)
         os.makedirs(self.log_dir)
-
-    def create_token_counts_file(self):
-        token_counts_path = os.path.join(self.log_dir, "token_counts.csv")
-        f = open(token_counts_path, "w")
-        f.close()  # The file starts empty and will be appended to later.
-        return token_counts_path
-
-    def write_token_count(self, num_input_tokens, caller, details_path=None):
-        # Write the number of input tokens to the file, with caller and path to other details.
-        with open(self.token_counts_path, "a") as f:
-            f.write(f"{num_input_tokens},{caller},{details_path}\n")
 
     def html_opening(self, file_title, final=False):
         # Return the opening text of a simple HTML file.
@@ -160,13 +137,11 @@ class PageLog:
         # Return the closing text of a simple HTML file.
         return """</body></html>"""
 
-    def add_page(self, summary, details, method_call=None, show_in_overview=True, final=True):
+    def add_page(self, summary, show_in_overview=True, final=True):
         # Add a page to the log.
         page = Page(page_log=self,
                     index=self.get_next_page_id(),
                     summary=summary,
-                    details=details,
-                    method_call=method_call,
                     indent_level=len(self.page_stack.stack),
                     show_in_overview=show_in_overview,
                     final=final)
@@ -237,51 +212,25 @@ class PageLog:
             output += f"\n{item}\n"
         return output
 
-    def add_message_content(self, message_content, summary, details=""):
+    def add_message_content(self, message_content, summary):
         # Add a page containing a message's content.
-        page = self.add_page(summary=summary,
-                             details=details,
-                             show_in_overview=False)
+        page = self.add_page(summary=summary, show_in_overview=False)
         self.page_stack.write_stack_to_page(page)
         page.add_lines(self.message_content(page, message_content=message_content))
         page.flush()
 
-    def add_broadcast_message(self, message, operation):
-        # Add a page containing a message being broadcast.
-        page = self.add_page(summary="Broadcast Message",
-                             details=operation,
-                             method_call="broadcast message",
-                             show_in_overview=False)
-        self.page_stack.write_stack_to_page(page)
-        page.add_lines(self.message_source(message))
-        page.add_lines(self.message_content(page, message=message))
-        page.flush()
-
-    def add_model_call(self, description, details, input_messages, response,
-                       tools=None, json_output=None, extra_create_args=None,
-                       num_input_tokens=None, caller=None):
+    def add_model_call(self, summary, input_messages, response):
         # Add a model call to the log.
-        page = self.add_page(summary=description,
-                             details=details,
-                             method_call="model call",
-                             show_in_overview=False)
+        page = self.add_page(summary=summary, show_in_overview=False)
         self.page_stack.write_stack_to_page(page)
-        if num_input_tokens is not None and num_input_tokens > 0:
-            page.add_lines("{} prompt tokens from count_tokens".format(num_input_tokens))
         page.add_lines("{} prompt tokens".format(response.usage.prompt_tokens))
         page.add_lines("{} completion tokens".format(response.usage.completion_tokens))
         for i, m in enumerate(input_messages):
             page.add_lines('\n' + self.message_source(m))
             page.add_lines(self.message_content(page, message=m))
         page.add_lines("\n" + self.decorate_text("ASSISTANT RESPONSE", "green", demarcate=True))
-        if response is None:
-            page.add_lines("\n  TOO MANY INPUT TOKENS, NO RESPONSE GENERATED")
-        else:
-            page.add_lines(self.message_content(page, message=response))
+        page.add_lines(self.message_content(page, message=response))
         page.flush()
-        if num_input_tokens is not None and caller is not None:
-            # Add a line to the token count file.
-            self.write_token_count(num_input_tokens, caller, page.index_str + ".html")
         return page
 
     def prepend_entry_line(self, line):
@@ -301,12 +250,6 @@ class PageLog:
         link = f'<a href="{file_name}">{file_name}</a>'
         return link
 
-    def last_page(self):
-        if len(self.page_stack.stack) > 0:
-            return self.page_stack.stack[-1]
-        else:
-            return None
-
     def flush(self, final=False):
         # Create an overview of the log.
         overview_path = os.path.join(self.log_dir, self.name + ".html")
@@ -325,25 +268,22 @@ class PageLog:
             f.write(self.html_closing())
         time.sleep(0.1)
 
-    def begin_page(self, summary, details, method_call, show_in_overview=True):
+    def begin_page(self, summary, show_in_overview=True):
+        assert show_in_overview
         # Perform a set of logging actions that are often performed at the beginning of a caller's method.
-        page = self.add_page(
-            summary=summary,
-            details=details,
-            method_call=method_call,
-            show_in_overview=show_in_overview,
-            final=False)
+        page = self.add_page(summary=summary, show_in_overview=show_in_overview, final=False)
 
         self.page_stack.push(page)
         self.page_stack.write_stack_to_page(page)
 
-        page.add_lines("\nENTER {}".format(method_call), flush=True)
+        page.add_lines("\nENTER {}".format(summary), flush=True)
         return page
 
     def finish_page(self, page):
         # Perform a set of logging actions that are often performed at the end of a caller's method.
+        page = self.page_stack.top()
         page.final = True
-        page.add_lines("LEAVE {}".format(page.method_call), flush=True)
+        page.add_lines("LEAVE {}".format(page.summary), flush=True)
         self.page_stack.pop()
 
 

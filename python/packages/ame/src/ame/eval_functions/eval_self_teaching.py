@@ -1,10 +1,7 @@
 
 async def eval_self_teaching(fast_learner, evaluator, client, page_log, settings, run_dict):
     """An evaluation"""
-    page = page_log.begin_page(
-        summary="eval_self_teaching",
-        details='',
-        method_call="eval_self_teaching")
+    page = page_log.begin_page(summary="eval_self_teaching")
 
     num_loops = settings["num_loops"]
     num_final_test_trials = settings["num_final_test_trials"]

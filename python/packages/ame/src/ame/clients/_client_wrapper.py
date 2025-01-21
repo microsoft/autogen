@@ -18,10 +18,7 @@ class ClientWrapper:
     or check the messages and replay the responses (in check-replay mode).
     """
     def __init__(self, base_client: AzureOpenAIChatCompletionClient, mode: str, session_name: str, page_log: PageLog) -> None:
-        page = page_log.begin_page(
-            summary="ClientWrapper.__init__",
-            details='',
-            method_call="ClientWrapper.__init__")
+        page = page_log.begin_page(summary="ClientWrapper.__init__")
 
         self.base_client = base_client
         self.mode = mode

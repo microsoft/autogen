@@ -3,10 +3,7 @@ from autogen_ext.apprentice import PageLog, Grader
 
 async def eval_teachability(fast_learner, evaluator, client, page_log, settings, run_dict):
     """An evaluation"""
-    page = page_log.begin_page(
-        summary="eval_teachability",
-        details='',
-        method_call="eval_teachability")
+    page = page_log.begin_page(summary="eval_teachability")
 
     # This eval function needs 2 data strings for each run.
     task_file = run_dict["task_file"]  # The task being tested.

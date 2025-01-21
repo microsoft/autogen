@@ -1,10 +1,7 @@
 
 async def eval_learning_from_demonstration(fast_learner, evaluator, client, page_log, settings, run_dict):
     """An evaluation"""
-    page = page_log.begin_page(
-        summary="eval_learning_from_demonstration",
-        details='',
-        method_call="eval_learning_from_demonstration")
+    page = page_log.begin_page(summary="eval_learning_from_demonstration")
 
     num_trials = settings["num_trials"]
 

@@ -1,10 +1,7 @@
 
 async def eval_without_learning(fast_learner, evaluator, client, page_log, settings, run_dict):
     """An evaluation"""
-    page = page_log.begin_page(
-        summary="eval_without_learning",
-        details='',
-        method_call="eval_without_learning")
+    page = page_log.begin_page(summary="eval_without_learning")
 
     num_trials = settings["num_trials"]
 

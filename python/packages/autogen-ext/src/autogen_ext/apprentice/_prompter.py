@@ -26,7 +26,8 @@ class Prompter:
         # Create the chat history
         self._chat_history: List[LLMMessage] = []
 
-    async def call_model(self, details, user_content: UserContent = None, system_message_content=None, keep_these_messages=True):
+    async def call_model(self, summary, user_content: UserContent = None, system_message_content=None,
+                         keep_these_messages=True):
         # Prepare the input message list
         if system_message_content is None:
             system_message_content = self.default_system_message_content
@@ -50,50 +51,27 @@ class Prompter:
 
         # Call the model
         start_time = time.time()
+        response = await self.client.create(input_messages)
 
-        # Optional code to pre-count tokens.
-        # num_input_tokens = self.client.count_tokens(input_messages)
-        num_input_tokens = 0
-        max_input_tokens_per_call = None  # This is a placeholder value.
-        if (max_input_tokens_per_call is not None) and (num_input_tokens > max_input_tokens_per_call):
-            # The input is too large.
-            response = None
-        else:
-            # Call the model.
-            response = await self.client.create(input_messages)
+        assert isinstance(response, CreateResult)
+        response_string = response.content
+        assert isinstance(response_string, str)
+        response_message = AssistantMessage(content=response_string, source="Assistant")
+        assert isinstance(response_message, AssistantMessage)
 
-        if response is None:
-            parent_page = self.page_log.add_model_call(description="Ask the model",
-                details=details + "  ({:,} TOO MANY INPUT TOKENS)".format(num_input_tokens),
-                input_messages=input_messages, response=None, num_input_tokens=num_input_tokens, caller='Orchestrator')
-            assert False, "TOO MANY INPUT TOKENS"
-            response_string = ""
-        else:
-            assert isinstance(response, CreateResult)
-            response_string = response.content
-            assert isinstance(response_string, str)
-            response_message = AssistantMessage(content=response_string, source="Assistant")
-            assert isinstance(response_message, AssistantMessage)
+        self.time_spent_in_model_calls += time.time() - start_time
+        self.num_model_calls += 1
 
-            self.time_spent_in_model_calls += time.time() - start_time
-            self.num_model_calls += 1
+        # Log the model call
+        self.page_log.add_model_call(summary=summary, input_messages=input_messages, response=response)
 
-            # Log the model call
-            parent_page = self.page_log.add_model_call(description="Ask the model",
-                details=details, input_messages=input_messages, response=response,
-                num_input_tokens=num_input_tokens, caller='Orchestrator')
-
-            # Manage the chat history
-            if keep_these_messages:
-                self._chat_history.append(user_message)
-                self._chat_history.append(response_message)
+        # Manage the chat history
+        if keep_these_messages:
+            self._chat_history.append(user_message)
+            self._chat_history.append(response_message)
 
         # Return the response as a string for now
-        return response_string, parent_page
-
-    def remove_last_turn(self):
-        if len(self._chat_history) > 0:
-            self._chat_history.pop()
+        return response_string
 
     def clear_history(self):
         self._chat_history = []
@@ -127,30 +105,16 @@ class Prompter:
             "# Now carefully review the students' work above, explaining in detail what the students did right and what they did wrong.\n")
 
         self.clear_history()
-        response1, page = await self.call_model(
-            system_message_content=sys_message,
-            user_content=user_message,
-            details="to learn from this failure")
-
+        await self.call_model(summary="Ask the model to learn from this failure",
+                              system_message_content=sys_message, user_content=user_message)
         user_message = [
             "Now put yourself in the mind of the students. What misconception led them to their incorrect answer?"]
-        response2, page = await self.call_model(
-            system_message_content=sys_message,
-            user_content=user_message,
-            details="to state the misconception")
+        await self.call_model(summary="Ask the model to state the misconception",
+                              system_message_content=sys_message, user_content=user_message)
 
         user_message = ["Please express your key insights in the form of short, general advice that will be given to the students. Just one or two sentences, or they won't bother to read it."]
-        # if len(insights) > 0:
-        #     memory_section = "\n## The following insights and advice were given to the students previously, but they didn't help. So do not repeat any of the following:\n"
-        #     for insight in insights:
-        #         memory_section += ('- ' + insight + '\n')
-        #     user_message.append(memory_section)
-
-        insight, page = await self.call_model(
-            system_message_content=sys_message,
-            user_content=user_message,
-            details="to formulate a concise insight")
-
+        insight = await self.call_model(summary="Ask the model to formulate a concise insight",
+                                        system_message_content=sys_message, user_content=user_message)
         return insight
 
     async def find_index_topics(self, input_string):
@@ -171,10 +135,8 @@ class Prompter:
         user_message.append(input_string)
 
         self.clear_history()
-        topics, page = await self.call_model(
-            system_message_content=sys_message,
-            user_content=user_message,
-            details="to extract topics")
+        topics = await self.call_model(summary="Ask the model to extract topics",
+                                       system_message_content=sys_message, user_content=user_message)
 
         # Parse the topics into a python list.
         topic_list = []
@@ -194,23 +156,16 @@ class Prompter:
         user_message.append(task_description)
 
         self.clear_history()
-        response1, page = await self.call_model(
-            system_message_content=sys_message,
-            user_content=user_message,
-            details="to rephrase the task in a list of important points")
+        await self.call_model(summary="Ask the model to rephrase the task in a list of important points",
+                              system_message_content=sys_message, user_content=user_message)
 
         user_message = ["Do you see any parts of this list that are irrelevant to actually solving the task? If so, explain which items are irrelevant."]
-        response2, page = await self.call_model(
-            system_message_content=sys_message,
-            user_content=user_message,
-            details="to identify irrelevant points")
+        await self.call_model(summary="Ask the model to identify irrelevant points",
+                              system_message_content=sys_message, user_content=user_message)
 
         user_message = ["Revise your original list to include only the most general terms, those that are critical to solving the task, removing any themes or descriptions that are not essential to the solution. Your final list may be shorter, but do not leave out any part of the task that is needed for solving the task. Do not add any additional commentary either before or after the list."]
-        generalized_task, page = await self.call_model(
-            system_message_content=sys_message,
-            user_content=user_message,
-            details="to make a final list of general terms")
-
+        generalized_task = await self.call_model(summary="Ask the model to make a final list of general terms",
+                                                 system_message_content=sys_message, user_content=user_message)
         return generalized_task
 
     async def validate_insight(self, insight, task_description):
@@ -228,11 +183,8 @@ class Prompter:
         user_message.append("\n# Possibly useful insight")
         user_message.append(insight)
         self.clear_history()
-        response, page = await self.call_model(
-            system_message_content=sys_message,
-            user_content=user_message,
-            details="to validate the insight")
-
+        response = await self.call_model(summary="Ask the model to validate the insight",
+                                         system_message_content=sys_message, user_content=user_message)
         return response == "1"
 
     async def extract_task(self, text):
@@ -245,10 +197,8 @@ class Prompter:
         user_message.append("\n# Text to analyze")
         user_message.append(text)
         self.clear_history()
-        response, page = await self.call_model(
-            system_message_content=sys_message,
-            user_content=user_message,
-            details="to extract a task")
+        response = await self.call_model(summary="Ask the model to extract a task",
+                                         system_message_content=sys_message, user_content=user_message)
         return response if response != "None" else None
 
     async def extract_advice(self, text):
@@ -260,8 +210,6 @@ class Prompter:
         user_message.append("\n# Text to analyze")
         user_message.append(text)
         self.clear_history()
-        response, page = await self.call_model(
-            system_message_content=sys_message,
-            user_content=user_message,
-            details="to extract advice")
+        response = await self.call_model(summary="Ask the model to extract advice",
+                                         system_message_content=sys_message, user_content=user_message)
         return response if response != "None" else None

@@ -37,10 +37,7 @@ class Evaluator:
 
     async def test_fast_learner(self, fast_learner, task_description, expected_answer, num_trials,
                                 use_memory, client, page_log) -> Tuple[int, int]:
-        page = page_log.begin_page(
-            summary="Evaluator.test_fast_learner",
-            details='',
-            method_call="Evaluator.test_fast_learner")
+        page = page_log.begin_page(summary="Evaluator.test_fast_learner")
 
         page.add_lines("Testing the fast learner on the given task.\n", flush=True)
 
@@ -64,70 +61,70 @@ class Evaluator:
         page_log.finish_page(page)
         return num_successes, num_trials
 
-    async def run(self, settings_filepath):
-        # Load the settings from yaml.
-        with open(settings_filepath, "r") as file:
-            settings = yaml.load(file, Loader=yaml.FullLoader)
-            evaluator_settings = settings["Evaluator"]
+    async def perform_evaluations(self, settings, page_log):
+        page = self.page_log.begin_page(summary="Evaluator.perform_evaluations")
 
-            # Create the PageLog.
-            self.page_log = PageLog(evaluator_settings["PageLog"])
-            page = self.page_log.begin_page(
-                summary="Evaluator.main",
-                details='',
-                method_call="Evaluator.main")
+        # Create the client, passed to both the fast_learner and the evaluator.
+        client_creator = ClientCreator(settings=settings["client"], page_log=self.page_log)
+        client = client_creator.create_client()
 
-            # Create the client, passed to both the fast_learner and the evaluator.
-            client_creator = ClientCreator(settings=settings["client"], page_log=self.page_log)
-            client = client_creator.create_client()
+        # Create the specified fast_learner implementation.
+        fast_learner_settings = settings["fast_learning_agent"]
+        module_path = fast_learner_settings["module_path"]
+        try:
+            module = importlib.import_module(module_path)
+        except ModuleNotFoundError:
+            print('Failed to import {}'.format(module_path))
+            raise
+        class_name = fast_learner_settings["class_name"]
+        try:
+            fast_learner_class = getattr(module, class_name)
+        except AttributeError:
+            print('Failed to import {}.{}'.format(module_path, class_name))
+            raise
+        try:
+            fast_learner = fast_learner_class(fast_learner_settings, self, client, self.page_log)
+        except Exception as err:
+            print("Error creating \"{}\": {}".format(fast_learner_class, err))
+            raise
 
-            # Create the specified fast_learner implementation.
-            fast_learner_settings = settings["fast_learning_agent"]
-            module_path = fast_learner_settings["module_path"]
+        # Execute each evaluation.
+        for evaluation_settings in settings["evaluations"]:
+            # Import the function.
+            function_settings = evaluation_settings["eval_function"]
+            module_path = function_settings["module_path"]
             try:
                 module = importlib.import_module(module_path)
             except ModuleNotFoundError:
                 print('Failed to import {}'.format(module_path))
                 raise
-            class_name = fast_learner_settings["class_name"]
+            function_name = function_settings["function_name"]
             try:
-                fast_learner_class = getattr(module, class_name)
+                eval_function = getattr(module, function_name)
             except AttributeError:
-                print('Failed to import {}.{}'.format(module_path, class_name))
-                raise
-            try:
-                fast_learner = fast_learner_class(fast_learner_settings, self, client, self.page_log)
-            except Exception as err:
-                print("Error creating \"{}\": {}".format(fast_learner_class, err))
+                print('Failed to import {}.{}'.format(module_path, function_name))
                 raise
 
-            # Execute each evaluation.
-            for evaluation_settings in settings["evaluations"]:
-                # Import the function.
-                function_settings = evaluation_settings["eval_function"]
-                module_path = function_settings["module_path"]
-                try:
-                    module = importlib.import_module(module_path)
-                except ModuleNotFoundError:
-                    print('Failed to import {}'.format(module_path))
-                    raise
-                function_name = function_settings["function_name"]
-                try:
-                    eval_function = getattr(module, function_name)
-                except AttributeError:
-                    print('Failed to import {}.{}'.format(module_path, function_name))
-                    raise
+            # Call the eval function for each listed run.
+            for run_dict in evaluation_settings["runs"]:
+                await eval_function(fast_learner, self, client, self.page_log, function_settings, run_dict)
 
-                # Call the eval function for each listed run.
-                for run_dict in evaluation_settings["runs"]:
-                    await eval_function(fast_learner, self, client, self.page_log, function_settings, run_dict)
+        if hasattr(client, "finalize"):
+            # If this is a client wrapper, it needs to be finalized.
+            client.finalize()
 
-            if hasattr(client, "finalize"):
-                # If this is a client wrapper, it needs to be finalized.
-                client.finalize()
+        self.page_log.flush(final=True)  # Finalize the page log
+        self.page_log.finish_page(page)
 
-            self.page_log.flush(final=True)  # Finalize the page log
-            self.page_log.finish_page(page)
+    async def run(self, settings_filepath):
+        # Load the settings from yaml.
+        with open(settings_filepath, "r") as file:
+            settings = yaml.load(file, Loader=yaml.FullLoader)
+            evaluator_settings = settings["Evaluator"]
+            self.page_log = PageLog(evaluator_settings["PageLog"])
+
+            # Perform the evaluations.
+            await self.perform_evaluations(settings, self.page_log)
 
 
 if __name__ == "__main__":

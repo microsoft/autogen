@@ -21,10 +21,7 @@ class AgentWrapper:
         """
         Assigns a task to the base agent.
         """
-        page = self.page_log.begin_page(
-            summary="AgentWrapper.assign_task",
-            details="",
-            method_call="AgentWrapper.assign_task")
+        page = self.page_log.begin_page(summary="AgentWrapper.assign_task")
 
         # Pass the task through to the base agent.
         if self.base_agent_name == "MagenticOneGroupChat":
@@ -38,10 +35,7 @@ class AgentWrapper:
         return response, work_history
 
     async def assign_task_to_thin_agent(self, task):
-        page = self.page_log.begin_page(
-            summary="AgentWrapper.assign_task_to_thin_agent",
-            details='',
-            method_call="AgentWrapper.assign_task_to_thin_agent")
+        page = self.page_log.begin_page(summary="AgentWrapper.assign_task_to_thin_agent")
 
         page.add_lines(task)
 
@@ -67,10 +61,8 @@ In responding to every user message, you follow the same multi-step process give
         response_str = response.content
 
         # Log the model call
-        self.page_log.add_model_call(description="Ask the model",
-                                     details="to complete the task", input_messages=input_messages,
-                                     response=response,
-                                     num_input_tokens=0, caller='assign_task_to_client')
+        self.page_log.add_model_call(summary="Ask the model to complete the task",
+                                     input_messages=input_messages, response=response)
         page.add_lines("\n-----  RESPONSE  -----\n\n{}\n".format(response_str), flush=True)
 
         # Use the response as the work history as well.
@@ -80,10 +72,7 @@ In responding to every user message, you follow the same multi-step process give
         return response_str, work_history
 
     async def assign_task_to_magentic_one(self, task) -> Tuple[str, str]:
-        page = self.page_log.begin_page(
-            summary="AgentWrapper.assign_task_to_magentic_one",
-            details='',
-            method_call="AgentWrapper.assign_task_to_magentic_one")
+        page = self.page_log.begin_page(summary="AgentWrapper.assign_task_to_magentic_one")
 
         page.add_lines(task)
 
