@@ -555,14 +555,15 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         elif choice.message.tool_calls is not None:
             if choice.finish_reason != "tool_calls":
                 warnings.warn(
-                    f"finish reason mismatch: {choice.finish_reason} != tool_calls "
-                    "when tool_calls are present. Finish reason may not be accurate.",
+                    f"Finish reason mismatch: {choice.finish_reason} != tool_calls "
+                    "when tool_calls are present. Finish reason may not be accurate. "
+                    "This may be due to the API used that is not returning the correct finish reason.",
                     stacklevel=2,
                 )
             if choice.message.content is not None and choice.message.content != "":
                 warnings.warn(
                     "Both tool_calls and content are present in the message. "
-                    "This is unexpected. content will be ignored.",
+                    "This is unexpected. content will be ignored, tool_calls will be used.",
                     stacklevel=2,
                 )
             # NOTE: If OAI response type changes, this will need to be updated
@@ -574,7 +575,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 )
                 for x in choice.message.tool_calls
             ]
-            finish_reason = "function_calls"
+            finish_reason = "tool_calls"
         else:
             finish_reason = choice.finish_reason
             content = choice.message.content or ""
