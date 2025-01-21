@@ -7,13 +7,10 @@ using Microsoft.AutoGen.Contracts;
 namespace Microsoft.AutoGen.Runtime.Grpc;
 
 // gRPC service which handles communication between the agent worker and the cluster.
-public sealed class GrpcGatewayService : AgentRpc.AgentRpcBase
+public sealed class GrpcGatewayService(GrpcGateway gateway) : AgentRpc.AgentRpcBase
 {
-    private readonly GrpcGateway Gateway;
-    public GrpcGatewayService(GrpcGateway gateway)
-    {
-        Gateway = (GrpcGateway)gateway;
-    }
+    private readonly GrpcGateway Gateway = (GrpcGateway)gateway;
+
     public override async Task OpenChannel(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {
         try
