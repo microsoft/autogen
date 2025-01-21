@@ -1,7 +1,7 @@
 
 Evaluator:
   PageLog:
-    path: ~/pagelogs/temp6
+    path: ~/pagelogs/temp7
 
 client:
   model: gpt-4o-2024-08-06  # gpt-4o-2024-05-13, gpt-4o-2024-08-06, o1-preview, o1, etc.

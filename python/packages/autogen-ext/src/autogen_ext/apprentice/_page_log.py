@@ -20,27 +20,18 @@ class Page:
     def __init__(self, page_log, index, summary, indent_level, show_in_overview=True, final=True):
         self.page_log = page_log
         self.index_str = str(index)
-        self.full_link = None
-        self.file_title = None
-        self.line_text = None
-        self.indentation_text = None
         self.summary = summary
         self.indent_level = indent_level
         self.show_in_overview = show_in_overview
         self.final = final
-        self.compose_line()
-        self.lines = []
-        self.flush()
-
-    def compose_line(self, flush=False):
         self.file_title = self.index_str + '  ' + self.summary
         self.indentation_text = ""
         for i in range(self.indent_level):
             self.indentation_text += "|&emsp;"
         self.full_link = self.link_to_page_file()
         self.line_text = self.indentation_text + self.full_link
-        if flush:
-            self.flush()
+        self.lines = []
+        self.flush()
 
     def link_to_page_file(self):
         return f'<a href="{self.index_str}.html">{self.file_title}</a>'
