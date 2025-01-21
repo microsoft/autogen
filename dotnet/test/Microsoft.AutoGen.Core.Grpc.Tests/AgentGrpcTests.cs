@@ -5,7 +5,6 @@ using System.Collections.Concurrent;
 using System.Text.Json;
 using FluentAssertions;
 using Google.Protobuf.Reflection;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -15,13 +14,8 @@ using static Microsoft.AutoGen.Core.Grpc.Tests.AgentGrpcTests;
 
 namespace Microsoft.AutoGen.Core.Grpc.Tests;
 
-[Collection(GrpcClusterFixtureCollection.Name)]
-public class AgentGrpcTests(GrpcRuntimeFixture fixture)
+public class AgentGrpcTests
 {
-    private readonly GrpcRuntimeFixture _fixture = fixture;
-    // need a variable to store the runtime instance
-    public static WebApplication? Host { get; private set; }
-
     /// <summary>
     /// Verify that if the agent is not initialized via AgentWorker, it should throw the correct exception.
     /// </summary>
@@ -29,12 +23,12 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
     [Fact]
     public async Task Agent_ShouldThrowException_WhenNotInitialized()
     {
-        var agent = ActivatorUtilities.CreateInstance<TestAgent>(_fixture.Client.Services);
+        using var runtime = new GrpcRuntime();
+        var (_, agent) = runtime.Start(false); // Do not initialize
+
+        // Expect an exception when calling SubscribeAsync because the agent is uninitialized
         await Assert.ThrowsAsync<UninitializedAgentWorker.AgentInitalizedIncorrectlyException>(
-            async () =>
-            {
-                await agent.SubscribeAsync("TestEvent");
-            }
+            async () => await agent.SubscribeAsync("TestEvent")
         );
     }
 
@@ -45,11 +39,12 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
     [Fact]
     public async Task Agent_ShouldInitializeCorrectly()
     {
-        var (worker, agent) = _fixture.Start();
+        using var runtime = new GrpcRuntime();
+        runtime.Start();
+        var (worker, agent) = runtime.Start();
         Assert.Equal("GrpcAgentWorker", worker.GetType().Name);
         var subscriptions = await agent.GetSubscriptionsAsync();
         Assert.Equal(2, subscriptions.Count);
-        _fixture.Stop();
     }
     /// <summary>
     /// Test SubscribeAsync method
@@ -58,7 +53,8 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
     [Fact]
     public async Task SubscribeAsync_UnsubscribeAsync_and_GetSubscriptionsTest()
     {
-        var (_, agent) = _fixture.Start();
+        using var runtime = new GrpcRuntime();
+        var (_, agent) = runtime.Start();
         await agent.SubscribeAsync("TestEvent");
         await Task.Delay(100);
         var subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
@@ -83,7 +79,6 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
             }
         }
         Assert.False(found);
-        _fixture.Stop();
     }
 
     /// <summary>
@@ -93,7 +88,8 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
     [Fact]
     public async Task StoreAsync_and_ReadAsyncTest()
     {
-        var (_, agent) = _fixture.Start();
+        using var runtime = new GrpcRuntime();
+        var (_, agent) = runtime.Start();
         Dictionary<string, string> state = new()
         {
             { "testdata", "Active" }
@@ -107,7 +103,6 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
         var read = JsonSerializer.Deserialize<Dictionary<string, string>>(readState.TextData) ?? new Dictionary<string, string> { { "data", "No state data found" } };
         read.TryGetValue("testdata", out var value);
         Assert.Equal("Active", value);
-        _fixture.Stop();
     }
 
     /// <summary>
@@ -117,7 +112,8 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
     [Fact]
     public async Task PublishMessageAsync_and_ReceiveMessageTest()
     {
-        var (_, agent) = _fixture.Start();
+        using var runtime = new GrpcRuntime();
+        var (_, agent) = runtime.Start();
         await agent.SubscribeAsync("TestEvent").ConfigureAwait(true);
         var subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
         var found = false;
@@ -137,7 +133,6 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
         }).ConfigureAwait(true);
         await Task.Delay(10000);
         Assert.True(TestAgent.ReceivedMessages.ContainsKey("TestEvent"));
-        _fixture.Stop();
     }
 
     [Fact]
@@ -192,16 +187,25 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
 /// This fixture is used to provide a runtime for the agent tests.
 /// However, it is shared between tests. So operations from one test can affect another.
 /// </remarks>
-public sealed class GrpcRuntimeFixture
+public sealed class GrpcRuntime : IDisposable
 {
-    public GrpcRuntimeFixture()
+    public IHost Client { get; private set; }
+    public IHost? AppHost { get; private set; }
+
+    public GrpcRuntime()
     {
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
-        Environment.SetEnvironmentVariable("ASPNETCORE_HTTPS_PORTS", "53071");
-        Environment.SetEnvironmentVariable("AGENT_HOST", "https://localhost:53071");
-        AppHost = StartAppHostAsync().GetAwaiter().GetResult();
-        Environment.SetEnvironmentVariable("ASPNETCORE_URLS", "https://+;http://+");
-        Client = StartClientAsync().GetAwaiter().GetResult();
+        AppHost = Host.CreateDefaultBuilder().Build();
+        Client = Host.CreateDefaultBuilder().Build();
+    }
+
+    private static int GetAvailablePort()
+    {
+        using var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
+        listener.Start();
+        int port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
+        listener.Stop();
+        return port;
     }
 
     private static async Task<IHost> StartClientAsync()
@@ -213,33 +217,45 @@ public sealed class GrpcRuntimeFixture
         return await Microsoft.AutoGen.Runtime.Grpc.Host.StartAsync(local: false, useGrpc: true).ConfigureAwait(false);
 
     }
-    public IHost Client { get; }
-    public IHost? AppHost { get; }
 
     /// <summary>
-    /// Start - starts the agent
+    /// Start - gets a new port and starts fresh instances
     /// </summary>
-    /// <returns>IAgentWorker, TestAgent</returns>
-    public (IAgentWorker, TestAgent) Start()
+    public (IAgentWorker, TestAgent) Start(bool initialize = true)
     {
+        int port = GetAvailablePort(); // Get a new port per test run
+
+        // Update environment variables so each test runs independently
+        Environment.SetEnvironmentVariable("ASPNETCORE_HTTPS_PORTS", port.ToString());
+        Environment.SetEnvironmentVariable("AGENT_HOST", $"https://localhost:{port}");
+
+        AppHost = StartAppHostAsync().GetAwaiter().GetResult();
+        Client = StartClientAsync().GetAwaiter().GetResult();
+
         var agent = ActivatorUtilities.CreateInstance<TestAgent>(Client.Services);
         var worker = Client.Services.GetRequiredService<IAgentWorker>();
-        Agent.Initialize(worker, agent);
+        if (initialize)
+        {
+            Agent.Initialize(worker, agent);
+        }
+
         return (worker, agent);
     }
+
     /// <summary>
-    /// Stop - stops the agent
+    /// Stop - stops the agent and ensures cleanup
     /// </summary>
-    /// <returns>void</returns>
     public void Stop()
     {
-        IHostApplicationLifetime hostApplicationLifetime = Client.Services.GetRequiredService<IHostApplicationLifetime>();
-        hostApplicationLifetime.StopApplication();
+        Client?.StopAsync().GetAwaiter().GetResult();
+        AppHost?.StopAsync().GetAwaiter().GetResult();
     }
-}
 
-[CollectionDefinition(Name)]
-public sealed class GrpcClusterFixtureCollection : ICollectionFixture<GrpcRuntimeFixture>
-{
-    public const string Name = nameof(GrpcClusterFixtureCollection);
+    /// <summary>
+    /// Dispose - Ensures cleanup after each test
+    /// </summary>
+    public void Dispose()
+    {
+        Stop();
+    }
 }
