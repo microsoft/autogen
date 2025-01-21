@@ -22,11 +22,22 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
     public ValueTask<List<string>> GetSubscribedAndHandlingAgents(string topic, string eventType)
     {
         // get all agent types that are subscribed to the topic
-        var subscribedAgents = state.State.TopicToAgentTypesMap[topic];
-        // get all agent types that are handling the event
-        var handlingAgents = state.State.EventsToAgentTypesMap[eventType];
-        // return the intersection of the two sets
-        return new(subscribedAgents.Intersect(handlingAgents).ToList());
+        if(state.State.TopicToAgentTypesMap.TryGetValue(topic, out var subscribedAgentTypes))
+        {
+            // get all agent types that are handling the event
+            if(state.State.EventsToAgentTypesMap.TryGetValue(eventType, out var handlingAgents))
+            {
+                // return the intersection of the two sets
+                return new(subscribedAgentTypes.Intersect(handlingAgents).ToList());
+            }
+            else
+            {
+                return new();
+            }
+        } else
+        {
+            return new();
+        }
     }
     public ValueTask<(IGateway? Worker, bool NewPlacement)> GetOrPlaceAgent(AgentId agentId)
     {
