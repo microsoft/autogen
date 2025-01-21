@@ -28,7 +28,7 @@ public static class GrpcAgentWorkerHostBuilderExtensions
                     EnableMultipleHttp2Connections = true,
                     KeepAlivePingDelay = TimeSpan.FromSeconds(20),
                     KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
-                    KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
+                    KeepAlivePingPolicy = HttpKeepAlivePingPolicy.Always
                 };
 
                 var methodConfig = new MethodConfig
