@@ -9,6 +9,7 @@ using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 namespace Microsoft.AutoGen.Core.Grpc;
 
 public static class GrpcAgentWorkerHostBuilderExtensions
@@ -21,7 +22,7 @@ public static class GrpcAgentWorkerHostBuilderExtensions
             options.Address = new Uri(agentServiceAddress ?? builder.Configuration["AGENT_HOST"] ?? _defaultAgentServiceAddress);
             options.ChannelOptionsActions.Add(channelOptions =>
             {
-
+                LoggerFactory loggerFactory = new LoggerFactory();
                 channelOptions.HttpHandler = new SocketsHttpHandler
                 {
                     EnableMultipleHttp2Connections = true,
