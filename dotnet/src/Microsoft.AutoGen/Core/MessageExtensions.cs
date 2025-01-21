@@ -55,7 +55,14 @@ public static class MessageExtensions
     /// <summary>
     public static string GetSubject(this CloudEvent cloudEvent)
     {
-        return cloudEvent.Attributes["subject"].CeString;
+        if(cloudEvent.Attributes.TryGetValue("subject", out var value))
+        {
+            return value.CeString;
+        }
+        else
+        {
+            return string.Empty;
+        }
     }
 
     /// <summary>

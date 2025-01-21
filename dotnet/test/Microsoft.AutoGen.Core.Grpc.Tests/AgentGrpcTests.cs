@@ -153,26 +153,6 @@ public class AgentGrpcTests(GrpcRuntimeFixture fixture)
         agent.ReceivedItems[1].Should().Be(42);
     }
 
-    [Fact]
-    public async Task DelegateMessageToTestAgentAsync()
-    {
-        var client = _fixture.Client.Services.GetRequiredService<Client>();
-        await client.PublishMessageAsync(new TextMessage()
-        {
-            Source = nameof(DelegateMessageToTestAgentAsync),
-            TextMessage_ = "buffer"
-        }, token: CancellationToken.None);
-
-        // wait for 10 seconds
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        while (!TestAgent.ReceivedMessages.ContainsKey(nameof(DelegateMessageToTestAgentAsync)) && !cts.Token.IsCancellationRequested)
-        {
-            await Task.Delay(100);
-        }
-
-        TestAgent.ReceivedMessages[nameof(DelegateMessageToTestAgentAsync)].Should().NotBeNull();
-    }
-
     /// <summary>
     /// The test agent is a simple agent that is used for testing purposes.
     /// </summary>

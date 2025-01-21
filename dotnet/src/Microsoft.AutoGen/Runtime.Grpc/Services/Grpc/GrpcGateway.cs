@@ -216,7 +216,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         var registry = _clusterClient.GetGrain<IRegistryGrain>(0);
         //intentionally blocking
         var targetAgentTypes = await registry.GetSubscribedAndHandlingAgents(evt.Source, evt.Type).ConfigureAwait(true);
-        if (targetAgentTypes.Count == 0)
+        //verify targetAgentTypes is not null
+        if (targetAgentTypes is null || targetAgentTypes.Count == 0)
         {
             _logger.LogWarning("No agents found registered for event {Event}.", evt);
         }
