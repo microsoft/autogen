@@ -1,6 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // GrpcAgentWorkerHostBuilderExtension.cs
 using System.Diagnostics;
+using System.Reflection;
+using Google.Protobuf;
+using Google.Protobuf.Reflection;
 using Grpc.Core;
 using Grpc.Net.Client.Configuration;
 using Microsoft.AutoGen.Contracts;
@@ -61,7 +64,11 @@ public static class GrpcAgentWorkerHostBuilderExtensions
             return client;
         });
         builder.Services.AddSingleton(new AgentApplicationBuilder(builder));
-
         return builder;
+    }
+    private static MessageDescriptor? GetMessageDescriptor(Type type)
+    {
+        var property = type.GetProperty("Descriptor", BindingFlags.Static | BindingFlags.Public);
+        return property?.GetValue(null) as MessageDescriptor;
     }
 }

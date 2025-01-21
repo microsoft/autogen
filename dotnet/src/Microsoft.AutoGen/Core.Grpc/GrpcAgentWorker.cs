@@ -100,7 +100,6 @@ public sealed class GrpcAgentWorker(
                                 agent.ReceiveMessage(message);
                             }
                             break;
-
                         default:
                             throw new InvalidOperationException($"Unexpected message '{message}'.");
                     }

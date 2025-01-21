@@ -42,6 +42,7 @@ public abstract class Agent
     {
         EventTypes = eventTypes;
         AgentId = new AgentId(this.GetType().Name, Guid.NewGuid().ToString());
+        AgentId = new AgentId(this.GetType().Name, Guid.NewGuid().ToString());
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<Agent>();
         _handlersByMessageType = new(GetType().GetHandlersLookupTable());
         Worker = new UninitializedAgentWorker();
