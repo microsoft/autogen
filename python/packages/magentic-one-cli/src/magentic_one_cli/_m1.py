@@ -3,7 +3,7 @@ import asyncio
 import warnings
 from typing import Optional
 
-from autogen_agentchat.ui import Console, UserInputManager
+from autogen_agentchat.ui import RichConsole, UserInputManager
 from autogen_core import CancellationToken
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.teams.magentic_one import MagenticOne
@@ -49,7 +49,7 @@ def main() -> None:
         input_manager = UserInputManager(callback=cancellable_input)
         client = OpenAIChatCompletionClient(model="gpt-4o")
         m1 = MagenticOne(client=client, hil_mode=hil_mode, input_func=input_manager.get_wrapped_callback())
-        await Console(m1.run_stream(task=task), output_stats=False, user_input_manager=input_manager)
+        await RichConsole(m1.run_stream(task=task), output_stats=False, user_input_manager=input_manager)
 
     task = args.task[0]
     asyncio.run(run_task(task, not args.no_hil))
