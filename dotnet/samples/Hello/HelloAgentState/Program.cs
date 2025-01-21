@@ -29,7 +29,7 @@ namespace Hello
             IHandle<Shutdown>
     {
         private AgentState? State { get; set; }
-        public async Task Handle(NewMessageReceived item, CancellationToken cancellationToken = default)
+        var response = await SayHello(item.Message, cancellationToken).ConfigureAwait(false);
         {
             var response = await SayHello(item.Message).ConfigureAwait(false);
             var evt = new Output
