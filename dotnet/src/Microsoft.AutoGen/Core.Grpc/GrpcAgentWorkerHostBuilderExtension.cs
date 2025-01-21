@@ -2,7 +2,6 @@
 // GrpcAgentWorkerHostBuilderExtension.cs
 using System.Diagnostics;
 using System.Reflection;
-using Google.Protobuf;
 using Google.Protobuf.Reflection;
 using Grpc.Core;
 using Grpc.Net.Client.Configuration;
