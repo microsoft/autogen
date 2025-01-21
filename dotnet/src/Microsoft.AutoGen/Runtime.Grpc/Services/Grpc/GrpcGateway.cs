@@ -216,7 +216,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         var registry = _clusterClient.GetGrain<IRegistryGrain>(0);
         //intentionally blocking
         var targetAgentTypes = new List<string>();
-        targetAgentTypes = await registry.GetSubscribedAndHandlingAgents(evt.Source, evt.Type).ConfigureAwait(true);
+        targetAgentTypes.AddRange(await registry.GetSubscribedAndHandlingAgents(evt.Source, evt.Type).ConfigureAwait(true));
         // alternate path    
         // get the event type and then send to all agents that are subscribed to that event type
         var eventType = evt.Type;
