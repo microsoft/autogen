@@ -22,10 +22,10 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
     public ValueTask<List<string>> GetSubscribedAndHandlingAgents(string topic, string eventType)
     {
         // get all agent types that are subscribed to the topic
-        if(state.State.TopicToAgentTypesMap.TryGetValue(topic, out var subscribedAgentTypes))
+        if (state.State.TopicToAgentTypesMap.TryGetValue(topic, out var subscribedAgentTypes))
         {
             // get all agent types that are handling the event
-            if(state.State.EventsToAgentTypesMap.TryGetValue(eventType, out var handlingAgents))
+            if (state.State.EventsToAgentTypesMap.TryGetValue(eventType, out var handlingAgents))
             {
                 // return the intersection of the two sets
                 return new(subscribedAgentTypes.Intersect(handlingAgents).ToList());
@@ -34,7 +34,8 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
             {
                 return new();
             }
-        } else
+        }
+        else
         {
             return new();
         }
