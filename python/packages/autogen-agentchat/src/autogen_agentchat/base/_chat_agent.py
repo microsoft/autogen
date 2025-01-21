@@ -20,7 +20,7 @@ class Response:
     or :class:`ChatMessage`."""
 
 
-class ChatAgent(TaskRunner, ABC):
+class ChatAgent(ABC, TaskRunner):
     """Protocol for a chat agent."""
 
     @property
