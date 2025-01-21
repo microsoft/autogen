@@ -1,6 +1,6 @@
 from abc import ABC
 from dataclasses import dataclass
-from typing import Any, AsyncGenerator, Mapping, Sequence, runtime_checkable
+from typing import Any, AsyncGenerator, Mapping, Sequence
 
 from autogen_core import CancellationToken
 
@@ -20,7 +20,6 @@ class Response:
     or :class:`ChatMessage`."""
 
 
-@runtime_checkable
 class ChatAgent(TaskRunner, ABC):
     """Protocol for a chat agent."""
 
