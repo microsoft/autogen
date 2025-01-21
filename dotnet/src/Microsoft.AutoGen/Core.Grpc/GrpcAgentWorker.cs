@@ -371,8 +371,8 @@ public sealed class GrpcAgentWorker(
 
             try
             {
-                _readTask = Task.Run(RunReadPump, CancellationToken.None);
-                _writeTask = Task.Run(RunWritePump, CancellationToken.None);
+                _readTask = Task.Run(RunReadPump, cancellationToken);
+                _writeTask = Task.Run(RunWritePump, cancellationToken);
             }
             finally
             {
