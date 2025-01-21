@@ -297,7 +297,10 @@ public abstract class Agent
         {
             topic = this.AgentId.Type + "." + this.AgentId.Key;
         }
-        topic = topic + "." + source + "." + key;
+        else
+        {
+            topic = topic + "." + source + "." + key;
+        }
         return topic;
     }
 
