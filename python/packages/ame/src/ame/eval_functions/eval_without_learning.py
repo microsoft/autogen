@@ -1,7 +1,7 @@
 
 async def eval_without_learning(fast_learner, evaluator, client, logger, settings, run_dict):
     """An evaluation"""
-    logger.begin_page(summary="eval_without_learning")
+    logger.enter_function()
 
     num_trials = settings["num_trials"]
 
@@ -18,4 +18,4 @@ async def eval_without_learning(fast_learner, evaluator, client, logger, setting
     success_rate = round((num_successes / num_trials) * 100)
     logger.info("\nSuccess rate:  {}%\n".format(success_rate), flush=True)
 
-    logger.finish_page()
+    logger.leave_function()

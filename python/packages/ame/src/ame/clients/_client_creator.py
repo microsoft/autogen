@@ -10,7 +10,7 @@ class ClientCreator:
         self.logger = logger
 
     def create_client(self):
-        self.logger.begin_page(summary="ClientCreator.create_client")
+        self.logger.enter_function()
 
         # A few args are shared by all clients.
         args = {}
@@ -48,7 +48,7 @@ class ClientCreator:
                 client = ClientWrapper(
                     client, wrapper_settings["mode"], wrapper_settings["session_name"], self.logger)
 
-        self.logger.finish_page()
+        self.logger.leave_function()
         return client
 
     def create_oai_client(self, args):

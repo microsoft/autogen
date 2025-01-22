@@ -64,7 +64,7 @@ class Grader:
 
     async def is_response_correct(self, task_description, response_to_be_graded, correct_answer):
         # Returns only the insights that the client verifies are relevant to the task.
-        self.logger.begin_page(summary="Grader.is_response_correct")
+        self.logger.enter_function()
 
         sys_message = """You are a helpful and thoughtful assistant."""
 
@@ -103,7 +103,7 @@ class Grader:
                                          system_message_content=sys_message, user_content=user_message)
         self.logger.info("Decision: " + decision)
 
-        self.logger.finish_page()
+        self.logger.leave_function()
         if self.report_results:
             self.client.report_result(decision)
         return decision == "1", extracted_answer

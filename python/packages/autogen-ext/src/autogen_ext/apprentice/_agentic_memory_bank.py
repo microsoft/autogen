@@ -30,7 +30,7 @@ class AgenticMemoryBank:
             - logger (Optional, PageLogger): the PageLogger object to use for logging.
         """
         self.logger = logger
-        self.logger.begin_page(summary="AgenticMemoryBank.__init__")
+        self.logger.enter_function()
 
         self.settings = settings
         memory_dir_path = os.path.expanduser(self.settings["path"])
@@ -55,7 +55,7 @@ class AgenticMemoryBank:
         if reset:
             self.reset_insights()
 
-        self.logger.finish_page()
+        self.logger.leave_function()
 
     def reset(self):
         self.string_map.reset_db()

@@ -21,7 +21,7 @@ class AgentWrapper:
         """
         Assigns a task to the base agent.
         """
-        self.logger.begin_page(summary="AgentWrapper.assign_task")
+        self.logger.enter_function()
 
         # Pass the task through to the base agent.
         if self.base_agent_name == "MagenticOneGroupChat":
@@ -31,11 +31,11 @@ class AgentWrapper:
         else:
             assert False, "Invalid base agent"
 
-        self.logger.finish_page()
+        self.logger.leave_function()
         return response, work_history
 
     async def assign_task_to_thin_agent(self, task):
-        self.logger.begin_page(summary="AgentWrapper.assign_task_to_thin_agent")
+        self.logger.enter_function()
 
         self.logger.info(task)
 
@@ -68,11 +68,11 @@ In responding to every user message, you follow the same multi-step process give
         # Use the response as the work history as well.
         work_history = response_str
 
-        self.logger.finish_page()
+        self.logger.leave_function()
         return response_str, work_history
 
     async def assign_task_to_magentic_one(self, task) -> Tuple[str, str]:
-        self.logger.begin_page(summary="AgentWrapper.assign_task_to_magentic_one")
+        self.logger.enter_function()
 
         self.logger.info(task)
 
@@ -104,5 +104,5 @@ In responding to every user message, you follow the same multi-step process give
         # MagenticOne's response is the chat history, which we use here as the work history.
         work_history = response_str
 
-        self.logger.finish_page()
+        self.logger.leave_function()
         return response_str, work_history

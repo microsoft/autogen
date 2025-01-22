@@ -29,7 +29,7 @@ class StringSimilarityMap:
             - logger (Optional, PageLogger): the PageLogger object to use for logging.
         """
         self.logger = logger
-        self.logger.begin_page(summary="StringSimilarityMap.__init__")
+        self.logger.enter_function()
         self.verbosity = verbosity
         self.path_to_db_dir = path_to_db_dir
 
@@ -59,7 +59,7 @@ class StringSimilarityMap:
         # Clear the DB if requested.
         if reset:
             self.reset_db()
-        self.logger.finish_page()
+        self.logger.leave_function()
 
     def list_string_pairs(self):
         """Prints the string-pair contents."""
@@ -70,7 +70,7 @@ class StringSimilarityMap:
 
     def save_string_pairs_to_text_files(self):
         """Saves the contents to text files."""
-        self.logger.begin_page(summary="StringSimilarityMap.save_string_pairs_to_text_files")
+        self.logger.enter_function()
         # Delete all files in mem_text dir.
         for file in os.listdir("mem_text"):
             os.remove(os.path.join("mem_text", file))
@@ -84,7 +84,7 @@ class StringSimilarityMap:
             # Save the input string to a file with the same name as the string-pair ID in the mem_text dir, which is a subdir of the dir containing this file.
             with open("mem_text/{}.txt".format(uid), "w") as file:
                 file.write("  ID: {}\n    INPUT TEXT: {}\n    OUTPUT TEXT: {}".format(uid, input_text, output_text))
-        self.logger.finish_page()
+        self.logger.leave_function()
 
     def save_string_pairs(self):
         """Saves self.uid_text_dict to disk."""
@@ -93,14 +93,14 @@ class StringSimilarityMap:
 
     def reset_db(self):
         """Forces immediate deletion of the DB's contents, in memory and on disk."""
-        self.logger.begin_page(summary="StringSimilarityMap.reset_db")
+        self.logger.enter_function()
         if self.verbosity >= 1:
             self.logger.info("\nCLEARING STRING-PAIR MAP")
         self.db_client.delete_collection("string-pairs")
         self.vec_db = self.db_client.create_collection("string-pairs")
         self.uid_text_dict = {}
         self.save_string_pairs()
-        self.logger.finish_page()
+        self.logger.leave_function()
 
     def add_input_output_pair(self, input_text: str, output_text: str):
         """Adds an input-output pair to the vector DB."""

@@ -1,7 +1,7 @@
 
 async def eval_learning_from_demonstration(fast_learner, evaluator, client, logger, settings, run_dict):
     """An evaluation"""
-    logger.begin_page(summary="eval_learning_from_demonstration")
+    logger.enter_function()
 
     num_trials = settings["num_trials"]
 
@@ -38,5 +38,5 @@ async def eval_learning_from_demonstration(fast_learner, evaluator, client, logg
     results_str_2 = "Success rate after demonstration:  {}%".format(success_rate)
     logger.info('\n' + results_str_2)
 
-    logger.finish_page()
+    logger.leave_function()
     return "\neval_learning_from_demonstration\n" + results_str_1 + "\n" + results_str_2

@@ -1,7 +1,7 @@
 
 async def eval_self_teaching(fast_learner, evaluator, client, logger, settings, run_dict):
     """An evaluation"""
-    logger.begin_page(summary="eval_self_teaching")
+    logger.enter_function()
 
     num_loops = settings["num_loops"]
     num_final_test_trials = settings["num_final_test_trials"]
@@ -49,5 +49,5 @@ async def eval_self_teaching(fast_learner, evaluator, client, logger, settings, 
     logger.info('\n' + results_str_1)
     logger.info(results_str_2)
 
-    logger.finish_page()
+    logger.leave_function()
     return "\neval_self_teaching\n" + results_str_1 + "\n" + results_str_2

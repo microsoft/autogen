@@ -37,7 +37,7 @@ class Evaluator:
 
     async def test_fast_learner(self, fast_learner, task_description, expected_answer, num_trials,
                                 use_memory, client, logger) -> Tuple[int, int]:
-        logger.begin_page(summary="Evaluator.test_fast_learner")
+        logger.enter_function()
 
         self.logger.info("Testing the fast learner on the given task.\n")
 
@@ -58,11 +58,11 @@ class Evaluator:
                 self.logger.info("Answer is INCORRECT.\n")
 
         self.logger.info("\nSuccess rate:  {}%\n".format(round((num_successes / num_trials) * 100)))
-        logger.finish_page()
+        logger.leave_function()
         return num_successes, num_trials
 
     async def perform_evaluations(self, settings):
-        self.logger.begin_page(summary="Evaluator.perform_evaluations")
+        self.logger.enter_function()
 
         # Create the client, passed to both the fast_learner and the evaluator.
         client_creator = ClientCreator(settings=settings["client"], logger=self.logger)
@@ -115,7 +115,7 @@ class Evaluator:
             client.finalize()
 
         self.logger.flush(final=True)  # Finalize the page log
-        self.logger.finish_page()
+        self.logger.leave_function()
 
     async def run(self, settings_filepath):
         # Load the settings from yaml.

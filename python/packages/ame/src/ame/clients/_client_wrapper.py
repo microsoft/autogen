@@ -19,7 +19,7 @@ class ClientWrapper:
     """
     def __init__(self, base_client: AzureOpenAIChatCompletionClient, mode: str, session_name: str, logger: PageLogger) -> None:
         self.logger = logger
-        self.logger.begin_page(summary="ClientWrapper.__init__")
+        self.logger.enter_function()
 
         self.base_client = base_client
         self.mode = mode
@@ -36,7 +36,7 @@ class ClientWrapper:
             self.logger.info("Check-Replay mode enabled.\nRetrieving session from: " + self.path_to_output_file)
             self.recorded_items = self.load()
 
-        self.logger.finish_page()
+        self.logger.leave_function()
 
     async def create(
             self,
@@ -136,14 +136,14 @@ class ClientWrapper:
             raise ValueError(error_str)
 
     def finalize(self) -> None:
-        self.logger.begin_page(summary="ClientWrapper.finalize")
+        self.logger.enter_function()
         self.report_result("Total items = " + str(self.next_item_index))
         if self.mode == "record":
             self.save()
             self.logger.error("\nRecorded session was saved to: " + self.path_to_output_file)
         elif self.mode == "check-replay":
             self.logger.error("\nRecorded session was fully replayed and checked.")
-        self.logger.finish_page()
+        self.logger.leave_function()
 
     def save(self) -> None:
         # Save the recorded messages and responses to disk.

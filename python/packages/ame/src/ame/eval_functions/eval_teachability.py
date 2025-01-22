@@ -3,7 +3,7 @@ from autogen_ext.apprentice import Grader
 
 async def eval_teachability(fast_learner, evaluator, client, logger, settings, run_dict):
     """An evaluation"""
-    logger.begin_page(summary="eval_teachability")
+    logger.enter_function()
 
     # This eval function needs 2 data strings for each run.
     task_file = run_dict["task_file"]  # The task being tested.
@@ -45,5 +45,5 @@ async def eval_teachability(fast_learner, evaluator, client, logger, settings, r
         results_str_2 = "Answer after teaching is INCORRECT."
     logger.info(results_str_2 + "\n")
 
-    logger.finish_page()
+    logger.leave_function()
     return "\neval_teachability\n" + results_str_1 + "\n" + results_str_2

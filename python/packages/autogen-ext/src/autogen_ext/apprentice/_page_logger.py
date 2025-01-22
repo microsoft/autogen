@@ -2,6 +2,7 @@ import os
 import shutil
 import time
 import json
+import inspect
 from typing import List, Dict
 
 from autogen_core import Image
@@ -263,20 +264,34 @@ class PageLogger:
             f.write(self.html_closing())
         time.sleep(0.1)
 
-    def begin_page(self, summary, show_in_overview=True):
+    def enter_function(self):
+        # Perform a set of logging actions that are often performed at the beginning of a caller's method.
         if not self.enabled:
             return
-        assert show_in_overview
-        # Perform a set of logging actions that are often performed at the beginning of a caller's method.
-        page = self.add_page(summary=summary, show_in_overview=show_in_overview, final=False)
+        frame = inspect.currentframe().f_back  # Get the calling frame
 
+        # Check if it's a method by looking for 'self' or 'cls' in f_locals
+        if 'self' in frame.f_locals:
+            class_name = type(frame.f_locals['self']).__name__
+        elif 'cls' in frame.f_locals:
+            class_name = frame.f_locals['cls'].__name__
+        else:
+            class_name = None  # Not part of a class
+
+        if class_name is None:  # Not part of a class
+            caller_name = frame.f_code.co_name
+        else:
+            caller_name = class_name + '.' + frame.f_code.co_name
+
+        # Create a new page for this function.
+        page = self.add_page(summary=caller_name, show_in_overview=True, final=False)
         self.page_stack.push(page)
         self.page_stack.write_stack_to_page(page)
 
-        page._add_lines("\nENTER {}".format(summary), flush=True)
+        page._add_lines("\nENTER {}".format(caller_name), flush=True)
         return page
 
-    def finish_page(self):
+    def leave_function(self):
         if not self.enabled:
             return
         # Perform a set of logging actions that are often performed at the end of a caller's method.

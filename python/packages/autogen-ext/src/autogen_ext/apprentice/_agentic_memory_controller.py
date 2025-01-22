@@ -7,7 +7,7 @@ from ._grader import Grader
 class AgenticMemoryController:
     def __init__(self, settings, agent, reset, client, logger):
         self.logger = logger
-        self.logger.begin_page(summary="AgenticMemoryController.__init__")
+        self.logger.enter_function()
 
         self.settings = settings
         self.agent = agent
@@ -17,7 +17,7 @@ class AgenticMemoryController:
                                              verbosity=3, reset=reset, logger=logger)
         self.grader = Grader(client, logger)
 
-        self.logger.finish_page()
+        self.logger.leave_function()
 
     def reset_memory(self):
         self.memory_bank.reset()
@@ -29,7 +29,7 @@ class AgenticMemoryController:
         """
         Repeatedly assigns a task to the completion agent, and tries to learn from failures by creating useful insights as memories.
         """
-        self.logger.begin_page(summary="AgenticMemoryController.train_on_task")
+        self.logger.enter_function()
 
         # Attempt to create useful new memories.
         self.logger.info("Iterate on the task, possibly discovering a useful new insight.\n")
@@ -42,13 +42,13 @@ class AgenticMemoryController:
             # Add this insight to memory.
             await self.add_insight_to_memory(task, insight)
 
-        self.logger.finish_page()
+        self.logger.leave_function()
 
     async def test_on_task(self, task: str, expected_answer: str, num_trials=1):
         """
         Assigns a task to the completion agent, along with any relevant insights/memories.
         """
-        self.logger.begin_page(summary="AgenticMemoryController.test_on_task")
+        self.logger.enter_function()
 
         response = None
         num_successes = 0
@@ -81,12 +81,12 @@ class AgenticMemoryController:
         # Calculate the success rate as a percentage, rounded to the nearest whole number.
         self.logger.info("\nSuccess rate:  {}%\n".format(round((num_successes / num_trials) * 100)))
 
-        self.logger.finish_page()
+        self.logger.leave_function()
         return response, num_successes, num_trials
 
     async def add_insight_to_memory(self, task: str, insight: str):
         # Adds an insight to the DB.
-        self.logger.begin_page(summary="AgenticMemoryController.add_insight_to_memory")
+        self.logger.enter_function()
 
         self.logger.info("\nGIVEN TASK:")
         self.logger.info(task)
@@ -107,11 +107,11 @@ class AgenticMemoryController:
         # Add the insight to the memory bank.
         self.memory_bank.add_insight(insight, generalized_task, topics)
 
-        self.logger.finish_page()
+        self.logger.leave_function()
 
     async def add_insight_without_task_to_memory(self, insight: str):
         # Adds an insight to the DB.
-        self.logger.begin_page(summary="AgenticMemoryController.add_insight_without_task_to_memory")
+        self.logger.enter_function()
 
         self.logger.info("\nGIVEN INSIGHT:")
         self.logger.info(insight)
@@ -125,11 +125,11 @@ class AgenticMemoryController:
         # Add the insight to the memory bank.
         self.memory_bank.add_insight(insight, None, topics)
 
-        self.logger.finish_page()
+        self.logger.leave_function()
 
     async def retrieve_relevant_insights(self, task: str):
         # Retrieve insights from the DB that are relevant to the task.
-        self.logger.begin_page(summary="AgenticMemoryController.retrieve_relevant_insights")
+        self.logger.enter_function()
 
         if self.memory_bank.contains_insights():
             self.logger.info("\nCURRENT TASK:")
@@ -165,7 +165,7 @@ class AgenticMemoryController:
             self.logger.info("\nNO INSIGHTS WERE FOUND IN MEMORY")
             validated_insights = []
 
-        self.logger.finish_page()
+        self.logger.leave_function()
         return validated_insights
 
     def format_memory_section(self, memories):
@@ -180,7 +180,7 @@ class AgenticMemoryController:
         """
         Attempts to solve the given task multiple times to find a failure case to learn from.
         """
-        self.logger.begin_page(summary="AgenticMemoryController._test_for_failure")
+        self.logger.enter_function()
 
         self.logger.info("\nTask description, including any insights:  {}".format(task_plus_insights))
         self.logger.info("\nExpected answer:  {}\n".format(expected_answer))
@@ -205,11 +205,11 @@ class AgenticMemoryController:
                 failure_found = True
                 break
 
-        self.logger.finish_page()
+        self.logger.leave_function()
         return failure_found, response, work_history
 
     async def _iterate_on_task(self, task: str, expected_answer: str, max_train_trials: int, max_test_trials: int):
-        self.logger.begin_page(summary="AgenticMemoryController._iterate_on_task")
+        self.logger.enter_function()
 
         self.logger.info("\nTask description:  {}".format(task))
         self.logger.info("\nExpected answer:  {}\n".format(expected_answer))
@@ -266,14 +266,14 @@ class AgenticMemoryController:
 
         # Return the answer from the last loop.
         self.logger.info("\n{}\n".format(final_response))
-        self.logger.finish_page()
+        self.logger.leave_function()
         return final_response, successful_insight
 
     async def assign_task(self, task: str, use_memory: bool = True, should_await: bool = True):
         """
         Assigns a task to the agent, along with any relevant insights/memories.
         """
-        self.logger.begin_page(summary="AgenticMemoryController.assign_task")
+        self.logger.enter_function()
 
         if use_memory:
             # Try to retrieve any relevant memories from the DB.
@@ -292,11 +292,11 @@ class AgenticMemoryController:
         else:
             response, _ = self.agent.assign_task(task)
 
-        self.logger.finish_page()
+        self.logger.leave_function()
         return response
 
     async def handle_user_message(self, text, should_await=True):
-        self.logger.begin_page(summary="AgenticMemoryController.handle_user_message")
+        self.logger.enter_function()
 
         advice = await self.prompter.extract_advice(text)
         self.logger.info("Advice:  {}".format(advice))
@@ -306,11 +306,11 @@ class AgenticMemoryController:
 
         response = await self.assign_task(text, use_memory=(advice is None), should_await=should_await)
 
-        self.logger.finish_page()
+        self.logger.leave_function()
         return response
 
     async def learn_from_demonstration(self, task, demonstration):
-        self.logger.begin_page(summary="AgenticMemoryController.learn_from_demonstration")
+        self.logger.enter_function()
 
         self.logger.info("\nEXAMPLE TASK:")
         self.logger.info(task)
@@ -327,4 +327,4 @@ class AgenticMemoryController:
         # Add the insight to the memory bank.
         self.memory_bank.add_demonstration(task, demonstration, topics)
 
-        self.logger.finish_page()
+        self.logger.leave_function()
