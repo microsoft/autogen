@@ -322,6 +322,22 @@ class Subscription(google.protobuf.message.Message):
 global___Subscription = Subscription
 
 @typing.final
+class SubscriptionList(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    SUBSCRIPTIONS_FIELD_NUMBER: builtins.int
+    @property
+    def subscriptions(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___Subscription]: ...
+    def __init__(
+        self,
+        *,
+        subscriptions: collections.abc.Iterable[global___Subscription] | None = ...,
+    ) -> None: ...
+    def ClearField(self, field_name: typing.Literal["subscriptions", b"subscriptions"]) -> None: ...
+
+global___SubscriptionList = SubscriptionList
+
+@typing.final
 class SubscriptionRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 

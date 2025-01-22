@@ -39,14 +39,19 @@ class AgentRpcStub:
         agent_worker_pb2.RegisterAgentTypeResponse,
     ]
 
-    AddSubscription: grpc.UnaryUnaryMultiCallable[
+    Subscribe: grpc.UnaryUnaryMultiCallable[
         agent_worker_pb2.SubscriptionRequest,
         agent_worker_pb2.SubscriptionResponse,
     ]
 
-    RemoveSubscription: grpc.UnaryUnaryMultiCallable[
+    Unsubscribe: grpc.UnaryUnaryMultiCallable[
         agent_worker_pb2.SubscriptionRequest,
         agent_worker_pb2.SubscriptionResponse,
+    ]
+
+    GetSubscriptions: grpc.UnaryUnaryMultiCallable[
+        agent_worker_pb2.AgentId,
+        agent_worker_pb2.SubscriptionList,
     ]
 
 class AgentRpcAsyncStub:
@@ -70,14 +75,19 @@ class AgentRpcAsyncStub:
         agent_worker_pb2.RegisterAgentTypeResponse,
     ]
 
-    AddSubscription: grpc.aio.UnaryUnaryMultiCallable[
+    Subscribe: grpc.aio.UnaryUnaryMultiCallable[
         agent_worker_pb2.SubscriptionRequest,
         agent_worker_pb2.SubscriptionResponse,
     ]
 
-    RemoveSubscription: grpc.aio.UnaryUnaryMultiCallable[
+    Unsubscribe: grpc.aio.UnaryUnaryMultiCallable[
         agent_worker_pb2.SubscriptionRequest,
         agent_worker_pb2.SubscriptionResponse,
+    ]
+
+    GetSubscriptions: grpc.aio.UnaryUnaryMultiCallable[
+        agent_worker_pb2.AgentId,
+        agent_worker_pb2.SubscriptionList,
     ]
 
 class AgentRpcServicer(metaclass=abc.ABCMeta):
@@ -110,17 +120,24 @@ class AgentRpcServicer(metaclass=abc.ABCMeta):
     ) -> typing.Union[agent_worker_pb2.RegisterAgentTypeResponse, collections.abc.Awaitable[agent_worker_pb2.RegisterAgentTypeResponse]]: ...
 
     @abc.abstractmethod
-    def AddSubscription(
+    def Subscribe(
         self,
         request: agent_worker_pb2.SubscriptionRequest,
         context: _ServicerContext,
     ) -> typing.Union[agent_worker_pb2.SubscriptionResponse, collections.abc.Awaitable[agent_worker_pb2.SubscriptionResponse]]: ...
 
     @abc.abstractmethod
-    def RemoveSubscription(
+    def Unsubscribe(
         self,
         request: agent_worker_pb2.SubscriptionRequest,
         context: _ServicerContext,
     ) -> typing.Union[agent_worker_pb2.SubscriptionResponse, collections.abc.Awaitable[agent_worker_pb2.SubscriptionResponse]]: ...
+
+    @abc.abstractmethod
+    def GetSubscriptions(
+        self,
+        request: agent_worker_pb2.AgentId,
+        context: _ServicerContext,
+    ) -> typing.Union[agent_worker_pb2.SubscriptionList, collections.abc.Awaitable[agent_worker_pb2.SubscriptionList]]: ...
 
 def add_AgentRpcServicer_to_server(servicer: AgentRpcServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...
