@@ -85,10 +85,10 @@ jobs:
     - name: Prepare python venv
       run: |
         source ${{ github.workspace }}/python/.venv/bin/activate
-    - name: Setup .NET 8.0
+    - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x'
+        global-json-file: dotnet/global.json
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
@@ -132,14 +132,10 @@ jobs:
     - name: Prepare python venv
       run: |
         source ${{ github.workspace }}/python/.venv/bin/activate
-    - name: Setup .NET 8.0
+    - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x'
-    - name: Setup .NET 9.0
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '9.0.x'
+        global-json-file: dotnet/global.json
     - name: Install Temp Global.JSON
       run: |
         echo "{\"sdk\": {\"version\": \"9.0.101\"}}" > global.json
@@ -216,11 +212,9 @@ jobs:
     - uses: actions/setup-python@v5
       with:
         python-version: "3.11"
-
-    - name: Setup .NET 8.0
+    - name: Setup .NET
       uses: actions/setup-dotnet@v4
       with:
-        dotnet-version: '8.0.x'
         global-json-file: dotnet/global.json
     - name: Restore dependencies
       run: |
