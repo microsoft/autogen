@@ -5,19 +5,19 @@ from ._grader import Grader
 
 
 class AgenticMemoryController:
-    def __init__(self, settings, agent, reset, client, page_log):
-        page = page_log.begin_page(summary="AgenticMemoryController.__init__")
+    def __init__(self, settings, agent, reset, client, logger):
+        self.logger = logger
+        self.logger.begin_page(summary="AgenticMemoryController.__init__")
 
         self.settings = settings
         self.agent = agent
         self.client = client
-        self.page_log = page_log
-        self.prompter = Prompter(client, page_log)
+        self.prompter = Prompter(client, logger)
         self.memory_bank = AgenticMemoryBank(self.settings["AgenticMemoryBank"],
-                                             verbosity=0, reset=reset, page_log=page_log)
-        self.grader = Grader(client, page_log)
+                                             verbosity=0, reset=reset, logger=logger)
+        self.grader = Grader(client, logger)
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
 
     def reset_memory(self):
         self.memory_bank.reset()
@@ -29,70 +29,70 @@ class AgenticMemoryController:
         """
         Repeatedly assigns a task to the completion agent, and tries to learn from failures by creating useful insights as memories.
         """
-        page = self.page_log.begin_page(summary="AgenticMemoryController.train_on_task")
+        self.logger.begin_page(summary="AgenticMemoryController.train_on_task")
 
         # Attempt to create useful new memories.
-        page.add_lines("Iterate on the task, possibly discovering a useful new insight.\n", flush=True)
+        self.logger.info("Iterate on the task, possibly discovering a useful new insight.\n")
         _, insight = await self._iterate_on_task(task, expected_answer,
             self.settings["max_train_trials"], self.settings["max_test_trials"])
         if insight is None:
-            page.add_lines("No useful insight was discovered.\n", flush=True)
+            self.logger.info("No useful insight was discovered.\n")
         else:
-            page.add_lines("A new insight was created:\n{}".format(insight), flush=True)
+            self.logger.info("A new insight was created:\n{}".format(insight))
             # Add this insight to memory.
             await self.add_insight_to_memory(task, insight)
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
 
     async def test_on_task(self, task: str, expected_answer: str, num_trials=1):
         """
         Assigns a task to the completion agent, along with any relevant insights/memories.
         """
-        page = self.page_log.begin_page(summary="AgenticMemoryController.test_on_task")
+        self.logger.begin_page(summary="AgenticMemoryController.test_on_task")
 
         response = None
         num_successes = 0
 
         for trial in range(num_trials):
-            page.add_lines("\n-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
+            self.logger.info("\n-----  TRIAL {}  -----\n".format(trial + 1))
             task_plus_insights = task
 
             # Try to retrieve any relevant memories from the DB.
             filtered_insights = await self.retrieve_relevant_insights(task)
             if len(filtered_insights) > 0:
-                page.add_lines("Relevant insights were retrieved from memory.\n", flush=True)
+                self.logger.info("Relevant insights were retrieved from memory.\n")
                 memory_section = self.format_memory_section(filtered_insights)
                 if len(memory_section) > 0:
                     task_plus_insights = task + '\n\n' + memory_section
 
             # Attempt to solve the task.
-            page.add_lines("Try to solve the task.\n", flush=True)
+            self.logger.info("Try to solve the task.\n")
             response, _ = await self.agent.assign_task(task_plus_insights)
 
             response_is_correct, extracted_answer = await self.grader.is_response_correct(
                 task, response, expected_answer)
-            page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
+            self.logger.info("Extracted answer:  {}".format(extracted_answer))
             if response_is_correct:
-                page.add_lines("Answer is CORRECT.\n", flush=True)
+                self.logger.info("Answer is CORRECT.\n")
                 num_successes += 1
             else:
-                page.add_lines("Answer is INCORRECT.\n", flush=True)
+                self.logger.info("Answer is INCORRECT.\n")
 
         # Calculate the success rate as a percentage, rounded to the nearest whole number.
-        page.add_lines("\nSuccess rate:  {}%\n".format(round((num_successes / num_trials) * 100)), flush=True)
+        self.logger.info("\nSuccess rate:  {}%\n".format(round((num_successes / num_trials) * 100)))
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
         return response, num_successes, num_trials
 
     async def add_insight_to_memory(self, task: str, insight: str):
         # Adds an insight to the DB.
-        page = self.page_log.begin_page(summary="AgenticMemoryController.add_insight_to_memory")
+        self.logger.begin_page(summary="AgenticMemoryController.add_insight_to_memory")
 
-        page.add_lines("\nGIVEN TASK:")
-        page.add_lines(task)
+        self.logger.info("\nGIVEN TASK:")
+        self.logger.info(task)
 
-        page.add_lines("\nGIVEN INSIGHT:")
-        page.add_lines(insight)
+        self.logger.info("\nGIVEN INSIGHT:")
+        self.logger.info(insight)
 
         # Generalize the task.
         generalized_task = await self.prompter.generalize_task(task)
@@ -100,56 +100,56 @@ class AgenticMemoryController:
         # Get a combined list of topics from the task and insight.
         task_plus_insight = generalized_task.strip() + "\n(Hint:  " + insight + ")"
         topics = await self.prompter.find_index_topics(task_plus_insight)
-        page.add_lines("\nTOPICS EXTRACTED FROM TASK AND INSIGHT COMBINED:")
-        page.add_lines("\n".join(topics))
-        page.add_lines("")
+        self.logger.info("\nTOPICS EXTRACTED FROM TASK AND INSIGHT COMBINED:")
+        self.logger.info("\n".join(topics))
+        self.logger.info("")
 
         # Add the insight to the memory bank.
         self.memory_bank.add_insight(insight, generalized_task, topics)
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
 
     async def add_insight_without_task_to_memory(self, insight: str):
         # Adds an insight to the DB.
-        page = self.page_log.begin_page(summary="AgenticMemoryController.add_insight_without_task_to_memory")
+        self.logger.begin_page(summary="AgenticMemoryController.add_insight_without_task_to_memory")
 
-        page.add_lines("\nGIVEN INSIGHT:")
-        page.add_lines(insight)
+        self.logger.info("\nGIVEN INSIGHT:")
+        self.logger.info(insight)
 
         # Get a list of topics from the insight.
         topics = await self.prompter.find_index_topics(insight)
-        page.add_lines("\nTOPICS EXTRACTED FROM INSIGHT:")
-        page.add_lines("\n".join(topics))
-        page.add_lines("")
+        self.logger.info("\nTOPICS EXTRACTED FROM INSIGHT:")
+        self.logger.info("\n".join(topics))
+        self.logger.info("")
 
         # Add the insight to the memory bank.
         self.memory_bank.add_insight(insight, None, topics)
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
 
     async def retrieve_relevant_insights(self, task: str):
         # Retrieve insights from the DB that are relevant to the task.
-        page = self.page_log.begin_page(summary="AgenticMemoryController.retrieve_relevant_insights")
+        self.logger.begin_page(summary="AgenticMemoryController.retrieve_relevant_insights")
 
         if self.memory_bank.contains_insights():
-            page.add_lines("\nCURRENT TASK:")
-            page.add_lines(task)
+            self.logger.info("\nCURRENT TASK:")
+            self.logger.info(task)
 
             # Generalize the task.
             generalized_task = await self.prompter.generalize_task(task)
 
             # Get a list of topics from the task.
             topics = await self.prompter.find_index_topics(generalized_task)
-            page.add_lines("\nTOPICS EXTRACTED FROM TASK:")
-            page.add_lines("\n".join(topics))
-            page.add_lines("")
+            self.logger.info("\nTOPICS EXTRACTED FROM TASK:")
+            self.logger.info("\n".join(topics))
+            self.logger.info("")
 
             # Retrieve relevant insights from the memory bank.
             relevant_insights_and_relevances = self.memory_bank.get_relevant_insights(topics=topics)
             relevant_insights = []
-            page.add_lines("\n{} POTENTIALLY RELEVANT INSIGHTS".format(len(relevant_insights_and_relevances)))
+            self.logger.info("\n{} POTENTIALLY RELEVANT INSIGHTS".format(len(relevant_insights_and_relevances)))
             for insight, relevance in relevant_insights_and_relevances.items():
-                page.add_lines("\n  INSIGHT: {}\n  RELEVANCE: {:.3f}".format(insight, relevance))
+                self.logger.info("\n  INSIGHT: {}\n  RELEVANCE: {:.3f}".format(insight, relevance))
                 relevant_insights.append(insight)
 
             # Apply a final validation stage to keep only the insights that the LLM concludes are relevant.
@@ -158,14 +158,14 @@ class AgenticMemoryController:
                 if await self.prompter.validate_insight(insight, task):
                     validated_insights.append(insight)
 
-            page.add_lines("\n{} VALIDATED INSIGHTS".format(len(validated_insights)))
+            self.logger.info("\n{} VALIDATED INSIGHTS".format(len(validated_insights)))
             for insight in validated_insights:
-                page.add_lines("\n  INSIGHT: {}".format(insight))
+                self.logger.info("\n  INSIGHT: {}".format(insight))
         else:
-            page.add_lines("\nNO INSIGHTS WERE FOUND IN MEMORY")
+            self.logger.info("\nNO INSIGHTS WERE FOUND IN MEMORY")
             validated_insights = []
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
         return validated_insights
 
     def format_memory_section(self, memories):
@@ -180,39 +180,39 @@ class AgenticMemoryController:
         """
         Attempts to solve the given task multiple times to find a failure case to learn from.
         """
-        page = self.page_log.begin_page(summary="AgenticMemoryController._test_for_failure")
+        self.logger.begin_page(summary="AgenticMemoryController._test_for_failure")
 
-        page.add_lines("\nTask description, including any insights:  {}".format(task_plus_insights))
-        page.add_lines("\nExpected answer:  {}\n".format(expected_answer))
+        self.logger.info("\nTask description, including any insights:  {}".format(task_plus_insights))
+        self.logger.info("\nExpected answer:  {}\n".format(expected_answer))
 
         failure_found = False
         response, work_history = None, None
 
         for trial in range(num_trials):
-            page.add_lines("\n-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
+            self.logger.info("\n-----  TRIAL {}  -----\n".format(trial + 1))
 
             # Attempt to solve the task.
-            page.add_lines("Try to solve the task.", flush=True)
+            self.logger.info("Try to solve the task.")
             response, work_history = await self.agent.assign_task(task_plus_insights)
 
             response_is_correct, extracted_answer = await self.grader.is_response_correct(
                 task, response, expected_answer)
-            page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
+            self.logger.info("Extracted answer:  {}".format(extracted_answer))
             if response_is_correct:
-                page.add_lines("Answer is CORRECT.\n", flush=True)
+                self.logger.info("Answer is CORRECT.\n")
             else:
-                page.add_lines("Answer is INCORRECT.\n  Stop testing, and return the details of the failure.\n", flush=True)
+                self.logger.info("Answer is INCORRECT.\n  Stop testing, and return the details of the failure.\n")
                 failure_found = True
                 break
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
         return failure_found, response, work_history
 
     async def _iterate_on_task(self, task: str, expected_answer: str, max_train_trials: int, max_test_trials: int):
-        page = self.page_log.begin_page(summary="AgenticMemoryController._iterate_on_task")
+        self.logger.begin_page(summary="AgenticMemoryController._iterate_on_task")
 
-        page.add_lines("\nTask description:  {}".format(task))
-        page.add_lines("\nExpected answer:  {}\n".format(expected_answer))
+        self.logger.info("\nTask description:  {}".format(task))
+        self.logger.info("\nExpected answer:  {}\n".format(expected_answer))
 
         final_response = None
         old_insights = await self.retrieve_relevant_insights(task)
@@ -223,7 +223,7 @@ class AgenticMemoryController:
 
         # Loop until success (or timeout) while learning from failures.
         for trial in range(1, max_train_trials + 1):
-            page.add_lines("\n-----  TRAIN TRIAL {}  -----\n".format(trial), flush=True)
+            self.logger.info("\n-----  TRAIN TRIAL {}  -----\n".format(trial))
 
             task_plus_insights = task
 
@@ -240,7 +240,7 @@ class AgenticMemoryController:
                 task, task_plus_insights, expected_answer, max_test_trials)
             if not failure_found:
                 # No. Time to exit the loop.
-                page.add_lines("\nResponse is CORRECT.\n  Stop looking for insights.\n", flush=True)
+                self.logger.info("\nResponse is CORRECT.\n  Stop looking for insights.\n")
                 # Was this the first trial?
                 if trial == 1:
                     # Yes. We should return the successful response, and no insight.
@@ -253,78 +253,78 @@ class AgenticMemoryController:
             # Will we try again?
             if trial == max_train_trials:
                 # No. We're out of training trials.
-                page.add_lines("\nNo more trials will be attempted.\n", flush=True)
+                self.logger.info("\nNo more trials will be attempted.\n")
                 break
 
             # Try to learn from this failure.
-            page.add_lines("\nResponse is INCORRECT. Try to learn from this failure.\n", flush=True)
+            self.logger.info("\nResponse is INCORRECT. Try to learn from this failure.\n")
             insight = await self.prompter.learn_from_failure(
                 task, memory_section, response, expected_answer, work_history, new_insights)
-            page.add_lines("\nInsight:  {}\n".format(insight), flush=True)
+            self.logger.info("\nInsight:  {}\n".format(insight))
             new_insights.append(insight)
             last_insight = insight
 
         # Return the answer from the last loop.
-        page.add_lines("\n{}\n".format(final_response), flush=True)
-        self.page_log.finish_page(page)
+        self.logger.info("\n{}\n".format(final_response))
+        self.logger.finish_page()
         return final_response, successful_insight
 
     async def assign_task(self, task: str, use_memory: bool = True, should_await: bool = True):
         """
         Assigns a task to the agent, along with any relevant insights/memories.
         """
-        page = self.page_log.begin_page(summary="AgenticMemoryController.assign_task")
+        self.logger.begin_page(summary="AgenticMemoryController.assign_task")
 
         if use_memory:
             # Try to retrieve any relevant memories from the DB.
             filtered_insights = await self.retrieve_relevant_insights(task)
             if len(filtered_insights) > 0:
-                page.add_lines("Relevant insights were retrieved from memory.\n", flush=True)
+                self.logger.info("Relevant insights were retrieved from memory.\n")
                 memory_section = self.format_memory_section(filtered_insights)
                 task = task + '\n\n' + memory_section
                 # if len(memory_section) > 0:  # Best to include this condition, but it will require new recordings.
                 #     task = task + '\n\n' + memory_section
 
         # Attempt to solve the task.
-        page.add_lines("Try to solve the task.\n", flush=True)
+        self.logger.info("Try to solve the task.\n")
         if should_await:
             response, _ = await self.agent.assign_task(task)
         else:
             response, _ = self.agent.assign_task(task)
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
         return response
 
     async def handle_user_message(self, text, should_await=True):
-        page = self.page_log.begin_page(summary="AgenticMemoryController.handle_user_message")
+        self.logger.begin_page(summary="AgenticMemoryController.handle_user_message")
 
         advice = await self.prompter.extract_advice(text)
-        page.add_lines("Advice:  {}".format(advice), flush=True)
+        self.logger.info("Advice:  {}".format(advice))
 
         if advice is not None:
             await self.add_insight_without_task_to_memory(advice)
 
         response = await self.assign_task(text, use_memory=(advice is None), should_await=should_await)
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
         return response
 
     async def learn_from_demonstration(self, task, demonstration):
-        page = self.page_log.begin_page(summary="AgenticMemoryController.learn_from_demonstration")
+        self.logger.begin_page(summary="AgenticMemoryController.learn_from_demonstration")
 
-        page.add_lines("\nEXAMPLE TASK:")
-        page.add_lines(task)
+        self.logger.info("\nEXAMPLE TASK:")
+        self.logger.info(task)
 
-        page.add_lines("\nEXAMPLE DEMONSTRATION:")
-        page.add_lines(demonstration)
+        self.logger.info("\nEXAMPLE DEMONSTRATION:")
+        self.logger.info(demonstration)
 
         # Get a list of topics from the task.
         topics = await self.prompter.find_index_topics(task.strip())
-        page.add_lines("\nTOPICS EXTRACTED FROM TASK:")
-        page.add_lines("\n".join(topics))
-        page.add_lines("")
+        self.logger.info("\nTOPICS EXTRACTED FROM TASK:")
+        self.logger.info("\n".join(topics))
+        self.logger.info("")
 
         # Add the insight to the memory bank.
         self.memory_bank.add_demonstration(task, demonstration, topics)
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()

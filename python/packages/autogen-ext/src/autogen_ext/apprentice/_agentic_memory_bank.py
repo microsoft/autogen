@@ -21,23 +21,21 @@ class AgenticMemoryBank:
         settings: Dict,
         verbosity: Optional[int] = 0,
         reset: Optional[bool] = False,
-        page_log=None,
+        logger=None,
     ):
         """
         Args:
             - verbosity (Optional, int): 1 to print memory operations, 0 to omit them. 3+ to print string-pair lists.
             - reset (Optional, bool): True to clear the DB before starting. Default False
-            - page_log (Optional, PageLog): the PageLog object to use for logging.
+            - logger (Optional, PageLogger): the PageLogger object to use for logging.
         """
-        page = page_log.begin_page(summary="AgenticMemoryBank.__init__")
+        self.logger = logger
+        self.logger.begin_page(summary="AgenticMemoryBank.__init__")
 
         self.settings = settings
         memory_dir_path = os.path.expanduser(self.settings["path"])
         path_to_db_dir = os.path.join(memory_dir_path, "string_map")
         self.path_to_dict = os.path.join(memory_dir_path, "uid_insight_dict.pkl")
-
-        self.page_log = page_log
-        page.add_lines("Creating AgenticMemoryBank", flush=True)
 
         self.string_map = StringSimilarityMap(verbosity=verbosity, reset=reset, path_to_db_dir=path_to_db_dir)
 
@@ -45,18 +43,18 @@ class AgenticMemoryBank:
         self.uid_insight_dict = {}
         self.last_insight_id = 0
         if (not reset) and os.path.exists(self.path_to_dict):
-            page.add_lines("\nLOADING INSIGHTS FROM DISK  {}".format(self.path_to_dict))
-            page.add_lines("    Location = {}".format(self.path_to_dict))
+            self.logger.info("\nLOADING INSIGHTS FROM DISK  {}".format(self.path_to_dict))
+            self.logger.info("    Location = {}".format(self.path_to_dict))
             with open(self.path_to_dict, "rb") as f:
                 self.uid_insight_dict = pickle.load(f)
                 self.last_insight_id = len(self.uid_insight_dict)
-                page.add_lines("\n{} INSIGHTS LOADED".format(len(self.uid_insight_dict)))
+                self.logger.info("\n{} INSIGHTS LOADED".format(len(self.uid_insight_dict)))
 
         # Clear the DB if requested.
         if reset:
             self.reset_insights()
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
 
     def reset(self):
         self.string_map.reset_db()

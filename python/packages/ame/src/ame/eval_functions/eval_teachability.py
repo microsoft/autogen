@@ -1,9 +1,9 @@
-from autogen_ext.apprentice import PageLog, Grader
+from autogen_ext.apprentice import Grader
 
 
-async def eval_teachability(fast_learner, evaluator, client, page_log, settings, run_dict):
+async def eval_teachability(fast_learner, evaluator, client, logger, settings, run_dict):
     """An evaluation"""
-    page = page_log.begin_page(summary="eval_teachability")
+    logger.begin_page(summary="eval_teachability")
 
     # This eval function needs 2 data strings for each run.
     task_file = run_dict["task_file"]  # The task being tested.
@@ -15,32 +15,32 @@ async def eval_teachability(fast_learner, evaluator, client, page_log, settings,
 
     # First test without memory.
     fast_learner.reset_memory()
-    page.add_lines("\nClear memory, then ask the question.")
+    logger.info("\nClear memory, then ask the question.")
     response = await fast_learner.handle_user_message(task_description)
 
     # Check the response.
-    grader = Grader(client, page_log)
+    grader = Grader(client, logger)
     response_is_correct, extracted_answer = await grader.is_response_correct(task_description, response, expected_answer)
-    page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
+    logger.info("Extracted answer:  {}".format(extracted_answer))
     if response_is_correct:
-        page.add_lines("Answer is CORRECT.\n", flush=True)
+        logger.info("Answer is CORRECT.\n")
     else:
-        page.add_lines("Answer is INCORRECT.\n", flush=True)
+        logger.info("Answer is INCORRECT.\n")
 
     # Give advice that should help solve this task.
-    page.add_lines("Give the advice.")
+    logger.info("Give the advice.")
     await fast_learner.handle_user_message(advice)
 
     # Now ask the question again to see if the advice helps.
-    page.add_lines("\nAsk the question again to see if the advice helps.")
+    logger.info("\nAsk the question again to see if the advice helps.")
     response = await fast_learner.handle_user_message(task_description)
 
     # Check the response.
     response_is_correct, extracted_answer = await grader.is_response_correct(task_description, response, expected_answer)
-    page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
+    logger.info("Extracted answer:  {}".format(extracted_answer))
     if response_is_correct:
-        page.add_lines("Answer is CORRECT.\n", flush=True)
+        logger.info("Answer is CORRECT.\n")
     else:
-        page.add_lines("Answer is INCORRECT.\n", flush=True)
+        logger.info("Answer is INCORRECT.\n")
 
-    page_log.finish_page(page)
+    logger.finish_page()

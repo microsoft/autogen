@@ -12,9 +12,9 @@ from ._utils import UserContent
 
 
 class Grader:
-    def __init__(self, client, page_log):
+    def __init__(self, client, logger):
         self.client = client
-        self.page_log = page_log
+        self.logger = logger
 
         # Check whether to report results to the client.
         self.report_results = hasattr(self.client, 'report_result')
@@ -45,7 +45,7 @@ class Grader:
         assert isinstance(response_message, AssistantMessage)
 
         # Log the model call
-        self.page_log.add_model_call(summary=summary, input_messages=input_messages, response=response)
+        self.logger.add_model_call(summary=summary, input_messages=input_messages, response=response)
 
         # Manage the chat history
         if keep_these_messages:
@@ -64,7 +64,7 @@ class Grader:
 
     async def is_response_correct(self, task_description, response_to_be_graded, correct_answer):
         # Returns only the insights that the client verifies are relevant to the task.
-        page = self.page_log.begin_page(summary="Grader.is_response_correct")
+        self.logger.begin_page(summary="Grader.is_response_correct")
 
         sys_message = """You are a helpful and thoughtful assistant."""
 
@@ -82,7 +82,7 @@ class Grader:
         self.clear_history()
         extracted_answer = await self.call_model(summary="Ask the model to extract the answer",
                                                  system_message_content=sys_message, user_content=user_message)
-        page.add_lines("Extracted answer: " + extracted_answer)
+        self.logger.info("Extracted answer: " + extracted_answer)
 
         user_message = ["""Your job is to decide whether a given answer to a task is correct or not.
 - You will be given the task description and the correct, gold-standard answer, along with the answer to be graded.
@@ -101,9 +101,9 @@ class Grader:
         self.clear_history()
         decision = await self.call_model(summary="Ask the model to check the answer for correctness",
                                          system_message_content=sys_message, user_content=user_message)
-        page.add_lines("Decision: " + decision)
+        self.logger.info("Decision: " + decision)
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
         if self.report_results:
             self.client.report_result(decision)
         return decision == "1", extracted_answer

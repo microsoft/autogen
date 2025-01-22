@@ -11,17 +11,17 @@ from typing import Tuple
 
 
 class AgentWrapper:
-    def __init__(self, settings, client, page_log):
+    def __init__(self, settings, client, logger):
         self.settings = settings
         self.client = client
-        self.page_log = page_log
+        self.logger = logger
         self.base_agent_name = self.settings["base_agent"]
 
     async def assign_task(self, task):
         """
         Assigns a task to the base agent.
         """
-        page = self.page_log.begin_page(summary="AgentWrapper.assign_task")
+        self.logger.begin_page(summary="AgentWrapper.assign_task")
 
         # Pass the task through to the base agent.
         if self.base_agent_name == "MagenticOneGroupChat":
@@ -31,13 +31,13 @@ class AgentWrapper:
         else:
             assert False, "Invalid base agent"
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
         return response, work_history
 
     async def assign_task_to_thin_agent(self, task):
-        page = self.page_log.begin_page(summary="AgentWrapper.assign_task_to_thin_agent")
+        self.logger.begin_page(summary="AgentWrapper.assign_task_to_thin_agent")
 
-        page.add_lines(task)
+        self.logger.info(task)
 
         system_message_content = """You are a helpful and thoughtful assistant.
 In responding to every user message, you follow the same multi-step process given here:
@@ -61,20 +61,20 @@ In responding to every user message, you follow the same multi-step process give
         response_str = response.content
 
         # Log the model call
-        self.page_log.add_model_call(summary="Ask the model to complete the task",
+        self.logger.add_model_call(summary="Ask the model to complete the task",
                                      input_messages=input_messages, response=response)
-        page.add_lines("\n-----  RESPONSE  -----\n\n{}\n".format(response_str), flush=True)
+        self.logger.info("\n-----  RESPONSE  -----\n\n{}\n".format(response_str))
 
         # Use the response as the work history as well.
         work_history = response_str
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
         return response_str, work_history
 
     async def assign_task_to_magentic_one(self, task) -> Tuple[str, str]:
-        page = self.page_log.begin_page(summary="AgentWrapper.assign_task_to_magentic_one")
+        self.logger.begin_page(summary="AgentWrapper.assign_task_to_magentic_one")
 
-        page.add_lines(task)
+        self.logger.info(task)
 
         general_agent = AssistantAgent(
             "general_agent",
@@ -99,10 +99,10 @@ In responding to every user message, you follow the same multi-step process give
         stream = team.run_stream(task=task)
         task_result = await Console(stream)
         response_str = "\n".join([message_content_to_str(message.content) for message in task_result.messages])
-        page.add_lines("\n-----  RESPONSE  -----\n\n{}\n".format(response_str), flush=True)
+        self.logger.info("\n-----  RESPONSE  -----\n\n{}\n".format(response_str))
 
         # MagenticOne's response is the chat history, which we use here as the work history.
         work_history = response_str
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
         return response_str, work_history

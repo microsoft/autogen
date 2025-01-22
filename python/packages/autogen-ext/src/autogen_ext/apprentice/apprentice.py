@@ -3,15 +3,15 @@ from ._agent_wrapper import AgentWrapper
 
 
 class Apprentice:
-    def __init__(self, settings, evaluator, client, page_log):
+    def __init__(self, settings, evaluator, client, logger):
         self.settings = settings
         self.evaluator = evaluator
         self.client = client
-        self.page_log = page_log
+        self.logger = logger
 
         # Create the agent wrapper, which creates the base agent.
         self.agent_settings = settings["AgentWrapper"]
-        self.agent = AgentWrapper(settings=self.agent_settings, client=self.client, page_log=self.page_log)
+        self.agent = AgentWrapper(settings=self.agent_settings, client=self.client, logger=self.logger)
 
         # Create the AgenticMemoryController, which creates the AgenticMemoryBank.
         self.memory_controller = AgenticMemoryController(
@@ -19,7 +19,7 @@ class Apprentice:
             agent=self.agent,
             reset=False,
             client=self.client,
-            page_log=self.page_log
+            logger=self.logger
         )
 
     def reset_memory(self):
@@ -28,40 +28,40 @@ class Apprentice:
 
     async def handle_user_message(self, text, should_await=True):
         """A foreground operation, intended for immediate response to the user."""
-        page = self.page_log.begin_page(summary="Apprentice.handle_user_message")
+        self.logger.begin_page(summary="Apprentice.handle_user_message")
 
         # Pass the user message through to the memory controller.
         response = await self.memory_controller.handle_user_message(text, should_await)
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
         return response
 
     async def learn_from_demonstration(self, task, demonstration):
         """A foreground operation, assuming that the task and demonstration are already known."""
-        page = self.page_log.begin_page(summary="Apprentice.learn_from_demonstration")
+        self.logger.begin_page(summary="Apprentice.learn_from_demonstration")
 
         # Pass the task and demonstration through to the memory controller.
         await self.memory_controller.learn_from_demonstration(task, demonstration)
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
 
     async def assign_task(self, task: str, use_memory: bool = True, should_await: bool = True):
         """
         Assigns a task to the agent, along with any relevant insights/memories.
         """
-        page = self.page_log.begin_page(summary="Apprentice.assign_task")
+        self.logger.begin_page(summary="Apprentice.assign_task")
 
         # Pass the task through to the memory controller.
         response = await self.memory_controller.assign_task(task, use_memory, should_await)
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
         return response
 
     async def train_on_task(self, task, expected_answer):
         """A background operation, not intended for immediate response."""
-        page = self.page_log.begin_page(summary="Apprentice.train_on_task")
+        self.logger.begin_page(summary="Apprentice.train_on_task")
 
         # Pass the task through to the memory controller.
         await self.memory_controller.train_on_task(task, expected_answer)
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()

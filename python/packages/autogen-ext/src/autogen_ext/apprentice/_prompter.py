@@ -15,9 +15,9 @@ from ._utils import message_content_to_str, UserContent, text_from_user_content,
 
 
 class Prompter:
-    def __init__(self, client, page_log):
+    def __init__(self, client, logger):
         self.client = client
-        self.page_log = page_log
+        self.logger = logger
         self.default_system_message_content = "You are a helpful assistant."
         self.time_spent_in_model_calls = 0.
         self.num_model_calls = 0
@@ -63,7 +63,7 @@ class Prompter:
         self.num_model_calls += 1
 
         # Log the model call
-        self.page_log.add_model_call(summary=summary, input_messages=input_messages, response=response)
+        self.logger.add_model_call(summary=summary, input_messages=input_messages, response=response)
 
         # Manage the chat history
         if keep_these_messages:

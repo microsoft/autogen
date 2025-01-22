@@ -9,7 +9,7 @@ from autogen_core.models import (
     RequestUsage,
 )
 from autogen_core.tools import Tool, ToolSchema
-from autogen_ext.apprentice import PageLog
+from autogen_ext.apprentice import PageLogger
 
 
 class ClientWrapper:
@@ -17,27 +17,26 @@ class ClientWrapper:
     Wraps a client object to record messages and responses (in record mode)
     or check the messages and replay the responses (in check-replay mode).
     """
-    def __init__(self, base_client: AzureOpenAIChatCompletionClient, mode: str, session_name: str, page_log: PageLog) -> None:
-        page = page_log.begin_page(summary="ClientWrapper.__init__")
+    def __init__(self, base_client: AzureOpenAIChatCompletionClient, mode: str, session_name: str, logger: PageLogger) -> None:
+        self.logger = logger
+        self.logger.begin_page(summary="ClientWrapper.__init__")
 
         self.base_client = base_client
         self.mode = mode
-        self.page_log = page_log
         self.next_item_index = 0
         self.model_info = {"family": self.base_client.model_info["family"]}
         self.path_to_output_file = os.path.join(os.path.expanduser("~/sessions/"), session_name + ".yaml")
-        if page_log is not None:
-            page.add_lines("Wrapping the base client in a ClientWrapper.")
+        self.logger.info("Wrapping the base client in a ClientWrapper.")
         if self.mode == "record":
             # Prepare to record the messages and responses.
-            page.add_lines("Recording mode enabled.\nRecording session to: " + self.path_to_output_file)
+            self.logger.info("Recording mode enabled.\nRecording session to: " + self.path_to_output_file)
             self.recorded_items = []
         elif self.mode == "check-replay":
             # Load the recorded messages and responses from disk.
-            page.add_lines("Check-Replay mode enabled.\nRetrieving session from: " + self.path_to_output_file)
+            self.logger.info("Check-Replay mode enabled.\nRetrieving session from: " + self.path_to_output_file)
             self.recorded_items = self.load()
 
-        self.page_log.finish_page(page)
+        self.logger.finish_page()
 
     async def create(
             self,
@@ -80,7 +79,7 @@ class ClientWrapper:
         # Get the next recorded turn.
         if self.next_item_index >= len(self.recorded_items):
             error_str = "\nNo more recorded items to check."
-            self.page_log.add_lines(error_str, flush=True)
+            self.logger.error(error_str)
             raise ValueError(error_str)
         recorded_turn = self.recorded_items[self.next_item_index]
         self.next_item_index += 1
@@ -88,15 +87,15 @@ class ClientWrapper:
         # Check the current message list against the recorded message list.
         if "messages" not in recorded_turn:
             error_str = "\nRecorded turn doesn't contain a messages field. Perhaps a result was recorded instead."
-            self.page_log.add_lines(error_str, flush=True)
+            self.logger.error(error_str)
             raise ValueError(error_str)
         recorded_messages = recorded_turn["messages"]
         current_messages = self.convert_messages(messages)
         if current_messages != recorded_messages:
             error_str = "\nCurrent message list doesn't match the recorded message list."
-            self.page_log.add_message_content(recorded_messages, "recorded message list")
-            self.page_log.add_message_content(current_messages, "current message list")
-            self.page_log.add_lines(error_str, flush=True)
+            self.logger.add_message_content(recorded_messages, "recorded message list")
+            self.logger.add_message_content(current_messages, "current message list")
+            self.logger.error(error_str)
             raise ValueError(error_str)
         assert current_messages == recorded_messages
 
@@ -122,29 +121,29 @@ class ClientWrapper:
         # Check a result.
         if self.next_item_index >= len(self.recorded_items):
             error_str = "\nNo more recorded items to check."
-            self.page_log.add_lines(error_str, flush=True)
+            self.logger.error(error_str)
             raise ValueError(error_str)
         recorded_result = self.recorded_items[self.next_item_index]
         self.next_item_index += 1
 
         if "result" not in recorded_result:
             error_str = "\nRecorded turn doesn't contain a result field. Perhaps a turn was recorded instead."
-            self.page_log.add_lines(error_str, flush=True)
+            self.logger.error(error_str)
             raise ValueError(error_str)
         if result != recorded_result["result"]:
             error_str = "\nRecorded result ({}) doesn't match the current result ({}).".format(recorded_result["result"], result)
-            self.page_log.add_lines(error_str, flush=True)
+            self.logger.error(error_str)
             raise ValueError(error_str)
 
     def finalize(self) -> None:
-        page = self.page_log.begin_page(summary="ClientWrapper.finalize")
+        self.logger.begin_page(summary="ClientWrapper.finalize")
         self.report_result("Total items = " + str(self.next_item_index))
         if self.mode == "record":
             self.save()
-            self.page_log.add_lines("\nRecorded session was saved to: " + self.path_to_output_file)
+            self.logger.error("\nRecorded session was saved to: " + self.path_to_output_file)
         elif self.mode == "check-replay":
-            self.page_log.add_lines("\nRecorded session was fully replayed and checked.")
-        self.page_log.finish_page(page)
+            self.logger.error("\nRecorded session was fully replayed and checked.")
+        self.logger.finish_page()
 
     def save(self) -> None:
         # Save the recorded messages and responses to disk.

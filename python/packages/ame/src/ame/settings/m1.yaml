@@ -1,6 +1,6 @@
 
 Evaluator:
-  PageLog:
+  PageLogger:
     path: ~/pagelogs/m1
 
 client:

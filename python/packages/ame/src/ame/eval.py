@@ -3,13 +3,13 @@ import yaml
 import asyncio
 import importlib
 from typing import Tuple
-from autogen_ext.apprentice import PageLog, Grader
+from autogen_ext.apprentice import PageLogger, Grader
 from ame.clients._client_creator import ClientCreator
 
 
 class Evaluator:
     def __init__(self):
-        self.page_log = None
+        self.logger = None
 
     def get_task_description_and_answer_from_file(self, task_filename):
         path_to_this_file = os.path.abspath(__file__)
@@ -36,36 +36,36 @@ class Evaluator:
             return demo_dict["demo"]
 
     async def test_fast_learner(self, fast_learner, task_description, expected_answer, num_trials,
-                                use_memory, client, page_log) -> Tuple[int, int]:
-        page = page_log.begin_page(summary="Evaluator.test_fast_learner")
+                                use_memory, client, logger) -> Tuple[int, int]:
+        logger.begin_page(summary="Evaluator.test_fast_learner")
 
-        page.add_lines("Testing the fast learner on the given task.\n", flush=True)
+        self.logger.info("Testing the fast learner on the given task.\n")
 
-        grader = Grader(client, page_log)
+        grader = Grader(client, logger)
         num_successes = 0
 
         for trial in range(num_trials):
-            page.add_lines("\n-----  TRIAL {}  -----\n".format(trial + 1), flush=True)
-            page.add_lines("Try to solve the task.\n", flush=True)
+            self.logger.info("\n-----  TRIAL {}  -----\n".format(trial + 1))
+            self.logger.info("Try to solve the task.\n")
             response = await fast_learner.assign_task(task_description, use_memory=use_memory)
             response_is_correct, extracted_answer = await grader.is_response_correct(
                 task_description, response, expected_answer)
-            page.add_lines("Extracted answer:  {}".format(extracted_answer), flush=True)
+            self.logger.info("Extracted answer:  {}".format(extracted_answer))
             if response_is_correct:
-                page.add_lines("Answer is CORRECT.\n", flush=True)
+                self.logger.info("Answer is CORRECT.\n")
                 num_successes += 1
             else:
-                page.add_lines("Answer is INCORRECT.\n", flush=True)
+                self.logger.info("Answer is INCORRECT.\n")
 
-        page.add_lines("\nSuccess rate:  {}%\n".format(round((num_successes / num_trials) * 100)), flush=True)
-        page_log.finish_page(page)
+        self.logger.info("\nSuccess rate:  {}%\n".format(round((num_successes / num_trials) * 100)))
+        logger.finish_page()
         return num_successes, num_trials
 
-    async def perform_evaluations(self, settings, page_log):
-        page = self.page_log.begin_page(summary="Evaluator.perform_evaluations")
+    async def perform_evaluations(self, settings):
+        self.logger.begin_page(summary="Evaluator.perform_evaluations")
 
         # Create the client, passed to both the fast_learner and the evaluator.
-        client_creator = ClientCreator(settings=settings["client"], page_log=self.page_log)
+        client_creator = ClientCreator(settings=settings["client"], logger=self.logger)
         client = client_creator.create_client()
 
         # Create the specified fast_learner implementation.
@@ -83,7 +83,7 @@ class Evaluator:
             print('Failed to import {}.{}'.format(module_path, class_name))
             raise
         try:
-            fast_learner = fast_learner_class(fast_learner_settings, self, client, self.page_log)
+            fast_learner = fast_learner_class(fast_learner_settings, self, client, self.logger)
         except Exception as err:
             print("Error creating \"{}\": {}".format(fast_learner_class, err))
             raise
@@ -107,24 +107,24 @@ class Evaluator:
 
             # Call the eval function for each listed run.
             for run_dict in evaluation_settings["runs"]:
-                await eval_function(fast_learner, self, client, self.page_log, function_settings, run_dict)
+                await eval_function(fast_learner, self, client, self.logger, function_settings, run_dict)
 
         if hasattr(client, "finalize"):
             # If this is a client wrapper, it needs to be finalized.
             client.finalize()
 
-        self.page_log.flush(final=True)  # Finalize the page log
-        self.page_log.finish_page(page)
+        self.logger.flush(final=True)  # Finalize the page log
+        self.logger.finish_page()
 
     async def run(self, settings_filepath):
         # Load the settings from yaml.
         with open(settings_filepath, "r") as file:
             settings = yaml.load(file, Loader=yaml.FullLoader)
             evaluator_settings = settings["Evaluator"]
-            self.page_log = PageLog(evaluator_settings["PageLog"])
+            self.logger = PageLogger(evaluator_settings["PageLogger"])
 
             # Perform the evaluations.
-            await self.perform_evaluations(settings, self.page_log)
+            await self.perform_evaluations(settings)
 
 
 if __name__ == "__main__":

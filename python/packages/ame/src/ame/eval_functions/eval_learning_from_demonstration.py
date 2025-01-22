@@ -1,7 +1,7 @@
 
-async def eval_learning_from_demonstration(fast_learner, evaluator, client, page_log, settings, run_dict):
+async def eval_learning_from_demonstration(fast_learner, evaluator, client, logger, settings, run_dict):
     """An evaluation"""
-    page = page_log.begin_page(summary="eval_learning_from_demonstration")
+    logger.begin_page(summary="eval_learning_from_demonstration")
 
     num_trials = settings["num_trials"]
 
@@ -16,24 +16,24 @@ async def eval_learning_from_demonstration(fast_learner, evaluator, client, page
     demo = evaluator.get_demo_from_file(demo_2_file)
 
     # Start by clearing memory then running a baseline test.
-    page.add_lines("To get a baseline, clear memory, then assign the task.")
+    logger.info("To get a baseline, clear memory, then assign the task.")
     fast_learner.reset_memory()
     num_successes, num_trials = await evaluator.test_fast_learner(
         fast_learner=fast_learner, task_description=task_description_1, expected_answer=expected_answer_1,
-        num_trials=num_trials, use_memory=True, client=client, page_log=page_log)
+        num_trials=num_trials, use_memory=True, client=client, logger=logger)
     success_rate = round((num_successes / num_trials) * 100)
-    page.add_lines("\nSuccess rate:  {}%\n".format(success_rate), flush=True)
+    logger.info("\nSuccess rate:  {}%\n".format(success_rate))
 
     # Provide a demonstration for a similar but different task.
-    page.add_lines("Demonstrate a solution to a similar task.")
+    logger.info("Demonstrate a solution to a similar task.")
     await fast_learner.learn_from_demonstration(demo_task, demo)
 
     # Now test again to see if the demonstration (retrieved from memory) helps.
-    page.add_lines("Assign the task again to see if the demonstration helps.")
+    logger.info("Assign the task again to see if the demonstration helps.")
     num_successes, num_trials = await evaluator.test_fast_learner(
         fast_learner=fast_learner, task_description=task_description_1, expected_answer=expected_answer_1,
-        num_trials=num_trials, use_memory=True, client=client, page_log=page_log)
+        num_trials=num_trials, use_memory=True, client=client, logger=logger)
     success_rate = round((num_successes / num_trials) * 100)
-    page.add_lines("\nSuccess rate:  {}%\n".format(success_rate), flush=True)
+    logger.info("\nSuccess rate:  {}%\n".format(success_rate))
 
-    page_log.finish_page(page)
+    logger.finish_page()

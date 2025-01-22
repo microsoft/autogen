@@ -17,8 +17,8 @@ from autogen_core.models import (
 
 
 class Page:
-    def __init__(self, page_log, index, summary, indent_level, show_in_overview=True, final=True):
-        self.page_log = page_log
+    def __init__(self, page_logger, index, summary, indent_level, show_in_overview=True, final=True):
+        self.page_logger = page_logger
         self.index_str = str(index)
         self.summary = summary
         self.indent_level = indent_level
@@ -36,7 +36,7 @@ class Page:
     def link_to_page_file(self):
         return f'<a href="{self.index_str}.html">{self.file_title}</a>'
 
-    def add_lines(self, line, flush=False):
+    def _add_lines(self, line, flush=False):
         # If the string 'line' consists of multiple lines, separate them into a list.
         lines_to_add = []
         if "\n" in line:
@@ -59,16 +59,16 @@ class Page:
         # Copy the image to the run directory.
         # Remove every character from the string 'description' that is not alphanumeric or a space.
         description = ''.join(e for e in description if e.isalnum() or e.isspace())
-        target_image_filename = (str(self.page_log.get_next_page_id()) + ' - ' + description)
-        local_image_path = os.path.join(self.page_log.log_dir, target_image_filename)
+        target_image_filename = (str(self.page_logger.get_next_page_id()) + ' - ' + description)
+        local_image_path = os.path.join(self.page_logger.log_dir, target_image_filename)
         shutil.copyfile(source_image_path, local_image_path)
-        self.add_lines('\n' + description)
-        self.add_lines(self.link_to_image(target_image_filename, description), flush=True)
+        self._add_lines('\n' + description)
+        self._add_lines(self.link_to_image(target_image_filename, description), flush=True)
 
     def flush(self):
-        page_path = os.path.join(self.page_log.log_dir, self.index_str + ".html")
+        page_path = os.path.join(self.page_logger.log_dir, self.index_str + ".html")
         with open(page_path, "w") as f:
-            f.write(self.page_log.html_opening(self.file_title, final=self.final))
+            f.write(self.page_logger.html_opening(self.file_title, final=self.final))
             f.write(f"<h3>{self.file_title}</h3>\n")
             for line in self.lines:
                 # Call f.write in a try block to catch any UnicodeEncodeErrors.
@@ -76,12 +76,12 @@ class Page:
                     f.write(f"{line}\n")
                 except UnicodeEncodeError:
                     f.write(f"UnicodeEncodeError in this line.\n")
-            f.write(self.page_log.html_closing())
+            f.write(self.page_logger.html_closing())
             f.flush()
         time.sleep(0.1)
 
 
-class PageLog:
+class PageLogger:
     def __init__(self, settings):
         self.log_dir = os.path.expanduser(settings["path"])
         self.page_stack = PageStack()
@@ -124,7 +124,7 @@ class PageLog:
 
     def add_page(self, summary, show_in_overview=True, final=True):
         # Add a page to the log.
-        page = Page(page_log=self,
+        page = Page(page_logger=self,
                     index=self.get_next_page_id(),
                     summary=summary,
                     indent_level=len(self.page_stack.stack),
@@ -135,14 +135,24 @@ class PageLog:
 
         if len(self.page_stack.stack) > 0:
             # Insert a link to the new page into the calling page.
-            self.add_lines('\n' + page.full_link, flush=True)
+            self._add_lines('\n' + page.full_link, flush=True)
 
         return page
 
-    def add_lines(self, line, flush=False):
+    def _add_lines(self, line, flush=False):
         # Add lines to the current page (at the top of the page stack).
         page = self.page_stack.top()
-        page.add_lines(line, flush=flush)
+        page._add_lines(line, flush=flush)
+
+    def info(self, line):
+        # Add lines to the current page (at the top of the page stack).
+        page = self.page_stack.top()
+        page._add_lines(line, flush=True)
+
+    def error(self, line):
+        # Add lines to the current page (at the top of the page stack).
+        page = self.page_stack.top()
+        page._add_lines(line, flush=True)
 
     def message_source(self, message):
         source = "UNKNOWN"
@@ -206,20 +216,20 @@ class PageLog:
         # Add a page containing a message's content.
         page = self.add_page(summary=summary, show_in_overview=False)
         self.page_stack.write_stack_to_page(page)
-        page.add_lines(self.message_content(page, message_content=message_content))
+        page._add_lines(self.message_content(page, message_content=message_content))
         page.flush()
 
     def add_model_call(self, summary, input_messages, response):
         # Add a model call to the log.
         page = self.add_page(summary=summary, show_in_overview=False)
         self.page_stack.write_stack_to_page(page)
-        page.add_lines("{} prompt tokens".format(response.usage.prompt_tokens))
-        page.add_lines("{} completion tokens".format(response.usage.completion_tokens))
+        page._add_lines("{} prompt tokens".format(response.usage.prompt_tokens))
+        page._add_lines("{} completion tokens".format(response.usage.completion_tokens))
         for i, m in enumerate(input_messages):
-            page.add_lines('\n' + self.message_source(m))
-            page.add_lines(self.message_content(page, message=m))
-        page.add_lines("\n" + self.decorate_text("ASSISTANT RESPONSE", "green", demarcate=True))
-        page.add_lines(self.message_content(page, message=response))
+            page._add_lines('\n' + self.message_source(m))
+            page._add_lines(self.message_content(page, message=m))
+        page._add_lines("\n" + self.decorate_text("ASSISTANT RESPONSE", "green", demarcate=True))
+        page._add_lines(self.message_content(page, message=response))
         page.flush()
         return page
 
@@ -250,14 +260,14 @@ class PageLog:
         self.page_stack.push(page)
         self.page_stack.write_stack_to_page(page)
 
-        page.add_lines("\nENTER {}".format(summary), flush=True)
+        page._add_lines("\nENTER {}".format(summary), flush=True)
         return page
 
-    def finish_page(self, page):
+    def finish_page(self):
         # Perform a set of logging actions that are often performed at the end of a caller's method.
         page = self.page_stack.top()
         page.final = True
-        page.add_lines("\nLEAVE {}".format(page.summary), flush=True)
+        page._add_lines("\nLEAVE {}".format(page.summary), flush=True)
         self.page_stack.pop()
 
 
@@ -279,9 +289,9 @@ class PageStack:
 
     def write_stack_to_page(self, page):
         # Log a properly indented string showing the current state of the call stack.
-        page.add_lines("\nCALL STACK")
+        page._add_lines("\nCALL STACK")
         for stack_page in self.stack:
-            page.add_lines(stack_page.line_text)
-        page.add_lines("")
-        page.add_lines("")
+            page._add_lines(stack_page.line_text)
+        page._add_lines("")
+        page._add_lines("")
         page.flush()
