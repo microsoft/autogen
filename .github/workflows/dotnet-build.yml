@@ -92,11 +92,9 @@ jobs:
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
-        ls /home/runner/work/autogen/autogen/dotnet/test/
-        ls /home/runner/work/autogen/autogen/dotnet/test/Microsoft.AutoGen.Tests.Shared
-        ls /home/runner/work/autogen/autogen/dotnet/src
-        ls /home/runner/work/autogen/autogen/dotnet/src/Microsoft.AutoGen
-        ls /home/runner/work/autogen/autogen/dotnet/src/Microsoft.AutoGen/AgentHost
+
+        # ls all sub-directories under dotnet folder
+        ls -R ./dotnet
         dotnet restore -bl
     - name: Format check
       run: |
