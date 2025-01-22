@@ -21,10 +21,10 @@ def test_memory_protocol_attributes() -> None:
     assert hasattr(Memory, "close")
 
 
-def test_memory_protocol_runtime_checkable() -> None:
-    """Test that Memory protocol is properly runtime-checkable."""
+def test_memory_abc_implementation() -> None:
+    """Test that Memory ABC is properly implemented."""
 
-    class ValidMemory:
+    class ValidMemory(Memory):
         @property
         def name(self) -> str:
             return "test"
