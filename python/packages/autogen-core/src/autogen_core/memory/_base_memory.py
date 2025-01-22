@@ -1,5 +1,6 @@
 from enum import Enum
-from typing import Any, Dict, List, Protocol, Union, runtime_checkable
+from typing import Any, Dict, List, Union
+from abc import ABC, abstractmethod
 
 from pydantic import BaseModel, ConfigDict
 
@@ -48,8 +49,7 @@ class UpdateContextResult(BaseModel):
     memories: MemoryQueryResult
 
 
-@runtime_checkable
-class Memory(Protocol):
+class Memory(ABC):
     """Protocol defining the interface for memory implementations.
 
     A memory is the storage for data that can be used to enrich or modify the model context.
@@ -64,6 +64,7 @@ class Memory(Protocol):
     See :class:`~autogen_core.memory.ListMemory` for an example implementation.
     """
 
+    @abstractmethod
     async def update_context(
         self,
         model_context: ChatCompletionContext,
@@ -79,6 +80,7 @@ class Memory(Protocol):
         """
         ...
 
+    @abstractmethod
     async def query(
         self,
         query: str | MemoryContent,
@@ -98,6 +100,7 @@ class Memory(Protocol):
         """
         ...
 
+    @abstractmethod
     async def add(self, content: MemoryContent, cancellation_token: CancellationToken | None = None) -> None:
         """
         Add a new content to memory.
@@ -108,10 +111,12 @@ class Memory(Protocol):
         """
         ...
 
+    @abstractmethod
     async def clear(self) -> None:
         """Clear all entries from memory."""
         ...
 
+    @abstractmethod
     async def close(self) -> None:
         """Clean up any resources used by the memory implementation."""
         ...
