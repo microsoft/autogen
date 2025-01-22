@@ -73,6 +73,7 @@ jobs:
           mv ./packages/autogen-core/docs/build/* docs-staging/${{ matrix.version.dest-dir }}/
         working-directory: ./python
         env:
+          PYRIGHT_PYTHON_FORCE_VERSION: latest
           PY_DOCS_DIR: ${{ matrix.version.dest-dir }}/
           PY_SWITCHER_VERSION: ${{ matrix.version.dest-dir }}
           SPHINX_RELEASE_OVERRIDE: ${{ matrix.version.sphinx-release-override }}
