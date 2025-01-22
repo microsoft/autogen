@@ -1,3 +1,4 @@
+import base64
 from collections.abc import AsyncGenerator
 from typing import Optional, Sequence
 
@@ -8,6 +9,7 @@ from autogen_core import CancellationToken
 
 from semantic_kernel.connectors.ai.chat_completion_client_base import ChatCompletionClientBase
 from semantic_kernel.connectors.ai.prompt_execution_settings import PromptExecutionSettings
+from semantic_kernel.contents import TextContent, ImageContent
 from semantic_kernel.contents.chat_history import ChatHistory
 from semantic_kernel.contents.chat_message_content import ChatMessageContent
 from semantic_kernel.contents.utils.author_role import AuthorRole
@@ -69,7 +71,7 @@ class SKAssistantAgent(BaseChatAgent):
         """
         # 1) Convert & store new agent messages in ChatHistory
         for msg in messages:
-            sk_msg = ChatMessageContent(role=AuthorRole.USER, content=msg.content, name=msg.source)
+            sk_msg = self._convert_chat_message_to_sk_chat_message_content(AuthorRole.USER, msg)
             self._chat_history.add_message(sk_msg)
 
         # 2) Retrieve the SK chat completion service
@@ -100,15 +102,16 @@ class SKAssistantAgent(BaseChatAgent):
         )
         # Convert SK's list of responses into a single final text
         assistant_reply = "\n".join(r.content for r in sk_responses if r.content)
+        reply_message = TextMessage(content=assistant_reply, source=self.name)
 
         # 5) Add the new assistant message into our chat history
         if assistant_reply.strip():
             self._chat_history.add_message(
-                ChatMessageContent(role=AuthorRole.ASSISTANT, content=assistant_reply, name=self.name)
+                self._convert_chat_message_to_sk_chat_message_content(AuthorRole.ASSISTANT, reply_message)
             )
 
         # 6) Return an autogen Response containing the text
-        return Response(chat_message=TextMessage(content=assistant_reply, source=self.name))
+        return Response(chat_message=reply_message)
 
     async def on_messages_stream(
         self,
@@ -166,3 +169,58 @@ class SKAssistantAgent(BaseChatAgent):
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Clear the entire conversation history."""
         self._chat_history.messages.clear()
+
+    @staticmethod
+    def _convert_chat_message_to_sk_chat_message_content(role: AuthorRole, chat_message: ChatMessage) -> ChatMessageContent:
+        
+        # Prepare a place to store metadata (e.g., usage)
+        metadata = {}
+        if chat_message.models_usage is not None:
+            metadata["models_usage"] = chat_message.models_usage.dict()
+
+        items: list[TextContent | ImageContent] = []
+        msg_type = chat_message.type
+
+        match msg_type:
+            case "TextMessage":
+                items.append(TextContent(text=chat_message.content))
+
+            case "MultiModalMessage":
+                for entry in chat_message.content:
+                    if isinstance(entry, str):
+                        items.append(TextContent(text=entry))
+                else:
+                    # entry is autogen_core.Image
+                    # Convert to base64 and then into bytes for ImageContent
+                    b64 = entry.to_base64()
+                    img_bytes = base64.b64decode(b64)
+                    items.append(
+                        ImageContent(
+                            data=img_bytes,
+                            data_format="base64",
+                            mime_type="image/png",
+                        )
+                    )
+
+            case "StopMessage":
+                items.append(TextContent(text=chat_message.content))
+
+            case "HandoffMessage":
+                # Store handoff details as text
+                text = f"Handoff target: {chat_message.target}\n\n{chat_message.content}"
+                items.append(TextContent(text=text))
+
+            case "ToolCallSummaryMessage":
+                items.append(TextContent(text=chat_message.content))
+
+            case _:
+                # Fallback for any other message type
+                content_str = getattr(chat_message, "content", "")
+                items.append(TextContent(text=f"[Unknown message type: {msg_type}] {content_str}"))
+
+        return ChatMessageContent(
+            role=role,
+            items=items,
+            metadata=metadata,
+            name=chat_message.source
+        )
