@@ -92,9 +92,6 @@ jobs:
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
-
-        # ls all sub-directories under dotnet folder
-        ls -R .
         dotnet restore -bl
     - name: Format check
       run: |
