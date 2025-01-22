@@ -84,9 +84,8 @@ internal sealed class GrpcWorkerConnection : IAsyncDisposable, IConnection
         {
             await foreach (var message in RequestStream.ReadAllAsync(_shutdownCancellationToken.Token))
             {
-
                 // Fire and forget
-                _gateway.OnReceivedMessageAsync(this, message).Ignore();
+                _gateway.OnReceivedMessageAsync(this, message, _shutdownCancellationToken.Token).Ignore();
             }
         }
         catch (OperationCanceledException)

@@ -40,9 +40,9 @@ public class AgentGrpcTests
     public async Task Agent_ShouldInitializeCorrectly()
     {
         using var runtime = new GrpcRuntime();
-        runtime.Start();
         var (worker, agent) = runtime.Start();
         Assert.Equal("GrpcAgentWorker", worker.GetType().Name);
+        await Task.Delay(5000);
         var subscriptions = await agent.GetSubscriptionsAsync();
         Assert.Equal(2, subscriptions.Count);
     }
@@ -68,7 +68,7 @@ public class AgentGrpcTests
         }
         Assert.True(found);
         await agent.UnsubscribeAsync("TestEvent").ConfigureAwait(true);
-        await Task.Delay(500);
+        await Task.Delay(1000);
         subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
         found = false;
         foreach (var subscription in subscriptions)

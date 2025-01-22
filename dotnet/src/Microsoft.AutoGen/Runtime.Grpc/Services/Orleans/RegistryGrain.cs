@@ -21,24 +21,40 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
 
     public ValueTask<List<string>> GetSubscribedAndHandlingAgents(string topic, string eventType)
     {
+        List<string> agents = [];
         // get all agent types that are subscribed to the topic
         if (state.State.TopicToAgentTypesMap.TryGetValue(topic, out var subscribedAgentTypes))
         {
             // get all agent types that are handling the event
             if (state.State.EventsToAgentTypesMap.TryGetValue(eventType, out var handlingAgents))
             {
-                // return the intersection of the two sets
-                return new(subscribedAgentTypes.Intersect(handlingAgents).ToList());
-            }
-            else
-            {
-                return new();
+                agents.AddRange(subscribedAgentTypes.Intersect(handlingAgents).ToList());
             }
         }
-        else
+        if (state.State.TopicToAgentTypesMap.TryGetValue(eventType, out var eventHandlingAgents))
         {
-            return new();
+            agents.AddRange(eventHandlingAgents.ToList());
         }
+        if (state.State.TopicToAgentTypesMap.TryGetValue(topic + "." + eventType, out var combo))
+        {
+            agents.AddRange(combo.ToList());
+        }
+        // instead of an exact match, we can also check for a prefix match where key starts with the eventType
+        if (state.State.TopicToAgentTypesMap.Keys.Any(key => key.StartsWith(eventType)))
+        {
+            state.State.TopicToAgentTypesMap.Where(
+                kvp => kvp.Key.StartsWith(eventType))
+                .SelectMany(kvp => kvp.Value)
+                .Distinct()
+                .ToList()
+                .ForEach(async agentType =>
+                {
+                    agents.Add(agentType);
+                });
+        }
+        agents = agents.Distinct().ToList();
+        
+        return new ValueTask<List<string>>(agents);
     }
     public ValueTask<(IGateway? Worker, bool NewPlacement)> GetOrPlaceAgent(AgentId agentId)
     {

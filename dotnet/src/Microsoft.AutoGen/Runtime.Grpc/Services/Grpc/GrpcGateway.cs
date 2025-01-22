@@ -157,7 +157,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         await connection.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);
     }
-    internal async Task OnReceivedMessageAsync(GrpcWorkerConnection connection, Message message)
+    internal async Task OnReceivedMessageAsync(GrpcWorkerConnection connection, Message message, CancellationToken cancellationToken = default)
     {
         _logger.LogInformation("Received message {Message} from connection {Connection}.", message, connection);
         switch (message.MessageCase)
@@ -169,7 +169,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                 DispatchResponse(connection, message.Response);
                 break;
             case Message.MessageOneofCase.CloudEvent:
-                await DispatchEventAsync(message.CloudEvent);
+                await DispatchEventAsync(message.CloudEvent, cancellationToken);
                 break;
             case Message.MessageOneofCase.RegisterAgentTypeRequest:
                 await RegisterAgentTypeAsync(connection, message.RegisterAgentTypeRequest);
@@ -210,53 +210,32 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         };
         await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
     }
-    private async ValueTask DispatchEventAsync(CloudEvent evt)
+    private async ValueTask DispatchEventAsync(CloudEvent evt, CancellationToken cancellationToken = default)
     {
-
         var registry = _clusterClient.GetGrain<IRegistryGrain>(0);
         //intentionally blocking
-        var targetAgentTypes = new List<string>();
-        var handlers = await registry.GetSubscribedAndHandlingAgents(evt.Source, evt.Type).ConfigureAwait(true);
-        if (handlers is not null && handlers.Count > 0)
-        {
-            targetAgentTypes.AddRange(handlers);
-        }
-        // alternate path    
-        // get the event type and then send to all agents that are subscribed to that event type
-        var eventType = evt.Type;
-        var source = evt.Source;
-        var agentTypes = new List<string>();
-        // ensure that we get agentTypes as an async enumerable list - try to get the value of agentTypes by topic and then cast it to an async enumerable list
-        if (_subscriptionsByTopic.TryGetValue(eventType, out var agentTypesList)) { agentTypes.AddRange(agentTypesList); }
-        if (_subscriptionsByTopic.TryGetValue(source, out var agentTypesList2)) { agentTypes.AddRange(agentTypesList2); }
-        if (_subscriptionsByTopic.TryGetValue(source + "." + eventType, out var agentTypesList3)) { agentTypes.AddRange(agentTypesList3); }
-        if (agentTypes is not null && agentTypes.Count > 0)
-        {
-            agentTypes = agentTypes.Distinct().ToList();
-            targetAgentTypes.AddRange(agentTypes);
-        }
-        // instead of an exact match, we can also check for a prefix match where key starts with the eventType
-        if (_subscriptionsByTopic.Keys.Any(key => key.StartsWith(eventType)))
-        {
-            _subscriptionsByTopic.Where(
-                kvp => kvp.Key.StartsWith(eventType))
-                .SelectMany(kvp => kvp.Value)
-                .Distinct()
-                .ToList()
-                .ForEach(async agentType =>
-                {
-                    targetAgentTypes.Add(agentType);
-                });
-        }
-        if (targetAgentTypes is not null && targetAgentTypes.Any())
+        var targetAgentTypes = await registry.GetSubscribedAndHandlingAgents(evt.Source, evt.Type).ConfigureAwait(true);
+        if (targetAgentTypes is not null && targetAgentTypes.Count > 0)
         {
             targetAgentTypes = targetAgentTypes.Distinct().ToList();
-            await DispatchEventToAgentsAsync(targetAgentTypes, evt).ConfigureAwait(false);
+            var tasks = new List<Task>(targetAgentTypes.Count);
+            foreach (var agentType in targetAgentTypes)
+            {
+                if (_supportedAgentTypes.TryGetValue(agentType, out var connections))
+                {
+                    // if the connection is alive, add it to the set, if not remove the connection from the list
+                    var activeConnections = connections.Where(c => c.Completion?.IsCompleted == false).ToList();
+                    foreach (var connection in activeConnections)
+                    {
+                        tasks.Add(this.SendMessageAsync(connection, evt, cancellationToken));
+                    }
+                }
+            }
         }
         else
         {
             // log that no agent types were found
-            _logger.LogWarning("No agent types found for event type {EventType}.", eventType);
+            _logger.LogWarning("No agent types found for event type {EventType}.", evt.Type);
         }
     }
     private async ValueTask DispatchRequestAsync(GrpcWorkerConnection connection, RpcRequest request)
@@ -403,7 +382,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             };
         }
     }
-
     public ValueTask<List<Subscription>> GetSubscriptionsAsync(Type type, CancellationToken cancellationToken = default)
     {
         return _gatewayRegistry.GetSubscriptions(nameof(type));
