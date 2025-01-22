@@ -142,7 +142,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DevTeam.ServiceDefaults", "
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Core.Grpc.Tests", "test\Microsoft.AutoGen.Core.Grpc.Tests\Microsoft.AutoGen.Core.Grpc.Tests.csproj", "{33A28A4B-123B-4416-9631-0F759B8D6172}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Autogen.Tests.Shared", "test\Microsoft.Autogen.Tests.Shared\Microsoft.Autogen.Tests.Shared.csproj", "{58AD8E1D-83BD-4950-A324-1A20677D78D9}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Tests.Shared", "test\Microsoft.AutoGen.Tests.Shared\Microsoft.AutoGen.Tests.Shared.csproj", "{58AD8E1D-83BD-4950-A324-1A20677D78D9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
