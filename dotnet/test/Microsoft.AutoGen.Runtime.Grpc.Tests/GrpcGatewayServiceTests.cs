@@ -42,10 +42,10 @@ public class GrpcGatewayServiceTests
         var logger = Mock.Of<ILogger<GrpcGateway>>();
         var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
         var service = new GrpcGatewayService(gateway);
-        using var client = new TestGrpcClient();
+        var client = new TestGrpcClient();
         var assembly = typeof(PBAgent).Assembly;
         var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
-        await OpenChannel(service: service, client);
+        var task = OpenChannel(service: service, client);
         await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), client.CallContext.Peer), client.CallContext);
         await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(GMAgent), client.CallContext.Peer), client.CallContext);
 
@@ -63,7 +63,7 @@ public class GrpcGatewayServiceTests
         helloMessageReceived!.CloudEvent.Type.Should().Be(GetFullName(typeof(Hello)));
         helloMessageReceived.CloudEvent.Source.Should().Be("gh-gh-gh");
         client.Dispose();
-
+        await task;
     }
 
     [Fact]
@@ -72,12 +72,14 @@ public class GrpcGatewayServiceTests
         var logger = Mock.Of<ILogger<GrpcGateway>>();
         var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
         var service = new GrpcGatewayService(gateway);
-        using var client = new TestGrpcClient();
+        var client = new TestGrpcClient();
         var assembly = typeof(PBAgent).Assembly;
         var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
-        await OpenChannel(service: service, client);
+        var task = OpenChannel(service: service, client);
         await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), client.CallContext.Peer), client.CallContext);
         await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(GMAgent), client.CallContext.Peer), client.CallContext);
+        client.Dispose();
+        await task;
     }
 
     [Fact]
@@ -86,14 +88,14 @@ public class GrpcGatewayServiceTests
         var logger = Mock.Of<ILogger<GrpcGateway>>();
         var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
         var service = new GrpcGatewayService(gateway);
-        using var client = new TestGrpcClient();
+        var client = new TestGrpcClient();
         var assembly = typeof(PBAgent).Assembly;
         var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
-        await OpenChannel(service: service, client);
+        var task = OpenChannel(service: service, client);
         var response = await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), client.CallContext.Peer), client.CallContext);
         response.Success.Should().BeTrue();
         client.Dispose();
-
+        await task;
     }
 
     [Fact]
@@ -102,7 +104,7 @@ public class GrpcGatewayServiceTests
         var logger = Mock.Of<ILogger<GrpcGateway>>();
         var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
         var service = new GrpcGatewayService(gateway);
-        using var client = new TestGrpcClient();
+        var client = new TestGrpcClient();
         var assembly = typeof(PBAgent).Assembly;
         var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
         var response = await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), "faulty_connection_id"), client.CallContext);
