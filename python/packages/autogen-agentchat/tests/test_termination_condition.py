@@ -88,6 +88,13 @@ async def test_mention_termination() -> None:
         await termination([TextMessage(content="Hello", source="user"), TextMessage(content="stop", source="user")])
         is not None
     )
+    termination = TextMentionTermination("stop", sources=["agent"])
+    assert await termination([TextMessage(content="stop", source="user")]) is None
+    await termination.reset()
+    assert (
+        await termination([TextMessage(content="stop", source="user"), TextMessage(content="stop", source="agent")])
+        is not None
+    )
 
 
 @pytest.mark.asyncio

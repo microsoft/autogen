@@ -1,7 +1,8 @@
 from abc import ABC, abstractmethod
 from typing import Any, AsyncGenerator, List, Mapping, Sequence
 
-from autogen_core import CancellationToken
+from autogen_core import CancellationToken, ComponentBase
+from pydantic import BaseModel
 
 from ..base import ChatAgent, Response, TaskResult
 from ..messages import (
@@ -13,7 +14,7 @@ from ..messages import (
 from ..state import BaseState
 
 
-class BaseChatAgent(ChatAgent, ABC):
+class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
     """Base class for a chat agent.
 
     This abstract class provides a base implementation for a :class:`ChatAgent`.
@@ -34,6 +35,8 @@ class BaseChatAgent(ChatAgent, ABC):
         Do not pass the entire conversation history to the agent on each call.
         This design principle must be followed when creating a new agent.
     """
+
+    component_type = "agent"
 
     def __init__(self, name: str, description: str) -> None:
         self._name = name

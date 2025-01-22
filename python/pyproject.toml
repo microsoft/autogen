@@ -24,9 +24,10 @@ dev = [
 
 [tool.uv]
 override-dependencies = [
-    "tenacity==9.0.0",
-    "aiofiles==24.1.0",
-    "chainlit==2.0.1",
+    "tenacity>=9.0.0",
+    "aiofiles>=24.1.0",
+    "chainlit>=2.0.1",
+    "httpx>=0.27.0",
 ]
 [tool.uv.workspace]
 members = ["packages/*"]
@@ -90,11 +91,10 @@ lint = "python run_task_in_pkgs_if_exist.py lint"
 pyright = "python run_task_in_pkgs_if_exist.py pyright"
 mypy = "python run_task_in_pkgs_if_exist.py mypy"
 test = "python run_task_in_pkgs_if_exist.py test"
-coverage = "python run_task_in_pkgs_if_exist.py coverage"
 markdown-code-lint = """python check_md_code_blocks.py ../README.md ./packages/autogen-core/docs/src/**/*.md"""
 samples-code-check = """pyright ./samples"""
 
-check = ["fmt", "lint", "pyright", "mypy", "coverage", "markdown-code-lint", "samples-code-check"]
+check = ["fmt", "lint", "pyright", "mypy", "test", "markdown-code-lint", "samples-code-check"]
 
 gen-proto = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --grpc_python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_grpc_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --proto_path ../protos/ agent_worker.proto --proto_path ../protos/ cloudevent.proto"
 

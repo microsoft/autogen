@@ -1,10 +1,19 @@
 from typing import List
 
+from pydantic import BaseModel
+from typing_extensions import Self
+
+from .._component_config import Component
 from ..models import FunctionExecutionResultMessage, LLMMessage
 from ._chat_completion_context import ChatCompletionContext
 
 
-class BufferedChatCompletionContext(ChatCompletionContext):
+class BufferedChatCompletionContextConfig(BaseModel):
+    buffer_size: int
+    initial_messages: List[LLMMessage] | None = None
+
+
+class BufferedChatCompletionContext(ChatCompletionContext, Component[BufferedChatCompletionContextConfig]):
     """A buffered chat completion context that keeps a view of the last n messages,
     where n is the buffer size. The buffer size is set at initialization.
 
@@ -12,6 +21,9 @@ class BufferedChatCompletionContext(ChatCompletionContext):
         buffer_size (int): The size of the buffer.
         initial_messages (List[LLMMessage] | None): The initial messages.
     """
+
+    component_config_schema = BufferedChatCompletionContextConfig
+    component_provider_override = "autogen_core.model_context.BufferedChatCompletionContext"
 
     def __init__(self, buffer_size: int, initial_messages: List[LLMMessage] | None = None) -> None:
         super().__init__(initial_messages)
@@ -27,3 +39,10 @@ class BufferedChatCompletionContext(ChatCompletionContext):
             # Remove the first message from the list.
             messages = messages[1:]
         return messages
+
+    def _to_config(self) -> BufferedChatCompletionContextConfig:
+        return BufferedChatCompletionContextConfig(buffer_size=self._buffer_size, initial_messages=self._messages)
+
+    @classmethod
+    def _from_config(cls, config: BufferedChatCompletionContextConfig) -> Self:
+        return cls(**config.model_dump())
