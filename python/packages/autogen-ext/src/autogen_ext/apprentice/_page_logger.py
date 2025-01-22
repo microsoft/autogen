@@ -29,13 +29,10 @@ class Page:
         self.indentation_text = ""
         for i in range(self.indent_level):
             self.indentation_text += "|&emsp;"
-        self.full_link = self.link_to_page_file()
+        self.full_link = f'<a href="{self.index_str}.html">{self.file_title}</a>'
         self.line_text = self.indentation_text + self.full_link
         self.lines = []
         self.flush()
-
-    def link_to_page_file(self):
-        return f'<a href="{self.index_str}.html">{self.file_title}</a>'
 
     def _add_lines(self, line, flush=False):
         # If the string 'line' consists of multiple lines, separate them into a list.
