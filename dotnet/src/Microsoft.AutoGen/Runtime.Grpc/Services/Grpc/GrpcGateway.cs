@@ -149,9 +149,9 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         _logger.LogInformation("Received new connection from {Peer}.", context.Peer);
         var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
+        _workers.GetOrAdd(workerProcess, workerProcess);
+        _workersByConnection.GetOrAdd(context.Peer, workerProcess);
         await workerProcess.Connect().ConfigureAwait(false);
-        _workers[workerProcess] = workerProcess;
-        _workersByConnection[context.Peer] = workerProcess;
     }
     internal async Task SendMessageAsync(GrpcWorkerConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
