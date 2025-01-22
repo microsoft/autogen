@@ -136,8 +136,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Autogen.AgentHost
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Runtime.Grpc.Tests", "test\Microsoft.AutoGen.Runtime.Grpc.Tests\Microsoft.AutoGen.Runtime.Grpc.Tests.csproj", "{0E7983BB-2602-421E-8B37-332E52870A10}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Tests.Shared", "test\Microsoft.AutoGen.Tests.Shared\Microsoft.AutoGen.Tests.Shared.csproj", "{14F90F79-580E-454D-BA7A-ED6D9723020D}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Core.Tests", "test\Microsoft.AutoGen.Core.Tests\Microsoft.AutoGen.Core.Tests.csproj", "{EAFFE339-26CB-4019-991D-BCCE8E7D33A1}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DevTeam.ServiceDefaults", "samples\dev-team\DevTeam.ServiceDefaults\DevTeam.ServiceDefaults.csproj", "{599E1971-1DA9-453F-A7A8-42510BBC95C2}"
