@@ -53,7 +53,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
                 });
         }
         agents = agents.Distinct().ToList();
-        
+
         return new ValueTask<List<string>>(agents);
     }
     public ValueTask<(IGateway? Worker, bool NewPlacement)> GetOrPlaceAgent(AgentId agentId)
