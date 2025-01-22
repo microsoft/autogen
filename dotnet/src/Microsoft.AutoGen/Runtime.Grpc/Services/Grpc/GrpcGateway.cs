@@ -171,8 +171,14 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         // get the event type and then send to all agents that are subscribed to that event type
         var eventType = evt.Type;
+        var source = evt.Source;
+        var agentTypes = new List<string>();
         // ensure that we get agentTypes as an async enumerable list - try to get the value of agentTypes by topic and then cast it to an async enumerable list
-        if (_subscriptionsByTopic.TryGetValue(eventType, out var agentTypes))
+        if (_subscriptionsByTopic.TryGetValue(eventType, out var agentTypesList)) { agentTypes.AddRange(agentTypesList); }
+        if (_subscriptionsByTopic.TryGetValue(source, out var agentTypesList2)) { agentTypes.AddRange(agentTypesList2); }
+        if (_subscriptionsByTopic.TryGetValue(source + "." + eventType, out var agentTypesList3)) { agentTypes.AddRange(agentTypesList3); }
+        agentTypes = agentTypes.Distinct().ToList();
+        if (agentTypes.Count > 0)
         {
             await DispatchEventToAgentsAsync(agentTypes, evt);
         }
