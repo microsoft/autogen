@@ -1,6 +1,7 @@
 
 Evaluator:
   PageLogger:
+    enabled: 1
     path: ~/pagelogs/base
 
 client:

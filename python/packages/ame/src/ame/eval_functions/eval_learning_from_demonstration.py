@@ -22,7 +22,8 @@ async def eval_learning_from_demonstration(fast_learner, evaluator, client, logg
         fast_learner=fast_learner, task_description=task_description_1, expected_answer=expected_answer_1,
         num_trials=num_trials, use_memory=True, client=client, logger=logger)
     success_rate = round((num_successes / num_trials) * 100)
-    logger.info("\nSuccess rate:  {}%\n".format(success_rate))
+    results_str_1 = "Baseline success rate:  {}%".format(success_rate)
+    logger.info('\n' + results_str_1)
 
     # Provide a demonstration for a similar but different task.
     logger.info("Demonstrate a solution to a similar task.")
@@ -34,6 +35,8 @@ async def eval_learning_from_demonstration(fast_learner, evaluator, client, logg
         fast_learner=fast_learner, task_description=task_description_1, expected_answer=expected_answer_1,
         num_trials=num_trials, use_memory=True, client=client, logger=logger)
     success_rate = round((num_successes / num_trials) * 100)
-    logger.info("\nSuccess rate:  {}%\n".format(success_rate))
+    results_str_2 = "Success rate after demonstration:  {}%".format(success_rate)
+    logger.info('\n' + results_str_2)
 
     logger.finish_page()
+    return "\neval_learning_from_demonstration\n" + results_str_1 + "\n" + results_str_2

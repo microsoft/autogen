@@ -83,6 +83,9 @@ class Page:
 
 class PageLogger:
     def __init__(self, settings):
+        self.enabled = settings["enabled"]
+        if not self.enabled:
+            return
         self.log_dir = os.path.expanduser(settings["path"])
         self.page_stack = PageStack()
         self.pages = []
@@ -145,11 +148,15 @@ class PageLogger:
         page._add_lines(line, flush=flush)
 
     def info(self, line):
+        if not self.enabled:
+            return
         # Add lines to the current page (at the top of the page stack).
         page = self.page_stack.top()
         page._add_lines(line, flush=True)
 
     def error(self, line):
+        if not self.enabled:
+            return
         # Add lines to the current page (at the top of the page stack).
         page = self.page_stack.top()
         page._add_lines(line, flush=True)
@@ -220,6 +227,8 @@ class PageLogger:
         page.flush()
 
     def add_model_call(self, summary, input_messages, response):
+        if not self.enabled:
+            return
         # Add a model call to the log.
         page = self.add_page(summary=summary, show_in_overview=False)
         self.page_stack.write_stack_to_page(page)
@@ -239,6 +248,8 @@ class PageLogger:
         return link
 
     def flush(self, final=False):
+        if not self.enabled:
+            return
         # Create an overview of the log.
         overview_path = os.path.join(self.log_dir, self.name + ".html")
         with open(overview_path, "w") as f:
@@ -253,6 +264,8 @@ class PageLogger:
         time.sleep(0.1)
 
     def begin_page(self, summary, show_in_overview=True):
+        if not self.enabled:
+            return
         assert show_in_overview
         # Perform a set of logging actions that are often performed at the beginning of a caller's method.
         page = self.add_page(summary=summary, show_in_overview=show_in_overview, final=False)
@@ -264,6 +277,8 @@ class PageLogger:
         return page
 
     def finish_page(self):
+        if not self.enabled:
+            return
         # Perform a set of logging actions that are often performed at the end of a caller's method.
         page = self.page_stack.top()
         page.final = True

@@ -107,7 +107,8 @@ class Evaluator:
 
             # Call the eval function for each listed run.
             for run_dict in evaluation_settings["runs"]:
-                await eval_function(fast_learner, self, client, self.logger, function_settings, run_dict)
+                results = await eval_function(fast_learner, self, client, self.logger, function_settings, run_dict)
+                print(results)
 
         if hasattr(client, "finalize"):
             # If this is a client wrapper, it needs to be finalized.

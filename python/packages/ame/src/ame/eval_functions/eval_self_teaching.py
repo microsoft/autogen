@@ -43,7 +43,11 @@ async def eval_self_teaching(fast_learner, evaluator, client, logger, settings, 
 
     overall_success_rate_1 = round((total_num_successes_1 / total_num_trials) * 100)
     overall_success_rate_2 = round((total_num_successes_2 / total_num_trials) * 100)
-    logger.info("\nOverall task 1 success rate (1):  {}%".format(overall_success_rate_1))
-    logger.info("Overall task 2 success rate (2):  {}%".format(overall_success_rate_2))
+
+    results_str_1 = "Overall task 1 success rate:  {}%".format(overall_success_rate_1)
+    results_str_2 = "Overall task 2 success rate:  {}%".format(overall_success_rate_2)
+    logger.info('\n' + results_str_1)
+    logger.info(results_str_2)
 
     logger.finish_page()
+    return "\neval_self_teaching\n" + results_str_1 + "\n" + results_str_2

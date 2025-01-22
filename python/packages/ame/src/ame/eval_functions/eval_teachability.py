@@ -23,9 +23,10 @@ async def eval_teachability(fast_learner, evaluator, client, logger, settings, r
     response_is_correct, extracted_answer = await grader.is_response_correct(task_description, response, expected_answer)
     logger.info("Extracted answer:  {}".format(extracted_answer))
     if response_is_correct:
-        logger.info("Answer is CORRECT.\n")
+        results_str_1 = "Answer before teaching is CORRECT."
     else:
-        logger.info("Answer is INCORRECT.\n")
+        results_str_1 = "Answer before teaching is INCORRECT."
+    logger.info(results_str_1 + "\n")
 
     # Give advice that should help solve this task.
     logger.info("Give the advice.")
@@ -39,8 +40,10 @@ async def eval_teachability(fast_learner, evaluator, client, logger, settings, r
     response_is_correct, extracted_answer = await grader.is_response_correct(task_description, response, expected_answer)
     logger.info("Extracted answer:  {}".format(extracted_answer))
     if response_is_correct:
-        logger.info("Answer is CORRECT.\n")
+        results_str_2 = "Answer after teaching is CORRECT."
     else:
-        logger.info("Answer is INCORRECT.\n")
+        results_str_2 = "Answer after teaching is INCORRECT."
+    logger.info(results_str_2 + "\n")
 
     logger.finish_page()
+    return "\neval_teachability\n" + results_str_1 + "\n" + results_str_2
