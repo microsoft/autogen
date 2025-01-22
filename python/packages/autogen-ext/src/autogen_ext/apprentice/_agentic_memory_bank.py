@@ -37,7 +37,8 @@ class AgenticMemoryBank:
         path_to_db_dir = os.path.join(memory_dir_path, "string_map")
         self.path_to_dict = os.path.join(memory_dir_path, "uid_insight_dict.pkl")
 
-        self.string_map = StringSimilarityMap(verbosity=verbosity, reset=reset, path_to_db_dir=path_to_db_dir)
+        self.string_map = StringSimilarityMap(verbosity=verbosity, reset=reset, path_to_db_dir=path_to_db_dir,
+                                              logger=self.logger)
 
         # Load or create the associated insight dict on disk.
         self.uid_insight_dict = {}
