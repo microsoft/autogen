@@ -92,6 +92,11 @@ jobs:
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
+        ls /home/runner/work/autogen/autogen/dotnet/test/
+        ls /home/runner/work/autogen/autogen/dotnet/test/Microsoft.AutoGen.Tests.Shared
+        ls /home/runner/work/autogen/autogen/dotnet/src
+        ls /home/runner/work/autogen/autogen/dotnet/src/Microsoft.AutoGen
+        ls /home/runner/work/autogen/autogen/dotnet/src/Microsoft.AutoGen/AgentHost
         dotnet restore -bl
     - name: Format check
       run: |
@@ -149,11 +154,6 @@ jobs:
       run:  dotnet --version && dotnet dev-certs https --trust
     - name: Restore dependencies
       run: |
-        ls /home/runner/work/autogen/autogen/dotnet/test/
-        ls /home/runner/work/autogen/autogen/dotnet/test/Microsoft.AutoGen.Tests.Shared
-        ls /home/runner/work/autogen/autogen/dotnet/src
-        ls /home/runner/work/autogen/autogen/dotnet/src/Microsoft.AutoGen
-        ls /home/runner/work/autogen/autogen/dotnet/src/Microsoft.AutoGen/AgentHost
         dotnet restore -bl
     - name: Build
       run: |
