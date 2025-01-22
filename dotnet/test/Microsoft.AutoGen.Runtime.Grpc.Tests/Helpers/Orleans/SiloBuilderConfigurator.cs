@@ -15,7 +15,8 @@ public class SiloBuilderConfigurator : ISiloConfigurator
             services.AddSerializer(a => a.AddProtobufSerializer());
         });
         siloBuilder.AddMemoryStreams("StreamProvider")
-                    .AddMemoryGrainStorage("PubSubStore")
-                    .AddMemoryGrainStorage("AgentStateStore");
+            .AddMemoryGrainStorage("PubSubStore")
+            .AddMemoryGrainStorage("AgentRegistryStore")
+            .AddMemoryGrainStorage("AgentStateStore");
     }
 }
