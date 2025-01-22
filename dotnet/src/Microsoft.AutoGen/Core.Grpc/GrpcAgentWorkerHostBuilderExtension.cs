@@ -22,14 +22,27 @@ public static class GrpcAgentWorkerHostBuilderExtensions
             options.Address = new Uri(agentServiceAddress ?? builder.Configuration["AGENT_HOST"] ?? _defaultAgentServiceAddress);
             options.ChannelOptionsActions.Add(channelOptions =>
             {
-                LoggerFactory loggerFactory = new LoggerFactory();
-                channelOptions.HttpHandler = new SocketsHttpHandler
+                var loggerFactory = new LoggerFactory();
+                if (Debugger.IsAttached)
                 {
-                    EnableMultipleHttp2Connections = true,
-                    KeepAlivePingDelay = TimeSpan.FromSeconds(20),
-                    KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
-                    KeepAlivePingPolicy = HttpKeepAlivePingPolicy.Always
-                };
+                    channelOptions.HttpHandler = new SocketsHttpHandler
+                    {
+                        EnableMultipleHttp2Connections = false,
+                        KeepAlivePingDelay = TimeSpan.FromSeconds(200),
+                        KeepAlivePingTimeout = TimeSpan.FromSeconds(100),
+                        KeepAlivePingPolicy = HttpKeepAlivePingPolicy.Always
+                    };
+                }
+                else
+                {
+                    channelOptions.HttpHandler = new SocketsHttpHandler
+                    {
+                        EnableMultipleHttp2Connections = true,
+                        KeepAlivePingDelay = TimeSpan.FromSeconds(20),
+                        KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
+                        KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
+                    };
+                }
 
                 var methodConfig = new MethodConfig
                 {
