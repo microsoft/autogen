@@ -132,7 +132,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Runtime.G
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents", "src\Microsoft.AutoGen\Agents\Microsoft.AutoGen.Agents.csproj", "{3892C83E-7F5D-41DF-A88C-4854EAD38856}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.Autogen.AgentHost", "src\Microsoft.AutoGen\AgentHost\Microsoft.Autogen.AgentHost.csproj", "{4CB42139-DEE4-40B9-AA81-1E4CCAA2F338}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.AgentHost", "src\Microsoft.AutoGen\AgentHost\Microsoft.AutoGen.AgentHost.csproj", "{4CB42139-DEE4-40B9-AA81-1E4CCAA2F338}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Runtime.Grpc.Tests", "test\Microsoft.AutoGen.Runtime.Grpc.Tests\Microsoft.AutoGen.Runtime.Grpc.Tests.csproj", "{0E7983BB-2602-421E-8B37-332E52870A10}"
 EndProject
