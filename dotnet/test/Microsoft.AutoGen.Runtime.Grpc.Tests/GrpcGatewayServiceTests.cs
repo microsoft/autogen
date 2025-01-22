@@ -8,7 +8,6 @@ using Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Grpc;
 using Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Orleans;
 using Microsoft.Extensions.Logging;
 using Moq;
-using Tests.Events;
 using NewMessageReceived = Tests.Events.NewMessageReceived;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Tests;

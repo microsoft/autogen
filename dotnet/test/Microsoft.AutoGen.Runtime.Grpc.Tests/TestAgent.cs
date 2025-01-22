@@ -5,7 +5,6 @@ using System.Collections.Concurrent;
 using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
-using Tests.Events;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Tests;
 
