@@ -21,18 +21,19 @@ public class GrpcGatewayServiceTests
     {
         _fixture = fixture;
     }
-    // Test broadcast Event
     [Fact]
     public async Task Test_OpenChannel()
     {
         var logger = Mock.Of<ILogger<GrpcGateway>>();
         var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
         var service = new GrpcGatewayService(gateway);
-        using var client = new TestGrpcClient();
+        var client = new TestGrpcClient();
 
         gateway._workers.Count.Should().Be(0);
-        await OpenChannel(service, client);
+        var task = OpenChannel(service, client);
         gateway._workers.Count.Should().Be(1);
+        client.Dispose();
+        await task;
     }
 
     [Fact]
@@ -61,6 +62,8 @@ public class GrpcGatewayServiceTests
         var helloMessageReceived = await client.ReadNext();
         helloMessageReceived!.CloudEvent.Type.Should().Be(GetFullName(typeof(Hello)));
         helloMessageReceived.CloudEvent.Source.Should().Be("gh-gh-gh");
+        client.Dispose();
+
     }
 
     [Fact]
@@ -89,6 +92,8 @@ public class GrpcGatewayServiceTests
         await OpenChannel(service: service, client);
         var response = await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), client.CallContext.Peer), client.CallContext);
         response.Success.Should().BeTrue();
+        client.Dispose();
+
     }
 
     [Fact]
@@ -102,6 +107,7 @@ public class GrpcGatewayServiceTests
         var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
         var response = await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), "faulty_connection_id"), client.CallContext);
         response.Success.Should().BeFalse();
+        client.Dispose();
     }
 
     [Fact]
@@ -140,17 +146,7 @@ public class GrpcGatewayServiceTests
 
     private Task OpenChannel(GrpcGatewayService service, TestGrpcClient client)
     {
-        var completion = new TaskCompletionSource<Task>();
-        var _ = Task.Run(() =>
-        {
-            completion.SetResult(
-                service.OpenChannel(
-                    client.RequestStream,
-                    client.ResponseStream,
-                    client.CallContext
-                ));
-        });
-        return completion.Task;
+        return service.OpenChannel(client.RequestStream, client.ResponseStream, client.CallContext);
     }
     private string GetFullName(Type type)
     {
