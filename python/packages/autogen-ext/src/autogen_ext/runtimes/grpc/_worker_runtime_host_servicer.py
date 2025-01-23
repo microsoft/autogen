@@ -260,7 +260,7 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
                 )
             )
 
-    def RegisterAgent(
+    def RegisterAgent(  # type: ignore
         self,
         request: agent_worker_pb2.RegisterAgentTypeRequest,
         context: grpc.aio.ServicerContext[
@@ -269,7 +269,7 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
     ) -> agent_worker_pb2.RegisterAgentTypeResponse:
         raise NotImplementedError("Method not implemented.")
 
-    def AddSubscription(
+    def AddSubscription(  # type: ignore
         self,
         request: agent_worker_pb2.AddSubscriptionRequest,
         context: grpc.aio.ServicerContext[
@@ -278,7 +278,7 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
     ) -> agent_worker_pb2.AddSubscriptionResponse:
         raise NotImplementedError("Method not implemented.")
 
-    def RemoveSubscription(
+    def RemoveSubscription(  # type: ignore
         self,
         request: agent_worker_pb2.RemoveSubscriptionRequest,
         context: grpc.aio.ServicerContext[
@@ -287,7 +287,7 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
     ) -> agent_worker_pb2.RemoveSubscriptionResponse:
         raise NotImplementedError("Method not implemented.")
 
-    def GetSubscriptions(
+    def GetSubscriptions(  # type: ignore
         self,
         request: agent_worker_pb2.GetSubscriptionsRequest,
         context: grpc.aio.ServicerContext[
