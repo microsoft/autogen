@@ -304,18 +304,18 @@ def normalize_annotated_type(type_hint: Type[Any]) -> Type[Any]:
 
 def args_base_model_from_signature(name: str, sig: inspect.Signature) -> Type[BaseModel]:
     fields: Dict[str, tuple[Type[Any], Any]] = {}
-    for name, param in sig.parameters.items():
+    for param_name, param in sig.parameters.items():
         # This is handled externally
-        if name == "cancellation_token":
+        if param_name == "cancellation_token":
             continue
 
         if param.annotation is inspect.Parameter.empty:
             raise ValueError("No annotation")
 
         type = normalize_annotated_type(param.annotation)
-        description = type2description(name, param.annotation)
+        description = type2description(param_name, param.annotation)
         default_value = param.default if param.default is not inspect.Parameter.empty else PydanticUndefined
 
-        fields[name] = (type, Field(default=default_value, description=description))
+        fields[param_name] = (type, Field(default=default_value, description=description))
 
     return cast(BaseModel, create_model(name, **fields))  # type: ignore
