@@ -12,12 +12,6 @@ from typing import (
     cast,
 )
 
-from autogen_core import Image
-from autogen_core.models import RequestUsage
-from rich.align import AlignMethod
-from rich.console import Console
-from rich.panel import Panel
-
 from autogen_agentchat.base import Response, TaskResult
 from autogen_agentchat.messages import (
     AgentEvent,
@@ -26,6 +20,11 @@ from autogen_agentchat.messages import (
     UserInputRequestedEvent,
 )
 from autogen_agentchat.ui._console import UserInputManager
+from autogen_core import Image
+from autogen_core.models import RequestUsage
+from rich.align import AlignMethod
+from rich.console import Console
+from rich.panel import Panel
 
 AGENT_COLORS = {
     "user": "bright_green",
