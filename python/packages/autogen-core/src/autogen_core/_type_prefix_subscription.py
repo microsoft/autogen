@@ -31,13 +31,13 @@ class TypePrefixSubscription(Subscription):
         agent_type (str): Agent type to handle this subscription
     """
 
-    def __init__(self, topic_type_prefix: str, agent_type: str | AgentType):
+    def __init__(self, topic_type_prefix: str, agent_type: str | AgentType, id: str | None = None):
         self._topic_type_prefix = topic_type_prefix
         if isinstance(agent_type, AgentType):
             self._agent_type = agent_type.type
         else:
             self._agent_type = agent_type
-        self._id = str(uuid.uuid4())
+        self._id = id or str(uuid.uuid4())
 
     @property
     def id(self) -> str:

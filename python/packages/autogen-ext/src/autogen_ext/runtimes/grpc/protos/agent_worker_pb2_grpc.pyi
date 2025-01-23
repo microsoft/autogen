@@ -34,6 +34,26 @@ class AgentRpcStub:
         agent_worker_pb2.SaveStateResponse,
     ]
 
+    RegisterAgent: grpc.UnaryUnaryMultiCallable[
+        agent_worker_pb2.RegisterAgentTypeRequest,
+        agent_worker_pb2.RegisterAgentTypeResponse,
+    ]
+
+    AddSubscription: grpc.UnaryUnaryMultiCallable[
+        agent_worker_pb2.AddSubscriptionRequest,
+        agent_worker_pb2.AddSubscriptionResponse,
+    ]
+
+    RemoveSubscription: grpc.UnaryUnaryMultiCallable[
+        agent_worker_pb2.RemoveSubscriptionRequest,
+        agent_worker_pb2.RemoveSubscriptionResponse,
+    ]
+
+    GetSubscriptions: grpc.UnaryUnaryMultiCallable[
+        agent_worker_pb2.GetSubscriptionsRequest,
+        agent_worker_pb2.GetSubscriptionsResponse,
+    ]
+
 class AgentRpcAsyncStub:
     OpenChannel: grpc.aio.StreamStreamMultiCallable[
         agent_worker_pb2.Message,
@@ -48,6 +68,26 @@ class AgentRpcAsyncStub:
     SaveState: grpc.aio.UnaryUnaryMultiCallable[
         agent_worker_pb2.AgentState,
         agent_worker_pb2.SaveStateResponse,
+    ]
+
+    RegisterAgent: grpc.aio.UnaryUnaryMultiCallable[
+        agent_worker_pb2.RegisterAgentTypeRequest,
+        agent_worker_pb2.RegisterAgentTypeResponse,
+    ]
+
+    AddSubscription: grpc.aio.UnaryUnaryMultiCallable[
+        agent_worker_pb2.AddSubscriptionRequest,
+        agent_worker_pb2.AddSubscriptionResponse,
+    ]
+
+    RemoveSubscription: grpc.aio.UnaryUnaryMultiCallable[
+        agent_worker_pb2.RemoveSubscriptionRequest,
+        agent_worker_pb2.RemoveSubscriptionResponse,
+    ]
+
+    GetSubscriptions: grpc.aio.UnaryUnaryMultiCallable[
+        agent_worker_pb2.GetSubscriptionsRequest,
+        agent_worker_pb2.GetSubscriptionsResponse,
     ]
 
 class AgentRpcServicer(metaclass=abc.ABCMeta):
@@ -71,5 +111,33 @@ class AgentRpcServicer(metaclass=abc.ABCMeta):
         request: agent_worker_pb2.AgentState,
         context: _ServicerContext,
     ) -> typing.Union[agent_worker_pb2.SaveStateResponse, collections.abc.Awaitable[agent_worker_pb2.SaveStateResponse]]: ...
+
+    @abc.abstractmethod
+    def RegisterAgent(
+        self,
+        request: agent_worker_pb2.RegisterAgentTypeRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[agent_worker_pb2.RegisterAgentTypeResponse, collections.abc.Awaitable[agent_worker_pb2.RegisterAgentTypeResponse]]: ...
+
+    @abc.abstractmethod
+    def AddSubscription(
+        self,
+        request: agent_worker_pb2.AddSubscriptionRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[agent_worker_pb2.AddSubscriptionResponse, collections.abc.Awaitable[agent_worker_pb2.AddSubscriptionResponse]]: ...
+
+    @abc.abstractmethod
+    def RemoveSubscription(
+        self,
+        request: agent_worker_pb2.RemoveSubscriptionRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[agent_worker_pb2.RemoveSubscriptionResponse, collections.abc.Awaitable[agent_worker_pb2.RemoveSubscriptionResponse]]: ...
+
+    @abc.abstractmethod
+    def GetSubscriptions(
+        self,
+        request: agent_worker_pb2.GetSubscriptionsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[agent_worker_pb2.GetSubscriptionsResponse, collections.abc.Awaitable[agent_worker_pb2.GetSubscriptionsResponse]]: ...
 
 def add_AgentRpcServicer_to_server(servicer: AgentRpcServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

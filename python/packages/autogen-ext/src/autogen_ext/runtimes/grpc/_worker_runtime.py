@@ -807,25 +807,27 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         request_id = await self._get_new_request_id()
 
         match subscription:
-            case TypeSubscription(topic_type=topic_type, agent_type=agent_type):
+            case TypeSubscription(topic_type=topic_type, agent_type=agent_type, id=id):
                 message = agent_worker_pb2.Message(
                     addSubscriptionRequest=agent_worker_pb2.AddSubscriptionRequest(
                         request_id=request_id,
                         subscription=agent_worker_pb2.Subscription(
+                            id=id,
                             typeSubscription=agent_worker_pb2.TypeSubscription(
                                 topic_type=topic_type, agent_type=agent_type
-                            )
+                            ),
                         ),
                     )
                 )
-            case TypePrefixSubscription(topic_type_prefix=topic_type_prefix, agent_type=agent_type):
+            case TypePrefixSubscription(topic_type_prefix=topic_type_prefix, agent_type=agent_type, id=id):
                 message = agent_worker_pb2.Message(
                     addSubscriptionRequest=agent_worker_pb2.AddSubscriptionRequest(
                         request_id=request_id,
                         subscription=agent_worker_pb2.Subscription(
+                            id=id,
                             typePrefixSubscription=agent_worker_pb2.TypePrefixSubscription(
                                 topic_type_prefix=topic_type_prefix, agent_type=agent_type
-                            )
+                            ),
                         ),
                     )
                 )
