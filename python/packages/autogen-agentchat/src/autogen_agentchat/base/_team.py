@@ -1,8 +1,10 @@
-from typing import Any, Mapping
 from abc import ABC, abstractmethod
-from ._task import TaskRunner
-from pydantic import BaseModel
+from typing import Any, Mapping
+
 from autogen_core import ComponentBase
+from pydantic import BaseModel
+
+from ._task import TaskRunner
 
 
 class Team(ABC, TaskRunner, ComponentBase[BaseModel]):

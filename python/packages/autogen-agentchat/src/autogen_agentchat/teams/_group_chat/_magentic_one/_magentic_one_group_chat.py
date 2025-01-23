@@ -1,10 +1,11 @@
 import logging
 from typing import Callable, List
-from typing_extensions import Self
-from pydantic import BaseModel
 
-from autogen_core.models import ChatCompletionClient
 from autogen_core import Component, ComponentModel
+from autogen_core.models import ChatCompletionClient
+from pydantic import BaseModel
+from typing_extensions import Self
+
 from .... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ....base import ChatAgent, TerminationCondition
 from .._base_group_chat import BaseGroupChat

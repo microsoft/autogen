@@ -1,14 +1,14 @@
 from typing import Any, Callable, List, Mapping
 
+from autogen_core import Component, ComponentModel
 from pydantic import BaseModel
+from typing_extensions import Self
 
 from ...base import ChatAgent, TerminationCondition
 from ...messages import AgentEvent, ChatMessage
 from ...state import RoundRobinManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
-from autogen_core import ComponentModel, Component
-from typing_extensions import Self
 
 
 class RoundRobinGroupChatManager(BaseGroupChatManager):

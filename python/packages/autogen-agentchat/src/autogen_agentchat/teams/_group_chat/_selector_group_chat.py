@@ -1,10 +1,11 @@
 import logging
 import re
 from typing import Any, Callable, Dict, List, Mapping, Sequence
+
+from autogen_core import Component, ComponentModel
+from autogen_core.models import ChatCompletionClient, SystemMessage
 from pydantic import BaseModel
 from typing_extensions import Self
-from autogen_core.models import ChatCompletionClient, SystemMessage
-from autogen_core import Component, ComponentModel
 
 from ... import TRACE_LOGGER_NAME
 from ...agents import BaseChatAgent

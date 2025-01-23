@@ -1,5 +1,6 @@
 from typing import Any, Callable, List, Mapping
 
+from autogen_core import Component, ComponentModel
 from pydantic import BaseModel
 
 from ...base import ChatAgent, TerminationCondition
@@ -7,7 +8,6 @@ from ...messages import AgentEvent, ChatMessage, HandoffMessage
 from ...state import SwarmManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
-from autogen_core import ComponentModel, Component
 
 
 class SwarmGroupChatManager(BaseGroupChatManager):

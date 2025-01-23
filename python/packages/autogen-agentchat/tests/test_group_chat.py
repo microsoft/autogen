@@ -24,7 +24,7 @@ from autogen_agentchat.messages import (
     ToolCallRequestEvent,
     ToolCallSummaryMessage,
 )
-from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat, Swarm, MagenticOneGroupChat
+from autogen_agentchat.teams import MagenticOneGroupChat, RoundRobinGroupChat, SelectorGroupChat, Swarm
 from autogen_agentchat.teams._group_chat._round_robin_group_chat import RoundRobinGroupChatManager
 from autogen_agentchat.teams._group_chat._selector_group_chat import SelectorGroupChatManager
 from autogen_agentchat.teams._group_chat._swarm_group_chat import SwarmGroupChatManager

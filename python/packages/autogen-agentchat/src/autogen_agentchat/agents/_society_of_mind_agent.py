@@ -2,11 +2,12 @@ from typing import Any, AsyncGenerator, List, Mapping, Sequence
 
 from autogen_core import CancellationToken, Component, ComponentModel
 from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
+from pydantic import BaseModel
+from typing_extensions import Self
 
 from autogen_agentchat.base import Response
 from autogen_agentchat.state import SocietyOfMindAgentState
-from typing_extensions import Self
-from pydantic import BaseModel
+
 from ..base import TaskResult, Team
 from ..messages import (
     AgentEvent,
