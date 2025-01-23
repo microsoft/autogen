@@ -227,7 +227,9 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
                     add_subscription_req.subscription.typeSubscription
                 )
                 subscription = TypeSubscription(
-                    topic_type=type_subscription_msg.topic_type, agent_type=type_subscription_msg.agent_type
+                    topic_type=type_subscription_msg.topic_type,
+                    agent_type=type_subscription_msg.agent_type,
+                    id=add_subscription_req.subscription.id,
                 )
 
             case "typePrefixSubscription":
@@ -237,6 +239,7 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
                 subscription = TypePrefixSubscription(
                     topic_type_prefix=type_prefix_subscription_msg.topic_type_prefix,
                     agent_type=type_prefix_subscription_msg.agent_type,
+                    id=add_subscription_req.subscription.id,
                 )
             case None:
                 logger.warning("Received empty subscription message")

@@ -69,9 +69,10 @@ message TypePrefixSubscription {
 }
 
 message Subscription {
+    string id = 1;
     oneof subscription {
-        TypeSubscription typeSubscription = 1;
-        TypePrefixSubscription typePrefixSubscription = 2;
+        TypeSubscription typeSubscription = 2;
+        TypePrefixSubscription typePrefixSubscription = 3;
     }
 }
 
@@ -84,8 +85,6 @@ message AddSubscriptionResponse {
     string request_id = 1; // TODO: remove once message based requests are removed
     bool success = 2;
     optional string error = 3;
-    // ID of created subscription
-    string id = 4;
 }
 
 message RemoveSubscriptionRequest {
@@ -97,14 +96,9 @@ message RemoveSubscriptionResponse {
     optional string error = 2;
 }
 
-message RegisteredSubscription {
-    string id = 1;
-    Subscription subscription = 2;
-}
-
 message GetSubscriptionsRequest {}
 message GetSubscriptionsResponse {
-    repeated RegisteredSubscription subscriptions = 1;
+    repeated Subscription subscriptions = 1;
 }
 
 service AgentRpc {
