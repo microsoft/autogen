@@ -82,10 +82,10 @@ message AddSubscriptionRequest {
 
 message AddSubscriptionResponse {
     string request_id = 1; // TODO: remove once message based requests are removed
+    bool success = 2;
+    optional string error = 3;
     // ID of created subscription
-    string id = 2;
-    bool success = 3;
-    optional string error = 4;
+    string id = 4;
 }
 
 message RemoveSubscriptionRequest {

@@ -343,19 +343,23 @@ class AddSubscriptionResponse(google.protobuf.message.Message):
     REQUEST_ID_FIELD_NUMBER: builtins.int
     SUCCESS_FIELD_NUMBER: builtins.int
     ERROR_FIELD_NUMBER: builtins.int
+    ID_FIELD_NUMBER: builtins.int
     request_id: builtins.str
     """TODO: remove once message based requests are removed"""
     success: builtins.bool
     error: builtins.str
+    id: builtins.str
+    """ID of created subscription"""
     def __init__(
         self,
         *,
         request_id: builtins.str = ...,
         success: builtins.bool = ...,
         error: builtins.str | None = ...,
+        id: builtins.str = ...,
     ) -> None: ...
     def HasField(self, field_name: typing.Literal["_error", b"_error", "error", b"error"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["_error", b"_error", "error", b"error", "request_id", b"request_id", "success", b"success"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["_error", b"_error", "error", b"error", "id", b"id", "request_id", b"request_id", "success", b"success"]) -> None: ...
     def WhichOneof(self, oneof_group: typing.Literal["_error", b"_error"]) -> typing.Literal["error"] | None: ...
 
 global___AddSubscriptionResponse = AddSubscriptionResponse
@@ -364,16 +368,14 @@ global___AddSubscriptionResponse = AddSubscriptionResponse
 class RemoveSubscriptionRequest(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
-    SUBSCRIPTION_FIELD_NUMBER: builtins.int
-    @property
-    def subscription(self) -> global___Subscription: ...
+    ID_FIELD_NUMBER: builtins.int
+    id: builtins.str
     def __init__(
         self,
         *,
-        subscription: global___Subscription | None = ...,
+        id: builtins.str = ...,
     ) -> None: ...
-    def HasField(self, field_name: typing.Literal["subscription", b"subscription"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["subscription", b"subscription"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["id", b"id"]) -> None: ...
 
 global___RemoveSubscriptionRequest = RemoveSubscriptionRequest
 
@@ -431,18 +433,15 @@ global___GetSubscriptionsRequest = GetSubscriptionsRequest
 class GetSubscriptionsResponse(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
-    REQUEST_ID_FIELD_NUMBER: builtins.int
     SUBSCRIPTIONS_FIELD_NUMBER: builtins.int
-    request_id: builtins.str
     @property
     def subscriptions(self) -> google.protobuf.internal.containers.RepeatedCompositeFieldContainer[global___RegisteredSubscription]: ...
     def __init__(
         self,
         *,
-        request_id: builtins.str = ...,
         subscriptions: collections.abc.Iterable[global___RegisteredSubscription] | None = ...,
     ) -> None: ...
-    def ClearField(self, field_name: typing.Literal["request_id", b"request_id", "subscriptions", b"subscriptions"]) -> None: ...
+    def ClearField(self, field_name: typing.Literal["subscriptions", b"subscriptions"]) -> None: ...
 
 global___GetSubscriptionsResponse = GetSubscriptionsResponse
 
