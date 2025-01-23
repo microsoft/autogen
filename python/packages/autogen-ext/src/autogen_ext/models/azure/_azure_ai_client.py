@@ -37,6 +37,7 @@ from autogen_core.models import (
     SystemMessage,
     AssistantMessage,
     FunctionExecutionResultMessage,
+    FinishReasons,
 )
 from autogen_core.tools import Tool, ToolSchema
 from autogen_ext.models.azure.config import AzureAIChatCompletionClientConfig, GITHUB_MODELS_ENDPOINT
@@ -149,6 +150,20 @@ def assert_valid_name(name: str) -> str:
     if len(name) > 64:
         raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
     return name
+
+
+def normalize_stop_reason(stop_reason: str|None) -> FinishReasons:
+    if stop_reason is None:
+        return "unknown"
+    
+    stop_reason = stop_reason.lower()
+
+    KNOWN_STOP_MAPPINGS: Dict[str, FinishReasons] = {
+        "end_turn": "stop",
+        "tool_calls": "function_calls",
+    }
+
+    return KNOWN_STOP_MAPPINGS.get(stop_reason, "unknown") 
 
 
 class AzureAIChatCompletionClient(ChatCompletionClient):
@@ -319,11 +334,11 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             ]
             finish_reason = "function_calls"
         else:
-            finish_reason = choice.finish_reason.value
+            finish_reason = choice.finish_reason
             content = choice.message.content or ""
 
         response = CreateResult(
-            finish_reason=finish_reason,  # type: ignore
+            finish_reason=normalize_stop_reason(finish_reason.value),  # type: ignore
             content=content,
             usage=usage,
             cached=False,
@@ -447,7 +462,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         )
 
         result = CreateResult(
-            finish_reason=finish_reason,  # type: ignore
+            finish_reason=normalize_stop_reason(finish_reason),  # type: ignore
             content=content,
             usage=usage,
             cached=False,
