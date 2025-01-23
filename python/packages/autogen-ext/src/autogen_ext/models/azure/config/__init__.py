@@ -1,6 +1,6 @@
 from typing import TypedDict, Union, Optional, List, Dict, Any
 from azure.ai.inference.models import (
-    ChatCompletionsResponseFormat,
+    JsonSchemaFormat,
     ChatCompletionsToolDefinition,
     ChatCompletionsToolChoicePreset,
     ChatCompletionsNamedToolChoice,
@@ -8,7 +8,7 @@ from azure.ai.inference.models import (
 
 from azure.core.credentials import AzureKeyCredential
 from azure.core.credentials_async import AsyncTokenCredential
-from autogen_core.models import ModelCapabilities
+from autogen_core.models import ModelInfo
 
 GITHUB_MODELS_ENDPOINT = "https://models.inference.ai.azure.com"
 
@@ -16,7 +16,7 @@ GITHUB_MODELS_ENDPOINT = "https://models.inference.ai.azure.com"
 class AzureAIClientArguments(TypedDict, total=False):
     endpoint: str
     credential: Union[AzureKeyCredential, AsyncTokenCredential]
-    model_capabilities: ModelCapabilities
+    model_info: ModelInfo
 
 
 class AzureAICreateArguments(TypedDict, total=False):
@@ -25,7 +25,7 @@ class AzureAICreateArguments(TypedDict, total=False):
     temperature: Optional[float]
     top_p: Optional[float]
     max_tokens: Optional[int]
-    response_format: Optional[ChatCompletionsResponseFormat]
+    response_format: Optional[Union[str, JsonSchemaFormat]]
     stop: Optional[List[str]]
     tools: Optional[List[ChatCompletionsToolDefinition]]
     tool_choice: Optional[Union[str, ChatCompletionsToolChoicePreset, ChatCompletionsNamedToolChoice]]

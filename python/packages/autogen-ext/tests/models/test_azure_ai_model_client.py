@@ -12,7 +12,6 @@ from azure.ai.inference.models import (
     ChatChoice,
     ChatResponseMessage,
     CompletionsUsage,
-    ChatCompletionsResponseFormatJSON,
 )
 
 from azure.ai.inference.models import (
@@ -79,7 +78,8 @@ async def test_azure_ai_chat_completion_client() -> None:
     client = AzureAIChatCompletionClient(
         endpoint="endpoint",
         credential=AzureKeyCredential("api_key"),
-        model_capabilities={
+        model_info={
+            "family": "unknown",
             "json_output": False,
             "function_calling": False,
             "vision": False,
@@ -96,7 +96,8 @@ async def test_azure_ai_chat_completion_client_create(monkeypatch: pytest.Monkey
     client = AzureAIChatCompletionClient(
         endpoint="endpoint",
         credential=AzureKeyCredential("api_key"),
-        model_capabilities={
+        model_info={
+            "family": "unknown",
             "json_output": False,
             "function_calling": False,
             "vision": False,
@@ -113,7 +114,8 @@ async def test_azure_ai_chat_completion_client_create_stream(monkeypatch: pytest
     client = AzureAIChatCompletionClient(
         endpoint="endpoint",
         credential=AzureKeyCredential("api_key"),
-        model_capabilities={
+        model_info={
+            "family": "unknown",
             "json_output": False,
             "function_calling": False,
             "vision": False,
@@ -134,7 +136,8 @@ async def test_azure_ai_chat_completion_client_create_cancel(monkeypatch: pytest
     client = AzureAIChatCompletionClient(
         endpoint="endpoint",
         credential=AzureKeyCredential("api_key"),
-        model_capabilities={
+        model_info={
+            "family": "unknown",
             "json_output": False,
             "function_calling": False,
             "vision": False,
@@ -155,7 +158,8 @@ async def test_azure_ai_chat_completion_client_create_stream_cancel(monkeypatch:
     client = AzureAIChatCompletionClient(
         endpoint="endpoint",
         credential=AzureKeyCredential("api_key"),
-        model_capabilities={
+        model_info={
+            "family": "unknown",
             "json_output": False,
             "function_calling": False,
             "vision": False,

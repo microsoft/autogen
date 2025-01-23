@@ -31,7 +31,7 @@ from autogen_core.models import (
     ChatCompletionClient,
     LLMMessage,
     CreateResult,
-    ModelCapabilities,
+    ModelInfo,
     RequestUsage,
     UserMessage,
     SystemMessage,
@@ -159,7 +159,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
     Args:
         endpoint (str): The endpoint to use. **Required.**
         credentials (union, AzureKeyCredential, AsyncTokenCredential): The credentials to use. **Required**
-        model_capabilities (ModelCapabilities): The capabilities of the model. **Required.**
+        model_info (ModelInfo): The capabilities of the model. **Required.**
         model (str): The name of the model. **Required if model is hosted on GitHub Models.**
         frequency_penalty: (optional,float)
         presence_penalty: (optional,float)
@@ -190,7 +190,8 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             client = AzureAIChatCompletionClient(
                 endpoint="endpoint",
                 credential=AzureKeyCredential("api_key"),
-                model_capabilities={
+                model_info={
+                    "family": "unknown",
                     "json_output": False,
                     "function_calling": False,
                     "vision": False,
@@ -204,7 +205,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
     def __init__(self, **kwargs: Unpack[AzureAIChatCompletionClientConfig]):
         config = self._validate_config(kwargs)
-        self._model_capabilities = config["model_capabilities"]
+        self._model_info = config["model_info"]
         self._client = self._create_client(config)
         self._create_args = self._prepare_create_args(config)
 
@@ -217,8 +218,8 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             raise ValueError("endpoint is required for AzureAIChatCompletionClient")
         if "credential" not in config:
             raise ValueError("credential is required for AzureAIChatCompletionClient")
-        if "model_capabilities" not in config:
-            raise ValueError("model_capabilities is required for AzureAIChatCompletionClient")
+        if "model_info" not in config:
+            raise ValueError("model_info is required for AzureAIChatCompletionClient")
         if _is_github_model(config["endpoint"]) and "model" not in config:
             raise ValueError("model is required for when using a Github model with AzureAIChatCompletionClient")
         return config
@@ -258,22 +259,22 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
 
-        if self.capabilities["vision"] is False:
+        if self.model_info["vision"] is False:
             for message in messages:
                 if isinstance(message, UserMessage):
                     if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
                         raise ValueError("Model does not support vision and image was provided")
 
         if json_output is not None:
-            if self.capabilities["json_output"] is False and json_output is True:
+            if self.model_info["json_output"] is False and json_output is True:
                 raise ValueError("Model does not support JSON output")
 
             if json_output is True and "response_format" not in create_args:
                 create_args["response_format"] = "json-object"
 
-        if self.capabilities["json_output"] is False and json_output is True:
+        if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output")
-        if self.capabilities["function_calling"] is False and len(tools) > 0:
+        if self.model_info["function_calling"] is False and len(tools) > 0:
             raise ValueError("Model does not support function calling")
 
         azure_messages_nested = [to_azure_message(msg) for msg in messages]
@@ -347,22 +348,22 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
 
-        if self.capabilities["vision"] is False:
+        if self.model_info["vision"] is False:
             for message in messages:
                 if isinstance(message, UserMessage):
                     if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
                         raise ValueError("Model does not support vision and image was provided")
 
         if json_output is not None:
-            if self.capabilities["json_output"] is False and json_output is True:
+            if self.model_info["json_output"] is False and json_output is True:
                 raise ValueError("Model does not support JSON output")
 
             if json_output is True and "response_format" not in create_args:
                 create_args["response_format"] = "json-object"
 
-        if self.capabilities["json_output"] is False and json_output is True:
+        if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output")
-        if self.capabilities["function_calling"] is False and len(tools) > 0:
+        if self.model_info["function_calling"] is False and len(tools) > 0:
             raise ValueError("Model does not support function calling")
 
         # azure_messages = [to_azure_message(m) for m in messages]
@@ -469,8 +470,13 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         return 0
 
     @property
-    def capabilities(self) -> ModelCapabilities:
-        return self._model_capabilities
+    def capabilities(self) -> ModelInfo: # type: ignore
+        warnings.warn("capabilities is deprecated, use model_info instead", DeprecationWarning, stacklevel=2)
+        return self._model_info
+
+    @property
+    def model_info(self) -> ModelInfo:
+        return self._model_info
 
     def __del__(self):
         # TODO: This is a hack to close the open client
