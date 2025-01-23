@@ -47,7 +47,7 @@ class Grader:
         assert isinstance(response_message, AssistantMessage)
 
         # Log the model call
-        self.logger.add_model_call(summary=summary, input_messages=input_messages, response=response)
+        self.logger.log_model_call(summary=summary, input_messages=input_messages, response=response)
 
         # Manage the chat history
         if keep_these_messages:

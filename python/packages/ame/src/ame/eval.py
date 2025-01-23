@@ -1,9 +1,12 @@
-import sys, os
-import yaml
 import asyncio
 import importlib
+import os
+import sys
 from typing import Tuple
-from autogen_ext.apprentice import PageLogger, Grader
+
+import yaml
+from autogen_ext.apprentice import Grader, PageLogger
+
 from ame.clients._client_creator import ClientCreator
 
 
@@ -116,7 +119,7 @@ class Evaluator:
             # If this is a client wrapper, it needs to be finalized.
             client.finalize()
 
-        self.logger.flush(final=True)  # Finalize the page log
+        self.logger.flush(finished=True)
         self.logger.leave_function()
 
     async def run(self, settings_filepath):

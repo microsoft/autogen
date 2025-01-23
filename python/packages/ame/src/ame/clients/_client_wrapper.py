@@ -1,7 +1,7 @@
 import os
+from typing import Any, Dict, List, Mapping, Optional, Sequence
+
 import yaml
-from typing import Any, List, Dict, Mapping, Optional, Sequence
-from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
 from autogen_core import CancellationToken
 from autogen_core.models import (
     CreateResult,
@@ -10,6 +10,7 @@ from autogen_core.models import (
 )
 from autogen_core.tools import Tool, ToolSchema
 from autogen_ext.apprentice import PageLogger
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
 
 
 class ClientWrapper:
@@ -103,8 +104,8 @@ class ClientWrapper:
         current_messages = self.convert_messages(messages)
         if current_messages != recorded_messages:
             error_str = "\nCurrent message list doesn't match the recorded message list."
-            self.logger.add_message_content(recorded_messages, "recorded message list")
-            self.logger.add_message_content(current_messages, "current message list")
+            self.logger.log_message_content(recorded_messages, "recorded message list")
+            self.logger.log_message_content(current_messages, "current message list")
             self.logger.error(error_str)
             raise ValueError(error_str)
         assert current_messages == recorded_messages

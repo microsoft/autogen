@@ -44,9 +44,6 @@ class Prompter:
         # Double check the types of the input messages.
         for message in input_messages:
             for part in message.content:
-                if part is None:
-                    print("part is None")
-                    print("message = ", message)
                 assert isinstance(part, str) or isinstance(part, Image), "Invalid message content type: {}".format(
                     type(part)
                 )
@@ -65,7 +62,7 @@ class Prompter:
         self.num_model_calls += 1
 
         # Log the model call
-        self.logger.add_model_call(summary=summary, input_messages=input_messages, response=response)
+        self.logger.log_model_call(summary=summary, input_messages=input_messages, response=response)
 
         # Manage the chat history
         if keep_these_messages:

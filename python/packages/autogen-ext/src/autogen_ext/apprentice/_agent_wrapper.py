@@ -31,7 +31,7 @@ class AgentWrapper:
         elif self.base_agent_name == "thin_agent":
             response, work_history = await self.assign_task_to_thin_agent(task)
         else:
-            assert False, "Invalid base agent"
+            raise AssertionError("Invalid base agent")
 
         self.logger.leave_function()
         return response, work_history
@@ -63,7 +63,7 @@ In responding to every user message, you follow the same multi-step process give
         response_str = response.content
 
         # Log the model call
-        self.logger.add_model_call(
+        self.logger.log_model_call(
             summary="Ask the model to complete the task", input_messages=input_messages, response=response
         )
         self.logger.info("\n-----  RESPONSE  -----\n\n{}\n".format(response_str))
