@@ -20,7 +20,11 @@ dependencies = [
 
 [project.optional-dependencies]
 langchain = ["langchain_core~= 0.3.3"]
-azure = ["azure-core", "azure-identity"]
+azure = [
+    "azure-ai-inference>=1.0.0b7",
+    "azure-core",
+    "azure-identity",
+]
 docker = ["docker~=7.0"]
 openai = ["openai>=1.52.2", "tiktoken>=0.8.0", "aiofiles"]
 file-surfer = [
@@ -52,60 +56,43 @@ diskcache = [
 redis = [
     "redis>=5.2.1"
 ]
-
 grpc = [
     "grpcio~=1.62.0", # TODO: update this once we have a stable version.
 ]
-
-azure-ai-inference = [
-    "azure-ai-inference>=1.0.0b6",
-]
-
 jupyter-executor = [
     "ipykernel>=6.29.5",
     "nbclient>=0.10.2",
 ]
-
 semantic-kernel-core = [
     "semantic-kernel>=1.17.1",
 ]
-
 semantic-kernel-google = [
     "semantic-kernel[google]>=1.17.1",
 ]
-
 semantic-kernel-hugging-face = [
     "semantic-kernel[hugging_face]>=1.17.1",
 ]
-
 semantic-kernel-mistralai = [
     "semantic-kernel[mistralai]>=1.17.1",
 ]
-
 semantic-kernel-ollama = [
     "semantic-kernel[ollama]>=1.17.1",
 ]
-
 semantic-kernel-onnx = [
     "semantic-kernel[onnx]>=1.17.1",
 ]
-
 semantic-kernel-anthropic = [
     "semantic-kernel[anthropic]>=1.17.1",
 ]
-
 semantic-kernel-pandas = [
     "semantic-kernel[pandas]>=1.17.1",
 ]
-
 semantic-kernel-aws = [
     "semantic-kernel[aws]>=1.17.1",
 ]
-
 semantic-kernel-dapr = [
     "semantic-kernel[dapr]>=1.17.1",
 ]
-
 semantic-kernel-all = [
     "semantic-kernel[google,hugging_face,mistralai,ollama,onnx,anthropic,usearch,pandas,aws,dapr]>=1.17.1",
 ]

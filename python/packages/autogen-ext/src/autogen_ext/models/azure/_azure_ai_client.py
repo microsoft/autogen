@@ -23,9 +23,6 @@ from azure.ai.inference.models import (
     ToolMessage as AzureToolMessage,
     FunctionCall as AzureFunctionCall,
 )
-from azure.ai.inference.models import (
-    ChatCompletionsResponseFormatJSON,
-)
 from typing_extensions import AsyncGenerator, Union
 
 from autogen_core import CancellationToken
@@ -272,7 +269,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                 raise ValueError("Model does not support JSON output")
 
             if json_output is True and "response_format" not in create_args:
-                create_args["response_format"] = ChatCompletionsResponseFormatJSON()
+                create_args["response_format"] = "json-object"
 
         if self.capabilities["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output")
@@ -361,7 +358,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                 raise ValueError("Model does not support JSON output")
 
             if json_output is True and "response_format" not in create_args:
-                create_args["response_format"] = ChatCompletionsResponseFormatJSON()
+                create_args["response_format"] = "json-object"
 
         if self.capabilities["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output")
