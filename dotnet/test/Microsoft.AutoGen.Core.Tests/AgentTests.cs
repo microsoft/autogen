@@ -218,7 +218,7 @@ public sealed class InMemoryAgentRuntimeFixture
 {
     public InMemoryAgentRuntimeFixture()
     {
-        var builder = WebApplication.CreateBuilder();
+        var builder = new HostApplicationBuilder();
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
         builder.AddAgentWorker()
             .AddAgent<TestAgent>(nameof(TestAgent));
