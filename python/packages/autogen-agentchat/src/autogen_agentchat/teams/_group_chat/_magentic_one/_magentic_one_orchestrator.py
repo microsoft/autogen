@@ -460,7 +460,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 assert isinstance(m, TextMessage | ToolCallSummaryMessage)
                 context.append(AssistantMessage(content=m.content, source=m.source))
             else:
-                assert isinstance(m, TextMessage) or isinstance(m, MultiModalMessage)
+                assert isinstance(m, (TextMessage, MultiModalMessage, ToolCallSummaryMessage))
                 context.append(UserMessage(content=m.content, source=m.source))
         return context
 
