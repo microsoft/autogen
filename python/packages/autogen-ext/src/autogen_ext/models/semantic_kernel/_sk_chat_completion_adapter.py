@@ -109,8 +109,8 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             api_key = "<AZURE_OPENAI_API_KEY>"
 
             azure_client = AzureChatCompletion(deployment_name=deployment_name, endpoint=endpoint, api_key=api_key)
-            azure_request_settings = AzureChatPromptExecutionSettings(temperature=0.8)
-            azure_adapter = SKChatCompletionAdapter(sk_client=azure_client, default_prompt_settings=azure_request_settings)
+            azure_settings = AzureChatPromptExecutionSettings(temperature=0.8)
+            azure_adapter = SKChatCompletionAdapter(sk_client=azure_client, kernel=kernel, prompt_settings=azure_settings)
 
             # ----------------------------------------------------------------
             # Example B: Google Gemini
@@ -136,7 +136,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                     "temperature": 0.8,
                 },
             )
-            ollama_adapter = SKChatCompletionAdapter(sk_client=ollama_client, default_prompt_settings=request_settings)
+            ollama_adapter = SKChatCompletionAdapter(sk_client=ollama_client, prompt_settings=request_settings)
 
             # 3) Create a tool and register it with the kernel
             calc_tool = CalculatorTool()
@@ -152,7 +152,6 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             azure_result = await azure_adapter.create(
                 messages=messages,
                 tools=[calc_tool],
-                extra_create_args={"kernel": kernel, "prompt_execution_settings": azure_request_settings},
             )
             print("Azure result:", azure_result.content)
 
@@ -160,7 +159,6 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             google_result = await google_adapter.create(
                 messages=messages,
                 tools=[calc_tool],
-                extra_create_args={"kernel": kernel},
             )
             print("Google result:", google_result.content)
 
@@ -168,7 +166,6 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             ollama_result = await ollama_adapter.create(
                 messages=messages,
                 tools=[calc_tool],
-                extra_create_args={"kernel": kernel, "prompt_execution_settings": request_settings},
             )
             print("Ollama result:", ollama_result.content)
 
