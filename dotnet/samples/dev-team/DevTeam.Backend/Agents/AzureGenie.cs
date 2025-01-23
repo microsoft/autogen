@@ -1,21 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AzureGenie.cs
 
-using DevTeam.Backend;
-using DevTeam.Shared;
-using Microsoft.AutoGen.Agents;
+using DevTeam.Backend.Services;
 using Microsoft.AutoGen.Core;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Memory;
-namespace Microsoft.AI.DevTeam;
+namespace DevTeam.Backend.Agents;
 
-public class AzureGenie(IAgentWorker worker, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, IManageAzure azureService)
-    : SKAiAgent<object>(worker, memory, kernel, typeRegistry),
+[TopicSubscription(Consts.TopicName)]
+public class AzureGenie([FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry, IManageAzure azureService)
+    : Agent(typeRegistry),
     IHandle<ReadmeCreated>,
     IHandle<CodeCreated>
-
 {
-    public async Task Handle(ReadmeCreated item)
+    public async Task Handle(ReadmeCreated item, CancellationToken cancellationToken = default)
     {
         // TODO: Not sure we need to store the files if we use ACA Sessions
         //                //var data = item.ToData();
@@ -30,7 +26,7 @@ public class AzureGenie(IAgentWorker worker, Kernel kernel, ISemanticTextMemory 
         await Task.CompletedTask;
     }
 
-    public async Task Handle(CodeCreated item)
+    public async Task Handle(CodeCreated item, CancellationToken cancellationToken = default)
     {
         // TODO: Not sure we need to store the files if we use ACA Sessions
         //                //var data = item.ToData();

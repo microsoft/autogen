@@ -5,11 +5,11 @@ using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 namespace Microsoft.AutoGen.Agents;
 
-public abstract class IOAgent(IAgentWorker worker, EventTypes eventTypes) : Agent(worker, eventTypes)
+public abstract class IOAgent(AgentsMetadata eventTypes) : Agent(eventTypes)
 {
     public string _route = "base";
 
-    public virtual async Task Handle(Input item)
+    public virtual async Task Handle(Input item, CancellationToken cancellationToken)
     {
 
         var evt = new InputProcessed
@@ -19,7 +19,7 @@ public abstract class IOAgent(IAgentWorker worker, EventTypes eventTypes) : Agen
         await PublishMessageAsync(evt);
     }
 
-    public virtual async Task Handle(Output item)
+    public virtual async Task Handle(Output item, CancellationToken cancellationToken)
     {
         var evt = new OutputWritten
         {

@@ -191,7 +191,7 @@ jobs:
     defaults:
       run:
         working-directory: dotnet
-    if: success() && (github.ref == 'refs/heads/main')
+    # if: success() && (github.ref == 'refs/heads/main')
     needs: aot-test
     steps:
     - uses: actions/checkout@v4

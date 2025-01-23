@@ -25,10 +25,10 @@ Flow Diagram:
 ```mermaid
 %%{init: {'theme':'forest'}}%%
 graph LR;
-    A[Main] --> |"PublishEventAsync(NewMessage('World'))"| B{"Handle(NewMessageReceived item)"}
+    A[Main] --> |"PublishEventAsync(NewMessage('World'))"| B{"Handle(NewMessageReceived item, CancellationToken cancellationToken = default)"}
     B --> |"PublishEventAsync(Output('***Hello, World***'))"| C[ConsoleAgent]
     C --> D{"WriteConsole()"}
-    B --> |"PublishEventAsync(ConversationClosed('Goodbye'))"| E{"Handle(ConversationClosed item)"}
+    B --> |"PublishEventAsync(ConversationClosed('Goodbye'))"| E{"Handle(ConversationClosed item, CancellationToken cancellationToken = default)"}
     B --> |"PublishEventAsync(Output('***Goodbye***'))"| C
     E --> F{"Shutdown()"}
 
@@ -44,14 +44,14 @@ Within that event handler you may optionally *emit* new events, which are then s
 TopicSubscription("HelloAgents")]
 public class HelloAgent(
     iAgentWorker worker,
-    [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : ConsoleAgent(
+    [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry) : ConsoleAgent(
         worker,
         typeRegistry),
         ISayHello,
         IHandle<NewMessageReceived>,
         IHandle<ConversationClosed>
 {
-    public async Task Handle(NewMessageReceived item)
+    public async Task Handle(NewMessageReceived item, CancellationToken cancellationToken = default)
     {
         var response = await SayHello(item.Message).ConfigureAwait(false);
         var evt = new Output

@@ -21,8 +21,6 @@
 
    <ItemGroup>
     <ProjectReference Include="..\DevTeam.Backend\DevTeam.Backend.csproj" />
-    <ProjectReference Include="..\DevTeam.AgentHost\DevTeam.AgentHost.csproj" />
-    <ProjectReference Include="..\DevTeam.Agents\DevTeam.Agents.csproj" />
   </ItemGroup>
 
 </Project>

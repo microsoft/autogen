@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Contracts\Microsoft.AutoGen.Contracts.csproj" />
+    <ProjectReference Include="..\Core\Microsoft.AutoGen.Core.csproj" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Orleans.Reminders" />

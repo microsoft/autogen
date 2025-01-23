@@ -10,9 +10,9 @@ namespace Microsoft.AutoGen.Agents;
 public interface IHandleConsole : IHandle<Output>, IHandle<Input>
 {
     AgentId AgentId { get; }
-    ValueTask PublishMessageAsync<T>(T message, string? source = null, CancellationToken token = default) where T : IMessage;
+    ValueTask PublishMessageAsync<T>(T message, CancellationToken token = default) where T : IMessage;
 
-    async Task IHandle<Output>.Handle(Output item)
+    async Task IHandle<Output>.Handle(Output item, CancellationToken cancellationToken)
     {
         // Assuming item has a property `Message` that we want to write to the console
         Console.WriteLine(item.Message);
@@ -22,9 +22,9 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>
         {
             Route = "console"
         };
-        await PublishMessageAsync(evt);
+        await PublishMessageAsync(evt).ConfigureAwait(false);
     }
-    async Task IHandle<Input>.Handle(Input item)
+    async Task IHandle<Input>.Handle(Input item, CancellationToken cancellationToken)
     {
         Console.WriteLine("Please enter input:");
         string content = Console.ReadLine() ?? string.Empty;
@@ -35,7 +35,7 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>
         {
             Route = "console"
         };
-        await PublishMessageAsync(evt);
+        await PublishMessageAsync(evt).ConfigureAwait(false);
     }
     static Task ProcessOutput(string message)
     {

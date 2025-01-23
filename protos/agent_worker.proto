@@ -50,6 +50,8 @@ message Event {
 message RegisterAgentTypeRequest {
     string request_id = 1;
     string type = 2;
+    repeated string events = 3;
+    repeated string topics = 4;
 }
 
 message RegisterAgentTypeResponse {
@@ -75,12 +77,16 @@ message Subscription {
     }
 }
 
-message AddSubscriptionRequest {
+message SubscriptionList {
+    repeated Subscription subscriptions = 1;
+}
+
+message SubscriptionRequest {
     string request_id = 1;
     Subscription subscription = 2;
 }
 
-message AddSubscriptionResponse {
+message SubscriptionResponse {
     string request_id = 1;
     bool success = 2;
     optional string error = 3;
@@ -90,6 +96,10 @@ service AgentRpc {
     rpc OpenChannel (stream Message) returns (stream Message);
     rpc GetState(AgentId) returns (GetStateResponse);
     rpc SaveState(AgentState) returns (SaveStateResponse);
+    rpc RegisterAgent(RegisterAgentTypeRequest) returns (RegisterAgentTypeResponse);
+    rpc Subscribe(SubscriptionRequest) returns (SubscriptionResponse);
+    rpc Unsubscribe(SubscriptionRequest) returns (SubscriptionResponse);
+    rpc GetSubscriptions(AgentId) returns (SubscriptionList);
 }
 
 message AgentState {
@@ -120,8 +130,8 @@ message Message {
         io.cloudevents.v1.CloudEvent cloudEvent = 3;
         RegisterAgentTypeRequest registerAgentTypeRequest = 4;
         RegisterAgentTypeResponse registerAgentTypeResponse = 5;
-        AddSubscriptionRequest addSubscriptionRequest = 6;
-        AddSubscriptionResponse addSubscriptionResponse = 7;
+        SubscriptionRequest SubscriptionRequest = 6;
+        SubscriptionResponse SubscriptionResponse = 7;
     }
 }
 

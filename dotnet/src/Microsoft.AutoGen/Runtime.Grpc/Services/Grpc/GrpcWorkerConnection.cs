@@ -10,14 +10,14 @@ namespace Microsoft.AutoGen.Runtime.Grpc;
 internal sealed class GrpcWorkerConnection : IAsyncDisposable, IConnection
 {
     private static long s_nextConnectionId;
-    private readonly Task _readTask;
-    private readonly Task _writeTask;
+    private Task _readTask = Task.CompletedTask;
+    private Task _writeTask = Task.CompletedTask;
     private readonly string _connectionId = Interlocked.Increment(ref s_nextConnectionId).ToString();
     private readonly object _lock = new();
     private readonly HashSet<string> _supportedTypes = [];
     private readonly GrpcGateway _gateway;
     private readonly CancellationTokenSource _shutdownCancellationToken = new();
-
+    public Task Completion { get; private set; } = Task.CompletedTask;
     public GrpcWorkerConnection(GrpcGateway agentWorker, IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {
         _gateway = agentWorker;
@@ -25,7 +25,9 @@ internal sealed class GrpcWorkerConnection : IAsyncDisposable, IConnection
         ResponseStream = responseStream;
         ServerCallContext = context;
         _outboundMessages = Channel.CreateUnbounded<Message>(new UnboundedChannelOptions { AllowSynchronousContinuations = true, SingleReader = true, SingleWriter = false });
-
+    }
+    public Task Connect()
+    {
         var didSuppress = false;
         if (!ExecutionContext.IsFlowSuppressed())
         {
@@ -46,7 +48,7 @@ internal sealed class GrpcWorkerConnection : IAsyncDisposable, IConnection
             }
         }
 
-        Completion = Task.WhenAll(_readTask, _writeTask);
+        return Completion = Task.WhenAll(_readTask, _writeTask);
     }
 
     public IAsyncStreamReader<Message> RequestStream { get; }
@@ -75,9 +77,6 @@ internal sealed class GrpcWorkerConnection : IAsyncDisposable, IConnection
     {
         await _outboundMessages.Writer.WriteAsync(message).ConfigureAwait(false);
     }
-
-    public Task Completion { get; }
-
     public async Task RunReadPump()
     {
         await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
@@ -85,9 +84,8 @@ internal sealed class GrpcWorkerConnection : IAsyncDisposable, IConnection
         {
             await foreach (var message in RequestStream.ReadAllAsync(_shutdownCancellationToken.Token))
             {
-
                 // Fire and forget
-                _gateway.OnReceivedMessageAsync(this, message).Ignore();
+                _gateway.OnReceivedMessageAsync(this, message, _shutdownCancellationToken.Token).Ignore();
             }
         }
         catch (OperationCanceledException)

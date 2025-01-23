@@ -262,7 +262,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                 message = await self._host_connection.recv()  # type: ignore
                 oneofcase = agent_worker_pb2.Message.WhichOneof(message, "message")
                 match oneofcase:
-                    case "registerAgentTypeRequest" | "addSubscriptionRequest":
+                    case "registerAgentTypeRequest" | "SubscriptionRequest":
                         logger.warning(f"Cant handle {oneofcase}, skipping.")
                     case "request":
                         task = asyncio.create_task(self._process_request(message.request))
@@ -288,9 +288,9 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                         self._background_tasks.add(task)
                         task.add_done_callback(self._raise_on_exception)
                         task.add_done_callback(self._background_tasks.discard)
-                    case "addSubscriptionResponse":
+                    case "SubscriptionResponse":
                         task = asyncio.create_task(
-                            self._process_add_subscription_response(message.addSubscriptionResponse)
+                            self._process_add_subscription_response(message.SubscriptionResponse)
                         )
                         self._background_tasks.add(task)
                         task.add_done_callback(self._raise_on_exception)
@@ -809,7 +809,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         match subscription:
             case TypeSubscription(topic_type=topic_type, agent_type=agent_type):
                 message = agent_worker_pb2.Message(
-                    addSubscriptionRequest=agent_worker_pb2.AddSubscriptionRequest(
+                    SubscriptionRequest=agent_worker_pb2.SubscriptionRequest(
                         request_id=request_id,
                         subscription=agent_worker_pb2.Subscription(
                             typeSubscription=agent_worker_pb2.TypeSubscription(
@@ -820,7 +820,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                 )
             case TypePrefixSubscription(topic_type_prefix=topic_type_prefix, agent_type=agent_type):
                 message = agent_worker_pb2.Message(
-                    addSubscriptionRequest=agent_worker_pb2.AddSubscriptionRequest(
+                    SubscriptionRequest=agent_worker_pb2.SubscriptionRequest(
                         request_id=request_id,
                         subscription=agent_worker_pb2.Subscription(
                             typePrefixSubscription=agent_worker_pb2.TypePrefixSubscription(
@@ -844,7 +844,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         # Wait for the subscription response.
         await future
 
-    async def _process_add_subscription_response(self, response: agent_worker_pb2.AddSubscriptionResponse) -> None:
+    async def _process_add_subscription_response(self, response: agent_worker_pb2.SubscriptionResponse) -> None:
         future = self._pending_requests.pop(response.request_id)
         if response.HasField("error") and response.error != "":
             future.set_exception(RuntimeError(response.error))

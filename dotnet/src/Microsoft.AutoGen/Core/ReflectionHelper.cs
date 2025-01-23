@@ -23,7 +23,7 @@ public sealed class ReflectionHelper
         }
         return false;
     }
-    public static EventTypes GetAgentsMetadata(params Assembly[] assemblies)
+    public static AgentsMetadata GetAgentsMetadata(params Assembly[] assemblies)
     {
         var interfaceType = typeof(IMessage);
         var pairs = assemblies
@@ -42,8 +42,12 @@ public sealed class ReflectionHelper
                                               .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
                                               .Select(i => GetMessageDescriptor(i.GetGenericArguments().First())?.FullName ?? "").ToHashSet()))
                                 .ToDictionary(item => item.t, item => item.Item2);
-
-        return new EventTypes(typeRegistry, types, eventsMap);
+        var topicsMap = assemblies
+                               .SelectMany(assembly => assembly.GetTypes())
+                               .Where(type => IsSubclassOfGeneric(type, typeof(Agent)) && !type.IsAbstract)
+                               .Select(t => (t, t.GetCustomAttributes<TopicSubscriptionAttribute>().Select(a => a.Topic).ToHashSet()))
+                               .ToDictionary(item => item.t, item => item.Item2);
+        return new AgentsMetadata(typeRegistry, types, eventsMap, topicsMap);
     }
 
     /// <summary>

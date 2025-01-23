@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package devteam;
 
-option csharp_namespace = "DevTeam.Shared";
+option csharp_namespace = "DevTeam";
 
 message NewAsk {
   string org = 1;
