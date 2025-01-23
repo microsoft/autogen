@@ -33,6 +33,14 @@ class SKChatCompletionAdapter(ChatCompletionClient):
     Semantic Kernel connectors (e.g., Azure OpenAI, Google Gemini, Ollama, etc.) into
     Autogen agents that rely on a ChatCompletionClient interface.
 
+    By leveraging this adapter, you can:
+
+        - Pass in a `Kernel` and any supported Semantic Kernel `ChatCompletionClientBase` connector.
+        - Provide tools (via Autogen `Tool` or `ToolSchema`) for function calls during chat completion.
+        - Stream responses or retrieve them in a single request.
+        - Provide prompt settings to control the chat completion behavior either globally through the constructor
+          or on a per-request basis through the `extra_create_args` dictionary.
+
     Args:
         sk_client (ChatCompletionClientBase):
             The Semantic Kernel client to wrap (e.g., AzureChatCompletion, GoogleAIChatCompletion, OllamaChatCompletion).
@@ -90,50 +98,79 @@ class SKChatCompletionAdapter(ChatCompletionClient):
 
 
         async def main():
-            # 2) Create a Semantic Kernel instance
+            # 2) Create a Semantic Kernel instance (with null memory for simplicity)
             kernel = Kernel(memory=NullMemory())
+
+            # ----------------------------------------------------------------
+            # Example A: Azure OpenAI
+            # ----------------------------------------------------------------
+            deployment_name = "<AZURE_OPENAI_DEPLOYMENT_NAME>"
+            endpoint = "<AZURE_OPENAI_ENDPOINT>"
+            api_key = "<AZURE_OPENAI_API_KEY>"
+
+            azure_client = AzureChatCompletion(deployment_name=deployment_name, endpoint=endpoint, api_key=api_key)
+            azure_request_settings = AzureChatPromptExecutionSettings(temperature=0.8)
+            azure_adapter = SKChatCompletionAdapter(sk_client=azure_client, default_prompt_settings=azure_request_settings)
+
+            # ----------------------------------------------------------------
+            # Example B: Google Gemini
+            # ----------------------------------------------------------------
+            google_api_key = "<GCP_API_KEY>"
+            google_model = "gemini-1.5-flash"
+            google_client = GoogleAIChatCompletion(gemini_model_id=google_model, api_key=google_api_key)
+            google_adapter = SKChatCompletionAdapter(sk_client=google_client)
+
+            # ----------------------------------------------------------------
+            # Example C: Ollama (local Llama-based model)
+            # ----------------------------------------------------------------
+            ollama_client = OllamaChatCompletion(
+                service_id="ollama",  # custom ID
+                host="http://localhost:11434",
+                ai_model_id="llama3.1",
+            )
+            request_settings = OllamaChatPromptExecutionSettings(
+                # For model specific settings, specify them in the options dictionary.
+                # For more information on the available options, refer to the Ollama API documentation:
+                # https://github.com/ollama/ollama/blob/main/docs/modelfile.md#valid-parameters-and-values
+                options={
+                    "temperature": 0.8,
+                },
+            )
+            ollama_adapter = SKChatCompletionAdapter(sk_client=ollama_client, default_prompt_settings=request_settings)
+
+            # 3) Create a tool and register it with the kernel
             calc_tool = CalculatorTool()
 
-            # 3) Create chat completion clients with different providers
-
-            # Azure OpenAI example
-            azure_client = AzureChatCompletion(
-                deployment_name="<AZURE_OPENAI_DEPLOYMENT_NAME>",
-                endpoint="<AZURE_OPENAI_ENDPOINT>",
-                api_key="<AZURE_OPENAI_API_KEY>",
-            )
-            azure_settings = AzureChatPromptExecutionSettings(temperature=0.8)
-            azure_adapter = SKChatCompletionAdapter(sk_client=azure_client, kernel=kernel, prompt_settings=azure_settings)
-
-            # Google example
-            google_client = GoogleAIChatCompletion(gemini_model_id="gemini-1.5-flash", api_key="<GCP_API_KEY>")
-            google_adapter = SKChatCompletionAdapter(sk_client=google_client, kernel=kernel)
-
-            # Ollama example
-            ollama_client = OllamaChatCompletion(service_id="ollama", host="http://localhost:11434", ai_model_id="llama3.1")
-            ollama_settings = OllamaChatPromptExecutionSettings(options={"temperature": 0.8})
-            ollama_adapter = SKChatCompletionAdapter(
-                sk_client=ollama_client, kernel=kernel, prompt_settings=ollama_settings
-            )
-
-            # 4) Prepare messages for chat completion
+            # 4) Prepare messages for a chat completion
             messages: list[LLMMessage] = [
                 SystemMessage(content="You are a helpful assistant."),
                 UserMessage(content="What is 2 + 2?", source="user"),
             ]
 
-            # 5) Use the adapters with default or override settings
-
-            # Use with default settings from constructor
-            azure_result = await azure_adapter.create(messages=messages, tools=[calc_tool])
+            # 5) Invoke chat completion with different adapters
+            # Azure example
+            azure_result = await azure_adapter.create(
+                messages=messages,
+                tools=[calc_tool],
+                extra_create_args={"kernel": kernel, "prompt_execution_settings": azure_request_settings},
+            )
             print("Azure result:", azure_result.content)
 
-            # Override settings for specific request
-            custom_settings = AzureChatPromptExecutionSettings(temperature=0.5)
-            azure_result_custom = await azure_adapter.create(
-                messages=messages, tools=[calc_tool], extra_create_args={"prompt_execution_settings": custom_settings}
+            # Google example
+            google_result = await google_adapter.create(
+                messages=messages,
+                tools=[calc_tool],
+                extra_create_args={"kernel": kernel},
             )
-            print("Azure result (custom settings):", azure_result_custom.content)
+            print("Google result:", google_result.content)
+
+            # Ollama example
+            ollama_result = await ollama_adapter.create(
+                messages=messages,
+                tools=[calc_tool],
+                extra_create_args={"kernel": kernel, "prompt_execution_settings": request_settings},
+            )
+            print("Ollama result:", ollama_result.content)
 
 
         if __name__ == "__main__":
