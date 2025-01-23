@@ -48,12 +48,12 @@ message Event {
 }
 
 message RegisterAgentTypeRequest {
-    string request_id = 1;
+    string request_id = 1; // TODO: remove once message based requests are removed
     string type = 2;
 }
 
 message RegisterAgentTypeResponse {
-    string request_id = 1;
+    string request_id = 1; // TODO: remove once message based requests are removed
     bool success = 2;
     optional string error = 3;
 }
@@ -76,20 +76,45 @@ message Subscription {
 }
 
 message AddSubscriptionRequest {
-    string request_id = 1;
+    string request_id = 1; // TODO: remove once message based requests are removed
     Subscription subscription = 2;
 }
 
 message AddSubscriptionResponse {
-    string request_id = 1;
-    bool success = 2;
-    optional string error = 3;
+    string request_id = 1; // TODO: remove once message based requests are removed
+    // ID of created subscription
+    string id = 2;
+    bool success = 3;
+    optional string error = 4;
+}
+
+message RemoveSubscriptionRequest {
+    string id = 1;
+}
+
+message RemoveSubscriptionResponse {
+    bool success = 1;
+    optional string error = 2;
+}
+
+message RegisteredSubscription {
+    string id = 1;
+    Subscription subscription = 2;
+}
+
+message GetSubscriptionsRequest {}
+message GetSubscriptionsResponse {
+    repeated RegisteredSubscription subscriptions = 1;
 }
 
 service AgentRpc {
     rpc OpenChannel (stream Message) returns (stream Message);
     rpc GetState(AgentId) returns (GetStateResponse);
     rpc SaveState(AgentState) returns (SaveStateResponse);
+    rpc RegisterAgent(RegisterAgentTypeRequest) returns (RegisterAgentTypeResponse);
+    rpc AddSubscription(AddSubscriptionRequest) returns (AddSubscriptionResponse);
+    rpc RemoveSubscription(RemoveSubscriptionRequest) returns (RemoveSubscriptionResponse);
+    rpc GetSubscriptions(GetSubscriptionsRequest) returns (GetSubscriptionsResponse);
 }
 
 message AgentState {
