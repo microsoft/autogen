@@ -1,6 +1,6 @@
 from typing import Any, AsyncGenerator, List, Mapping, Sequence
 
-from autogen_core import CancellationToken,Component, ComponentModel
+from autogen_core import CancellationToken, Component, ComponentModel
 from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
 
 from autogen_agentchat.base import Response
@@ -20,11 +20,13 @@ from ._base_chat_agent import BaseChatAgent
 class SocietyOfMindAgentConfig(BaseModel):
     """The declarative configuration for a SocietyOfMindAgent."""
 
+    name: str
     team: ComponentModel
     model_client: ComponentModel
-    description: str  
-    instruction: str 
-    response_prompt: str  
+    description: str
+    instruction: str
+    response_prompt: str
+
 
 class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
     """An agent that uses an inner team of agents to generate responses.
@@ -187,9 +189,9 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
         society_of_mind_state = SocietyOfMindAgentState.model_validate(state)
         await self._team.load_state(society_of_mind_state.inner_team_state)
 
-
     def _to_config(self) -> SocietyOfMindAgentConfig:
         return SocietyOfMindAgentConfig(
+            name=self.name,
             team=self._team.dump_component(),
             model_client=self._model_client.dump_component(),
             description=self.description,
@@ -199,12 +201,13 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
 
     @classmethod
     def _from_config(cls, config: SocietyOfMindAgentConfig) -> Self:
-        team = Team.load_component(config.team)
         model_client = ChatCompletionClient.load_component(config.model_client)
+        team = Team.load_component(config.team)
         return cls(
+            name=config.name,
             team=team,
             model_client=model_client,
             description=config.description,
             instruction=config.instruction,
             response_prompt=config.response_prompt,
-        )   
+        )

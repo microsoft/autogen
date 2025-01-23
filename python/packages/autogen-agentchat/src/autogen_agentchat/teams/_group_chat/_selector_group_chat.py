@@ -186,6 +186,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                 mentions[name] = count
         return mentions
 
+
 class SelectorGroupChatConfig(BaseModel):
     """The declarative configuration for SelectorGroupChat."""
 
@@ -196,6 +197,7 @@ class SelectorGroupChatConfig(BaseModel):
     selector_prompt: str
     allow_repeated_speaker: bool
     # selector_func: ComponentModel | None
+
 
 class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
     """A group chat team that have participants takes turn to publish a message
@@ -398,10 +400,9 @@ Read the above conversation. Then select the next role from {participants} to pl
             self._selector_func,
         )
 
-    
     def _to_config(self) -> SelectorGroupChatConfig:
         return SelectorGroupChatConfig(
-            participants = [participant.dump_component() for participant in self._participants]  ,
+            participants=[participant.dump_component() for participant in self._participants],
             model_client=self._model_client.dump_component(),
             termination_condition=self._termination_condition.dump_component() if self._termination_condition else None,
             max_turns=self._max_turns,
@@ -411,10 +412,9 @@ Read the above conversation. Then select the next role from {participants} to pl
         )
 
     @classmethod
-
-    def _from_config(cls, config: SelectorGroupChatConfig) -> Self: 
+    def _from_config(cls, config: SelectorGroupChatConfig) -> Self:
         return cls(
-            participants = [BaseChatAgent.load_component(participant) for participant in config.participants],
+            participants=[BaseChatAgent.load_component(participant) for participant in config.participants],
             model_client=ChatCompletionClient.load_component(config.model_client),
             termination_condition=TerminationCondition.load_component(config.termination_condition)
             if config.termination_condition
@@ -426,4 +426,3 @@ Read the above conversation. Then select the next role from {participants} to pl
             # if config.selector_func
             # else None,
         )
-

@@ -14,7 +14,7 @@ from autogen_core import (
     MessageContext,
     SingleThreadedAgentRuntime,
     TypeSubscription,
-    ComponentBase
+    ComponentBase,
 )
 from autogen_core._closure_agent import ClosureContext
 from pydantic import BaseModel
