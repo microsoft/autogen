@@ -60,6 +60,7 @@ jupyter-executor = [
     "ipykernel>=6.29.5",
     "nbclient>=0.10.2",
 ]
+apprentice = ["chromadb"]
 
 semantic-kernel-core = [
     "semantic-kernel>=1.17.1",
