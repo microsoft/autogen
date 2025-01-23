@@ -270,10 +270,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         return kernel
 
     def _get_prompt_settings(self, extra_create_args: Mapping[str, Any]) -> Optional[PromptExecutionSettings]:
-        user_settings = extra_create_args.get("prompt_execution_settings", None)
-        if user_settings is None:
-            user_settings = self._prompt_settings
-        return user_settings
+        return extra_create_args.get("prompt_execution_settings", None) or self._prompt_settings
 
     async def create(
         self,
