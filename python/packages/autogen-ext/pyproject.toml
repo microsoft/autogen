@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-ext"
-version = "0.4.1"
+version = "0.4.3"
 license = {file = "LICENSE-CODE"}
 description = "AutoGen extensions library"
 readme = "README.md"
@@ -15,7 +15,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "autogen-core==0.4.1",
+    "autogen-core==0.4.3",
 ]
 
 [project.optional-dependencies]
@@ -24,31 +24,85 @@ azure = ["azure-core", "azure-identity"]
 docker = ["docker~=7.0"]
 openai = ["openai>=1.52.2", "tiktoken>=0.8.0", "aiofiles"]
 file-surfer = [
-    "autogen-agentchat==0.4.1",
+    "autogen-agentchat==0.4.3",
     "markitdown>=0.0.1a2",
 ]
 graphrag = ["graphrag>=1.0.1"]
 web-surfer = [
-    "autogen-agentchat==0.4.1",
+    "autogen-agentchat==0.4.3",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
     "markitdown>=0.0.1a2",
 ]
 magentic-one = [
-    "autogen-agentchat==0.4.1",
+    "autogen-agentchat==0.4.3",
     "markitdown>=0.0.1a2",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
 ]
 video-surfer = [
-    "autogen-agentchat==0.4.1",
+    "autogen-agentchat==0.4.3",
     "opencv-python>=4.5",
     "ffmpeg-python",
     "openai-whisper",
 ]
+diskcache = [
+    "diskcache>=5.6.3"
+]
+redis = [
+    "redis>=5.2.1"
+]
 
 grpc = [
     "grpcio~=1.62.0", # TODO: update this once we have a stable version.
+]
+jupyter-executor = [
+    "ipykernel>=6.29.5",
+    "nbclient>=0.10.2",
+]
+
+semantic-kernel-core = [
+    "semantic-kernel>=1.17.1",
+]
+
+semantic-kernel-google = [
+    "semantic-kernel[google]>=1.17.1",
+]
+
+semantic-kernel-hugging-face = [
+    "semantic-kernel[hugging_face]>=1.17.1",
+]
+
+semantic-kernel-mistralai = [
+    "semantic-kernel[mistralai]>=1.17.1",
+]
+
+semantic-kernel-ollama = [
+    "semantic-kernel[ollama]>=1.17.1",
+]
+
+semantic-kernel-onnx = [
+    "semantic-kernel[onnx]>=1.17.1",
+]
+
+semantic-kernel-anthropic = [
+    "semantic-kernel[anthropic]>=1.17.1",
+]
+
+semantic-kernel-pandas = [
+    "semantic-kernel[pandas]>=1.17.1",
+]
+
+semantic-kernel-aws = [
+    "semantic-kernel[aws]>=1.17.1",
+]
+
+semantic-kernel-dapr = [
+    "semantic-kernel[dapr]>=1.17.1",
+]
+
+semantic-kernel-all = [
+    "semantic-kernel[google,hugging_face,mistralai,ollama,onnx,anthropic,usearch,pandas,aws,dapr]>=1.17.1",
 ]
 
 [tool.hatch.build.targets.wheel]
@@ -81,14 +135,9 @@ include = "../../shared_tasks.toml"
 [tool.poe.tasks]
 test.sequence = [
     "playwright install",
-    "pytest -n auto",
+    "pytest -n 1 --cov=src --cov-report=term-missing --cov-report=xml",
 ]
 test.default_item_type = "cmd"
-coverage.sequence = [
-    "playwright install",
-    "pytest -n auto --cov=src --cov-report=term-missing --cov-report=xml",
-]
-coverage.default_item_type = "cmd"
 mypy = "mypy --config-file ../../pyproject.toml --exclude src/autogen_ext/runtimes/grpc/protos --exclude tests/protos src tests"
 
 [tool.mypy]

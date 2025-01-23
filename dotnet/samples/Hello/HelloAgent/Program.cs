@@ -8,7 +8,7 @@ using Microsoft.Extensions.Hosting;
 
 var local = true;
 if (Environment.GetEnvironmentVariable("AGENT_HOST") != null) { local = false; }
-var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
+var app = await Microsoft.AutoGen.Core.Grpc.AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
 }, local: local).ConfigureAwait(false);
@@ -16,7 +16,7 @@ await app.WaitForShutdownAsync();
 
 namespace Hello
 {
-    [TopicSubscription("agents")]
+    [TopicSubscription("HelloAgents")]
     public class HelloAgent(
         IAgentWorker worker, IHostApplicationLifetime hostApplicationLifetime,
         [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : Agent(

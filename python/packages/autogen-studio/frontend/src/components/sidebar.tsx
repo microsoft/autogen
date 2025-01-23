@@ -247,32 +247,48 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
               </>
             ) : (
               <div className="flex items-center gap-2">
-                <Link
-                  to="/settings"
-                  onClick={() =>
-                    setHeader({
-                      title: "Settings",
-                      breadcrumbs: [
-                        { name: "Settings", href: "/settings", current: true },
-                      ],
-                    })
-                  }
-                  className="group flex flex-1 gap-x-3 rounded-md p-2 text-sm font-medium text-primary hover:text-accent hover:bg-secondary"
-                >
-                  <Settings className="h-6 w-6 shrink-0 text-secondary group-hover:text-accent" />
-                  {showFull && "Settings"}
-                </Link>
+                <div className="w-full  ">
+                  <div className="hidden">
+                    {" "}
+                    <Link
+                      to="/settings"
+                      onClick={() =>
+                        setHeader({
+                          title: "Settings",
+                          breadcrumbs: [
+                            {
+                              name: "Settings",
+                              href: "/settings",
+                              current: true,
+                            },
+                          ],
+                        })
+                      }
+                      className="group flex flex-1 gap-x-3 rounded-md p-2 text-sm font-medium text-primary hover:text-accent hover:bg-secondary"
+                    >
+                      <Settings className="h-6 w-6 shrink-0 text-secondary group-hover:text-accent" />
+                      {showFull && "Settings"}
+                    </Link>
+                  </div>
+                </div>
                 <div className="hidden md:block">
-                  <button
-                    onClick={() => setSidebarState({ isExpanded: !isExpanded })}
-                    className="p-2 rounded-md hover:bg-secondary hover:text-accent text-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-opacity-50"
+                  <Tooltip
+                    title={`${isExpanded ? "Close Sidebar" : "Open Sidebar"}`}
+                    placement="right"
                   >
-                    {isExpanded ? (
-                      <PanelLeftClose strokeWidth={1.5} className="h-6 w-6" />
-                    ) : (
-                      <PanelLeftOpen strokeWidth={1.5} className="h-6 w-6" />
-                    )}
-                  </button>
+                    <button
+                      onClick={() =>
+                        setSidebarState({ isExpanded: !isExpanded })
+                      }
+                      className="p-2 rounded-md hover:bg-secondary hover:text-accent text-secondary transition-colors focus:outline-none focus:ring-2 focus:ring-accent focus:ring-opacity-50"
+                    >
+                      {isExpanded ? (
+                        <PanelLeftClose strokeWidth={1.5} className="h-6 w-6" />
+                      ) : (
+                        <PanelLeftOpen strokeWidth={1.5} className="h-6 w-6" />
+                      )}
+                    </button>
+                  </Tooltip>
                 </div>
               </div>
             )}

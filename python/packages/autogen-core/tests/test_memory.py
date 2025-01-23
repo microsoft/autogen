@@ -1,3 +1,4 @@
+from typing import Any
 import pytest
 from autogen_core import CancellationToken
 from autogen_core.memory import (
@@ -21,19 +22,22 @@ def test_memory_protocol_attributes() -> None:
     assert hasattr(Memory, "close")
 
 
-def test_memory_protocol_runtime_checkable() -> None:
-    """Test that Memory protocol is properly runtime-checkable."""
+def test_memory_abc_implementation() -> None:
+    """Test that Memory ABC is properly implemented."""
 
-    class ValidMemory:
+    class ValidMemory(Memory):
         @property
         def name(self) -> str:
             return "test"
 
-        async def update_context(self, context: ChatCompletionContext) -> UpdateContextResult:
+        async def update_context(self, model_context: ChatCompletionContext) -> UpdateContextResult:
             return UpdateContextResult(memories=MemoryQueryResult(results=[]))
 
         async def query(
-            self, query: MemoryContent, cancellation_token: CancellationToken | None = None
+            self,
+            query: str | MemoryContent,
+            cancellation_token: CancellationToken | None = None,
+            **kwargs: Any,
         ) -> MemoryQueryResult:
             return MemoryQueryResult(results=[])
 
