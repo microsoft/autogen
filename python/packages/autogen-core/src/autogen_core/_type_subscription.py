@@ -30,7 +30,7 @@ class TypeSubscription(Subscription):
         agent_type (str): Agent type to handle this subscription
     """
 
-    def __init__(self, topic_type: str, agent_type: str | AgentType, id: str|None=None):
+    def __init__(self, topic_type: str, agent_type: str | AgentType, id: str | None = None):
         self._topic_type = topic_type
         if isinstance(agent_type, AgentType):
             self._agent_type = agent_type.type
