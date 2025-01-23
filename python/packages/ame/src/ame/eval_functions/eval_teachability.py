@@ -20,7 +20,9 @@ async def eval_teachability(fast_learner, evaluator, client, logger, settings, r
 
     # Check the response.
     grader = Grader(client, logger)
-    response_is_correct, extracted_answer = await grader.is_response_correct(task_description, response, expected_answer)
+    response_is_correct, extracted_answer = await grader.is_response_correct(
+        task_description, response, expected_answer
+    )
     logger.info("Extracted answer:  {}".format(extracted_answer))
     if response_is_correct:
         results_str_1 = "Answer before teaching is CORRECT."
@@ -37,7 +39,9 @@ async def eval_teachability(fast_learner, evaluator, client, logger, settings, r
     response = await fast_learner.handle_user_message(task_description)
 
     # Check the response.
-    response_is_correct, extracted_answer = await grader.is_response_correct(task_description, response, expected_answer)
+    response_is_correct, extracted_answer = await grader.is_response_correct(
+        task_description, response, expected_answer
+    )
     logger.info("Extracted answer:  {}".format(extracted_answer))
     if response_is_correct:
         results_str_2 = "Answer after teaching is CORRECT."

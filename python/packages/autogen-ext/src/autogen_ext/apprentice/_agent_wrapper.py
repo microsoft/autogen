@@ -1,13 +1,15 @@
+from typing import Tuple
+
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import MagenticOneGroupChat
-from autogen_ext.agents.web_surfer import MultimodalWebSurfer
-from autogen_ext.agents.web_surfer._utils import message_content_to_str
 from autogen_agentchat.ui._console import Console
 from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
-from typing import Tuple
+
+from autogen_ext.agents.web_surfer import MultimodalWebSurfer
+from autogen_ext.agents.web_surfer._utils import message_content_to_str
 
 
 class AgentWrapper:
@@ -61,8 +63,9 @@ In responding to every user message, you follow the same multi-step process give
         response_str = response.content
 
         # Log the model call
-        self.logger.add_model_call(summary="Ask the model to complete the task",
-                                     input_messages=input_messages, response=response)
+        self.logger.add_model_call(
+            summary="Ask the model to complete the task", input_messages=input_messages, response=response
+        )
         self.logger.info("\n-----  RESPONSE  -----\n\n{}\n".format(response_str))
 
         # Use the response as the work history as well.
@@ -79,7 +82,8 @@ In responding to every user message, you follow the same multi-step process give
         general_agent = AssistantAgent(
             "general_agent",
             self.client,
-            description="A general GPT-4o AI assistant capable of performing a variety of tasks.", )
+            description="A general GPT-4o AI assistant capable of performing a variety of tasks.",
+        )
 
         web_surfer = MultimodalWebSurfer(
             name="web_surfer",

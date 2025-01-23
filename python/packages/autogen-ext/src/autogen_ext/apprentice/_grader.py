@@ -2,10 +2,10 @@ from typing import List
 
 from autogen_core.models import (
     AssistantMessage,
+    CreateResult,
     LLMMessage,
     SystemMessage,
     UserMessage,
-    CreateResult,
 )
 
 from ._utils import UserContent
@@ -17,12 +17,14 @@ class Grader:
         self.logger = logger
 
         # Check whether to report results to the client.
-        self.report_results = hasattr(self.client, 'report_result')
+        self.report_results = hasattr(self.client, "report_result")
 
         # Create the chat history
         self._chat_history: List[LLMMessage] = []
 
-    async def call_model(self, summary, user_content: UserContent = None, system_message_content=None, keep_these_messages=True):
+    async def call_model(
+        self, summary, user_content: UserContent = None, system_message_content=None, keep_these_messages=True
+    ):
         # Prepare the input message list
         if system_message_content is None:
             system_message_content = "You are a helpful assistant."
@@ -68,30 +70,35 @@ class Grader:
 
         sys_message = """You are a helpful and thoughtful assistant."""
 
-        user_message = ["""Your job is to extract a possible answer to the following question from the given text.
+        user_message = [
+            """Your job is to extract a possible answer to the following question from the given text.
 - First review the following task.
 - Then review the text that follows, which may an answer, plus reasoning that led to the answer.
 - Do not attempt to actually solve the task yourself.
 - Don't try to judge whether the reasoning steps were correct.
 - Simply respond by summarizing the answer described in the text, omitting any other parts of the text.
-- If no answer is present can be extracted from the text, simply reply "None"."""]
+- If no answer is present can be extracted from the text, simply reply "None"."""
+        ]
         user_message.append("\n# Task description")
         user_message.append(task_description)
         user_message.append("\n# Text that may contain an answer")
         user_message.append(response_to_be_graded)
         self.clear_history()
-        extracted_answer = await self.call_model(summary="Ask the model to extract the answer",
-                                                 system_message_content=sys_message, user_content=user_message)
+        extracted_answer = await self.call_model(
+            summary="Ask the model to extract the answer", system_message_content=sys_message, user_content=user_message
+        )
         self.logger.info("Extracted answer: " + extracted_answer)
 
-        user_message = ["""Your job is to decide whether a given answer to a task is correct or not.
+        user_message = [
+            """Your job is to decide whether a given answer to a task is correct or not.
 - You will be given the task description and the correct, gold-standard answer, along with the answer to be graded.
 - In general, an answer is correct if it is equivalent to the correct answer.
 - Specifically, the given answer must contain the important information from the correct answer, and must not in any way contradict the correct answer.
 - Ignore any differences of grammar, spelling mistakes, punctuation, capitalization, formatting, or extra commentary.
 - An answer should be considered correct if it omits information that is clearly inferred.
   - For instance, if the correct answer is "Paris, France", the answer "Paris" should be considered correct.
-- Respond with a single character: '1' if the answer to be graded is correct", '0' if not."""]
+- Respond with a single character: '1' if the answer to be graded is correct", '0' if not."""
+        ]
         user_message.append("\n# Task description")
         user_message.append(task_description)
         user_message.append("\n# Correct answer")
@@ -99,8 +106,11 @@ class Grader:
         user_message.append("\n# Answer to be graded")
         user_message.append(extracted_answer)
         self.clear_history()
-        decision = await self.call_model(summary="Ask the model to check the answer for correctness",
-                                         system_message_content=sys_message, user_content=user_message)
+        decision = await self.call_model(
+            summary="Ask the model to check the answer for correctness",
+            system_message_content=sys_message,
+            user_content=user_message,
+        )
         self.logger.info("Decision: " + decision)
 
         self.logger.leave_function()

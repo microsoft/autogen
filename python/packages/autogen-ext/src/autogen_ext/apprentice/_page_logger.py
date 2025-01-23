@@ -1,19 +1,18 @@
+import inspect
+import json
 import os
 import shutil
 import time
-import json
-import inspect
-from typing import List, Dict
+from typing import Dict, List
 
 from autogen_core import Image
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
+    FunctionExecutionResultMessage,
     LLMMessage,
     SystemMessage,
     UserMessage,
-    AssistantMessage,
-    FunctionExecutionResultMessage,
 )
 
 
@@ -25,7 +24,7 @@ class Page:
         self.indent_level = indent_level
         self.show_in_overview = show_in_overview
         self.final = final
-        self.file_title = self.index_str + '  ' + self.summary
+        self.file_title = self.index_str + "  " + self.summary
         self.indentation_text = ""
         for i in range(self.indent_level):
             self.indentation_text += "|&emsp;"
@@ -56,11 +55,11 @@ class Page:
     def add_link_to_image(self, description, source_image_path):
         # Copy the image to the run directory.
         # Remove every character from the string 'description' that is not alphanumeric or a space.
-        description = ''.join(e for e in description if e.isalnum() or e.isspace())
-        target_image_filename = (str(self.page_logger.get_next_page_id()) + ' - ' + description)
+        description = "".join(e for e in description if e.isalnum() or e.isspace())
+        target_image_filename = str(self.page_logger.get_next_page_id()) + " - " + description
         local_image_path = os.path.join(self.page_logger.log_dir, target_image_filename)
         shutil.copyfile(source_image_path, local_image_path)
-        self._add_lines('\n' + description)
+        self._add_lines("\n" + description)
         self._add_lines(self.link_to_image(target_image_filename, description), flush=True)
 
     def flush(self):
@@ -73,7 +72,7 @@ class Page:
                 try:
                     f.write(f"{line}\n")
                 except UnicodeEncodeError:
-                    f.write(f"UnicodeEncodeError in this line.\n")
+                    f.write("UnicodeEncodeError in this line.\n")
             f.write(self.page_logger.html_closing())
             f.flush()
         time.sleep(0.1)
@@ -125,18 +124,20 @@ class PageLogger:
 
     def add_page(self, summary, show_in_overview=True, final=True):
         # Add a page to the log.
-        page = Page(page_logger=self,
-                    index=self.get_next_page_id(),
-                    summary=summary,
-                    indent_level=len(self.page_stack.stack),
-                    show_in_overview=show_in_overview,
-                    final=final)
+        page = Page(
+            page_logger=self,
+            index=self.get_next_page_id(),
+            summary=summary,
+            indent_level=len(self.page_stack.stack),
+            show_in_overview=show_in_overview,
+            final=final,
+        )
         self.pages.append(page)
         self.flush()
 
         if len(self.page_stack.stack) > 0:
             # Insert a link to the new page into the calling page.
-            self._add_lines('\n' + page.full_link, flush=True)
+            self._add_lines("\n" + page.full_link, flush=True)
 
         return page
 
@@ -233,7 +234,7 @@ class PageLogger:
         page._add_lines("{} prompt tokens".format(response.usage.prompt_tokens))
         page._add_lines("{} completion tokens".format(response.usage.completion_tokens))
         for i, m in enumerate(input_messages):
-            page._add_lines('\n' + self.message_source(m))
+            page._add_lines("\n" + self.message_source(m))
             page._add_lines(self.message_content(page, message=m))
         page._add_lines("\n" + self.decorate_text("ASSISTANT RESPONSE", "green", demarcate=True))
         page._add_lines(self.message_content(page, message=response))
@@ -268,17 +269,17 @@ class PageLogger:
         frame = inspect.currentframe().f_back  # Get the calling frame
 
         # Check if it's a method by looking for 'self' or 'cls' in f_locals
-        if 'self' in frame.f_locals:
-            class_name = type(frame.f_locals['self']).__name__
-        elif 'cls' in frame.f_locals:
-            class_name = frame.f_locals['cls'].__name__
+        if "self" in frame.f_locals:
+            class_name = type(frame.f_locals["self"]).__name__
+        elif "cls" in frame.f_locals:
+            class_name = frame.f_locals["cls"].__name__
         else:
             class_name = None  # Not part of a class
 
         if class_name is None:  # Not part of a class
             caller_name = frame.f_code.co_name
         else:
-            caller_name = class_name + '.' + frame.f_code.co_name
+            caller_name = class_name + "." + frame.f_code.co_name
 
         # Create a new page for this function.
         page = self.add_page(summary=caller_name, show_in_overview=True, final=False)
@@ -302,6 +303,7 @@ class PageStack:
     """
     A call stack containing a list of currently active tasks and policies in the order they called each other.
     """
+
     def __init__(self):
         self.stack = []
 

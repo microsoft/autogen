@@ -17,7 +17,10 @@ class ClientWrapper:
     Wraps a client object to record messages and responses (in record mode)
     or check the messages and replay the responses (in check-replay mode).
     """
-    def __init__(self, base_client: AzureOpenAIChatCompletionClient, mode: str, session_name: str, logger: PageLogger) -> None:
+
+    def __init__(
+        self, base_client: AzureOpenAIChatCompletionClient, mode: str, session_name: str, logger: PageLogger
+    ) -> None:
         self.logger = logger
         self.logger.enter_function()
 
@@ -39,19 +42,23 @@ class ClientWrapper:
         self.logger.leave_function()
 
     async def create(
-            self,
-            messages: Sequence[LLMMessage],
-            tools: Sequence[Tool | ToolSchema] = [],
-            json_output: Optional[bool] = None,
-            extra_create_args: Mapping[str, Any] = {},
-            cancellation_token: Optional[CancellationToken] = None,
+        self,
+        messages: Sequence[LLMMessage],
+        tools: Sequence[Tool | ToolSchema] = [],
+        json_output: Optional[bool] = None,
+        extra_create_args: Mapping[str, Any] = {},
+        cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
         response = None
 
         if self.mode == "pass-through":
-            response = await self.base_client.create(messages, tools, json_output, extra_create_args, cancellation_token)
+            response = await self.base_client.create(
+                messages, tools, json_output, extra_create_args, cancellation_token
+            )
         elif self.mode == "record":
-            response = await self.base_client.create(messages, tools, json_output, extra_create_args, cancellation_token)
+            response = await self.base_client.create(
+                messages, tools, json_output, extra_create_args, cancellation_token
+            )
             self.record_one_turn(messages, response)
         elif self.mode == "check-replay":
             response = self.check_and_replay_one_turn(messages)
@@ -63,7 +70,10 @@ class ClientWrapper:
     def convert_messages(self, messages: Sequence[LLMMessage]) -> List[Dict[str, str]]:
         converted_messages = []
         for message in messages:
-            turn = {"content": message.content, "source": 'System' if message.type == "SystemMessage" else message.source}
+            turn = {
+                "content": message.content,
+                "source": "System" if message.type == "SystemMessage" else message.source,
+            }
             converted_messages.append(turn)
         return converted_messages
 
@@ -131,7 +141,9 @@ class ClientWrapper:
             self.logger.error(error_str)
             raise ValueError(error_str)
         if result != recorded_result["result"]:
-            error_str = "\nRecorded result ({}) doesn't match the current result ({}).".format(recorded_result["result"], result)
+            error_str = "\nRecorded result ({}) doesn't match the current result ({}).".format(
+                recorded_result["result"], result
+            )
             self.logger.error(error_str)
             raise ValueError(error_str)
 

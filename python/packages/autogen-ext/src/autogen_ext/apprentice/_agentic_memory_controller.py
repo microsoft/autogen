@@ -1,7 +1,8 @@
 from typing import Callable, List
-from ._prompter import Prompter
+
 from ._agentic_memory_bank import AgenticMemoryBank
 from ._grader import Grader
+from ._prompter import Prompter
 
 
 class AgenticMemoryController:
@@ -13,8 +14,9 @@ class AgenticMemoryController:
         self.agent = agent
         self.client = client
         self.prompter = Prompter(client, logger)
-        self.memory_bank = AgenticMemoryBank(self.settings["AgenticMemoryBank"],
-                                             verbosity=3, reset=reset, logger=logger)
+        self.memory_bank = AgenticMemoryBank(
+            self.settings["AgenticMemoryBank"], verbosity=3, reset=reset, logger=logger
+        )
         self.grader = Grader(client, logger)
 
         self.logger.leave_function()
@@ -22,10 +24,11 @@ class AgenticMemoryController:
     def reset_memory(self):
         self.memory_bank.reset()
 
-    async def train_on_task(self,
-                            task: str,  # The task to be completed.
-                            expected_answer: str,  # The expected answer to the task.
-                            ):
+    async def train_on_task(
+        self,
+        task: str,  # The task to be completed.
+        expected_answer: str,  # The expected answer to the task.
+    ):
         """
         Repeatedly assigns a task to the completion agent, and tries to learn from failures by creating useful insights as memories.
         """
@@ -33,8 +36,9 @@ class AgenticMemoryController:
 
         # Attempt to create useful new memories.
         self.logger.info("Iterate on the task, possibly discovering a useful new insight.\n")
-        _, insight = await self._iterate_on_task(task, expected_answer,
-            self.settings["max_train_trials"], self.settings["max_test_trials"])
+        _, insight = await self._iterate_on_task(
+            task, expected_answer, self.settings["max_train_trials"], self.settings["max_test_trials"]
+        )
         if insight is None:
             self.logger.info("No useful insight was discovered.\n")
         else:
@@ -63,14 +67,15 @@ class AgenticMemoryController:
                 self.logger.info("Relevant insights were retrieved from memory.\n")
                 memory_section = self.format_memory_section(filtered_insights)
                 if len(memory_section) > 0:
-                    task_plus_insights = task + '\n\n' + memory_section
+                    task_plus_insights = task + "\n\n" + memory_section
 
             # Attempt to solve the task.
             self.logger.info("Try to solve the task.\n")
             response, _ = await self.agent.assign_task(task_plus_insights)
 
             response_is_correct, extracted_answer = await self.grader.is_response_correct(
-                task, response, expected_answer)
+                task, response, expected_answer
+            )
             self.logger.info("Extracted answer:  {}".format(extracted_answer))
             if response_is_correct:
                 self.logger.info("Answer is CORRECT.\n")
@@ -173,7 +178,7 @@ class AgenticMemoryController:
         if len(memories) > 0:
             memory_section = "## Important insights that may help solve tasks like this\n"
             for mem in memories:
-                memory_section += ('- ' + mem + '\n')
+                memory_section += "- " + mem + "\n"
         return memory_section
 
     async def _test_for_failure(self, task: str, task_plus_insights: str, expected_answer: str, num_trials: int):
@@ -196,7 +201,8 @@ class AgenticMemoryController:
             response, work_history = await self.agent.assign_task(task_plus_insights)
 
             response_is_correct, extracted_answer = await self.grader.is_response_correct(
-                task, response, expected_answer)
+                task, response, expected_answer
+            )
             self.logger.info("Extracted answer:  {}".format(extracted_answer))
             if response_is_correct:
                 self.logger.info("Answer is CORRECT.\n")
@@ -233,11 +239,12 @@ class AgenticMemoryController:
             else:
                 memory_section = self.format_memory_section(old_insights)
             if len(memory_section) > 0:
-                task_plus_insights += '\n\n' + memory_section
+                task_plus_insights += "\n\n" + memory_section
 
             # Can we find a failure case to learn from?
             failure_found, response, work_history = await self._test_for_failure(
-                task, task_plus_insights, expected_answer, max_test_trials)
+                task, task_plus_insights, expected_answer, max_test_trials
+            )
             if not failure_found:
                 # No. Time to exit the loop.
                 self.logger.info("\nResponse is CORRECT.\n  Stop looking for insights.\n")
@@ -259,7 +266,8 @@ class AgenticMemoryController:
             # Try to learn from this failure.
             self.logger.info("\nResponse is INCORRECT. Try to learn from this failure.\n")
             insight = await self.prompter.learn_from_failure(
-                task, memory_section, response, expected_answer, work_history, new_insights)
+                task, memory_section, response, expected_answer, work_history, new_insights
+            )
             self.logger.info("\nInsight:  {}\n".format(insight))
             new_insights.append(insight)
             last_insight = insight
@@ -281,7 +289,7 @@ class AgenticMemoryController:
             if len(filtered_insights) > 0:
                 self.logger.info("Relevant insights were retrieved from memory.\n")
                 memory_section = self.format_memory_section(filtered_insights)
-                task = task + '\n\n' + memory_section
+                task = task + "\n\n" + memory_section
                 # if len(memory_section) > 0:  # Best to include this condition, but it will require new recordings.
                 #     task = task + '\n\n' + memory_section
 

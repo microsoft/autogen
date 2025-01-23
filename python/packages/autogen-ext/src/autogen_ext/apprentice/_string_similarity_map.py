@@ -1,8 +1,9 @@
 import os
 import pickle
+from typing import Optional, Union
+
 import chromadb
 from chromadb.config import Settings
-from typing import Optional, Union
 
 
 class StringSimilarityMap:
@@ -80,7 +81,9 @@ class StringSimilarityMap:
         for uid, text in self.uid_text_dict.items():
             input_text, output_text = text
             if self.verbosity >= 1:
-                self.logger.info("  ID: {}\n    INPUT TEXT: {}\n    OUTPUT TEXT: {}".format(uid, input_text, output_text))
+                self.logger.info(
+                    "  ID: {}\n    INPUT TEXT: {}\n    OUTPUT TEXT: {}".format(uid, input_text, output_text)
+                )
             # Save the input string to a file with the same name as the string-pair ID in the mem_text dir, which is a subdir of the dir containing this file.
             with open("mem_text/{}.txt".format(uid), "w") as file:
                 file.write("  ID: {}\n    INPUT TEXT: {}\n    OUTPUT TEXT: {}".format(uid, input_text, output_text))
@@ -108,8 +111,11 @@ class StringSimilarityMap:
         self.vec_db.add(documents=[input_text], ids=[str(self.last_string_pair_id)])
         self.uid_text_dict[str(self.last_string_pair_id)] = input_text, output_text
         if self.verbosity >= 1:
-            self.logger.info("\nINPUT-OUTPUT PAIR ADDED TO VECTOR DATABASE:\n  ID\n    {}\n  INPUT\n    {}\n  OUTPUT\n    {}\n".format(
-                        self.last_string_pair_id, input_text, output_text))
+            self.logger.info(
+                "\nINPUT-OUTPUT PAIR ADDED TO VECTOR DATABASE:\n  ID\n    {}\n  INPUT\n    {}\n  OUTPUT\n    {}\n".format(
+                    self.last_string_pair_id, input_text, output_text
+                )
+            )
         if self.verbosity >= 3:
             self.list_string_pairs()
 
@@ -129,7 +135,10 @@ class StringSimilarityMap:
                 input_text_2, output_text = self.uid_text_dict[uid]
                 assert input_text == input_text_2
                 if self.verbosity >= 1:
-                    self.logger.info("\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT1\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
-                        input_text, output_text, distance))
+                    self.logger.info(
+                        "\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT1\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
+                            input_text, output_text, distance
+                        )
+                    )
                 string_pairs.append((input_text, output_text, distance))
         return string_pairs

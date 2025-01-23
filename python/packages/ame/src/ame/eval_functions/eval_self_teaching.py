@@ -1,4 +1,3 @@
-
 async def eval_self_teaching(fast_learner, evaluator, client, logger, settings, run_dict):
     """An evaluation"""
     logger.enter_function()
@@ -26,15 +25,27 @@ async def eval_self_teaching(fast_learner, evaluator, client, logger, settings, 
 
         # Test on the first task.
         num_successes, num_trials = await evaluator.test_fast_learner(
-            fast_learner=fast_learner, task_description=task_description_1, expected_answer=expected_answer_1,
-            num_trials=num_final_test_trials, use_memory=True, client=client, logger=logger)
+            fast_learner=fast_learner,
+            task_description=task_description_1,
+            expected_answer=expected_answer_1,
+            num_trials=num_final_test_trials,
+            use_memory=True,
+            client=client,
+            logger=logger,
+        )
         logger.info("Task 1 success rate:  {}%".format(round((num_successes / num_trials) * 100)))
         total_num_successes_1 += num_successes
 
         # Test on the second task.
         num_successes, num_trials = await evaluator.test_fast_learner(
-            fast_learner=fast_learner, task_description=task_description_2, expected_answer=expected_answer_2,
-            num_trials=num_final_test_trials, use_memory=True, client=client, logger=logger)
+            fast_learner=fast_learner,
+            task_description=task_description_2,
+            expected_answer=expected_answer_2,
+            num_trials=num_final_test_trials,
+            use_memory=True,
+            client=client,
+            logger=logger,
+        )
         logger.info("Task 2 success rate:  {}%".format(round((num_successes / num_trials) * 100)))
         total_num_successes_2 += num_successes
 
@@ -46,7 +57,7 @@ async def eval_self_teaching(fast_learner, evaluator, client, logger, settings, 
 
     results_str_1 = "Overall task 1 success rate:  {}%".format(overall_success_rate_1)
     results_str_2 = "Overall task 2 success rate:  {}%".format(overall_success_rate_2)
-    logger.info('\n' + results_str_1)
+    logger.info("\n" + results_str_1)
     logger.info(results_str_2)
 
     logger.leave_function()

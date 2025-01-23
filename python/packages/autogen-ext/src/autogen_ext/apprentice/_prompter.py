@@ -1,17 +1,16 @@
 import time
 from typing import List
 
+from autogen_core import FunctionCall, Image
 from autogen_core.models import (
     AssistantMessage,
+    CreateResult,
     LLMMessage,
     SystemMessage,
     UserMessage,
-    CreateResult,
 )
 
-from autogen_core import FunctionCall, Image
-
-from ._utils import message_content_to_str, UserContent, text_from_user_content, single_image_from_user_content
+from ._utils import UserContent, message_content_to_str, single_image_from_user_content, text_from_user_content
 
 
 class Prompter:
@@ -19,15 +18,16 @@ class Prompter:
         self.client = client
         self.logger = logger
         self.default_system_message_content = "You are a helpful assistant."
-        self.time_spent_in_model_calls = 0.
+        self.time_spent_in_model_calls = 0.0
         self.num_model_calls = 0
         self.start_time = time.time()
 
         # Create the chat history
         self._chat_history: List[LLMMessage] = []
 
-    async def call_model(self, summary, user_content: UserContent = None, system_message_content=None,
-                         keep_these_messages=True):
+    async def call_model(
+        self, summary, user_content: UserContent = None, system_message_content=None, keep_these_messages=True
+    ):
         # Prepare the input message list
         if system_message_content is None:
             system_message_content = self.default_system_message_content
@@ -47,7 +47,9 @@ class Prompter:
                 if part is None:
                     print("part is None")
                     print("message = ", message)
-                assert isinstance(part, str) or isinstance(part, Image), "Invalid message content type: {}".format(type(part))
+                assert isinstance(part, str) or isinstance(part, Image), "Invalid message content type: {}".format(
+                    type(part)
+                )
 
         # Call the model
         start_time = time.time()
@@ -76,8 +78,9 @@ class Prompter:
     def clear_history(self):
         self._chat_history = []
 
-    async def learn_from_failure(self, task_description, memory_section, final_response, expected_answer,
-                                 work_history, insights):
+    async def learn_from_failure(
+        self, task_description, memory_section, final_response, expected_answer, work_history, insights
+    ):
         # Try to create an insight to help avoid this failure in the future.
 
         sys_message = """- You are a patient and thorough teacher.
@@ -102,19 +105,32 @@ class Prompter:
         user_message.append("\n**-----  END OF STUDENTS' WORK  -----**\n\n")
 
         user_message.append(
-            "# Now carefully review the students' work above, explaining in detail what the students did right and what they did wrong.\n")
+            "# Now carefully review the students' work above, explaining in detail what the students did right and what they did wrong.\n"
+        )
 
         self.clear_history()
-        await self.call_model(summary="Ask the model to learn from this failure",
-                              system_message_content=sys_message, user_content=user_message)
+        await self.call_model(
+            summary="Ask the model to learn from this failure",
+            system_message_content=sys_message,
+            user_content=user_message,
+        )
         user_message = [
-            "Now put yourself in the mind of the students. What misconception led them to their incorrect answer?"]
-        await self.call_model(summary="Ask the model to state the misconception",
-                              system_message_content=sys_message, user_content=user_message)
+            "Now put yourself in the mind of the students. What misconception led them to their incorrect answer?"
+        ]
+        await self.call_model(
+            summary="Ask the model to state the misconception",
+            system_message_content=sys_message,
+            user_content=user_message,
+        )
 
-        user_message = ["Please express your key insights in the form of short, general advice that will be given to the students. Just one or two sentences, or they won't bother to read it."]
-        insight = await self.call_model(summary="Ask the model to formulate a concise insight",
-                                        system_message_content=sys_message, user_content=user_message)
+        user_message = [
+            "Please express your key insights in the form of short, general advice that will be given to the students. Just one or two sentences, or they won't bother to read it."
+        ]
+        insight = await self.call_model(
+            summary="Ask the model to formulate a concise insight",
+            system_message_content=sys_message,
+            user_content=user_message,
+        )
         return insight
 
     async def find_index_topics(self, input_string):
@@ -135,8 +151,9 @@ class Prompter:
         user_message.append(input_string)
 
         self.clear_history()
-        topics = await self.call_model(summary="Ask the model to extract topics",
-                                       system_message_content=sys_message, user_content=user_message)
+        topics = await self.call_model(
+            summary="Ask the model to extract topics", system_message_content=sys_message, user_content=user_message
+        )
 
         # Parse the topics into a python list.
         topic_list = []
@@ -151,21 +168,36 @@ class Prompter:
 
         sys_message = """You are a helpful and thoughtful assistant."""
 
-        user_message = ["We have been given a task description. Our job is not to complete the task, but merely rephrase the task in simpler, more general terms, if possible. Please reach through the following task description, then explain your understanding of the task in detail, as a single, flat list of all the important points."]
+        user_message = [
+            "We have been given a task description. Our job is not to complete the task, but merely rephrase the task in simpler, more general terms, if possible. Please reach through the following task description, then explain your understanding of the task in detail, as a single, flat list of all the important points."
+        ]
         user_message.append("\n# Task description")
         user_message.append(task_description)
 
         self.clear_history()
-        await self.call_model(summary="Ask the model to rephrase the task in a list of important points",
-                              system_message_content=sys_message, user_content=user_message)
+        await self.call_model(
+            summary="Ask the model to rephrase the task in a list of important points",
+            system_message_content=sys_message,
+            user_content=user_message,
+        )
 
-        user_message = ["Do you see any parts of this list that are irrelevant to actually solving the task? If so, explain which items are irrelevant."]
-        await self.call_model(summary="Ask the model to identify irrelevant points",
-                              system_message_content=sys_message, user_content=user_message)
+        user_message = [
+            "Do you see any parts of this list that are irrelevant to actually solving the task? If so, explain which items are irrelevant."
+        ]
+        await self.call_model(
+            summary="Ask the model to identify irrelevant points",
+            system_message_content=sys_message,
+            user_content=user_message,
+        )
 
-        user_message = ["Revise your original list to include only the most general terms, those that are critical to solving the task, removing any themes or descriptions that are not essential to the solution. Your final list may be shorter, but do not leave out any part of the task that is needed for solving the task. Do not add any additional commentary either before or after the list."]
-        generalized_task = await self.call_model(summary="Ask the model to make a final list of general terms",
-                                                 system_message_content=sys_message, user_content=user_message)
+        user_message = [
+            "Revise your original list to include only the most general terms, those that are critical to solving the task, removing any themes or descriptions that are not essential to the solution. Your final list may be shorter, but do not leave out any part of the task that is needed for solving the task. Do not add any additional commentary either before or after the list."
+        ]
+        generalized_task = await self.call_model(
+            summary="Ask the model to make a final list of general terms",
+            system_message_content=sys_message,
+            user_content=user_message,
+        )
         return generalized_task
 
     async def validate_insight(self, insight, task_description):
@@ -173,43 +205,54 @@ class Prompter:
 
         sys_message = """You are a helpful and thoughtful assistant."""
 
-        user_message = ["""We have been given a potential insight that may or may not be useful for solving a given task. 
+        user_message = [
+            """We have been given a potential insight that may or may not be useful for solving a given task. 
 - First review the following task.
 - Then review the insight that follows, and consider whether it might help solve the given task.
 - Do not attempt to actually solve the task.
-- Reply with a single character, '1' if the insight may be useful, or '0' if it is not."""]
+- Reply with a single character, '1' if the insight may be useful, or '0' if it is not."""
+        ]
         user_message.append("\n# Task description")
         user_message.append(task_description)
         user_message.append("\n# Possibly useful insight")
         user_message.append(insight)
         self.clear_history()
-        response = await self.call_model(summary="Ask the model to validate the insight",
-                                         system_message_content=sys_message, user_content=user_message)
+        response = await self.call_model(
+            summary="Ask the model to validate the insight",
+            system_message_content=sys_message,
+            user_content=user_message,
+        )
         return response == "1"
 
     async def extract_task(self, text):
         # Returns a task from the given text, or None if none is found.
         sys_message = """You are a helpful and thoughtful assistant."""
-        user_message = ["""Does the following text contain a question or a some task we are being asked to perform?
+        user_message = [
+            """Does the following text contain a question or a some task we are being asked to perform?
 - If so, please reply with the full question or task description, along with any supporting information, but without adding extra commentary or formatting.
 - If the task is just to remember something, that doesn't count as a task, so don't include it.
-- If there is no question or task in the text, simply write "None" with no punctuation."""]
+- If there is no question or task in the text, simply write "None" with no punctuation."""
+        ]
         user_message.append("\n# Text to analyze")
         user_message.append(text)
         self.clear_history()
-        response = await self.call_model(summary="Ask the model to extract a task",
-                                         system_message_content=sys_message, user_content=user_message)
+        response = await self.call_model(
+            summary="Ask the model to extract a task", system_message_content=sys_message, user_content=user_message
+        )
         return response if response != "None" else None
 
     async def extract_advice(self, text):
         # Returns a task from the given text, or None if none is found.
         sys_message = """You are a helpful and thoughtful assistant."""
-        user_message = ["""Does the following text contain any information or advice that might be useful later?
+        user_message = [
+            """Does the following text contain any information or advice that might be useful later?
 - If so, please copy the information or advice, adding no extra commentary or formatting.
-- If there is no potentially useful information or advice at all, simply write "None" with no punctuation."""]
+- If there is no potentially useful information or advice at all, simply write "None" with no punctuation."""
+        ]
         user_message.append("\n# Text to analyze")
         user_message.append(text)
         self.clear_history()
-        response = await self.call_model(summary="Ask the model to extract advice",
-                                         system_message_content=sys_message, user_content=user_message)
+        response = await self.call_model(
+            summary="Ask the model to extract advice", system_message_content=sys_message, user_content=user_message
+        )
         return response if response != "None" else None

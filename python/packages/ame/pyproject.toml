@@ -25,6 +25,16 @@ packages = ["src/ame"]
 extend = "../../pyproject.toml"
 include = ["src/**", "tests/*.py"]
 
+[tool.ruff.lint]
+# Allow prints in this package
+ignore = ["T20"]
+
 [tool.pyright]
 extends = "../../pyproject.toml"
-include = ["src", "tests"]
+include = ["src"]
+
+[tool.poe]
+include = "../../shared_tasks.toml"
+
+[tool.poe.tasks]
+mypy = "mypy --config-file ../../pyproject.toml src"

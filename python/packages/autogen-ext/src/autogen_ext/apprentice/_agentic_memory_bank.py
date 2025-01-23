@@ -1,7 +1,8 @@
 import os
-from dataclasses import dataclass
 import pickle
-from typing import Dict, Optional, Union, List
+from dataclasses import dataclass
+from typing import Dict, List, Optional, Union
+
 from ._string_similarity_map import StringSimilarityMap
 
 
@@ -17,7 +18,9 @@ class AgenticMemoryBank:
     """
     Stores task-completion insights in a vector DB for later retrieval.
     """
-    def __init__(self,
+
+    def __init__(
+        self,
         settings: Dict,
         verbosity: Optional[int] = 0,
         reset: Optional[bool] = False,
@@ -37,8 +40,9 @@ class AgenticMemoryBank:
         path_to_db_dir = os.path.join(memory_dir_path, "string_map")
         self.path_to_dict = os.path.join(memory_dir_path, "uid_insight_dict.pkl")
 
-        self.string_map = StringSimilarityMap(verbosity=verbosity, reset=reset, path_to_db_dir=path_to_db_dir,
-                                              logger=self.logger)
+        self.string_map = StringSimilarityMap(
+            verbosity=verbosity, reset=reset, path_to_db_dir=path_to_db_dir, logger=self.logger
+        )
 
         # Load or create the associated insight dict on disk.
         self.uid_insight_dict = {}
@@ -88,12 +92,16 @@ class AgenticMemoryBank:
 
     def get_relevant_insights(self, task_str: Optional[str] = None, topics: Optional[List[str]] = None):
         """Returns any insights from the memory bank that are relevant to the given task or topics."""
-        assert (task_str is not None) or (topics is not None), "Either the task string or the topics list must be provided."
+        assert (task_str is not None) or (
+            topics is not None
+        ), "Either the task string or the topics list must be provided."
         assert topics is not None, "For now, the topics list is always required, because it won't be generated."
 
         # Build a dict of insight-relevance pairs.
         insight_relevance_dict = {}
-        relevance_conversion_threshold = 1.7  # The approximate borderline between relevant and irrelevant topic matches.
+        relevance_conversion_threshold = (
+            1.7  # The approximate borderline between relevant and irrelevant topic matches.
+        )
 
         # Process the matching topics.
         matches = []  # Each match is a tuple: (topic, insight, distance)

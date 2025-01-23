@@ -14,7 +14,7 @@ class Evaluator:
     def get_task_description_and_answer_from_file(self, task_filename):
         path_to_this_file = os.path.abspath(__file__)
         dir_of_this_file = os.path.dirname(path_to_this_file)
-        task_filepath = os.path.join(dir_of_this_file, 'task_data', 'tasks', task_filename + '.yaml')
+        task_filepath = os.path.join(dir_of_this_file, "task_data", "tasks", task_filename + ".yaml")
         with open(task_filepath, "r") as file:
             task_details = yaml.load(file, Loader=yaml.FullLoader)
             return task_details["task_description"], task_details["expected_answer"]
@@ -22,7 +22,7 @@ class Evaluator:
     def get_advice_from_file(self, advice_filename):
         path_to_this_file = os.path.abspath(__file__)
         dir_of_this_file = os.path.dirname(path_to_this_file)
-        task_filepath = os.path.join(dir_of_this_file, 'task_data', 'advice', advice_filename + '.yaml')
+        task_filepath = os.path.join(dir_of_this_file, "task_data", "advice", advice_filename + ".yaml")
         with open(task_filepath, "r") as file:
             advice_dict = yaml.load(file, Loader=yaml.FullLoader)
             return advice_dict["advice"]
@@ -30,13 +30,14 @@ class Evaluator:
     def get_demo_from_file(self, demo_filename):
         path_to_this_file = os.path.abspath(__file__)
         dir_of_this_file = os.path.dirname(path_to_this_file)
-        task_filepath = os.path.join(dir_of_this_file, 'task_data', 'demos', demo_filename + '.yaml')
+        task_filepath = os.path.join(dir_of_this_file, "task_data", "demos", demo_filename + ".yaml")
         with open(task_filepath, "r") as file:
             demo_dict = yaml.load(file, Loader=yaml.FullLoader)
             return demo_dict["demo"]
 
-    async def test_fast_learner(self, fast_learner, task_description, expected_answer, num_trials,
-                                use_memory, client, logger) -> Tuple[int, int]:
+    async def test_fast_learner(
+        self, fast_learner, task_description, expected_answer, num_trials, use_memory, client, logger
+    ) -> Tuple[int, int]:
         logger.enter_function()
 
         self.logger.info("Testing the fast learner on the given task.\n")
@@ -49,7 +50,8 @@ class Evaluator:
             self.logger.info("Try to solve the task.\n")
             response = await fast_learner.assign_task(task_description, use_memory=use_memory)
             response_is_correct, extracted_answer = await grader.is_response_correct(
-                task_description, response, expected_answer)
+                task_description, response, expected_answer
+            )
             self.logger.info("Extracted answer:  {}".format(extracted_answer))
             if response_is_correct:
                 self.logger.info("Answer is CORRECT.\n")
@@ -74,18 +76,18 @@ class Evaluator:
         try:
             module = importlib.import_module(module_path)
         except ModuleNotFoundError:
-            print('Failed to import {}'.format(module_path))
+            print("Failed to import {}".format(module_path))
             raise
         class_name = fast_learner_settings["class_name"]
         try:
             fast_learner_class = getattr(module, class_name)
         except AttributeError:
-            print('Failed to import {}.{}'.format(module_path, class_name))
+            print("Failed to import {}.{}".format(module_path, class_name))
             raise
         try:
             fast_learner = fast_learner_class(fast_learner_settings, self, client, self.logger)
         except Exception as err:
-            print("Error creating \"{}\": {}".format(fast_learner_class, err))
+            print('Error creating "{}": {}'.format(fast_learner_class, err))
             raise
 
         # Execute each evaluation.
@@ -96,13 +98,13 @@ class Evaluator:
             try:
                 module = importlib.import_module(module_path)
             except ModuleNotFoundError:
-                print('Failed to import {}'.format(module_path))
+                print("Failed to import {}".format(module_path))
                 raise
             function_name = function_settings["function_name"]
             try:
                 eval_function = getattr(module, function_name)
             except AttributeError:
-                print('Failed to import {}.{}'.format(module_path, function_name))
+                print("Failed to import {}.{}".format(module_path, function_name))
                 raise
 
             # Call the eval function for each listed run.

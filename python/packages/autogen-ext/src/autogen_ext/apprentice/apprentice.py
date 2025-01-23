@@ -1,5 +1,5 @@
-from ._agentic_memory_controller import AgenticMemoryController
 from ._agent_wrapper import AgentWrapper
+from ._agentic_memory_controller import AgenticMemoryController
 
 
 class Apprentice:
@@ -19,7 +19,7 @@ class Apprentice:
             agent=self.agent,
             reset=False,
             client=self.client,
-            logger=self.logger
+            logger=self.logger,
         )
 
     def reset_memory(self):
