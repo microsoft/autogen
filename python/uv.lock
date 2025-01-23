@@ -561,11 +561,9 @@ dependencies = [
 
 [package.optional-dependencies]
 azure = [
+    { name = "azure-ai-inference" },
     { name = "azure-core" },
     { name = "azure-identity" },
-]
-azure-ai-inference = [
-    { name = "azure-ai-inference" },
 ]
 diskcache = [
     { name = "diskcache" },
@@ -665,7 +663,7 @@ requires-dist = [
     { name = "autogen-agentchat", marker = "extra == 'video-surfer'", editable = "packages/autogen-agentchat" },
     { name = "autogen-agentchat", marker = "extra == 'web-surfer'", editable = "packages/autogen-agentchat" },
     { name = "autogen-core", editable = "packages/autogen-core" },
-    { name = "azure-ai-inference", marker = "extra == 'azure-ai-inference'", specifier = ">=1.0.0b7" },
+    { name = "azure-ai-inference", marker = "extra == 'azure'", specifier = ">=1.0.0b7" },
     { name = "azure-core", marker = "extra == 'azure'" },
     { name = "azure-identity", marker = "extra == 'azure'" },
     { name = "diskcache", marker = "extra == 'diskcache'", specifier = ">=5.6.3" },
