@@ -33,6 +33,7 @@ public class AgentWorker(
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes = configuredAgentTypes;
     private readonly ConcurrentDictionary<string, List<Subscription>> _subscriptionsByAgentType = new();
     private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
+    private readonly ConcurrentDictionary<Guid, IDictionary<string, string>> _subscriptionsByGuid = new();
     private readonly CancellationTokenSource _shutdownCancellationToken = new();
     private Task? _mailboxTask;
     private readonly object _channelLock = new();
@@ -114,10 +115,10 @@ public class AgentWorker(
                             agentToInvoke.ReceiveMessage(msg);
                         }
                         break;
-                    case Message msg when msg.SubscriptionRequest != null:
-                        await SubscribeAsync(msg.SubscriptionRequest).ConfigureAwait(true);
+                    case Message msg when msg.AddSubscriptionRequest != null:
+                        await SubscribeAsync(msg.AddSubscriptionRequest).ConfigureAwait(true);
                         break;
-                    case Message msg when msg.SubscriptionResponse != null:
+                    case Message msg when msg.AddSubscriptionResponse != null:
                         break;
                     case Message msg when msg.RegisterAgentTypeResponse != null:
                         break;
@@ -134,13 +135,17 @@ public class AgentWorker(
             }
         }
     }
-    public async ValueTask<SubscriptionResponse> SubscribeAsync(SubscriptionRequest subscription, CancellationToken cancellationToken = default)
+    public async ValueTask<AddSubscriptionResponse> SubscribeAsync(AddSubscriptionRequest subscription, CancellationToken cancellationToken = default)
     {
         var topic = subscription.Subscription.TypeSubscription.TopicType;
         var agentType = subscription.Subscription.TypeSubscription.AgentType;
+        var id = Guid.NewGuid();
+        subscription.Subscription.Id = id.ToString();
+        var sub = new Dictionary<string, string> { { topic, agentType } };
+        _subscriptionsByGuid.GetOrAdd(id, static _ => new Dictionary<string, string>()).Add(topic, agentType);
         _subscriptionsByAgentType.GetOrAdd(key: agentType, _ => []).Add(subscription.Subscription);
         _subscriptionsByTopic.GetOrAdd(topic, _ => []).Add(agentType);
-        var response = new SubscriptionResponse
+        var response = new AddSubscriptionResponse
         {
             RequestId = subscription.RequestId,
             Error = "",
@@ -148,33 +153,53 @@ public class AgentWorker(
         };
         return response;
     }
-    public async ValueTask<SubscriptionResponse> UnsubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default)
     {
-        var topic = request.Subscription.TypeSubscription.TopicType;
-        var agentType = request.Subscription.TypeSubscription.AgentType;
-        if (_subscriptionsByAgentType.TryGetValue(agentType, out var subscriptions))
+        if (!Guid.TryParse(request.Id, out var id))
         {
-            while (subscriptions.Remove(request.Subscription))
+            var removeSubscriptionResponse = new RemoveSubscriptionResponse
             {
-                //ensures all instances are removed    
-            }
+                Error = "Invalid subscription ID",
+                Success = false
+            };
+            return removeSubscriptionResponse;
         }
-        if (_subscriptionsByTopic.TryGetValue(topic, out var agentTypes))
+        if (_subscriptionsByGuid.TryGetValue(id, out var sub))
         {
-            while (agentTypes.Remove(agentType))
+            foreach (var (topic, agentType) in sub)
             {
-                //ensures all instances are removed
+                if (_subscriptionsByTopic.TryGetValue(topic, out var innerAgentTypes))
+                {
+                    while (innerAgentTypes.Remove(agentType))
+                    {
+                        //ensures all instances are removed
+                    }
+                    _subscriptionsByTopic.AddOrUpdate(topic, innerAgentTypes, (_, _) => innerAgentTypes);
+                }
+                if (_subscriptionsByAgentType.TryGetValue(agentType, out var innerSubscriptions))
+                {
+                    foreach (var subscription in innerSubscriptions)
+                    {
+                        if (subscription.Id == id.ToString())
+                        {
+                            while (innerSubscriptions.Remove(subscription))
+                            {
+                                //ensures all instances are removed
+                            }
+                        }
+                    }
+                    _subscriptionsByAgentType.AddOrUpdate(agentType, innerSubscriptions, (_, _) => innerSubscriptions);
+                }
             }
+            _subscriptionsByGuid.TryRemove(id, out _);
         }
-        var response = new SubscriptionResponse
+        var response = new RemoveSubscriptionResponse
         {
-            RequestId = request.RequestId,
             Error = "",
             Success = true
         };
         return response;
     }
-
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         StartCore();
@@ -250,7 +275,6 @@ public class AgentWorker(
 
         return agent;
     }
-
     public ValueTask<List<Subscription>> GetSubscriptionsAsync(Type type)
     {
         if (_subscriptionsByAgentType.TryGetValue(type.Name, out var subscriptions))
@@ -258,5 +282,14 @@ public class AgentWorker(
             return new ValueTask<List<Subscription>>(subscriptions);
         }
         return new ValueTask<List<Subscription>>([]);
+    }
+    public ValueTask<List<Subscription>> GetSubscriptionsAsync()
+    {
+        var subscriptions = new List<Subscription>();
+        foreach (var (_, value) in _subscriptionsByAgentType)
+        {
+            subscriptions.AddRange(value);
+        }
+        return new ValueTask<List<Subscription>>(subscriptions);
     }
 }

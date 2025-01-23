@@ -42,7 +42,6 @@ public abstract class Agent
     {
         EventTypes = eventTypes;
         AgentId = new AgentId(this.GetType().Name, Guid.NewGuid().ToString());
-        AgentId = new AgentId(this.GetType().Name, Guid.NewGuid().ToString());
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<Agent>();
         _handlersByMessageType = new(GetType().GetHandlersLookupTable());
         Worker = new UninitializedAgentWorker();
@@ -64,7 +63,7 @@ public abstract class Agent
 
         foreach (var topicType in topicTypes)
         {
-            var subscriptionRequest = new SubscriptionRequest
+            var subscriptionRequest = new AddSubscriptionRequest
             {
                 RequestId = Guid.NewGuid().ToString(),
                 Subscription = new Subscription
@@ -176,19 +175,11 @@ public abstract class Agent
     }
     public async ValueTask<List<Subscription>> GetSubscriptionsAsync()
     {
-        return await Worker.GetSubscriptionsAsync(GetType()).ConfigureAwait(false);
+        return await Worker.GetSubscriptionsAsync().ConfigureAwait(false);
     }
-    public async ValueTask<SubscriptionResponse> SubscribeAsync(string topic)
+    public async ValueTask<AddSubscriptionResponse> SubscribeAsync(string topic)
     {
-        return await UpdateSubscriptionAsync(topic, true).ConfigureAwait(true);
-    }
-    public async ValueTask<SubscriptionResponse> UnsubscribeAsync(string topic)
-    {
-        return await UpdateSubscriptionAsync(topic, false).ConfigureAwait(true);
-    }
-    private async ValueTask<SubscriptionResponse> UpdateSubscriptionAsync(string topic, bool subscribe)
-    {
-        SubscriptionRequest subscriptionRequest = new()
+        AddSubscriptionRequest subscriptionRequest = new()
         {
             RequestId = Guid.NewGuid().ToString(),
             Subscription = new Subscription
@@ -200,14 +191,37 @@ public abstract class Agent
                 }
             }
         };
-        var subscriptionResponse = subscribe
-            ? await Worker.SubscribeAsync(subscriptionRequest).ConfigureAwait(true)
-            : await Worker.UnsubscribeAsync(subscriptionRequest).ConfigureAwait(true);
+        var subscriptionResponse = await Worker.SubscribeAsync(subscriptionRequest).ConfigureAwait(true);
         if (!subscriptionResponse.Success)
         {
             _logger.LogError($"{GetType}{AgentId.Key}: Failed to unsubscribe from topic {topic}");
         }
         return subscriptionResponse;
+    }
+    public async ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(Guid id)
+    {
+        RemoveSubscriptionRequest subscriptionRequest = new()
+        {
+            Id = id.ToString()
+        };
+        var subscriptionResponse = await Worker.UnsubscribeAsync(subscriptionRequest).ConfigureAwait(true);
+        if (!subscriptionResponse.Success)
+        {
+            _logger.LogError($"{GetType}{AgentId.Key}: Failed to unsubscribe from Subscription {id}");
+        }
+        return subscriptionResponse;
+    }
+    public async ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(string topic)
+    {
+        var subscriptions = await GetSubscriptionsAsync().ConfigureAwait(false);
+        var subscription = subscriptions.FirstOrDefault(s => s.TypeSubscription.TopicType == topic);
+        if (subscription == null)
+        {
+            var error = $"{GetType}{AgentId.Key}: Subscription not found for topic {topic}";
+            _logger.LogError(error);
+            return new RemoveSubscriptionResponse { Success = false, Error = error };
+        }
+        return await UnsubscribeAsync(subscription.Id).ConfigureAwait(true);
     }
     public async Task StoreAsync(AgentState state, CancellationToken cancellationToken = default)
     {
