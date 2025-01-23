@@ -2,6 +2,7 @@ import asyncio
 import functools
 from textwrap import dedent
 from typing import Any, Callable, Sequence
+import warnings
 
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -130,6 +131,14 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
 
     @classmethod
     def _from_config(cls, config: FunctionToolConfig) -> Self:
+        warnings.warn(
+            "\n⚠️  SECURITY WARNING ⚠️\n"
+            "Loading a FunctionTool from config will execute code to import the provided global imports and and function code.\n"
+            "Only load configs from TRUSTED sources to prevent arbitrary code execution.",
+            UserWarning,
+            stacklevel=2,
+        )
+
         exec_globals: dict[str, Any] = {}
 
         # Execute imports first
