@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from typing_extensions import NotRequired
 
 from .. import CancellationToken
+from .._component_config import ComponentBase
 from .._function_utils import normalize_annotated_type
 
 T = TypeVar("T", bound=BaseModel, contravariant=True)
@@ -56,7 +57,9 @@ ReturnT = TypeVar("ReturnT", bound=BaseModel, covariant=True)
 StateT = TypeVar("StateT", bound=BaseModel)
 
 
-class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT]):
+class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
+    component_type = "tool"
+
     def __init__(
         self,
         args_type: Type[ArgsT],
@@ -132,7 +135,7 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT]):
         pass
 
 
-class BaseToolWithState(BaseTool[ArgsT, ReturnT], ABC, Generic[ArgsT, ReturnT, StateT]):
+class BaseToolWithState(BaseTool[ArgsT, ReturnT], ABC, Generic[ArgsT, ReturnT, StateT], ComponentBase[BaseModel]):
     def __init__(
         self,
         args_type: Type[ArgsT],
@@ -143,6 +146,8 @@ class BaseToolWithState(BaseTool[ArgsT, ReturnT], ABC, Generic[ArgsT, ReturnT, S
     ) -> None:
         super().__init__(args_type, return_type, name, description)
         self._state_type = state_type
+
+    component_type = "tool"
 
     @abstractmethod
     def save_state(self) -> StateT: ...
