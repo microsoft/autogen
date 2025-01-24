@@ -16,7 +16,7 @@ if (Environment.GetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING") == null
 {
     throw new InvalidOperationException("AZURE_OPENAI_CONNECTION_STRING not set, try something like AZURE_OPENAI_CONNECTION_STRING = \"Endpoint=https://TODO.openai.azure.com/;Key=TODO;Deployment=TODO\"");
 }
-builder.Configuration["ConectionStrings:HelloAIAgents"] = Environment.GetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING");
+builder.Configuration["ConnectionStrings:HelloAIAgents"] = Environment.GetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING");
 builder.AddChatCompletionService("HelloAIAgents");
 var agentTypes = new AgentTypes(new Dictionary<string, Type>
 {
