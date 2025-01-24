@@ -1,4 +1,5 @@
 import asyncio
+import os
 from datetime import datetime
 from typing import Any, AsyncGenerator, List
 
@@ -73,6 +74,22 @@ async def _mock_create(
 
 @pytest.fixture
 def azure_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletionClient:
+    endpoint = os.getenv("AZURE_AI_INFERENCE_ENDPOINT")
+    api_key = os.getenv("AZURE_AI_INFERENCE_API_KEY")
+
+    if endpoint and api_key:
+        return AzureAIChatCompletionClient(
+            endpoint=endpoint,
+            credential=AzureKeyCredential(api_key),
+            model_info={
+                "json_output": False,
+                "function_calling": False,
+                "vision": False,
+                "family": "unknown",
+            },
+            model="model",
+        )
+
     monkeypatch.setattr(ChatCompletionsClient, "complete", _mock_create)
     return AzureAIChatCompletionClient(
         endpoint="endpoint",
