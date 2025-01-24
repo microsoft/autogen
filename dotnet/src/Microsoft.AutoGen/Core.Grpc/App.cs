@@ -3,7 +3,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -13,26 +12,32 @@ namespace Microsoft.AutoGen.Core.Grpc;
 public static class AgentsApp
 {
     // need a variable to store the runtime instance
-    public static WebApplication? Host { get; private set; }
+    public static IHost? Host { get; private set; }
 
     [MemberNotNull(nameof(Host))]
-    public static async ValueTask<WebApplication> StartAsync(WebApplicationBuilder? builder = null, AgentTypes? agentTypes = null, bool local = false)
+    public static async ValueTask<IHost> StartAsync(HostApplicationBuilder? builder = null, AgentTypes? agentTypes = null, bool local = false)
     {
-        builder ??= WebApplication.CreateBuilder();
+        builder ??= new HostApplicationBuilder();
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-        builder.AddAgentWorker()
+        if (!local)
+        {
+            builder.AddGrpcAgentWorker()
             .AddAgents(agentTypes);
-        builder.AddServiceDefaults();
+        }
+        else
+        {
+            builder.AddAgentWorker()
+            .AddAgents(agentTypes);
+        }
         var app = builder.Build();
-        app.MapDefaultEndpoints();
         Host = app;
         await app.StartAsync().ConfigureAwait(false);
         return Host;
     }
-    public static async ValueTask<WebApplication> PublishMessageAsync(
+    public static async ValueTask<IHost> PublishMessageAsync(
         string topic,
         IMessage message,
-        WebApplicationBuilder? builder = null,
+        HostApplicationBuilder? builder = null,
         AgentTypes? agents = null,
         bool local = false)
     {
