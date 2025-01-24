@@ -46,6 +46,7 @@ python/autogen_ext.agents.web_surfer
 python/autogen_ext.agents.file_surfer
 python/autogen_ext.agents.video_surfer
 python/autogen_ext.agents.video_surfer.tools
+python/autogen_ext.agents.semantic_kernel
 python/autogen_ext.auth.azure
 python/autogen_ext.teams.magentic_one
 python/autogen_ext.models.cache
