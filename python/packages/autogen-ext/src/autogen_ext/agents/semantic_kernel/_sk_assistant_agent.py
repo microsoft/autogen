@@ -56,18 +56,13 @@ class SKAssistantAgent(BaseChatAgent):
         import asyncio
         import os
 
-        from dotenv import load_dotenv
         from autogen_agentchat.ui._console import Console
         from semantic_kernel import Kernel
         from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
         from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion, AzureChatPromptExecutionSettings
         from semantic_kernel.connectors.search.bing import BingSearch
-        from semantic_kernel.functions import KernelArguments, KernelParameterMetadata, KernelPlugin
-        from autogen_core import CancellationToken
+        from semantic_kernel.functions import KernelParameterMetadata, KernelPlugin
         from autogen_ext.agents.semantic_kernel import SKAssistantAgent
-        from autogen_agentchat.messages import TextMessage
-
-        load_dotenv("../.env")
 
 
         async def main():
@@ -125,7 +120,7 @@ class SKAssistantAgent(BaseChatAgent):
                 description="An AI assistant that can search the web and answer questions",
                 kernel=kernel,
                 execution_settings=AzureChatPromptExecutionSettings(
-                    function_choice_behavior=FunctionChoiceBehavior.Auto(auto_invoke=True)
+                    function_choice_behavior=FunctionChoiceBehavior.Auto(auto_invoke=True)  # type: ignore
                 ),
             )
 
