@@ -9,7 +9,7 @@ like software development.
 
 A multi-agent design pattern is a structure that emerges from message protocols:
 it describes how agents interact with each other to solve problems.
-For example, the [tool-equipped agent](../framework/tools.ipynb#tool-equipped-agent) in
+For example, the [tool-equipped agent](../components/tools.ipynb#tool-equipped-agent) in
 the previous section employs a design pattern called ReAct,
 which involves an agent interacting with tools.
 
