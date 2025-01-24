@@ -34,13 +34,21 @@ core-concepts/topic-and-subscription
 
 framework/agent-and-agent-runtime
 framework/message-and-communication
-framework/model-clients
-framework/tools
 framework/logging
 framework/telemetry
-framework/command-line-code-executors
 framework/distributed-agent-runtime
 framework/component-config
+```
+
+```{toctree}
+:maxdepth: 1
+:hidden:
+:caption: Components Guide
+
+components/model-clients
+components/model-context
+components/tools
+components/command-line-code-executors
 ```
 
 ```{toctree}
