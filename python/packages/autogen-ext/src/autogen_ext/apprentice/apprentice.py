@@ -17,7 +17,7 @@ class Apprentice:
         self.memory_controller = AgenticMemoryController(
             settings=self.settings["AgenticMemoryController"],
             agent=self.agent,
-            reset=False,
+            reset=True,
             client=self.client,
             logger=self.logger,
         )

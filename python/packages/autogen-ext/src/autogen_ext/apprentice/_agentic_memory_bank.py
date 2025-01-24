@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
 
 from ._string_similarity_map import StringSimilarityMap
+from .page_logger import PageLogger
 
 
 @dataclass
@@ -22,13 +23,11 @@ class AgenticMemoryBank:
     def __init__(
         self,
         settings: Dict,
-        verbosity: Optional[int] = 0,
-        reset: Optional[bool] = False,
-        logger=None,
+        reset: bool,
+        logger: PageLogger,
     ):
         """
         Args:
-            - verbosity (Optional, int): 1 to print memory operations, 0 to omit them. 3+ to print string-pair lists.
             - reset (Optional, bool): True to clear the DB before starting. Default False
             - logger (Optional, PageLogger): the PageLogger object to use for logging.
         """
@@ -41,7 +40,7 @@ class AgenticMemoryBank:
         self.path_to_dict = os.path.join(memory_dir_path, "uid_insight_dict.pkl")
 
         self.string_map = StringSimilarityMap(
-            verbosity=verbosity, reset=reset, path_to_db_dir=path_to_db_dir, logger=self.logger
+            settings=self.settings["StringSimilarityMap"], reset=reset, path_to_db_dir=path_to_db_dir, logger=self.logger
         )
 
         # Load or create the associated insight dict on disk.

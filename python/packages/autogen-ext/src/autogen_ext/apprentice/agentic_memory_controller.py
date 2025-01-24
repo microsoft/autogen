@@ -14,9 +14,7 @@ class AgenticMemoryController:
         self.agent = agent
         self.client = client
         self.prompter = Prompter(client, logger)
-        self.memory_bank = AgenticMemoryBank(
-            self.settings["AgenticMemoryBank"], verbosity=3, reset=reset, logger=logger
-        )
+        self.memory_bank = AgenticMemoryBank(self.settings["AgenticMemoryBank"], reset=reset, logger=logger)
         self.grader = Grader(client, logger)
 
         self.logger.leave_function()
