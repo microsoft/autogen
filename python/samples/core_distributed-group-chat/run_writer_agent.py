@@ -21,7 +21,7 @@ async def main(config: AppConfig) -> None:
     await asyncio.sleep(3)
     Console().print(Markdown("Starting **`Writer Agent`**"))
 
-    writer_agent_runtime.start()
+    await writer_agent_runtime.start()
     writer_agent_type = await BaseGroupChatAgent.register(
         writer_agent_runtime,
         config.writer_agent.topic_type,

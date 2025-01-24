@@ -37,7 +37,7 @@ async def main() -> None:
     runtime = GrpcWorkerAgentRuntime(host_address=agentHost, payload_serialization_format=PROTOBUF_DATA_CONTENT_TYPE)
 
     agnext_logger.info("1")
-    runtime.start()
+    await runtime.start()
     runtime.add_message_serializer(try_get_known_serializers_for_type(NewMessageReceived))
 
     agnext_logger.info("2")
