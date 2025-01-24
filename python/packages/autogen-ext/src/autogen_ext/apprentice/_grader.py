@@ -8,6 +8,7 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
+
 from ._page_logger import PageLogger
 from ._utils import UserContent
 
@@ -15,6 +16,14 @@ from ._utils import UserContent
 class Grader:
     """
     Determines task success without limitation to string matches.
+
+    Args:
+        client: The client to call the model.
+        logger: The logger to log the model calls.
+
+    Methods:
+        call_model: Calls the model with the given input and returns the response.
+        is_response_correct: Determines whether the response is equivalent to the task's correct answer.
     """
     def __init__(self, client: ChatCompletionClient, logger: PageLogger):
         self.client = client
@@ -28,7 +37,7 @@ class Grader:
 
     async def call_model(
         self, summary: str, user_content: UserContent = None, system_message_content: str = None, keep_these_messages: bool = True
-    ):
+    ) -> str:
         """
         Calls the model client with the given input and returns the response.
         """
@@ -63,9 +72,9 @@ class Grader:
         # Return the response as a string
         return response_string
 
-    def clear_history(self) -> None:
+    def _clear_history(self) -> None:
         """
-        Empties the chat history message list.
+        Empties the message list containing the chat history.
         """
         self._chat_history = []
 
@@ -91,7 +100,7 @@ class Grader:
         user_message.append(task_description)
         user_message.append("\n# Text that may contain an answer")
         user_message.append(response_to_be_graded)
-        self.clear_history()
+        self._clear_history()
         extracted_answer = await self.call_model(
             summary="Ask the model to extract the answer", system_message_content=sys_message, user_content=user_message
         )
@@ -114,7 +123,7 @@ class Grader:
         user_message.append(correct_answer)
         user_message.append("\n# Answer to be graded")
         user_message.append(extracted_answer)
-        self.clear_history()
+        self._clear_history()
         decision = await self.call_model(
             summary="Ask the model to check the answer for correctness",
             system_message_content=sys_message,

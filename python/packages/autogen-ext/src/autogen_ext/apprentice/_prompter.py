@@ -1,20 +1,38 @@
 import time
 from typing import List
 
-from autogen_core import FunctionCall, Image
+from autogen_core import Image
 from autogen_core.models import (
     AssistantMessage,
+    ChatCompletionClient,
     CreateResult,
     LLMMessage,
     SystemMessage,
     UserMessage,
 )
 
-from ._utils import UserContent, message_content_to_str, single_image_from_user_content, text_from_user_content
+from ._page_logger import PageLogger
+from ._utils import UserContent
 
 
 class Prompter:
-    def __init__(self, client, logger):
+    """
+    Centralizes most of the Apprentice prompts sent to the model client.
+
+    Args:
+        client: The client to call the model.
+        logger: The logger to log the model calls.
+
+    Methods:
+        call_model: Calls the model client with the given input and returns the response.
+        learn_from_failure: Tries to create an insight to help avoid the given failure in the future.
+        find_index_topics: Returns a list of topics related to the given string.
+        generalize_task: Attempts to rewrite a task description in a more general form.
+        validate_insight: Judges whether the insight could help solve the task.
+        extract_task: Returns a task found in the given text, or None if not found.
+        extract_advice: Returns advice from the given text, or None if not found.
+    """
+    def __init__(self, client: ChatCompletionClient, logger: PageLogger):
         self.client = client
         self.logger = logger
         self.default_system_message_content = "You are a helpful assistant."
@@ -26,8 +44,11 @@ class Prompter:
         self._chat_history: List[LLMMessage] = []
 
     async def call_model(
-        self, summary, user_content: UserContent = None, system_message_content=None, keep_these_messages=True
-    ):
+        self, summary: str, user_content: UserContent = None, system_message_content: str = None, keep_these_messages: bool = True
+    ) -> str:
+        """
+        Calls the model client with the given input and returns the response.
+        """
         # Prepare the input message list
         if system_message_content is None:
             system_message_content = self.default_system_message_content
@@ -51,13 +72,11 @@ class Prompter:
         # Call the model
         start_time = time.time()
         response = await self.client.create(input_messages)
-
         assert isinstance(response, CreateResult)
         response_string = response.content
         assert isinstance(response_string, str)
         response_message = AssistantMessage(content=response_string, source="Assistant")
         assert isinstance(response_message, AssistantMessage)
-
         self.time_spent_in_model_calls += time.time() - start_time
         self.num_model_calls += 1
 
@@ -72,14 +91,18 @@ class Prompter:
         # Return the response as a string for now
         return response_string
 
-    def clear_history(self):
+    def _clear_history(self):
+        """
+        Empties the message list containing the chat history.
+        """
         self._chat_history = []
 
     async def learn_from_failure(
-        self, task_description, memory_section, final_response, expected_answer, work_history, insights
+        self, task_description: str, memory_section: str, final_response: str, expected_answer: str, work_history: str
     ):
-        # Try to create an insight to help avoid this failure in the future.
-
+        """
+        Tries to create an insight to help avoid the given failure in the future.
+        """
         sys_message = """- You are a patient and thorough teacher.
 - Your job is to review work done by students and help them learn how to do better."""
 
@@ -105,7 +128,7 @@ class Prompter:
             "# Now carefully review the students' work above, explaining in detail what the students did right and what they did wrong.\n"
         )
 
-        self.clear_history()
+        self._clear_history()
         await self.call_model(
             summary="Ask the model to learn from this failure",
             system_message_content=sys_message,
@@ -130,9 +153,10 @@ class Prompter:
         )
         return insight
 
-    async def find_index_topics(self, input_string):
-        # Returns a list of topics related to the input string.
-
+    async def find_index_topics(self, input_string: str) -> List[str]:
+        """
+        Returns a list of topics related to the given string.
+        """
         sys_message = """You are an expert at semantic analysis."""
 
         user_message = []
@@ -147,12 +171,12 @@ class Prompter:
         user_message.append("# Text to be indexed\n")
         user_message.append(input_string)
 
-        self.clear_history()
+        self._clear_history()
         topics = await self.call_model(
             summary="Ask the model to extract topics", system_message_content=sys_message, user_content=user_message
         )
 
-        # Parse the topics into a python list.
+        # Parse the topics into a list.
         topic_list = []
         for line in topics.split("\n"):
             if (line is not None) and (len(line) > 0):
@@ -160,8 +184,10 @@ class Prompter:
 
         return topic_list
 
-    async def generalize_task(self, task_description):
-        # Returns a list of topics related to the input string.
+    async def generalize_task(self, task_description: str) -> str:
+        """
+        Attempts to rewrite a task description in a more general form.
+        """
 
         sys_message = """You are a helpful and thoughtful assistant."""
 
@@ -171,7 +197,7 @@ class Prompter:
         user_message.append("\n# Task description")
         user_message.append(task_description)
 
-        self.clear_history()
+        self._clear_history()
         await self.call_model(
             summary="Ask the model to rephrase the task in a list of important points",
             system_message_content=sys_message,
@@ -197,8 +223,10 @@ class Prompter:
         )
         return generalized_task
 
-    async def validate_insight(self, insight, task_description):
-        # Determines whether the insight could help solve the task.
+    async def validate_insight(self, insight: str, task_description: str) -> bool:
+        """
+        Judges whether the insight could help solve the task.
+        """
 
         sys_message = """You are a helpful and thoughtful assistant."""
 
@@ -213,7 +241,7 @@ class Prompter:
         user_message.append(task_description)
         user_message.append("\n# Possibly useful insight")
         user_message.append(insight)
-        self.clear_history()
+        self._clear_history()
         response = await self.call_model(
             summary="Ask the model to validate the insight",
             system_message_content=sys_message,
@@ -221,8 +249,10 @@ class Prompter:
         )
         return response == "1"
 
-    async def extract_task(self, text):
-        # Returns a task from the given text, or None if none is found.
+    async def extract_task(self, text: str) -> str:
+        """
+        Returns a task found in the given text, or None if not found.
+        """
         sys_message = """You are a helpful and thoughtful assistant."""
         user_message = [
             """Does the following text contain a question or a some task we are being asked to perform?
@@ -232,14 +262,16 @@ class Prompter:
         ]
         user_message.append("\n# Text to analyze")
         user_message.append(text)
-        self.clear_history()
+        self._clear_history()
         response = await self.call_model(
             summary="Ask the model to extract a task", system_message_content=sys_message, user_content=user_message
         )
         return response if response != "None" else None
 
-    async def extract_advice(self, text):
-        # Returns a task from the given text, or None if none is found.
+    async def extract_advice(self, text: str) -> str:
+        """
+        Returns advice from the given text, or None if not found.
+        """
         sys_message = """You are a helpful and thoughtful assistant."""
         user_message = [
             """Does the following text contain any information or advice that might be useful later?
@@ -248,7 +280,7 @@ class Prompter:
         ]
         user_message.append("\n# Text to analyze")
         user_message.append(text)
-        self.clear_history()
+        self._clear_history()
         response = await self.call_model(
             summary="Ask the model to extract advice", system_message_content=sys_message, user_content=user_message
         )

@@ -266,7 +266,7 @@ class AgenticMemoryController:
             # Try to learn from this failure.
             self.logger.info("\nResponse is INCORRECT. Try to learn from this failure.\n")
             insight = await self.prompter.learn_from_failure(
-                task, memory_section, response, expected_answer, work_history, new_insights
+                task, memory_section, response, expected_answer, work_history
             )
             self.logger.info("\nInsight:  {}\n".format(insight))
             new_insights.append(insight)
