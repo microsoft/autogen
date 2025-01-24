@@ -193,7 +193,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
         .. code-block:: bash
 
-            pip install "autogen-ext[azure-ai-inference]"
+            pip install "autogen-ext[azure]"
 
     The following code snippet shows how to use the client:
 
