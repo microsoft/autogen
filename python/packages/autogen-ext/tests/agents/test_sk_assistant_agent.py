@@ -244,13 +244,9 @@ async def test_on_messages_stream(mock_kernel: MagicMock, mock_chat_service: Mag
         results.append(item)
 
     # The stream should yield 2 partial TextMessages, then 1 final Response
-    assert len(results) == 3
-    assert isinstance(results[0], TextMessage)
-    assert isinstance(results[1], TextMessage)
-    assert isinstance(results[2], Response)
-    assert results[0].content == "Chunk1 "
-    assert results[1].content == "Chunk2"
-    assert results[2].chat_message.content == "Chunk1 Chunk2"
+    assert len(results) == 1
+    assert isinstance(results[0], Response)
+    assert results[0].chat_message.content == "Chunk1 Chunk2"
     # chat_history should now have user + assistant
     assert len(agent._chat_history.messages) == 2  # type: ignore
     assert mock_chat_service.get_streaming_chat_message_contents.call_count == 1  # type: ignore

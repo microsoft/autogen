@@ -218,8 +218,7 @@ class SKAssistantAgent(BaseChatAgent):
         cancellation_token: CancellationToken,
     ) -> AsyncGenerator[ChatMessage | Response, None]:
         """
-        Handle new messages in streaming mode, yielding partial text messages
-        as we receive them, then yield a final single Response.
+        Handle new messages in streaming mode, yielding a final Response.
         """
         # 1) Convert & store new agent messages
         for msg in messages:
@@ -253,11 +252,8 @@ class SKAssistantAgent(BaseChatAgent):
             kernel=self._kernel,
         ):
             for sk_message in sk_message_list:
-                # If it's streaming text, yield partial text as a new TextMessage
                 if sk_message.content:
-                    partial_text = sk_message.content
-                    accumulated_reply.append(partial_text)
-                    yield TextMessage(content=partial_text, source=self.name)
+                    accumulated_reply.append(sk_message.content)
 
         # 4) After streaming ends, save the entire assistant message
         final_text = "".join(accumulated_reply).strip()
