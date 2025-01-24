@@ -1,9 +1,10 @@
-from typing import Tuple
+from typing import Tuple, Dict
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import MagenticOneGroupChat
 from autogen_agentchat.ui._console import Console
 from autogen_core.models import (
+    ChatCompletionClient,
     SystemMessage,
     UserMessage,
 )
@@ -11,34 +12,50 @@ from autogen_core.models import (
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.agents.web_surfer._utils import message_content_to_str
 
+from .page_logger import PageLogger
+
 
 class AgentWrapper:
-    def __init__(self, settings, client, logger):
+    """
+    Wraps the base agent to route calls to it appropriately, after instantiating it if necessary.
+    Users can override this class to add methods for calling other agents.
+
+    Args:
+        settings: The settings for the agent.
+        client: The client to call the model.
+        logger: The logger to log the model calls.
+
+    Methods:
+        assign_task: Passes the given task to the base agent.
+    """
+    def __init__(self, settings: Dict, client: ChatCompletionClient, logger: PageLogger):
         self.settings = settings
         self.client = client
         self.logger = logger
         self.base_agent_name = self.settings["base_agent"]
 
-    async def assign_task(self, task):
+    async def assign_task(self, task: str) -> Tuple[str, str]:
         """
-        Assigns a task to the base agent.
+        Passes the given task to the base agent.
         """
         self.logger.enter_function()
 
         # Pass the task through to the base agent.
         if self.base_agent_name == "MagenticOneGroupChat":
-            response, work_history = await self.assign_task_to_magentic_one(task)
+            response, work_history = await self._assign_task_to_magentic_one(task)
         elif self.base_agent_name == "thin_agent":
-            response, work_history = await self.assign_task_to_thin_agent(task)
+            response, work_history = await self._assign_task_to_thin_agent(task)
         else:
             raise AssertionError("Invalid base agent")
 
         self.logger.leave_function()
         return response, work_history
 
-    async def assign_task_to_thin_agent(self, task):
+    async def _assign_task_to_thin_agent(self, task: str) -> Tuple[str, str]:
+        """
+        Passes the given task directly to the model client, along with a detailed "think carefully" system prompt.
+        """
         self.logger.enter_function()
-
         self.logger.info(task)
 
         system_message_content = """You are a helpful and thoughtful assistant.
@@ -74,9 +91,11 @@ In responding to every user message, you follow the same multi-step process give
         self.logger.leave_function()
         return response_str, work_history
 
-    async def assign_task_to_magentic_one(self, task) -> Tuple[str, str]:
+    async def _assign_task_to_magentic_one(self, task) -> Tuple[str, str]:
+        """
+        Instantiates a MagenticOneGroupChat team, and passes the given task to it.
+        """
         self.logger.enter_function()
-
         self.logger.info(task)
 
         general_agent = AssistantAgent(

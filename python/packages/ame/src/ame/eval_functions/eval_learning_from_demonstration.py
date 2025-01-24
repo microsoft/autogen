@@ -27,7 +27,7 @@ async def eval_learning_from_demonstration(fast_learner, evaluator, client, logg
         logger=logger,
     )
     success_rate = round((num_successes / num_trials) * 100)
-    results_str_1 = "Baseline success rate:  {}%".format(success_rate)
+    results_str_1 = "Success rate before demonstration:  {}%".format(success_rate)
     logger.info("\n" + results_str_1)
 
     # Provide a demonstration for a similar but different task.

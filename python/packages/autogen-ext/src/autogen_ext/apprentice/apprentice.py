@@ -1,5 +1,5 @@
-from ._agent_wrapper import AgentWrapper
-from ._agentic_memory_controller import AgenticMemoryController
+from .agent_wrapper import AgentWrapper
+from .agentic_memory_controller import AgenticMemoryController
 
 
 class Apprentice:
