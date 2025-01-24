@@ -20,7 +20,11 @@ dependencies = [
 
 [project.optional-dependencies]
 langchain = ["langchain_core~= 0.3.3"]
-azure = ["azure-core", "azure-identity"]
+azure = [
+    "azure-ai-inference>=1.0.0b7",
+    "azure-core",
+    "azure-identity",
+]
 docker = ["docker~=7.0"]
 openai = ["openai>=1.52.2", "tiktoken>=0.8.0", "aiofiles"]
 file-surfer = [
@@ -56,6 +60,7 @@ redis = [
 grpc = [
     "grpcio~=1.62.0", # TODO: update this once we have a stable version.
 ]
+
 jupyter-executor = [
     "ipykernel>=6.29.5",
     "nbclient>=0.10.2",
