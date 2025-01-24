@@ -50,10 +50,11 @@ from autogen_core._serialization import (
     SerializationRegistry,
 )
 from autogen_core._telemetry import MessageRuntimeTracingConfig, TraceHelper, get_telemetry_grpc_metadata
-from autogen_ext.runtimes.grpc._utils import subscription_to_proto
 from google.protobuf import any_pb2
 from opentelemetry.trace import TracerProvider
 from typing_extensions import Self
+
+from autogen_ext.runtimes.grpc._utils import subscription_to_proto
 
 from . import _constants
 from ._constants import GRPC_IMPORT_ERROR_STR
@@ -140,7 +141,7 @@ class HostConnection:
             host_address,
             options=merged_options,
         )
-        stub: AgentRpcAsyncStub = agent_worker_pb2_grpc.AgentRpcStub(channel)  # type: ignore
+        stub = cast(AgentRpcAsyncStub, agent_worker_pb2_grpc.AgentRpcStub(channel))
         instance = cls(channel, stub)
         instance._connection_task = asyncio.create_task(
             instance._connect(stub, instance._send_queue, instance._recv_queue, instance._client_id)
@@ -154,28 +155,25 @@ class HostConnection:
         await self._connection_task
 
     @staticmethod
-    async def _connect(  # type: ignore
+    async def _connect(
         stub: AgentRpcAsyncStub,
         send_queue: asyncio.Queue[agent_worker_pb2.Message],
         receive_queue: asyncio.Queue[agent_worker_pb2.Message],
         client_id: str,
     ) -> None:
-        # type: ignore
-
         from grpc.aio import StreamStreamCall
 
         # TODO: where do exceptions from reading the iterable go? How do we recover from those?
         recv_stream: StreamStreamCall[agent_worker_pb2.Message, agent_worker_pb2.Message] = stub.OpenChannel(  # type: ignore
             QueueAsyncIterable(send_queue), metadata=[("client-id", client_id)]
-        )  # type: ignore
+        )
 
         while True:
             logger.info("Waiting for message from host")
-            message = await recv_stream.read()  # type: ignore
+            message = cast(agent_worker_pb2.Message, await recv_stream.read())  # type: ignore
             if message == grpc.aio.EOF:  # type: ignore
                 logger.info("EOF")
                 break
-            message = cast(agent_worker_pb2.Message, message)
             logger.info(f"Received a message from host: {message}")
             await receive_queue.put(message)
             logger.info("Put message in receive queue")
@@ -268,10 +266,11 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
 
     async def _run_read_loop(self) -> None:
         logger.info("Starting read loop")
+        assert self._host_connection is not None
         # TODO: catch exceptions and reconnect
         while self._running:
             try:
-                message = await self._host_connection.recv()  # type: ignore
+                message = await self._host_connection.recv()
                 oneofcase = agent_worker_pb2.Message.WhichOneof(message, "message")
                 match oneofcase:
                     case "registerAgentTypeRequest" | "addSubscriptionRequest":
@@ -287,9 +286,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                         task.add_done_callback(self._raise_on_exception)
                         task.add_done_callback(self._background_tasks.discard)
                     case "cloudEvent":
-                        # The proto typing doesnt resolve this one
-                        cloud_event = cast(cloudevent_pb2.CloudEvent, message.cloudEvent)  # type: ignore
-                        task = asyncio.create_task(self._process_event(cloud_event))
+                        task = asyncio.create_task(self._process_event(message.cloudEvent))
                         self._background_tasks.add(task)
                         task.add_done_callback(self._raise_on_exception)
                         task.add_done_callback(self._background_tasks.discard)
@@ -749,7 +746,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             message, metadata=self._host_connection.metadata
         )
         # TODO: just use grpc error handling
-        assert response.success  # type: ignore
+        assert response.success
         return type
 
     async def _process_register_agent_type_response(self, response: agent_worker_pb2.RegisterAgentTypeResponse) -> None:
