@@ -1,15 +1,16 @@
 import base64
 from collections.abc import AsyncGenerator
-from typing import Optional, Sequence
+from dataclasses import asdict
+from typing import Any, Optional, Sequence
 
 from autogen_agentchat.agents._base_chat_agent import BaseChatAgent
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import ChatMessage, TextMessage
+from autogen_agentchat.messages import ChatMessage, HandoffMessage, StopMessage, TextMessage, ToolCallSummaryMessage
 from autogen_core import CancellationToken
 
 from semantic_kernel.connectors.ai.chat_completion_client_base import ChatCompletionClientBase
 from semantic_kernel.connectors.ai.prompt_execution_settings import PromptExecutionSettings
-from semantic_kernel.contents import TextContent, ImageContent
+from semantic_kernel.contents import ImageContent, TextContent
 from semantic_kernel.contents.chat_history import ChatHistory
 from semantic_kernel.contents.chat_message_content import ChatMessageContent
 from semantic_kernel.contents.utils.author_role import AuthorRole
@@ -18,11 +19,123 @@ from semantic_kernel.kernel import Kernel
 
 
 class SKAssistantAgent(BaseChatAgent):
-    """A Semantic Kernel-based Chat Agent using the autogen BaseChatAgent abstractions.
+    """
+    SKAssistantAgent is a specialized agent that leverages Semantic Kernel for
+    conversation handling and response generation. It extends the autogen
+    ``BaseChatAgent`` class and uses a single Semantic Kernel ``ChatHistory``
+    to store and manage dialogue context.
 
-    - Stores conversation internally in a single ChatHistory instance
-    - Converts autogen ChatMessage objects to ChatMessageContent for SK
-    - Calls the Semantic Kernel chat completion service on each new set of messages.
+    Installation:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[semantic-kernel-core]"
+
+    For other model providers and semantic kernel features install the appropriate extra or install all providers with: semantic-kernel-all
+
+    This agent supports streaming responses (token by token) and final message
+    generation by calling the configured Semantic Kernel chat completion service.
+
+    Args:
+        name (str): The name of the agent.
+        description (str): A description of the agent's capabilities or purpose.
+        kernel (Kernel): The Semantic Kernel instance to use for chat completions.
+        service_id (str, optional): The ID of the chat completion service. Defaults to "default".
+        instructions (str, optional): Optional system-level instructions for the assistant.
+        execution_settings (PromptExecutionSettings, optional):
+            Optional prompt execution settings to override defaults.
+
+    Example usage:
+
+    The following example demonstrates how to create and use an ``SKAssistantAgent``
+    in conjunction with a Semantic Kernel. It sets up an Azure-based chat model,
+    adds a Bing search plugin, and then streams the agent's response to the console:
+
+    .. code-block:: python
+
+        import asyncio
+        import os
+
+        from dotenv import load_dotenv
+        from autogen_agentchat.ui._console import Console
+        from semantic_kernel import Kernel
+        from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
+        from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion, AzureChatPromptExecutionSettings
+        from semantic_kernel.connectors.search.bing import BingSearch
+        from semantic_kernel.functions import KernelArguments, KernelParameterMetadata, KernelPlugin
+        from autogen_core import CancellationToken
+        from autogen_ext.agents.semantic_kernel import SKAssistantAgent
+        from autogen_agentchat.messages import TextMessage
+
+        load_dotenv("../.env")
+
+
+        async def main():
+            # Initialize the kernel
+            kernel = Kernel()
+
+            # Configure OpenAI chat completion
+            ai_service = AzureChatCompletion(
+                api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+                deployment_name="gpt-4o-mini",
+                endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+                api_version=os.getenv("AZURE_OPENAI_VERSION"),
+            )
+            kernel.add_service(ai_service)
+
+            # Configure Bing search
+            bing_api_key = os.getenv("BING_API_KEY")
+            # Add the WebSearchEnginePlugin to the kernel
+            kernel.add_plugin(
+                KernelPlugin.from_text_search_with_search(
+                    BingSearch(bing_api_key),
+                    plugin_name="bing",
+                    description="Get details about Semantic Kernel concepts.",
+                    parameters=[
+                        KernelParameterMetadata(
+                            name="query",
+                            description="The search query.",
+                            type="str",
+                            is_required=True,
+                            type_object=str,
+                        ),
+                        KernelParameterMetadata(
+                            name="top",
+                            description="Number of results to return.",
+                            type="int",
+                            is_required=False,
+                            default_value=2,
+                            type_object=int,
+                        ),
+                        KernelParameterMetadata(
+                            name="skip",
+                            description="Number of results to skip.",
+                            type="int",
+                            is_required=False,
+                            default_value=0,
+                            type_object=int,
+                        ),
+                    ],
+                )
+            )
+
+            # Create the SKAssistantAgent
+            agent = SKAssistantAgent(
+                name="MyAssistant",
+                description="An AI assistant that can search the web and answer questions",
+                kernel=kernel,
+                execution_settings=AzureChatPromptExecutionSettings(
+                    function_choice_behavior=FunctionChoiceBehavior.Auto(auto_invoke=True)
+                ),
+            )
+
+            query = "What are the latest news on autogen?"
+            await Console(agent.run_stream(task=query))
+
+
+        if __name__ == "__main__":
+            asyncio.run(main())
+
     """
 
     def __init__(
@@ -34,15 +147,6 @@ class SKAssistantAgent(BaseChatAgent):
         instructions: Optional[str] = None,
         execution_settings: Optional[PromptExecutionSettings] = None,
     ) -> None:
-        """
-        Args:
-            name: The name of the agent.
-            description: A description of the agent's purpose or capabilities.
-            kernel: The Semantic Kernel instance to use for chat completions.
-            service_id: The ID of the chat completion service. Defaults to "default".
-            instructions: Optional system instructions for the assistant.
-            execution_settings: Optional prompt execution settings.
-        """
         super().__init__(name, description)
         self._kernel = kernel
         self._service_id = service_id
@@ -88,7 +192,7 @@ class SKAssistantAgent(BaseChatAgent):
         settings = (
             self._execution_settings
             or self._kernel.get_prompt_execution_settings_from_service_id(self._service_id)
-            or chat_completion_service.instantiate_prompt_execution_settings(
+            or chat_completion_service.instantiate_prompt_execution_settings(  # type: ignore
                 service_id=self._service_id,
                 extension_data={"ai_model_id": chat_completion_service.ai_model_id},
             )
@@ -124,7 +228,7 @@ class SKAssistantAgent(BaseChatAgent):
         """
         # 1) Convert & store new agent messages
         for msg in messages:
-            sk_msg = ChatMessageContent(role=AuthorRole.USER, content=msg.content, name=msg.source)
+            sk_msg = self._convert_chat_message_to_sk_chat_message_content(AuthorRole.USER, msg)
             self._chat_history.add_message(sk_msg)
 
         # 2) Retrieve chat completion service
@@ -135,17 +239,19 @@ class SKAssistantAgent(BaseChatAgent):
         if not chat_completion_service:
             raise KernelServiceNotFoundError(f"Chat completion service not found with service_id: {self._service_id}")
 
+        assert isinstance(chat_completion_service, ChatCompletionClientBase)
+
         settings = (
             self._execution_settings
             or self._kernel.get_prompt_execution_settings_from_service_id(self._service_id)
-            or chat_completion_service.instantiate_prompt_execution_settings(
+            or chat_completion_service.instantiate_prompt_execution_settings(  # type: ignore
                 service_id=self._service_id,
                 extension_data={"ai_model_id": chat_completion_service.ai_model_id},
             )
         )
 
         # 3) Stream the SK response
-        accumulated_reply = []
+        accumulated_reply: list[str] = []
         async for sk_message_list in chat_completion_service.get_streaming_chat_message_contents(
             chat_history=self._chat_history,
             settings=settings,
@@ -171,56 +277,51 @@ class SKAssistantAgent(BaseChatAgent):
         self._chat_history.messages.clear()
 
     @staticmethod
-    def _convert_chat_message_to_sk_chat_message_content(role: AuthorRole, chat_message: ChatMessage) -> ChatMessageContent:
-        
+    def _convert_chat_message_to_sk_chat_message_content(
+        role: AuthorRole, chat_message: ChatMessage
+    ) -> ChatMessageContent:
         # Prepare a place to store metadata (e.g., usage)
-        metadata = {}
+        metadata: dict[str, Any] = {}
         if chat_message.models_usage is not None:
-            metadata["models_usage"] = chat_message.models_usage.dict()
+            metadata["models_usage"] = asdict(chat_message.models_usage)
 
         items: list[TextContent | ImageContent] = []
         msg_type = chat_message.type
 
         match msg_type:
             case "TextMessage":
+                assert isinstance(chat_message, TextMessage)
                 items.append(TextContent(text=chat_message.content))
 
             case "MultiModalMessage":
                 for entry in chat_message.content:
                     if isinstance(entry, str):
                         items.append(TextContent(text=entry))
-                else:
-                    # entry is autogen_core.Image
-                    # Convert to base64 and then into bytes for ImageContent
-                    b64 = entry.to_base64()
-                    img_bytes = base64.b64decode(b64)
-                    items.append(
-                        ImageContent(
-                            data=img_bytes,
-                            data_format="base64",
-                            mime_type="image/png",
+                    else:
+                        # entry is autogen_core.Image
+                        # Convert to base64 and then into bytes for ImageContent
+                        b64 = entry.to_base64()
+                        img_bytes = base64.b64decode(b64)
+                        items.append(
+                            ImageContent(
+                                data=img_bytes,  # type: ignore
+                                data_format="base64",  # type: ignore
+                                mime_type="image/png",  # type: ignore
+                            )
                         )
-                    )
 
             case "StopMessage":
+                assert isinstance(chat_message, StopMessage)
                 items.append(TextContent(text=chat_message.content))
 
             case "HandoffMessage":
+                assert isinstance(chat_message, HandoffMessage)
                 # Store handoff details as text
                 text = f"Handoff target: {chat_message.target}\n\n{chat_message.content}"
                 items.append(TextContent(text=text))
 
             case "ToolCallSummaryMessage":
+                assert isinstance(chat_message, ToolCallSummaryMessage)
                 items.append(TextContent(text=chat_message.content))
 
-            case _:
-                # Fallback for any other message type
-                content_str = getattr(chat_message, "content", "")
-                items.append(TextContent(text=f"[Unknown message type: {msg_type}] {content_str}"))
-
-        return ChatMessageContent(
-            role=role,
-            items=items,
-            metadata=metadata,
-            name=chat_message.source
-        )
+        return ChatMessageContent(role=role, items=items, metadata=metadata, name=chat_message.source)  # type: ignore
