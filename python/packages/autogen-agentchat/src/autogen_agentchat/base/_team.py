@@ -1,5 +1,6 @@
-from typing import Any, Mapping
 from abc import ABC, abstractmethod
+from typing import Any, Mapping
+
 from ._task import TaskRunner
 
 

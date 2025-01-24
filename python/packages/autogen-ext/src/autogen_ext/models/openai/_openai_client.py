@@ -27,6 +27,7 @@ from autogen_core import (
     CancellationToken,
     Component,
     FunctionCall,
+    FunctionCalls,
     Image,
     MessageHandlerContext,
 )
@@ -196,9 +197,9 @@ def assistant_message_to_oai(
     message: AssistantMessage,
 ) -> ChatCompletionAssistantMessageParam:
     assert_valid_name(message.source)
-    if isinstance(message.content, list):
+    if isinstance(message.content, FunctionCalls):
         return ChatCompletionAssistantMessageParam(
-            tool_calls=[func_call_to_oai(x) for x in message.content],
+            tool_calls=[func_call_to_oai(x) for x in message.content.function_calls],
             role="assistant",
             name=message.source,
         )
@@ -549,7 +550,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         # Detect whether it is a function call or not.
         # We don't rely on choice.finish_reason as it is not always accurate, depending on the API used.
-        content: Union[str, List[FunctionCall]]
+        content: Union[str, FunctionCalls]
         if choice.message.function_call is not None:
             raise ValueError("function_call is deprecated and is not supported by this model client.")
         elif choice.message.tool_calls is not None:
@@ -567,14 +568,16 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     stacklevel=2,
                 )
             # NOTE: If OAI response type changes, this will need to be updated
-            content = [
-                FunctionCall(
-                    id=x.id,
-                    arguments=x.function.arguments,
-                    name=normalize_name(x.function.name),
-                )
-                for x in choice.message.tool_calls
-            ]
+            content = FunctionCalls(
+                function_calls=[
+                    FunctionCall(
+                        id=x.id,
+                        arguments=x.function.arguments,
+                        name=normalize_name(x.function.name),
+                    )
+                    for x in choice.message.tool_calls
+                ]
+            )
             finish_reason = "tool_calls"
         else:
             finish_reason = choice.finish_reason
@@ -783,7 +786,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if stop_reason == "function_call":
             raise ValueError("Function calls are not supported in this context")
 
-        content: Union[str, List[FunctionCall]]
+        content: Union[str, FunctionCalls]
         if len(content_deltas) > 1:
             content = "".join(content_deltas)
             if chunk and chunk.usage:
@@ -797,7 +800,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             #     # value = json.dumps(tool_call)
             #     # completion_tokens += count_token(value, model=model)
             #     completion_tokens += 0
-            content = list(full_tool_calls.values())
+            content = FunctionCalls(function_calls=list(full_tool_calls.values()))
 
         usage = RequestUsage(
             prompt_tokens=prompt_tokens,

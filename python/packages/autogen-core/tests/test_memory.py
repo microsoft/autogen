@@ -1,4 +1,5 @@
 from typing import Any
+
 import pytest
 from autogen_core import CancellationToken
 from autogen_core.memory import (
@@ -114,6 +115,7 @@ async def test_list_memory_update_context() -> None:
     context_messages = await context.get_messages()
     assert len(results.memories.results) == 2
     assert len(context_messages) == 1
+    assert isinstance(context_messages[0].content, str)
     assert "test1" in context_messages[0].content
     assert "test2" in context_messages[0].content
 

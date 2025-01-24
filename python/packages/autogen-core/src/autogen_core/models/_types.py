@@ -4,7 +4,7 @@ from typing import List, Literal, Optional, Union
 from pydantic import BaseModel, Field
 from typing_extensions import Annotated
 
-from .. import FunctionCall, Image
+from .. import FunctionCalls, Image
 
 
 class SystemMessage(BaseModel):
@@ -22,7 +22,7 @@ class UserMessage(BaseModel):
 
 
 class AssistantMessage(BaseModel):
-    content: Union[str, List[FunctionCall]]
+    content: Union[str, FunctionCalls]
 
     # Name of the agent that sent this message
     source: str
@@ -70,7 +70,7 @@ class ChatCompletionTokenLogprob(BaseModel):
 
 class CreateResult(BaseModel):
     finish_reason: FinishReasons
-    content: Union[str, List[FunctionCall]]
+    content: Union[str, FunctionCalls]
     usage: RequestUsage
     cached: bool
     logprobs: Optional[List[ChatCompletionTokenLogprob] | None] = None

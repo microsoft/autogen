@@ -1,10 +1,10 @@
 from typing import Any, Dict, List, TypedDict, Union
 
-from autogen_core import FunctionCall, Image
+from autogen_core import FunctionCalls, Image
 from autogen_core.models import FunctionExecutionResult
 
 UserContent = Union[str, List[Union[str, Image]]]
-AssistantContent = Union[str, List[FunctionCall]]
+AssistantContent = Union[str, FunctionCalls]
 FunctionExecutionContent = List[FunctionExecutionResult]
 SystemContent = str
 

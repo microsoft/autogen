@@ -1,7 +1,7 @@
 import asyncio
 from typing import List
 
-from .. import AgentId, AgentRuntime, BaseAgent, CancellationToken, FunctionCall
+from .. import AgentId, AgentRuntime, BaseAgent, CancellationToken, FunctionCall, FunctionCalls
 from ..models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -43,7 +43,9 @@ async def tool_agent_caller_loop(
     generated_messages.append(AssistantMessage(content=response.content, source=caller_source))
 
     # Keep iterating until the model stops generating tool calls.
-    while isinstance(response.content, list) and all(isinstance(item, FunctionCall) for item in response.content):
+    while isinstance(response.content, FunctionCalls) and all(
+        isinstance(item, FunctionCall) for item in response.content.function_calls
+    ):
         # Execute functions called by the model by sending messages to tool agent.
         results: List[FunctionExecutionResult | BaseException] = await asyncio.gather(
             *[
@@ -52,7 +54,7 @@ async def tool_agent_caller_loop(
                     recipient=tool_agent_id,
                     cancellation_token=cancellation_token,
                 )
-                for call in response.content
+                for call in response.content.function_calls
             ],
             return_exceptions=True,
         )

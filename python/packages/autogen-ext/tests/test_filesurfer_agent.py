@@ -140,8 +140,10 @@ async def test_run_filesurfer(monkeypatch: pytest.MonkeyPatch) -> None:
     # Get the FileSurfer to read the file, and the directory
     assert agent._name == "FileSurfer"  # pyright: ignore[reportPrivateUsage]
     result = await agent.run(task="Please read the test file")
+    assert isinstance(result.messages[1].content, str)
     assert "# FileSurfer test H1" in result.messages[1].content
 
     result = await agent.run(task="Please read the test directory")
+    assert isinstance(result.messages[1].content, str)
     assert "# Index of " in result.messages[1].content
     assert "test_filesurfer_agent.html" in result.messages[1].content

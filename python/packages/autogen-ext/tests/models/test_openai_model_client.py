@@ -5,7 +5,7 @@ from typing import Annotated, Any, AsyncGenerator, Dict, Generic, List, Literal,
 from unittest.mock import MagicMock
 
 import pytest
-from autogen_core import CancellationToken, FunctionCall, Image
+from autogen_core import CancellationToken, FunctionCall, FunctionCalls, Image
 from autogen_core.models import (
     AssistantMessage,
     CreateResult,
@@ -610,7 +610,10 @@ async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
 
     # Single tool call
     create_result = await model_client.create(messages=[UserMessage(content="Hello", source="user")], tools=[pass_tool])
-    assert create_result.content == [FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function")]
+    assert isinstance(create_result.content, FunctionCalls)
+    assert create_result.content.function_calls == [
+        FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function")
+    ]
     # Verify that the tool schema was passed to the model client.
     kwargs = mock.calls[0]
     assert kwargs["tools"] == [{"function": pass_tool.schema, "type": "function"}]
@@ -621,7 +624,8 @@ async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
     create_result = await model_client.create(
         messages=[UserMessage(content="Hello", source="user")], tools=[pass_tool, fail_tool, echo_tool]
     )
-    assert create_result.content == [
+    assert isinstance(create_result.content, FunctionCalls)
+    assert create_result.content.function_calls == [
         FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function"),
         FunctionCall(id="2", arguments=r'{"input": "task"}', name="_fail_function"),
         FunctionCall(id="3", arguments=r'{"input": "task"}', name="_echo_function"),
@@ -641,7 +645,10 @@ async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
         create_result = await model_client.create(
             messages=[UserMessage(content="Hello", source="user")], tools=[pass_tool]
         )
-        assert create_result.content == [FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function")]
+        assert isinstance(create_result.content, FunctionCalls)
+        assert create_result.content.function_calls == [
+            FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function")
+        ]
         assert create_result.finish_reason == "function_calls"
 
     # Warning completion when content is not None.
@@ -649,7 +656,10 @@ async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
         create_result = await model_client.create(
             messages=[UserMessage(content="Hello", source="user")], tools=[pass_tool]
         )
-        assert create_result.content == [FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function")]
+        assert isinstance(create_result.content, FunctionCalls)
+        assert create_result.content.function_calls == [
+            FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function")
+        ]
         assert create_result.finish_reason == "function_calls"
 
 
@@ -671,9 +681,10 @@ async def _test_model_client(model_client: OpenAIChatCompletionClient) -> None:
     create_result = await model_client.create(messages=messages, tools=[pass_tool, fail_tool])
     assert isinstance(create_result.content, list)
     assert len(create_result.content) == 1
-    assert isinstance(create_result.content[0], FunctionCall)
-    assert create_result.content[0].name == "pass_tool"
-    assert json.loads(create_result.content[0].arguments) == {"input": "task"}
+    assert isinstance(create_result.content, FunctionCalls)
+    assert isinstance(create_result.content.function_calls[0], FunctionCall)
+    assert create_result.content.function_calls[0].name == "pass_tool"
+    assert json.loads(create_result.content.function_calls[0].arguments) == {"input": "task"}
     assert create_result.finish_reason == "function_calls"
     assert create_result.usage is not None
 
@@ -681,7 +692,7 @@ async def _test_model_client(model_client: OpenAIChatCompletionClient) -> None:
     messages.append(AssistantMessage(content=create_result.content, source="assistant"))
     messages.append(
         FunctionExecutionResultMessage(
-            content=[FunctionExecutionResult(content="passed", call_id=create_result.content[0].id)]
+            content=[FunctionExecutionResult(content="passed", call_id=create_result.content.function_calls[0].id)]
         )
     )
     create_result = await model_client.create(messages=messages)
@@ -697,12 +708,13 @@ async def _test_model_client(model_client: OpenAIChatCompletionClient) -> None:
     create_result = await model_client.create(messages=messages, tools=[pass_tool, fail_tool])
     assert isinstance(create_result.content, list)
     assert len(create_result.content) == 2
-    assert isinstance(create_result.content[0], FunctionCall)
-    assert create_result.content[0].name == "pass_tool"
-    assert json.loads(create_result.content[0].arguments) == {"input": "task"}
+    assert isinstance(create_result.content, FunctionCalls)
+    assert isinstance(create_result.content.function_calls[0], FunctionCall)
+    assert create_result.content.function_calls[0].name == "pass_tool"
+    assert json.loads(create_result.content.function_calls[0].arguments) == {"input": "task"}
     assert isinstance(create_result.content[1], FunctionCall)
-    assert create_result.content[1].name == "fail_tool"
-    assert json.loads(create_result.content[1].arguments) == {"input": "task"}
+    assert create_result.content.function_calls[1].name == "fail_tool"
+    assert json.loads(create_result.content.function_calls[1].arguments) == {"input": "task"}
     assert create_result.finish_reason == "function_calls"
     assert create_result.usage is not None
 
@@ -711,8 +723,8 @@ async def _test_model_client(model_client: OpenAIChatCompletionClient) -> None:
     messages.append(
         FunctionExecutionResultMessage(
             content=[
-                FunctionExecutionResult(content="passed", call_id=create_result.content[0].id),
-                FunctionExecutionResult(content="failed", call_id=create_result.content[1].id),
+                FunctionExecutionResult(content="passed", call_id=create_result.content.function_calls[0].id),
+                FunctionExecutionResult(content="failed", call_id=create_result.content.function_calls[1].id),
             ]
         )
     )

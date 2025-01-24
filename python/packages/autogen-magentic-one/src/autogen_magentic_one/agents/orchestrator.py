@@ -1,7 +1,7 @@
 import json
 from typing import Any, Dict, List, Optional
 
-from autogen_core import AgentProxy, CancellationToken, MessageContext, TopicId, default_subscription
+from autogen_core import AgentProxy, CancellationToken, FunctionCalls, MessageContext, TopicId, default_subscription
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -130,9 +130,12 @@ class LedgerOrchestrator(BaseOrchestrator):
             return message.content
         else:
             result = ""
-            for content in message.content:
-                if isinstance(content, str):
-                    result += content + "\n"
+            if isinstance(message.content, FunctionCalls) and message.content.thought:
+                return message.content.thought
+            elif isinstance(message.content, list):
+                for content in message.content:
+                    if isinstance(content, str):
+                        result += content + "\n"
             assert len(result) > 0
         return result
 

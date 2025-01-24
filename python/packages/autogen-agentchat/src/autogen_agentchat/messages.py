@@ -7,7 +7,7 @@ class and includes specific fields relevant to the type of message being sent.
 from abc import ABC
 from typing import List, Literal
 
-from autogen_core import FunctionCall, Image
+from autogen_core import FunctionCalls, Image
 from autogen_core.memory import MemoryContent
 from autogen_core.models import FunctionExecutionResult, LLMMessage, RequestUsage
 from pydantic import BaseModel, ConfigDict, Field
@@ -83,7 +83,7 @@ class HandoffMessage(BaseChatMessage):
 class ToolCallRequestEvent(BaseAgentEvent):
     """An event signaling a request to use tools."""
 
-    content: List[FunctionCall]
+    content: FunctionCalls
     """The tool calls."""
 
     type: Literal["ToolCallRequestEvent"] = "ToolCallRequestEvent"

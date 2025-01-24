@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 from typing import Any, AsyncGenerator, List
+from unittest.mock import AsyncMock
 
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
@@ -17,10 +18,10 @@ from autogen_agentchat.messages import (
     ToolCallRequestEvent,
     ToolCallSummaryMessage,
 )
-from autogen_core import FunctionCall, Image
+from autogen_core import FunctionCall, FunctionCalls, Image
 from autogen_core.memory import ListMemory, Memory, MemoryContent, MemoryMimeType, MemoryQueryResult
 from autogen_core.model_context import BufferedChatCompletionContext
-from autogen_core.models import FunctionExecutionResult, LLMMessage
+from autogen_core.models import CreateResult, FunctionExecutionResult, LLMMessage, RequestUsage
 from autogen_core.models._model_client import ModelFamily
 from autogen_core.tools import FunctionTool
 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -174,6 +175,51 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     await agent2.load_state(state)
     state2 = await agent2.save_state()
     assert state == state2
+
+
+@pytest.mark.asyncio
+async def test_run_stream_with_thought() -> None:
+    mocked_model = AsyncMock()
+    mocked_model.create.side_effect = [
+        CreateResult(
+            finish_reason="function_calls",
+            content=FunctionCalls(
+                function_calls=[FunctionCall(id="call_foo", name="echo", arguments=json.dumps({"input": "foo"}))],
+                thought="going to say foo!",
+            ),
+            usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+            cached=False,
+        ),
+        CreateResult(
+            finish_reason="stop",
+            content="ok!",
+            usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+            cached=False,
+        ),
+        CreateResult(
+            finish_reason="stop",
+            content="TERMINATE",
+            usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+            cached=False,
+        ),
+    ]
+
+    agent = AssistantAgent(
+        "thoughtfull_tool_use_agent",
+        model_client=mocked_model,
+        tools=[
+            FunctionTool(_echo_function, description="Echo", name="echo"),
+        ],
+    )
+
+    streamed_messages = [item async for item in agent.run_stream(task="prompt")]
+    assert len(streamed_messages) == 5
+    assert isinstance(streamed_messages[0], TextMessage)
+    assert isinstance(streamed_messages[1], ToolCallRequestEvent)
+    assert streamed_messages[1].content.thought == "going to say foo!"
+    assert isinstance(streamed_messages[2], ToolCallExecutionEvent)
+    assert isinstance(streamed_messages[3], ToolCallSummaryMessage)
+    assert isinstance(streamed_messages[4], TaskResult)
 
 
 @pytest.mark.asyncio
@@ -374,7 +420,7 @@ async def test_run_with_parallel_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     assert isinstance(result.messages[0], TextMessage)
     assert result.messages[0].models_usage is None
     assert isinstance(result.messages[1], ToolCallRequestEvent)
-    assert result.messages[1].content == [
+    assert result.messages[1].content.function_calls == [
         FunctionCall(id="1", arguments=r'{"input": "task1"}', name="_pass_function"),
         FunctionCall(id="2", arguments=r'{"input": "task2"}', name="_pass_function"),
         FunctionCall(id="3", arguments=r'{"input": "task3"}', name="_echo_function"),

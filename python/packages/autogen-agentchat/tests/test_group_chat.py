@@ -33,7 +33,7 @@ from autogen_agentchat.teams._group_chat._round_robin_group_chat import RoundRob
 from autogen_agentchat.teams._group_chat._selector_group_chat import SelectorGroupChatManager
 from autogen_agentchat.teams._group_chat._swarm_group_chat import SwarmGroupChatManager
 from autogen_agentchat.ui import Console
-from autogen_core import AgentId, CancellationToken, FunctionCall
+from autogen_core import AgentId, CancellationToken, FunctionCall, FunctionCalls
 from autogen_core.models import (
     AssistantMessage,
     FunctionExecutionResult,
@@ -224,6 +224,7 @@ async def test_round_robin_group_chat(monkeypatch: pytest.MonkeyPatch) -> None:
         result_2 = await team.run(
             task=MultiModalMessage(content=["Write a program that prints 'Hello, world!'"], source="user")
         )
+        assert isinstance(result_2.messages[0].content, list)
         assert result.messages[0].content == result_2.messages[0].content[0]
         assert result.messages[1:] == result_2.messages[1:]
 
@@ -1069,10 +1070,12 @@ async def test_swarm_with_parallel_tool_calls(monkeypatch: pytest.MonkeyPatch) -
     expected_handoff_context: List[LLMMessage] = [
         AssistantMessage(
             source="agent1",
-            content=[
-                FunctionCall(id="1", name="tool1", arguments="{}"),
-                FunctionCall(id="2", name="tool2", arguments="{}"),
-            ],
+            content=FunctionCalls(
+                function_calls=[
+                    FunctionCall(id="1", name="tool1", arguments="{}"),
+                    FunctionCall(id="2", name="tool2", arguments="{}"),
+                ]
+            ),
         ),
         FunctionExecutionResultMessage(
             content=[

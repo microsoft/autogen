@@ -32,7 +32,7 @@ from autogen_agentchat.messages import (
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
 )
-from autogen_core import CancellationToken, FunctionCall
+from autogen_core import CancellationToken, FunctionCall, FunctionCalls
 from autogen_core.models._model_client import ChatCompletionClient
 from autogen_core.models._types import FunctionExecutionResult
 from autogen_core.tools import FunctionTool, Tool
@@ -395,7 +395,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
                         )
 
                 # Add tool call message to inner messages
-                tool_call_msg = ToolCallRequestEvent(source=self.name, content=tool_calls)
+                tool_call_msg = ToolCallRequestEvent(source=self.name, content=FunctionCalls(function_calls=tool_calls))
                 inner_messages.append(tool_call_msg)
                 event_logger.debug(tool_call_msg)
                 yield tool_call_msg

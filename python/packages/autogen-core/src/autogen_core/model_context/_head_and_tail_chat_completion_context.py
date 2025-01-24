@@ -4,7 +4,7 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from .._component_config import Component
-from .._types import FunctionCall
+from .._types import FunctionCall, FunctionCalls
 from ..models import AssistantMessage, FunctionExecutionResultMessage, LLMMessage, UserMessage
 from ._chat_completion_context import ChatCompletionContext
 
@@ -45,8 +45,8 @@ class HeadAndTailChatCompletionContext(ChatCompletionContext, Component[HeadAndT
         if (
             head_messages
             and isinstance(head_messages[-1], AssistantMessage)
-            and isinstance(head_messages[-1].content, list)
-            and all(isinstance(item, FunctionCall) for item in head_messages[-1].content)
+            and isinstance(head_messages[-1].content, FunctionCalls)
+            and all(isinstance(item, FunctionCall) for item in head_messages[-1].content.function_calls)
         ):
             # Remove the last message from the head.
             head_messages = head_messages[:-1]

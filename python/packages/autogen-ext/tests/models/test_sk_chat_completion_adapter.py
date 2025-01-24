@@ -3,7 +3,7 @@ from typing import Any, AsyncGenerator
 from unittest.mock import AsyncMock
 
 import pytest
-from autogen_core import CancellationToken
+from autogen_core import CancellationToken, FunctionCalls
 from autogen_core.models import CreateResult, LLMMessage, ModelFamily, ModelInfo, SystemMessage, UserMessage
 from autogen_core.tools import BaseTool
 from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
@@ -252,7 +252,7 @@ async def test_sk_chat_completion_with_tools(sk_client: AzureChatCompletion) -> 
     result = await adapter.create(messages=messages, tools=[tool], extra_create_args={"kernel": kernel})
 
     # Verify response
-    assert isinstance(result.content, list)
+    assert isinstance(result.content, FunctionCalls)
     assert result.finish_reason == "function_calls"
     assert result.usage.prompt_tokens >= 0
     assert result.usage.completion_tokens >= 0
@@ -306,7 +306,7 @@ async def test_sk_chat_completion_stream_with_tools(sk_client: AzureChatCompleti
     assert len(response_chunks) > 0
     final_chunk = response_chunks[-1]
     assert isinstance(final_chunk, CreateResult)
-    assert isinstance(final_chunk.content, list)  # Function calls
+    assert isinstance(final_chunk.content, FunctionCalls)  # Function calls
     assert final_chunk.finish_reason == "function_calls"
     assert final_chunk.usage.prompt_tokens >= 0
     assert final_chunk.usage.completion_tokens >= 0

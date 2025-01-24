@@ -627,7 +627,7 @@ from autogen_agentchat.messages import (
     ToolCallRequestEvent,
     ToolCallSummaryMessage,
 )
-from autogen_core import FunctionCall, Image
+from autogen_core import FunctionCall, FunctionCalls, Image
 from autogen_core.models import FunctionExecutionResult
 
 
@@ -660,7 +660,7 @@ def convert_to_v02_message(
                 raise ValueError(f"Invalid multimodal message content: {modal}")
     elif isinstance(message, ToolCallRequestEvent):
         v02_message = {"tool_calls": [], "role": "assistant", "content": None, "name": message.source}
-        for tool_call in message.content:
+        for tool_call in message.content.function_calls:
             v02_message["tool_calls"].append(
                 {
                     "id": tool_call.id,
@@ -697,7 +697,7 @@ def convert_to_v04_message(message: Dict[str, Any]) -> AgentEvent | ChatMessage:
                     arguments=tool_call["function"]["args"],
                 )
             )
-        return ToolCallRequestEvent(source=message["name"], content=tool_calls)
+        return ToolCallRequestEvent(source=message["name"], content=FunctionCalls(function_calls=tool_calls))
     elif "tool_responses" in message:
         tool_results: List[FunctionExecutionResult] = []
         for tool_response in message["tool_responses"]:

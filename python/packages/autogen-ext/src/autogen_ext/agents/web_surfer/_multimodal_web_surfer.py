@@ -24,7 +24,7 @@ import PIL.Image
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage, TextMessage
-from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, ComponentModel, FunctionCall
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, ComponentModel, FunctionCall, FunctionCalls
 from autogen_core import Image as AGImage
 from autogen_core.models import (
     AssistantMessage,
@@ -541,9 +541,11 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             # Answer directly
             self.inner_messages.append(TextMessage(content=message, source=self.name))
             return message
-        elif isinstance(message, list):
+        elif isinstance(message, FunctionCalls):
             # Take an action
-            return await self._execute_tool(message, rects, tool_names, cancellation_token=cancellation_token)
+            return await self._execute_tool(
+                message.function_calls, rects, tool_names, cancellation_token=cancellation_token
+            )
         else:
             # Not sure what happened here
             raise AssertionError(f"Unknown response format '{message}'")

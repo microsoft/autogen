@@ -2,7 +2,7 @@ import json
 import time
 from typing import List, Optional, Tuple
 
-from autogen_core import CancellationToken, FunctionCall, default_subscription
+from autogen_core import CancellationToken, FunctionCall, FunctionCalls, default_subscription
 from autogen_core.models import (
     ChatCompletionClient,
     SystemMessage,
@@ -99,8 +99,10 @@ class FileSurfer(BaseWorker):
         if isinstance(response, str):
             return False, response
 
-        elif isinstance(response, list) and all(isinstance(item, FunctionCall) for item in response):
-            function_calls = response
+        elif isinstance(response, FunctionCalls) and all(
+            isinstance(item, FunctionCall) for item in response.function_calls
+        ):
+            function_calls = response.function_calls
             for function_call in function_calls:
                 tool_name = function_call.name
 

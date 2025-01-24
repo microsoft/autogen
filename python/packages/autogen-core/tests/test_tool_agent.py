@@ -3,7 +3,7 @@ import json
 from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union
 
 import pytest
-from autogen_core import AgentId, CancellationToken, FunctionCall, SingleThreadedAgentRuntime
+from autogen_core import AgentId, CancellationToken, FunctionCall, FunctionCalls, SingleThreadedAgentRuntime
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -101,7 +101,9 @@ async def test_caller_loop() -> None:
         ) -> CreateResult:
             if len(messages) == 1:
                 return CreateResult(
-                    content=[FunctionCall(id="1", name="pass", arguments=json.dumps({"input": "test"}))],
+                    content=FunctionCalls(
+                        function_calls=[FunctionCall(id="1", name="pass", arguments=json.dumps({"input": "test"}))]
+                    ),
                     finish_reason="stop",
                     usage=RequestUsage(prompt_tokens=0, completion_tokens=0),
                     cached=False,
