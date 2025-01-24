@@ -198,6 +198,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
     The following code snippet shows how to use the client:
 
         .. code-block:: python
+
             import asyncio
             from azure.core.credentials import AzureKeyCredential
             from autogen_ext.models.azure import AzureAIChatCompletionClient
