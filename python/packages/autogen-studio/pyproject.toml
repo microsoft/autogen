@@ -90,6 +90,3 @@ fmt = "ruff format"
 format.ref = "fmt"
 lint = "ruff check"
 test = "pytest -n 0 --cov=autogenstudio --cov-report=term-missing"
-
-[tool.uv.sources]
-mcp = { path = "../../../../../modelcontextprotocol/python-sdk" }

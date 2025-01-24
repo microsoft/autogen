@@ -605,6 +605,9 @@ openai = [
 redis = [
     { name = "redis" },
 ]
+rich = [
+    { name = "rich" },
+]
 semantic-kernel-all = [
     { name = "semantic-kernel", extra = ["anthropic", "aws", "dapr", "google", "hugging-face", "mistralai", "ollama", "onnx", "pandas", "usearch"] },
 ]
@@ -689,6 +692,7 @@ requires-dist = [
     { name = "playwright", marker = "extra == 'magentic-one'", specifier = ">=1.48.0" },
     { name = "playwright", marker = "extra == 'web-surfer'", specifier = ">=1.48.0" },
     { name = "redis", marker = "extra == 'redis'", specifier = ">=5.2.1" },
+    { name = "rich", marker = "extra == 'rich'", specifier = ">=13.9.4" },
     { name = "semantic-kernel", marker = "extra == 'semantic-kernel-core'", specifier = ">=1.17.1" },
     { name = "semantic-kernel", extras = ["anthropic"], marker = "extra == 'semantic-kernel-anthropic'", specifier = ">=1.17.1" },
     { name = "semantic-kernel", extras = ["aws"], marker = "extra == 'semantic-kernel-aws'", specifier = ">=1.17.1" },
@@ -842,7 +846,7 @@ requires-dist = [
     { name = "fastapi" },
     { name = "fastapi", marker = "extra == 'web'" },
     { name = "loguru" },
-    { name = "mcp", directory = "../../../modelcontextprotocol/python-sdk" },
+    { name = "mcp" },
     { name = "numpy", specifier = "<2.0.0" },
     { name = "psycopg" },
     { name = "psycopg", marker = "extra == 'database'" },
@@ -3590,13 +3594,13 @@ version = "0.2.1"
 source = { editable = "packages/magentic-one-cli" }
 dependencies = [
     { name = "autogen-agentchat" },
-    { name = "autogen-ext", extra = ["magentic-one", "openai"] },
+    { name = "autogen-ext", extra = ["magentic-one", "openai", "rich"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "autogen-agentchat", editable = "packages/autogen-agentchat" },
-    { name = "autogen-ext", extras = ["openai", "magentic-one"], editable = "packages/autogen-ext" },
+    { name = "autogen-ext", extras = ["openai", "magentic-one", "rich"], editable = "packages/autogen-ext" },
 ]
 
 [package.metadata.requires-dev]
@@ -3790,8 +3794,8 @@ wheels = [
 
 [[package]]
 name = "mcp"
-version = "1.3.0.dev0"
-source = { directory = "../../../modelcontextprotocol/python-sdk" }
+version = "1.2.0"
+source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
     { name = "httpx" },
@@ -3802,30 +3806,9 @@ dependencies = [
     { name = "starlette" },
     { name = "uvicorn" },
 ]
-
-[package.metadata]
-requires-dist = [
-    { name = "anyio", specifier = ">=4.5" },
-    { name = "httpx", specifier = ">=0.27" },
-    { name = "httpx-sse", specifier = ">=0.4" },
-    { name = "pydantic", specifier = ">=2.10.1,<3.0.0" },
-    { name = "pydantic-settings", specifier = ">=2.6.1" },
-    { name = "python-dotenv", marker = "extra == 'cli'", specifier = ">=1.0.0" },
-    { name = "rich", marker = "extra == 'rich'", specifier = ">=13.9.4" },
-    { name = "sse-starlette", specifier = ">=1.6.1" },
-    { name = "starlette", specifier = ">=0.27" },
-    { name = "typer", marker = "extra == 'cli'", specifier = ">=0.12.4" },
-    { name = "uvicorn", specifier = ">=0.30" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "pyright", specifier = ">=1.1.391" },
-    { name = "pytest", specifier = ">=8.3.4" },
-    { name = "pytest-flakefinder", specifier = ">=1.1.0" },
-    { name = "pytest-xdist", specifier = ">=3.6.1" },
-    { name = "ruff", specifier = ">=0.8.5" },
-    { name = "trio", specifier = ">=0.26.2" },
+sdist = { url = "https://files.pythonhosted.org/packages/ab/a5/b08dc846ebedae9f17ced878e6975826e90e448cd4592f532f6a88a925a7/mcp-1.2.0.tar.gz", hash = "sha256:2b06c7ece98d6ea9e6379caa38d74b432385c338fb530cb82e2c70ea7add94f5", size = 102973 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/af/84/fca78f19ac8ce6c53ba416247c71baa53a9e791e98d3c81edbc20a77d6d1/mcp-1.2.0-py3-none-any.whl", hash = "sha256:1d0e77d8c14955a5aea1f5aa1f444c8e531c09355c829b20e42f7a142bc0755f", size = 66468 },
 ]
 
 [[package]]

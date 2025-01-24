@@ -1,9 +1,9 @@
 {
-  "name": "weather_team",
+  "name": "filesystem_team",
   "component_type": "team",
   "participants": [
     {
-      "name": "writing_agent",
+      "name": "filesystem_agent",
       "component_type": "agent",
       "model_client": {
         "model": "gpt-4o-2024-08-06",
@@ -14,9 +14,14 @@
         {
           "name": "get_weather",
           "description": "Get the weather for a city",
-          "content": "async def get_weather(city: str) -> str:\n    return f\"The weather in {city} is 73 degrees and Sunny.\"",
-          "tool_type": "PythonFunction",
-          "component_type": "tool"
+          "tool_type": "McpStdioClient",
+          "component_type": "tool",
+          "command": "npx",
+          "args":[
+              "-y",
+              "@modelcontextprotocol/server-filesystem",
+              "/home/eitanyarmush"
+          ]
         }
       ],
       "agent_type": "AssistantAgent"
