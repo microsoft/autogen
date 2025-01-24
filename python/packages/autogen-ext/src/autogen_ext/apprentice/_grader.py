@@ -1,18 +1,22 @@
-from typing import List
+from typing import List, Tuple
 
 from autogen_core.models import (
     AssistantMessage,
+    ChatCompletionClient,
     CreateResult,
     LLMMessage,
     SystemMessage,
     UserMessage,
 )
-
+from ._page_logger import PageLogger
 from ._utils import UserContent
 
 
 class Grader:
-    def __init__(self, client, logger):
+    """
+    Determines task success without limitation to string matches.
+    """
+    def __init__(self, client: ChatCompletionClient, logger: PageLogger):
         self.client = client
         self.logger = logger
 
@@ -23,8 +27,11 @@ class Grader:
         self._chat_history: List[LLMMessage] = []
 
     async def call_model(
-        self, summary, user_content: UserContent = None, system_message_content=None, keep_these_messages=True
+        self, summary: str, user_content: UserContent = None, system_message_content: str = None, keep_these_messages: bool = True
     ):
+        """
+        Calls the model client with the given input and returns the response.
+        """
         # Prepare the input message list
         if system_message_content is None:
             system_message_content = "You are a helpful assistant."
@@ -34,7 +41,6 @@ class Grader:
         else:
             # System message allowed.
             system_message = SystemMessage(content=system_message_content)
-
         user_message = UserMessage(content=user_content, source="User")
         input_messages = [system_message] + self._chat_history + [user_message]
 
@@ -54,22 +60,24 @@ class Grader:
             self._chat_history.append(user_message)
             self._chat_history.append(response_message)
 
-        # Return the response as a string for now
+        # Return the response as a string
         return response_string
 
-    def remove_last_turn(self):
-        if len(self._chat_history) > 0:
-            self._chat_history.pop()
-
-    def clear_history(self):
+    def clear_history(self) -> None:
+        """
+        Empties the chat history message list.
+        """
         self._chat_history = []
 
-    async def is_response_correct(self, task_description, response_to_be_graded, correct_answer):
-        # Returns only the insights that the client verifies are relevant to the task.
+    async def is_response_correct(self, task_description: str, response_to_be_graded: str, correct_answer: str) -> Tuple[bool, str]:
+        """
+        Determines whether the response is equivalent to the task's correct answer.
+        """
         self.logger.enter_function()
 
         sys_message = """You are a helpful and thoughtful assistant."""
 
+        # Ask the model to extract the answer from the response.
         user_message = [
             """Your job is to extract a possible answer to the following question from the given text.
 - First review the following task.
@@ -89,6 +97,7 @@ class Grader:
         )
         self.logger.info("Extracted answer: " + extracted_answer)
 
+        # Ask the model to check the answer for correctness.
         user_message = [
             """Your job is to decide whether a given answer to a task is correct or not.
 - You will be given the task description and the correct, gold-standard answer, along with the answer to be graded.
@@ -113,7 +122,7 @@ class Grader:
         )
         self.logger.info("Decision: " + decision)
 
-        self.logger.leave_function()
         if self.report_results:
             self.client.report_result(decision)
+        self.logger.leave_function()
         return decision == "1", extracted_answer

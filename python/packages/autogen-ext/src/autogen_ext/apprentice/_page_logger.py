@@ -14,13 +14,7 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
-
-# Convenience types
-UserContent = Union[str, List[Union[str, Image]]]
-AssistantContent = Union[str, List[FunctionCall]]
-FunctionExecutionContent = List[FunctionExecutionResult]
-SystemContent = str
-MessageContent = UserContent | AssistantContent | SystemContent | FunctionExecutionContent
+from ._utils import MessageContent
 
 
 def html_opening(file_title: str, finished: bool = False) -> str:

@@ -3,17 +3,18 @@ from typing import Any, Dict, List, Union
 from autogen_core import FunctionCall, Image
 from autogen_core.models import FunctionExecutionResult, LLMMessage
 
-# Convenience type
+# Convenience types
 UserContent = Union[str, List[Union[str, Image]]]
 AssistantContent = Union[str, List[FunctionCall]]
 FunctionExecutionContent = List[FunctionExecutionResult]
 SystemContent = str
+MessageContent = UserContent | AssistantContent | SystemContent | FunctionExecutionContent
 
 
-# Convert UserContent to a string
-def message_content_to_str(
-    message_content: UserContent | AssistantContent | SystemContent | FunctionExecutionContent,
-) -> str:
+def message_content_to_str(message_content: MessageContent) -> str:
+    """
+    Converts the message content to a string.
+    """
     if message_content is None:
         return ""
     elif isinstance(message_content, str):
@@ -33,6 +34,9 @@ def message_content_to_str(
 
 
 def text_from_user_content(user_content: UserContent) -> str:
+    """
+    Extracts just the text from the user content.
+    """
     if isinstance(user_content, str):
         return user_content
     elif isinstance(user_content, List):
@@ -46,6 +50,9 @@ def text_from_user_content(user_content: UserContent) -> str:
 
 
 def single_image_from_user_content(user_content: UserContent) -> Union[Image, None]:
+    """
+    Extracts a single image from the user content.
+    """
     image_to_return = None
     if isinstance(user_content, str):
         return None
