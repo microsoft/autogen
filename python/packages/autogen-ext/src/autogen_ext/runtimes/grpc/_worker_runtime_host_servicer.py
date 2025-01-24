@@ -27,6 +27,12 @@ def metadata_to_dict(metadata: Sequence[Tuple[str, str]] | None) -> Dict[str, st
         return {}
     return {key: value for key, value in metadata}
 
+async def get_client_id_or_abort(context: grpc.aio.ServicerContext[Any, Any]) -> str:
+    metadata = metadata_to_dict(context.invocation_metadata())  # type: ignore
+    if (client_id := cast(ClientConnectionId | None, metadata.get("client-id"))) is None:  # type: ignore
+        await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "client-id metadata not found.")
+    return client_id
+
 
 class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
     """A gRPC servicer that hosts message delivery service for agents."""
@@ -45,10 +51,8 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         request_iterator: AsyncIterator[agent_worker_pb2.Message],
         context: grpc.aio.ServicerContext[agent_worker_pb2.Message, agent_worker_pb2.Message],
     ) -> Iterator[agent_worker_pb2.Message] | AsyncIterator[agent_worker_pb2.Message]:  # type: ignore
-        metadata = metadata_to_dict(context.invocation_metadata())  # type: ignore
-        if (client_id := cast(ClientConnectionId | None, metadata.get("client-id"))) is None:  # type: ignore
-            logger.error("Client id not found in metadata. Refusing connection.")
-            return
+
+        client_id = await get_client_id_or_abort(context)
 
         # Register the client with the server and create a send queue for the client.
         send_queue: asyncio.Queue[agent_worker_pb2.Message] = asyncio.Queue()
@@ -271,40 +275,44 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
                 )
             )
 
-    def RegisterAgent(  # type: ignore
+    async def RegisterAgent(  # type: ignore
         self,
         request: agent_worker_pb2.RegisterAgentTypeRequest,
         context: grpc.aio.ServicerContext[
             agent_worker_pb2.RegisterAgentTypeRequest, agent_worker_pb2.RegisterAgentTypeResponse
         ],
     ) -> agent_worker_pb2.RegisterAgentTypeResponse:
+        client_id = await get_client_id_or_abort(context)
         raise NotImplementedError("Method not implemented.")
 
-    def AddSubscription(  # type: ignore
+    async def AddSubscription(  # type: ignore
         self,
         request: agent_worker_pb2.AddSubscriptionRequest,
         context: grpc.aio.ServicerContext[
             agent_worker_pb2.AddSubscriptionRequest, agent_worker_pb2.AddSubscriptionResponse
         ],
     ) -> agent_worker_pb2.AddSubscriptionResponse:
+        client_id = await get_client_id_or_abort(context)
         raise NotImplementedError("Method not implemented.")
 
-    def RemoveSubscription(  # type: ignore
+    async def RemoveSubscription(  # type: ignore
         self,
         request: agent_worker_pb2.RemoveSubscriptionRequest,
         context: grpc.aio.ServicerContext[
             agent_worker_pb2.RemoveSubscriptionRequest, agent_worker_pb2.RemoveSubscriptionResponse
         ],
     ) -> agent_worker_pb2.RemoveSubscriptionResponse:
+        client_id = await get_client_id_or_abort(context)
         raise NotImplementedError("Method not implemented.")
 
-    def GetSubscriptions(  # type: ignore
+    async def GetSubscriptions(  # type: ignore
         self,
         request: agent_worker_pb2.GetSubscriptionsRequest,
         context: grpc.aio.ServicerContext[
             agent_worker_pb2.GetSubscriptionsRequest, agent_worker_pb2.GetSubscriptionsResponse
         ],
     ) -> agent_worker_pb2.GetSubscriptionsResponse:
+        client_id = await get_client_id_or_abort(context)
         raise NotImplementedError("Method not implemented.")
 
     async def GetState(  # type: ignore
