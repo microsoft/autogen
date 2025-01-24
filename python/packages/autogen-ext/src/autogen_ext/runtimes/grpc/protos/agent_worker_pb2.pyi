@@ -4,7 +4,7 @@ isort:skip_file
 """
 
 import builtins
-import cloudevent_pb2
+from . import cloudevent_pb2
 import collections.abc
 import google.protobuf.any_pb2
 import google.protobuf.descriptor

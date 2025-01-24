@@ -96,7 +96,11 @@ samples-code-check = """pyright ./samples"""
 
 check = ["fmt", "lint", "pyright", "mypy", "test", "markdown-code-lint", "samples-code-check"]
 
-gen-proto = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --grpc_python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_grpc_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --proto_path ../protos/ agent_worker.proto --proto_path ../protos/ cloudevent.proto"
+gen-proto = [
+    { cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --grpc_python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_grpc_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --proto_path ../protos/ agent_worker.proto --proto_path ../protos/ cloudevent.proto" },
+    { script = "fixup_generated_files:main" }
+]
+
 
 gen-proto-samples = "python -m grpc_tools.protoc --python_out=./samples/core_xlang_hello_python_agent/protos --grpc_python_out=./samples/core_xlang_hello_python_agent/protos --mypy_out=./samples/core_xlang_hello_python_agent/protos --mypy_grpc_out=./samples/core_xlang_hello_python_agent/protos --proto_path ../protos/ agent_events.proto"
 
