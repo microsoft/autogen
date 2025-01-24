@@ -117,6 +117,7 @@ class HostConnection:
         self._send_queue = asyncio.Queue[agent_worker_pb2.Message]()
         self._recv_queue = asyncio.Queue[agent_worker_pb2.Message]()
         self._connection_task: Task[None] | None = None
+        self._client_id = str(uuid.uuid4())
 
     @classmethod
     def from_host_address(cls, host_address: str, extra_grpc_config: ChannelArgumentType = DEFAULT_GRPC_CONFIG) -> Self:
@@ -132,7 +133,7 @@ class HostConnection:
         )
         instance = cls(channel)
         instance._connection_task = asyncio.create_task(
-            instance._connect(channel, instance._send_queue, instance._recv_queue)
+            instance._connect(channel, instance._send_queue, instance._recv_queue, instance._client_id)
         )
         return instance
 
@@ -147,6 +148,7 @@ class HostConnection:
         channel: grpc.aio.Channel,
         send_queue: asyncio.Queue[agent_worker_pb2.Message],
         receive_queue: asyncio.Queue[agent_worker_pb2.Message],
+        client_id: str,
     ) -> None:
         stub: AgentRpcAsyncStub = agent_worker_pb2_grpc.AgentRpcStub(channel)  # type: ignore
 
@@ -154,7 +156,7 @@ class HostConnection:
 
         # TODO: where do exceptions from reading the iterable go? How do we recover from those?
         recv_stream: StreamStreamCall[agent_worker_pb2.Message, agent_worker_pb2.Message] = stub.OpenChannel(  # type: ignore
-            QueueAsyncIterable(send_queue)
+            QueueAsyncIterable(send_queue), metadata=[("client-id", client_id)]
         )  # type: ignore
 
         while True:
