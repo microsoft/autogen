@@ -6,8 +6,8 @@ This example runs a gRPC server using [GrpcWorkerAgentRuntimeHost](../../src/aut
 
 ### Setup Python Environment
 
-1. Create a virtual environment as instructed in [README](../../../../../../../../README.md).
-2. Run `uv pip install chainlit` in the same virtual environment
+1. Create a virtual environment and activate it. (e.g. `python3.12 -m venv .venv && source .venv/bin/activate`)
+2. Run `uv pip install -r requirements.txt` to install compiled set of dependencies.
 
 ### General Configuration
 

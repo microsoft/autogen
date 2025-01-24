@@ -11,11 +11,13 @@ from autogen_core import (
     AgentType,
     CancellationToken,
     ClosureAgent,
+    ComponentBase,
     MessageContext,
     SingleThreadedAgentRuntime,
     TypeSubscription,
 )
 from autogen_core._closure_agent import ClosureContext
+from pydantic import BaseModel
 
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
@@ -28,12 +30,14 @@ from ._sequential_routed_agent import SequentialRoutedAgent
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
-class BaseGroupChat(Team, ABC):
+class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
     """The base class for group chat teams.
 
     To implement a group chat team, first create a subclass of :class:`BaseGroupChatManager` and then
     create a subclass of :class:`BaseGroupChat` that uses the group chat manager.
     """
+
+    component_type = "team"
 
     def __init__(
         self,
