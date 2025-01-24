@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Any, AsyncGenerator, List
 
 import pytest
-from autogen_core import CancellationToken
+from autogen_core import CancellationToken, FunctionCall, Image
 from autogen_core.models import CreateResult, UserMessage
 from autogen_ext.models.azure import AzureAIChatCompletionClient
 from azure.ai.inference.aio import (
@@ -12,11 +12,16 @@ from azure.ai.inference.aio import (
 from azure.ai.inference.models import (
     ChatChoice,
     ChatCompletions,
+    ChatCompletionsToolCall,
     ChatResponseMessage,
+    CompletionsFinishReason,
     CompletionsUsage,
     StreamingChatChoiceUpdate,
     StreamingChatCompletionsUpdate,
     StreamingChatResponseMessageUpdate,
+)
+from azure.ai.inference.models import (
+    FunctionCall as AzureFunctionCall,
 )
 from azure.core.credentials import AzureKeyCredential
 
@@ -66,9 +71,10 @@ async def _mock_create(
         return _mock_create_stream(*args, **kwargs)
 
 
-@pytest.mark.asyncio
-async def test_azure_ai_chat_completion_client() -> None:
-    client = AzureAIChatCompletionClient(
+@pytest.fixture
+def azure_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletionClient:
+    monkeypatch.setattr(ChatCompletionsClient, "complete", _mock_create)
+    return AzureAIChatCompletionClient(
         endpoint="endpoint",
         credential=AzureKeyCredential("api_key"),
         model_info={
@@ -79,42 +85,23 @@ async def test_azure_ai_chat_completion_client() -> None:
         },
         model="model",
     )
-    assert client
 
 
 @pytest.mark.asyncio
-async def test_azure_ai_chat_completion_client_create(monkeypatch: pytest.MonkeyPatch) -> None:
-    # monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
-    monkeypatch.setattr(ChatCompletionsClient, "complete", _mock_create)
-    client = AzureAIChatCompletionClient(
-        endpoint="endpoint",
-        credential=AzureKeyCredential("api_key"),
-        model_info={
-            "json_output": False,
-            "function_calling": False,
-            "vision": False,
-            "family": "unknown",
-        },
-    )
-    result = await client.create(messages=[UserMessage(content="Hello", source="user")])
+async def test_azure_ai_chat_completion_client(azure_client: AzureAIChatCompletionClient) -> None:
+    assert azure_client
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_chat_completion_client_create(azure_client: AzureAIChatCompletionClient) -> None:
+    result = await azure_client.create(messages=[UserMessage(content="Hello", source="user")])
     assert result.content == "Hello"
 
 
 @pytest.mark.asyncio
-async def test_azure_ai_chat_completion_client_create_stream(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(ChatCompletionsClient, "complete", _mock_create)
+async def test_azure_ai_chat_completion_client_create_stream(azure_client: AzureAIChatCompletionClient) -> None:
     chunks: List[str | CreateResult] = []
-    client = AzureAIChatCompletionClient(
-        endpoint="endpoint",
-        credential=AzureKeyCredential("api_key"),
-        model_info={
-            "json_output": False,
-            "function_calling": False,
-            "vision": False,
-            "family": "unknown",
-        },
-    )
-    async for chunk in client.create_stream(messages=[UserMessage(content="Hello", source="user")]):
+    async for chunk in azure_client.create_stream(messages=[UserMessage(content="Hello", source="user")]):
         chunks.append(chunk)
 
     assert chunks[0] == "Hello"
@@ -123,21 +110,12 @@ async def test_azure_ai_chat_completion_client_create_stream(monkeypatch: pytest
 
 
 @pytest.mark.asyncio
-async def test_azure_ai_chat_completion_client_create_cancel(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(ChatCompletionsClient, "complete", _mock_create)
+async def test_azure_ai_chat_completion_client_create_cancel(azure_client: AzureAIChatCompletionClient) -> None:
     cancellation_token = CancellationToken()
-    client = AzureAIChatCompletionClient(
-        endpoint="endpoint",
-        credential=AzureKeyCredential("api_key"),
-        model_info={
-            "json_output": False,
-            "function_calling": False,
-            "vision": False,
-            "family": "unknown",
-        },
-    )
     task = asyncio.create_task(
-        client.create(messages=[UserMessage(content="Hello", source="user")], cancellation_token=cancellation_token)
+        azure_client.create(
+            messages=[UserMessage(content="Hello", source="user")], cancellation_token=cancellation_token
+        )
     )
     cancellation_token.cancel()
     with pytest.raises(asyncio.CancelledError):
@@ -145,23 +123,158 @@ async def test_azure_ai_chat_completion_client_create_cancel(monkeypatch: pytest
 
 
 @pytest.mark.asyncio
-async def test_azure_ai_chat_completion_client_create_stream_cancel(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(ChatCompletionsClient, "complete", _mock_create)
+async def test_azure_ai_chat_completion_client_create_stream_cancel(azure_client: AzureAIChatCompletionClient) -> None:
     cancellation_token = CancellationToken()
-    client = AzureAIChatCompletionClient(
-        endpoint="endpoint",
-        credential=AzureKeyCredential("api_key"),
-        model_info={
-            "json_output": False,
-            "function_calling": False,
-            "vision": False,
-            "family": "unknown",
-        },
-    )
-    stream = client.create_stream(
+    stream = azure_client.create_stream(
         messages=[UserMessage(content="Hello", source="user")], cancellation_token=cancellation_token
     )
     cancellation_token.cancel()
     with pytest.raises(asyncio.CancelledError):
         async for _ in stream:
             pass
+
+
+@pytest.fixture
+def function_calling_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletionClient:
+    """
+    Returns a client that supports function calling.
+    """
+
+    async def _mock_function_call_create(*args: Any, **kwargs: Any) -> ChatCompletions:
+        await asyncio.sleep(0.01)
+        return ChatCompletions(
+            id="id",
+            created=datetime.now(),
+            model="model",
+            choices=[
+                ChatChoice(
+                    index=0,
+                    finish_reason=CompletionsFinishReason.TOOL_CALLS,
+                    message=ChatResponseMessage(
+                        role="assistant",
+                        content="",
+                        tool_calls=[
+                            ChatCompletionsToolCall(
+                                id="tool_call_id",
+                                function=AzureFunctionCall(name="some_function", arguments='{"foo": "bar"}'),
+                            )
+                        ],
+                    ),
+                )
+            ],
+            usage=CompletionsUsage(prompt_tokens=5, completion_tokens=2, total_tokens=7),
+        )
+
+    monkeypatch.setattr(ChatCompletionsClient, "complete", _mock_function_call_create)
+    return AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": False,
+            "function_calling": True,
+            "vision": False,
+            "family": "function_calling_model",
+        },
+        model="model",
+    )
+
+
+@pytest.mark.asyncio
+async def test_function_calling_not_supported(azure_client: AzureAIChatCompletionClient) -> None:
+    """
+    Ensures error is raised if we pass tools but the model_info doesn't support function calling.
+    """
+    with pytest.raises(ValueError) as exc:
+        await azure_client.create(
+            messages=[UserMessage(content="Hello", source="user")],
+            tools=[{"name": "dummy_tool"}],
+        )
+    assert "Model does not support function calling" in str(exc.value)
+
+
+@pytest.mark.asyncio
+async def test_function_calling_success(function_calling_client: AzureAIChatCompletionClient) -> None:
+    """
+    Ensures function calling works and returns FunctionCall content.
+    """
+    result = await function_calling_client.create(
+        messages=[UserMessage(content="Please call a function", source="user")],
+        tools=[{"name": "test_tool"}],
+    )
+    assert result.finish_reason == "function_calls"
+    assert isinstance(result.content, list)
+    assert isinstance(result.content[0], FunctionCall)
+    assert result.content[0].name == "some_function"
+    assert result.content[0].arguments == '{"foo": "bar"}'
+
+
+@pytest.mark.asyncio
+async def test_multimodal_unsupported_raises_error(azure_client: AzureAIChatCompletionClient) -> None:
+    """
+    If model does not support vision, providing an image should raise ValueError.
+    """
+    with pytest.raises(ValueError) as exc:
+        await azure_client.create(
+            messages=[
+                UserMessage(
+                    content=[  # type: ignore
+                        Image.from_base64(
+                            "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgAAIAAAUAAen6L8YAAAAASUVORK5CYII="
+                        )
+                    ],
+                    source="user",
+                )
+            ]
+        )
+    assert "does not support vision and image was provided" in str(exc.value)
+
+
+@pytest.mark.asyncio
+async def test_multimodal_supported(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    If model supports vision, providing an image should not raise.
+    """
+
+    async def _mock_create_noop(*args: Any, **kwargs: Any) -> ChatCompletions:
+        await asyncio.sleep(0.01)
+        return ChatCompletions(
+            id="id",
+            created=datetime.now(),
+            model="model",
+            choices=[
+                ChatChoice(
+                    index=0,
+                    finish_reason="stop",
+                    message=ChatResponseMessage(content="Handled image", role="assistant"),
+                )
+            ],
+            usage=CompletionsUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        )
+
+    monkeypatch.setattr(ChatCompletionsClient, "complete", _mock_create_noop)
+
+    client = AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": False,
+            "function_calling": False,
+            "vision": True,
+            "family": "vision_model",
+        },
+        model="model",
+    )
+
+    result = await client.create(
+        messages=[
+            UserMessage(
+                content=[
+                    Image.from_base64(
+                        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNgAAIAAAUAAen6L8YAAAAASUVORK5CYII="
+                    )
+                ],
+                source="user",
+            )
+        ]
+    )
+    assert result.content == "Handled image"
