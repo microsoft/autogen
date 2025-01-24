@@ -23,6 +23,7 @@ from typing import (
     ParamSpec,
     Sequence,
     Set,
+    Tuple,
     Type,
     TypeVar,
     cast,
@@ -43,14 +44,13 @@ from autogen_core import (
     MessageSerializer,
     Subscription,
     TopicId,
-    TypePrefixSubscription,
-    TypeSubscription,
 )
 from autogen_core._runtime_impl_helpers import SubscriptionManager, get_impl
 from autogen_core._serialization import (
     SerializationRegistry,
 )
 from autogen_core._telemetry import MessageRuntimeTracingConfig, TraceHelper, get_telemetry_grpc_metadata
+from autogen_ext.runtimes.grpc._utils import subscription_to_proto
 from google.protobuf import any_pb2
 from opentelemetry.trace import TracerProvider
 from typing_extensions import Self
@@ -112,12 +112,21 @@ class HostConnection:
         )
     ]
 
-    def __init__(self, channel: grpc.aio.Channel) -> None:  # type: ignore
+    def __init__(self, channel: grpc.aio.Channel, stub: AgentRpcAsyncStub) -> None:  # type: ignore
         self._channel = channel
         self._send_queue = asyncio.Queue[agent_worker_pb2.Message]()
         self._recv_queue = asyncio.Queue[agent_worker_pb2.Message]()
         self._connection_task: Task[None] | None = None
+        self._stub = stub
         self._client_id = str(uuid.uuid4())
+
+    @property
+    def stub(self) -> AgentRpcAsyncStub:
+        return self._stub
+
+    @property
+    def metadata(self) -> Sequence[Tuple[str, str]]:
+        return [("client-id", self._client_id)]
 
     @classmethod
     def from_host_address(cls, host_address: str, extra_grpc_config: ChannelArgumentType = DEFAULT_GRPC_CONFIG) -> Self:
@@ -131,9 +140,10 @@ class HostConnection:
             host_address,
             options=merged_options,
         )
-        instance = cls(channel)
+        stub: AgentRpcAsyncStub = agent_worker_pb2_grpc.AgentRpcStub(channel)  # type: ignore
+        instance = cls(channel, stub)
         instance._connection_task = asyncio.create_task(
-            instance._connect(channel, instance._send_queue, instance._recv_queue, instance._client_id)
+            instance._connect(stub, instance._send_queue, instance._recv_queue, instance._client_id)
         )
         return instance
 
@@ -145,12 +155,12 @@ class HostConnection:
 
     @staticmethod
     async def _connect(  # type: ignore
-        channel: grpc.aio.Channel,
+        stub: AgentRpcAsyncStub,
         send_queue: asyncio.Queue[agent_worker_pb2.Message],
         receive_queue: asyncio.Queue[agent_worker_pb2.Message],
         client_id: str,
     ) -> None:
-        stub: AgentRpcAsyncStub = agent_worker_pb2_grpc.AgentRpcStub(channel)  # type: ignore
+        # type: ignore
 
         from grpc.aio import StreamStreamCall
 
@@ -734,14 +744,12 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         self._pending_requests[request_id] = future
 
         # Send the registration request message to the host.
-        message = agent_worker_pb2.Message(
-            registerAgentTypeRequest=agent_worker_pb2.RegisterAgentTypeRequest(request_id=request_id, type=type.type)
+        message = agent_worker_pb2.RegisterAgentTypeRequest(request_id=request_id, type=type.type)
+        response: agent_worker_pb2.RegisterAgentTypeResponse = await self._host_connection.stub.RegisterAgent(
+            message, metadata=self._host_connection.metadata
         )
-        await self._host_connection.send(message)
-
-        # Wait for the registration response.
-        await future
-
+        # TODO: just use grpc error handling
+        assert response.success  # type: ignore
         return type
 
     async def _process_register_agent_type_response(self, response: agent_worker_pb2.RegisterAgentTypeResponse) -> None:
@@ -805,48 +813,18 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             raise RuntimeError("Host connection is not set.")
 
         # Create a future for the subscription response.
-        future = asyncio.get_event_loop().create_future()
         request_id = await self._get_new_request_id()
 
-        match subscription:
-            case TypeSubscription(topic_type=topic_type, agent_type=agent_type, id=id):
-                message = agent_worker_pb2.Message(
-                    addSubscriptionRequest=agent_worker_pb2.AddSubscriptionRequest(
-                        request_id=request_id,
-                        subscription=agent_worker_pb2.Subscription(
-                            id=id,
-                            typeSubscription=agent_worker_pb2.TypeSubscription(
-                                topic_type=topic_type, agent_type=agent_type
-                            ),
-                        ),
-                    )
-                )
-            case TypePrefixSubscription(topic_type_prefix=topic_type_prefix, agent_type=agent_type, id=id):
-                message = agent_worker_pb2.Message(
-                    addSubscriptionRequest=agent_worker_pb2.AddSubscriptionRequest(
-                        request_id=request_id,
-                        subscription=agent_worker_pb2.Subscription(
-                            id=id,
-                            typePrefixSubscription=agent_worker_pb2.TypePrefixSubscription(
-                                topic_type_prefix=topic_type_prefix, agent_type=agent_type
-                            ),
-                        ),
-                    )
-                )
-            case _:
-                raise ValueError("Unsupported subscription type.")
-
-        # Add the future to the pending requests.
-        self._pending_requests[request_id] = future
+        message = agent_worker_pb2.AddSubscriptionRequest(
+            request_id=request_id, subscription=subscription_to_proto(subscription)
+        )
+        response: agent_worker_pb2.AddSubscriptionResponse = await self._host_connection.stub.AddSubscription(
+            message, metadata=self._host_connection.metadata
+        )
+        assert response.success
 
         # Add to local subscription manager.
         await self._subscription_manager.add_subscription(subscription)
-
-        # Send the subscription to the host.
-        await self._host_connection.send(message)
-
-        # Wait for the subscription response.
-        await future
 
     async def _process_add_subscription_response(self, response: agent_worker_pb2.AddSubscriptionResponse) -> None:
         future = self._pending_requests.pop(response.request_id)
