@@ -561,6 +561,7 @@ dependencies = [
 
 [package.optional-dependencies]
 azure = [
+    { name = "azure-ai-inference" },
     { name = "azure-core" },
     { name = "azure-identity" },
 ]
@@ -665,6 +666,7 @@ requires-dist = [
     { name = "autogen-agentchat", marker = "extra == 'video-surfer'", editable = "packages/autogen-agentchat" },
     { name = "autogen-agentchat", marker = "extra == 'web-surfer'", editable = "packages/autogen-agentchat" },
     { name = "autogen-core", editable = "packages/autogen-core" },
+    { name = "azure-ai-inference", marker = "extra == 'azure'", specifier = ">=1.0.0b7" },
     { name = "azure-core", marker = "extra == 'azure'" },
     { name = "azure-identity", marker = "extra == 'azure'" },
     { name = "diskcache", marker = "extra == 'diskcache'", specifier = ">=5.6.3" },
@@ -876,6 +878,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/50/d8/30873d2b7b57dee9263e53d142da044c4600a46f2d28374b3e38b023df16/autopep8-2.3.2.tar.gz", hash = "sha256:89440a4f969197b69a995e4ce0661b031f455a9f776d2c5ba3dbd83466931758", size = 92210 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9e/43/53afb8ba17218f19b77c7834128566c5bbb100a0ad9ba2e8e89d089d7079/autopep8-2.3.2-py2.py3-none-any.whl", hash = "sha256:ce8ad498672c845a0c3de2629c15b635ec2b05ef8177a6e7c91c74f3e9b51128", size = 45807 },
+]
+
+[[package]]
+name = "azure-ai-inference"
+version = "1.0.0b7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "azure-core" },
+    { name = "isodate" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/af/37/233eee0bebbf631d2f911a9f1ebbc3784b100d9bfb84efc275e71c1ea636/azure_ai_inference-1.0.0b7.tar.gz", hash = "sha256:bd912f71f7f855036ca46c9a21439f290eed5e61da418fd26bbb32e3c68bcce3", size = 175883 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/cd/b6/5ba830eddc59f820c654694d476c14a3dd9c1f828ff9b48eb8b21dfd5f01/azure_ai_inference-1.0.0b7-py3-none-any.whl", hash = "sha256:59bb6a9ee62bd7654a69ca2bf12fe9335d7045df95b491cb8b5f9e3791c86175", size = 123030 },
 ]
 
 [[package]]
