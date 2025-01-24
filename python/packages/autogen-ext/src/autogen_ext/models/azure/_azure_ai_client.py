@@ -2,7 +2,7 @@ import asyncio
 import re
 from asyncio import Task
 from inspect import getfullargspec
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Unpack, cast
+from typing import Any, Dict, List, Mapping, Optional, Sequence, cast
 
 from autogen_core import CancellationToken, FunctionCall, Image
 from autogen_core.models import (
@@ -48,7 +48,7 @@ from azure.ai.inference.models import (
 from azure.ai.inference.models import (
     UserMessage as AzureUserMessage,
 )
-from typing_extensions import AsyncGenerator, Union
+from typing_extensions import AsyncGenerator, Union, Unpack
 
 from autogen_ext.models.azure.config import (
     GITHUB_MODELS_ENDPOINT,
@@ -56,6 +56,7 @@ from autogen_ext.models.azure.config import (
 )
 
 create_kwargs = set(getfullargspec(ChatCompletionsClient.complete).kwonlyargs)
+AzureMessage = Union[AzureSystemMessage, AzureUserMessage, AzureAssistantMessage, AzureToolMessage]
 
 
 def _is_github_model(endpoint: str) -> bool:
@@ -76,13 +77,15 @@ def convert_tools(tools: Sequence[Tool | ToolSchema]) -> List[ChatCompletionsToo
                 if "title" in value.keys():
                     del value["title"]
 
+        function_def: Dict[str, Any] = dict(name=tool_schema["name"])
+        if "description" in tool_schema:
+            function_def["description"] = tool_schema["description"]
+        if "parameters" in tool_schema:
+            function_def["parameters"] = tool_schema["parameters"]
+
         result.append(
             ChatCompletionsToolDefinition(
-                function=FunctionDefinition(
-                    name=tool_schema["name"],
-                    description=(tool_schema["description"] if "description" in tool_schema else ""),
-                    parameters=(tool_schema["parameters"]) if "parameters" in tool_schema else {},
-                ),
+                function=FunctionDefinition(**function_def),
             ),
         )
     return result
@@ -131,7 +134,7 @@ def _tool_message_to_azure(message: FunctionExecutionResultMessage) -> Sequence[
     return [AzureToolMessage(content=x.content, tool_call_id=x.call_id) for x in message.content]
 
 
-def to_azure_message(message: LLMMessage):
+def to_azure_message(message: LLMMessage) -> Sequence[AzureMessage]:
     if isinstance(message, SystemMessage):
         return [_system_message_to_azure(message)]
     elif isinstance(message, UserMessage):
@@ -246,7 +249,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         create_args = {k: v for k, v in config.items() if k in create_kwargs}
         return create_args
 
-    def add_usage(self, usage: RequestUsage):
+    def add_usage(self, usage: RequestUsage) -> None:
         self._total_usage = RequestUsage(
             self._total_usage.prompt_tokens + usage.prompt_tokens,
             self._total_usage.completion_tokens + usage.completion_tokens,
@@ -304,11 +307,11 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         if len(tools) > 0:
             converted_tools = convert_tools(tools)
             task = asyncio.create_task(  # type: ignore
-                self._client.complete(messages=azure_messages, tools=converted_tools, **create_args)
+                self._client.complete(messages=azure_messages, tools=converted_tools, **create_args)  # type: ignore
             )
         else:
             task = asyncio.create_task(  # type: ignore
-                self._client.complete(
+                self._client.complete(  # type: ignore
                     messages=azure_messages,
                     **create_args,
                 )
@@ -328,7 +331,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         if choice.finish_reason == CompletionsFinishReason.TOOL_CALLS:
             assert choice.message.tool_calls is not None
 
-            content = [
+            content: Union[str, List[FunctionCall]] = [
                 FunctionCall(
                     id=x.id,
                     arguments=x.function.arguments,
@@ -403,7 +406,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             choice = chunk.choices[0] if len(chunk.choices) > 0 else None
             if choice and choice.finish_reason is not None:
                 if isinstance(choice.finish_reason, CompletionsFinishReason):
-                    finish_reason = choice.finish_reason.value
+                    finish_reason = cast(FinishReasons, choice.finish_reason.value)
                 else:
                     if choice.finish_reason in ["stop", "length", "function_calls", "content_filter", "unknown"]:
                         finish_reason = choice.finish_reason  # type: ignore
@@ -485,7 +488,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
     def capabilities(self) -> ModelInfo:
         return self.model_info
 
-    def __del__(self):
+    def __del__(self) -> None:
         # TODO: This is a hack to close the open client
         try:
             asyncio.get_running_loop().create_task(self._client.close())
