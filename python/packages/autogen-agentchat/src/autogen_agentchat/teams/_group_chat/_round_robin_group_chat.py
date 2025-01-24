@@ -1,5 +1,9 @@
 from typing import Any, Callable, List, Mapping
 
+from autogen_core import Component, ComponentModel
+from pydantic import BaseModel
+from typing_extensions import Self
+
 from ...base import ChatAgent, TerminationCondition
 from ...messages import AgentEvent, ChatMessage
 from ...state import RoundRobinManagerState
@@ -61,7 +65,15 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         return current_speaker
 
 
-class RoundRobinGroupChat(BaseGroupChat):
+class RoundRobinGroupChatConfig(BaseModel):
+    """The declarative configuration RoundRobinGroupChat."""
+
+    participants: List[ComponentModel]
+    termination_condition: ComponentModel | None = None
+    max_turns: int | None = None
+
+
+class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
     """A team that runs a group chat with participants taking turns in a round-robin fashion
     to publish a message to all.
 
@@ -133,6 +145,9 @@ class RoundRobinGroupChat(BaseGroupChat):
             asyncio.run(main())
     """
 
+    component_config_schema = RoundRobinGroupChatConfig
+    component_provider_override = "autogen_agentchat.teams.RoundRobinGroupChat"
+
     def __init__(
         self,
         participants: List[ChatAgent],
@@ -166,3 +181,20 @@ class RoundRobinGroupChat(BaseGroupChat):
             )
 
         return _factory
+
+    def _to_config(self) -> RoundRobinGroupChatConfig:
+        participants = [participant.dump_component() for participant in self._participants]
+        termination_condition = self._termination_condition.dump_component() if self._termination_condition else None
+        return RoundRobinGroupChatConfig(
+            participants=participants,
+            termination_condition=termination_condition,
+            max_turns=self._max_turns,
+        )
+
+    @classmethod
+    def _from_config(cls, config: RoundRobinGroupChatConfig) -> Self:
+        participants = [ChatAgent.load_component(participant) for participant in config.participants]
+        termination_condition = (
+            TerminationCondition.load_component(config.termination_condition) if config.termination_condition else None
+        )
+        return cls(participants, termination_condition=termination_condition, max_turns=config.max_turns)
