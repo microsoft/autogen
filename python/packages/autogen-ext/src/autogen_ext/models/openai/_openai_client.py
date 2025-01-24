@@ -1008,6 +1008,8 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
 
         client = ChatCompletionClient.load_component(config)
 
+    Note: When usage information is requested (see `documentation <https://platform.openai.com/docs/api-reference/chat/streaming#chat/streaming-choices>`_.) with the `create_stream` method, `max_consecutive_empty_chunk_tolerance` should be increased to permit the trailing empty chunk carrying the usage information.  E.g. `completion_client.create_stream(... , max_consecutive_empty_chunk_tolerance=2, extra_create_args={"stream_options": {"include_usage": True}})`.
+
     To view the full list of available configuration options, see the :py:class:`OpenAIClientConfigurationConfigModel` class.
 
     """
@@ -1117,7 +1119,7 @@ class AzureOpenAIChatCompletionClient(
                 # api_key="sk-...", # For key-based authentication. `AZURE_OPENAI_API_KEY` environment variable can also be used instead.
             )
 
-    To load the client that uses identity based aith from a configuration, you can use the `load_component` method:
+    To load the client that uses identity based auth from a configuration, you can use the `load_component` method:
 
     .. code-block:: python
 
@@ -1142,7 +1144,8 @@ class AzureOpenAIChatCompletionClient(
 
         client = ChatCompletionClient.load_component(config)
 
-
+    Note: When usage information is requested (see `documentation <https://platform.openai.com/docs/api-reference/chat/streaming#chat/streaming-choices>`_.) with the `create_stream` method, `max_consecutive_empty_chunk_tolerance` should be increased to permit the trailing empty chunk carrying the usage information.  E.g. `completion_client.create_stream(... , max_consecutive_empty_chunk_tolerance=2, extra_create_args={"stream_options": {"include_usage": True}})`.
+    
     To view the full list of available configuration options, see the :py:class:`AzureOpenAIClientConfigurationConfigModel` class.
 
 
