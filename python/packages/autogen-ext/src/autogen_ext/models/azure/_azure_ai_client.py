@@ -203,20 +203,22 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             from autogen_ext.models.azure import AzureAIChatCompletionClient
             from autogen_core.models import UserMessage
 
+
             async def main():
                 client = AzureAIChatCompletionClient(
                     endpoint="endpoint",
                     credential=AzureKeyCredential("api_key"),
                     model_info={
-                    "json_output": False,
-                    "function_calling": False,
-                    "vision": False,
-                    "family": "unknown",
-                },
-            )
+                        "json_output": False,
+                        "function_calling": False,
+                        "vision": False,
+                        "family": "unknown",
+                    },
+                )
 
                 result = await client.create([UserMessage(content="What is the capital of France?", source="user")])
                 print(result)
+
 
             if __name__ == "__main__":
                 asyncio.run(main())
