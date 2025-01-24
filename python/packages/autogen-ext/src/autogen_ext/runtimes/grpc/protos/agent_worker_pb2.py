@@ -12,7 +12,7 @@ from google.protobuf.internal import builder as _builder
 _sym_db = _symbol_database.Default()
 
 
-import cloudevent_pb2 as cloudevent__pb2
+from . import cloudevent_pb2 as cloudevent__pb2
 from google.protobuf import any_pb2 as google_dot_protobuf_dot_any__pb2
 
 

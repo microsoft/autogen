@@ -157,7 +157,7 @@ custom_model_client = OpenAIChatCompletionClient(
 > Please test them before using them.
 
 Read about [Model Clients](./tutorial/models.ipynb)
-in AgentChat Tutorial and more detailed information on [Core API Docs](../core-user-guide/framework/model-clients.ipynb)
+in AgentChat Tutorial and more detailed information on [Core API Docs](../core-user-guide/components/model-clients.ipynb)
 
 Support for other hosted models will be added in the future.
 
@@ -1231,7 +1231,7 @@ in the Core API documentation for more details.
 The code executors in `v0.2` and `v0.4` are nearly identical except
 the `v0.4` executors support async API. You can also use
 {py:class}`~autogen_core.CancellationToken` to cancel a code execution if it takes too long.
-See [Command Line Code Executors Tutorial](../core-user-guide/framework/command-line-code-executors.ipynb)
+See [Command Line Code Executors Tutorial](../core-user-guide/components/command-line-code-executors.ipynb)
 in the Core API documentation.
 
 We also added `AzureContainerCodeExecutor` that can use Azure Container Apps (ACA)
