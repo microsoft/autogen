@@ -17,11 +17,13 @@ from autogen_agentchat.conditions import (
     TimeoutTermination,
     TokenUsageTermination,
 )
+from mcp import StdioServerParameters
 from autogen_agentchat.teams import MagenticOneGroupChat, RoundRobinGroupChat, SelectorGroupChat
 from autogen_core.tools import FunctionTool
 from autogen_ext.agents.file_surfer import FileSurfer
 from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
+from autogen_ext.tools.mcp import StdioMcpTool, StdioMcpToolBuilder
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 
 from ..datamodel.types import (
@@ -47,6 +49,9 @@ from ..datamodel.types import (
     TerminationTypes,
     TextMentionTerminationConfig,
     ToolConfig,
+    PythonFunctionToolConfig,
+    StdioMcpToolConfig,
+    SseMcpToolConfig,
     ToolTypes,
     UserProxyAgentConfig,
 )
@@ -57,7 +62,7 @@ logger = logging.getLogger(__name__)
 TeamComponent = Union[RoundRobinGroupChat, SelectorGroupChat, MagenticOneGroupChat]
 AgentComponent = Union[AssistantAgent, MultimodalWebSurfer, UserProxyAgent, FileSurfer, MagenticOneCoderAgent]
 ModelComponent = Union[OpenAIChatCompletionClient, AzureOpenAIChatCompletionClient]
-ToolComponent = Union[FunctionTool]  # Will grow with more tool types
+ToolComponent = Union[FunctionTool, StdioMcpTool]  # Will grow with more tool types
 TerminationComponent = Union[
     MaxMessageTermination,
     StopMessageTermination,
@@ -325,7 +330,8 @@ class ComponentFactory:
 
     async def load_agent(self, config: AgentConfig, input_func: Optional[Callable] = None) -> AgentComponent:
         """Create agent instance from configuration."""
-
+        logger.error(f"Loading agent {config.name}")
+        logger.error(f"Config: {config}")
         model_client = None
         system_message = None
         tools = []
@@ -335,6 +341,8 @@ class ComponentFactory:
             model_client = await self.load(config.model_client)
         if hasattr(config, "tools") and config.tools:
             for tool_config in config.tools:
+                logger.error(f"Loading tool {tool_config.name}")
+                logger.error(f"Config: {tool_config}")
                 tool = await self.load(tool_config)
                 tools.append(tool)
 
@@ -424,11 +432,9 @@ class ComponentFactory:
 
     async def load_tool(self, config: ToolConfig) -> ToolComponent:
         """Create tool instance from configuration."""
+        logger.error(f"Loading tool {config.name}")
+        logger.error(f"Config: {config}")
         try:
-            # Validate required fields
-            if not all([config.name, config.description, config.content, config.tool_type]):
-                raise ValueError("Tool configuration missing required fields")
-
             # Check cache first
             cache_key = str(config.model_dump())
             if cache_key in self._tool_cache:
@@ -436,11 +442,21 @@ class ComponentFactory:
                 return self._tool_cache[cache_key]
 
             if config.tool_type == ToolTypes.PYTHON_FUNCTION:
+                # Validate required fields
+                if not all([config.name, config.description, config.content, config.tool_type]):
+                    raise ValueError("Tool configuration missing required fields")
                 tool = FunctionTool(
                     name=config.name, description=config.description, func=self._func_from_string(config.content)
                 )
                 self._tool_cache[cache_key] = tool
                 return tool
+            elif config.tool_type == ToolTypes.MCP_STDIO_CLIENT:
+                cfg = StdioServerParameters(
+                  command=config.command,
+                  args=config.args,
+                )
+                builder = StdioMcpToolBuilder(server_params=cfg, tool_name=config.name)
+                return await builder.build()
             else:
                 raise ValueError(f"Unsupported tool type: {config.tool_type}")
 

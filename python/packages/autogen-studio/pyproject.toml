@@ -36,7 +36,8 @@ dependencies = [
     "autogen-core>=0.4.2,<0.5",
     "autogen-agentchat>=0.4.2,<0.5",
     "autogen-ext[magentic-one, openai, azure]>=0.4.2,<0.5",
-    "azure-identity"
+    "azure-identity",
+    "mcp",
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
 
@@ -89,3 +90,6 @@ fmt = "ruff format"
 format.ref = "fmt"
 lint = "ruff check"
 test = "pytest -n 0 --cov=autogenstudio --cov-report=term-missing"
+
+[tool.uv.sources]
+mcp = { path = "../../../../../modelcontextprotocol/python-sdk" }

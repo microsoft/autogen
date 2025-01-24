@@ -105,6 +105,11 @@ semantic-kernel-all = [
     "semantic-kernel[google,hugging_face,mistralai,ollama,onnx,anthropic,usearch,pandas,aws,dapr]>=1.17.1",
 ]
 
+mcp = [
+    "mcp>=1.1.3",
+    "json-schema-to-pydantic>=0.2.0"
+]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
 
