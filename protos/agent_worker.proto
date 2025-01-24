@@ -49,7 +49,8 @@ message Event {
 
 message RegisterAgentTypeRequest {
     string request_id = 1; // TODO: remove once message based requests are removed
-    string type = 2;
+    string client_id = 2;
+    string type = 3;
 }
 
 message RegisterAgentTypeResponse {
@@ -78,7 +79,8 @@ message Subscription {
 
 message AddSubscriptionRequest {
     string request_id = 1; // TODO: remove once message based requests are removed
-    Subscription subscription = 2;
+    string client_id = 2;
+    Subscription subscription = 3;
 }
 
 message AddSubscriptionResponse {
@@ -89,6 +91,7 @@ message AddSubscriptionResponse {
 
 message RemoveSubscriptionRequest {
     string id = 1;
+    string client_id = 2;
 }
 
 message RemoveSubscriptionResponse {
@@ -96,12 +99,15 @@ message RemoveSubscriptionResponse {
     optional string error = 2;
 }
 
-message GetSubscriptionsRequest {}
+message GetSubscriptionsRequest {
+    string client_id = 1;
+}
 message GetSubscriptionsResponse {
     repeated Subscription subscriptions = 1;
 }
 
 service AgentRpc {
+    // First message must be a ConnectionHandshake, and should never be sent again.
     rpc OpenChannel (stream Message) returns (stream Message);
     rpc GetState(AgentId) returns (GetStateResponse);
     rpc SaveState(AgentState) returns (SaveStateResponse);
@@ -132,15 +138,20 @@ message SaveStateResponse {
     optional string error = 2;
 }
 
+message ConnectionHandshake {
+    string client_id = 1;
+}
+
 message Message {
     oneof message {
-        RpcRequest request = 1;
-        RpcResponse response = 2;
-        io.cloudevents.v1.CloudEvent cloudEvent = 3;
-        RegisterAgentTypeRequest registerAgentTypeRequest = 4;
-        RegisterAgentTypeResponse registerAgentTypeResponse = 5;
-        AddSubscriptionRequest addSubscriptionRequest = 6;
-        AddSubscriptionResponse addSubscriptionResponse = 7;
+        ConnectionHandshake connectionHandshake = 1;
+        RpcRequest request = 2;
+        RpcResponse response = 3;
+        io.cloudevents.v1.CloudEvent cloudEvent = 4;
+        RegisterAgentTypeRequest registerAgentTypeRequest = 5;
+        RegisterAgentTypeResponse registerAgentTypeResponse = 6;
+        AddSubscriptionRequest addSubscriptionRequest = 7;
+        AddSubscriptionResponse addSubscriptionResponse = 8;
     }
 }
 

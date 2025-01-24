@@ -158,24 +158,26 @@ class HostConnection:
         )  # type: ignore
 
         while True:
-            logger.info("Waiting for message from host")
+            logger.info("HostConnection._connect: waiting for message from host")
             message = await recv_stream.read()  # type: ignore
             if message == grpc.aio.EOF:  # type: ignore
                 logger.info("EOF")
                 break
             message = cast(agent_worker_pb2.Message, message)
-            logger.info(f"Received a message from host: {message}")
+            logger.info(f"HostConnection._connect: Received {message.WhichOneof('message')} message from host")
             await receive_queue.put(message)
-            logger.info("Put message in receive queue")
+            logger.info(f"HostConnection._connect: Put {message.WhichOneof('message')} message in receive queue")
 
     async def send(self, message: agent_worker_pb2.Message) -> None:
-        logger.info(f"Send message to host: {message}")
+        logger.info(f"HostConnection.send: put {message.WhichOneof('message')}")
         await self._send_queue.put(message)
-        logger.info("Put message in send queue")
+        logger.info(f"HostConnection.send: put complete {message.WhichOneof('message')}")
 
     async def recv(self) -> agent_worker_pb2.Message:
-        logger.info("Getting message from queue")
-        return await self._recv_queue.get()
+        logger.info("HostConnection.recv: waiting for message")
+        message = await self._recv_queue.get()
+        logger.info(f"HostConnection.recv: got {message.WhichOneof('message')}")
+        return message
 
 
 # TODO: Lots of types need to have protobuf equivalents:
@@ -235,8 +237,9 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             raise ValueError(f"Unsupported payload serialization format: {payload_serialization_format}")
 
         self._payload_serialization_format = payload_serialization_format
+        self._client_id = str(uuid.uuid4())
 
-    def start(self) -> None:
+    async def start(self) -> None:
         """Start the runtime in a background task."""
         if self._running:
             raise ValueError("Runtime is already running.")
@@ -244,10 +247,16 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         self._host_connection = HostConnection.from_host_address(
             self._host_address, extra_grpc_config=self._extra_grpc_config
         )
+        # We need to wait until the handshake is send before returning.
+        await self._host_connection.send(
+            agent_worker_pb2.Message(
+                connectionHandshake=agent_worker_pb2.ConnectionHandshake(client_id=self._client_id)
+            ),
+        )
         logger.info("Connection established")
+        self._running = True
         if self._read_task is None:
             self._read_task = asyncio.create_task(self._run_read_loop())
-        self._running = True
 
     def _raise_on_exception(self, task: Task[Any]) -> None:
         exception = task.exception()
@@ -256,11 +265,16 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
 
     async def _run_read_loop(self) -> None:
         logger.info("Starting read loop")
+
+        assert self._host_connection is not None
+
         # TODO: catch exceptions and reconnect
         while self._running:
             try:
-                message = await self._host_connection.recv()  # type: ignore
+                logger.info("Read loop waiting for message")
+                message = await self._host_connection.recv()
                 oneofcase = agent_worker_pb2.Message.WhichOneof(message, "message")
+                logger.info(f"Read loop received message with oneofcase: {oneofcase}")
                 match oneofcase:
                     case "registerAgentTypeRequest" | "addSubscriptionRequest":
                         logger.warning(f"Cant handle {oneofcase}, skipping.")
@@ -295,10 +309,14 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                         self._background_tasks.add(task)
                         task.add_done_callback(self._raise_on_exception)
                         task.add_done_callback(self._background_tasks.discard)
+                    case "connectionHandshake":
+                        logger.warning("Client received unexpected connection handshake message")
                     case None:
                         logger.warning("No message")
             except Exception as e:
                 logger.error("Error in read loop", exc_info=e)
+
+        logger.info("Read loop stopped")
 
     async def stop(self) -> None:
         """Stop the runtime immediately."""
@@ -733,7 +751,9 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
 
         # Send the registration request message to the host.
         message = agent_worker_pb2.Message(
-            registerAgentTypeRequest=agent_worker_pb2.RegisterAgentTypeRequest(request_id=request_id, type=type.type)
+            registerAgentTypeRequest=agent_worker_pb2.RegisterAgentTypeRequest(
+                request_id=request_id, client_id=self._client_id, type=type.type
+            )
         )
         await self._host_connection.send(message)
 
@@ -811,6 +831,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                 message = agent_worker_pb2.Message(
                     addSubscriptionRequest=agent_worker_pb2.AddSubscriptionRequest(
                         request_id=request_id,
+                        client_id=self._client_id,
                         subscription=agent_worker_pb2.Subscription(
                             id=id,
                             typeSubscription=agent_worker_pb2.TypeSubscription(
@@ -823,6 +844,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                 message = agent_worker_pb2.Message(
                     addSubscriptionRequest=agent_worker_pb2.AddSubscriptionRequest(
                         request_id=request_id,
+                        client_id=self._client_id,
                         subscription=agent_worker_pb2.Subscription(
                             id=id,
                             typePrefixSubscription=agent_worker_pb2.TypePrefixSubscription(

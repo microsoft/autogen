@@ -23,6 +23,7 @@ class AgentRpcStub:
         agent_worker_pb2.Message,
         agent_worker_pb2.Message,
     ]
+    """First message must be a ConnectionHandshake, and should never be sent again."""
 
     GetState: grpc.UnaryUnaryMultiCallable[
         agent_worker_pb2.AgentId,
@@ -59,6 +60,7 @@ class AgentRpcAsyncStub:
         agent_worker_pb2.Message,
         agent_worker_pb2.Message,
     ]
+    """First message must be a ConnectionHandshake, and should never be sent again."""
 
     GetState: grpc.aio.UnaryUnaryMultiCallable[
         agent_worker_pb2.AgentId,
@@ -96,7 +98,8 @@ class AgentRpcServicer(metaclass=abc.ABCMeta):
         self,
         request_iterator: _MaybeAsyncIterator[agent_worker_pb2.Message],
         context: _ServicerContext,
-    ) -> typing.Union[collections.abc.Iterator[agent_worker_pb2.Message], collections.abc.AsyncIterator[agent_worker_pb2.Message]]: ...
+    ) -> typing.Union[collections.abc.Iterator[agent_worker_pb2.Message], collections.abc.AsyncIterator[agent_worker_pb2.Message]]:
+        """First message must be a ConnectionHandshake, and should never be sent again."""
 
     @abc.abstractmethod
     def GetState(
