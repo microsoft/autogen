@@ -30,6 +30,7 @@ from autogen_test_utils import (
     NoopAgent,
 )
 from protos.serialization_test_pb2 import ProtoMessage
+from torch import Value
 
 
 @pytest.mark.asyncio

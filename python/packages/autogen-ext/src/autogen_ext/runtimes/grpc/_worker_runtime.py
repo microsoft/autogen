@@ -115,16 +115,16 @@ class HostConnection:
         )
     ]
 
-    def __init__(self, channel: grpc.aio.Channel, stub: AgentRpcAsyncStub) -> None:  # type: ignore
+    def __init__(self, channel: grpc.aio.Channel, stub: Any) -> None:  # type: ignore
         self._channel = channel
         self._send_queue = asyncio.Queue[agent_worker_pb2.Message]()
         self._recv_queue = asyncio.Queue[agent_worker_pb2.Message]()
         self._connection_task: Task[None] | None = None
-        self._stub = stub
+        self._stub: AgentRpcAsyncStub = stub
         self._client_id = str(uuid.uuid4())
 
     @property
-    def stub(self) -> AgentRpcAsyncStub:
+    def stub(self) -> Any:
         return self._stub
 
     @property
@@ -143,7 +143,7 @@ class HostConnection:
             host_address,
             options=merged_options,
         )
-        stub = cast(AgentRpcAsyncStub, agent_worker_pb2_grpc.AgentRpcStub(channel))
+        stub: AgentRpcAsyncStub = agent_worker_pb2_grpc.AgentRpcStub(channel)  # type: ignore
         instance = cls(channel, stub)
         instance._connection_task = asyncio.create_task(
             instance._connect(stub, instance._send_queue, instance._recv_queue, instance._client_id)
@@ -158,7 +158,7 @@ class HostConnection:
 
     @staticmethod
     async def _connect(
-        stub: AgentRpcAsyncStub,
+        stub: Any,  # AgentRpcAsyncStub
         send_queue: asyncio.Queue[agent_worker_pb2.Message],
         receive_queue: asyncio.Queue[agent_worker_pb2.Message],
         client_id: str,
@@ -748,7 +748,8 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             message, metadata=self._host_connection.metadata
         )
         # TODO: just use grpc error handling
-        assert response.success
+        if not response.success:
+            raise RuntimeError(response.error)
         return type
 
     async def _process_register_agent_type_response(self, response: agent_worker_pb2.RegisterAgentTypeResponse) -> None:
@@ -820,7 +821,8 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         response: agent_worker_pb2.AddSubscriptionResponse = await self._host_connection.stub.AddSubscription(
             message, metadata=self._host_connection.metadata
         )
-        assert response.success
+        if not response.success:
+            raise RuntimeError(response.error)
 
         # Add to local subscription manager.
         await self._subscription_manager.add_subscription(subscription)
