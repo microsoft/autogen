@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AutoGen.Core\AutoGen.Core.csproj" />
+    <ProjectReference Include="..\Microsoft.AutoGen\Extensions\Anthropic\Microsoft.AutoGen.Extensions.Anthropic.csproj" />
   </ItemGroup>
 
 </Project>

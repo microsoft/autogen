@@ -1,0 +1,32 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// TypeForwarding.cs
+
+using System.Runtime.CompilerServices;
+
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.Converters.ContentBaseConverter))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.Converters.SystemMessageConverter))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.AIContentExtensions))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.CacheControl))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.CacheControlType))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.ChatCompletionRequest))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.ChatCompletionResponse))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.ChatMessage))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.ContentBase))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.Delta))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.Error))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.ErrorResponse))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.ImageContent))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.ImageSource))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.InputSchema))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.SchemaProperty))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.StreamingMessage))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.SystemMessage))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.TextContent))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.Tool))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.ToolChoice))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.ToolChoiceType))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.ToolResultContent))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.ToolUseContent))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.DTO.Usage))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.Utils.AnthropicConstants))]
+[assembly: TypeForwardedTo(typeof(AutoGen.Anthropic.AnthropicClient))]
