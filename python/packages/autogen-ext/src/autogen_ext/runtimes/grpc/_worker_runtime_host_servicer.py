@@ -227,7 +227,9 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
                     add_subscription_req.subscription.typeSubscription
                 )
                 subscription = TypeSubscription(
-                    topic_type=type_subscription_msg.topic_type, agent_type=type_subscription_msg.agent_type
+                    topic_type=type_subscription_msg.topic_type,
+                    agent_type=type_subscription_msg.agent_type,
+                    id=add_subscription_req.subscription.id,
                 )
 
             case "typePrefixSubscription":
@@ -237,6 +239,7 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
                 subscription = TypePrefixSubscription(
                     topic_type_prefix=type_prefix_subscription_msg.topic_type_prefix,
                     agent_type=type_prefix_subscription_msg.agent_type,
+                    id=add_subscription_req.subscription.id,
                 )
             case None:
                 logger.warning("Received empty subscription message")
@@ -259,6 +262,42 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
                     )
                 )
             )
+
+    def RegisterAgent(  # type: ignore
+        self,
+        request: agent_worker_pb2.RegisterAgentTypeRequest,
+        context: grpc.aio.ServicerContext[
+            agent_worker_pb2.RegisterAgentTypeRequest, agent_worker_pb2.RegisterAgentTypeResponse
+        ],
+    ) -> agent_worker_pb2.RegisterAgentTypeResponse:
+        raise NotImplementedError("Method not implemented.")
+
+    def AddSubscription(  # type: ignore
+        self,
+        request: agent_worker_pb2.AddSubscriptionRequest,
+        context: grpc.aio.ServicerContext[
+            agent_worker_pb2.AddSubscriptionRequest, agent_worker_pb2.AddSubscriptionResponse
+        ],
+    ) -> agent_worker_pb2.AddSubscriptionResponse:
+        raise NotImplementedError("Method not implemented.")
+
+    def RemoveSubscription(  # type: ignore
+        self,
+        request: agent_worker_pb2.RemoveSubscriptionRequest,
+        context: grpc.aio.ServicerContext[
+            agent_worker_pb2.RemoveSubscriptionRequest, agent_worker_pb2.RemoveSubscriptionResponse
+        ],
+    ) -> agent_worker_pb2.RemoveSubscriptionResponse:
+        raise NotImplementedError("Method not implemented.")
+
+    def GetSubscriptions(  # type: ignore
+        self,
+        request: agent_worker_pb2.GetSubscriptionsRequest,
+        context: grpc.aio.ServicerContext[
+            agent_worker_pb2.GetSubscriptionsRequest, agent_worker_pb2.GetSubscriptionsResponse
+        ],
+    ) -> agent_worker_pb2.GetSubscriptionsResponse:
+        raise NotImplementedError("Method not implemented.")
 
     async def GetState(  # type: ignore
         self,
