@@ -198,15 +198,16 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
     The following code snippet shows how to use the client:
 
         .. code-block:: python
-
+            import asyncio
             from azure.core.credentials import AzureKeyCredential
             from autogen_ext.models.azure import AzureAIChatCompletionClient
             from autogen_core.models import UserMessage
 
-            client = AzureAIChatCompletionClient(
-                endpoint="endpoint",
-                credential=AzureKeyCredential("api_key"),
-                model_info={
+            async def main():
+                client = AzureAIChatCompletionClient(
+                    endpoint="endpoint",
+                    credential=AzureKeyCredential("api_key"),
+                    model_info={
                     "json_output": False,
                     "function_calling": False,
                     "vision": False,
@@ -214,8 +215,11 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                 },
             )
 
-            result = await client.create([UserMessage(content="What is the capital of France?", source="user")])
-            print(result)
+                result = await client.create([UserMessage(content="What is the capital of France?", source="user")])
+                print(result)
+
+            if __name__ == "__main__":
+                asyncio.run(main())
 
     """
 
