@@ -4,7 +4,7 @@ isort:skip_file
 """
 
 import abc
-import agent_worker_pb2
+from . import agent_worker_pb2
 import collections.abc
 import grpc
 import grpc.aio
