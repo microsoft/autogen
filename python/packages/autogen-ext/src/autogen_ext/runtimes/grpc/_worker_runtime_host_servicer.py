@@ -1,13 +1,14 @@
 import asyncio
 import logging
-from _collections_abc import AsyncIterator, Iterator
+from _collections_abc import AsyncIterator
 from asyncio import Future, Task
-from typing import Any, Dict, Sequence, Set, Tuple, cast
+from typing import Any, Dict, Sequence, Set, Tuple
 
-from autogen_core import Subscription, TopicId, TypePrefixSubscription, TypeSubscription
+from autogen_core import TopicId
 from autogen_core._runtime_impl_helpers import SubscriptionManager
 
 from ._constants import GRPC_IMPORT_ERROR_STR
+from ._utils import subscription_from_proto
 
 try:
     import grpc
@@ -28,6 +29,15 @@ def metadata_to_dict(metadata: Sequence[Tuple[str, str]] | None) -> Dict[str, st
     return {key: value for key, value in metadata}
 
 
+async def get_client_id_or_abort(context: grpc.aio.ServicerContext[Any, Any]) -> str:  # type: ignore
+    # The type hint on context.invocation_metadata() is incorrect.
+    metadata = metadata_to_dict(context.invocation_metadata())  # type: ignore
+    if (client_id := metadata.get("client-id")) is None:
+        await context.abort(grpc.StatusCode.INVALID_ARGUMENT, "client-id metadata not found.")
+
+    return client_id  # type: ignore
+
+
 class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer):
     """A gRPC servicer that hosts message delivery service for agents."""
 
@@ -44,11 +54,8 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         self,
         request_iterator: AsyncIterator[agent_worker_pb2.Message],
         context: grpc.aio.ServicerContext[agent_worker_pb2.Message, agent_worker_pb2.Message],
-    ) -> Iterator[agent_worker_pb2.Message] | AsyncIterator[agent_worker_pb2.Message]:  # type: ignore
-        metadata = metadata_to_dict(context.invocation_metadata())  # type: ignore
-        if (client_id := cast(ClientConnectionId | None, metadata.get("client-id"))) is None:  # type: ignore
-            logger.error("Client id not found in metadata. Refusing connection.")
-            return
+    ) -> AsyncIterator[agent_worker_pb2.Message]:
+        client_id = await get_client_id_or_abort(context)
 
         # Register the client with the server and create a send queue for the client.
         send_queue: asyncio.Queue[agent_worker_pb2.Message] = asyncio.Queue()
@@ -119,9 +126,7 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
                     task.add_done_callback(self._raise_on_exception)
                     task.add_done_callback(self._background_tasks.discard)
                 case "cloudEvent":
-                    # The proto typing doesnt resolve this one
-                    event = cast(cloudevent_pb2.CloudEvent, message.cloudEvent)  # type: ignore
-                    task = asyncio.create_task(self._process_event(event))
+                    task = asyncio.create_task(self._process_event(message.cloudEvent))
                     self._background_tasks.add(task)
                     task.add_done_callback(self._raise_on_exception)
                     task.add_done_callback(self._background_tasks.discard)
@@ -227,96 +232,98 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
     async def _process_add_subscription_request(
         self, add_subscription_req: agent_worker_pb2.AddSubscriptionRequest, client_id: ClientConnectionId
     ) -> None:
-        oneofcase = add_subscription_req.subscription.WhichOneof("subscription")
-        subscription: Subscription | None = None
-        match oneofcase:
-            case "typeSubscription":
-                type_subscription_msg: agent_worker_pb2.TypeSubscription = (
-                    add_subscription_req.subscription.typeSubscription
-                )
-                subscription = TypeSubscription(
-                    topic_type=type_subscription_msg.topic_type,
-                    agent_type=type_subscription_msg.agent_type,
-                    id=add_subscription_req.subscription.id,
-                )
-
-            case "typePrefixSubscription":
-                type_prefix_subscription_msg: agent_worker_pb2.TypePrefixSubscription = (
-                    add_subscription_req.subscription.typePrefixSubscription
-                )
-                subscription = TypePrefixSubscription(
-                    topic_type_prefix=type_prefix_subscription_msg.topic_type_prefix,
-                    agent_type=type_prefix_subscription_msg.agent_type,
-                    id=add_subscription_req.subscription.id,
-                )
-            case None:
-                logger.warning("Received empty subscription message")
-
-        if subscription is not None:
-            try:
-                await self._subscription_manager.add_subscription(subscription)
-                subscription_ids = self._client_id_to_subscription_id_mapping.setdefault(client_id, set())
-                subscription_ids.add(subscription.id)
-                success = True
-                error = None
-            except ValueError as e:
-                success = False
-                error = str(e)
-            # Send a response back to the client.
-            await self._send_queues[client_id].put(
-                agent_worker_pb2.Message(
-                    addSubscriptionResponse=agent_worker_pb2.AddSubscriptionResponse(
-                        request_id=add_subscription_req.request_id, success=success, error=error
-                    )
+        subscription = subscription_from_proto(add_subscription_req.subscription)
+        try:
+            await self._subscription_manager.add_subscription(subscription)
+            subscription_ids = self._client_id_to_subscription_id_mapping.setdefault(client_id, set())
+            subscription_ids.add(subscription.id)
+            success = True
+            error = None
+        except ValueError as e:
+            success = False
+            error = str(e)
+        # Send a response back to the client.
+        await self._send_queues[client_id].put(
+            agent_worker_pb2.Message(
+                addSubscriptionResponse=agent_worker_pb2.AddSubscriptionResponse(
+                    request_id=add_subscription_req.request_id, success=success, error=error
                 )
             )
+        )
 
-    def RegisterAgent(  # type: ignore
+    async def RegisterAgent(  # type: ignore
         self,
         request: agent_worker_pb2.RegisterAgentTypeRequest,
         context: grpc.aio.ServicerContext[
             agent_worker_pb2.RegisterAgentTypeRequest, agent_worker_pb2.RegisterAgentTypeResponse
         ],
     ) -> agent_worker_pb2.RegisterAgentTypeResponse:
-        raise NotImplementedError("Method not implemented.")
+        client_id = await get_client_id_or_abort(context)
 
-    def AddSubscription(  # type: ignore
+        async with self._agent_type_to_client_id_lock:
+            if request.type in self._agent_type_to_client_id:
+                existing_client_id = self._agent_type_to_client_id[request.type]
+                logger.error(f"Agent type {request.type} already registered with client {existing_client_id}.")
+                success = False
+                error = f"Agent type {request.type} already registered."
+            else:
+                self._agent_type_to_client_id[request.type] = client_id
+                success = True
+                error = None
+        return agent_worker_pb2.RegisterAgentTypeResponse(request_id=request.request_id, success=success, error=error)
+
+    async def AddSubscription(  # type: ignore
         self,
         request: agent_worker_pb2.AddSubscriptionRequest,
         context: grpc.aio.ServicerContext[
             agent_worker_pb2.AddSubscriptionRequest, agent_worker_pb2.AddSubscriptionResponse
         ],
     ) -> agent_worker_pb2.AddSubscriptionResponse:
-        raise NotImplementedError("Method not implemented.")
+        client_id = await get_client_id_or_abort(context)
 
-    def RemoveSubscription(  # type: ignore
+        subscription = subscription_from_proto(request.subscription)
+        try:
+            await self._subscription_manager.add_subscription(subscription)
+            subscription_ids = self._client_id_to_subscription_id_mapping.setdefault(client_id, set())
+            subscription_ids.add(subscription.id)
+            success = True
+            error = None
+        except ValueError as e:
+            success = False
+            error = str(e)
+        # Send a response back to the client.
+        return agent_worker_pb2.AddSubscriptionResponse(request_id=request.request_id, success=success, error=error)
+
+    async def RemoveSubscription(  # type: ignore
         self,
         request: agent_worker_pb2.RemoveSubscriptionRequest,
         context: grpc.aio.ServicerContext[
             agent_worker_pb2.RemoveSubscriptionRequest, agent_worker_pb2.RemoveSubscriptionResponse
         ],
     ) -> agent_worker_pb2.RemoveSubscriptionResponse:
+        _client_id = await get_client_id_or_abort(context)
         raise NotImplementedError("Method not implemented.")
 
-    def GetSubscriptions(  # type: ignore
+    async def GetSubscriptions(  # type: ignore
         self,
         request: agent_worker_pb2.GetSubscriptionsRequest,
         context: grpc.aio.ServicerContext[
             agent_worker_pb2.GetSubscriptionsRequest, agent_worker_pb2.GetSubscriptionsResponse
         ],
     ) -> agent_worker_pb2.GetSubscriptionsResponse:
+        _client_id = await get_client_id_or_abort(context)
         raise NotImplementedError("Method not implemented.")
 
     async def GetState(  # type: ignore
         self,
         request: agent_worker_pb2.AgentId,
         context: grpc.aio.ServicerContext[agent_worker_pb2.AgentId, agent_worker_pb2.GetStateResponse],
-    ) -> agent_worker_pb2.GetStateResponse:  # type: ignore
+    ) -> agent_worker_pb2.GetStateResponse:
         raise NotImplementedError("Method not implemented!")
 
     async def SaveState(  # type: ignore
         self,
         request: agent_worker_pb2.AgentState,
         context: grpc.aio.ServicerContext[agent_worker_pb2.AgentId, agent_worker_pb2.SaveStateResponse],
-    ) -> agent_worker_pb2.SaveStateResponse:  # type: ignore
+    ) -> agent_worker_pb2.SaveStateResponse:
         raise NotImplementedError("Method not implemented!")
