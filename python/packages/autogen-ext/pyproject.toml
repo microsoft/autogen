@@ -105,6 +105,8 @@ semantic-kernel-all = [
     "semantic-kernel[google,hugging_face,mistralai,ollama,onnx,anthropic,usearch,pandas,aws,dapr]>=1.17.1",
 ]
 
+rich = ["rich>=13.9.4"]
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
 

@@ -601,6 +601,9 @@ openai = [
 redis = [
     { name = "redis" },
 ]
+rich = [
+    { name = "rich" },
+]
 semantic-kernel-all = [
     { name = "semantic-kernel", extra = ["anthropic", "aws", "dapr", "google", "hugging-face", "mistralai", "ollama", "onnx", "pandas", "usearch"] },
 ]
@@ -683,6 +686,7 @@ requires-dist = [
     { name = "playwright", marker = "extra == 'magentic-one'", specifier = ">=1.48.0" },
     { name = "playwright", marker = "extra == 'web-surfer'", specifier = ">=1.48.0" },
     { name = "redis", marker = "extra == 'redis'", specifier = ">=5.2.1" },
+    { name = "rich", marker = "extra == 'rich'", specifier = ">=13.9.4" },
     { name = "semantic-kernel", marker = "extra == 'semantic-kernel-core'", specifier = ">=1.17.1" },
     { name = "semantic-kernel", extras = ["anthropic"], marker = "extra == 'semantic-kernel-anthropic'", specifier = ">=1.17.1" },
     { name = "semantic-kernel", extras = ["aws"], marker = "extra == 'semantic-kernel-aws'", specifier = ">=1.17.1" },
@@ -3570,13 +3574,13 @@ version = "0.2.1"
 source = { editable = "packages/magentic-one-cli" }
 dependencies = [
     { name = "autogen-agentchat" },
-    { name = "autogen-ext", extra = ["magentic-one", "openai"] },
+    { name = "autogen-ext", extra = ["magentic-one", "openai", "rich"] },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "autogen-agentchat", editable = "packages/autogen-agentchat" },
-    { name = "autogen-ext", extras = ["openai", "magentic-one"], editable = "packages/autogen-ext" },
+    { name = "autogen-ext", extras = ["openai", "magentic-one", "rich"], editable = "packages/autogen-ext" },
 ]
 
 [package.metadata.requires-dev]
