@@ -22,7 +22,7 @@ public static class AgentExtensions
     public static Activity? ExtractActivity(this Agent agent, string activityName, IDictionary<string, string> metadata)
     {
         Activity? activity;
-        var (traceParent, traceState) = agent.Messenger.GetTraceIdAndState(metadata);
+        (string? traceParent, string? traceState) = IAgentWorkerExtensions.GetTraceIdAndState(agent.Worker, metadata);
         if (!string.IsNullOrEmpty(traceParent))
         {
             if (ActivityContext.TryParse(traceParent, traceState, isRemote: true, out var parentContext))
@@ -43,7 +43,7 @@ public static class AgentExtensions
                     activity.TraceStateString = traceState;
                 }
 
-                var baggage = agent.Messenger.ExtractMetadata(metadata);
+                var baggage = IAgentWorkerExtensions.ExtractMetadata(agent.Worker, metadata);
 
                 foreach (var baggageItem in baggage)
                 {
