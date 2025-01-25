@@ -1,3 +1,4 @@
+import json
 import pytest
 import httpx
 from pydantic import ValidationError
@@ -48,8 +49,8 @@ async def test_post_request(test_config: ComponentModel, test_server: None) -> N
     tool = HttpTool.load_component(test_config)
     result = await tool.run_json({"query": "test query", "value": 42}, CancellationToken())
 
-    assert isinstance(result, dict)
-    assert result["result"] == "Received: test query with value 42"
+    assert isinstance(result, str)
+    assert json.loads(result)["result"] == "Received: test query with value 42"
 
 
 @pytest.mark.asyncio
@@ -61,8 +62,8 @@ async def test_get_request(test_config: ComponentModel, test_server: None) -> No
 
     result = await tool.run_json({"query": "test query", "value": 42}, CancellationToken())
 
-    assert isinstance(result, dict)
-    assert result["result"] == "Received: test query with value 42"
+    assert isinstance(result, str)
+    assert json.loads(result)["result"] == "Received: test query with value 42"
 
 
 @pytest.mark.asyncio
@@ -74,8 +75,8 @@ async def test_put_request(test_config: ComponentModel, test_server: None) -> No
 
     result = await tool.run_json({"query": "test query", "value": 42}, CancellationToken())
 
-    assert isinstance(result, dict)
-    assert result["result"] == "Received: test query with value 42"
+    assert isinstance(result, str)
+    assert json.loads(result)["result"] == "Received: test query with value 42"
 
 @pytest.mark.asyncio
 async def test_path_params(test_config: ComponentModel, test_server: None) -> None:
@@ -86,8 +87,8 @@ async def test_path_params(test_config: ComponentModel, test_server: None) -> No
 
     result = await tool.run_json({"query": "test query", "value": 42}, CancellationToken())
 
-    assert isinstance(result, dict)
-    assert result["result"] == "Received: test query with value 42"
+    assert isinstance(result, str)
+    assert json.loads(result)["result"] == "Received: test query with value 42"
 
 @pytest.mark.asyncio
 async def test_path_params_and_body(test_config: ComponentModel, test_server: None) -> None:
@@ -112,8 +113,9 @@ async def test_path_params_and_body(test_config: ComponentModel, test_server: No
         "extra": "extra data"
     }, CancellationToken())
 
-    assert isinstance(result, dict)
-    assert result["result"] == "Received: test query with value 42 and extra extra data"
+    assert isinstance(result, str)
+    assert json.loads(result)["result"] == "Received: test query with value 42 and extra extra data"
+
 
 
 
@@ -126,8 +128,8 @@ async def test_delete_request(test_config: ComponentModel, test_server: None) ->
 
     result = await tool.run_json({"query": "test query", "value": 42}, CancellationToken())
 
-    assert isinstance(result, dict)
-    assert result["result"] == "Received: test query with value 42"
+    assert isinstance(result, str)
+    assert json.loads(result)["result"] == "Received: test query with value 42"
 
 
 @pytest.mark.asyncio
@@ -139,8 +141,8 @@ async def test_patch_request(test_config: ComponentModel, test_server: None) -> 
 
     result = await tool.run_json({"query": "test query", "value": 42}, CancellationToken())
 
-    assert isinstance(result, dict)
-    assert result["result"] == "Received: test query with value 42"
+    assert isinstance(result, str)
+    assert json.loads(result)["result"] == "Received: test query with value 42"
 
 
 @pytest.mark.asyncio

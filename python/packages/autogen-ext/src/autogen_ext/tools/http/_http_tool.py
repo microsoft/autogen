@@ -1,4 +1,5 @@
 import re
+import json
 from typing import Any, Literal, Optional, Type
 import urllib.parse
 
@@ -66,50 +67,54 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
     Example:
         Simple use case::
 
-            import asyncio
-            from autogen_ext.tools.http import HttpTool
-            from autogen_agentchat.agents import AssistantAgent
-            from autogen_ext.models.openai import OpenAIChatCompletionClient
+          import asyncio
 
-            # Define a JSON schema for a weather API
-            weather_schema = {
-                "type": "object",
-                "properties": {
-                    "city": {"type": "string", "description": "The city to get weather for"},
-                    "country": {"type": "string", "description": "The country code"}
-                },
-                "required": ["city"]
-            }
+          from autogen_agentchat.agents import AssistantAgent
+          from autogen_agentchat.messages import TextMessage
+          from autogen_core import CancellationToken
+          from autogen_ext.models.openai import OpenAIChatCompletionClient
+          from autogen_ext.tools.http import HttpTool
 
-            # Create an HTTP tool for the weather API
-            weather_tool = HttpTool(
-                name="get_weather",
-                description="Get the current weather for a city",
-                url="https://api.weatherapi.com/v1/current.json",
-                method="GET",
-                headers={"key": "your-api-key"}, # Replace with your API key
-                json_schema=weather_schema
-            )
+          # Define a JSON schema for a base64 decode tool
+          base64_schema = {
+              "type": "object",
+              "properties": {
+                  "value": {"type": "string", "description": "The base64 value to decode"},
+              },
+              "required": ["value"]
+          }
 
-            async def main():
-                # Create an assistant with the weather tool
-                model = OpenAIChatCompletionClient(model="gpt-4")
-                assistant = AssistantAgent(
-                    "weather_assistant",
-                    model_client=model,
-                    tools=[weather_tool]
-                )
+          # Create an HTTP tool for the weather API
+          base64_tool = HttpTool(
+              name="base64_decode",
+              description="base64 decode a value",
+              scheme="https",
+              host="httpbin.org",
+              port=443,
+              path="/base64/{value}",
+              method="GET",
+              json_schema=base64_schema
+          )
 
-                # The assistant can now use the weather tool to get weather data
-                response = await assistant.on_messages([
-                    TextMessage(content="What's the weather like in London?")
-                ])
-                print(response.chat_message.content)
+          async def main():
+              # Create an assistant with the base64 tool
+              model = OpenAIChatCompletionClient(model="gpt-4")
+              assistant = AssistantAgent(
+                  "base64_assistant",
+                  model_client=model,
+                  tools=[base64_tool]
+              )
 
-            asyncio.run(main())
+              # The assistant can now use the base64 tool to decode the string
+              response = await assistant.on_messages([
+                  TextMessage(content="Can you base64 decode the value 'YWJjZGU=', please?", source="user")
+              ], CancellationToken())
+              print(response.chat_message.content)
+
+          asyncio.run(main())
     """
 
-    component_type = "agent"
+    component_type = "tool"
     component_provider_override = "autogen_ext.tools.http.HttpTool"
     component_config_schema = HttpToolConfig
 
@@ -119,7 +124,7 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
         host: str,
         port: int,
         json_schema: dict[str, Any],
-        headers: Optional[dict[str, Any]],
+        headers: Optional[dict[str, Any]] = None,
         description: str = "HTTP tool",
         path: str = "/",
         scheme: Literal["http", "https"] = "http",
@@ -200,4 +205,5 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
                 case _:  # Default case POST
                     response = await client.post(url, json=model_dump)
 
-        return response.json()
+        # TODO: (EItanya): Think about adding the ability to parse the response as JSON, or check a schema
+        return response.text
