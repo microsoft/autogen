@@ -13,11 +13,11 @@ public abstract class ConsoleAgent : IOAgent,
 {
 
     // instead of the primary constructor above, make a constructr here that still calls the base constructor
-    public ConsoleAgent(IAgentWorker worker, [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : base(worker, typeRegistry)
+    public ConsoleAgent([FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry) : base(typeRegistry)
     {
         _route = "console";
     }
-    public override async Task Handle(Input item)
+    public override async Task Handle(Input item, CancellationToken cancellationToken)
     {
         Console.WriteLine("Please enter input:");
         string content = Console.ReadLine() ?? string.Empty;
@@ -31,7 +31,7 @@ public abstract class ConsoleAgent : IOAgent,
         await PublishMessageAsync(evt);
     }
 
-    public override async Task Handle(Output item)
+    public override async Task Handle(Output item, CancellationToken cancellationToken)
     {
         // Assuming item has a property `Content` that we want to write to the console
         Console.WriteLine(item.Message);
