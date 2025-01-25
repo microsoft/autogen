@@ -58,11 +58,16 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
     Args:
         name (str): The name of the tool.
         description (str, optional): A description of the tool.
-        url (str): The URL to send the request to.
+        scheme (str): The scheme to use for the request. Must be either "http" or "https".
+        host (str): The host to send the request to.
+        port (int): The port to send the request to.
+        path (str, optional): The path to send the request to. Defaults to "/".
+            Can include path parameters like "/{param1}/{param2}" which will be templated from input args.
         method (str, optional): The HTTP method to use, will default to POST if not provided.
             Must be one of "GET", "POST", "PUT", "DELETE", "PATCH".
         headers (dict[str, Any], optional): A dictionary of headers to send with the request.
         json_schema (dict[str, Any]): A JSON Schema object defining the expected parameters for the tool.
+            Path parameters must also be included in the schema and must be strings.
 
     Example:
         Simple use case::
