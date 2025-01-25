@@ -29,7 +29,10 @@ def test_tool_properties(test_config: ComponentModel) -> None:
 
     assert tool.name == "TestHttpTool"
     assert tool.description == "A test HTTP tool"
-    assert tool.server_params.url == "http://localhost:8000/test"
+    assert tool.server_params.host == "localhost"
+    assert tool.server_params.port == 8000
+    assert tool.server_params.path == "/test"
+    assert tool.server_params.scheme == "http"
     assert tool.server_params.method == "POST"
 
 
@@ -105,7 +108,7 @@ async def test_patch_request(test_config: ComponentModel, test_server: None) -> 
 async def test_invalid_schema(test_config: ComponentModel, test_server: None) -> None:
     # Create an invalid schema missing required properties
     config: ComponentModel = test_config.model_copy()
-    config.config["url"] = True # Incorrect type
+    config.config["host"] = True # Incorrect type
 
     with pytest.raises(ValidationError):
         # Should fail when trying to create model from invalid schema
@@ -116,7 +119,7 @@ async def test_invalid_schema(test_config: ComponentModel, test_server: None) ->
 async def test_invalid_request(test_config: ComponentModel, test_server: None) -> None:
     # Use an invalid URL
     config = test_config.model_copy()
-    config.config["url"] = "http://fake:8000/nonexistent"
+    config.config["host"] = "fake"
     tool = HttpTool.load_component(config)
 
     with pytest.raises(httpx.ConnectError):
@@ -129,7 +132,10 @@ def test_config_serialization(test_config: ComponentModel) -> None:
 
     assert config.name == test_config.config["name"]
     assert config.description == test_config.config["description"]
-    assert config.url == test_config.config["url"]
+    assert config.host == test_config.config["host"]
+    assert config.port == test_config.config["port"]
+    assert config.path == test_config.config["path"]
+    assert config.scheme == test_config.config["scheme"]
     assert config.method == test_config.config["method"]
     assert config.headers == test_config.config["headers"]
 
@@ -139,6 +145,9 @@ def test_config_deserialization(test_config: ComponentModel) -> None:
 
     assert tool.name == test_config.config["name"]
     assert tool.description == test_config.config["description"]
-    assert tool.server_params.url == test_config.config["url"]
+    assert tool.server_params.host == test_config.config["host"]
+    assert tool.server_params.port == test_config.config["port"]
+    assert tool.server_params.path == test_config.config["path"]
+    assert tool.server_params.scheme == test_config.config["scheme"]
     assert tool.server_params.method == test_config.config["method"]
     assert tool.server_params.headers == test_config.config["headers"]

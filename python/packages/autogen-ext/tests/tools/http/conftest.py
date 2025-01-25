@@ -55,7 +55,10 @@ def test_config() -> ComponentModel:
         config={
             "name": "TestHttpTool",
             "description": "A test HTTP tool",
-            "url": "http://localhost:8000/test",
+            "scheme": "http",
+            "path": "/test",
+            "host": "localhost",
+            "port": 8000,
             "method": "POST",
             "headers": {"Content-Type": "application/json"},
             "json_schema": {
