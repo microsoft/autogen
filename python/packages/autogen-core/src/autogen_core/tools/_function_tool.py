@@ -1,8 +1,8 @@
 import asyncio
 import functools
+import warnings
 from textwrap import dedent
 from typing import Any, Callable, Sequence
-import warnings
 
 from pydantic import BaseModel
 from typing_extensions import Self

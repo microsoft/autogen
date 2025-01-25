@@ -18,7 +18,7 @@ dependencies = [
     "pillow>=11.0.0",
     "typing-extensions>=4.0.0",
     "pydantic<3.0.0,>=2.10.0",
-    "protobuf~=4.25.1",
+    "protobuf~=5.29.3",
     "opentelemetry-api>=1.27.0",
     "jsonref~=1.1.0",
 ]

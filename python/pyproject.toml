@@ -13,7 +13,7 @@ dev = [
     "pytest_mock",
     "poethepoet",
     "packaging",
-    "grpcio-tools~=1.62.0",
+    "grpcio-tools~=1.70.0",
     "mypy-protobuf",
     "cookiecutter",
     "poethepoet",

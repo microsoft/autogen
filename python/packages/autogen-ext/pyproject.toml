@@ -58,7 +58,7 @@ redis = [
 ]
 
 grpc = [
-    "grpcio~=1.62.0", # TODO: update this once we have a stable version.
+    "grpcio~=1.70.0",
 ]
 
 jupyter-executor = [
