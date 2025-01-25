@@ -3,7 +3,7 @@ import json
 import warnings
 from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union, cast
 
-from autogen_core import CacheStore, CancellationToken
+from autogen_core import CacheStore, CancellationToken, InMemoryStore
 from autogen_core.models import (
     ChatCompletionClient,
     CreateResult,
@@ -74,11 +74,16 @@ class ChatCompletionCache(ChatCompletionClient):
         client (ChatCompletionClient): The original ChatCompletionClient to wrap.
         store (CacheStore): A store object that implements get and set methods.
             The user is responsible for managing the store's lifecycle & clearing it (if needed).
+            Defaults to using in-memory cache.
     """
 
-    def __init__(self, client: ChatCompletionClient, store: CacheStore[CHAT_CACHE_VALUE_TYPE]):
+    def __init__(
+        self,
+        client: ChatCompletionClient,
+        store: Optional[CacheStore[CHAT_CACHE_VALUE_TYPE]] = None,
+    ):
         self.client = client
-        self.store = store
+        self.store = store or InMemoryStore[CHAT_CACHE_VALUE_TYPE]()
 
     def _check_cache(
         self,
