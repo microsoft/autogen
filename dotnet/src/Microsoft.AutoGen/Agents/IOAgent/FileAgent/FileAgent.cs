@@ -9,16 +9,15 @@ namespace Microsoft.AutoGen.Agents;
 
 [TopicSubscription("FileIO")]
 public abstract class FileAgent(
-    IAgentWorker worker,
-    [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
+    [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry,
     string inputPath = "input.txt",
     string outputPath = "output.txt"
-    ) : IOAgent(worker, typeRegistry),
+    ) : IOAgent(typeRegistry),
         IUseFiles,
         IHandle<Input>,
         IHandle<Output>
 {
-    public override async Task Handle(Input item)
+    public override async Task Handle(Input item, CancellationToken cancellationToken = default)
     {
         // validate that the file exists
         if (!File.Exists(inputPath))
@@ -46,7 +45,7 @@ public abstract class FileAgent(
         };
         await PublishMessageAsync(evt);
     }
-    public override async Task Handle(Output item)
+    public override async Task Handle(Output item, CancellationToken cancellationToken = default)
     {
         using (var writer = new StreamWriter(outputPath, append: true))
         {

@@ -60,7 +60,7 @@ async def main() -> None:
 
     await runtime.publish_message(
         message=output_message,
-        topic_id=DefaultTopicId("agents.Output", "HelloAgents/python"),
+        topic_id=DefaultTopicId("agents.Output", "HelloAgents"),
         sender=AgentId("HelloAgents", "python"),
     )
     await runtime.stop_when_signal()
