@@ -138,7 +138,7 @@ class VideoSurfer(AssistantAgent):
         name: str,
         model_client: ChatCompletionClient,
         *,
-        tools: List[BaseTool[BaseModel, BaseModel]  | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
+        tools: List[BaseTool[BaseModel, BaseModel] | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
         description: Optional[str] = None,
         system_message: Optional[str] = None,
     ):
