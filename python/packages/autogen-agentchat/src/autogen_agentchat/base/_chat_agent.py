@@ -2,7 +2,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any, AsyncGenerator, Mapping, Sequence
 
-from autogen_core import CancellationToken
+from autogen_core import CancellationToken, ComponentBase
+from pydantic import BaseModel
 
 from ..messages import AgentEvent, ChatMessage
 from ._task import TaskRunner
@@ -20,8 +21,10 @@ class Response:
     or :class:`ChatMessage`."""
 
 
-class ChatAgent(ABC, TaskRunner):
+class ChatAgent(ABC, TaskRunner, ComponentBase[BaseModel]):
     """Protocol for a chat agent."""
+
+    component_type = "agent"
 
     @property
     @abstractmethod

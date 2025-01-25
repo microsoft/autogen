@@ -2,7 +2,7 @@
 """Client and server classes corresponding to protobuf-defined services."""
 import grpc
 
-import agent_worker_pb2 as agent__worker__pb2
+from . import agent_worker_pb2 as agent__worker__pb2
 
 
 class AgentRpcStub(object):
@@ -34,20 +34,20 @@ class AgentRpcStub(object):
                 request_serializer=agent__worker__pb2.RegisterAgentTypeRequest.SerializeToString,
                 response_deserializer=agent__worker__pb2.RegisterAgentTypeResponse.FromString,
                 )
-        self.Subscribe = channel.unary_unary(
-                '/agents.AgentRpc/Subscribe',
-                request_serializer=agent__worker__pb2.SubscriptionRequest.SerializeToString,
-                response_deserializer=agent__worker__pb2.SubscriptionResponse.FromString,
+        self.AddSubscription = channel.unary_unary(
+                '/agents.AgentRpc/AddSubscription',
+                request_serializer=agent__worker__pb2.AddSubscriptionRequest.SerializeToString,
+                response_deserializer=agent__worker__pb2.AddSubscriptionResponse.FromString,
                 )
-        self.Unsubscribe = channel.unary_unary(
-                '/agents.AgentRpc/Unsubscribe',
-                request_serializer=agent__worker__pb2.SubscriptionRequest.SerializeToString,
-                response_deserializer=agent__worker__pb2.SubscriptionResponse.FromString,
+        self.RemoveSubscription = channel.unary_unary(
+                '/agents.AgentRpc/RemoveSubscription',
+                request_serializer=agent__worker__pb2.RemoveSubscriptionRequest.SerializeToString,
+                response_deserializer=agent__worker__pb2.RemoveSubscriptionResponse.FromString,
                 )
         self.GetSubscriptions = channel.unary_unary(
                 '/agents.AgentRpc/GetSubscriptions',
-                request_serializer=agent__worker__pb2.AgentId.SerializeToString,
-                response_deserializer=agent__worker__pb2.SubscriptionList.FromString,
+                request_serializer=agent__worker__pb2.GetSubscriptionsRequest.SerializeToString,
+                response_deserializer=agent__worker__pb2.GetSubscriptionsResponse.FromString,
                 )
 
 
@@ -78,13 +78,13 @@ class AgentRpcServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def Subscribe(self, request, context):
+    def AddSubscription(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def Unsubscribe(self, request, context):
+    def RemoveSubscription(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -119,20 +119,20 @@ def add_AgentRpcServicer_to_server(servicer, server):
                     request_deserializer=agent__worker__pb2.RegisterAgentTypeRequest.FromString,
                     response_serializer=agent__worker__pb2.RegisterAgentTypeResponse.SerializeToString,
             ),
-            'Subscribe': grpc.unary_unary_rpc_method_handler(
-                    servicer.Subscribe,
-                    request_deserializer=agent__worker__pb2.SubscriptionRequest.FromString,
-                    response_serializer=agent__worker__pb2.SubscriptionResponse.SerializeToString,
+            'AddSubscription': grpc.unary_unary_rpc_method_handler(
+                    servicer.AddSubscription,
+                    request_deserializer=agent__worker__pb2.AddSubscriptionRequest.FromString,
+                    response_serializer=agent__worker__pb2.AddSubscriptionResponse.SerializeToString,
             ),
-            'Unsubscribe': grpc.unary_unary_rpc_method_handler(
-                    servicer.Unsubscribe,
-                    request_deserializer=agent__worker__pb2.SubscriptionRequest.FromString,
-                    response_serializer=agent__worker__pb2.SubscriptionResponse.SerializeToString,
+            'RemoveSubscription': grpc.unary_unary_rpc_method_handler(
+                    servicer.RemoveSubscription,
+                    request_deserializer=agent__worker__pb2.RemoveSubscriptionRequest.FromString,
+                    response_serializer=agent__worker__pb2.RemoveSubscriptionResponse.SerializeToString,
             ),
             'GetSubscriptions': grpc.unary_unary_rpc_method_handler(
                     servicer.GetSubscriptions,
-                    request_deserializer=agent__worker__pb2.AgentId.FromString,
-                    response_serializer=agent__worker__pb2.SubscriptionList.SerializeToString,
+                    request_deserializer=agent__worker__pb2.GetSubscriptionsRequest.FromString,
+                    response_serializer=agent__worker__pb2.GetSubscriptionsResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -213,7 +213,7 @@ class AgentRpc(object):
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def Subscribe(request,
+    def AddSubscription(request,
             target,
             options=(),
             channel_credentials=None,
@@ -223,14 +223,14 @@ class AgentRpc(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/agents.AgentRpc/Subscribe',
-            agent__worker__pb2.SubscriptionRequest.SerializeToString,
-            agent__worker__pb2.SubscriptionResponse.FromString,
+        return grpc.experimental.unary_unary(request, target, '/agents.AgentRpc/AddSubscription',
+            agent__worker__pb2.AddSubscriptionRequest.SerializeToString,
+            agent__worker__pb2.AddSubscriptionResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
     @staticmethod
-    def Unsubscribe(request,
+    def RemoveSubscription(request,
             target,
             options=(),
             channel_credentials=None,
@@ -240,9 +240,9 @@ class AgentRpc(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(request, target, '/agents.AgentRpc/Unsubscribe',
-            agent__worker__pb2.SubscriptionRequest.SerializeToString,
-            agent__worker__pb2.SubscriptionResponse.FromString,
+        return grpc.experimental.unary_unary(request, target, '/agents.AgentRpc/RemoveSubscription',
+            agent__worker__pb2.RemoveSubscriptionRequest.SerializeToString,
+            agent__worker__pb2.RemoveSubscriptionResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -258,7 +258,7 @@ class AgentRpc(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/agents.AgentRpc/GetSubscriptions',
-            agent__worker__pb2.AgentId.SerializeToString,
-            agent__worker__pb2.SubscriptionList.FromString,
+            agent__worker__pb2.GetSubscriptionsRequest.SerializeToString,
+            agent__worker__pb2.GetSubscriptionsResponse.FromString,
             options, channel_credentials,
             insecure, call_credentials, compression, wait_for_ready, timeout, metadata)
