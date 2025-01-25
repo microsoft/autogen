@@ -101,12 +101,12 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             };
         }
     }
-    public async ValueTask<SubscriptionResponse> SubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<AddSubscriptionResponse> SubscribeAsync(AddSubscriptionRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
             await _gatewayRegistry.SubscribeAsync(request).ConfigureAwait(true);
-            return new SubscriptionResponse
+            return new AddSubscriptionResponse
             {
                 Success = true,
                 RequestId = request.RequestId
@@ -114,7 +114,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
         catch (Exception ex)
         {
-            return new SubscriptionResponse
+            return new AddSubscriptionResponse
             {
                 Success = false,
                 RequestId = request.RequestId,
@@ -174,8 +174,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             case Message.MessageOneofCase.RegisterAgentTypeRequest:
                 await RegisterAgentTypeAsync(connection, message.RegisterAgentTypeRequest);
                 break;
-            case Message.MessageOneofCase.SubscriptionRequest:
-                await AddSubscriptionAsync(connection, message.SubscriptionRequest);
+            case Message.MessageOneofCase.AddSubscriptionRequest:
+                await AddSubscriptionAsync(connection, message.AddSubscriptionRequest);
                 break;
             default:
                 // if it wasn't recognized return bad request
@@ -297,7 +297,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         throw new RpcException(new Status(StatusCode.InvalidArgument, error));
     }
-    private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, SubscriptionRequest request)
+    private async ValueTask AddSubscriptionAsync(GrpcWorkerConnection connection, AddSubscriptionRequest request)
     {
         var topic = "";
         var agentType = "";
@@ -317,7 +317,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         //var response = new SubscriptionResponse { RequestId = request.RequestId, Error = "", Success = true };
         Message response = new()
         {
-            SubscriptionResponse = new()
+            AddSubscriptionResponse = new()
             {
                 RequestId = request.RequestId,
                 Error = "",
@@ -361,73 +361,60 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         await queue.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);
     }
 
-    public async ValueTask<SubscriptionResponse> UnsubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
             await _gatewayRegistry.UnsubscribeAsync(request).ConfigureAwait(true);
-            return new SubscriptionResponse
+            return new RemoveSubscriptionResponse
+
             {
                 Success = true,
-                RequestId = request.RequestId
             };
         }
         catch (Exception ex)
         {
-            return new SubscriptionResponse
+            return new RemoveSubscriptionResponse
             {
                 Success = false,
-                RequestId = request.RequestId,
                 Error = ex.Message
             };
         }
-    }
-    public ValueTask<List<Subscription>> GetSubscriptionsAsync(Type type, CancellationToken cancellationToken = default)
+    } 
+    public ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request, CancellationToken cancellationToken = default)
     {
-        return _gatewayRegistry.GetSubscriptions(nameof(type));
+        return _gatewayRegistry.GetSubscriptions(request);
     }
-    public ValueTask<List<Subscription>> GetSubscriptionsAsync(string type, CancellationToken cancellationToken = default)
-    {
-        return _gatewayRegistry.GetSubscriptions(type);
-    }
-
     async ValueTask<RpcResponse> IGateway.InvokeRequestAsync(RpcRequest request)
     {
         return await InvokeRequestAsync(request, default).ConfigureAwait(false);
     }
-
     async ValueTask IGateway.BroadcastEventAsync(CloudEvent evt)
     {
         await BroadcastEventAsync(evt, default).ConfigureAwait(false);
     }
-
     ValueTask IGateway.StoreAsync(AgentState value)
     {
         return StoreAsync(value, default);
     }
-
     ValueTask<AgentState> IGateway.ReadAsync(AgentId agentId)
     {
         return ReadAsync(agentId, default);
     }
-
     ValueTask<RegisterAgentTypeResponse> IGateway.RegisterAgentTypeAsync(RegisterAgentTypeRequest request)
     {
         return RegisterAgentTypeAsync(request, default);
     }
-
-    ValueTask<SubscriptionResponse> IGateway.SubscribeAsync(SubscriptionRequest request)
+    ValueTask<AddSubscriptionResponse> IGateway.SubscribeAsync(AddSubscriptionRequest request)
     {
         return SubscribeAsync(request, default);
     }
-
-    ValueTask<SubscriptionResponse> IGateway.UnsubscribeAsync(SubscriptionRequest request)
+    ValueTask<RemoveSubscriptionResponse> IGateway.UnsubscribeAsync(RemoveSubscriptionRequest request)
     {
         return UnsubscribeAsync(request, default);
     }
-
-    ValueTask<List<Subscription>> IGateway.GetSubscriptionsAsync(Type type)
+    ValueTask<List<Subscription>> IGateway.GetSubscriptionsAsync(GetSubscriptionsRequest request)
     {
-        return GetSubscriptionsAsync(type, default);
+        return GetSubscriptionsAsync(request);
     }
 }

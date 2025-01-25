@@ -175,7 +175,8 @@ public abstract class Agent
     }
     public async ValueTask<List<Subscription>> GetSubscriptionsAsync()
     {
-        return await Worker.GetSubscriptionsAsync().ConfigureAwait(false);
+        GetSubscriptionsRequest request = new();
+        return await Worker.GetSubscriptionsAsync(request).ConfigureAwait(false);
     }
     public async ValueTask<AddSubscriptionResponse> SubscribeAsync(string topic)
     {
@@ -221,7 +222,8 @@ public abstract class Agent
             _logger.LogError(error);
             return new RemoveSubscriptionResponse { Success = false, Error = error };
         }
-        return await UnsubscribeAsync(subscription.Id).ConfigureAwait(true);
+        var id = Guid.Parse(subscription.Id);
+        return await UnsubscribeAsync(id).ConfigureAwait(true);
     }
     public async Task StoreAsync(AgentState state, CancellationToken cancellationToken = default)
     {
@@ -326,16 +328,32 @@ public abstract class Agent
     /// <returns>A task representing the asynchronous operation.</returns>
     public async ValueTask PublishMessageAsync<T>(T message, string topic, string source, string key, CancellationToken token = default) where T : IMessage
     {
+        // if there are no topic types, use the agent's default topic subscription attribute and the agent's type and key
+        if (string.IsNullOrWhiteSpace(topic))
+        {
+            if (string.IsNullOrWhiteSpace(topic))
+            {
+                topic = this.AgentId.Type + "." + this.AgentId.Key;
+            }
+            else
+            {
+                topic = topic + "." + source + "." + key;
+            }
 
-        var topicTypes = this.GetType().GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
-        if (!topicTypes.Any())
-        {
-            topicTypes = topicTypes.Append(string.IsNullOrWhiteSpace(source) ? this.AgentId.Type + "." + this.AgentId.Key : source);
+            var topicTypes = this.GetType().GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
+            if (!topicTypes.Any())
+            {
+                topicTypes = topicTypes.Append(string.IsNullOrWhiteSpace(source) ? this.AgentId.Type + "." + this.AgentId.Key : source);
+            }
+            topicTypes = topicTypes.Append(SetTopic(topic, source, key));
+            foreach (var t in topicTypes)
+            {
+                await PublishEventAsync(t, message, token).ConfigureAwait(false);
+            }
         }
-        topicTypes = topicTypes.Append(SetTopic(topic, source, key));
-        foreach (var t in topicTypes)
+        else
         {
-            await PublishEventAsync(t, message, token).ConfigureAwait(false);
+            await PublishEventAsync(topic, message, token).ConfigureAwait(false);
         }
     }
     public async ValueTask PublishMessageAsync<T>(T message, string topic, string source, CancellationToken token = default) where T : IMessage

@@ -15,7 +15,7 @@ public class UninitializedAgentWorker() : IAgentWorker
     public ValueTask SendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default) => throw new AgentInitalizedIncorrectlyException(AgentNotInitializedMessage);
     public ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default) => throw new AgentInitalizedIncorrectlyException(AgentNotInitializedMessage);
     public ValueTask<List<Subscription>> GetSubscriptionsAsync(Type type) => throw new AgentInitalizedIncorrectlyException(AgentNotInitializedMessage);
-    public ValueTask<List<Subscription>> GetSubscriptionsAsync() => throw new AgentInitalizedIncorrectlyException(AgentNotInitializedMessage);
+    public ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request, CancellationToken cancellationToken = default) => throw new AgentInitalizedIncorrectlyException(AgentNotInitializedMessage);
     public ValueTask<AddSubscriptionResponse> SubscribeAsync(AddSubscriptionRequest request, CancellationToken cancellationToken = default) => throw new AgentInitalizedIncorrectlyException(AgentNotInitializedMessage);
     public ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default) => throw new AgentInitalizedIncorrectlyException(AgentNotInitializedMessage);
     public class AgentInitalizedIncorrectlyException(string message) : Exception(message)

@@ -31,8 +31,9 @@ public sealed class RegisterAgentTypeRequestSurrogateConverter :
             RequestId = surrogate.RequestId,
             Type = surrogate.Type
         };
+        /* future
         request.Events.Add(surrogate.Events);
-        request.Topics.Add(surrogate.Topics);
+        request.Topics.Add(surrogate.Topics);*/
         return request;
     }
 
@@ -42,7 +43,8 @@ public sealed class RegisterAgentTypeRequestSurrogateConverter :
         {
             RequestId = value.RequestId,
             Type = value.Type,
+            /* future
             Events = value.Events,
-            Topics = value.Topics
+            Topics = value.Topics */
         };
 }

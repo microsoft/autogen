@@ -176,18 +176,17 @@ public class AgentWorker(
                     }
                     _subscriptionsByTopic.AddOrUpdate(topic, innerAgentTypes, (_, _) => innerAgentTypes);
                 }
+                var toRemove = new List<Subscription>();
                 if (_subscriptionsByAgentType.TryGetValue(agentType, out var innerSubscriptions))
                 {
                     foreach (var subscription in innerSubscriptions)
                     {
                         if (subscription.Id == id.ToString())
                         {
-                            while (innerSubscriptions.Remove(subscription))
-                            {
-                                //ensures all instances are removed
-                            }
+                            toRemove.Add(subscription);
                         }
                     }
+                    foreach (var subscription in toRemove) { innerSubscriptions.Remove(subscription); }
                     _subscriptionsByAgentType.AddOrUpdate(agentType, innerSubscriptions, (_, _) => innerSubscriptions);
                 }
             }
@@ -283,7 +282,7 @@ public class AgentWorker(
         }
         return new ValueTask<List<Subscription>>([]);
     }
-    public ValueTask<List<Subscription>> GetSubscriptionsAsync()
+    public ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request, CancellationToken cancellationToken = default)
     {
         var subscriptions = new List<Subscription>();
         foreach (var (_, value) in _subscriptionsByAgentType)

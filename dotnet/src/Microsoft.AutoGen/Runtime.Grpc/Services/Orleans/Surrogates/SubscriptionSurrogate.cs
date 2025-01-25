@@ -12,6 +12,8 @@ public struct SubscriptionSurrogate
     public TypeSubscription? TypeSubscription;
     [Id(1)]
     public TypePrefixSubscription? TypePrefixSubscription;
+    [Id(2)]
+    public string Id;
 }
 
 [RegisterConverter]
@@ -25,6 +27,7 @@ public sealed class SubscriptionSurrogateConverter :
         {
             return new Subscription
             {
+                Id = surrogate.Id,
                 TypeSubscription = surrogate.TypeSubscription
             };
         }
@@ -32,6 +35,7 @@ public sealed class SubscriptionSurrogateConverter :
         {
             return new Subscription
             {
+                Id = surrogate.Id,
                 TypePrefixSubscription = surrogate.TypePrefixSubscription
             };
         }
@@ -42,6 +46,7 @@ public sealed class SubscriptionSurrogateConverter :
     {
         return new SubscriptionSurrogate
         {
+            Id = value.Id,
             TypeSubscription = value.TypeSubscription,
             TypePrefixSubscription = value.TypePrefixSubscription
         };

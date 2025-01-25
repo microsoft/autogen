@@ -114,25 +114,26 @@ public class AgentGrpcTests
     {
         using var runtime = new GrpcRuntime();
         var (_, agent) = runtime.Start();
-        await agent.SubscribeAsync("TestEvent").ConfigureAwait(true);
+        var topicType = "TestTopic";
+        await agent.SubscribeAsync(topicType).ConfigureAwait(true);
         var subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
         var found = false;
         foreach (var subscription in subscriptions)
         {
-            if (subscription.TypeSubscription.TopicType == "TestEvent")
+            if (subscription.TypeSubscription.TopicType == topicType)
             {
                 found = true;
             }
         }
         Assert.True(found);
-
         await agent.PublishMessageAsync(new TextMessage()
         {
-            Source = "TestEvent",
+            Source = topicType,
             TextMessage_ = "buffer"
-        }).ConfigureAwait(true);
-        await Task.Delay(10000);
-        Assert.True(TestAgent.ReceivedMessages.ContainsKey("TestEvent"));
+        }, topicType).ConfigureAwait(true);
+        await Task.Delay(100);
+        Assert.True(TestAgent.ReceivedMessages.ContainsKey(topicType));
+        runtime.Stop();
     }
 
     [Fact]

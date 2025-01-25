@@ -14,5 +14,5 @@ public interface IAgentWorker
     ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default);
     ValueTask<AddSubscriptionResponse> SubscribeAsync(AddSubscriptionRequest request, CancellationToken cancellationToken = default);
     ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default);
-    ValueTask<List<Subscription>> GetSubscriptionsAsync();
+    ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request, CancellationToken cancellationToken = default);
 }

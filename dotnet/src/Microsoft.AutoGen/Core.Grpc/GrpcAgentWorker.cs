@@ -81,10 +81,10 @@ public sealed class GrpcAgentWorker(
                                 _logger.LogError($"Failed to register agent type '{message.RegisterAgentTypeResponse.Error}'");
                             }
                             break;
-                        case Message.MessageOneofCase.SubscriptionResponse:
-                            if (!message.SubscriptionResponse.Success)
+                        case Message.MessageOneofCase.AddSubscriptionResponse:
+                            if (!message.AddSubscriptionResponse.Success)
                             {
-                                _logger.LogError($"Failed to add subscription '{message.SubscriptionResponse.Error}'");
+                                _logger.LogError($"Failed to add subscription '{message.AddSubscriptionResponse.Error}'");
                             }
                             break;
                         case Message.MessageOneofCase.CloudEvent:
@@ -227,7 +227,7 @@ public sealed class GrpcAgentWorker(
 
                 agents.Add(agentType);
             }
-            var topicTypes = agentType.GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
+            var topicTypes = agentType.GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic).ToList();
             /*             var response = await _client.RegisterAgentAsync(new RegisterAgentTypeRequest
                         {
                             Type = type,
@@ -240,16 +240,19 @@ public sealed class GrpcAgentWorker(
                 {
                     RequestId = Guid.NewGuid().ToString(),
                     Type = type,
-                    Topics = { topicTypes },
-                    Events = { events }
+                    //Topics = { topicTypes }, //future
+                    //Events = { events }   //future
                 }
             }, cancellationToken).ConfigureAwait(false);
-
+            if (!topicTypes.Any())
+            {
+                topicTypes.Add(agentType.Name);
+            }
             foreach (var topic in topicTypes)
             {
                 var subscriptionRequest = new Message
                 {
-                    SubscriptionRequest = new SubscriptionRequest
+                    AddSubscriptionRequest = new AddSubscriptionRequest
                     {
                         RequestId = Guid.NewGuid().ToString(),
                         Subscription = new Subscription
@@ -262,13 +265,12 @@ public sealed class GrpcAgentWorker(
                         }
                     }
                 };
-                await _client.SubscribeAsync(subscriptionRequest.SubscriptionRequest, null, null, cancellationToken);
-                //await WriteChannelAsync(subscriptionRequest, cancellationToken).ConfigureAwait(true);
+                await _client.AddSubscriptionAsync(subscriptionRequest.AddSubscriptionRequest, null, null, cancellationToken);
                 foreach (var e in events)
                 {
                     subscriptionRequest = new Message
                     {
-                        SubscriptionRequest = new SubscriptionRequest
+                        AddSubscriptionRequest = new AddSubscriptionRequest
                         {
                             RequestId = Guid.NewGuid().ToString(),
                             Subscription = new Subscription
@@ -281,8 +283,7 @@ public sealed class GrpcAgentWorker(
                             }
                         }
                     };
-                    await _client.SubscribeAsync(subscriptionRequest.SubscriptionRequest, null, null, cancellationToken);
-                    //await WriteChannelAsync(subscriptionRequest, cancellationToken).ConfigureAwait(true);
+                    await _client.AddSubscriptionAsync(subscriptionRequest.AddSubscriptionRequest, null, null, cancellationToken);
                 }
             }
         }
@@ -433,24 +434,20 @@ public sealed class GrpcAgentWorker(
             throw new KeyNotFoundException($"Failed to read AgentState for {agentId}.");
         }
     }
-
-    public ValueTask<List<Subscription>> GetSubscriptionsAsync(Type type)
+    public async ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request, CancellationToken cancellationToken = default)
     {
-        var agentId = new AgentId { Type = type.Name };
-        var response = _client.GetSubscriptions(agentId);
-        return new ValueTask<List<Subscription>>([.. response.Subscriptions]);
+        var response = await _client.GetSubscriptionsAsync(request, null, null, cancellationToken);
+        return response.Subscriptions.ToList();
     }
-
-    public ValueTask<SubscriptionResponse> SubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default)
+    public ValueTask<AddSubscriptionResponse> SubscribeAsync(AddSubscriptionRequest request, CancellationToken cancellationToken = default)
     {
-        var response = _client.Subscribe(request, null, null, cancellationToken);
-        return new ValueTask<SubscriptionResponse>(response);
+        var response = _client.AddSubscription(request, null, null, cancellationToken);
+        return new ValueTask<AddSubscriptionResponse>(response);
     }
-
-    public ValueTask<SubscriptionResponse> UnsubscribeAsync(SubscriptionRequest request, CancellationToken cancellationToken = default)
+    public ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default)
     {
-        var response = _client.Unsubscribe(request, null, null, cancellationToken);
-        return new ValueTask<SubscriptionResponse>(response);
+        var response = _client.RemoveSubscription(request, null, null, cancellationToken);
+        return new ValueTask<RemoveSubscriptionResponse>(response);
     }
 }
 

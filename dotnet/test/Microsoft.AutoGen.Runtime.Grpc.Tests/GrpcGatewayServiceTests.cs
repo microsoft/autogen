@@ -42,11 +42,9 @@ public class GrpcGatewayServiceTests
         var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
         var service = new GrpcGatewayService(gateway);
         var client = new TestGrpcClient();
-        var assembly = typeof(PBAgent).Assembly;
-        var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
         var task = OpenChannel(service: service, client);
-        await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), client.CallContext.Peer), client.CallContext);
-        await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(GMAgent), client.CallContext.Peer), client.CallContext);
+        await service.RegisterAgent(await CreateRegistrationRequest(service,typeof(PBAgent), client.CallContext.Peer), client.CallContext);
+        await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(GMAgent), client.CallContext.Peer), client.CallContext);
 
         var inputEvent = new NewMessageReceived { Message = $"Start-{client.CallContext.Peer}" }.ToCloudEvent("gh-gh-gh", "gh-gh-gh");
 
@@ -54,6 +52,8 @@ public class GrpcGatewayServiceTests
         var newMessageReceived = await client.ReadNext();
         newMessageReceived!.CloudEvent.Type.Should().Be(GetFullName(typeof(NewMessageReceived)));
         newMessageReceived.CloudEvent.Source.Should().Be("gh-gh-gh");
+        var secondMessage = await client.ReadNext();
+        secondMessage!.CloudEvent.Type.Should().Be(GetFullName(typeof(NewMessageReceived)));
 
         // Simulate an agent, by publishing a new message in the request stream
         var helloEvent = new Hello { Message = $"Hello test-{client.CallContext.Peer}" }.ToCloudEvent("gh-gh-gh", "gh-gh-gh");
@@ -66,32 +66,14 @@ public class GrpcGatewayServiceTests
     }
 
     [Fact]
-    public async Task Test_Message_Goes_To_Right_Worker()
-    {
-        var logger = Mock.Of<ILogger<GrpcGateway>>();
-        var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
-        var service = new GrpcGatewayService(gateway);
-        var client = new TestGrpcClient();
-        var assembly = typeof(PBAgent).Assembly;
-        var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
-        var task = OpenChannel(service: service, client);
-        await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), client.CallContext.Peer), client.CallContext);
-        await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(GMAgent), client.CallContext.Peer), client.CallContext);
-        client.Dispose();
-        await task;
-    }
-
-    [Fact]
     public async Task Test_RegisterAgent_Should_Succeed()
     {
         var logger = Mock.Of<ILogger<GrpcGateway>>();
         var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
         var service = new GrpcGatewayService(gateway);
         var client = new TestGrpcClient();
-        var assembly = typeof(PBAgent).Assembly;
-        var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
         var task = OpenChannel(service: service, client);
-        var response = await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), client.CallContext.Peer), client.CallContext);
+        var response = await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(PBAgent), client.CallContext.Peer), client.CallContext);
         response.Success.Should().BeTrue();
         client.Dispose();
         await task;
@@ -104,9 +86,7 @@ public class GrpcGatewayServiceTests
         var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
         var service = new GrpcGatewayService(gateway);
         var client = new TestGrpcClient();
-        var assembly = typeof(PBAgent).Assembly;
-        var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
-        var response = await service.RegisterAgent(CreateRegistrationRequest(eventTypes, typeof(PBAgent), "faulty_connection_id"), client.CallContext);
+        var response = await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(PBAgent), "faulty_connection_id"), client.CallContext);
         response.Success.Should().BeFalse();
         client.Dispose();
     }
@@ -133,15 +113,65 @@ public class GrpcGatewayServiceTests
         response.Should().NotBeNull();
     }
 
-    private RegisterAgentTypeRequest CreateRegistrationRequest(AgentsMetadata eventTypes, Type type, string requestId)
+    private async Task<RegisterAgentTypeRequest> CreateRegistrationRequest(GrpcGatewayService service, Type type, string requestId)
     {
         var registration = new RegisterAgentTypeRequest
         {
             Type = type.Name,
             RequestId = requestId
         };
-        registration.Events.AddRange(eventTypes.GetEventsForAgent(type)?.ToList());
-        registration.Topics.AddRange(eventTypes.GetTopicsForAgent(type)?.ToList());
+        var assembly = type.Assembly;
+        var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
+        var events = eventTypes.GetEventsForAgent(type)?.ToList();
+        var topics = eventTypes.GetTopicsForAgent(type)?.ToList();
+        if (events is not null && topics is not null) { events.AddRange(topics); }
+        var client = new TestGrpcClient();
+
+        if (events != null)
+        {
+            foreach (var e in events)
+            {
+                var subscriptionRequest = new Message
+                {
+                    AddSubscriptionRequest = new AddSubscriptionRequest
+                    {
+                        RequestId = Guid.NewGuid().ToString(),
+                        Subscription = new Subscription
+                        {
+                            TypeSubscription = new TypeSubscription
+                            {
+                                AgentType = type.Name,
+                                TopicType = type.Name + "." + e
+                            }
+                        }
+                    }
+                };
+                await service.AddSubscription(subscriptionRequest.AddSubscriptionRequest, client.CallContext);
+            }
+        }
+        var topicTypes = type.GetCustomAttributes(typeof(TopicSubscriptionAttribute), true).Cast<TopicSubscriptionAttribute>().Select(t => t.Topic).ToList();
+        if (topicTypes != null)
+        {
+            foreach (var topicType in topicTypes)
+            {
+                var subscriptionRequest = new Message
+                {
+                    AddSubscriptionRequest = new AddSubscriptionRequest
+                    {
+                        RequestId = Guid.NewGuid().ToString(),
+                        Subscription = new Subscription
+                        {
+                            TypeSubscription = new TypeSubscription
+                            {
+                                AgentType = type.Name,
+                                TopicType = topicType
+                            }
+                        }
+                    }
+                };
+                await service.AddSubscription(subscriptionRequest.AddSubscriptionRequest, client.CallContext);
+            }
+        }
         return registration;
     }
 

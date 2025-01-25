@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// SubscriptionResponseSurrogate.cs
+// AddSubscriptionResponseSurrogate.cs
 
 using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Orleans.Surrogates;
 
 [GenerateSerializer]
-public struct SubscriptionResponseSurrogate
+public struct AddSubscriptionResponseSurrogate
 {
     [Id(0)]
     public string RequestId;
@@ -17,21 +17,21 @@ public struct SubscriptionResponseSurrogate
 }
 
 [RegisterConverter]
-public sealed class SubscriptionResponseSurrogateConverter :
-    IConverter<SubscriptionResponse, SubscriptionResponseSurrogate>
+public sealed class AddSubscriptionResponseSurrogateConverter :
+    IConverter<AddSubscriptionResponse, AddSubscriptionResponseSurrogate>
 {
-    public SubscriptionResponse ConvertFromSurrogate(
-        in SubscriptionResponseSurrogate surrogate) =>
-        new SubscriptionResponse
+    public AddSubscriptionResponse ConvertFromSurrogate(
+        in AddSubscriptionResponseSurrogate surrogate) =>
+        new AddSubscriptionResponse
         {
             RequestId = surrogate.RequestId,
             Success = surrogate.Success,
             Error = surrogate.Error
         };
 
-    public SubscriptionResponseSurrogate ConvertToSurrogate(
-        in SubscriptionResponse value) =>
-        new SubscriptionResponseSurrogate
+    public AddSubscriptionResponseSurrogate ConvertToSurrogate(
+        in AddSubscriptionResponse value) =>
+        new AddSubscriptionResponseSurrogate
         {
             RequestId = value.RequestId,
             Success = value.Success,
