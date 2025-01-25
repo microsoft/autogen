@@ -108,7 +108,7 @@ class AgenticMemoryController:
         self.logger.info("")
 
         # Add the insight to the memory bank.
-        self.memory_bank.add_insight(insight, generalized_task, topics)
+        self.memory_bank.add_insight(insight, topics, generalized_task)
 
         self.logger.leave_function()
 
@@ -126,7 +126,7 @@ class AgenticMemoryController:
         self.logger.info("")
 
         # Add the insight to the memory bank.
-        self.memory_bank.add_insight(insight, None, topics)
+        self.memory_bank.add_insight(insight, topics, None)
 
         self.logger.leave_function()
 
@@ -142,13 +142,13 @@ class AgenticMemoryController:
             generalized_task = await self.prompter.generalize_task(task)
 
             # Get a list of topics from the task.
-            topics = await self.prompter.find_index_topics(generalized_task)
+            task_topics = await self.prompter.find_index_topics(generalized_task)
             self.logger.info("\nTOPICS EXTRACTED FROM TASK:")
-            self.logger.info("\n".join(topics))
+            self.logger.info("\n".join(task_topics))
             self.logger.info("")
 
             # Retrieve relevant insights from the memory bank.
-            relevant_insights_and_relevances = self.memory_bank.get_relevant_insights(topics=topics)
+            relevant_insights_and_relevances = self.memory_bank.get_relevant_insights(task_topics=task_topics)
             relevant_insights = []
             self.logger.info("\n{} POTENTIALLY RELEVANT INSIGHTS".format(len(relevant_insights_and_relevances)))
             for insight, relevance in relevant_insights_and_relevances.items():
@@ -331,6 +331,6 @@ class AgenticMemoryController:
         self.logger.info("")
 
         # Add the insight to the memory bank.
-        self.memory_bank.add_demonstration(task, demonstration, topics)
+        self.memory_bank.add_demonstration(task=task, insight=demonstration, topics=topics)
 
         self.logger.leave_function()

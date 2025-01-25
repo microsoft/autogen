@@ -100,7 +100,7 @@ class StringSimilarityMap:
                     self.last_string_pair_id, input_text, output_text
                 )
             )
-            self._log_string_pairs()
+            # self._log_string_pairs()  # For deep debugging, uncomment to log all string pairs after each addition.
 
     def get_related_string_pairs(self, query_text: str, n_results: int, threshold: Union[int, float]) -> List[Tuple[str, str, float]]:
         """

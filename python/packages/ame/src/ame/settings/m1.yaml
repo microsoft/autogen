@@ -23,6 +23,11 @@ fast_learning_agent:
     max_test_trials: 1  # 1-3
     AgenticMemoryBank:
       path: ~/agentic_memory_bank/m1
+      relevance_conversion_threshold: 1.7
+      n_results: 25
+      distance_threshold: 100
+      StringSimilarityMap:
+        verbose: 1
   AgentWrapper:
     base_agent: MagenticOneGroupChat  # MagenticOneGroupChat, thin_agent, etc.
 

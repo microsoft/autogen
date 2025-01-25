@@ -2,7 +2,7 @@
 Evaluator:
   PageLogger:
     enabled: 1
-    path: ~/pagelogs/temp14
+    path: ~/pagelogs/temp15
 
 client:
   model: gpt-4o-2024-08-06  # gpt-4o-2024-05-13, gpt-4o-2024-08-06, o1-preview, o1, etc.
@@ -27,6 +27,9 @@ fast_learning_agent:
     max_test_trials: 1  # 1-3
     AgenticMemoryBank:
       path: ~/agentic_memory_bank/temp
+      relevance_conversion_threshold: 1.7
+      n_results: 25
+      distance_threshold: 100
       StringSimilarityMap:
         verbose: 1
   AgentWrapper:

@@ -9,6 +9,9 @@ from .page_logger import PageLogger
 
 @dataclass
 class Insight:
+    """
+    Represents a task-completion insight, which is a string that may help solve a task.
+    """
     id: str
     insight_str: str
     task_str: str
@@ -18,24 +21,22 @@ class Insight:
 class AgenticMemoryBank:
     """
     Stores task-completion insights in a vector DB for later retrieval.
-    """
 
-    def __init__(
-        self,
-        settings: Dict,
-        reset: bool,
-        logger: PageLogger,
-    ):
-        """
-        Args:
-            - reset (Optional, bool): True to clear the DB before starting. Default False
-            - logger (Optional, PageLogger): the PageLogger object to use for logging.
-        """
+    Args:
+        - settings: Settings for the memory bank.
+        - reset: True to clear the DB before starting.
+        - logger: The PageLogger object to use for logging.
+    """
+    def __init__(self, settings: Dict, reset: bool, logger: PageLogger) -> None:
+        self.settings = settings
         self.logger = logger
         self.logger.enter_function()
 
-        self.settings = settings
         memory_dir_path = os.path.expanduser(self.settings["path"])
+        self.relevance_conversion_threshold = self.settings["relevance_conversion_threshold"]
+        self.n_results = self.settings["n_results"]
+        self.distance_threshold = self.settings["distance_threshold"]
+
         path_to_db_dir = os.path.join(memory_dir_path, "string_map")
         self.path_to_dict = os.path.join(memory_dir_path, "uid_insight_dict.pkl")
 
@@ -56,58 +57,82 @@ class AgenticMemoryBank:
 
         # Clear the DB if requested.
         if reset:
-            self.reset_insights()
+            self._reset_insights()
 
         self.logger.leave_function()
 
-    def reset(self):
+    def reset(self) -> None:
+        """
+        Forces immediate deletion of all contents, in memory and on disk.
+        """
         self.string_map.reset_db()
-        self.reset_insights()
+        self._reset_insights()
 
-    def reset_insights(self):
-        """Forces immediate deletion of the insights, in memory and on disk."""
+    def _reset_insights(self) -> None:
+        """
+        Forces immediate deletion of the insights, in memory and on disk.
+        """
         self.uid_insight_dict = {}
         self.save_insights()
 
-    def contains_insights(self):
-        return len(self.uid_insight_dict) > 0
-
-    def save_insights(self):
+    def save_insights(self) -> None:
+        """
+        Saves the current insight structures (possibly empty) to disk.
+        """
         self.string_map.save_string_pairs()
         with open(self.path_to_dict, "wb") as file:
             pickle.dump(self.uid_insight_dict, file)
 
-    def add_insight(self, insight_str: str, task_str: Optional[str] = None, topics: Optional[List[str]] = None):
-        """Adds an insight to the memory bank."""
-        assert topics is not None, "For now, the topics list must be provided."
+    def contains_insights(self) -> bool:
+        """
+        Returns True if the memory bank contains any insights.
+        """
+        return len(self.uid_insight_dict) > 0
+
+    def _map_topics_to_insight(self, topics: List[str], insight_id: str, insight: Insight) -> None:
+        """
+        Adds a mapping in the vec DB from each topic to the insight.
+        """
+        self.logger.enter_function()
+        self.logger.info("\nINSIGHT\n{}".format(insight.insight_str))
+        for topic in topics:
+            self.logger.info("\n TOPIC = {}".format(topic))
+            self.string_map.add_input_output_pair(topic, insight_id)
+        self.uid_insight_dict[insight_id] = insight
+        self.logger.leave_function()
+
+    def add_insight(self, insight_str: str, topics: List[str], task_str: Optional[str] = None) -> None:
+        """
+        Adds an insight to the memory bank, given topics related to the insight, and optionally the task.
+        """
         self.last_insight_id += 1
         id_str = str(self.last_insight_id)
         insight = Insight(id=id_str, insight_str=insight_str, task_str=task_str, topics=topics)
-        for topic in topics:
-            # Add a mapping in the vec DB from each topic to the insight.
-            self.string_map.add_input_output_pair(topic, id_str)
-        self.uid_insight_dict[str(id_str)] = insight
-        self.save_insights()
+        self._map_topics_to_insight(topics, id_str, insight)
 
-    def get_relevant_insights(self, task_str: Optional[str] = None, topics: Optional[List[str]] = None):
-        """Returns any insights from the memory bank that are relevant to the given task or topics."""
-        assert (task_str is not None) or (
-            topics is not None
-        ), "Either the task string or the topics list must be provided."
-        assert topics is not None, "For now, the topics list is always required, because it won't be generated."
+    def add_demonstration(self, task: str, insight: str, topics: List[str]) -> None:
+        """
+        Adds a task-insight pair to the memory bank, to be retrieved together later.
+        This is useful when the insight is a demonstration of how to solve a given type of task.
+        """
+        self.last_insight_id += 1
+        id_str = str(self.last_insight_id)
+        # Prepend the insight to the task description for context.
+        insight_str = "Example task:\n\n{}\n\nExample solution:\n\n{}".format(task, insight)
+        insight = Insight(id=id_str, insight_str=insight_str, task_str=task, topics=topics)
+        self._map_topics_to_insight(topics, id_str, insight)
 
-        # Build a dict of insight-relevance pairs.
-        insight_relevance_dict = {}
-        relevance_conversion_threshold = (
-            1.7  # The approximate borderline between relevant and irrelevant topic matches.
-        )
-
-        # Process the matching topics.
+    def get_relevant_insights(self, task_topics: List[str]) -> Dict[str, float]:
+        """
+        Returns any insights from the memory bank that appear sufficiently relevant to the given task topics.
+        """
+        # Process the matching topics to build a dict of insight-relevance pairs.
         matches = []  # Each match is a tuple: (topic, insight, distance)
-        for topic in topics:
-            matches.extend(self.string_map.get_related_string_pairs(topic, 25, 100))
+        insight_relevance_dict = {}
+        for topic in task_topics:
+            matches.extend(self.string_map.get_related_string_pairs(topic, self.n_results, self.distance_threshold))
         for match in matches:
-            relevance = relevance_conversion_threshold - match[2]
+            relevance = self.relevance_conversion_threshold - match[2]
             insight_id = match[1]
             insight_str = self.uid_insight_dict[insight_id].insight_str
             if insight_str in insight_relevance_dict:
@@ -121,15 +146,3 @@ class AgenticMemoryBank:
                 del insight_relevance_dict[insight]
 
         return insight_relevance_dict
-
-    def add_demonstration(self, task: str, demonstration: str, topics: List[str]):
-        """Adds a task-demonstration pair (as a single insight) to the memory bank."""
-        self.last_insight_id += 1
-        id_str = str(self.last_insight_id)
-        insight_str = "Example task:\n\n{}\n\nExample solution:\n\n{}".format(task, demonstration)
-        insight = Insight(id=id_str, insight_str=insight_str, task_str=task, topics=topics)
-        for topic in topics:
-            # Add a mapping in the vec DB from each topic to the insight.
-            self.string_map.add_input_output_pair(topic, id_str)
-        self.uid_insight_dict[str(id_str)] = insight
-        self.save_insights()
