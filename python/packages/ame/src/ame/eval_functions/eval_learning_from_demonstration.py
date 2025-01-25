@@ -1,5 +1,17 @@
-async def eval_learning_from_demonstration(fast_learner, evaluator, client, logger, settings, run_dict):
-    """An evaluation"""
+from typing import Dict
+
+from autogen_core.models import (
+    ChatCompletionClient,
+)
+from autogen_ext.apprentice import Apprentice, Grader, PageLogger
+from ..eval import Evaluator
+
+
+async def eval_learning_from_demonstration(fast_learner: Apprentice, evaluator: Evaluator, client: ChatCompletionClient,
+                                           logger: PageLogger, settings: Dict, run_dict: Dict) -> str:
+    """
+    Evaluates the ability to learn quickly from demonstrations.
+    """
     logger.enter_function()
 
     num_trials = settings["num_trials"]

@@ -1,8 +1,17 @@
-from autogen_ext.apprentice import Grader
+from typing import Dict
+
+from autogen_core.models import (
+    ChatCompletionClient,
+)
+from autogen_ext.apprentice import Apprentice, Grader, PageLogger
+from ..eval import Evaluator
 
 
-async def eval_teachability(fast_learner, evaluator, client, logger, settings, run_dict):
-    """An evaluation"""
+async def eval_teachability(fast_learner: Apprentice, evaluator: Evaluator, client: ChatCompletionClient,
+                            logger: PageLogger, settings: Dict, run_dict: Dict) -> str:
+    """
+    Evalutes the ability to learn quickly from user teachings, hints, and advice.
+    """
     logger.enter_function()
 
     # This eval function needs 2 data strings for each run.

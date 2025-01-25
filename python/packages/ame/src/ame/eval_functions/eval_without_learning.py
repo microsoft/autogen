@@ -1,5 +1,17 @@
-async def eval_without_learning(fast_learner, evaluator, client, logger, settings, run_dict):
-    """An evaluation"""
+from typing import Dict
+
+from autogen_core.models import (
+    ChatCompletionClient,
+)
+from autogen_ext.apprentice import Apprentice, Grader, PageLogger
+from ..eval import Evaluator
+
+
+async def eval_without_learning(fast_learner: Apprentice, evaluator: Evaluator, client: ChatCompletionClient,
+                                logger: PageLogger, settings: Dict, run_dict: Dict) -> str:
+    """
+    Performs an evaluation without the benefit of memory.
+    """
     logger.enter_function()
 
     num_trials = settings["num_trials"]
@@ -21,6 +33,8 @@ async def eval_without_learning(fast_learner, evaluator, client, logger, setting
         logger=logger,
     )
     success_rate = round((num_successes / num_trials) * 100)
-    logger.info("\nSuccess rate:  {}%\n".format(success_rate))
+    results_str = "Success rate:  {}%".format(success_rate)
+    logger.info("\n" + results_str)
 
     logger.leave_function()
+    return "\neval_without_learning\n" + results_str
