@@ -66,10 +66,7 @@ class TeamManager:
         # Use Component.load_component directly
         team = Team.load_component(config)
         
-        # Set input function if provided
-        if input_func and hasattr(team, "set_input_func"):
-            team.set_input_func(input_func)
-            
+        # TBD - set input function 
         return team
 
     async def run_stream(
