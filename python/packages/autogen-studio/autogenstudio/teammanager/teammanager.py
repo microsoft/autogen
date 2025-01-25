@@ -34,19 +34,28 @@ class TeamManager:
                 return yaml.safe_load(content)
             raise ValueError(f"Unsupported file format: {path.suffix}")
 
-    @staticmethod 
+    @staticmethod
     async def load_from_directory(directory: Union[str, Path]) -> List[dict]:
-        """Load all team configurations from a directory"""
+        """Load all team configurations from a directory
+        
+        Args:
+            directory (Union[str, Path]): Path to directory containing config files
+            
+        Returns:
+            List[dict]: List of loaded team configurations
+        """
         directory = Path(directory)
         configs = []
+        valid_extensions = {'.json', '.yaml', '.yml'}
         
-        for path in directory.glob("*.[json,yaml,yml]"):
-            try:
-                config = await TeamManager.load_from_file(path)
-                configs.append(config)
-            except Exception as e:
-                logger.error(f"Failed to load {path}: {e}")
-                
+        for path in directory.iterdir():
+            if path.is_file() and path.suffix.lower() in valid_extensions:
+                try:
+                    config = await TeamManager.load_from_file(path)
+                    configs.append(config)
+                except Exception as e:
+                    logger.error(f"Failed to load {path}: {e}")
+                    
         return configs
 
     async def _create_team(
