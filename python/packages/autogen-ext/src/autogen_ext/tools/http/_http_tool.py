@@ -1,5 +1,4 @@
-import json
-from typing import Any, Optional, Type
+from typing import Any, Literal, Optional, Type
 
 import httpx
 from autogen_core import CancellationToken, Component
@@ -20,6 +19,10 @@ class HttpToolConfig(BaseModel):
     url: str
     """
     The URL to send the request to.
+    """
+    method: Optional[Literal["GET", "POST", "PUT", "DELETE", "PATCH"]] = "POST"
+    """
+    The HTTP method to use, will default to POST if not provided.
     """
     headers: Optional[dict[str, Any]]
     """
@@ -54,6 +57,15 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
 
         super().__init__(input_model, return_type, name, description)
 
+    def _to_config(self) -> HttpToolConfig:
+        copied_config = self.server_params.copy()
+        return copied_config
+
+    @classmethod
+    def _from_config(cls, config: HttpToolConfig):
+        copied_config = config.model_copy().model_dump(exclude_none=True)
+        return cls(**copied_config)
+
     async def run(self, args: BaseModel, cancellation_token: CancellationToken) -> Any:
         """Execute the MCP tool with the given arguments.
 
@@ -69,6 +81,16 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
         """
 
         async with httpx.AsyncClient() as client:
-            response = await client.post(self.server_params.url, json=args.model_dump())
+            match self.server_params.method:
+                case "GET":
+                    response = await client.get(self.server_params.url, params=args.model_dump())
+                case "PUT":
+                    response = await client.put(self.server_params.url, json=args.model_dump())
+                case "DELETE":
+                    response = await client.delete(self.server_params.url, params=args.model_dump())
+                case "PATCH":
+                    response = await client.patch(self.server_params.url, json=args.model_dump())
+                case _: # Default case
+                    response = await client.post(self.server_params.url, json=args.model_dump())
 
         return response.json()
