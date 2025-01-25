@@ -1,3 +1,3 @@
-from ._http_tool import HttpTool, HttpToolConfig
+from ._http_tool import HttpTool
 
-__all__ = ["HttpTool", "HttpToolConfig"]
+__all__ = ["HttpTool"]
