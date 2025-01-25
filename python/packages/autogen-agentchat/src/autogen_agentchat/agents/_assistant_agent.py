@@ -130,7 +130,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     Args:
         name (str): The name of the agent.
         model_client (ChatCompletionClient): The model client to use for inference.
-        tools (List[BaseTool[BaseModel, BaseModel]  | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional): The tools to register with the agent.
+        tools (List[BaseTool[Any, Any]  | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional): The tools to register with the agent.
         handoffs (List[HandoffBase | str] | None, optional): The handoff configurations for the agent,
             allowing it to transfer to other agents by responding with a :class:`HandoffMessage`.
             The transfer is only executed when the team is in :class:`~autogen_agentchat.teams.Swarm`.
@@ -261,7 +261,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         name: str,
         model_client: ChatCompletionClient,
         *,
-        tools: List[BaseTool[BaseModel, BaseModel] | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
+        tools: List[BaseTool[Any, Any] | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
         handoffs: List[HandoffBase | str] | None = None,
         model_context: ChatCompletionContext | None = None,
         description: str = "An agent that provides assistance with ability to use tools.",
@@ -288,7 +288,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             self._system_messages = []
         else:
             self._system_messages = [SystemMessage(content=system_message)]
-        self._tools: List[BaseTool[BaseModel, BaseModel]] = []
+        self._tools: List[BaseTool[Any, Any]] = []
         if tools is not None:
             if model_client.model_info["function_calling"] is False:
                 raise ValueError("The model does not support function calling.")
@@ -308,7 +308,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         if len(tool_names) != len(set(tool_names)):
             raise ValueError(f"Tool names must be unique: {tool_names}")
         # Handoff tools.
-        self._handoff_tools: List[BaseTool[BaseModel, BaseModel]] = []
+        self._handoff_tools: List[BaseTool[Any, Any]] = []
         self._handoffs: Dict[str, HandoffBase] = {}
         if handoffs is not None:
             if model_client.model_info["function_calling"] is False:
