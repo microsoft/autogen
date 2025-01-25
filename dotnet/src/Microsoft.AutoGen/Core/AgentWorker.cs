@@ -2,7 +2,9 @@
 // AgentWorker.cs
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using System.Threading.Channels;
+using Google.Protobuf;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -38,15 +40,26 @@ public class AgentWorker(
     private Task? _mailboxTask;
     private readonly object _channelLock = new();
 
-    /// <inheritdoc />
-    public async ValueTask RuntimePublishEventAsync(CloudEvent cloudEvent, CancellationToken cancellationToken = default)
+    /// <summary>
+    /// DispatchEventsToAgentsAsync
+    /// writes CloudEvent to Agents
+    /// </summary>
+    /// <param name="cloudEvent">The CloudEvent to dispatch.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    private async ValueTask DispatchEventsToAgentsAsync(CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
+        var taskList = new List<Task>(capacity: _agentTypes.Count);
         foreach (var (typeName, _) in _agentTypes)
         {
             if (typeName == nameof(Client)) { continue; }
-            var agent = GetOrActivateAgent(new AgentId { Type = typeName, Key = cloudEvent.GetSubject() });
-            agent.ReceiveMessage(new Message { CloudEvent = cloudEvent });
+            var task = Task.Run(async () =>
+            {
+                var agent = GetOrActivateAgent(new AgentId { Type = typeName, Key = cloudEvent.GetSubject() });
+                agent.ReceiveMessage(new Message { CloudEvent = cloudEvent });
+            }, cancellationToken);
+            taskList.Add(task);
         }
+        await Task.WhenAll(taskList).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
@@ -290,5 +303,28 @@ public class AgentWorker(
             subscriptions.AddRange(value);
         }
         return new ValueTask<List<Subscription>>(subscriptions);
+    }
+
+    public async ValueTask PublishMessageAsync(Message message, TopicId topic, Agent? sender, CancellationToken? cancellationToken = default)
+    {
+        var topicString = topic.Type + "." + topic.Source;
+        sender ??= serviceProvider.GetRequiredService<Client>();
+        await PublishEventAsync(message.ToCloudEvent(key: sender.GetType().Name, topic: topicString), sender, cancellationToken.GetValueOrDefault()).ConfigureAwait(false); 
+        throw new NotImplementedException();
+    }
+    public async ValueTask PublishEventAsync(CloudEvent item, Agent sender, CancellationToken cancellationToken = default)
+    {
+        var activity = Agent.s_source.StartActivity($"PublishEventAsync '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
+        activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
+
+        IAgentWorkerExtensions.Update(this, item, activity);
+        await sender.InvokeWithActivityAsync<(AgentWorker Worker, CloudEvent Event)>(
+            async (state, ct) =>
+            {
+                await DispatchEventsToAgentsAsync(state.Event, cancellationToken).ConfigureAwait(false);
+            },
+            (this, item),
+            activity,
+            item.Type, cancellationToken).ConfigureAwait(false);
     }
 }
