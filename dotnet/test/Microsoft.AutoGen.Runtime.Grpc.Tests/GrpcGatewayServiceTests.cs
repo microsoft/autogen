@@ -43,7 +43,7 @@ public class GrpcGatewayServiceTests
         var service = new GrpcGatewayService(gateway);
         var client = new TestGrpcClient();
         var task = OpenChannel(service: service, client);
-        await service.RegisterAgent(await CreateRegistrationRequest(service,typeof(PBAgent), client.CallContext.Peer), client.CallContext);
+        await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(PBAgent), client.CallContext.Peer), client.CallContext);
         await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(GMAgent), client.CallContext.Peer), client.CallContext);
 
         var inputEvent = new NewMessageReceived { Message = $"Start-{client.CallContext.Peer}" }.ToCloudEvent("gh-gh-gh", "gh-gh-gh");
