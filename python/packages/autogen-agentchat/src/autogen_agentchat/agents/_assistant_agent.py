@@ -130,7 +130,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     Args:
         name (str): The name of the agent.
         model_client (ChatCompletionClient): The model client to use for inference.
-        tools (List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional): The tools to register with the agent.
+        tools (List[BaseTool[BaseModel, BaseModel]  | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional): The tools to register with the agent.
         handoffs (List[HandoffBase | str] | None, optional): The handoff configurations for the agent,
             allowing it to transfer to other agents by responding with a :class:`HandoffMessage`.
             The transfer is only executed when the team is in :class:`~autogen_agentchat.teams.Swarm`.
