@@ -3,11 +3,11 @@ from typing import Dict
 from autogen_core.models import (
     ChatCompletionClient,
 )
-from autogen_ext.apprentice import Apprentice, Grader, PageLogger
+from autogen_ext.agentic_memory import Apprentice, Grader, PageLogger
 from ..eval import Evaluator
 
 
-async def eval_self_teaching(fast_learner: Apprentice, evaluator: Evaluator, client: ChatCompletionClient,
+async def eval_self_teaching(apprentice: Apprentice, evaluator: Evaluator, client: ChatCompletionClient,
                              logger: PageLogger, settings: Dict, run_dict: Dict) -> str:
     """
     Evaluates the ability of an agent to learn quickly from its own trial and error.
@@ -26,18 +26,18 @@ async def eval_self_teaching(fast_learner: Apprentice, evaluator: Evaluator, cli
     task_description_2, expected_answer_2 = evaluator.get_task_description_and_answer_from_file(task_file_2)
 
     # Start the test with empty memory.
-    fast_learner.reset_memory()
+    apprentice.reset_memory()
 
     total_num_successes_1 = 0
     total_num_successes_2 = 0
     total_num_trials = 0
     for i in range(num_loops):
         # Train on the first task.
-        await fast_learner.train_on_task(task=task_description_1, expected_answer=expected_answer_1)
+        await apprentice.train_on_task(task=task_description_1, expected_answer=expected_answer_1)
 
         # Test on the first task.
-        num_successes, num_trials = await evaluator.test_fast_learner(
-            fast_learner=fast_learner,
+        num_successes, num_trials = await evaluator.test_apprentice(
+            apprentice=apprentice,
             task_description=task_description_1,
             expected_answer=expected_answer_1,
             num_trials=num_final_test_trials,
@@ -49,8 +49,8 @@ async def eval_self_teaching(fast_learner: Apprentice, evaluator: Evaluator, cli
         total_num_successes_1 += num_successes
 
         # Test on the second task.
-        num_successes, num_trials = await evaluator.test_fast_learner(
-            fast_learner=fast_learner,
+        num_successes, num_trials = await evaluator.test_apprentice(
+            apprentice=apprentice,
             task_description=task_description_2,
             expected_answer=expected_answer_2,
             num_trials=num_final_test_trials,

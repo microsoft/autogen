@@ -15,9 +15,7 @@ client:
   top_p: 1.0
   max_retries: 65535
 
-fast_learning_agent:
-  class_name: Apprentice
-  module_path: autogen_ext.apprentice
+Apprentice:
   AgenticMemoryController:
     max_train_trials: 2  # 2-10
     max_test_trials: 1  # 1-3

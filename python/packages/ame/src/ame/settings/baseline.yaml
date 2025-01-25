@@ -19,9 +19,7 @@ client:
     mode: check-replay  # pass-through, record, or check-replay
     session_name: short-3
 
-fast_learning_agent:
-  class_name: Apprentice
-  module_path: autogen_ext.apprentice
+Apprentice:
   AgenticMemoryController:
     max_train_trials: 2  # 2-10
     max_test_trials: 1  # 1-3

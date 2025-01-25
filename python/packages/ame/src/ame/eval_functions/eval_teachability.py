@@ -3,11 +3,11 @@ from typing import Dict
 from autogen_core.models import (
     ChatCompletionClient,
 )
-from autogen_ext.apprentice import Apprentice, Grader, PageLogger
+from autogen_ext.agentic_memory import Apprentice, Grader, PageLogger
 from ..eval import Evaluator
 
 
-async def eval_teachability(fast_learner: Apprentice, evaluator: Evaluator, client: ChatCompletionClient,
+async def eval_teachability(apprentice: Apprentice, evaluator: Evaluator, client: ChatCompletionClient,
                             logger: PageLogger, settings: Dict, run_dict: Dict) -> str:
     """
     Evalutes the ability to learn quickly from user teachings, hints, and advice.
@@ -23,9 +23,9 @@ async def eval_teachability(fast_learner: Apprentice, evaluator: Evaluator, clie
     advice = evaluator.get_advice_from_file(advice_file)
 
     # First test without memory.
-    fast_learner.reset_memory()
+    apprentice.reset_memory()
     logger.info("\nClear memory, then ask the question.")
-    response = await fast_learner.handle_user_message(task_description)
+    response = await apprentice.handle_user_message(task_description)
 
     # Check the response.
     grader = Grader(client, logger)
@@ -41,11 +41,11 @@ async def eval_teachability(fast_learner: Apprentice, evaluator: Evaluator, clie
 
     # Give advice that should help solve this task.
     logger.info("Give the advice.")
-    await fast_learner.handle_user_message(advice)
+    await apprentice.handle_user_message(advice)
 
     # Now ask the question again to see if the advice helps.
     logger.info("\nAsk the question again to see if the advice helps.")
-    response = await fast_learner.handle_user_message(task_description)
+    response = await apprentice.handle_user_message(task_description)
 
     # Check the response.
     response_is_correct, extracted_answer = await grader.is_response_correct(

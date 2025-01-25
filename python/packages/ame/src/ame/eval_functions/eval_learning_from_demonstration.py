@@ -3,11 +3,11 @@ from typing import Dict
 from autogen_core.models import (
     ChatCompletionClient,
 )
-from autogen_ext.apprentice import Apprentice, Grader, PageLogger
+from autogen_ext.agentic_memory import Apprentice, Grader, PageLogger
 from ..eval import Evaluator
 
 
-async def eval_learning_from_demonstration(fast_learner: Apprentice, evaluator: Evaluator, client: ChatCompletionClient,
+async def eval_learning_from_demonstration(apprentice: Apprentice, evaluator: Evaluator, client: ChatCompletionClient,
                                            logger: PageLogger, settings: Dict, run_dict: Dict) -> str:
     """
     Evaluates the ability to learn quickly from demonstrations.
@@ -28,9 +28,9 @@ async def eval_learning_from_demonstration(fast_learner: Apprentice, evaluator: 
 
     # Start by clearing memory then running a baseline test.
     logger.info("To get a baseline, clear memory, then assign the task.")
-    fast_learner.reset_memory()
-    num_successes, num_trials = await evaluator.test_fast_learner(
-        fast_learner=fast_learner,
+    apprentice.reset_memory()
+    num_successes, num_trials = await evaluator.test_apprentice(
+        apprentice=apprentice,
         task_description=task_description_1,
         expected_answer=expected_answer_1,
         num_trials=num_trials,
@@ -44,12 +44,12 @@ async def eval_learning_from_demonstration(fast_learner: Apprentice, evaluator: 
 
     # Provide a demonstration for a similar but different task.
     logger.info("Demonstrate a solution to a similar task.")
-    await fast_learner.add_task_solution_pair_to_memory(demo_task, demo_solution)
+    await apprentice.add_task_solution_pair_to_memory(demo_task, demo_solution)
 
     # Now test again to see if the demonstration (retrieved from memory) helps.
     logger.info("Assign the task again to see if the demonstration helps.")
-    num_successes, num_trials = await evaluator.test_fast_learner(
-        fast_learner=fast_learner,
+    num_successes, num_trials = await evaluator.test_apprentice(
+        apprentice=apprentice,
         task_description=task_description_1,
         expected_answer=expected_answer_1,
         num_trials=num_trials,

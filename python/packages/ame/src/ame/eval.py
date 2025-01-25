@@ -5,7 +5,7 @@ import sys
 from typing import Tuple
 
 import yaml
-from autogen_ext.apprentice import Grader, PageLogger
+from autogen_ext.agentic_memory import Grader, PageLogger, Apprentice
 
 from ame.clients._client_creator import ClientCreator
 
@@ -38,12 +38,12 @@ class Evaluator:
             demo_dict = yaml.load(file, Loader=yaml.FullLoader)
             return demo_dict["demo"]
 
-    async def test_fast_learner(
-        self, fast_learner, task_description, expected_answer, num_trials, use_memory, client, logger
+    async def test_apprentice(
+        self, apprentice, task_description, expected_answer, num_trials, use_memory, client, logger
     ) -> Tuple[int, int]:
         logger.enter_function()
 
-        self.logger.info("Testing the fast learner on the given task.\n")
+        self.logger.info("Testing the apprentice on the given task.\n")
 
         grader = Grader(client, logger)
         num_successes = 0
@@ -51,7 +51,7 @@ class Evaluator:
         for trial in range(num_trials):
             self.logger.info("\n-----  TRIAL {}  -----\n".format(trial + 1))
             self.logger.info("Try to solve the task.\n")
-            response = await fast_learner.assign_task(task_description, use_memory=use_memory)
+            response = await apprentice.assign_task(task_description, use_memory=use_memory)
             response_is_correct, extracted_answer = await grader.is_response_correct(
                 task_description, response, expected_answer
             )
@@ -69,29 +69,13 @@ class Evaluator:
     async def perform_evaluations(self, settings):
         self.logger.enter_function()
 
-        # Create the client, passed to both the fast_learner and the evaluator.
+        # Create the client, which is passed to both the apprentice and the evaluator.
         client_creator = ClientCreator(settings=settings["client"], logger=self.logger)
         client = client_creator.create_client()
 
-        # Create the specified fast_learner implementation.
-        fast_learner_settings = settings["fast_learning_agent"]
-        module_path = fast_learner_settings["module_path"]
-        try:
-            module = importlib.import_module(module_path)
-        except ModuleNotFoundError:
-            print("Failed to import {}".format(module_path))
-            raise
-        class_name = fast_learner_settings["class_name"]
-        try:
-            fast_learner_class = getattr(module, class_name)
-        except AttributeError:
-            print("Failed to import {}.{}".format(module_path, class_name))
-            raise
-        try:
-            fast_learner = fast_learner_class(fast_learner_settings, self, client, self.logger)
-        except Exception as err:
-            print('Error creating "{}": {}'.format(fast_learner_class, err))
-            raise
+        # Create the apprentice.
+        apprentice_settings = settings["Apprentice"]
+        apprentice = Apprentice(apprentice_settings, self, client, self.logger)
 
         # Execute each evaluation.
         for evaluation_settings in settings["evaluations"]:
@@ -112,7 +96,7 @@ class Evaluator:
 
             # Call the eval function for each listed run.
             for run_dict in evaluation_settings["runs"]:
-                results = await eval_function(fast_learner, self, client, self.logger, function_settings, run_dict)
+                results = await eval_function(apprentice, self, client, self.logger, function_settings, run_dict)
                 print(results)
 
         if hasattr(client, "finalize"):
