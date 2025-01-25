@@ -76,7 +76,7 @@ public abstract class Agent
                 }
             };
             // explicitly wait for this to complete
-            Worker.SubscribeAsync(subscriptionRequest).AsTask().Wait();
+            Worker.AddSubscriptionAsync(subscriptionRequest).AsTask().Wait();
         }
 
         // using reflection, find all methods that Handle<T> and subscribe to the topic T
@@ -192,7 +192,7 @@ public abstract class Agent
                 }
             }
         };
-        var subscriptionResponse = await Worker.SubscribeAsync(subscriptionRequest).ConfigureAwait(true);
+        var subscriptionResponse = await Worker.AddSubscriptionAsync(subscriptionRequest).ConfigureAwait(true);
         if (!subscriptionResponse.Success)
         {
             _logger.LogError($"{GetType}{AgentId.Key}: Failed to unsubscribe from topic {topic}");
@@ -205,7 +205,7 @@ public abstract class Agent
         {
             Id = id.ToString()
         };
-        var subscriptionResponse = await Worker.UnsubscribeAsync(subscriptionRequest).ConfigureAwait(true);
+        var subscriptionResponse = await Worker.RemoveSubscriptionAsync(subscriptionRequest).ConfigureAwait(true);
         if (!subscriptionResponse.Success)
         {
             _logger.LogError($"{GetType}{AgentId.Key}: Failed to unsubscribe from Subscription {id}");
@@ -227,12 +227,12 @@ public abstract class Agent
     }
     public async Task StoreAsync(AgentState state, CancellationToken cancellationToken = default)
     {
-        await Worker.StoreAsync(state, cancellationToken).ConfigureAwait(false);
+        await Worker.SaveStateAsync(state, cancellationToken).ConfigureAwait(false);
         return;
     }
     public async Task<T> ReadAsync<T>(AgentId agentId, CancellationToken cancellationToken = default) where T : IMessage, new()
     {
-        var agentstate = await Worker.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
+        var agentstate = await Worker.LoadStateAsync(agentId, cancellationToken).ConfigureAwait(false);
         return agentstate.FromAgentState<T>();
     }
     private void OnResponseCore(RpcResponse response)
@@ -263,7 +263,7 @@ public abstract class Agent
         }
         response.RequestId = request.RequestId;
 
-        await Worker.SendResponseAsync(response, cancellationToken).ConfigureAwait(false);
+        await Worker.RuntimeSendResponseAsync(response, cancellationToken).ConfigureAwait(false);
     }
 
     protected async Task<RpcResponse> RequestAsync(AgentId target, string method, Dictionary<string, string> parameters)
@@ -295,7 +295,7 @@ public abstract class Agent
 
                 self._pendingRequests.AddOrUpdate(request.RequestId, _ => completion, (_, __) => completion);
 
-                await state.Item1.Worker!.SendRequestAsync(state.Item1, state.request, ct).ConfigureAwait(false);
+                await state.Item1.Worker!.RuntimeSendRequestAsync(state.Item1, state.request, ct).ConfigureAwait(false);
 
                 await completion.Task.ConfigureAwait(false);
             },
@@ -388,7 +388,7 @@ public abstract class Agent
         await this.InvokeWithActivityAsync(
             static async ((Agent Agent, CloudEvent Event) state, CancellationToken ct) =>
             {
-                await state.Agent.Worker.PublishEventAsync(state.Event).ConfigureAwait(false);
+                await state.Agent.Worker.RuntimePublishEventAsync(state.Event).ConfigureAwait(false);
             },
             (this, item),
             activity,

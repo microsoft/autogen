@@ -29,7 +29,7 @@ public class AgentWorker(
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
     private readonly ConcurrentDictionary<string, (Agent Agent, string OriginalRequestId)> _pendingClientRequests = new();
     private readonly CancellationTokenSource _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
-    public IServiceProvider ServiceProvider { get; } = serviceProvider;
+    public IServiceProvider RuntimeServiceProvider { get; } = serviceProvider;
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes = configuredAgentTypes;
     private readonly ConcurrentDictionary<string, List<Subscription>> _subscriptionsByAgentType = new();
     private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
@@ -39,7 +39,7 @@ public class AgentWorker(
     private readonly object _channelLock = new();
 
     /// <inheritdoc />
-    public async ValueTask PublishEventAsync(CloudEvent cloudEvent, CancellationToken cancellationToken = default)
+    public async ValueTask RuntimePublishEventAsync(CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
         foreach (var (typeName, _) in _agentTypes)
         {
@@ -50,7 +50,7 @@ public class AgentWorker(
     }
 
     /// <inheritdoc />
-    public async ValueTask SendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask RuntimeSendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         var requestId = Guid.NewGuid().ToString();
         _pendingClientRequests[requestId] = (agent, request.RequestId);
@@ -59,19 +59,19 @@ public class AgentWorker(
     }
 
     /// <inheritdoc />
-    public ValueTask SendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
+    public ValueTask RuntimeSendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
     {
         return _mailbox.Writer.WriteAsync(new Message { Response = response }, cancellationToken);
     }
 
     /// <inheritdoc />
-    public ValueTask SendMessageAsync(Message message, CancellationToken cancellationToken = default)
+    public ValueTask RuntimeWriteMessage(Message message, CancellationToken cancellationToken = default)
     {
         return _mailbox.Writer.WriteAsync(message, cancellationToken);
     }
 
     /// <inheritdoc />
-    public ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
+    public ValueTask SaveStateAsync(AgentState value, CancellationToken cancellationToken = default)
     {
         var agentId = value.AgentId ?? throw new InvalidOperationException("AgentId is required when saving AgentState.");
         var response = _agentStates.AddOrUpdate(agentId.ToString(), value, (key, oldValue) => value);
@@ -79,7 +79,7 @@ public class AgentWorker(
     }
 
     /// <inheritdoc />
-    public ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
+    public ValueTask<AgentState> LoadStateAsync(AgentId agentId, CancellationToken cancellationToken = default)
     {
         _agentStates.TryGetValue(agentId.ToString(), out var state);
         if (state is not null && state.AgentId is not null)
@@ -116,7 +116,7 @@ public class AgentWorker(
                         }
                         break;
                     case Message msg when msg.AddSubscriptionRequest != null:
-                        await SubscribeAsync(msg.AddSubscriptionRequest).ConfigureAwait(true);
+                        await AddSubscriptionAsync(msg.AddSubscriptionRequest).ConfigureAwait(true);
                         break;
                     case Message msg when msg.AddSubscriptionResponse != null:
                         break;
@@ -135,7 +135,7 @@ public class AgentWorker(
             }
         }
     }
-    public async ValueTask<AddSubscriptionResponse> SubscribeAsync(AddSubscriptionRequest subscription, CancellationToken cancellationToken = default)
+    public async ValueTask<AddSubscriptionResponse> AddSubscriptionAsync(AddSubscriptionRequest subscription, CancellationToken cancellationToken = default)
     {
         var topic = subscription.Subscription.TypeSubscription.TopicType;
         var agentType = subscription.Subscription.TypeSubscription.AgentType;
@@ -153,7 +153,7 @@ public class AgentWorker(
         };
         return response;
     }
-    public async ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<RemoveSubscriptionResponse> RemoveSubscriptionAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default)
     {
         if (!Guid.TryParse(request.Id, out var id))
         {
@@ -258,7 +258,7 @@ public class AgentWorker(
         {
             if (_agentTypes.TryGetValue(agentId.Type, out var agentType))
             {
-                using (var scope = ServiceProvider.CreateScope())
+                using (var scope = RuntimeServiceProvider.CreateScope())
                 {
                     var scopedProvider = scope.ServiceProvider;
                     agent = (Agent)ActivatorUtilities.CreateInstance(scopedProvider, agentType);

@@ -41,7 +41,7 @@ public sealed class GrpcAgentWorker(
     private Task? _readTask;
     private Task? _writeTask;
 
-    IServiceProvider IAgentWorker.ServiceProvider => ServiceProvider;
+    IServiceProvider IAgentWorker.RuntimeServiceProvider => ServiceProvider;
     public void Dispose()
     {
         _outboundMessagesChannel.Writer.TryComplete();
@@ -289,12 +289,12 @@ public sealed class GrpcAgentWorker(
         }
     }
     // new is intentional
-    public async ValueTask SendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
+    public async ValueTask RuntimeSendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
     {
         await WriteChannelAsync(new Message { Response = response }, cancellationToken).ConfigureAwait(false);
     }
 
-    public async ValueTask SendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask RuntimeSendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         var requestId = Guid.NewGuid().ToString();
         _pendingRequests[requestId] = (agent, request.RequestId);
@@ -302,12 +302,12 @@ public sealed class GrpcAgentWorker(
         await WriteChannelAsync(new Message { Request = request }, cancellationToken).ConfigureAwait(false);
     }
 
-    public async ValueTask SendMessageAsync(Message message, CancellationToken cancellationToken = default)
+    public async ValueTask RuntimeWriteMessage(Message message, CancellationToken cancellationToken = default)
     {
         await WriteChannelAsync(message, cancellationToken).ConfigureAwait(false);
     }
 
-    public async ValueTask PublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default)
+    public async ValueTask RuntimePublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default)
     {
         await WriteChannelAsync(new Message { CloudEvent = @event }, cancellationToken).ConfigureAwait(false);
     }
@@ -411,7 +411,7 @@ public sealed class GrpcAgentWorker(
         }
     }
 
-    public async ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
+    public async ValueTask SaveStateAsync(AgentState value, CancellationToken cancellationToken = default)
     {
         var agentId = value.AgentId ?? throw new InvalidOperationException("AgentId is required when saving AgentState.");
         var response = _client.SaveState(value, null, null, cancellationToken);
@@ -421,7 +421,7 @@ public sealed class GrpcAgentWorker(
         }
     }
 
-    public async ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
+    public async ValueTask<AgentState> LoadStateAsync(AgentId agentId, CancellationToken cancellationToken = default)
     {
         var response = await _client.GetStateAsync(agentId).ConfigureAwait(true);
         //        if (response.Success && response.AgentState.AgentId is not null) - why is success always false?
@@ -439,12 +439,12 @@ public sealed class GrpcAgentWorker(
         var response = await _client.GetSubscriptionsAsync(request, null, null, cancellationToken);
         return response.Subscriptions.ToList();
     }
-    public ValueTask<AddSubscriptionResponse> SubscribeAsync(AddSubscriptionRequest request, CancellationToken cancellationToken = default)
+    public ValueTask<AddSubscriptionResponse> AddSubscriptionAsync(AddSubscriptionRequest request, CancellationToken cancellationToken = default)
     {
         var response = _client.AddSubscription(request, null, null, cancellationToken);
         return new ValueTask<AddSubscriptionResponse>(response);
     }
-    public ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default)
+    public ValueTask<RemoveSubscriptionResponse> RemoveSubscriptionAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default)
     {
         var response = _client.RemoveSubscription(request, null, null, cancellationToken);
         return new ValueTask<RemoveSubscriptionResponse>(response);
