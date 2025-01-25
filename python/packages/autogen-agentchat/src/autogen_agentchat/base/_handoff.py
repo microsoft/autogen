@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Dict
 
-from autogen_core.tools import FunctionTool, Tool
+from autogen_core.tools import FunctionTool, BaseTool
 from pydantic import BaseModel, Field, model_validator
 
 from .. import EVENT_LOGGER_NAME
@@ -47,7 +47,7 @@ class Handoff(BaseModel):
         return values
 
     @property
-    def handoff_tool(self) -> Tool:
+    def handoff_tool(self) -> BaseTool[BaseModel, BaseModel]:
         """Create a handoff tool from this handoff configuration."""
 
         def _handoff_tool() -> str:
