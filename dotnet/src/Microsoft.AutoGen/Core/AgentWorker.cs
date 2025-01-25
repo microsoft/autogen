@@ -4,7 +4,6 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Threading.Channels;
-using Google.Protobuf;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -308,7 +307,7 @@ public class AgentWorker(
     public async ValueTask PublishMessageAsync(Message message, TopicId topic, Agent? sender, CancellationToken? cancellationToken = default)
     {
         var topicString = topic.Type + "." + topic.Source;
-        sender ??= serviceProvider.GetRequiredService<Client>();
+        sender ??= RuntimeServiceProvider.GetRequiredService<Client>();
         await PublishEventAsync(message.ToCloudEvent(key: sender.GetType().Name, topic: topicString), sender, cancellationToken.GetValueOrDefault()).ConfigureAwait(false); 
         throw new NotImplementedException();
     }
