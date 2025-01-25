@@ -275,7 +275,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                 message = await self._host_connection.recv()
                 oneofcase = agent_worker_pb2.Message.WhichOneof(message, "message")
                 match oneofcase:
-                    case "registerAgentTypeRequest" | "SubscriptionRequest":
+                    case "registerAgentTypeRequest" | "addSubscriptionRequest":
                         logger.warning(f"Cant handle {oneofcase}, skipping.")
                     case "request":
                         task = asyncio.create_task(self._process_request(message.request))
@@ -299,9 +299,9 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                         self._background_tasks.add(task)
                         task.add_done_callback(self._raise_on_exception)
                         task.add_done_callback(self._background_tasks.discard)
-                    case "SubscriptionResponse":
+                    case "addSubscriptionResponse":
                         task = asyncio.create_task(
-                            self._process_add_subscription_response(message.SubscriptionResponse)
+                            self._process_add_subscription_response(message.addSubscriptionResponse)
                         )
                         self._background_tasks.add(task)
                         task.add_done_callback(self._raise_on_exception)

@@ -138,13 +138,13 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
                     self._background_tasks.add(task)
                     task.add_done_callback(self._raise_on_exception)
                     task.add_done_callback(self._background_tasks.discard)
-                case "SubscriptionRequest":
-                    add_subscription: agent_worker_pb2.SubscriptionRequest = message.SubscriptionRequest
+                case "addSubscriptionRequest":
+                    add_subscription: agent_worker_pb2.AddSubscriptionRequest = message.addSubscriptionRequest
                     task = asyncio.create_task(self._process_add_subscription_request(add_subscription, client_id))
                     self._background_tasks.add(task)
                     task.add_done_callback(self._raise_on_exception)
                     task.add_done_callback(self._background_tasks.discard)
-                case "registerAgentTypeResponse" | "SubscriptionResponse":
+                case "registerAgentTypeResponse" | "addSubscriptionResponse":
                     logger.warning(f"Received unexpected message type: {oneofcase}")
                 case None:
                     logger.warning("Received empty message")
