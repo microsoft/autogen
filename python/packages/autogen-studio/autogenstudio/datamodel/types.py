@@ -15,8 +15,6 @@ class ModelTypes(str, Enum):
 
 class ToolTypes(str, Enum):
     PYTHON_FUNCTION = "PythonFunction"
-    MCP_STDIO_CLIENT = "McpStdioClient"
-    MCP_SSE_CLIENT = "McpSseClient"
 
 
 class AgentTypes(str, Enum):
@@ -86,29 +84,12 @@ class AzureOpenAIModelConfig(BaseModelConfig):
 ModelConfig = OpenAIModelConfig | AzureOpenAIModelConfig
 
 
-class BaseToolConfig(BaseConfig):
+class ToolConfig(BaseConfig):
     name: str
     description: str
+    content: str
     tool_type: ToolTypes
     component_type: ComponentTypes = ComponentTypes.TOOL
-
-
-class PythonFunctionToolConfig(BaseToolConfig):
-    content: str
-    tool_type: ToolTypes = ToolTypes.PYTHON_FUNCTION
-
-class StdioMcpToolConfig(BaseToolConfig):
-    command: str
-    args: List[str]
-    tool_type: ToolTypes = ToolTypes.MCP_STDIO_CLIENT
-
-
-class SseMcpToolConfig(BaseToolConfig):
-    url: str
-    headers: Dict[str, Any]
-    tool_type: ToolTypes = ToolTypes.MCP_SSE_CLIENT
-
-ToolConfig = PythonFunctionToolConfig | StdioMcpToolConfig | SseMcpToolConfig
 
 
 class BaseAgentConfig(BaseConfig):
