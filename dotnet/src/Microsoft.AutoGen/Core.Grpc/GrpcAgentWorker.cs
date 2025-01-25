@@ -10,7 +10,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Core;
+namespace Microsoft.AutoGen.Core.Grpc;
 
 public sealed class GrpcAgentWorker(
     AgentRpc.AgentRpcClient client,
@@ -24,6 +24,7 @@ public sealed class GrpcAgentWorker(
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
     private readonly ConcurrentDictionary<(string Type, string Key), Agent> _agents = new();
     private readonly ConcurrentDictionary<string, (Agent Agent, string OriginalRequestId)> _pendingRequests = new();
+    private readonly ConcurrentDictionary<string, HashSet<Type>> _agentsForEvent = new();
     private readonly Channel<(Message Message, TaskCompletionSource WriteCompletionSource)> _outboundMessagesChannel = Channel.CreateBounded<(Message, TaskCompletionSource)>(new BoundedChannelOptions(1024)
     {
         AllowSynchronousContinuations = true,
@@ -32,7 +33,7 @@ public sealed class GrpcAgentWorker(
         FullMode = BoundedChannelFullMode.Wait
     });
     private readonly AgentRpc.AgentRpcClient _client = client;
-    private readonly IServiceProvider _serviceProvider = serviceProvider;
+    public readonly IServiceProvider ServiceProvider = serviceProvider;
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes = configuredAgentTypes;
     private readonly ILogger<GrpcAgentWorker> _logger = logger;
     private readonly CancellationTokenSource _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
@@ -40,6 +41,7 @@ public sealed class GrpcAgentWorker(
     private Task? _readTask;
     private Task? _writeTask;
 
+    IServiceProvider IAgentWorker.ServiceProvider => ServiceProvider;
     public void Dispose()
     {
         _outboundMessagesChannel.Writer.TryComplete();
@@ -73,22 +75,6 @@ public sealed class GrpcAgentWorker(
                             message.Response.RequestId = request.OriginalRequestId;
                             request.Agent.ReceiveMessage(message);
                             break;
-
-                        case Message.MessageOneofCase.CloudEvent:
-
-                            // HACK: Send the message to an instance of each agent type
-                            // where AgentId = (namespace: event.Namespace, name: agentType)
-                            // i.e, assume each agent type implicitly subscribes to each event.
-
-                            var item = message.CloudEvent;
-
-                            foreach (var (typeName, _) in _agentTypes)
-                            {
-                                var agent = GetOrActivateAgent(new AgentId { Type = typeName, Key = item.Source });
-                                agent.ReceiveMessage(message);
-                            }
-
-                            break;
                         case Message.MessageOneofCase.RegisterAgentTypeResponse:
                             if (!message.RegisterAgentTypeResponse.Success)
                             {
@@ -99,6 +85,24 @@ public sealed class GrpcAgentWorker(
                             if (!message.AddSubscriptionResponse.Success)
                             {
                                 _logger.LogError($"Failed to add subscription '{message.AddSubscriptionResponse.Error}'");
+                            }
+                            break;
+                        case Message.MessageOneofCase.CloudEvent:
+                            var item = message.CloudEvent;
+                            if (!_agentsForEvent.TryGetValue(item.Type, out var agents))
+                            {
+                                _logger.LogError($"This worker can't handle the event type '{item.Type}'.");
+                                break;
+                            }
+                            foreach (var a in agents)
+                            {
+                                var subject = item.GetSubject();
+                                if (string.IsNullOrEmpty(subject))
+                                {
+                                    subject = item.Source;
+                                }
+                                var agent = GetOrActivateAgent(new AgentId { Type = a.Name, Key = subject });
+                                agent.ReceiveMessage(message);
                             }
                             break;
                         default:
@@ -161,10 +165,15 @@ public sealed class GrpcAgentWorker(
                 _logger.LogError(ex, "Error connecting to GRPC endpoint {Endpoint}.", Environment.GetEnvironmentVariable("AGENT_HOST"));
                 break;
             }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.OK)
+            {
+                _logger.LogError(ex, "Error writing to channel, continuing (Status OK). {ex}", channel.ToString());
+                break;
+            }
             catch (Exception ex) when (!_shutdownCts.IsCancellationRequested)
             {
                 item.WriteCompletionSource?.TrySetException(ex);
-                _logger.LogError(ex, "Error writing to channel.");
+                _logger.LogError(ex, $"Error writing to channel.{ex}");
                 channel = RecreateChannel(channel);
                 continue;
             }
@@ -187,7 +196,8 @@ public sealed class GrpcAgentWorker(
         {
             if (_agentTypes.TryGetValue(agentId.Type, out var agentType))
             {
-                agent = (Agent)ActivatorUtilities.CreateInstance(_serviceProvider, agentType, this);
+                agent = (Agent)ActivatorUtilities.CreateInstance(ServiceProvider, agentType);
+                Agent.Initialize(this, agent);
                 _agents.TryAdd((agentId.Type, agentId.Key), agent);
             }
             else
@@ -206,22 +216,38 @@ public sealed class GrpcAgentWorker(
             var events = agentType.GetInterfaces()
             .Where(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(IHandle<>))
             .Select(i => ReflectionHelper.GetMessageDescriptor(i.GetGenericArguments().First())?.FullName);
-            //var state = agentType.BaseType?.GetGenericArguments().First();
-            var topicTypes = agentType.GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
+            // add the agentType to the list of agent types that handle the event
+            foreach (var evt in events)
+            {
+                if (!_agentsForEvent.TryGetValue(evt!, out var agents))
+                {
+                    agents = new HashSet<Type>();
+                    _agentsForEvent[evt!] = agents;
+                }
 
-            //TODO: do something with the response (like retry on error)
+                agents.Add(agentType);
+            }
+            var topicTypes = agentType.GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic).ToList();
+            /*             var response = await _client.RegisterAgentAsync(new RegisterAgentTypeRequest
+                        {
+                            Type = type,
+                            Topics = { topicTypes },
+                            Events = { events }
+                        }, null, null, cancellationToken); */
             await WriteChannelAsync(new Message
             {
                 RegisterAgentTypeRequest = new RegisterAgentTypeRequest
                 {
-                    Type = type,
                     RequestId = Guid.NewGuid().ToString(),
-                    //TopicTypes = { topicTypes },
-                    //StateType = state?.Name,
-                    //Events = { events }
+                    Type = type,
+                    //Topics = { topicTypes }, //future
+                    //Events = { events }   //future
                 }
             }, cancellationToken).ConfigureAwait(false);
-
+            if (!topicTypes.Any())
+            {
+                topicTypes.Add(agentType.Name);
+            }
             foreach (var topic in topicTypes)
             {
                 var subscriptionRequest = new Message
@@ -239,7 +265,7 @@ public sealed class GrpcAgentWorker(
                         }
                     }
                 };
-                await WriteChannelAsync(subscriptionRequest, cancellationToken).ConfigureAwait(true);
+                await _client.AddSubscriptionAsync(subscriptionRequest.AddSubscriptionRequest, null, null, cancellationToken);
                 foreach (var e in events)
                 {
                     subscriptionRequest = new Message
@@ -257,7 +283,7 @@ public sealed class GrpcAgentWorker(
                             }
                         }
                     };
-                    await WriteChannelAsync(subscriptionRequest, cancellationToken).ConfigureAwait(true);
+                    await _client.AddSubscriptionAsync(subscriptionRequest.AddSubscriptionRequest, null, null, cancellationToken);
                 }
             }
         }
@@ -351,8 +377,8 @@ public sealed class GrpcAgentWorker(
 
             try
             {
-                _readTask = Task.Run(RunReadPump, CancellationToken.None);
-                _writeTask = Task.Run(RunWritePump, CancellationToken.None);
+                _readTask = Task.Run(RunReadPump, cancellationToken);
+                _writeTask = Task.Run(RunWritePump, cancellationToken);
             }
             finally
             {
@@ -407,6 +433,21 @@ public sealed class GrpcAgentWorker(
         {
             throw new KeyNotFoundException($"Failed to read AgentState for {agentId}.");
         }
+    }
+    public async ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request, CancellationToken cancellationToken = default)
+    {
+        var response = await _client.GetSubscriptionsAsync(request, null, null, cancellationToken);
+        return response.Subscriptions.ToList();
+    }
+    public ValueTask<AddSubscriptionResponse> SubscribeAsync(AddSubscriptionRequest request, CancellationToken cancellationToken = default)
+    {
+        var response = _client.AddSubscription(request, null, null, cancellationToken);
+        return new ValueTask<AddSubscriptionResponse>(response);
+    }
+    public ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default)
+    {
+        var response = _client.RemoveSubscription(request, null, null, cancellationToken);
+        return new ValueTask<RemoveSubscriptionResponse>(response);
     }
 }
 

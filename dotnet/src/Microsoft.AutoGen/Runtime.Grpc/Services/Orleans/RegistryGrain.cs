@@ -2,10 +2,10 @@
 // RegistryGrain.cs
 
 using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Runtime.Grpc.Abstractions;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
-
-internal sealed class RegistryGrain : Grain, IRegistryGrain
+internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStore")] IPersistentState<AgentsRegistryState> state) : Grain, IRegistryGrain
 {
     // TODO: use persistent state for some of these or (better) extend Orleans to implement some of this natively.
     private readonly Dictionary<IGateway, WorkerState> _workerStates = new();
@@ -18,9 +18,48 @@ internal sealed class RegistryGrain : Grain, IRegistryGrain
         this.RegisterGrainTimer(static state => state.PurgeInactiveWorkers(), this, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
         return base.OnActivateAsync(cancellationToken);
     }
+
+    public ValueTask<List<string>> GetSubscribedAndHandlingAgents(string topic, string eventType)
+    {
+        List<string> agents = [];
+        // get all agent types that are subscribed to the topic
+        if (state.State.TopicToAgentTypesMap.TryGetValue(topic, out var subscribedAgentTypes))
+        {
+            /*// get all agent types that are handling the event
+            if (state.State.EventsToAgentTypesMap.TryGetValue(eventType, out var handlingAgents))
+            {
+                agents.AddRange(subscribedAgentTypes.Intersect(handlingAgents).ToList());
+            }*/
+            agents.AddRange(subscribedAgentTypes.ToList());
+        }
+        if (state.State.TopicToAgentTypesMap.TryGetValue(eventType, out var eventHandlingAgents))
+        {
+            agents.AddRange(eventHandlingAgents.ToList());
+        }
+        if (state.State.TopicToAgentTypesMap.TryGetValue(topic + "." + eventType, out var combo))
+        {
+            agents.AddRange(combo.ToList());
+        }
+        // instead of an exact match, we can also check for a prefix match where key starts with the eventType
+        if (state.State.TopicToAgentTypesMap.Keys.Any(key => key.StartsWith(eventType)))
+        {
+            state.State.TopicToAgentTypesMap.Where(
+                kvp => kvp.Key.StartsWith(eventType))
+                .SelectMany(kvp => kvp.Value)
+                .Distinct()
+                .ToList()
+                .ForEach(async agentType =>
+                {
+                    agents.Add(agentType);
+                });
+        }
+        agents = agents.Distinct().ToList();
+
+        return new ValueTask<List<string>>(agents);
+    }
     public ValueTask<(IGateway? Worker, bool NewPlacement)> GetOrPlaceAgent(AgentId agentId)
     {
-        // TODO: 
+        // TODO: Clarify the logic
         bool isNewPlacement;
         if (!_agentDirectory.TryGetValue((agentId.Type, agentId.Key), out var worker) || !_workerStates.ContainsKey(worker))
         {
@@ -58,20 +97,49 @@ internal sealed class RegistryGrain : Grain, IRegistryGrain
         }
         return ValueTask.CompletedTask;
     }
-    public ValueTask RegisterAgentType(string type, IGateway worker)
+    public async ValueTask RegisterAgentType(RegisterAgentTypeRequest registration, IGateway gateway)
     {
-        if (!_supportedAgentTypes.TryGetValue(type, out var supportedAgentTypes))
+        if (!_supportedAgentTypes.TryGetValue(registration.Type, out var supportedAgentTypes))
         {
-            supportedAgentTypes = _supportedAgentTypes[type] = [];
+            supportedAgentTypes = _supportedAgentTypes[registration.Type] = [];
         }
 
-        if (!supportedAgentTypes.Contains(worker))
+        if (!supportedAgentTypes.Contains(gateway))
         {
-            supportedAgentTypes.Add(worker);
+            supportedAgentTypes.Add(gateway);
         }
-        var workerState = GetOrAddWorker(worker);
-        workerState.SupportedTypes.Add(type);
-        return ValueTask.CompletedTask;
+
+        var workerState = GetOrAddWorker(gateway);
+        workerState.SupportedTypes.Add(registration.Type);
+        /* future
+        state.State.AgentsToEventsMap[registration.Type] = new HashSet<string>(registration.Events);
+        state.State.AgentsToTopicsMap[registration.Type] = new HashSet<string>(registration.Topics);
+
+        // construct the inverse map for topics and agent types
+        foreach (var topic in registration.Topics)
+        {
+            if (!state.State.TopicToAgentTypesMap.TryGetValue(topic, out var topicSet))
+            {
+                topicSet = new HashSet<string>();
+                state.State.TopicToAgentTypesMap[topic] = topicSet;
+            }
+
+            topicSet.Add(registration.Type);
+        }
+
+        // construct the inverse map for events and agent types
+        foreach (var evt in registration.Events)
+        {
+            if (!state.State.EventsToAgentTypesMap.TryGetValue(evt, out var eventSet))
+            {
+                eventSet = new HashSet<string>();
+                state.State.EventsToAgentTypesMap[evt] = eventSet;
+            }
+
+            eventSet.Add(registration.Type);
+        }
+        */
+        await state.WriteStateAsync().ConfigureAwait(false);
     }
     public ValueTask AddWorker(IGateway worker)
     {
@@ -135,9 +203,123 @@ internal sealed class RegistryGrain : Grain, IRegistryGrain
         return null;
     }
 
+    public async ValueTask SubscribeAsync(AddSubscriptionRequest subscription)
+    {
+        var guid = Guid.NewGuid().ToString();
+        subscription.Subscription.Id = guid;
+        switch (subscription.Subscription.SubscriptionCase)
+        {
+            //TODO: this doesnt look right
+            case Subscription.SubscriptionOneofCase.TypePrefixSubscription:
+                break;
+            case Subscription.SubscriptionOneofCase.TypeSubscription:
+                {
+                    // add the topic to the set of topics for the agent type
+                    state.State.AgentsToTopicsMap.TryGetValue(subscription.Subscription.TypeSubscription.AgentType, out var topics);
+                    if (topics is null)
+                    {
+                        topics = new HashSet<string>();
+                        state.State.AgentsToTopicsMap[subscription.Subscription.TypeSubscription.AgentType] = topics;
+                    }
+                    topics.Add(subscription.Subscription.TypeSubscription.TopicType);
+
+                    // add the agent type to the set of agent types for the topic
+                    state.State.TopicToAgentTypesMap.TryGetValue(subscription.Subscription.TypeSubscription.TopicType, out var agents);
+                    if (agents is null)
+                    {
+                        agents = new HashSet<string>();
+                        state.State.TopicToAgentTypesMap[subscription.Subscription.TypeSubscription.TopicType] = agents;
+                    }
+                    agents.Add(subscription.Subscription.TypeSubscription.AgentType);
+
+                    // add the subscription by Guid
+                    state.State.GuidSubscriptionsMap.TryGetValue(guid, out var existingSubscriptions);
+                    if (existingSubscriptions is null)
+                    {
+                        existingSubscriptions = new HashSet<Subscription>();
+                        state.State.GuidSubscriptionsMap[guid] = existingSubscriptions;
+                    }
+                    existingSubscriptions.Add(subscription.Subscription);
+                    break;
+                }
+            default:
+                throw new InvalidOperationException("Invalid subscription type");
+        }
+        await state.WriteStateAsync().ConfigureAwait(false);
+    }
+    public async ValueTask UnsubscribeAsync(RemoveSubscriptionRequest request)
+    {
+        var guid = request.Id;
+        // does the guid parse?
+        if (!Guid.TryParse(guid, out var _))
+        {
+            throw new InvalidOperationException("Invalid subscription id");
+        }
+        if (state.State.GuidSubscriptionsMap.TryGetValue(guid, out var subscriptions))
+        {
+            foreach (var subscription in subscriptions)
+            {
+                switch (subscription.SubscriptionCase)
+                {
+                    case Subscription.SubscriptionOneofCase.TypeSubscription:
+                        {
+                            // remove the topic from the set of topics for the agent type
+                            state.State.AgentsToTopicsMap.TryGetValue(subscription.TypeSubscription.AgentType, out var topics);
+                            topics?.Remove(subscription.TypeSubscription.TopicType);
+
+                            // remove the agent type from the set of agent types for the topic
+                            state.State.TopicToAgentTypesMap.TryGetValue(subscription.TypeSubscription.TopicType, out var agents);
+                            agents?.Remove(subscription.TypeSubscription.AgentType);
+
+                            //remove the subscription by Guid
+                            state.State.GuidSubscriptionsMap.TryGetValue(guid, out var existingSubscriptions);
+                            existingSubscriptions?.Remove(subscription);
+                            break;
+                        }
+                    case Subscription.SubscriptionOneofCase.TypePrefixSubscription:
+                        break;
+                    default:
+                        throw new InvalidOperationException("Invalid subscription type");
+                }
+            }
+            state.State.GuidSubscriptionsMap.Remove(guid);
+        }
+        await state.WriteStateAsync().ConfigureAwait(false);
+    }
+
+    public ValueTask<List<Subscription>> GetSubscriptions(string agentType)
+    {
+        var subscriptions = new List<Subscription>();
+        if (state.State.AgentsToTopicsMap.TryGetValue(agentType, out var topics))
+        {
+            foreach (var topic in topics)
+            {
+                subscriptions.Add(new Subscription
+                {
+                    TypeSubscription = new TypeSubscription
+                    {
+                        AgentType = agentType,
+                        TopicType = topic
+                    }
+                });
+            }
+        }
+        return new(subscriptions);
+    }
+    public ValueTask<List<Subscription>> GetSubscriptions(GetSubscriptionsRequest request)
+    {
+        var subscriptions = new List<Subscription>();
+        foreach (var kvp in state.State.GuidSubscriptionsMap)
+        {
+            subscriptions.AddRange(kvp.Value);
+        }
+        return new(subscriptions);
+    }
+
     private sealed class WorkerState
     {
         public HashSet<string> SupportedTypes { get; set; } = [];
         public DateTimeOffset LastSeen { get; set; }
     }
 }
+

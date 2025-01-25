@@ -16,7 +16,7 @@ namespace Microsoft.AutoGen.Core;
 /// <summary>
 /// Represents the base class for an agent in the AutoGen system.
 /// </summary>
-public abstract class Agent : IHandle
+public abstract class Agent
 {
     private readonly object _lock = new();
     private readonly ConcurrentDictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = [];
@@ -32,23 +32,25 @@ public abstract class Agent : IHandle
     public AgentId AgentId { get; private set; }
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     protected internal ILogger<Agent> _logger;
-    public AgentMessenger Messenger { get; private set; }
+    public IAgentWorker Worker { get; private set; }
     private readonly ConcurrentDictionary<Type, MethodInfo> _handlersByMessageType;
-    internal Task Completion { get; private set; }
+    protected readonly AgentsMetadata EventTypes;
 
-    protected readonly EventTypes EventTypes;
-
-    protected Agent(IAgentWorker worker,
-        EventTypes eventTypes,
+    protected Agent(
+        AgentsMetadata eventTypes,
         ILogger<Agent>? logger = null)
     {
         EventTypes = eventTypes;
-        AgentId = new AgentId(this.GetType().Name, Guid.NewGuid().ToString()); ;
+        AgentId = new AgentId(this.GetType().Name, Guid.NewGuid().ToString());
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<Agent>();
         _handlersByMessageType = new(GetType().GetHandlersLookupTable());
-        Messenger = AgentMessengerFactory.Create(worker, DistributedContextPropagator.Current);
-        AddImplicitSubscriptionsAsync().AsTask().Wait();
-        Completion = Start();
+        Worker = new UninitializedAgentWorker();
+    }
+    public static void Initialize(IAgentWorker worker, Agent agent)
+    {
+        agent.Worker = worker;
+        agent.Start();
+        agent.AddImplicitSubscriptionsAsync().AsTask().Wait();
     }
 
     private async ValueTask AddImplicitSubscriptionsAsync()
@@ -74,7 +76,7 @@ public abstract class Agent : IHandle
                 }
             };
             // explicitly wait for this to complete
-            await Messenger.SendMessageAsync(new Message { AddSubscriptionRequest = subscriptionRequest }).ConfigureAwait(true);
+            Worker.SubscribeAsync(subscriptionRequest).AsTask().Wait();
         }
 
         // using reflection, find all methods that Handle<T> and subscribe to the topic T
@@ -82,13 +84,15 @@ public abstract class Agent : IHandle
         foreach (var method in handleMethods)
         {
             var eventType = method.GetParameters()[0].ParameterType;
-            var topic = EventTypes.EventsMap.FirstOrDefault(x => x.Value.Contains(eventType.Name)).Key;
-            if (topic != null)
+            var topics = EventTypes.GetTopicsForAgent(GetType());
+            if (topics != null)
             {
-                Subscribe(nameof(topic));
+                foreach (var topic in topics)
+                {
+                    await SubscribeAsync(topic).ConfigureAwait(true);
+                }
             }
         }
-
     }
 
     /// <summary>
@@ -148,7 +152,7 @@ public abstract class Agent : IHandle
                 {
                     var activity = this.ExtractActivity(msg.CloudEvent.Type, msg.CloudEvent.Attributes);
                     await this.InvokeWithActivityAsync(
-                        static ((Agent Agent, CloudEvent Item) state, CancellationToken _) => state.Agent.CallHandler(state.Item),
+                        static ((Agent Agent, CloudEvent Item) state, CancellationToken ct) => state.Agent.CallHandlerAsync(state.Item, ct),
                         (this, msg.CloudEvent),
                         activity,
                         msg.CloudEvent.Type, cancellationToken).ConfigureAwait(false);
@@ -169,35 +173,66 @@ public abstract class Agent : IHandle
                 break;
         }
     }
-    public List<string> Subscribe(string topic)
+    public async ValueTask<List<Subscription>> GetSubscriptionsAsync()
     {
-        Message message = new()
+        GetSubscriptionsRequest request = new();
+        return await Worker.GetSubscriptionsAsync(request).ConfigureAwait(false);
+    }
+    public async ValueTask<AddSubscriptionResponse> SubscribeAsync(string topic)
+    {
+        AddSubscriptionRequest subscriptionRequest = new()
         {
-            AddSubscriptionRequest = new()
+            RequestId = Guid.NewGuid().ToString(),
+            Subscription = new Subscription
             {
-                RequestId = Guid.NewGuid().ToString(),
-                Subscription = new Subscription
+                TypeSubscription = new TypeSubscription
                 {
-                    TypeSubscription = new TypeSubscription
-                    {
-                        TopicType = topic,
-                        AgentType = this.AgentId.Key
-                    }
+                    TopicType = topic,
+                    AgentType = this.AgentId.Type
                 }
             }
         };
-        Messenger.SendMessageAsync(message).AsTask().Wait();
-
-        return new List<string> { topic };
+        var subscriptionResponse = await Worker.SubscribeAsync(subscriptionRequest).ConfigureAwait(true);
+        if (!subscriptionResponse.Success)
+        {
+            _logger.LogError($"{GetType}{AgentId.Key}: Failed to unsubscribe from topic {topic}");
+        }
+        return subscriptionResponse;
+    }
+    public async ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(Guid id)
+    {
+        RemoveSubscriptionRequest subscriptionRequest = new()
+        {
+            Id = id.ToString()
+        };
+        var subscriptionResponse = await Worker.UnsubscribeAsync(subscriptionRequest).ConfigureAwait(true);
+        if (!subscriptionResponse.Success)
+        {
+            _logger.LogError($"{GetType}{AgentId.Key}: Failed to unsubscribe from Subscription {id}");
+        }
+        return subscriptionResponse;
+    }
+    public async ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(string topic)
+    {
+        var subscriptions = await GetSubscriptionsAsync().ConfigureAwait(false);
+        var subscription = subscriptions.FirstOrDefault(s => s.TypeSubscription.TopicType == topic);
+        if (subscription == null)
+        {
+            var error = $"{GetType}{AgentId.Key}: Subscription not found for topic {topic}";
+            _logger.LogError(error);
+            return new RemoveSubscriptionResponse { Success = false, Error = error };
+        }
+        var id = Guid.Parse(subscription.Id);
+        return await UnsubscribeAsync(id).ConfigureAwait(true);
     }
     public async Task StoreAsync(AgentState state, CancellationToken cancellationToken = default)
     {
-        await Messenger.StoreAsync(state, cancellationToken).ConfigureAwait(false);
+        await Worker.StoreAsync(state, cancellationToken).ConfigureAwait(false);
         return;
     }
     public async Task<T> ReadAsync<T>(AgentId agentId, CancellationToken cancellationToken = default) where T : IMessage, new()
     {
-        var agentstate = await Messenger.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
+        var agentstate = await Worker.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
         return agentstate.FromAgentState<T>();
     }
     private void OnResponseCore(RpcResponse response)
@@ -226,7 +261,9 @@ public abstract class Agent : IHandle
         {
             response = new RpcResponse { Error = ex.Message };
         }
-        await Messenger.SendResponseAsync(request, response, cancellationToken).ConfigureAwait(false);
+        response.RequestId = request.RequestId;
+
+        await Worker.SendResponseAsync(response, cancellationToken).ConfigureAwait(false);
     }
 
     protected async Task<RpcResponse> RequestAsync(AgentId target, string method, Dictionary<string, string> parameters)
@@ -250,7 +287,7 @@ public abstract class Agent : IHandle
         activity?.SetTag("peer.service", target.ToString());
 
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        Messenger!.Update(request, activity);
+        IAgentWorkerExtensions.Update(this.Worker, request, activity);
         await this.InvokeWithActivityAsync(
             static async (state, ct) =>
             {
@@ -258,7 +295,7 @@ public abstract class Agent : IHandle
 
                 self._pendingRequests.AddOrUpdate(request.RequestId, _ => completion, (_, __) => completion);
 
-                await state.Item1.Messenger!.SendRequestAsync(state.Item1, state.request, ct).ConfigureAwait(false);
+                await state.Item1.Worker!.SendRequestAsync(state.Item1, state.request, ct).ConfigureAwait(false);
 
                 await completion.Task.ConfigureAwait(false);
             },
@@ -270,101 +307,155 @@ public abstract class Agent : IHandle
         return await completion.Task.ConfigureAwait(false);
     }
 
-    public async ValueTask PublishMessageAsync<T>(T message, string? source = null, CancellationToken token = default) where T : IMessage
+    private string SetTopic(string? topic = null, string? source = null, string? key = null)
     {
-        var topicTypes = this.GetType().GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
-        if (!topicTypes.Any())
+        if (string.IsNullOrWhiteSpace(topic))
         {
-            topicTypes = topicTypes.Append(string.IsNullOrWhiteSpace(source) ? this.AgentId.Type + "." + this.AgentId.Key : source);
+            topic = this.AgentId.Type + "." + this.AgentId.Key;
         }
-        foreach (var topic in topicTypes)
+        else
         {
-            await PublishMessageAsync(topic, message, source, token).ConfigureAwait(false);
+            topic = topic + "." + source + "." + key;
         }
-    }
-    public async ValueTask PublishMessageAsync<T>(string topic, T message, string? source = null, CancellationToken token = default) where T : IMessage
-    {
-        await PublishEventAsync(topic, message, token).ConfigureAwait(false);
+        return topic;
     }
 
+    /// <summary>
+    /// Publishes a message asynchronously.
+    /// </summary>
+    /// <typeparam name="T">The type of the message.</typeparam>
+    /// <param name="token">A token to cancel the operation.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public async ValueTask PublishMessageAsync<T>(T message, string topic, string source, string key, CancellationToken token = default) where T : IMessage
+    {
+        // if there are no topic types, use the agent's default topic subscription attribute and the agent's type and key
+        if (string.IsNullOrWhiteSpace(topic))
+        {
+            if (string.IsNullOrWhiteSpace(topic))
+            {
+                topic = this.AgentId.Type + "." + this.AgentId.Key;
+            }
+            else
+            {
+                topic = topic + "." + source + "." + key;
+            }
+
+            var topicTypes = this.GetType().GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
+            if (!topicTypes.Any())
+            {
+                topicTypes = topicTypes.Append(string.IsNullOrWhiteSpace(source) ? this.AgentId.Type + "." + this.AgentId.Key : source);
+            }
+            topicTypes = topicTypes.Append(SetTopic(topic, source, key));
+            foreach (var t in topicTypes)
+            {
+                await PublishEventAsync(t, message, token).ConfigureAwait(false);
+            }
+        }
+        else
+        {
+            await PublishEventAsync(topic, message, token).ConfigureAwait(false);
+        }
+    }
+    public async ValueTask PublishMessageAsync<T>(T message, string topic, string source, CancellationToken token = default) where T : IMessage
+    {
+        string key = this.AgentId.Key;
+        await PublishMessageAsync(message, topic, source, key, token).ConfigureAwait(false);
+    }
+    public async ValueTask PublishMessageAsync<T>(T message, string topic, CancellationToken token = default) where T : IMessage
+    {
+        string source = this.AgentId.Type;
+        string key = this.AgentId.Key;
+        await PublishMessageAsync(message, topic, source, key, token).ConfigureAwait(false);
+    }
+    public async ValueTask PublishMessageAsync<T>(T message, CancellationToken token = default) where T : IMessage
+    {
+        string topic = "";
+        string source = this.AgentId.Type;
+        string key = this.AgentId.Key;
+        await PublishMessageAsync(message, topic, source, key, token).ConfigureAwait(false);
+    }
+    public async ValueTask PublishEventAsync(string topic, IMessage message, CancellationToken cancellationToken = default)
+    {
+        await PublishEventAsync(message.ToCloudEvent(key: GetType().Name, topic: topic), cancellationToken).ConfigureAwait(false);
+    }
     public async ValueTask PublishEventAsync(CloudEvent item, CancellationToken cancellationToken = default)
     {
         var activity = s_source.StartActivity($"PublishEventAsync '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
         activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
 
         // TODO: fix activity
-        Messenger.Update(item, activity);
+        IAgentWorkerExtensions.Update(this.Worker, item, activity);
         await this.InvokeWithActivityAsync(
             static async ((Agent Agent, CloudEvent Event) state, CancellationToken ct) =>
             {
-                await state.Agent.Messenger.PublishEventAsync(state.Event).ConfigureAwait(false);
+                await state.Agent.Worker.PublishEventAsync(state.Event).ConfigureAwait(false);
             },
             (this, item),
             activity,
             item.Type, cancellationToken).ConfigureAwait(false);
     }
 
-    public Task CallHandler(CloudEvent item)
+    public Task CallHandlerAsync(CloudEvent item, CancellationToken cancellationToken = default)
     {
         // Only send the event to the handler if the agent type is handling that type
-        // foreach of the keys in the EventTypes.EventsMap[] if it contains the item.type
-        foreach (var key in EventTypes.EventsMap.Keys)
+        if (EventTypes.CheckIfTypeHandles(GetType(), eventName: item.Type))
         {
-            if (EventTypes.EventsMap[key].Contains(item.Type))
+            var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
+            var eventType = EventTypes.GetEventTypeByName(item.Type);
+            if (eventType == null)
             {
-                var payload = item.ProtoData.Unpack(EventTypes.TypeRegistry);
-                var convertedPayload = Convert.ChangeType(payload, EventTypes.Types[item.Type]);
-                var genericInterfaceType = typeof(IHandle<>).MakeGenericType(EventTypes.Types[item.Type]);
+                _logger.LogError($"Event type {item.Type} not found in the registry");
+                return Task.CompletedTask;
+            }
+            var convertedPayload = Convert.ChangeType(payload, eventType);
+            var genericInterfaceType = typeof(IHandle<>).MakeGenericType(eventType);
 
-                MethodInfo methodInfo;
-                try
+            MethodInfo methodInfo;
+            try
+            {
+                // check that our target actually implements this interface, otherwise call the default static
+                if (genericInterfaceType.IsAssignableFrom(this.GetType()))
                 {
-                    // check that our target actually implements this interface, otherwise call the default static
-                    if (genericInterfaceType.IsAssignableFrom(this.GetType()))
-                    {
-                        methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<object>.Handle), BindingFlags.Public | BindingFlags.Instance)
-                                       ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
-                        return methodInfo.Invoke(this, [payload]) as Task ?? Task.CompletedTask;
-                    }
-                    else
-                    {
-                        // The error here is we have registered for an event that we do not have code to listen to
-                        throw new InvalidOperationException($"No handler found for event '{item.Type}'; expecting IHandle<{item.Type}> implementation.");
-                    }
+                    methodInfo = genericInterfaceType.GetMethod(nameof(IHandle<IMessage>.Handle), BindingFlags.Public | BindingFlags.Instance)
+                                    ?? throw new InvalidOperationException($"Method not found on type {genericInterfaceType.FullName}");
+                    return methodInfo.Invoke(this, new object[] { convertedPayload, cancellationToken }) as Task ?? Task.CompletedTask;
                 }
-                catch (Exception ex)
+                else
                 {
-                    _logger.LogError(ex, $"Error invoking method {nameof(IHandle<object>.Handle)}");
-                    throw; // TODO: ?
+                    // The error here is we have registered for an event that we do not have code to listen to
+                    throw new InvalidOperationException($"Agent Type '{GetType()}' is registered to handle this type but no handler found for event '{item.Type}'; expecting IHandle<{item.Type}> implementation.");
                 }
             }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, $"Error invoking method {nameof(IHandle<IMessage>.Handle)}");
+                throw; // TODO: ?
+            }
         }
-
         return Task.CompletedTask;
     }
 
     public Task<RpcResponse> HandleRequestAsync(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
 
-    //TODO: should this be async and cancellable?
-    public virtual Task HandleObject(object item)
+    /// <summary>
+    /// Handles a generic object
+    /// </summary>
+    /// <param name="item">The object to handle</param>
+    /// <param name="cancellationToken">The cancellation token</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// TODO: this is only called from tests, should we remove it?
+    public virtual async Task HandleObjectAsync(object item, CancellationToken cancellationToken = default)
     {
         // get all Handle<T> methods
         var handleTMethods = this.GetType().GetMethods().Where(m => m.Name == "Handle" && m.GetParameters().Length == 1).ToList();
-
         // get the one that matches the type of the item
         var handleTMethod = handleTMethods.FirstOrDefault(m => m.GetParameters()[0].ParameterType == item.GetType());
-
         // if we found one, invoke it
         if (handleTMethod != null)
         {
-            return (Task)handleTMethod.Invoke(this, [item])!;
+            await (Task)handleTMethod.Invoke(this, [item])!;
         }
-
         // otherwise, complain
-        throw new InvalidOperationException($"No handler found for type {item.GetType().FullName}");
-    }
-    public async ValueTask PublishEventAsync(string topic, IMessage message, CancellationToken cancellationToken = default)
-    {
-        await PublishEventAsync(message.ToCloudEvent(topic), cancellationToken).ConfigureAwait(false);
+        _logger.LogError($"No handler found for type {item.GetType().FullName}");
     }
 }

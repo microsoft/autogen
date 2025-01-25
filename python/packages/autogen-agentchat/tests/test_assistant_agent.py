@@ -774,5 +774,5 @@ async def test_assistant_agent_declarative(monkeypatch: pytest.MonkeyPatch) -> N
             FunctionTool(_echo_function, description="Echo"),
         ],
     )
-    with pytest.raises(NotImplementedError):
-        agent3.dump_component()
+    agent3_config = agent3.dump_component()
+    assert agent3_config.provider == "autogen_agentchat.agents.AssistantAgent"

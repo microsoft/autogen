@@ -18,10 +18,9 @@ public abstract class WebAPIAgent : IOAgent,
 
     public WebAPIAgent(
     IAgentWorker worker,
-    [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
+    [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry,
     ILogger<WebAPIAgent> logger,
     string url = "/agents/webio") : base(
-        worker,
         typeRegistry)
     {
         _url = url;
@@ -53,7 +52,7 @@ public abstract class WebAPIAgent : IOAgent,
         app.Run();
     }
 
-    public override async Task Handle(Input item)
+    public override async Task Handle(Input item, CancellationToken cancellationToken = default)
     {
         // Process the input (this is a placeholder, replace with actual processing logic)
         await ProcessInput(item.Message);
@@ -65,7 +64,7 @@ public abstract class WebAPIAgent : IOAgent,
         await PublishMessageAsync(evt);
     }
 
-    public override async Task Handle(Output item)
+    public override async Task Handle(Output item, CancellationToken cancellationToken = default)
     {
         // Assuming item has a property `Content` that we want to return in the response
         var evt = new OutputWritten
