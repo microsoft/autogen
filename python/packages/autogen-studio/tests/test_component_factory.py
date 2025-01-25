@@ -4,24 +4,10 @@ from typing import List
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat, MagenticOneGroupChat
 from autogen_agentchat.conditions import MaxMessageTermination, StopMessageTermination, TextMentionTermination
+from autogen_ext.models.openai import OpenAIClientConfigurationConfigModel
 from autogen_core.tools import FunctionTool
 
 from autogenstudio.datamodel.types import (
-    AssistantAgentConfig,
-    OpenAIModelConfig,
-    RoundRobinTeamConfig,
-    SelectorTeamConfig,
-    MagenticOneTeamConfig,
-    ToolConfig,
-    MaxMessageTerminationConfig,
-    StopMessageTerminationConfig,
-    TextMentionTerminationConfig,
-    CombinationTerminationConfig,
-    ModelTypes,
-    AgentTypes,
-    TeamTypes,
-    TerminationTypes,
-    ToolTypes,
     ComponentTypes,
 )
 from autogenstudio.database import ComponentFactory
@@ -34,10 +20,10 @@ def component_factory():
 
 @pytest.fixture
 def sample_tool_config():
-    return ToolConfig(
-        name="calculator",
-        description="A simple calculator function",
-        content="""
+    return {
+        "name": "calculator",
+        "description": "A simple calculator function",
+        "source_code": """
 def calculator(a: int, b: int, operation: str = '+') -> int:
     '''
     A simple calculator that performs basic operations
@@ -53,25 +39,30 @@ def calculator(a: int, b: int, operation: str = '+') -> int:
     else:
         raise ValueError("Invalid operation")
 """,
-        tool_type=ToolTypes.PYTHON_FUNCTION,
-        component_type=ComponentTypes.TOOL,
-        version="1.0.0",
-    )
+        "global_imports": [],
+        "has_cancellation_support": False,
+    }
 
 
 @pytest.fixture
 def sample_model_config():
-    return OpenAIModelConfig(
-        model_type=ModelTypes.OPENAI,
+    return OpenAIClientConfigurationConfigModel(
         model="gpt-4",
         api_key="test-key",
-        component_type=ComponentTypes.MODEL,
-        version="1.0.0",
     )
 
 
 @pytest.fixture
-def sample_agent_config(sample_model_config: OpenAIModelConfig, sample_tool_config: ToolConfig):
+def sample_agent_config(sample_model_config: dict, sample_tool_config: dict):
+    return {
+        "name": "test_agent",
+        "agent_type": "assistant",
+        "system_message": "You are a helpful assistant",
+        "model_client": sample_model_config,
+        "tools": [sample_tool_config],
+        "component_type": ComponentTypes.AGENT,
+        "version": "1.0.0",
+    }
     return AssistantAgentConfig(
         name="test_agent",
         agent_type=AgentTypes.ASSISTANT,

@@ -10,7 +10,9 @@ from pydantic import BaseModel
 from sqlalchemy import ForeignKey, Integer, UniqueConstraint
 from sqlmodel import JSON, Column, DateTime, Field, Relationship, SQLModel, func
 
-from .types import AgentConfig, MessageConfig, MessageMeta, ModelConfig, TeamConfig, TeamResult, ToolConfig
+from .types import MessageConfig, MessageMeta, TeamResult
+
+from autogen_core import ComponentModel
 
 # added for python3.11 and sqlmodel 0.0.22 incompatibility
 if hasattr(SQLModel, "model_config"):
@@ -118,7 +120,7 @@ class Tool(SQLModel, table=True):
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
     version: Optional[str] = "0.0.1"
-    config: Union[ToolConfig, dict] = Field(sa_column=Column(JSON))
+    config: Union[ComponentModel, dict] = Field(sa_column=Column(JSON))
     agents: List["Agent"] = Relationship(back_populates="tools", link_model=AgentToolLink)
 
 
@@ -135,7 +137,7 @@ class Model(SQLModel, table=True):
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
     version: Optional[str] = "0.0.1"
-    config: Union[ModelConfig, dict] = Field(sa_column=Column(JSON))
+    config: Union[ComponentModel, dict] = Field(sa_column=Column(JSON))
     agents: List["Agent"] = Relationship(back_populates="models", link_model=AgentModelLink)
 
 
@@ -152,7 +154,7 @@ class Team(SQLModel, table=True):
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
     version: Optional[str] = "0.0.1"
-    config: Union[TeamConfig, dict] = Field(sa_column=Column(JSON))
+    config: Union[ComponentModel, dict] = Field(sa_column=Column(JSON))
     agents: List["Agent"] = Relationship(back_populates="teams", link_model=TeamAgentLink)
 
 
@@ -169,7 +171,7 @@ class Agent(SQLModel, table=True):
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
     version: Optional[str] = "0.0.1"
-    config: Union[AgentConfig, dict] = Field(sa_column=Column(JSON))
+    config: Union[ComponentModel, dict] = Field(sa_column=Column(JSON))
     tools: List[Tool] = Relationship(back_populates="agents", link_model=AgentToolLink)
     models: List[Model] = Relationship(back_populates="agents", link_model=AgentModelLink)
     teams: List[Team] = Relationship(back_populates="agents", link_model=TeamAgentLink)
@@ -257,7 +259,7 @@ class GalleryConfig(SQLModel, table=False):
     title: Optional[str] = None
     description: Optional[str] = None
     run: Run
-    team: TeamConfig = None
+    team: Optional[ComponentModel] = None
     tags: Optional[List[str]] = None
     visibility: str = "public"  # public, private, shared
 
