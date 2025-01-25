@@ -36,12 +36,12 @@ class Apprentice:
         self.logger.leave_function()
         return response
 
-    async def learn_from_demonstration(self, task, demonstration):
-        """A foreground operation, assuming that the task and demonstration are already known."""
+    async def add_task_solution_pair_to_memory(self, task, solution):
+        """A foreground operation, assuming that the task and a solution are already known."""
         self.logger.enter_function()
 
-        # Pass the task and demonstration through to the memory controller.
-        await self.memory_controller.learn_from_demonstration(task, demonstration)
+        # Pass the task and solution through to the memory controller.
+        await self.memory_controller.add_task_solution_pair_to_memory(task, solution)
 
         self.logger.leave_function()
 

@@ -26,6 +26,14 @@ class AgenticMemoryBank:
         - settings: Settings for the memory bank.
         - reset: True to clear the DB before starting.
         - logger: The PageLogger object to use for logging.
+
+    Methods:
+        - reset: Forces immediate deletion of all contents, in memory and on disk.
+        - save_insights: Saves the current insight structures (possibly empty) to disk.
+        - contains_insights: Returns True if the memory bank contains any insights.
+        - add_insight: Adds an insight to the memory bank, given topics related to the insight, and optionally the task.
+        - add_task_with_solution: Adds a task-insight pair to the memory bank, to be retrieved together later.
+        - get_relevant_insights: Returns any insights from the memory bank that appear sufficiently relevant to the given
     """
     def __init__(self, settings: Dict, reset: bool, logger: PageLogger) -> None:
         self.settings = settings
@@ -110,15 +118,15 @@ class AgenticMemoryBank:
         insight = Insight(id=id_str, insight_str=insight_str, task_str=task_str, topics=topics)
         self._map_topics_to_insight(topics, id_str, insight)
 
-    def add_demonstration(self, task: str, insight: str, topics: List[str]) -> None:
+    def add_task_with_solution(self, task: str, solution: str, topics: List[str]) -> None:
         """
-        Adds a task-insight pair to the memory bank, to be retrieved together later.
+        Adds a task-solution pair to the memory bank, to be retrieved together later as a combined insight.
         This is useful when the insight is a demonstration of how to solve a given type of task.
         """
         self.last_insight_id += 1
         id_str = str(self.last_insight_id)
         # Prepend the insight to the task description for context.
-        insight_str = "Example task:\n\n{}\n\nExample solution:\n\n{}".format(task, insight)
+        insight_str = "Example task:\n\n{}\n\nExample solution:\n\n{}".format(task, solution)
         insight = Insight(id=id_str, insight_str=insight_str, task_str=task, topics=topics)
         self._map_topics_to_insight(topics, id_str, insight)
 
