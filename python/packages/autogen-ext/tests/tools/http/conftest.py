@@ -27,6 +27,17 @@ app = FastAPI()
 async def test_endpoint(body: TestArgs = Body(...)) -> TestResponse:
     return TestResponse(result=f"Received: {body.query} with value {body.value}")
 
+@app.post("/test/{query}/{value}")
+async def test_path_params_endpoint(query: str, value: int) -> TestResponse:
+    return TestResponse(result=f"Received: {query} with value {value}")
+
+@app.put("/test/{query}/{value}")
+async def test_path_params_and_body_endpoint(
+    query: str,
+    value: int,
+    body: dict = Body(...)
+) -> TestResponse:
+    return TestResponse(result=f"Received: {query} with value {value} and extra {body.get("extra")}")
 
 @app.get("/test")
 async def test_get_endpoint(query: str, value: int) -> TestResponse:

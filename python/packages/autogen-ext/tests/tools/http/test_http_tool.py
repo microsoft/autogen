@@ -77,6 +77,45 @@ async def test_put_request(test_config: ComponentModel, test_server: None) -> No
     assert isinstance(result, dict)
     assert result["result"] == "Received: test query with value 42"
 
+@pytest.mark.asyncio
+async def test_path_params(test_config: ComponentModel, test_server: None) -> None:
+    # Modify config to use path parameters
+    config = test_config.model_copy()
+    config.config["path"] = "/test/{query}/{value}"
+    tool = HttpTool.load_component(config)
+
+    result = await tool.run_json({"query": "test query", "value": 42}, CancellationToken())
+
+    assert isinstance(result, dict)
+    assert result["result"] == "Received: test query with value 42"
+
+@pytest.mark.asyncio
+async def test_path_params_and_body(test_config: ComponentModel, test_server: None) -> None:
+    # Modify config to use path parameters and include body parameters
+    config = test_config.model_copy()
+    config.config["method"] = "PUT"
+    config.config["path"] = "/test/{query}/{value}"
+    config.config["json_schema"] = {
+        "type": "object", 
+        "properties": {
+            "query": {"type": "string", "description": "The test query"},
+            "value": {"type": "integer", "description": "A test value"},
+            "extra": {"type": "string", "description": "Extra body parameter"}
+        },
+        "required": ["query", "value", "extra"]
+    }
+    tool = HttpTool.load_component(config)
+
+    result = await tool.run_json({
+        "query": "test query",
+        "value": 42,
+        "extra": "extra data"
+    }, CancellationToken())
+
+    assert isinstance(result, dict)
+    assert result["result"] == "Received: test query with value 42 and extra extra data"
+
+
 
 @pytest.mark.asyncio
 async def test_delete_request(test_config: ComponentModel, test_server: None) -> None:
