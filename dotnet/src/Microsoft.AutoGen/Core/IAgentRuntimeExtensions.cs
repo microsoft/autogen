@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// IAgentWorkerExtensions.cs
+// IAgentRuntimeExtensions.cs
 
 using System.Diagnostics;
 using Google.Protobuf.Collections;
@@ -9,11 +9,11 @@ using static Microsoft.AutoGen.Contracts.CloudEvent.Types;
 
 namespace Microsoft.AutoGen.Core;
 
-public static class IAgentWorkerExtensions
+public static class IAgentRuntimeExtensions
 {
-    public static (string?, string?) GetTraceIdAndState(IAgentWorker worker, IDictionary<string, string> metadata)
+    public static (string?, string?) GetTraceIdAndState(IAgentRuntime worker, IDictionary<string, string> metadata)
     {
-        var dcp = worker.ServiceProvider.GetRequiredService<DistributedContextPropagator>();
+        var dcp = worker.RuntimeServiceProvider.GetRequiredService<DistributedContextPropagator>();
         dcp.ExtractTraceIdAndState(metadata,
             static (object? carrier, string fieldName, out string? fieldValue, out IEnumerable<string>? fieldValues) =>
             {
@@ -25,9 +25,9 @@ public static class IAgentWorkerExtensions
             out var traceState);
         return (traceParent, traceState);
     }
-    public static (string?, string?) GetTraceIdAndState(IAgentWorker worker, MapField<string, CloudEventAttributeValue> metadata)
+    public static (string?, string?) GetTraceIdAndState(IAgentRuntime worker, MapField<string, CloudEventAttributeValue> metadata)
     {
-        var dcp = worker.ServiceProvider.GetRequiredService<DistributedContextPropagator>();
+        var dcp = worker.RuntimeServiceProvider.GetRequiredService<DistributedContextPropagator>();
         dcp.ExtractTraceIdAndState(metadata,
             static (object? carrier, string fieldName, out string? fieldValue, out IEnumerable<string>? fieldValues) =>
             {
@@ -40,9 +40,9 @@ public static class IAgentWorkerExtensions
             out var traceState);
         return (traceParent, traceState);
     }
-    public static void Update(IAgentWorker worker, RpcRequest request, Activity? activity = null)
+    public static void Update(IAgentRuntime worker, RpcRequest request, Activity? activity = null)
     {
-        var dcp = worker.ServiceProvider.GetRequiredService<DistributedContextPropagator>();
+        var dcp = worker.RuntimeServiceProvider.GetRequiredService<DistributedContextPropagator>();
         dcp.Inject(activity, request.Metadata, static (carrier, key, value) =>
         {
             var metadata = (IDictionary<string, string>)carrier!;
@@ -56,9 +56,9 @@ public static class IAgentWorkerExtensions
             }
         });
     }
-    public static void Update(IAgentWorker worker, CloudEvent cloudEvent, Activity? activity = null)
+    public static void Update(IAgentRuntime worker, CloudEvent cloudEvent, Activity? activity = null)
     {
-        var dcp = worker.ServiceProvider.GetRequiredService<DistributedContextPropagator>();
+        var dcp = worker.RuntimeServiceProvider.GetRequiredService<DistributedContextPropagator>();
         dcp.Inject(activity, cloudEvent.Attributes, static (carrier, key, value) =>
         {
             var mapField = (MapField<string, CloudEventAttributeValue>)carrier!;
@@ -73,9 +73,9 @@ public static class IAgentWorkerExtensions
         });
     }
 
-    public static IDictionary<string, string> ExtractMetadata(IAgentWorker worker, IDictionary<string, string> metadata)
+    public static IDictionary<string, string> ExtractMetadata(IAgentRuntime worker, IDictionary<string, string> metadata)
     {
-        var dcp = worker.ServiceProvider.GetRequiredService<DistributedContextPropagator>();
+        var dcp = worker.RuntimeServiceProvider.GetRequiredService<DistributedContextPropagator>();
         var baggage = dcp.ExtractBaggage(metadata, static (object? carrier, string fieldName, out string? fieldValue, out IEnumerable<string>? fieldValues) =>
         {
             var metadata = (IDictionary<string, string>)carrier!;
@@ -85,9 +85,9 @@ public static class IAgentWorkerExtensions
 
         return baggage as IDictionary<string, string> ?? new Dictionary<string, string>();
     }
-    public static IDictionary<string, string> ExtractMetadata(IAgentWorker worker, MapField<string, CloudEventAttributeValue> metadata)
+    public static IDictionary<string, string> ExtractMetadata(IAgentRuntime worker, MapField<string, CloudEventAttributeValue> metadata)
     {
-        var dcp = worker.ServiceProvider.GetRequiredService<DistributedContextPropagator>();
+        var dcp = worker.RuntimeServiceProvider.GetRequiredService<DistributedContextPropagator>();
         var baggage = dcp.ExtractBaggage(metadata, static (object? carrier, string fieldName, out string? fieldValue, out IEnumerable<string>? fieldValues) =>
         {
             var metadata = (MapField<string, CloudEventAttributeValue>)carrier!;
