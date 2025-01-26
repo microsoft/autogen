@@ -32,7 +32,7 @@ builder.AddGrpcAgentWorker(builder.Configuration["AGENT_HOST"]!)
     .AddAgent<ProductManager>(nameof(ProductManager))
     .AddAgent<DeveloperLead>(nameof(DeveloperLead));
 
-builder.Services.AddSingleton<AgentWorker>();
+builder.Services.AddSingleton<AgentRuntime>();
 builder.Services.AddSingleton<WebhookEventProcessor, GithubWebHookProcessor>();
 builder.Services.AddSingleton<GithubAuthService>();
 builder.Services.AddSingleton<IManageAzure, AzureService>();

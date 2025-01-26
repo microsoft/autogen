@@ -1,15 +1,16 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// IAgentWorker.cs
+// IAgentRuntime.cs
+
+using Google.Protobuf;
 using Microsoft.AutoGen.Contracts;
 namespace Microsoft.AutoGen.Core;
 
-public interface IAgentWorker
+public interface IAgentRuntime
 {
     IServiceProvider RuntimeServiceProvider { get; }
     ValueTask RuntimeSendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default);
     ValueTask RuntimeSendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default);
-    ValueTask RuntimeWriteMessage(Message message, CancellationToken cancellationToken = default);
-    ValueTask PublishMessageAsync(Message message, TopicId topic, Agent? sender, CancellationToken? cancellationToken = default);
+    ValueTask PublishMessageAsync(IMessage message, TopicId topic, Agent? sender, CancellationToken? cancellationToken = default);
     ValueTask SaveStateAsync(AgentState value, CancellationToken cancellationToken = default);
     ValueTask<AgentState> LoadStateAsync(AgentId agentId, CancellationToken cancellationToken = default);
     ValueTask<AddSubscriptionResponse> AddSubscriptionAsync(AddSubscriptionRequest request, CancellationToken cancellationToken = default);
