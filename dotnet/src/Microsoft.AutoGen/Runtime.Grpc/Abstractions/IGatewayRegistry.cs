@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// IRegistry.cs
+// IGatewayRegistry.cs
 
 using Microsoft.AutoGen.Contracts;
 
@@ -8,7 +8,7 @@ namespace Microsoft.AutoGen.Runtime.Grpc.Abstractions;
 /// <summary>
 /// Interface for managing agent registration, placement, and subscriptions.
 /// </summary>
-public interface IRegistry
+public interface IGatewayRegistry : IRegistry
 {
     /// <summary>
     /// Gets or places an agent based on the provided agent ID.
@@ -80,5 +80,5 @@ public interface IRegistry
     /// Gets the subscriptions for a specified agent type.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, with the subscriptions as the result.</returns>
-    ValueTask<List<Subscription>> GetSubscriptions(GetSubscriptionsRequest request);
+    ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request);
 }

@@ -306,7 +306,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
         }
         return new(subscriptions);
     }
-    public ValueTask<List<Subscription>> GetSubscriptions(GetSubscriptionsRequest request)
+    public ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request)
     {
         var subscriptions = new List<Subscription>();
         foreach (var kvp in state.State.GuidSubscriptionsMap)

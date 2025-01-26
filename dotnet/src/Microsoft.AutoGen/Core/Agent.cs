@@ -16,7 +16,7 @@ namespace Microsoft.AutoGen.Core;
 /// <summary>
 /// Represents the base class for an agent in the AutoGen system.
 /// </summary>
-public abstract class Agent
+public abstract class Agent : IAgent
 {
     private readonly object _lock = new();
     private readonly ConcurrentDictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = [];
