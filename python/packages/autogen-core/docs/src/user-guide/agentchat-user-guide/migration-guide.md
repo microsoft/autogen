@@ -35,6 +35,7 @@ See each feature below for detailed information on how to migrate.
 
 - [Model Client](#model-client)
 - [Model Client for OpenAI-Compatible APIs](#model-client-for-openai-compatible-apis)
+- [Model Client Cache](#model-client-cache)
 - [Assistant Agent](#assistant-agent)
 - [Multi-Modal Agent](#multi-modal-agent)
 - [User Proxy](#user-proxy)
@@ -59,8 +60,6 @@ See each feature below for detailed information on how to migrate.
 The following features currently in `v0.2`
 will be provided in the future releases of `v0.4.*` versions:
 
-- Model Client Cache [#4752](https://github.com/microsoft/autogen/issues/4752)
-- Jupyter Code Executor [#4795](https://github.com/microsoft/autogen/issues/4795)
 - Model Client Cost [#4835](https://github.com/microsoft/autogen/issues/4835)
 - Teachable Agent
 - RAG Agent
@@ -160,6 +159,65 @@ Read about [Model Clients](./tutorial/models.ipynb)
 in AgentChat Tutorial and more detailed information on [Core API Docs](../core-user-guide/components/model-clients.ipynb)
 
 Support for other hosted models will be added in the future.
+
+## Model Client Cache
+
+In `v0.2`, you can set the cache seed through the `cache_seed` parameter in the LLM config.
+The cache is enabled by default.
+
+```python
+llm_config = {
+    "config_list": [{"model": "gpt-4o", "api_key": "sk-xxx"}],
+    "seed": 42,
+    "temperature": 0,
+    "cache_seed": 42,
+}
+```
+
+In `v0.4`, the cache is not enabled by default, to use it you need to use a
+{py:class}`~autogen_ext.models.cache.ChatCompletionCache` wrapper around the model client.
+
+You can use a {py:class}`~autogen_ext.cache_store.diskcache.DiskCacheStore` or {py:class}`~autogen_ext.cache_store.redis.RedisStore` to store the cache.
+
+```bash
+pip install -U "autogen-ext[openai, diskcache, redis]"
+```
+
+Here's an example of using `diskcache` for local caching:
+
+```python
+import asyncio
+import tempfile
+
+from autogen_core.models import UserMessage
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.models.cache import ChatCompletionCache, CHAT_CACHE_VALUE_TYPE
+from autogen_ext.cache_store.diskcache import DiskCacheStore
+from diskcache import Cache
+
+
+async def main():
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        # Initialize the original client
+        openai_model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+        # Then initialize the CacheStore, in this case with diskcache.Cache.
+        # You can also use redis like:
+        # from autogen_ext.cache_store.redis import RedisStore
+        # import redis
+        # redis_instance = redis.Redis()
+        # cache_store = RedisCacheStore[CHAT_CACHE_VALUE_TYPE](redis_instance)
+        cache_store = DiskCacheStore[CHAT_CACHE_VALUE_TYPE](Cache(tmpdirname))
+        cache_client = ChatCompletionCache(openai_model_client, cache_store)
+
+        response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
+        print(response)  # Should print response from OpenAI
+        response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
+        print(response)  # Should print cached response
+
+
+asyncio.run(main())
+```
 
 ## Assistant Agent
 
