@@ -96,7 +96,7 @@ class ComponentToConfig(Generic[ToConfigT]):
     component_provider_override: ClassVar[str | None] = None
     """Override the provider string for the component. This should be used to prevent internal module names being a part of the module name."""
     component_description: ClassVar[str | None] = None
-    """A description of the component."""
+    """A description of the component. If not provided, the docstring of the class will be used."""
 
     def _to_config(self) -> ToConfigT:
         """Dump the configuration that would be requite to create a new instance of a component matching the configuration of this instance.
