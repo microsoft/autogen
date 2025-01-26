@@ -1,10 +1,10 @@
 import json
-import pytest
+
 import httpx
-from pydantic import ValidationError
-from autogen_core import CancellationToken
+import pytest
+from autogen_core import CancellationToken, Component, ComponentModel
 from autogen_ext.tools.http import HttpTool
-from autogen_core import Component, ComponentModel
+from pydantic import ValidationError
 
 
 def test_tool_schema_generation(test_config: ComponentModel) -> None:
