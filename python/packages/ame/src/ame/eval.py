@@ -5,7 +5,7 @@ import sys
 from typing import Tuple
 
 import yaml
-from autogen_ext.agentic_memory import Grader, PageLogger, Apprentice
+from autogen_ext.agentic_memory import PageLogger, Apprentice
 
 from ame.clients._client_creator import ClientCreator
 
@@ -13,58 +13,6 @@ from ame.clients._client_creator import ClientCreator
 class Evaluator:
     def __init__(self):
         self.logger = None
-
-    def get_task_description_and_answer_from_file(self, task_filename):
-        path_to_this_file = os.path.abspath(__file__)
-        dir_of_this_file = os.path.dirname(path_to_this_file)
-        task_filepath = os.path.join(dir_of_this_file, "task_data", "tasks", task_filename + ".yaml")
-        with open(task_filepath, "r") as file:
-            task_details = yaml.load(file, Loader=yaml.FullLoader)
-            return task_details["task_description"], task_details["expected_answer"]
-
-    def get_advice_from_file(self, advice_filename):
-        path_to_this_file = os.path.abspath(__file__)
-        dir_of_this_file = os.path.dirname(path_to_this_file)
-        task_filepath = os.path.join(dir_of_this_file, "task_data", "advice", advice_filename + ".yaml")
-        with open(task_filepath, "r") as file:
-            advice_dict = yaml.load(file, Loader=yaml.FullLoader)
-            return advice_dict["advice"]
-
-    def get_demo_from_file(self, demo_filename):
-        path_to_this_file = os.path.abspath(__file__)
-        dir_of_this_file = os.path.dirname(path_to_this_file)
-        task_filepath = os.path.join(dir_of_this_file, "task_data", "demos", demo_filename + ".yaml")
-        with open(task_filepath, "r") as file:
-            demo_dict = yaml.load(file, Loader=yaml.FullLoader)
-            return demo_dict["demo"]
-
-    async def test_apprentice(
-        self, apprentice, task_description, expected_answer, num_trials, use_memory, client, logger
-    ) -> Tuple[int, int]:
-        logger.enter_function()
-
-        self.logger.info("Testing the apprentice on the given task.\n")
-
-        grader = Grader(client, logger)
-        num_successes = 0
-
-        for trial in range(num_trials):
-            self.logger.info("\n-----  TRIAL {}  -----\n".format(trial + 1))
-            self.logger.info("Try to solve the task.\n")
-            response = await apprentice.assign_task(task_description, use_memory=use_memory)
-            response_is_correct, extracted_answer = await grader.is_response_correct(
-                task_description, response, expected_answer
-            )
-            self.logger.info("Extracted answer:  {}".format(extracted_answer))
-            if response_is_correct:
-                self.logger.info("Answer is CORRECT.\n")
-                num_successes += 1
-            else:
-                self.logger.info("Answer is INCORRECT.\n")
-
-        self.logger.info("\nSuccess rate:  {}%\n".format(round((num_successes / num_trials) * 100)))
-        logger.leave_function()
-        return num_successes, num_trials
 
     async def perform_evaluations(self, settings):
         self.logger.enter_function()
@@ -96,7 +44,7 @@ class Evaluator:
 
             # Call the eval function for each listed run.
             for run_dict in evaluation_settings["runs"]:
-                results = await eval_function(apprentice, self, client, self.logger, function_settings, run_dict)
+                results = await eval_function(apprentice, client, self.logger, function_settings, run_dict)
                 print(results)
 
         if hasattr(client, "finalize"):

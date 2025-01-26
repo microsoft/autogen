@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Union, Tuple
 
 from autogen_core import FunctionCall, Image
 from autogen_core.models import FunctionExecutionResult, LLMMessage

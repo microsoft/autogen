@@ -35,4 +35,4 @@ evaluations:
       module_path: ame.eval_functions.eval_without_learning
       num_trials: 1
     runs:
-      - task_file: 10_liars
+      - task_file: data_files/tasks/10_liars.yaml

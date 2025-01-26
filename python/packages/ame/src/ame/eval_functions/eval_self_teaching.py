@@ -1,13 +1,13 @@
 from typing import Dict
+import yaml
 
 from autogen_core.models import (
     ChatCompletionClient,
 )
 from autogen_ext.agentic_memory import Apprentice, Grader, PageLogger
-from ..eval import Evaluator
 
 
-async def eval_self_teaching(apprentice: Apprentice, evaluator: Evaluator, client: ChatCompletionClient,
+async def eval_self_teaching(apprentice: Apprentice, client: ChatCompletionClient,
                              logger: PageLogger, settings: Dict, run_dict: Dict) -> str:
     """
     Evaluates the ability of an agent to learn quickly from its own trial and error.
@@ -16,14 +16,19 @@ async def eval_self_teaching(apprentice: Apprentice, evaluator: Evaluator, clien
 
     num_loops = settings["num_loops"]
     num_final_test_trials = settings["num_final_test_trials"]
+    grader = Grader(client, logger)
 
-    # This eval function needs 2 data strings for each run.
-    task_file_1 = run_dict["task_file_1"]  # Train and test on this task.
-    task_file_2 = run_dict["task_file_2"]  # Test generalization on a different, similar task.
-
-    # Get the actual task and advice strings from their files.
-    task_description_1, expected_answer_1 = evaluator.get_task_description_and_answer_from_file(task_file_1)
-    task_description_2, expected_answer_2 = evaluator.get_task_description_and_answer_from_file(task_file_2)
+    # Load the specified data.
+    with open(run_dict["task_file_1"], "r") as file:
+        # Train and test on this task.
+        task_1 = yaml.load(file, Loader=yaml.FullLoader)
+        task_description_1 = task_1["task_description"]
+        expected_answer_1 = task_1["expected_answer"]
+    with open(run_dict["task_file_2"], "r") as file:
+        # Test generalization on this different, similar task.
+        task_2 = yaml.load(file, Loader=yaml.FullLoader)
+        task_description_2 = task_2["task_description"]
+        expected_answer_2 = task_2["expected_answer"]
 
     # Start the test with empty memory.
     apprentice.reset_memory()
@@ -36,7 +41,7 @@ async def eval_self_teaching(apprentice: Apprentice, evaluator: Evaluator, clien
         await apprentice.train_on_task(task=task_description_1, expected_answer=expected_answer_1)
 
         # Test on the first task.
-        num_successes, num_trials = await evaluator.test_apprentice(
+        num_successes, num_trials = await grader.test_apprentice(
             apprentice=apprentice,
             task_description=task_description_1,
             expected_answer=expected_answer_1,
@@ -49,7 +54,7 @@ async def eval_self_teaching(apprentice: Apprentice, evaluator: Evaluator, clien
         total_num_successes_1 += num_successes
 
         # Test on the second task.
-        num_successes, num_trials = await evaluator.test_apprentice(
+        num_successes, num_trials = await grader.test_apprentice(
             apprentice=apprentice,
             task_description=task_description_2,
             expected_answer=expected_answer_2,

@@ -1,26 +1,28 @@
 from typing import Dict
+import yaml
 
 from autogen_core.models import (
     ChatCompletionClient,
 )
 from autogen_ext.agentic_memory import Apprentice, Grader, PageLogger
-from ..eval import Evaluator
 
 
-async def eval_teachability(apprentice: Apprentice, evaluator: Evaluator, client: ChatCompletionClient,
+async def eval_teachability(apprentice: Apprentice, client: ChatCompletionClient,
                             logger: PageLogger, settings: Dict, run_dict: Dict) -> str:
     """
     Evalutes the ability to learn quickly from user teachings, hints, and advice.
     """
     logger.enter_function()
 
-    # This eval function needs 2 data strings for each run.
-    task_file = run_dict["task_file"]  # The task being tested.
-    advice_file = run_dict["advice_file"]  # Advice for solving such tasks.
-
-    # Get the actual task and advice strings from their files.
-    task_description, expected_answer = evaluator.get_task_description_and_answer_from_file(task_file)
-    advice = evaluator.get_advice_from_file(advice_file)
+    # Load the specified data.
+    with open(run_dict["task_file"], "r") as file:
+        # The task being tested.
+        task = yaml.load(file, Loader=yaml.FullLoader)
+        task_description = task["task_description"]
+        expected_answer = task["expected_answer"]
+    with open(run_dict["advice_file"], "r") as file:
+        # Advice for solving such tasks.
+        advice = yaml.load(file, Loader=yaml.FullLoader)["advice"]
 
     # First test without memory.
     apprentice.reset_memory()

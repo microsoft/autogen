@@ -38,17 +38,17 @@ evaluations:
       function_name: eval_teachability
       module_path: ame.eval_functions.eval_teachability
     runs:
-      - task_file: autogen_package
-        advice_file: add_topic
+      - task_file: data_files/tasks/autogen_package.yaml  # The task being tested.
+        advice_file: data_files/advice/add_topic.yaml  # Advice provided to help solve the task.
 
   - eval_function:
       function_name: eval_learning_from_demonstration
       module_path: ame.eval_functions.eval_learning_from_demonstration
       num_trials: 1  # 1-10
     runs:
-      - task_1_file: cell_towers_1  # The task being tested.
-        task_2_file: cell_towers_2  # A similar but different task.
-        demo_2_file: cell_towers_2_demo  # A demonstration of solving task 2.
+      - main_task_file: data_files/tasks/cell_towers_1.yaml  # The task being tested.
+        demo_task_file: data_files/tasks/cell_towers_2.yaml  # A similar but different task.
+        demo_solution_file: data_files/demos/cell_towers_2_demo.yaml  # A demonstration of solving the second.
 
   - eval_function:
       function_name: eval_self_teaching
@@ -56,5 +56,5 @@ evaluations:
       num_loops: 1  # 1-10
       num_final_test_trials: 1  # 1-3
     runs:
-      - task_file_1: 10_liars  # Train and test on this task.
-        task_file_2: 100_vampires  # Test generalization on a different, similar task.
+      - task_file_1: data_files/tasks/10_liars.yaml  # Train and test on this task.
+        task_file_2: data_files/tasks/100_vampires.yaml  # Test generalization on this different, similar task.

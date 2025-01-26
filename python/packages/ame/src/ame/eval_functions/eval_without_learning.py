@@ -1,13 +1,13 @@
 from typing import Dict
+import yaml
 
 from autogen_core.models import (
     ChatCompletionClient,
 )
 from autogen_ext.agentic_memory import Apprentice, Grader, PageLogger
-from ..eval import Evaluator
 
 
-async def eval_without_learning(apprentice: Apprentice, evaluator: Evaluator, client: ChatCompletionClient,
+async def eval_without_learning(apprentice: Apprentice, client: ChatCompletionClient,
                                 logger: PageLogger, settings: Dict, run_dict: Dict) -> str:
     """
     Performs an evaluation without the benefit of memory.
@@ -15,15 +15,19 @@ async def eval_without_learning(apprentice: Apprentice, evaluator: Evaluator, cl
     logger.enter_function()
 
     num_trials = settings["num_trials"]
+    grader = Grader(client, logger)
 
-    # Get the task and advice strings.
-    task_file = run_dict["task_file"]
-    task_description, expected_answer = evaluator.get_task_description_and_answer_from_file(task_file)
+    # Load the specified data.
+    with open(run_dict["task_file"], "r") as file:
+        # The task being tested.
+        task = yaml.load(file, Loader=yaml.FullLoader)
+        task_description = task["task_description"]
+        expected_answer = task["expected_answer"]
 
     # Clear memory then run a baseline test.
     logger.info("To get a baseline, clear memory, then assign the task.")
     apprentice.reset_memory()
-    num_successes, num_trials = await evaluator.test_apprentice(
+    num_successes, num_trials = await grader.test_apprentice(
         apprentice=apprentice,
         task_description=task_description,
         expected_answer=expected_answer,

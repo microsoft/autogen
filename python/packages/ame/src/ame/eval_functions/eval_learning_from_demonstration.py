@@ -1,13 +1,13 @@
 from typing import Dict
+import yaml
 
 from autogen_core.models import (
     ChatCompletionClient,
 )
 from autogen_ext.agentic_memory import Apprentice, Grader, PageLogger
-from ..eval import Evaluator
 
 
-async def eval_learning_from_demonstration(apprentice: Apprentice, evaluator: Evaluator, client: ChatCompletionClient,
+async def eval_learning_from_demonstration(apprentice: Apprentice, client: ChatCompletionClient,
                                            logger: PageLogger, settings: Dict, run_dict: Dict) -> str:
     """
     Evaluates the ability to learn quickly from demonstrations.
@@ -15,24 +15,28 @@ async def eval_learning_from_demonstration(apprentice: Apprentice, evaluator: Ev
     logger.enter_function()
 
     num_trials = settings["num_trials"]
+    grader = Grader(client, logger)
 
-    # This eval function needs 3 data strings for each run.
-    task_1_file = run_dict["task_1_file"]  # The task being tested.
-    task_2_file = run_dict["task_2_file"]  # A similar but different task.
-    demo_2_file = run_dict["demo_2_file"]  # A demonstration of solving task 2.
-
-    # Get the actual task and advice strings from their files.
-    task_description_1, expected_answer_1 = evaluator.get_task_description_and_answer_from_file(task_1_file)
-    demo_task, _ = evaluator.get_task_description_and_answer_from_file(task_2_file)
-    demo_solution = evaluator.get_demo_from_file(demo_2_file)
+    # Load the specified data.
+    with open(run_dict["main_task_file"], "r") as file:
+        # The task being tested.
+        main_task = yaml.load(file, Loader=yaml.FullLoader)
+        task_description = main_task["task_description"]
+        expected_answer = main_task["expected_answer"]
+    with open(run_dict["demo_task_file"], "r") as file:
+        # A similar but different task.
+        demo_task = yaml.load(file, Loader=yaml.FullLoader)["task_description"]
+    with open(run_dict["demo_solution_file"], "r") as file:
+        # A demonstration of solving the second task.
+        demo_solution = yaml.load(file, Loader=yaml.FullLoader)["demo"]
 
     # Start by clearing memory then running a baseline test.
     logger.info("To get a baseline, clear memory, then assign the task.")
     apprentice.reset_memory()
-    num_successes, num_trials = await evaluator.test_apprentice(
+    num_successes, num_trials = await grader.test_apprentice(
         apprentice=apprentice,
-        task_description=task_description_1,
-        expected_answer=expected_answer_1,
+        task_description=task_description,
+        expected_answer=expected_answer,
         num_trials=num_trials,
         use_memory=True,
         client=client,
@@ -48,10 +52,10 @@ async def eval_learning_from_demonstration(apprentice: Apprentice, evaluator: Ev
 
     # Now test again to see if the demonstration (retrieved from memory) helps.
     logger.info("Assign the task again to see if the demonstration helps.")
-    num_successes, num_trials = await evaluator.test_apprentice(
+    num_successes, num_trials = await grader.test_apprentice(
         apprentice=apprentice,
-        task_description=task_description_1,
-        expected_answer=expected_answer_1,
+        task_description=task_description,
+        expected_answer=expected_answer,
         num_trials=num_trials,
         use_memory=True,
         client=client,

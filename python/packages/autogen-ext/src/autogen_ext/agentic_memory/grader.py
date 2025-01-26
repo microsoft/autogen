@@ -15,13 +15,14 @@ from ._utils import UserContent
 
 class Grader:
     """
-    Determines task success without limitation to string matches.
+    Runs basic tests, and determines task success without limitation to string matches.
 
     Args:
         client: The client to call the model.
         logger: The logger to log the model calls.
 
     Methods:
+        test_apprentice: Tests the apprentice on the given task.
         call_model: Calls the model with the given input and returns the response.
         is_response_correct: Determines whether the response is equivalent to the task's correct answer.
     """
@@ -34,6 +35,34 @@ class Grader:
 
         # Create the chat history
         self._chat_history: List[LLMMessage] = []
+
+    async def test_apprentice(
+        self, apprentice, task_description, expected_answer, num_trials, use_memory, client, logger
+    ) -> Tuple[int, int]:
+        logger.enter_function()
+
+        self.logger.info("Testing the apprentice on the given task.\n")
+
+        grader = Grader(client, logger)
+        num_successes = 0
+
+        for trial in range(num_trials):
+            self.logger.info("\n-----  TRIAL {}  -----\n".format(trial + 1))
+            self.logger.info("Try to solve the task.\n")
+            response = await apprentice.assign_task(task_description, use_memory=use_memory)
+            response_is_correct, extracted_answer = await grader.is_response_correct(
+                task_description, response, expected_answer
+            )
+            self.logger.info("Extracted answer:  {}".format(extracted_answer))
+            if response_is_correct:
+                self.logger.info("Answer is CORRECT.\n")
+                num_successes += 1
+            else:
+                self.logger.info("Answer is INCORRECT.\n")
+
+        self.logger.info("\nSuccess rate:  {}%\n".format(round((num_successes / num_trials) * 100)))
+        logger.leave_function()
+        return num_successes, num_trials
 
     async def call_model(
         self, summary: str, user_content: UserContent = None, system_message_content: str = None, keep_these_messages: bool = True
