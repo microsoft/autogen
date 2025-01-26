@@ -41,7 +41,7 @@ public class AgentGrpcTests
     {
         using var runtime = new GrpcRuntime();
         var (worker, agent) = runtime.Start();
-        Assert.Equal("GrpcAgentWorker", worker.GetType().Name);
+        Assert.Equal(nameof(GrpcAgentRuntime), worker.GetType().Name);
         await Task.Delay(5000);
         var subscriptions = await agent.GetSubscriptionsAsync();
         Assert.Equal(2, subscriptions.Count);
@@ -222,7 +222,7 @@ public sealed class GrpcRuntime : IDisposable
     /// <summary>
     /// Start - gets a new port and starts fresh instances
     /// </summary>
-    public (IAgentWorker, TestAgent) Start(bool initialize = true)
+    public (IAgentRuntime, TestAgent) Start(bool initialize = true)
     {
         int port = GetAvailablePort(); // Get a new port per test run
 
@@ -234,7 +234,7 @@ public sealed class GrpcRuntime : IDisposable
         Client = StartClientAsync().GetAwaiter().GetResult();
 
         var agent = ActivatorUtilities.CreateInstance<TestAgent>(Client.Services);
-        var worker = Client.Services.GetRequiredService<IAgentWorker>();
+        var worker = Client.Services.GetRequiredService<IAgentRuntime>();
         if (initialize)
         {
             Agent.Initialize(worker, agent);

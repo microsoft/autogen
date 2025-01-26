@@ -32,7 +32,7 @@ public abstract class Agent
     public AgentId AgentId { get; private set; }
     private readonly Channel<object> _mailbox = Channel.CreateUnbounded<object>();
     protected internal ILogger<Agent> _logger;
-    public IAgentWorker Worker { get; private set; }
+    public IAgentRuntime Worker { get; private set; }
     private readonly ConcurrentDictionary<Type, MethodInfo> _handlersByMessageType;
     protected readonly AgentsMetadata EventTypes;
 
@@ -46,7 +46,7 @@ public abstract class Agent
         _handlersByMessageType = new(GetType().GetHandlersLookupTable());
         Worker = new UninitializedAgentWorker();
     }
-    public static void Initialize(IAgentWorker worker, Agent agent)
+    public static void Initialize(IAgentRuntime worker, Agent agent)
     {
         agent.Worker = worker;
         agent.Start();
@@ -76,7 +76,7 @@ public abstract class Agent
                 }
             };
             // explicitly wait for this to complete
-            Worker.SubscribeAsync(subscriptionRequest).AsTask().Wait();
+            Worker.AddSubscriptionAsync(subscriptionRequest).AsTask().Wait();
         }
 
         // using reflection, find all methods that Handle<T> and subscribe to the topic T
@@ -192,7 +192,7 @@ public abstract class Agent
                 }
             }
         };
-        var subscriptionResponse = await Worker.SubscribeAsync(subscriptionRequest).ConfigureAwait(true);
+        var subscriptionResponse = await Worker.AddSubscriptionAsync(subscriptionRequest).ConfigureAwait(true);
         if (!subscriptionResponse.Success)
         {
             _logger.LogError($"{GetType}{AgentId.Key}: Failed to unsubscribe from topic {topic}");
@@ -205,7 +205,7 @@ public abstract class Agent
         {
             Id = id.ToString()
         };
-        var subscriptionResponse = await Worker.UnsubscribeAsync(subscriptionRequest).ConfigureAwait(true);
+        var subscriptionResponse = await Worker.RemoveSubscriptionAsync(subscriptionRequest).ConfigureAwait(true);
         if (!subscriptionResponse.Success)
         {
             _logger.LogError($"{GetType}{AgentId.Key}: Failed to unsubscribe from Subscription {id}");
@@ -227,12 +227,12 @@ public abstract class Agent
     }
     public async Task StoreAsync(AgentState state, CancellationToken cancellationToken = default)
     {
-        await Worker.StoreAsync(state, cancellationToken).ConfigureAwait(false);
+        await Worker.SaveStateAsync(state, cancellationToken).ConfigureAwait(false);
         return;
     }
     public async Task<T> ReadAsync<T>(AgentId agentId, CancellationToken cancellationToken = default) where T : IMessage, new()
     {
-        var agentstate = await Worker.ReadAsync(agentId, cancellationToken).ConfigureAwait(false);
+        var agentstate = await Worker.LoadStateAsync(agentId, cancellationToken).ConfigureAwait(false);
         return agentstate.FromAgentState<T>();
     }
     private void OnResponseCore(RpcResponse response)
@@ -263,7 +263,7 @@ public abstract class Agent
         }
         response.RequestId = request.RequestId;
 
-        await Worker.SendResponseAsync(response, cancellationToken).ConfigureAwait(false);
+        await Worker.RuntimeSendResponseAsync(response, cancellationToken).ConfigureAwait(false);
     }
 
     protected async Task<RpcResponse> RequestAsync(AgentId target, string method, Dictionary<string, string> parameters)
@@ -287,7 +287,7 @@ public abstract class Agent
         activity?.SetTag("peer.service", target.ToString());
 
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-        IAgentWorkerExtensions.Update(this.Worker, request, activity);
+        IAgentRuntimeExtensions.Update(this.Worker, request, activity);
         await this.InvokeWithActivityAsync(
             static async (state, ct) =>
             {
@@ -295,7 +295,7 @@ public abstract class Agent
 
                 self._pendingRequests.AddOrUpdate(request.RequestId, _ => completion, (_, __) => completion);
 
-                await state.Item1.Worker!.SendRequestAsync(state.Item1, state.request, ct).ConfigureAwait(false);
+                await state.Item1.Worker!.RuntimeSendRequestAsync(state.Item1, state.request, ct).ConfigureAwait(false);
 
                 await completion.Task.ConfigureAwait(false);
             },
@@ -321,81 +321,68 @@ public abstract class Agent
     }
 
     /// <summary>
-    /// Publishes a message asynchronously.
+    /// Publishes a message to the agent runtime.
     /// </summary>
-    /// <typeparam name="T">The type of the message.</typeparam>
+    /// <param name="message">The message to publish.</param>
+    /// <param name="topic">The topic to which we publish the message</param>
+    /// <param name="source">The source of the message.</param>
+    /// <param name="key">The key of the message.</param>
     /// <param name="token">A token to cancel the operation.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public async ValueTask PublishMessageAsync<T>(T message, string topic, string source, string key, CancellationToken token = default) where T : IMessage
+    public async ValueTask PublishMessageAsync(IMessage message, string topic, string source, string key, CancellationToken token = default)
     {
+        var taskList = new List<Task>();
+        var topicTypes = new List<string>();
         // if there are no topic types, use the agent's default topic subscription attribute and the agent's type and key
         if (string.IsNullOrWhiteSpace(topic))
         {
-            if (string.IsNullOrWhiteSpace(topic))
+            topic = this.AgentId.Type;
+            var topicAttributes = this.GetType().GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
+            if (topicAttributes.Any())
             {
-                topic = this.AgentId.Type + "." + this.AgentId.Key;
+                topicTypes.AddRange(topicAttributes);
             }
-            else
+            if (topicTypes.Count == 0)
             {
-                topic = topic + "." + source + "." + key;
+                topicTypes.Add(
+                    string.IsNullOrWhiteSpace(source) ? this.AgentId.Type + "." + (string.IsNullOrEmpty(key) ? this.AgentId.Key : key) : source
+                );
             }
-
-            var topicTypes = this.GetType().GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
-            if (!topicTypes.Any())
-            {
-                topicTypes = topicTypes.Append(string.IsNullOrWhiteSpace(source) ? this.AgentId.Type + "." + this.AgentId.Key : source);
-            }
-            topicTypes = topicTypes.Append(SetTopic(topic, source, key));
-            foreach (var t in topicTypes)
-            {
-                await PublishEventAsync(t, message, token).ConfigureAwait(false);
-            }
+            topicTypes.Add(SetTopic(topic, source, key));
         }
-        else
+        if (string.IsNullOrWhiteSpace(source) && string.IsNullOrWhiteSpace(key)) { source = this.AgentId.Key; }
+        if (!String.IsNullOrWhiteSpace(key)) { source = source + "." + key; }
+        var topicIds = new List<TopicId>();
+        foreach (var t in topicTypes) { topicIds.Add(new TopicId() { Type = t, Source = source }); }
+        topicIds.Add(new TopicId() { Type = topic, Source = source });
+        foreach (var topicId in topicIds)
         {
-            await PublishEventAsync(topic, message, token).ConfigureAwait(false);
+            taskList.Add(Task.Run(async () =>
+            {
+                await Worker.PublishMessageAsync(message, topicId, this, token);
+            }));
         }
+        await Task.WhenAll(taskList).ConfigureAwait(false);
     }
     public async ValueTask PublishMessageAsync<T>(T message, string topic, string source, CancellationToken token = default) where T : IMessage
     {
-        string key = this.AgentId.Key;
+        var key = this.AgentId.Key;
         await PublishMessageAsync(message, topic, source, key, token).ConfigureAwait(false);
     }
     public async ValueTask PublishMessageAsync<T>(T message, string topic, CancellationToken token = default) where T : IMessage
     {
-        string source = this.AgentId.Type;
-        string key = this.AgentId.Key;
+        var source = this.AgentId.Type;
+        var key = this.AgentId.Key;
         await PublishMessageAsync(message, topic, source, key, token).ConfigureAwait(false);
     }
     public async ValueTask PublishMessageAsync<T>(T message, CancellationToken token = default) where T : IMessage
     {
-        string topic = "";
-        string source = this.AgentId.Type;
-        string key = this.AgentId.Key;
+        var topic = "";
+        var source = this.AgentId.Type;
+        var key = this.AgentId.Key;
         await PublishMessageAsync(message, topic, source, key, token).ConfigureAwait(false);
     }
-    public async ValueTask PublishEventAsync(string topic, IMessage message, CancellationToken cancellationToken = default)
-    {
-        await PublishEventAsync(message.ToCloudEvent(key: GetType().Name, topic: topic), cancellationToken).ConfigureAwait(false);
-    }
-    public async ValueTask PublishEventAsync(CloudEvent item, CancellationToken cancellationToken = default)
-    {
-        var activity = s_source.StartActivity($"PublishEventAsync '{item.Type}'", ActivityKind.Client, Activity.Current?.Context ?? default);
-        activity?.SetTag("peer.service", $"{item.Type}/{item.Source}");
-
-        // TODO: fix activity
-        IAgentWorkerExtensions.Update(this.Worker, item, activity);
-        await this.InvokeWithActivityAsync(
-            static async ((Agent Agent, CloudEvent Event) state, CancellationToken ct) =>
-            {
-                await state.Agent.Worker.PublishEventAsync(state.Event).ConfigureAwait(false);
-            },
-            (this, item),
-            activity,
-            item.Type, cancellationToken).ConfigureAwait(false);
-    }
-
-    public Task CallHandlerAsync(CloudEvent item, CancellationToken cancellationToken = default)
+    private Task CallHandlerAsync(CloudEvent item, CancellationToken cancellationToken = default)
     {
         // Only send the event to the handler if the agent type is handling that type
         if (EventTypes.CheckIfTypeHandles(GetType(), eventName: item.Type))
