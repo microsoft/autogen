@@ -95,6 +95,8 @@ class ComponentToConfig(Generic[ToConfigT]):
     """The version of the component, if schema incompatibilities are introduced this should be updated."""
     component_provider_override: ClassVar[str | None] = None
     """Override the provider string for the component. This should be used to prevent internal module names being a part of the module name."""
+    component_description: ClassVar[str | None] = None
+    """A description of the component."""
 
     def _to_config(self) -> ToConfigT:
         """Dump the configuration that would be requite to create a new instance of a component matching the configuration of this instance.
@@ -132,13 +134,21 @@ class ComponentToConfig(Generic[ToConfigT]):
         if not hasattr(self, "component_type"):
             raise AttributeError("component_type not defined")
 
+        description = self.component_description
+        if description is None and self.__class__.__doc__:
+            # use docstring as description
+            docstring = self.__class__.__doc__.strip()
+            for marker in ["\n\nArgs:", "\n\nParameters:", "\n\nAttributes:", "\n\n"]:
+                docstring = docstring.split(marker)[0]
+            description = docstring.strip()
+
         obj_config = self._to_config().model_dump(exclude_none=True)
         model = ComponentModel(
             provider=provider,
             component_type=self.component_type,
             version=self.component_version,
             component_version=self.component_version,
-            description=None,
+            description=description,
             config=obj_config,
         )
         return model
