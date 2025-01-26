@@ -67,7 +67,11 @@ class FunctionTool(BaseTool[BaseModel, BaseModel]):
     def __init__(self, func: Callable[..., Any], description: str, name: str | None = None) -> None:
         self._func = func
         signature = get_typed_signature(func)
-        func_name = name or func.__name__
+        func_name = (
+            name or func.func.__name__
+            if isinstance(func, functools.partial)
+            else name or func.__name__
+        )
         args_model = args_base_model_from_signature(func_name + "args", signature)
         return_type = signature.return_annotation
         self._has_cancellation_support = "cancellation_token" in signature.parameters

@@ -8,6 +8,7 @@ from autogen_core.tools import BaseTool, FunctionTool
 from autogen_core.tools._base import ToolSchema
 from pydantic import BaseModel, Field, model_serializer
 from pydantic_core import PydanticUndefined
+from functools import partial
 
 
 class MyArgs(BaseModel):
@@ -108,6 +109,67 @@ def test_func_tool_schema_generation_only_default_arg() -> None:
     assert schema["parameters"]["properties"]["arg"]["description"] == "arg"
     assert "required" not in schema["parameters"]
 
+def test_func_tool_with_partial_positional_arguments_schema_generation() -> None:
+    """Test correct schema generation for a partial function with positional arguments."""
+    def get_weather(country: str, city: str) -> int:
+        return f"The temperature in {city}, {country} is 75°"
+
+    partial_function = partial(get_weather, "Germany")
+    tool = FunctionTool(partial_function, description="Partial function tool.")
+    schema = tool.schema
+
+    assert schema["name"] == "get_weather"
+    assert "description" in schema
+    assert schema["description"] == "Partial function tool."
+    assert "parameters" in schema
+    assert schema["parameters"]["type"] == "object"
+    assert schema["parameters"]["properties"].keys() == {"city"}
+    assert schema["parameters"]["properties"]["city"]["type"] == "string"
+    assert (
+        schema["parameters"]["properties"]["city"]["description"]
+        == "city"
+    )
+    assert "required" in schema["parameters"]
+    assert schema["parameters"]["required"] == ["city"]
+    assert "country" not in schema["parameters"]["properties"] # check country not in schema params
+    assert len(schema["parameters"]["properties"]) == 1
+
+
+def test_func_call_tool_with_kwargs_schema_generation() -> None:
+    """Test correct schema generation for a partial function with kwargs."""
+
+    def get_weather(country: str, city: str) -> int:
+        return f"The temperature in {city}, {country} is 75°"
+
+    partial_function = partial(get_weather, country="Germany")
+    tool = FunctionTool(partial_function, description="Partial function tool.")
+    schema = tool.schema
+
+    assert schema["name"] == "get_weather"
+    assert "description" in schema
+    assert schema["description"] == "Partial function tool."
+    assert "parameters" in schema
+    assert schema["parameters"]["type"] == "object"
+    assert schema["parameters"]["properties"].keys() == {"country", "city"}
+    assert schema["parameters"]["properties"]["city"]["type"] == "string"
+    assert schema["parameters"]["properties"]["country"]["type"] == "string"
+    assert "required" in schema["parameters"]
+    assert schema["parameters"]["required"] == ["city"] # only city is required
+    assert len(schema["parameters"]["properties"]) == 2 
+
+
+@pytest.mark.asyncio
+async def test_run_func_call_tool_with_kwargs_and_args() -> None:
+    """Test run partial function with kwargs and args."""
+
+    def get_weather(country: str, city: str, unit: str = "Celsius") -> str:
+        return f"The temperature in {city}, {country} is 75° {unit}"
+
+    partial_function = partial(get_weather, "Germany", unit="Fahrenheit")
+    tool = FunctionTool(partial_function, description="Partial function tool.")
+    result = await tool.run_json({"city": "Berlin"}, CancellationToken())
+    assert isinstance(result, str)
+    assert result == "The temperature in Berlin, Germany is 75° Fahrenheit"
 
 @pytest.mark.asyncio
 async def test_tool_run() -> None:

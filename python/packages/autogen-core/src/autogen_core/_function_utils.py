@@ -3,6 +3,7 @@
 
 import inspect
 import typing
+from functools import partial
 from logging import getLogger
 from typing import (
     Annotated,
@@ -41,7 +42,8 @@ def get_typed_signature(call: Callable[..., Any]) -> inspect.Signature:
     """
     signature = inspect.signature(call)
     globalns = getattr(call, "__globals__", {})
-    type_hints = typing.get_type_hints(call, globalns, include_extras=True)
+    func_call = call.func if isinstance(call, partial) else call
+    type_hints = typing.get_type_hints(func_call, globalns, include_extras=True)
     typed_params = [
         inspect.Parameter(
             name=param.name,
@@ -52,7 +54,9 @@ def get_typed_signature(call: Callable[..., Any]) -> inspect.Signature:
         for param in signature.parameters.values()
     ]
     return_annotation = type_hints.get("return", inspect.Signature.empty)
-    typed_signature = inspect.Signature(typed_params, return_annotation=return_annotation)
+    typed_signature = inspect.Signature(
+        typed_params, return_annotation=return_annotation
+    )
     return typed_signature
 
 
