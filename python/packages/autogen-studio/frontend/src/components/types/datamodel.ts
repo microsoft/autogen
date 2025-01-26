@@ -97,8 +97,11 @@ export interface SessionRuns {
 
 export interface BaseConfig {
   component_type: string;
-  version?: string;
-  description?: string;
+  version?: number;
+  description?: string | null;
+  label?: string;
+  component_version?: number;
+  provider: string;
 }
 
 export interface WebSocketMessage {
@@ -273,8 +276,18 @@ export interface SelectorGroupChatConfig extends BaseTeamConfig {
 
 export type TeamConfig = RoundRobinGroupChatConfig | SelectorGroupChatConfig;
 
+export interface ComponentModel {
+  provider: string;
+  component_type: ComponentTypes;
+  version: number;
+  component_version: number;
+  config: any;
+  description?: string | null;
+  label?: string;
+}
+
 export interface Team extends DBModel {
-  config: TeamConfig;
+  config: ComponentModel;
 }
 
 export interface TeamResult {
