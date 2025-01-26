@@ -45,7 +45,7 @@ public class AgentTests()
     {
         var runtime = new InMemoryAgentRuntimeFixture();
         var (worker, agent) = runtime.Start();
-        Assert.Equal("AgentWorker", worker.GetType().Name);
+        Assert.Equal(nameof(AgentRuntime), worker.GetType().Name);
         var subscriptions = await agent.GetSubscriptionsAsync();
         Assert.Equal(2, subscriptions.Count);
         runtime.Stop();
@@ -232,10 +232,10 @@ public sealed class InMemoryAgentRuntimeFixture : IDisposable
     /// Start - starts the agent
     /// </summary>
     /// <returns>IAgentWorker, TestAgent</returns>
-    public (IAgentWorker, TestAgent) Start()
+    public (IAgentRuntime, TestAgent) Start()
     {
         var agent = ActivatorUtilities.CreateInstance<TestAgent>(AppHost.Services);
-        var worker = AppHost.Services.GetRequiredService<IAgentWorker>();
+        var worker = AppHost.Services.GetRequiredService<IAgentRuntime>();
         Agent.Initialize(worker, agent);
         return (worker, agent);
     }
