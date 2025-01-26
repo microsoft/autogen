@@ -35,6 +35,7 @@ class MyComponent(ComponentBase[MyConfig], Component[MyConfig]):
 
 class ComponentWithDescription(MyComponent):
     component_description = "Explicit description"
+    component_label = "Custom Component"
 
 
 class ComponentWithDocstring(MyComponent):
@@ -366,3 +367,4 @@ def test_component_descriptions() -> None:
     assert MyComponent("test").dump_component().description is None
     assert ComponentWithDocstring("test").dump_component().description == "A component using just docstring."
     assert ComponentWithDescription("test").dump_component().description == "Explicit description"
+    assert ComponentWithDescription("test").dump_component().label == "Custom Component"

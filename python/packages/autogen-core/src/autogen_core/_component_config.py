@@ -33,6 +33,9 @@ class ComponentModel(BaseModel):
     description: str | None = None
     """Description of the component."""
 
+    label: str | None = None
+    """Human readable label for the component. If missing the component type will be used."""
+
     config: dict[str, Any]
     """The schema validated config field is passed to a given class's implmentation of :py:meth:`autogen_core.ComponentConfigImpl._from_config` to create a new instance of the component class."""
 
@@ -97,6 +100,8 @@ class ComponentToConfig(Generic[ToConfigT]):
     """Override the provider string for the component. This should be used to prevent internal module names being a part of the module name."""
     component_description: ClassVar[str | None] = None
     """A description of the component. If not provided, the docstring of the class will be used."""
+    component_label: ClassVar[str | None] = None
+    """A human readable label for the component. If not provided, the component type will be used."""
 
     def _to_config(self) -> ToConfigT:
         """Dump the configuration that would be requite to create a new instance of a component matching the configuration of this instance.
@@ -149,6 +154,7 @@ class ComponentToConfig(Generic[ToConfigT]):
             version=self.component_version,
             component_version=self.component_version,
             description=description,
+            label=self.component_label or self.component_type,
             config=obj_config,
         )
         return model
