@@ -17,7 +17,7 @@ public abstract class WebAPIAgent : IOAgent,
     private readonly string _url = "/agents/webio";
 
     public WebAPIAgent(
-    IAgentWorker worker,
+    IAgentRuntime worker,
     [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry,
     ILogger<WebAPIAgent> logger,
     string url = "/agents/webio") : base(
