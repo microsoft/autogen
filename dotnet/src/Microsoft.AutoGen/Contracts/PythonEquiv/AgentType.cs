@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// PythonInterfaces.cs
+// AgentType.cs
 
 namespace Microsoft.AutoGen.Contracts.Python;
 

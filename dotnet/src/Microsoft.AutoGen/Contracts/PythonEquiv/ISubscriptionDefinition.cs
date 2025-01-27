@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// PythonInterfaces.cs
+// ISubscriptionDefinition.cs
 
 using System.Diagnostics.CodeAnalysis;
 

@@ -1,5 +1,5 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
-// PythonInterfaces.cs
+// MessageContext.cs
 
 namespace Microsoft.AutoGen.Contracts.Python;
 
