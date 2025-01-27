@@ -17,6 +17,8 @@ public class AgentsAppBuilder
     public AgentsAppBuilder(HostApplicationBuilder? baseBuilder = null)
     {
         this.builder = baseBuilder ?? new HostApplicationBuilder();
+
+        this.builder.Services.AddSingleton<IAgentRuntime, InProcessRuntime>();
     }
 
     public void AddAgentsFromAssemblies()
