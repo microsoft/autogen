@@ -13,7 +13,7 @@ async def perform_evaluations(settings, logger) -> None:
     """
     logger.enter_function()
 
-    # Create the client, which is passed to both the apprentice and the evaluator.
+    # Create the client.
     client_creator = ClientCreator(settings=settings["client"], logger=logger)
     client = client_creator.create_client()
 
