@@ -32,6 +32,7 @@ public interface IAgent : ISaveState<IAgent>
     /// <exception cref="CantHandleException">Thrown if the agent cannot handle the message.</exception>
     public ValueTask<object?> OnMessageAsync(object message, MessageContext messageContext); // TODO: How do we express this properly in .NET?
 }
+
 /// <summary>
 /// Represents an agent that can be explicitly hosted and closed when the runtime shuts down.
 /// </summary>

@@ -25,24 +25,15 @@ public abstract class BaseAgent : IAgent, IHostableAgent
     public AgentId Id { get; private set; }
     protected internal ILogger<BaseAgent> _logger;
 
-    public Type[] HandledTypes {
-        get {
-            return _handlersByMessageType.Keys.ToArray();
-        }
-    }
-
-    protected IUnboundSubscriptionDefinition[] GetUnboundSubscriptions()
-    {
-        throw new NotImplementedException();
-    }
-
     protected IAgentRuntime Runtime { get; private set; }
-    private readonly Dictionary<Type, MethodInfo> _handlersByMessageType;
+    private readonly Dictionary<Type, HandlerInvoker> handlerInvokers;
 
     protected string Description { get; private set; }
 
-    public AgentMetadata Metadata {
-        get {
+    public AgentMetadata Metadata
+    {
+        get
+        {
             return new AgentMetadata
             {
                 Type = Id.Type,
@@ -62,48 +53,39 @@ public abstract class BaseAgent : IAgent, IHostableAgent
         _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<BaseAgent>();
         Description = description;
         Runtime = runtime;
-        _handlersByMessageType = new(GetType().GetHandlersLookupTable());
+
+        this.handlerInvokers = this.ReflectInvokers();
+    }
+
+    private Dictionary<Type, HandlerInvoker> ReflectInvokers()
+    {
+        Type realType = this.GetType();
+
+        IEnumerable<Type> candidateInterfaces =
+            realType.GetInterfaces()
+                    .Where(i => i.IsGenericType &&
+                            (i.GetGenericTypeDefinition() == typeof(IHandle<>) ||
+                            (i.GetGenericTypeDefinition() == typeof(IHandle<,>))));
+
+        Dictionary<Type, HandlerInvoker> invokers = new();
+        foreach (Type interface_ in candidateInterfaces)
+        {
+            MethodInfo? maybeHandle = interface_.GetMethod(nameof(IHandle<object>.Handle), BindingFlags.Instance | BindingFlags.Public);
+
+            HandlerInvoker invoker = new(maybeHandle ?? throw new InvalidOperationException($"No handler method found for interface {interface_.FullName}"), this);
+            invokers.Add(interface_.GetGenericArguments()[0], invoker);
+        }
+
+        return invokers;
     }
 
     public async ValueTask<object?> OnMessageAsync(object message, MessageContext messageContext)
     {
         // Determine type of message, then get handler method and invoke it
         var messageType = message.GetType();
-        if (_handlersByMessageType.TryGetValue(messageType, out var handlerMethod))
+        if (this.handlerInvokers.TryGetValue(messageType, out var handlerInvoker))
         {
-            // Determine if this is a IHandle<T> or IHandle<T, U> method
-            // We need to check if return type is a bare ValueTask or ValueTask<T>
-            var ret = handlerMethod.ReturnType;
-            var genericArguments = ret.GetGenericArguments();
-
-            // The non-returning type uses ValueTask
-            if (genericArguments.Length == 0)
-            {
-                // This is a IHandle<T> method
-                var return_value = handlerMethod.Invoke(this, new object[] { message, messageContext });
-                if (return_value != null){
-                    await (ValueTask)return_value;
-                }
-                return ValueTask.CompletedTask;
-
-            }
-            // The returning type uses ValueTask<T>
-            else if (genericArguments.Length == 1)
-            {
-                // This is a IHandle<T, U> method
-                // var _messageType = genericArguments[0];
-                // var _returnType = genericArguments[1];
-                var result = handlerMethod.Invoke(this, new object[] { message, messageContext });
-                if (result != null){
-                    return await (ValueTask<object?>)result;
-                }
-
-                throw new InvalidOperationException($"Got null result from handler method {handlerMethod.Name}");
-            }
-            else
-            {
-                throw new InvalidOperationException($"Unexpected number of generic arguments in handler method {handlerMethod.Name}");
-            }
+            return await handlerInvoker.InvokeAsync(message, messageContext);
         }
         else
         {
