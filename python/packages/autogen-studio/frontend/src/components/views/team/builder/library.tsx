@@ -91,7 +91,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
         title: "Agents",
         type: "agent" as ComponentTypes,
         items: defaultGallery.items.components.agents.map((agent) => ({
-          label: agent.name,
+          label: agent.label,
           config: agent,
         })),
         icon: <Bot className="w-4 h-4" />,
@@ -100,7 +100,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
         title: "Models",
         type: "model" as ComponentTypes,
         items: defaultGallery.items.components.models.map((model) => ({
-          label: `${model.model_type} - ${model.model}`,
+          label: `${model.component_type} - ${model.config.model}`,
           config: model,
         })),
         icon: <Brain className="w-4 h-4" />,
@@ -109,7 +109,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
         title: "Tools",
         type: "tool" as ComponentTypes,
         items: defaultGallery.items.components.tools.map((tool) => ({
-          label: tool.name,
+          label: tool.label,
           config: tool,
         })),
         icon: <Wrench className="w-4 h-4" />,
@@ -119,7 +119,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
         type: "termination" as ComponentTypes,
         items: defaultGallery.items.components.terminations.map(
           (termination) => ({
-            label: `${termination.termination_type}`,
+            label: `${termination.label}`,
             config: termination,
           })
         ),
@@ -131,7 +131,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
 
   const items: CollapseProps["items"] = sections.map((section) => {
     const filteredItems = section.items.filter((item) =>
-      item.label.toLowerCase().includes(searchTerm.toLowerCase())
+      item.label?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return {
@@ -153,7 +153,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
               id={`${section.title.toLowerCase()}-${itemIndex}`}
               type={section.type}
               config={item.config}
-              label={item.label}
+              label={item.label || ""}
               icon={section.icon}
             />
           ))}

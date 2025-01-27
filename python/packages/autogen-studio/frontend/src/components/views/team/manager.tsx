@@ -201,7 +201,7 @@ export const TeamManager: React.FC = () => {
               <>
                 <ChevronRight className="w-4 h-4 text-secondary" />
                 <span className="text-secondary">
-                  {currentTeam.config.name}
+                  {currentTeam.component.label}
                   {currentTeam.id ? (
                     ""
                   ) : (

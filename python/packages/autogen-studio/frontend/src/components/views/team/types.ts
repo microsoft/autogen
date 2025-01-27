@@ -1,4 +1,4 @@
-import type { Team, TeamConfig } from "../../types/datamodel";
+import type { Component, Team, TeamConfig } from "../../types/datamodel";
 
 export interface TeamEditorProps {
   team?: Team;
@@ -16,12 +16,14 @@ export interface TeamListProps {
   isLoading?: boolean;
 }
 
-export const defaultTeamConfig: TeamConfig = {
+export const defaultTeamConfig: Component<TeamConfig> = {
   provider: "autogen_agentchat.teams.RoundRobinGroupChat",
   component_type: "team",
   version: 1,
   component_version: 1,
-  description: null,
+  description:
+    "A team of agents that chat with users in a round-robin fashion.",
+  label: "General Team",
   config: {
     participants: [
       {
@@ -101,5 +103,5 @@ export const defaultTeamConfig: TeamConfig = {
 };
 
 export const defaultTeam: Team = {
-  config: defaultTeamConfig,
+  component: defaultTeamConfig,
 };
