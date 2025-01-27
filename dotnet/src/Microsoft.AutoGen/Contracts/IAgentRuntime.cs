@@ -1,103 +1,127 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IAgentRuntime.cs
 
-using Google.Protobuf;
+using StateDict = System.Collections.Generic.IDictionary<string, object>;
+
 namespace Microsoft.AutoGen.Contracts;
 
 /// <summary>
-/// Defines the common surface for agent runtime implementations.
+/// Defines the runtime environment for agents, managing message sending, subscriptions, agent resolution, and state persistence.
 /// </summary>
-public interface IAgentRuntime
+public interface IAgentRuntime : ISaveState<IAgentRuntime>
 {
     /// <summary>
-    /// Gets the dependency injection service provider for the runtime.
+    /// Sends a message to an agent and gets a response.
+    /// This method should be used to communicate directly with an agent.
     /// </summary>
-    IServiceProvider RuntimeServiceProvider { get; }
+    /// <param name="message">The message to send.</param>
+    /// <param name="recepient">The agent to send the message to.</param>
+    /// <param name="sender">The agent sending the message. Should be <c>null</c> if sent from an external source.</param>
+    /// <param name="messageId">A unique identifier for the message. If <c>null</c>, a new ID will be generated.</param>
+    /// <param name="cancellationToken">A token to cancel the operation if needed.</param>
+    /// <returns>A task representing the asynchronous operation, returning the response from the agent.</returns>
+    /// <exception cref="CantHandleException">Thrown if the recipient cannot handle the message.</exception>
+    /// <exception cref="UndeliverableException">Thrown if the message cannot be delivered.</exception>
+    public ValueTask<object?> SendMessageAsync(object message, AgentId recepient, AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = default);
 
     /// <summary>
-    /// Registers a new agent type asynchronously.
+    /// Publishes a message to all agents subscribed to the given topic.
+    /// No responses are expected from publishing.
     /// </summary>
-    /// <param name="request">The request containing the agent type details.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest request, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// to be removed in favor of send_message
-    /// Sends a request to and agent.
-    /// </summary>
-    /// <param name="agent">The agent sending the request.</param>
-    /// <param name="request">The request to be sent.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    ValueTask RuntimeSendRequestAsync(IAgent agent, RpcRequest request, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Sends a response to the above request.
-    ///     /// to be removed in favor of send_message
-    /// </summary>
-    /// <param name="response">The response to be sent.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    ValueTask RuntimeSendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default);
-
-    /// <summary>
-    /// Sends a message directly to another agent.
-    /// </summary>
-    /// <param name="message">The message to be sent.</param>
-    /// <param name="recipient">The recipient of the message.</param>
-    /// <param name="sender">The agent sending the message.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task that represents the response to th message.</returns>
-    ValueTask<RpcResponse> SendMessageAsync(IMessage message, AgentId recipient, AgentId? sender, CancellationToken? cancellationToken = default);
-
-    /// <summary>
-    /// Publishes a message to a topic.
-    /// </summary>
-    /// <param name="message">The message to be published.</param>
+    /// <param name="message">The message to publish.</param>
     /// <param name="topic">The topic to publish the message to.</param>
-    /// <param name="sender">The agent sending the message.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    ValueTask PublishMessageAsync(IMessage message, TopicId topic, IAgent? sender, CancellationToken? cancellationToken = default);
+    /// <param name="sender">The agent sending the message. Defaults to <c>null</c>.</param>
+    /// <param name="messageId">A unique message ID. If <c>null</c>, a new one will be generated.</param>
+    /// <param name="cancellationToken">A token to cancel the operation if needed.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="UndeliverableException">Thrown if the message cannot be delivered.</exception>
+    public ValueTask PublishMessageAsync(object message, TopicId topic, AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = default);
+
+    // TODO: Can we call this Resolve?
+    /// <summary>
+    /// Retrieves an agent by its unique identifier.
+    /// </summary>
+    /// <param name="agentId">The unique identifier of the agent.</param>
+    /// <param name="lazy">If <c>true</c>, the agent is fetched lazily.</param>
+    /// <returns>A task representing the asynchronous operation, returning the agent's ID.</returns>
+    public ValueTask<AgentId> GetAgentAsync(AgentId agentId, bool lazy = true/*, CancellationToken? = default*/);
 
     /// <summary>
-    /// Saves the state of an agent asynchronously.
+    /// Retrieves an agent by its type.
     /// </summary>
-    /// <param name="value">The state to be saved.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    ValueTask SaveStateAsync(AgentState value, CancellationToken cancellationToken = default);
+    /// <param name="agentType">The type of the agent.</param>
+    /// <param name="key">An optional key to specify variations of the agent. Defaults to "default".</param>
+    /// <param name="lazy">If <c>true</c>, the agent is fetched lazily.</param>
+    /// <returns>A task representing the asynchronous operation, returning the agent's ID.</returns>
+    public ValueTask<AgentId> GetAgentAsync(AgentType agentType, string key = "default", bool lazy = true/*, CancellationToken? = default*/);
 
     /// <summary>
-    /// Loads the state of an agent asynchronously.
+    /// Retrieves an agent by its string representation.
     /// </summary>
-    /// <param name="agentId">The ID of the agent whose state is to be loaded.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task that represents the asynchronous operation, containing the agent state.</returns>
-    ValueTask<AgentState> LoadStateAsync(AgentId agentId, CancellationToken cancellationToken = default);
+    /// <param name="agent">The string representation of the agent.</param>
+    /// <param name="key">An optional key to specify variations of the agent. Defaults to "default".</param>
+    /// <param name="lazy">If <c>true</c>, the agent is fetched lazily.</param>
+    /// <returns>A task representing the asynchronous operation, returning the agent's ID.</returns>
+    public ValueTask<AgentId> GetAgentAsync(string agent, string key = "default", bool lazy = true/*, CancellationToken? = default*/);
 
     /// <summary>
-    /// Adds a subscription to a topic.
+    /// Saves the state of an agent.
+    /// The result must be JSON serializable.
     /// </summary>
-    /// <param name="request">The request containing the subscription types.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task that represents the asynchronous operation, containing the response.</returns>
-    ValueTask<AddSubscriptionResponse> AddSubscriptionAsync(AddSubscriptionRequest request, CancellationToken cancellationToken = default);
+    /// <param name="agentId">The ID of the agent whose state is being saved.</param>
+    /// <returns>A task representing the asynchronous operation, returning a dictionary of the saved state.</returns>
+    public ValueTask<StateDict> SaveAgentStateAsync(AgentId agentId/*, CancellationToken? cancellationToken = default*/);
 
     /// <summary>
-    /// Removes a subscription.
+    /// Loads the saved state into an agent.
     /// </summary>
-    /// <param name="request">The request containing the subscription id.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task that represents the asynchronous operation, containing the response.</returns>
-    ValueTask<RemoveSubscriptionResponse> RemoveSubscriptionAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default);
+    /// <param name="agentId">The ID of the agent whose state is being restored.</param>
+    /// <param name="state">The state dictionary to restore.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public ValueTask LoadAgentStateAsync(AgentId agentId, StateDict state/*, CancellationToken? cancellationToken = default*/);
 
     /// <summary>
-    /// Gets the list of subscriptions.
+    /// Retrieves metadata for an agent.
     /// </summary>
-    /// <param name="request">The request containing the subscription query details.</param>
-    /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <returns>A task that represents the asynchronous operation, containing the list of subscriptions.</returns>
-    ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request, CancellationToken cancellationToken = default);
+    /// <param name="agentId">The ID of the agent.</param>
+    /// <returns>A task representing the asynchronous operation, returning the agent's metadata.</returns>
+    public ValueTask<AgentMetadata> GetAgentMetadataAsync(AgentId agentId/*, CancellationToken? cancellationToken = default*/);
+
+    /// <summary>
+    /// Adds a new subscription for the runtime to handle when processing published messages.
+    /// </summary>
+    /// <param name="subscription">The subscription to add.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    public ValueTask AddSubscriptionAsync(ISubscriptionDefinition subscription/*, CancellationToken? cancellationToken = default*/);
+
+    /// <summary>
+    /// Removes a subscription from the runtime.
+    /// </summary>
+    /// <param name="subscriptionId">The unique identifier of the subscription to remove.</param>
+    /// <returns>A task representing the asynchronous operation.</returns>
+    /// <exception cref="KeyNotFoundException">Thrown if the subscription does not exist.</exception>
+    public ValueTask RemoveSubscriptionAsync(string subscriptionId/*, CancellationToken? cancellationToken = default*/);
+
+    /// <summary>
+    /// Registers an agent factory with the runtime, associating it with a specific agent type.
+    /// The type must be unique.
+    /// </summary>
+    /// <typeparam name="TAgent">The agent type being registered.</typeparam>
+    /// <param name="type">The agent type to associate with the factory.</param>
+    /// <param name="factoryFunc">A function that asynchronously creates the agent instance.</param>
+    /// <returns>A task representing the asynchronous operation, returning the registered <see cref="AgentType"/>.</returns>
+    public ValueTask<AgentType> RegisterAgentFactoryAsync<TAgent>(AgentType type, Func<AgentId, IAgentRuntime, ValueTask<TAgent>> factoryFunc) where TAgent : IHostableAgent;
+
+    // TODO:
+    //public ValueTask<TAgent> TryGetUnderlyingAgentInstanceAsync<TAgent>(AgentId agentId) where TAgent : IHostableAgent;
+    //public void AddMessageSerializer(params object[] serializers);
+
+    // Extras
+    /// <summary>
+    /// Attempts to retrieve an <see cref="AgentProxy"/> for the specified agent.
+    /// </summary>
+    /// <param name="agentId">The ID of the agent.</param>
+    /// <returns>A task representing the asynchronous operation, returning an <see cref="AgentProxy"/> if successful.</returns>
+    public ValueTask<AgentProxy> TryGetAgentProxyAsync(AgentId agentId);
 }
+
