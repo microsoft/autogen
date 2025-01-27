@@ -132,13 +132,13 @@ public abstract class BaseAgent : IAgent, IHostableAgent
         throw new NotImplementedException();
     }
 
-    public ValueTask<object> SendMessageAsync(object message, AgentId recepient, string? messageId = null, CancellationToken? cancellationToken = default)
+    public ValueTask<object?> SendMessageAsync(object message, AgentId recepient, string? messageId = null, CancellationToken? cancellationToken = default)
     {
         return this.Runtime.SendMessageAsync(message, recepient, sender: this.Id, messageId: messageId, cancellationToken: cancellationToken);
 
     }
 
-    public ValueTask<object> PublishMessageAsync(object message, TopicId topic, string? messageId = null, CancellationToken? cancellationToken = default)
+    public ValueTask PublishMessageAsync(object message, TopicId topic, string? messageId = null, CancellationToken? cancellationToken = default)
     {
         return this.Runtime.PublishMessageAsync(message, topic, sender: this.Id, messageId: messageId, cancellationToken: cancellationToken);
     }

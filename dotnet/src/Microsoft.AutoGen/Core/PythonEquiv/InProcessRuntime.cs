@@ -5,45 +5,50 @@ using Microsoft.AutoGen.Contracts.Python;
 
 namespace Microsoft.AutoGen.Core;
 
-internal class InProcessRuntime : IAgentRuntime
+internal sealed class InProcessRuntime : IAgentRuntime
 {
     Dictionary<AgentId, IHostableAgent> agentInstances = new();
     Dictionary<string, ISubscriptionDefinition> subscriptions = new();
     Dictionary<AgentType, Func<AgentId, IAgentRuntime, ValueTask<IHostableAgent>>> agentFactories = new();
 
-    private ValueTask ExecuteTracedAsync<T>(Action<ValueTask<T>> action)
+    
+    private ValueTask<T> ExecuteTracedAsync<T>(Func<ValueTask<T>> func)
     {
         // TODO: Bind tracing
-        return action();
+        return func();
+    }
+
+    private ValueTask ExecuteTracedAsync(Func<ValueTask> func)
+    {
+        // TODO: Bind tracing
+        return func();
     }
 
     public InProcessRuntime()
     {
     }
 
-    public ValueTask<object> PublishMessage(object message, TopicId topic, AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = null)
+    public ValueTask PublishMessageAsync(object message, TopicId topic, AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = null)
     {
         return this.ExecuteTracedAsync(async () =>
         {
-            cancellationToken ??= CancellationToken.None;
             messageId ??= Guid.NewGuid().ToString();
 
             foreach (var subscription in this.subscriptions.Values.Where(subscription => subscription.Matches(topic)))
             {
                 AgentId agentId = subscription.MapToAgent(topic);
-                if (agentId == sender)
+                if (sender.HasValue && sender == agentId)
                 {
                     // TODO: enable re-entrant mode
                     continue;
                 }
 
-                MessageContext messageContext = new MessageContext(messageId)
+                MessageContext messageContext = new (messageId ?? Guid.NewGuid().ToString(), cancellationToken ?? CancellationToken.None)
                 {
-                    CancellationToken = cancellationToken,
                     Sender = sender,
                     Topic = topic,
                     IsRpc = false
-                }
+                };
 
                 IHostableAgent agent = await this.EnsureAgentAsync(agentId);
                 await agent.OnMessageAsync(message, messageContext);
@@ -51,39 +56,34 @@ internal class InProcessRuntime : IAgentRuntime
         });
     }
 
-    public ValueTask<object> SendMessageAsync(object message, AgentId recepient, AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = null)
+    public ValueTask<object?> SendMessageAsync(object message, AgentId recepient, AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = null)
     {
         return this.ExecuteTracedAsync(async () =>
         {
             cancellationToken ??= CancellationToken.None;
             messageId ??= Guid.NewGuid().ToString();
 
-            MessageContext messageContext = new MessageContext(messageId)
+            MessageContext messageContext = new(messageId ?? Guid.NewGuid().ToString(), cancellationToken ?? CancellationToken.None)
             {
-                CancellationToken = cancellationToken,
                 Sender = sender,
-                Topic = topic,
                 IsRpc = false
-            }
+            };
 
             IHostableAgent agent = await this.EnsureAgentAsync(recepient);
-            await agent.OnMessageAsync(message, messageContext);
+            return await agent.OnMessageAsync(message, messageContext);
         });
     }
 
     private async ValueTask<IHostableAgent> EnsureAgentAsync(AgentId agentId)
     {
-        if (!this.agentInstances.ContainsKey(agentId))
+        if (!this.agentInstances.TryGetValue(agentId, out IHostableAgent? agent))
         {
-            if (!this.agentFactories.ContainsKey(agentId.Type))
+            if (!this.agentFactories.TryGetValue(agentId.Type, out Func<AgentId, IAgentRuntime, ValueTask<IHostableAgent>>? factoryFunc))
             {
                 throw new Exception($"Agent with name {agentId.Type} not found.");
             }
 
-            Func<AgentId, IAgentRuntime, ValueTask<IHostableAgent>> factoryFunc = this.agentFactories[agentId.Type]
-
-            var agent = await factoryFunc(agentId, this);
-
+            agent = await factoryFunc(agentId, this);
             this.agentInstances.Add(agentId, agent);
         }
 
@@ -106,9 +106,10 @@ internal class InProcessRuntime : IAgentRuntime
     public ValueTask<AgentId> GetAgentAsync(string agent, string key = "default", bool lazy = true)
         => this.GetAgentAsync(new AgentId(agent, key), lazy);
 
-    public ValueTask<AgentMetadata> GetAgentMetadataAsync(AgentId agentId)
+    public async ValueTask<AgentMetadata> GetAgentMetadataAsync(AgentId agentId)
     {
-        return this.EnsureAgentAsync(agentId).ContinueWith(agent => agent.Metadata);
+        IHostableAgent agent = await this.EnsureAgentAsync(agentId);
+        return agent.Metadata;
     }
 
     public async ValueTask LoadAgentStateAsync(AgentId agentId, IDictionary<string, object> state)
@@ -117,10 +118,10 @@ internal class InProcessRuntime : IAgentRuntime
         await agent.LoadStateAsync(state);
     }
 
-    public ValueTask<IDictionary<string, object>> SaveAgentStateAsync(AgentId agentId)
+    public async ValueTask<IDictionary<string, object>> SaveAgentStateAsync(AgentId agentId)
     {
         IHostableAgent agent = await this.EnsureAgentAsync(agentId);
-        return agent.SaveStateAsync();
+        return await agent.SaveStateAsync();
     }
 
     /// <inheritdoc cref="IAgentRuntime.AddSubscriptionAsync(ISubscriptionDefinition)"/>
@@ -146,25 +147,33 @@ internal class InProcessRuntime : IAgentRuntime
         return ValueTask.CompletedTask;
     }
 
-    public ValueTask LoadStateAsync(IDictionary<string, object> state)
+    public async ValueTask LoadStateAsync(IDictionary<string, object> state)
     {
         foreach (var agentIdStr in state.Keys)
         {
-            AgentId agentId = AgentId.FromString(agentIdStr);
+            AgentId agentId = AgentId.FromStr(agentIdStr);
+            if (state[agentIdStr] is not IDictionary<string, object> agentState)
+            {
+                throw new Exception($"Agent state for {agentId} is not a {typeof(IDictionary<string, object>)}: {state[agentIdStr].GetType()}");
+            }
+
             if (this.agentFactories.ContainsKey(agentId.Type))
             {
-                await this.EnsureAgentAsync(agentId).LoadStateAsync(state[agentIdStr]);
+                IHostableAgent agent = await this.EnsureAgentAsync(agentId);
+                await agent.LoadStateAsync(agentState);
             }
         }
     }
 
-    public ValueTask<IDictionary<string, object>> SaveStateAsync()
+    public async ValueTask<IDictionary<string, object>> SaveStateAsync()
     {
         Dictionary<string, object> state = new();
         foreach (var agentId in this.agentInstances.Keys)
         {
             state[agentId.ToString()] = await this.agentInstances[agentId].SaveStateAsync();
         }
+
+        return state;
     }
 
     public ValueTask<AgentType> RegisterAgentFactoryAsync<TAgent>(AgentType type, Func<ValueTask<TAgent>> factoryFunc) where TAgent : IHostableAgent
@@ -174,10 +183,10 @@ internal class InProcessRuntime : IAgentRuntime
             throw new Exception($"Agent with type {type} already exists.");
         }
 
-        return type;
+        return ValueTask.FromResult(type);
     }
 
-    public ValueTask<IAgent> TryGetAgentProxyAsync(AgentId agentId)
+    public ValueTask<AgentProxy> TryGetAgentProxyAsync(AgentId agentId)
     {
         return ValueTask.FromResult(new AgentProxy(agentId, this));
     }

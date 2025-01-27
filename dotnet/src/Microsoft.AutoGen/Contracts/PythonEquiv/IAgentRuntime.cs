@@ -7,11 +7,11 @@ namespace Microsoft.AutoGen.Contracts.Python;
 
 public interface IAgentRuntime : ISaveState<IAgentRuntime>
 {
-    public ValueTask<object> SendMessageAsync(object message, AgentId recepient, AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = default);
-    public ValueTask<object> PublishMessageAsync(object message, TopicId topic, AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = default);
+    public ValueTask<object?> SendMessageAsync(object message, AgentId recepient, AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = default);
+    public ValueTask PublishMessageAsync(object message, TopicId topic, AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = default);
 
     // TODO: Can we call this Resolve?
-    public ValueTask<AgentId> GetAgentAsync(AgentId agentId, string key = "default", bool lazy = true/*, CancellationToken? = default*/);
+    public ValueTask<AgentId> GetAgentAsync(AgentId agentId, bool lazy = true/*, CancellationToken? = default*/);
     public ValueTask<AgentId> GetAgentAsync(AgentType agentType, string key = "default", bool lazy = true/*, CancellationToken? = default*/);
     public ValueTask<AgentId> GetAgentAsync(string agent, string key = "default", bool lazy = true/*, CancellationToken? = default*/);
 

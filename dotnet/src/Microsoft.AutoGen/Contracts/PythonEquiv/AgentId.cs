@@ -99,5 +99,8 @@ public struct AgentId
     /// <param name="id">The string representation of an agent ID.</param>
     /// <returns>An instance of <see cref="AgentId"/>.</returns>
     public static explicit operator AgentId(string id) => FromStr(id);
+
+    public static bool operator ==(AgentId left, AgentId right) => left.Equals(right);
+    public static bool operator !=(AgentId left, AgentId right) => !left.Equals(right);
 }
 

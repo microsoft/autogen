@@ -45,7 +45,7 @@ public class AgentProxy(AgentId agentId, IAgentRuntime runtime)
     /// A token used to cancel an in-progress operation. Defaults to <c>null</c>.
     /// </param>
     /// <returns>A task representing the asynchronous operation, returning the response from the agent.</returns>
-    public ValueTask<object> SendMessageAsync(object message, AgentId sender, string? messageId = null, CancellationToken? cancellationToken = default)
+    public ValueTask<object?> SendMessageAsync(object message, AgentId sender, string? messageId = null, CancellationToken? cancellationToken = default)
     {
         return this.runtime.SendMessageAsync(message, this.Id, sender, messageId, cancellationToken);
     }
