@@ -7,7 +7,6 @@ using Microsoft.AutoGen.Runtime.Grpc.Abstractions;
 namespace Microsoft.AutoGen.Runtime.Grpc;
 internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStore")] IPersistentState<AgentsRegistryState> state) : Grain, IRegistryGrain
 {
-    // TODO: use persistent state for some of these or (better) extend Orleans to implement some of this natively.
     private readonly Dictionary<IGateway, WorkerState> _workerStates = new();
     private readonly Dictionary<string, List<IGateway>> _supportedAgentTypes = [];
     private readonly Dictionary<(string Type, string Key), IGateway> _agentDirectory = [];
@@ -18,8 +17,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
         this.RegisterGrainTimer(static state => state.PurgeInactiveWorkers(), this, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
         return base.OnActivateAsync(cancellationToken);
     }
-
-    public ValueTask<List<string>> GetSubscribedAndHandlingAgents(string topic, string eventType)
+    public ValueTask<List<string>> GetSubscribedAndHandlingAgentsAsync(string topic, string eventType, CancellationToken cancellationToken = default)
     {
         List<string> agents = [];
         // get all agent types that are subscribed to the topic
@@ -57,7 +55,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
 
         return new ValueTask<List<string>>(agents);
     }
-    public ValueTask<(IGateway? Worker, bool NewPlacement)> GetOrPlaceAgent(AgentId agentId)
+    public ValueTask<(IGateway? Worker, bool NewPlacement)> GetOrPlaceAgent(AgentId agentId, CancellationToken cancellationToken = default)
     {
         // TODO: Clarify the logic
         bool isNewPlacement;
@@ -83,7 +81,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
         }
         return new((worker, isNewPlacement));
     }
-    public ValueTask RemoveWorker(IGateway worker)
+    public ValueTask RemoveWorkerAsync(IGateway worker, CancellationToken cancellationToken = default)
     {
         if (_workerStates.Remove(worker, out var state))
         {
@@ -97,8 +95,9 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
         }
         return ValueTask.CompletedTask;
     }
-    public async ValueTask RegisterAgentType(RegisterAgentTypeRequest registration, IGateway gateway)
+    public async ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest registration, IGateway gateway, CancellationToken cancellationToken = default)
     {
+        var _ = cancellationToken;
         if (!_supportedAgentTypes.TryGetValue(registration.Type, out var supportedAgentTypes))
         {
             supportedAgentTypes = _supportedAgentTypes[registration.Type] = [];
@@ -111,53 +110,27 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
 
         var workerState = GetOrAddWorker(gateway);
         workerState.SupportedTypes.Add(registration.Type);
-        /* future
-        state.State.AgentsToEventsMap[registration.Type] = new HashSet<string>(registration.Events);
-        state.State.AgentsToTopicsMap[registration.Type] = new HashSet<string>(registration.Topics);
 
-        // construct the inverse map for topics and agent types
-        foreach (var topic in registration.Topics)
-        {
-            if (!state.State.TopicToAgentTypesMap.TryGetValue(topic, out var topicSet))
-            {
-                topicSet = new HashSet<string>();
-                state.State.TopicToAgentTypesMap[topic] = topicSet;
-            }
-
-            topicSet.Add(registration.Type);
-        }
-
-        // construct the inverse map for events and agent types
-        foreach (var evt in registration.Events)
-        {
-            if (!state.State.EventsToAgentTypesMap.TryGetValue(evt, out var eventSet))
-            {
-                eventSet = new HashSet<string>();
-                state.State.EventsToAgentTypesMap[evt] = eventSet;
-            }
-
-            eventSet.Add(registration.Type);
-        }
-        */
         await state.WriteStateAsync().ConfigureAwait(false);
     }
-    public ValueTask AddWorker(IGateway worker)
+    public ValueTask AddWorkerAsync(IGateway worker, CancellationToken cancellationToken = default)
     {
         GetOrAddWorker(worker);
         return ValueTask.CompletedTask;
     }
-    public ValueTask UnregisterAgentType(string type, IGateway worker)
+    public async ValueTask UnregisterAgentType(string type, IGateway worker, CancellationToken cancellationToken = default)
     {
-        if (_workerStates.TryGetValue(worker, out var state))
+        var _ = cancellationToken;
+        if (_workerStates.TryGetValue(worker, out var workerState))
         {
-            state.SupportedTypes.Remove(type);
+            workerState.SupportedTypes.Remove(type);
         }
 
         if (_supportedAgentTypes.TryGetValue(type, out var workers))
         {
             workers.Remove(worker);
         }
-        return ValueTask.CompletedTask;
+        await state.WriteStateAsync().ConfigureAwait(false);
     }
     private Task PurgeInactiveWorkers()
     {
@@ -190,7 +163,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
         return workerState;
     }
 
-    public ValueTask<IGateway?> GetCompatibleWorker(string type) => new(GetCompatibleWorkerCore(type));
+    public ValueTask<IGateway?> GetCompatibleWorkerAsync(string type, CancellationToken cancellationToken = default) => new(GetCompatibleWorkerCore(type));
 
     private IGateway? GetCompatibleWorkerCore(string type)
     {
@@ -202,8 +175,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
 
         return null;
     }
-
-    public async ValueTask SubscribeAsync(AddSubscriptionRequest subscription)
+    public async ValueTask SubscribeAsync(AddSubscriptionRequest subscription, CancellationToken cancellationToken = default)
     {
         var guid = Guid.NewGuid().ToString();
         subscription.Subscription.Id = guid;
@@ -247,7 +219,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
         }
         await state.WriteStateAsync().ConfigureAwait(false);
     }
-    public async ValueTask UnsubscribeAsync(RemoveSubscriptionRequest request)
+    public async ValueTask UnsubscribeAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default)
     {
         var guid = request.Id;
         // does the guid parse?
@@ -286,27 +258,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
         }
         await state.WriteStateAsync().ConfigureAwait(false);
     }
-
-    public ValueTask<List<Subscription>> GetSubscriptions(string agentType)
-    {
-        var subscriptions = new List<Subscription>();
-        if (state.State.AgentsToTopicsMap.TryGetValue(agentType, out var topics))
-        {
-            foreach (var topic in topics)
-            {
-                subscriptions.Add(new Subscription
-                {
-                    TypeSubscription = new TypeSubscription
-                    {
-                        AgentType = agentType,
-                        TopicType = topic
-                    }
-                });
-            }
-        }
-        return new(subscriptions);
-    }
-    public ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request)
+    public ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request, CancellationToken cancellationToken = default)
     {
         var subscriptions = new List<Subscription>();
         foreach (var kvp in state.State.GuidSubscriptionsMap)
@@ -315,7 +267,16 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
         }
         return new(subscriptions);
     }
-
+    public ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest request, IAgentRuntime worker, CancellationToken cancellationToken = default)
+    {
+        var e = "RegisterAgentTypeAsync(RegisterAgentTypeRequest request, IAgentRuntime worker, CancellationToken cancellationToken = default) is not implemented when using the Grpc runtime.";
+        throw new NotImplementedException(e);
+    }
+    public ValueTask UnregisterAgentTypeAsync(string type, IAgentRuntime worker, CancellationToken cancellationToken = default)
+    {
+        var e = "UnregisterAgentTypeAsync(string type, IAgentRuntime worker, CancellationToken cancellationToken = default) is not implemented when using the Grpc runtime.";
+        throw new NotImplementedException(e);
+    }
     private sealed class WorkerState
     {
         public HashSet<string> SupportedTypes { get; set; } = [];

@@ -4,7 +4,7 @@ namespace Microsoft.AutoGen.Contracts;
 
 public interface IRegistry
 {
-    AgentsRegistryState State { get; set; }
+    //AgentsRegistryState State { get; set; }
     /// <summary>
     /// Registers a new agent type with the specified worker.
     /// </summary>

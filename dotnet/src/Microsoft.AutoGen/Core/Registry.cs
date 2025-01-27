@@ -7,8 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 namespace Microsoft.AutoGen.Core;
 public class Registry : IRegistry
 {
-    private readonly IRegistryStorage Storage;
     public AgentsRegistryState State { get; set; }
+    private readonly IRegistryStorage Storage;
     private readonly ILogger<Registry> _logger;
     private string _registryEtag;
     private const int _retries = 5;
