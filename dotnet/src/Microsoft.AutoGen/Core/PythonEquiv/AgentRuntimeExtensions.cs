@@ -69,7 +69,7 @@ public static class AgentRuntimeExtensions
         return subscriptions.ToArray();
     }
 
-    public static async ValueTask RegisterImplicitAgentSubscriptionsAsync<TAgent>(this IAgentRuntime runtime, AgentType type) where TAgent : IHostableAgent
+    public static async ValueTask RegisterImplicitAgentSubscriptionsAsync<TAgent>(this IAgentRuntime runtime, AgentType type, bool skipClassSubscriptions = false, bool skipDirectMessageSubscription = false) where TAgent : IHostableAgent
     {
         var subscriptions = BindSubscriptionsForAgentType<TAgent>(type);
         foreach (var subscription in subscriptions)

@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// App.cs
+// AgentsApp.cs
 
 using Microsoft.AutoGen.Contracts.Python;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,13 +18,13 @@ public class AgentsAppBuilder
         this.builder = baseBuilder ?? new HostApplicationBuilder();
     }
 
-    public void AddAgent<TAgent>(string name, bool registerDefaultTopics = true) where TAgent : IHostableAgent
+    public void AddAgent<TAgent>(string name, bool skipClassSubscriptions = false, bool skipDirectMessageSubscription = false) where TAgent : IHostableAgent
     {
-        this.AgentTypeRegistrations.Add(app => app.AgentRuntime.RegisterAgentTypeAsync<TAgent>(name, app.Services));
-        if (registerDefaultTopics)
-        {
-            //TODO: this.AgentTypeRegistrations.Add(app => app.AgentRuntime.RegisterDefaultTopicsAsync<TAgent>(name));
-        }
+        this.AgentTypeRegistrations.Add(async app => {
+            var agentType = await app.AgentRuntime.RegisterAgentTypeAsync<TAgent>(name, app.Services);
+            await app.AgentRuntime.RegisterImplicitAgentSubscriptionsAsync<TAgent>(name, skipClassSubscriptions, skipDirectMessageSubscription);
+            return agentType;
+        });
     }
 
     public async ValueTask<AgentsApp> BuildAsync()
