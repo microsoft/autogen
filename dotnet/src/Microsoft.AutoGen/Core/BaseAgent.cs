@@ -8,6 +8,7 @@ using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Core;
+
 /// <summary>
 /// Represents the base class for an agent in the AutoGen system.
 /// </summary>

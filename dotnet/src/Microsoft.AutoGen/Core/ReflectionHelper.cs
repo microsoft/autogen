@@ -19,6 +19,7 @@ public sealed class ReflectionHelper
             }
             type = type.BaseType;
         }
+
         return false;
     }
 }
