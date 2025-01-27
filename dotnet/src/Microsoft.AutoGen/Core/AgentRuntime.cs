@@ -8,10 +8,10 @@ using Microsoft.Extensions.Hosting;
 namespace Microsoft.AutoGen.Core;
 
 /// <summary>
-/// Represents a worker that manages agents and handles messages.
+/// An InMemory single-process implementation of <see cref="IAgentRuntime"/>.
 /// </summary>
 /// <remarks>
-/// Initializes a new instance of the <see cref="AgentRuntime"/> class.
+/// Responsible for message routing and delivery. 
 /// </remarks>
 /// <param name="hostApplicationLifetime">The application lifetime.</param>
 /// <param name="serviceProvider">The service provider.</param>
@@ -29,6 +29,13 @@ public class AgentRuntime(
     private readonly ConcurrentDictionary<string, List<Subscription>> _subscriptionsByAgentType = new();
     private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
     private readonly ConcurrentDictionary<Guid, IDictionary<string, string>> _subscriptionsByGuid = new();
+    private readonly IRegistry _registry = serviceProvider.GetRequiredService<IRegistry>();
+
+    /// <inheritdoc />
+    public override async ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest request, CancellationToken cancellationToken = default)
+    {
+        await _registry.RegisterAgentTypeAsync(request, this);
+    }
 
     /// <inheritdoc />
     public override ValueTask SaveStateAsync(AgentState value, CancellationToken cancellationToken = default)
@@ -52,16 +59,16 @@ public class AgentRuntime(
         }
     }
     /// <inheritdoc />
-    public new async ValueTask RuntimeSendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
+    public override async ValueTask RuntimeSendRequestAsync(IAgent agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         var requestId = Guid.NewGuid().ToString();
-        _pendingClientRequests[requestId] = (agent, request.RequestId);
+        _pendingClientRequests[requestId] = ((Agent)agent, request.RequestId);
         request.RequestId = requestId;
         await _mailbox.Writer.WriteAsync(request, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc />
-    public new ValueTask RuntimeSendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
+    public override ValueTask RuntimeSendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
     {
         return _mailbox.Writer.WriteAsync(new Message { Response = response }, cancellationToken);
     }

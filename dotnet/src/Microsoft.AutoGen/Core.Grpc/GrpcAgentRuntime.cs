@@ -295,11 +295,10 @@ public sealed class GrpcAgentRuntime(
     {
         await WriteChannelAsync(new Message { Response = response }, cancellationToken).ConfigureAwait(false);
     }
-
-    public new async ValueTask RuntimeSendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
+    public new async ValueTask RuntimeSendRequestAsync(IAgent agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         var requestId = Guid.NewGuid().ToString();
-        _pendingRequests[requestId] = (agent, request.RequestId);
+        _pendingRequests[requestId] = ((Agent)agent, request.RequestId);
         request.RequestId = requestId;
         await WriteChannelAsync(new Message { Request = request }, cancellationToken).ConfigureAwait(false);
     }
@@ -307,7 +306,6 @@ public sealed class GrpcAgentRuntime(
     {
         await WriteChannelAsync(message, cancellationToken).ConfigureAwait(false);
     }
-
     public async ValueTask RuntimePublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default)
     {
         await WriteChannelAsync(new Message { CloudEvent = @event }, cancellationToken).ConfigureAwait(false);

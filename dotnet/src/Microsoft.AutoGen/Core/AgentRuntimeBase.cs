@@ -132,11 +132,12 @@ public abstract class AgentRuntimeBase(
             }
         }
     }
-    public async ValueTask PublishMessageAsync(IMessage message, TopicId topic, Agent? sender, CancellationToken? cancellationToken = default)
+    public abstract ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest request, CancellationToken cancellationToken = default);
+    public async ValueTask PublishMessageAsync(IMessage message, TopicId topic, IAgent? sender, CancellationToken? cancellationToken = default)
     {
         var topicString = topic.Type + "." + topic.Source;
         sender ??= RuntimeServiceProvider.GetRequiredService<Client>();
-        await PublishEventAsync(message.ToCloudEvent(key: sender.GetType().Name, topic: topicString), sender, cancellationToken.GetValueOrDefault()).ConfigureAwait(false);
+        await PublishEventAsync(message.ToCloudEvent(key: sender.GetType().Name, topic: topicString), (Agent)sender, cancellationToken.GetValueOrDefault()).ConfigureAwait(false);
     }
     public abstract ValueTask SaveStateAsync(AgentState value, CancellationToken cancellationToken = default);
     public abstract ValueTask<AgentState> LoadStateAsync(AgentId agentId, CancellationToken cancellationToken = default);
@@ -202,14 +203,7 @@ public abstract class AgentRuntimeBase(
         }
         await Task.WhenAll(taskList).ConfigureAwait(false);
     }
+    public abstract ValueTask RuntimeSendRequestAsync(IAgent agent, RpcRequest request, CancellationToken cancellationToken = default);
 
-    public ValueTask RuntimeSendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
-    {
-        throw new NotImplementedException();
-    }
-
-    public ValueTask RuntimeSendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
-    {
-        throw new NotImplementedException();
-    }
+    public abstract ValueTask RuntimeSendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default);
 }
