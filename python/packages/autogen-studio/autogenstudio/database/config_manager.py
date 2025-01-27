@@ -2,10 +2,11 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 
+from autogen_core import ComponentType
 from loguru import logger
 
 from ..datamodel.db import Agent, LinkTypes, Model, Team, Tool
-from ..datamodel.types import ComponentConfigInput, ComponentTypes, Response
+from ..datamodel.types import ComponentConfigInput, Response
 from .component_factory import ComponentFactory
 from .db_manager import DatabaseManager
 
@@ -13,14 +14,14 @@ from .db_manager import DatabaseManager
 class ConfigurationManager:
     """Manages persistence and relationships of components using ComponentFactory for validation"""
 
-    DEFAULT_UNIQUENESS_FIELDS = {
-        ComponentTypes.MODEL: ["model_type", "model"],
-        ComponentTypes.TOOL: ["name"],
-        ComponentTypes.AGENT: ["agent_type", "name"],
-        ComponentTypes.TEAM: ["team_type", "name"],
+    DEFAULT_UNIQUENESS_FIELDS: Dict[ComponentType, List[str]] = {
+        "model": ["model_type", "model"],
+        "tool": ["name"],
+        "agent": ["agent_type", "name"],
+        "team": ["team_type", "name"],
     }
 
-    def __init__(self, db_manager: DatabaseManager, uniqueness_fields: Dict[ComponentTypes, List[str]] = None):
+    def __init__(self, db_manager: DatabaseManager, uniqueness_fields: Dict[ComponentType, List[str]] = None):
         self.db_manager = db_manager
         self.component_factory = ComponentFactory()
         self.uniqueness_fields = uniqueness_fields or self.DEFAULT_UNIQUENESS_FIELDS
@@ -59,13 +60,13 @@ class ConfigurationManager:
                     )
 
             # Route to appropriate storage method
-            if component_type == ComponentTypes.TEAM:
+            if component_type == "team":
                 return await self._store_team(config, user_id, check_exists)
-            elif component_type == ComponentTypes.AGENT:
+            elif component_type == "agent":
                 return await self._store_agent(config, user_id, check_exists)
-            elif component_type == ComponentTypes.MODEL:
+            elif component_type == "model":
                 return await self._store_model(config, user_id)
-            elif component_type == ComponentTypes.TOOL:
+            elif component_type == "tool":
                 return await self._store_tool(config, user_id)
             else:
                 raise ValueError(f"Unsupported component type: {component_type}")
@@ -217,7 +218,7 @@ class ConfigurationManager:
             return Response(message=str(e), status=False)
 
     def _check_exists(
-        self, component_type: ComponentTypes, config: dict, user_id: str
+        self, component_type: ComponentType, config: dict, user_id: str
     ) -> Optional[Union[Model, Tool, Agent, Team]]:
         """Check if component exists based on configured uniqueness fields."""
         fields = self.uniqueness_fields.get(component_type, [])
@@ -225,10 +226,10 @@ class ConfigurationManager:
             return None
 
         component_class = {
-            ComponentTypes.MODEL: Model,
-            ComponentTypes.TOOL: Tool,
-            ComponentTypes.AGENT: Agent,
-            ComponentTypes.TEAM: Team,
+            "model": Model,
+            "tool": Tool,
+            "agent": Agent,
+            "team": Team,
         }.get(component_type)
 
         components = self.db_manager.get(component_class, {"user_id": user_id}).data
@@ -240,28 +241,28 @@ class ConfigurationManager:
 
         return None
 
-    def _format_exists_message(self, component_type: ComponentTypes, config: dict) -> str:
+    def _format_exists_message(self, component_type: ComponentType, config: dict) -> str:
         """Format existence message with identifying fields."""
         fields = self.uniqueness_fields.get(component_type, [])
         field_values = [f"{field}='{config.get(field)}'" for field in fields]
-        return f"{component_type.value} with {' and '.join(field_values)} already exists"
+        return f"{component_type} with {' and '.join(field_values)} already exists"
 
-    def _determine_component_type(self, config: dict) -> Optional[ComponentTypes]:
+    def _determine_component_type(self, config: dict) -> Optional[ComponentType]:
         """Determine component type from configuration dictionary"""
         if "team_type" in config:
-            return ComponentTypes.TEAM
+            return "team"
         elif "agent_type" in config:
-            return ComponentTypes.AGENT
+            return "agent"
         elif "model_type" in config:
-            return ComponentTypes.MODEL
+            return "model"
         elif "tool_type" in config:
-            return ComponentTypes.TOOL
+            return "tool"
         return None
 
     def _get_component_type(self, config: dict) -> str:
         """Helper to get component type string from config"""
         component_type = self._determine_component_type(config)
-        return component_type.value if component_type else "unknown"
+        return component_type if component_type else "unknown"
 
     async def cleanup(self):
         """Cleanup resources"""

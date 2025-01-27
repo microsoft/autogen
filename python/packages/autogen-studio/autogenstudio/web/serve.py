@@ -3,7 +3,7 @@
 import json
 import os
 
-from fastapi import FastAPI
+from fastapi import FastAPI, File, UploadFile, Form
 
 from ..datamodel import Response
 from ..teammanager import TeamManager
@@ -19,10 +19,25 @@ else:
 
 
 @app.get("/predict/{task}")
-async def predict(task: str):
+async def predict_get(task: str):
     response = Response(message="Task successfully completed", status=True, data=None)
     try:
         result_message = await team_manager.run(task=task, team_config=team_file_path)
+        response.data = result_message
+    except Exception as e:
+        response.message = str(e)
+        response.status = False
+    return response
+
+@app.post("/predict")
+async def predict_post(
+        task: str = Form(...),
+        team: UploadFile = File(...),
+    ):
+    team_config = json.load(team.file)
+    response = Response(message="Task successfully completed", status=True, data=None)
+    try:
+        result_message = await team_manager.run(task=task, team_config=team_config)
         response.data = result_message
     except Exception as e:
         response.message = str(e)
