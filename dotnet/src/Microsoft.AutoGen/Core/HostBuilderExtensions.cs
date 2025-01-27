@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -29,6 +30,8 @@ public static class HostBuilderExtensions
     {
         var assemblies = AppDomain.CurrentDomain.GetAssemblies();
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
+        builder.Services.AddSingleton<IRegistryStorage, RegistryStorage>();
+        builder.Services.AddSingleton<IRegistry, Registry>();
         builder.Services.AddSingleton<IAgentRuntime, AgentRuntime>();
         builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<IAgentRuntime>());
         builder.Services.AddKeyedSingleton("AgentsMetadata", (sp, key) =>
