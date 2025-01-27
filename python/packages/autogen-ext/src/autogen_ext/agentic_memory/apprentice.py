@@ -8,7 +8,6 @@ class Apprentice:
 
     Args:
         settings: The settings for the apprentice.
-        evaluator: The evaluator to use for training.
         client: The client to call the model.
         logger: The logger to log the model calls.
 
@@ -19,9 +18,8 @@ class Apprentice:
         add_task_solution_pair_to_memory: Adds a task-solution pair to the memory bank, to be retrieved together later as a combined insight.
         train_on_task: Repeatedly assigns a task to the completion agent, and tries to learn from failures by creating useful insights as memories.
     """
-    def __init__(self, settings, evaluator, client, logger) -> None:
+    def __init__(self, settings, client, logger) -> None:
         self.settings = settings
-        self.evaluator = evaluator
         self.client = client
         self.logger = logger
 
