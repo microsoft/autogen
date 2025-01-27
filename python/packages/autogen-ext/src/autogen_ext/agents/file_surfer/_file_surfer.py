@@ -9,7 +9,7 @@ from autogen_agentchat.messages import (
     MultiModalMessage,
     TextMessage,
 )
-from autogen_core import CancellationToken, FunctionCall
+from autogen_core import CancellationToken, FunctionCall, FunctionCalls
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -143,8 +143,10 @@ class FileSurfer(BaseChatAgent):
             # Answer directly.
             return False, response
 
-        elif isinstance(response, list) and all(isinstance(item, FunctionCall) for item in response):
-            function_calls = response
+        elif isinstance(response, FunctionCalls) and all(
+            isinstance(item, FunctionCall) for item in response.function_calls
+        ):
+            function_calls = response.function_calls
             for function_call in function_calls:
                 tool_name = function_call.name
 

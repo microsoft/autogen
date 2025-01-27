@@ -62,7 +62,7 @@ from ._subscription_context import SubscriptionInstantiationContext
 from ._topic import TopicId
 from ._type_prefix_subscription import TypePrefixSubscription
 from ._type_subscription import TypeSubscription
-from ._types import FunctionCall
+from ._types import FunctionCall, FunctionCalls
 
 EVENT_LOGGER_NAME = EVENT_LOGGER_NAME_ALIAS
 """The name of the logger used for structured events."""
@@ -107,6 +107,7 @@ __all__ = [
     "event",
     "rpc",
     "FunctionCall",
+    "FunctionCalls",
     "TypeSubscription",
     "DefaultSubscription",
     "DefaultTopicId",

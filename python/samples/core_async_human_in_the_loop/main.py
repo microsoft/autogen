@@ -35,6 +35,7 @@ from autogen_core import (
     DefaultInterventionHandler,
     DefaultTopicId,
     FunctionCall,
+    FunctionCalls,
     MessageContext,
     RoutedAgent,
     SingleThreadedAgentRuntime,
@@ -182,8 +183,8 @@ Today's date is {datetime.datetime.now().strftime("%Y-%m-%d")}
             self._system_messages + (await self._model_context.get_messages()), tools=tools
         )
 
-        if isinstance(response.content, list) and all(isinstance(item, FunctionCall) for item in response.content):
-            for call in response.content:
+        if isinstance(response.content, FunctionCalls) and all(isinstance(item, FunctionCall) for item in response.content.function_calls):
+            for call in response.content.function_calls:
                 tool = next((tool for tool in tools if tool.name == call.name), None)
                 if tool is None:
                     raise ValueError(f"Tool not found: {call.name}")

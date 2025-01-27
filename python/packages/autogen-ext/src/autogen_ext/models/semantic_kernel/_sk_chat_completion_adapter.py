@@ -1,7 +1,7 @@
 import json
 from typing import Any, Literal, Mapping, Optional, Sequence
 
-from autogen_core import FunctionCall
+from autogen_core import FunctionCall, FunctionCalls
 from autogen_core._cancellation_token import CancellationToken
 from autogen_core.models import (
     ChatCompletionClient,
@@ -361,9 +361,9 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         self._total_completion_tokens += completion_tokens
 
         # Process content based on whether there are tool calls
-        content: Union[str, list[FunctionCall]]
+        content: Union[str, FunctionCalls]
         if any(isinstance(item, FunctionCallContent) for item in result[0].items):
-            content = self._process_tool_calls(result[0])
+            content = FunctionCalls(function_calls=self._process_tool_calls(result[0]))
             finish_reason: Literal["function_calls", "stop"] = "function_calls"
         else:
             content = result[0].content
@@ -436,7 +436,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                 if any(isinstance(item, FunctionCallContent) for item in msg.items):
                     function_calls = self._process_tool_calls(msg)
                     yield CreateResult(
-                        content=function_calls,
+                        content=FunctionCalls(function_calls=function_calls),
                         finish_reason="function_calls",
                         usage=RequestUsage(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
                         cached=False,

@@ -13,7 +13,7 @@ from typing import (
     Sequence,
 )
 
-from autogen_core import CancellationToken, Component, ComponentModel, FunctionCall
+from autogen_core import CancellationToken, Component, ComponentModel, FunctionCall, FunctionCalls
 from autogen_core.memory import Memory
 from autogen_core.model_context import (
     ChatCompletionContext,
@@ -401,9 +401,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             return
 
         # Process tool calls.
-        assert isinstance(model_result.content, list) and all(
-            isinstance(item, FunctionCall) for item in model_result.content
+        assert isinstance(model_result.content, FunctionCalls) and all(
+            isinstance(item, FunctionCall) or isinstance(item, str) for item in model_result.content.function_calls
         )
+
         tool_call_msg = ToolCallRequestEvent(
             content=model_result.content, source=self.name, models_usage=model_result.usage
         )
@@ -412,9 +413,15 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         inner_messages.append(tool_call_msg)
         yield tool_call_msg
 
+        function_calls = model_result.content.function_calls
+
         # Execute the tool calls.
         exec_results = await asyncio.gather(
-            *[self._execute_tool_call(call, cancellation_token) for call in model_result.content]
+            *[
+                self._execute_tool_call(call, cancellation_token)
+                for call in function_calls
+                if isinstance(call, FunctionCall)
+            ]
         )
         tool_call_result_msg = ToolCallExecutionEvent(content=exec_results, source=self.name)
         event_logger.debug(tool_call_result_msg)
@@ -423,7 +430,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         yield tool_call_result_msg
 
         # Correlate tool call results with tool calls.
-        tool_calls = [call for call in model_result.content if call.name not in self._handoffs]
+        tool_calls = [call for call in function_calls if call.name not in self._handoffs]
         tool_call_results: List[FunctionExecutionResult] = []
         for tool_call in tool_calls:
             found = False
@@ -436,7 +443,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 raise RuntimeError(f"Tool call result not found for call id: {tool_call.id}")
 
         # Detect handoff requests.
-        handoff_reqs = [call for call in model_result.content if call.name in self._handoffs]
+        handoff_reqs = [call for call in function_calls if call.name in self._handoffs]
         if len(handoff_reqs) > 0:
             handoffs = [self._handoffs[call.name] for call in handoff_reqs]
             if len(handoffs) > 1:
@@ -451,7 +458,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             # Current context for handoff.
             handoff_context: List[LLMMessage] = []
             if len(tool_calls) > 0:
-                handoff_context.append(AssistantMessage(content=tool_calls, source=self.name))
+                handoff_context.append(
+                    AssistantMessage(
+                        content=FunctionCalls(function_calls=tool_calls, thought=model_result.content.thought),
+                        source=self.name,
+                    )
+                )
                 handoff_context.append(FunctionExecutionResultMessage(content=tool_call_results))
             # Return the output messages to signal the handoff.
             yield Response(
