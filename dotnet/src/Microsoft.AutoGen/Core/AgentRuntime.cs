@@ -211,10 +211,9 @@ public class AgentRuntime(
 
         // Proxy the request to the agent.
         var originalRequestId = request.RequestId;
-        var newRequestId = Guid.NewGuid().ToString();
         var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
         _pendingRequests.TryAdd(request.RequestId, completion);
-        request.RequestId = newRequestId;
+        //request.RequestId = Guid.NewGuid().ToString();
         agent.ReceiveMessage(new Message() { Request = request });
         // Wait for the response and send it back to the caller.
         var response = await completion.Task.WaitAsync(s_agentResponseTimeout);
