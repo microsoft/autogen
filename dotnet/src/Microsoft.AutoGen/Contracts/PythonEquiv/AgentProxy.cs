@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentProxy.cs
 
-
 namespace Microsoft.AutoGen.Contracts.Python;
 
 /// <summary>
