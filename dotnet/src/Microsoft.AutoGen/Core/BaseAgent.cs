@@ -87,10 +87,8 @@ public abstract class BaseAgent : IAgent, IHostableAgent
         {
             return await handlerInvoker.InvokeAsync(message, messageContext);
         }
-        else
-        {
-            throw new InvalidOperationException($"No handler found for message type {messageType.FullName}");
-        }
+
+        return null;
     }
 
     public virtual ValueTask<IDictionary<string, object>> SaveStateAsync()
