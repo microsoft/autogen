@@ -15,7 +15,7 @@ public interface IAgentRuntime : ISaveState<IAgentRuntime>
     public ValueTask<AgentId> GetAgentAsync(AgentType agentType, string key = "default", bool lazy = true/*, CancellationToken? = default*/);
     public ValueTask<AgentId> GetAgentAsync(string agent, string key = "default", bool lazy = true/*, CancellationToken? = default*/);
 
-    public ValueTask<StateDict> SaveAgentStateAsync(AgentId agentId, /*CancellationToken? cancellationToken = default*/);
+    public ValueTask<StateDict> SaveAgentStateAsync(AgentId agentId/*, CancellationToken? cancellationToken = default*/);
     public ValueTask LoadAgentStateAsync(AgentId agentId, StateDict state/*, CancellationToken? cancellationToken = default*/);
 
     public ValueTask<AgentMetadata> GetAgentMetadataAsync(AgentId agentId/*, CancellationToken? cancellationToken = default*/);
