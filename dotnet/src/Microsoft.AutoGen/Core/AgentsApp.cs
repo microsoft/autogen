@@ -21,6 +21,8 @@ public class AgentsAppBuilder
         this.builder.Services.AddSingleton<IAgentRuntime, InProcessRuntime>();
     }
 
+    public IServiceCollection Services => this.builder.Services;
+
     public void AddAgentsFromAssemblies()
     {
         this.AddAgentsFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
