@@ -2,8 +2,7 @@ import inspect
 import json
 import os
 import shutil
-import time
-from typing import Dict, List, Union
+from typing import Dict, List, Union, Optional
 
 from autogen_core import FunctionCall, Image
 from autogen_core.models import (
@@ -50,22 +49,34 @@ class PageLogger:
 
     Args:
         settings: A dictionary containing the following keys:
-            - enabled: A boolean indicating whether logging is enabled.
+            - level: The logging level, one of DEBUG, INFO, WARNING, ERROR, CRITICAL, or NONE.
+            - path: The path to the directory where the log files will be saved.
 
     Methods:
-        info: Adds text to the current page.
-        error: Adds text to the current page.
-        log_message_content: Adds a page containing the message's content, including any images.
-        log_model_call: Adds a page containing all messages to or from a model, including any images.
+        debug: Adds text to the current page if debugging level <= DEBUG.
+        info: Adds text to the current page if debugging level <= INFO.
+        warning: Adds text to the current page if debugging level <= WARNING.
+        error: Adds text to the current page if debugging level <= ERROR.
+        critical: Adds text to the current page if debugging level <= CRITICAL.
+        log_message_content: Adds a page containing the message's content, including any images, if debugging level <= INFO.
+        log_model_call: Adds a page containing all messages to or from a model, including any images, if debugging level <= INFO.
         log_link_to_local_file: Returns a link to a local file in the log.
         flush: Writes the current state of the log to disk.
-        enter_function: Adds a new page corresponding to the current function call.
-        leave_function: Finishes the page corresponding to the current function
+        enter_function: Adds a new page corresponding to the current function call, if debugging level <= INFO.
+        leave_function: Finishes the page corresponding to the current function, if debugging level <= INFO
     """
 
-    def __init__(self, settings: Dict):
-        self.enabled = settings["enabled"]
-        if not self.enabled:
+    def __init__(self, settings: Dict) -> None:
+        self.levels = {
+            "DEBUG": 10,
+            "INFO": 20,
+            "WARNING": 30,
+            "ERROR": 40,
+            "CRITICAL": 50,
+            "NONE": 100,
+        }
+        self.level = self.levels[settings["level"]]
+        if self.level >= self.levels["NONE"]:
             return
         self.log_dir = os.path.expanduser(settings["path"])
         self.page_stack = PageStack()
@@ -105,23 +116,47 @@ class PageLogger:
             self.info("\n" + page.full_link)
         return page
 
+    def _log_text(self, text: str) -> None:
+        """
+        Adds text to the current page, depending on the current logging level.
+        """
+        page = self.page_stack.top()
+        page.add_lines(text, flush=True)
+
+    def debug(self, line: str) -> None:
+        """
+        Adds text to the current page if debugging level <= DEBUG.
+        """
+        if self.level <= self.levels["DEBUG"]:
+            self._log_text(line)
+
     def info(self, line: str) -> None:
         """
-        Adds text to the current page.
+        Adds INFO text to the current page if debugging level <= INFO.
         """
-        if not self.enabled:
-            return
-        page = self.page_stack.top()
-        page.add_lines(line, flush=True)
+        if self.level <= self.levels["INFO"]:
+            self._log_text(line)
+
+    def warning(self, line: str) -> None:
+        """
+        Adds WARNING text to the current page if debugging level <= WARNING.
+        """
+        if self.level <= self.levels["WARNING"]:
+            self._log_text(line)
 
     def error(self, line: str) -> None:
         """
-        Adds text to the current page.
+        Adds ERROR text to the current page if debugging level <= ERROR.
         """
-        if not self.enabled:
-            return
-        page = self.page_stack.top()
-        page.add_lines(line, flush=True)
+        if self.level <= self.levels["ERROR"]:
+            self._log_text(line)
+
+    def critical(self, line: str) -> None:
+        """
+        Adds CRITICAL text to the current page if debugging level <= CRITICAL.
+        """
+        if self.level <= self.levels["CRITICAL"]:
+            self._log_text(line)
 
     def _message_source(self, message: LLMMessage) -> str:
         """
@@ -196,16 +231,18 @@ class PageLogger:
         """
         Adds a page containing the message's content, including any images.
         """
+        if self.level > self.levels["INFO"]:
+            return None
         page = self._add_page(summary=summary, show_in_call_tree=False)
         self.page_stack.write_stack_to_page(page)
         page.add_lines(self._format_message_content(page, message_content=message_content))
         page.flush()
 
-    def log_model_call(self, summary: str, input_messages: List[LLMMessage], response: LLMMessage) -> "Page":
+    def log_model_call(self, summary: str, input_messages: List[LLMMessage], response: LLMMessage) -> Optional["Page"]:
         """
         Adds a page containing all messages to or from a model, including any images.
         """
-        if not self.enabled:
+        if self.level > self.levels["INFO"]:
             return None
         page = self._add_page(summary=summary, show_in_call_tree=False)
         self.page_stack.write_stack_to_page(page)
@@ -231,7 +268,7 @@ class PageLogger:
         """
         Writes the current state of the log to disk.
         """
-        if not self.enabled:
+        if self.level > self.levels["INFO"]:
             return
         # Create a call tree of the log.
         call_tree_path = os.path.join(self.log_dir, self.name + ".html")
@@ -244,13 +281,12 @@ class PageLogger:
                     f.write(page.line_text + "\n")
             f.write("\n")
             f.write(html_closing())
-        time.sleep(0.1)  # Avoids race conditions when writing multiple files in quick succession.
 
-    def enter_function(self) -> "Page":
+    def enter_function(self) -> Optional["Page"]:
         """
         Adds a new page corresponding to the current function call.
         """
-        if not self.enabled:
+        if self.level > self.levels["INFO"]:
             return None
         frame = inspect.currentframe().f_back  # Get the calling frame
 
@@ -279,8 +315,8 @@ class PageLogger:
         """
         Finishes the page corresponding to the current function call.
         """
-        if not self.enabled:
-            return
+        if self.level > self.levels["INFO"]:
+            return None
         page = self.page_stack.top()
         page.finished = True
         page.add_lines("\nLEAVE {}".format(page.summary), flush=True)
@@ -367,7 +403,6 @@ class Page:
                     f.write("UnicodeEncodeError in this line.\n")
             f.write(html_closing())
             f.flush()
-        time.sleep(0.1)  # Avoids race conditions when writing multiple files in quick succession.
 
 
 class PageStack:

@@ -1,7 +1,7 @@
 
 Evaluator:
   PageLogger:
-    enabled: 1
+    level: DEBUG  # DEBUG, INFO, WARNING, ERROR, CRITICAL, or NONE.
     path: ~/pagelogs/base
 
 client:
@@ -28,8 +28,6 @@ Apprentice:
       relevance_conversion_threshold: 1.7
       n_results: 25
       distance_threshold: 100
-      StringSimilarityMap:
-        verbose: 1
   AgentWrapper:
     base_agent: thin_agent  # MagenticOneGroupChat, thin_agent, etc.
 

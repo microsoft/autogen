@@ -17,7 +17,6 @@ class StringSimilarityMap:
     Vector embeddings are currently supplied by Chroma's default Sentence Transformers.
 
     Args:
-        - settings: The settings for the string similarity map.
         - reset: True to clear the DB immediately after creation.
         - path_to_db_dir: Path to the directory where the DB is stored.
         - logger: The PageLogger object to use for logging.
@@ -28,10 +27,8 @@ class StringSimilarityMap:
         - reset_db: Forces immediate deletion of the DB's contents, in memory and on disk.
         - save_string_pairs: Saves the string-pair dict to disk.
     """
-    def __init__(self, settings: Dict, reset: bool, path_to_db_dir: str, logger: PageLogger) -> None:
-        self.settings = settings
+    def __init__(self, reset: bool, path_to_db_dir: str, logger: PageLogger) -> None:
         self.logger = logger
-        self.verbose = self.settings["verbose"]
         self.path_to_db_dir = path_to_db_dir
 
         # Load or create the vector DB on disk.
@@ -46,14 +43,13 @@ class StringSimilarityMap:
         self.uid_text_dict = {}
         self.last_string_pair_id = 0
         if (not reset) and os.path.exists(self.path_to_dict):
-            if self.verbose:
-                self.logger.info("\nLOADING STRING SIMILARITY MAP FROM DISK  {}".format(self.path_to_dict))
-                self.logger.info("    Location = {}".format(self.path_to_dict))
+            self.logger.debug("\nLOADING STRING SIMILARITY MAP FROM DISK  {}".format(self.path_to_dict))
+            self.logger.debug("    Location = {}".format(self.path_to_dict))
             with open(self.path_to_dict, "rb") as f:
                 self.uid_text_dict = pickle.load(f)
                 self.last_string_pair_id = len(self.uid_text_dict)
-                if self.verbose and len(self.uid_text_dict) > 0:
-                    self.logger.info("\n{} STRING PAIRS LOADED".format(len(self.uid_text_dict)))
+                if len(self.uid_text_dict) > 0:
+                    self.logger.debug("\n{} STRING PAIRS LOADED".format(len(self.uid_text_dict)))
                     self._log_string_pairs()
 
         # Clear the DB if requested.
@@ -64,10 +60,10 @@ class StringSimilarityMap:
         """
         Logs all string pairs currently in the map.
         """
-        self.logger.info("LIST OF STRING PAIRS")
+        self.logger.debug("LIST OF STRING PAIRS")
         for uid, text in self.uid_text_dict.items():
             input_text, output_text = text
-            self.logger.info("  ID: {}\n    INPUT TEXT: {}\n    OUTPUT TEXT: {}".format(uid, input_text, output_text))
+            self.logger.debug("  ID: {}\n    INPUT TEXT: {}\n    OUTPUT TEXT: {}".format(uid, input_text, output_text))
 
     def save_string_pairs(self) -> None:
         """
@@ -80,8 +76,7 @@ class StringSimilarityMap:
         """
         Forces immediate deletion of the DB's contents, in memory and on disk.
         """
-        if self.verbose:
-            self.logger.info("\nCLEARING STRING-PAIR MAP")
+        self.logger.debug("\nCLEARING STRING-PAIR MAP")
         self.db_client.delete_collection("string-pairs")
         self.vec_db = self.db_client.create_collection("string-pairs")
         self.uid_text_dict = {}
@@ -94,13 +89,12 @@ class StringSimilarityMap:
         self.last_string_pair_id += 1
         self.vec_db.add(documents=[input_text], ids=[str(self.last_string_pair_id)])
         self.uid_text_dict[str(self.last_string_pair_id)] = input_text, output_text
-        if self.verbose:
-            self.logger.info(
-                "\nINPUT-OUTPUT PAIR ADDED TO VECTOR DATABASE:\n  ID\n    {}\n  INPUT\n    {}\n  OUTPUT\n    {}\n".format(
-                    self.last_string_pair_id, input_text, output_text
-                )
+        self.logger.debug(
+            "\nINPUT-OUTPUT PAIR ADDED TO VECTOR DATABASE:\n  ID\n    {}\n  INPUT\n    {}\n  OUTPUT\n    {}\n".format(
+                self.last_string_pair_id, input_text, output_text
             )
-            # self._log_string_pairs()  # For deep debugging, uncomment to log all string pairs after each addition.
+        )
+        # self._log_string_pairs()  # For deeper debugging, uncomment to log all string pairs after each addition.
 
     def get_related_string_pairs(self, query_text: str, n_results: int, threshold: Union[int, float]) -> List[Tuple[str, str, float]]:
         """
@@ -120,11 +114,10 @@ class StringSimilarityMap:
             if distance < threshold:
                 input_text_2, output_text = self.uid_text_dict[uid]
                 assert input_text == input_text_2
-                if self.verbose:
-                    self.logger.info(
-                        "\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT1\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
-                            input_text, output_text, distance
-                        )
+                self.logger.debug(
+                    "\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT1\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
+                        input_text, output_text, distance
                     )
+                )
                 string_pairs.append((input_text, output_text, distance))
         return string_pairs
