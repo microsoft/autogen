@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// GrpcAgentWorker.cs
+// GrpcAgentRuntime.cs
 
 using System.Collections.Concurrent;
 using System.Reflection;
@@ -12,13 +12,17 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Core.Grpc;
 
-public sealed class GrpcAgentWorker(
+public sealed class GrpcAgentRuntime(
     AgentRpc.AgentRpcClient client,
     IHostApplicationLifetime hostApplicationLifetime,
     IServiceProvider serviceProvider,
     [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
-    ILogger<GrpcAgentWorker> logger) :
-    IHostedService, IDisposable, IAgentWorker
+    ILogger<GrpcAgentRuntime> logger
+    ) : AgentRuntime(
+        hostApplicationLifetime,
+        serviceProvider,
+        configuredAgentTypes
+        ), IDisposable
 {
     private readonly object _channelLock = new();
     private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
@@ -35,13 +39,11 @@ public sealed class GrpcAgentWorker(
     private readonly AgentRpc.AgentRpcClient _client = client;
     public readonly IServiceProvider ServiceProvider = serviceProvider;
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes = configuredAgentTypes;
-    private readonly ILogger<GrpcAgentWorker> _logger = logger;
+    private readonly ILogger<GrpcAgentRuntime> _logger = logger;
     private readonly CancellationTokenSource _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
     private AsyncDuplexStreamingCall<Message, Message>? _channel;
     private Task? _readTask;
     private Task? _writeTask;
-
-    IServiceProvider IAgentWorker.ServiceProvider => ServiceProvider;
     public void Dispose()
     {
         _outboundMessagesChannel.Writer.TryComplete();
@@ -289,25 +291,24 @@ public sealed class GrpcAgentWorker(
         }
     }
     // new is intentional
-    public async ValueTask SendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
+    public new async ValueTask RuntimeSendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
     {
         await WriteChannelAsync(new Message { Response = response }, cancellationToken).ConfigureAwait(false);
     }
 
-    public async ValueTask SendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
+    public new async ValueTask RuntimeSendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
     {
         var requestId = Guid.NewGuid().ToString();
         _pendingRequests[requestId] = (agent, request.RequestId);
         request.RequestId = requestId;
         await WriteChannelAsync(new Message { Request = request }, cancellationToken).ConfigureAwait(false);
     }
-
-    public async ValueTask SendMessageAsync(Message message, CancellationToken cancellationToken = default)
+    public new async ValueTask RuntimeWriteMessage(Message message, CancellationToken cancellationToken = default)
     {
         await WriteChannelAsync(message, cancellationToken).ConfigureAwait(false);
     }
 
-    public async ValueTask PublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default)
+    public async ValueTask RuntimePublishEventAsync(CloudEvent @event, CancellationToken cancellationToken = default)
     {
         await WriteChannelAsync(new Message { CloudEvent = @event }, cancellationToken).ConfigureAwait(false);
     }
@@ -350,11 +351,10 @@ public sealed class GrpcAgentWorker(
 
         return _channel;
     }
-
-    public async Task StartAsync(CancellationToken cancellationToken)
+    public new async Task StartAsync(CancellationToken cancellationToken)
     {
         _channel = GetChannel();
-        _logger.LogInformation("Starting GrpcAgentWorker, connecting to gRPC endpoint " + Environment.GetEnvironmentVariable("AGENT_HOST"));
+        _logger.LogInformation("Starting " + GetType().Name + ",connecting to gRPC endpoint " + Environment.GetEnvironmentVariable("AGENT_HOST"));
 
         StartCore();
 
@@ -389,8 +389,7 @@ public sealed class GrpcAgentWorker(
             }
         }
     }
-
-    public async Task StopAsync(CancellationToken cancellationToken)
+    public new async Task StopAsync(CancellationToken cancellationToken)
     {
         _shutdownCts.Cancel();
 
@@ -410,8 +409,7 @@ public sealed class GrpcAgentWorker(
             _channel?.Dispose();
         }
     }
-
-    public async ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
+    public new async ValueTask SaveStateAsync(AgentState value, CancellationToken cancellationToken = default)
     {
         var agentId = value.AgentId ?? throw new InvalidOperationException("AgentId is required when saving AgentState.");
         var response = _client.SaveState(value, null, null, cancellationToken);
@@ -421,7 +419,7 @@ public sealed class GrpcAgentWorker(
         }
     }
 
-    public async ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
+    public new async ValueTask<AgentState> LoadStateAsync(AgentId agentId, CancellationToken cancellationToken = default)
     {
         var response = await _client.GetStateAsync(agentId).ConfigureAwait(true);
         //        if (response.Success && response.AgentState.AgentId is not null) - why is success always false?
@@ -434,20 +432,20 @@ public sealed class GrpcAgentWorker(
             throw new KeyNotFoundException($"Failed to read AgentState for {agentId}.");
         }
     }
-    public async ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request, CancellationToken cancellationToken = default)
+    public new async ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request, CancellationToken cancellationToken = default)
     {
         var response = await _client.GetSubscriptionsAsync(request, null, null, cancellationToken);
         return response.Subscriptions.ToList();
     }
-    public ValueTask<AddSubscriptionResponse> SubscribeAsync(AddSubscriptionRequest request, CancellationToken cancellationToken = default)
+    public new async Task<AddSubscriptionResponse> AddSubscriptionAsync(AddSubscriptionRequest request, CancellationToken cancellationToken = default)
     {
         var response = _client.AddSubscription(request, null, null, cancellationToken);
-        return new ValueTask<AddSubscriptionResponse>(response);
+        return response;
     }
-    public ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default)
+    public new async ValueTask<RemoveSubscriptionResponse> RemoveSubscriptionAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default)
     {
         var response = _client.RemoveSubscription(request, null, null, cancellationToken);
-        return new ValueTask<RemoveSubscriptionResponse>(response);
+        return response;
     }
 }
 
