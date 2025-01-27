@@ -54,9 +54,7 @@ def get_typed_signature(call: Callable[..., Any]) -> inspect.Signature:
         for param in signature.parameters.values()
     ]
     return_annotation = type_hints.get("return", inspect.Signature.empty)
-    typed_signature = inspect.Signature(
-        typed_params, return_annotation=return_annotation
-    )
+    typed_signature = inspect.Signature(typed_params, return_annotation=return_annotation)
     return typed_signature
 
 

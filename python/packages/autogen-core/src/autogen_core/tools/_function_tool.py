@@ -51,7 +51,9 @@ class FunctionTool(BaseTool[BaseModel, BaseModel]):
 
             async def example():
                 # Initialize a FunctionTool instance for retrieving stock prices.
-                stock_price_tool = FunctionTool(get_stock_price, description="Fetch the stock price for a given ticker.")
+                stock_price_tool = FunctionTool(
+                    get_stock_price, description="Fetch the stock price for a given ticker."
+                )
 
                 # Execute the tool with cancellation support.
                 cancellation_token = CancellationToken()
@@ -67,11 +69,7 @@ class FunctionTool(BaseTool[BaseModel, BaseModel]):
     def __init__(self, func: Callable[..., Any], description: str, name: str | None = None) -> None:
         self._func = func
         signature = get_typed_signature(func)
-        func_name = (
-            name or func.func.__name__
-            if isinstance(func, functools.partial)
-            else name or func.__name__
-        )
+        func_name = name or func.func.__name__ if isinstance(func, functools.partial) else name or func.__name__
         args_model = args_base_model_from_signature(func_name + "args", signature)
         return_type = signature.return_annotation
         self._has_cancellation_support = "cancellation_token" in signature.parameters
