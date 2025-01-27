@@ -10,9 +10,28 @@ using Xunit;
 
 namespace Microsoft.AutoGen.Core.Tests;
 
-[Collection(ClusterFixtureCollection.Name)]
+//[Collection(ClusterFixtureCollection.Name)]
 public class AgentTests()
 {
+    [Fact]
+    public async Task Agent_ShouldNotReceiveMessages_WhenNotSubscribed()
+    {
+        var fixture = new InMemoryAgentRuntimeFixture();
+        var (_, agent) = fixture.Start();
+
+        var topicType = "TestTopic";
+
+        var subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
+        subscriptions.Any(s => s.TypeSubscription.TopicType == topicType).Should().BeFalse("Agent should not be subscribed to the topic by default.");
+
+        await agent.PublishMessageAsync(new TextMessage { Source = topicType, TextMessage_ = "test" }, topicType).ConfigureAwait(true);
+
+        //await Task.Yield();
+        await Task.Delay(100);
+
+        TestAgent.ReceivedMessages.Any().Should().BeFalse("Agent should not receive messages when not subscribed.");
+    }
+
     /// <summary>
     /// Verify that if the agent is not initialized via AgentWorker, it should throw the correct exception.
     /// </summary>
