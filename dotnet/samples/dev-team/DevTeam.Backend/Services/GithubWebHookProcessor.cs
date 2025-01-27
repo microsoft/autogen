@@ -2,7 +2,7 @@
 // GithubWebHookProcessor.cs
 
 using System.Globalization;
-using DevTeam.Shared;
+using Google.Protobuf;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 using Octokit.Webhooks;
@@ -11,12 +11,12 @@ using Octokit.Webhooks.Events.IssueComment;
 using Octokit.Webhooks.Events.Issues;
 using Octokit.Webhooks.Models;
 
-namespace DevTeam.Backend;
+namespace DevTeam.Backend.Services;
 
-public sealed class GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logger, AgentWorker client) : WebhookEventProcessor
+public sealed class GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logger, Client client) : WebhookEventProcessor
 {
     private readonly ILogger<GithubWebHookProcessor> _logger = logger;
-    private readonly AgentWorker _client = client;
+    private readonly Client _client = client;
 
     protected override async Task ProcessIssuesWebhookAsync(WebhookHeaders headers, IssuesEvent issuesEvent, IssuesAction action)
     {
@@ -43,7 +43,7 @@ public sealed class GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logge
                 return;
             }
 
-            long? parentNumber = labels.TryGetValue("Parent", out string? value) ? long.Parse(value) : null;
+            long? parentNumber = labels.TryGetValue("Parent", out var value) ? long.Parse(value) : null;
             var skillName = labels.Keys.Where(k => k != "Parent").FirstOrDefault();
 
             if (skillName == null)
@@ -114,15 +114,15 @@ public sealed class GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logge
     {
         var subject = suffix + issueNumber.ToString();
 
-        var evt = (skillName, functionName) switch
+        IMessage evt = (skillName, functionName) switch
         {
-            ("PM", "Readme") => new ReadmeChainClosed { }.ToCloudEvent(subject),
-            ("DevLead", "Plan") => new DevPlanChainClosed { }.ToCloudEvent(subject),
-            ("Developer", "Implement") => new CodeChainClosed { }.ToCloudEvent(subject),
+            ("PM", "Readme") => new ReadmeChainClosed { },
+            ("DevLead", "Plan") => new DevPlanChainClosed { },
+            ("Developer", "Implement") => new CodeChainClosed { },
             _ => new CloudEvent() // TODO: default event
         };
 
-        await _client.PublishEventAsync(evt);
+        await _client.PublishMessageAsync(evt, Consts.TopicName, subject);
     }
 
     private async Task HandleNewAsk(long issueNumber, string skillName, string functionName, string suffix, string input, string org, string repo)
@@ -132,15 +132,15 @@ public sealed class GithubWebHookProcessor(ILogger<GithubWebHookProcessor> logge
             _logger.LogInformation("Handling new ask");
             var subject = suffix + issueNumber.ToString();
 
-            var evt = (skillName, functionName) switch
+            IMessage evt = (skillName, functionName) switch
             {
-                ("Do", "It") => new NewAsk { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo }.ToCloudEvent(subject),
-                ("PM", "Readme") => new ReadmeRequested { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo }.ToCloudEvent(subject),
-                ("DevLead", "Plan") => new DevPlanRequested { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo }.ToCloudEvent(subject),
-                ("Developer", "Implement") => new CodeGenerationRequested { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo }.ToCloudEvent(subject),
+                ("Do", "It") => new NewAsk { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo },
+                ("PM", "Readme") => new ReadmeRequested { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo },
+                ("DevLead", "Plan") => new DevPlanRequested { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo },
+                ("Developer", "Implement") => new CodeGenerationRequested { Ask = input, IssueNumber = issueNumber, Org = org, Repo = repo },
                 _ => new CloudEvent()
             };
-            await _client.PublishEventAsync(evt);
+            await _client.PublishMessageAsync(evt, Consts.TopicName, subject);
         }
         catch (Exception ex)
         {

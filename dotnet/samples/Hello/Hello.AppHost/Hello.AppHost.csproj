@@ -18,7 +18,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../../src/Microsoft.AutoGen/AgentHost/Microsoft.Autogen.AgentHost.csproj" />
+    <ProjectReference Include="../../../src/Microsoft.AutoGen/AgentHost/Microsoft.AutoGen.AgentHost.csproj" />
     <ProjectReference Include="..\HelloAgent\HelloAgent.csproj" />
   </ItemGroup>
 </Project>

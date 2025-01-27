@@ -5,10 +5,9 @@ using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.AI;
 namespace Microsoft.AutoGen.Agents;
 public abstract class InferenceAgent<T>(
-    IAgentWorker worker,
-    EventTypes typeRegistry,
+    AgentsMetadata typeRegistry,
     IChatClient client)
-    : Agent(worker, typeRegistry)
+    : Agent(typeRegistry)
     where T : IMessage, new()
 {
     protected IChatClient ChatClient { get; } = client;

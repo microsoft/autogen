@@ -28,7 +28,7 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
-from autogen_core.tools import FunctionTool, Tool
+from autogen_core.tools import FunctionTool, BaseTool
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -57,7 +57,7 @@ class AssistantAgentConfig(BaseModel):
 
     name: str
     model_client: ComponentModel
-    # tools: List[Any] | None = None # TBD
+    tools: List[ComponentModel] | None
     handoffs: List[HandoffBase | str] | None = None
     model_context: ComponentModel | None = None
     description: str
@@ -130,7 +130,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     Args:
         name (str): The name of the agent.
         model_client (ChatCompletionClient): The model client to use for inference.
-        tools (List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional): The tools to register with the agent.
+        tools (List[BaseTool[Any, Any]  | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional): The tools to register with the agent.
         handoffs (List[HandoffBase | str] | None, optional): The handoff configurations for the agent,
             allowing it to transfer to other agents by responding with a :class:`HandoffMessage`.
             The transfer is only executed when the team is in :class:`~autogen_agentchat.teams.Swarm`.
@@ -261,7 +261,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         name: str,
         model_client: ChatCompletionClient,
         *,
-        tools: List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
+        tools: List[BaseTool[Any, Any] | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
         handoffs: List[HandoffBase | str] | None = None,
         model_context: ChatCompletionContext | None = None,
         description: str = "An agent that provides assistance with ability to use tools.",
@@ -288,12 +288,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             self._system_messages = []
         else:
             self._system_messages = [SystemMessage(content=system_message)]
-        self._tools: List[Tool] = []
+        self._tools: List[BaseTool[Any, Any]] = []
         if tools is not None:
             if model_client.model_info["function_calling"] is False:
                 raise ValueError("The model does not support function calling.")
             for tool in tools:
-                if isinstance(tool, Tool):
+                if isinstance(tool, BaseTool):
                     self._tools.append(tool)
                 elif callable(tool):
                     if hasattr(tool, "__doc__") and tool.__doc__ is not None:
@@ -308,7 +308,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         if len(tool_names) != len(set(tool_names)):
             raise ValueError(f"Tool names must be unique: {tool_names}")
         # Handoff tools.
-        self._handoff_tools: List[Tool] = []
+        self._handoff_tools: List[BaseTool[Any, Any]] = []
         self._handoffs: Dict[str, HandoffBase] = {}
         if handoffs is not None:
             if model_client.model_info["function_calling"] is False:
@@ -528,15 +528,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     def _to_config(self) -> AssistantAgentConfig:
         """Convert the assistant agent to a declarative config."""
 
-        # raise an error if tools is not empty until it is implemented
-        # TBD : Implement serializing tools and remove this check.
-        if self._tools and len(self._tools) > 0:
-            raise NotImplementedError("Serializing tools is not implemented yet.")
-
         return AssistantAgentConfig(
             name=self.name,
             model_client=self._model_client.dump_component(),
-            # tools=[], # TBD
+            tools=[tool.dump_component() for tool in self._tools],
             handoffs=list(self._handoffs.values()),
             model_context=self._model_context.dump_component(),
             description=self.description,
@@ -553,7 +548,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         return cls(
             name=config.name,
             model_client=ChatCompletionClient.load_component(config.model_client),
-            # tools=[], # TBD
+            tools=[BaseTool.load_component(tool) for tool in config.tools] if config.tools else None,
             handoffs=config.handoffs,
             model_context=None,
             description=config.description,
