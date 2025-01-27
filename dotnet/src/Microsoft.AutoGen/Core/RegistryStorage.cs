@@ -21,7 +21,8 @@ public class RegistryStorage(ILogger<IRegistryStorage> logger) : IRegistryStorag
     {
         string json;
         var state = new AgentsRegistryState();
-        if (File.Exists(FilePath)) { json = await File.ReadAllTextAsync(FilePath, cancellationToken).ConfigureAwait(false); }        else
+        if (File.Exists(FilePath)) { json = await File.ReadAllTextAsync(FilePath, cancellationToken).ConfigureAwait(false); }
+        else
         {
             _logger.LogWarning("Registry file {FilePath} does not exist, starting with an empty Registry", FilePath);
             await WriteStateAsync(state, cancellationToken, true).ConfigureAwait(false);
