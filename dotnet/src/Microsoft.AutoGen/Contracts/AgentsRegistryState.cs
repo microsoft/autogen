@@ -10,6 +10,6 @@ public class AgentsRegistryState
     public ConcurrentDictionary<string, HashSet<string>> TopicToAgentTypesMap { get; set; } = [];
     public ConcurrentDictionary<string, HashSet<string>> EventsToAgentTypesMap { get; set; } = [];
     public ConcurrentDictionary<string, HashSet<Subscription>> GuidSubscriptionsMap { get; set; } = [];
-    public ConcurrentDictionary<AgentId, IAgentRuntime> AgentTypes { get; set; } = [];
+    public ConcurrentDictionary<string, AgentId> AgentTypes { get; set; } = [];
     public string Etag { get; set; } = new Guid().ToString();
 }

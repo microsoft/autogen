@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Registry.cs
 using Microsoft.AutoGen.Contracts;
-using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Core;
 public class Registry : IRegistry
@@ -87,7 +87,7 @@ public class Registry : IRegistry
         {
             var agentInstance = (Agent)runtime.RuntimeServiceProvider.GetRequiredService(agentType.GetType());
             _logger.LogWarning("Agent type {agentType} is already registered.", agentType);
-            State.AgentTypes.TryAdd(agentInstance.AgentId, runtime);
+            State.AgentTypes.TryAdd(agentType.GetType().Name, agentInstance.AgentId);
         }
         catch (InvalidOperationException)
         {
@@ -95,7 +95,7 @@ public class Registry : IRegistry
             _logger.LogInformation("Agent type {agentType} is not yet registered, activating", agentType);
             var agent = (Agent)ActivatorUtilities.CreateInstance(runtime.RuntimeServiceProvider, instanceType: agentType);
             Agent.Initialize(runtime, agent);
-            State.AgentTypes.TryAdd(agent.AgentId, runtime);
+            State.AgentTypes.TryAdd(agentType.GetType().Name, agent.AgentId);
         }
         return await WriteStateAsync(State, cancellationToken).ConfigureAwait(false);
     }
