@@ -29,28 +29,28 @@ public class TestAgent(AgentId id,
         IHandle<RpcTextMessage, string>
 
 {
-    public Task Handle(TextMessage item, MessageContext messageContext)
+    public ValueTask Handle(TextMessage item, MessageContext messageContext)
     {
         ReceivedMessages[item.Source] = item.Content;
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
-    public Task Handle(string item, MessageContext messageContext)
+    public ValueTask Handle(string item, MessageContext messageContext)
     {
         ReceivedItems.Add(item);
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
-    public Task Handle(int item, MessageContext messageContext)
+    public ValueTask Handle(int item, MessageContext messageContext)
     {
         ReceivedItems.Add(item);
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
 
-    public Task<string> Handle(RpcTextMessage item, MessageContext messageContext)
+    public ValueTask<string> Handle(RpcTextMessage item, MessageContext messageContext)
     {
         ReceivedMessages[item.Source] = item.Content;
-        return Task.FromResult(item.Content);
+        return ValueTask.FromResult(item.Content);
     }
 
     public List<object> ReceivedItems { get; private set; } = [];
