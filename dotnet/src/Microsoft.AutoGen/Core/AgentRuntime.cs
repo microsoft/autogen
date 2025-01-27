@@ -48,8 +48,8 @@ public class AgentRuntime(
     /// <inheritdoc />
     public override async ValueTask<RpcResponse> SendMessageAsync(IMessage message, AgentId agentId, AgentId? agent = null, CancellationToken? cancellationToken = default)
     {
-        var request = new RpcRequest 
-        { 
+        var request = new RpcRequest
+        {
             RequestId = Guid.NewGuid().ToString(),
             Source = agent,
             Target = agentId,

@@ -38,7 +38,7 @@ public class TestAgent(
             Payload = new Payload { Data = Any.Pack(new TextMessage { TextMessage_ = "Response" }).ToByteString() }
         };
         return Task.FromResult(response);
-    }    
+    }
     public List<object> ReceivedItems { get; private set; } = [];
 
     /// <summary>
