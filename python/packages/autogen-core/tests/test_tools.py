@@ -1,4 +1,5 @@
 import inspect
+from functools import partial
 from typing import Annotated, List
 
 import pytest
@@ -8,7 +9,6 @@ from autogen_core.tools import BaseTool, FunctionTool
 from autogen_core.tools._base import ToolSchema
 from pydantic import BaseModel, Field, model_serializer
 from pydantic_core import PydanticUndefined
-from functools import partial
 
 
 class MyArgs(BaseModel):
@@ -113,7 +113,7 @@ def test_func_tool_schema_generation_only_default_arg() -> None:
 def test_func_tool_with_partial_positional_arguments_schema_generation() -> None:
     """Test correct schema generation for a partial function with positional arguments."""
 
-    def get_weather(country: str, city: str) -> int:
+    def get_weather(country: str, city: str) -> str:
         return f"The temperature in {city}, {country} is 75°"
 
     partial_function = partial(get_weather, "Germany")
@@ -137,7 +137,7 @@ def test_func_tool_with_partial_positional_arguments_schema_generation() -> None
 def test_func_call_tool_with_kwargs_schema_generation() -> None:
     """Test correct schema generation for a partial function with kwargs."""
 
-    def get_weather(country: str, city: str) -> int:
+    def get_weather(country: str, city: str) -> str:
         return f"The temperature in {city}, {country} is 75°"
 
     partial_function = partial(get_weather, country="Germany")

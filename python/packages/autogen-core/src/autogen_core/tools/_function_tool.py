@@ -66,9 +66,7 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
 
             async def example():
                 # Initialize a FunctionTool instance for retrieving stock prices.
-                stock_price_tool = FunctionTool(
-                    get_stock_price, description="Fetch the stock price for a given ticker."
-                )
+                stock_price_tool = FunctionTool(get_stock_price, description="Fetch the stock price for a given ticker.")
 
                 # Execute the tool with cancellation support.
                 cancellation_token = CancellationToken()
