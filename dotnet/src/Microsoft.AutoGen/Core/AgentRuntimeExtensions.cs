@@ -15,20 +15,19 @@ public static class AgentRuntimeExtensions
     /// <summary>
     /// Instantiates and activates an agent asynchronously using dependency injection.
     /// </summary>
-    /// <typeparam name="TAgent">The type of agent to activate. Must implement <see cref="IHostableAgent"/>.</typeparam>
     /// <param name="serviceProvider">The service provider used for dependency injection.</param>
     /// <param name="additionalArguments">Additional arguments to pass to the agent's constructor.</param>
     /// <returns>A <see cref="ValueTask{T}"/> representing the asynchronous activation of the agent.</returns>
-    internal static ValueTask<TAgent> ActivateAgentAsync<TAgent>(IServiceProvider serviceProvider, params object[] additionalArguments) where TAgent : IHostableAgent
+    internal static ValueTask<IHostableAgent> ActivateAgentAsync(IServiceProvider serviceProvider, Type runtimeType, params object[] additionalArguments)
     {
         try
         {
-            var agent = (TAgent)ActivatorUtilities.CreateInstance(serviceProvider, typeof(TAgent), additionalArguments);
+            var agent = (IHostableAgent)ActivatorUtilities.CreateInstance(serviceProvider, runtimeType, additionalArguments);
             return ValueTask.FromResult(agent);
         }
         catch (Exception e)
         {
-            return ValueTask.FromException<TAgent>(e);
+            return ValueTask.FromException<IHostableAgent>(e);
         }
     }
 
@@ -42,22 +41,28 @@ public static class AgentRuntimeExtensions
     /// <param name="additionalArguments">Additional arguments to pass to the agent's constructor.</param>
     /// <returns>A <see cref="ValueTask{AgentType}"/> representing the asynchronous operation of registering the agent.</returns>
     public static ValueTask<AgentType> RegisterAgentTypeAsync<TAgent>(this IAgentRuntime runtime, AgentType type, IServiceProvider serviceProvider, params IEnumerable<object> additionalArguments) where TAgent : IHostableAgent
+        => RegisterAgentTypeAsync(runtime, type, typeof(TAgent), serviceProvider, additionalArguments);
+
+    public static ValueTask<AgentType> RegisterAgentTypeAsync(this IAgentRuntime runtime, AgentType type, Type runtimeType, IServiceProvider serviceProvider, params IEnumerable<object> additionalArguments)
     {
-        Func<AgentId, IAgentRuntime, ValueTask<TAgent>> factory = (id, runtime) => ActivateAgentAsync<TAgent>(serviceProvider, [id, runtime, ..additionalArguments]);
+        Func<AgentId, IAgentRuntime, ValueTask<IHostableAgent>> factory = (id, runtime) => ActivateAgentAsync(serviceProvider, runtimeType, [id, runtime, .. additionalArguments]);
         return runtime.RegisterAgentFactoryAsync(type, factory);
     }
 
     private static ISubscriptionDefinition[] BindSubscriptionsForAgentType<T>(AgentType agentType, bool skipClassSubscriptions = false, bool skipDirectMessageSubscription = false)
+        => BindSubscriptionsForAgentType(agentType, typeof(T), skipClassSubscriptions, skipDirectMessageSubscription);
+
+    private static ISubscriptionDefinition[] BindSubscriptionsForAgentType(AgentType agentType, Type runtimeType, bool skipClassSubscriptions = false, bool skipDirectMessageSubscription = false)
     {
         // var topicAttributes = this.GetType().GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
         var subscriptions = new List<ISubscriptionDefinition>();
 
         if (!skipClassSubscriptions)
         {
-            var classSubscriptions = typeof(T).GetCustomAttributes<TypeSubscriptionAttribute>().Select(t => t.Bind(agentType));
+            var classSubscriptions = runtimeType.GetCustomAttributes<TypeSubscriptionAttribute>().Select(t => t.Bind(agentType));
             subscriptions.AddRange(classSubscriptions);
 
-            var prefixSubscriptions = typeof(T).GetCustomAttributes<TopicPrefixSubscriptionAttribute>().Select(t => t.Bind(agentType));
+            var prefixSubscriptions = runtimeType.GetCustomAttributes<TopicPrefixSubscriptionAttribute>().Select(t => t.Bind(agentType));
             subscriptions.AddRange(prefixSubscriptions);
         }
 
@@ -70,8 +75,11 @@ public static class AgentRuntimeExtensions
     }
 
     public static async ValueTask RegisterImplicitAgentSubscriptionsAsync<TAgent>(this IAgentRuntime runtime, AgentType type, bool skipClassSubscriptions = false, bool skipDirectMessageSubscription = false) where TAgent : IHostableAgent
+        => await RegisterImplicitAgentSubscriptionsAsync(runtime, type, typeof(TAgent), skipClassSubscriptions, skipDirectMessageSubscription);
+
+    public static async ValueTask RegisterImplicitAgentSubscriptionsAsync(this IAgentRuntime runtime, AgentType type, Type runtimeType, bool skipClassSubscriptions = false, bool skipDirectMessageSubscription = false)
     {
-        var subscriptions = BindSubscriptionsForAgentType<TAgent>(type);
+        var subscriptions = BindSubscriptionsForAgentType(type, runtimeType);
         foreach (var subscription in subscriptions)
         {
             await runtime.AddSubscriptionAsync(subscription);
