@@ -8,7 +8,7 @@ using Microsoft.Extensions.Hosting;
 
 var local = true;
 if (Environment.GetEnvironmentVariable("AGENT_HOST") != null) { local = false; }
-var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
+var app = await Microsoft.AutoGen.Core.Grpc.AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
 }, local: local).ConfigureAwait(false);
@@ -16,11 +16,10 @@ await app.WaitForShutdownAsync();
 
 namespace Hello
 {
-    [TopicSubscription("agents")]
+    [TopicSubscription("HelloAgents")]
     public class HelloAgent(
-        IAgentWorker worker, IHostApplicationLifetime hostApplicationLifetime,
-        [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : Agent(
-            worker,
+        IHostApplicationLifetime hostApplicationLifetime,
+        [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry) : Agent(
             typeRegistry),
             ISayHello,
             IHandleConsole,
@@ -28,7 +27,7 @@ namespace Hello
             IHandle<ConversationClosed>,
             IHandle<Shutdown>
     {
-        public async Task Handle(NewMessageReceived item)
+        public async Task Handle(NewMessageReceived item, CancellationToken cancellationToken)
         {
             var response = await SayHello(item.Message).ConfigureAwait(false);
             var evt = new Output { Message = response };
@@ -40,7 +39,7 @@ namespace Hello
             };
             await PublishMessageAsync(goodbye).ConfigureAwait(false);
         }
-        public async Task Handle(ConversationClosed item)
+        public async Task Handle(ConversationClosed item, CancellationToken cancellationToken)
         {
             var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
             var evt = new Output { Message = goodbye };
@@ -51,13 +50,13 @@ namespace Hello
             }
         }
 
-        public async Task Handle(Shutdown item)
+        public async Task Handle(Shutdown item, CancellationToken cancellationToken)
         {
             Console.WriteLine("Shutting down...");
             hostApplicationLifetime.StopApplication();
         }
 
-        public async Task<string> SayHello(string ask)
+        public async Task<string> SayHello(string ask, CancellationToken cancellationToken = default)
         {
             var response = $"\n\n\n\n***************Hello {ask}**********************\n\n\n\n";
             return response;
@@ -65,6 +64,6 @@ namespace Hello
     }
     public interface ISayHello
     {
-        public Task<string> SayHello(string ask);
+        public Task<string> SayHello(string ask, CancellationToken cancellationToken = default);
     }
 }

@@ -2,7 +2,8 @@ from typing import Any, Awaitable, Callable, List, Optional
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_core.models import ChatCompletionClient
-from autogen_core.tools import Tool
+from autogen_core.tools import BaseTool
+from pydantic import BaseModel
 
 from .tools import (
     extract_audio,
@@ -38,7 +39,7 @@ class VideoSurfer(AssistantAgent):
     Args:
         name (str): The name of the agent.
         model_client (ChatCompletionClient): The model client used for generating responses.
-        tools (List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional):
+        tools (List[BaseTool[BaseModel, BaseModel]  | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional):
             A list of tools or functions the agent can use. If not provided, defaults to all video tools from the action space.
         description (str, optional): A brief description of the agent. Defaults to "An agent that can answer questions about a local video.".
         system_message (str | None, optional): The system message guiding the agent's behavior. Defaults to a predefined message.
@@ -137,7 +138,7 @@ class VideoSurfer(AssistantAgent):
         name: str,
         model_client: ChatCompletionClient,
         *,
-        tools: List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
+        tools: List[BaseTool[BaseModel, BaseModel] | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
         description: Optional[str] = None,
         system_message: Optional[str] = None,
     ):

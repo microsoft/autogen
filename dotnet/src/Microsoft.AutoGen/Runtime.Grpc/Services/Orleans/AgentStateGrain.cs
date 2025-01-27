@@ -2,10 +2,11 @@
 // AgentStateGrain.cs
 
 using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Runtime.Grpc.Abstractions;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
 
-internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore")] IPersistentState<AgentState> state) : Grain, IAgentState
+internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore")] IPersistentState<AgentState> state) : Grain, IAgentState, IAgentGrain
 {
     /// <inheritdoc />
     public async ValueTask<string> WriteStateAsync(AgentState newState, string eTag, CancellationToken cancellationToken = default)
@@ -32,5 +33,15 @@ internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore
     public ValueTask<AgentState> ReadStateAsync(CancellationToken cancellationToken = default)
     {
         return ValueTask.FromResult(state.State);
+    }
+
+    ValueTask<AgentState> IAgentGrain.ReadStateAsync()
+    {
+        return ReadStateAsync();
+    }
+
+    ValueTask<string> IAgentGrain.WriteStateAsync(AgentState state, string eTag)
+    {
+        return WriteStateAsync(state, eTag);
     }
 }

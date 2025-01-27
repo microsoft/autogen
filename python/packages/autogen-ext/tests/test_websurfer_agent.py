@@ -145,3 +145,38 @@ async def test_run_websurfer(monkeypatch: pytest.MonkeyPatch) -> None:
     )  # type: ignore
     url_after_sleep = agent._page.url  # type: ignore
     assert url_after_no_tool == url_after_sleep
+
+
+@pytest.mark.asyncio
+async def test_run_websurfer_declarative(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = "gpt-4o-2024-05-13"
+    chat_completions = [
+        ChatCompletion(
+            id="id1",
+            choices=[
+                Choice(
+                    finish_reason="stop",
+                    index=0,
+                    message=ChatCompletionMessage(content="Response to message 3", role="assistant"),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=15),
+        ),
+    ]
+    mock = _MockChatCompletion(chat_completions)
+    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
+
+    agent = MultimodalWebSurfer(
+        "WebSurfer", model_client=OpenAIChatCompletionClient(model=model, api_key=""), use_ocr=False
+    )
+
+    agent_config = agent.dump_component()
+    assert agent_config.provider == "autogen_ext.agents.web_surfer.MultimodalWebSurfer"
+    assert agent_config.config["name"] == "WebSurfer"
+
+    loaded_agent = MultimodalWebSurfer.load_component(agent_config)
+    assert isinstance(loaded_agent, MultimodalWebSurfer)
+    assert loaded_agent.name == "WebSurfer"

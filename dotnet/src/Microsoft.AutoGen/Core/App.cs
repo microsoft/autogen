@@ -3,7 +3,6 @@
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using Google.Protobuf;
-using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
@@ -13,27 +12,25 @@ namespace Microsoft.AutoGen.Core;
 public static class AgentsApp
 {
     // need a variable to store the runtime instance
-    public static WebApplication? Host { get; private set; }
+    public static IHost? Host { get; private set; }
 
     [MemberNotNull(nameof(Host))]
-    public static async ValueTask<WebApplication> StartAsync(WebApplicationBuilder? builder = null, AgentTypes? agentTypes = null)
+    public static async ValueTask<IHost> StartAsync(HostApplicationBuilder? builder = null, AgentTypes? agentTypes = null)
     {
-        builder ??= WebApplication.CreateBuilder();
+        builder ??= new HostApplicationBuilder();
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
         builder.AddAgentWorker()
             .AddAgents(agentTypes);
-        builder.AddServiceDefaults();
         var app = builder.Build();
 
-        app.MapDefaultEndpoints();
         Host = app;
         await app.StartAsync().ConfigureAwait(false);
         return Host;
     }
-    public static async ValueTask<WebApplication> PublishMessageAsync(
+    public static async ValueTask<IHost> PublishMessageAsync(
         string topic,
         IMessage message,
-        WebApplicationBuilder? builder = null,
+        HostApplicationBuilder? builder = null,
         AgentTypes? agents = null,
         bool local = false)
     {
@@ -42,7 +39,7 @@ public static class AgentsApp
             await StartAsync(builder, agents).ConfigureAwait(false);
         }
         var client = Host.Services.GetRequiredService<Client>() ?? throw new InvalidOperationException("Host not started");
-        await client.PublishEventAsync(topic, message, new CancellationToken()).ConfigureAwait(true);
+        await client.PublishMessageAsync(message, topic, token: new CancellationToken()).ConfigureAwait(true);
         return Host;
     }
     public static async ValueTask ShutdownAsync()
