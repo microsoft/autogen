@@ -51,6 +51,25 @@ class RequestUsage:
     prompt_tokens: int
     completion_tokens: int
 
+    def __add__(self, other: "RequestUsage") -> "RequestUsage":
+        # Runtime type check ensures robustness, even though static analysis indicates unreachable code.
+        if not isinstance(other, RequestUsage):
+            raise TypeError(
+                f"Unsupported operand type(s) for +: 'RequestUsage' and '{type(other).__name__}'"
+            )
+        return RequestUsage(
+            prompt_tokens=self.prompt_tokens + other.prompt_tokens,
+            completion_tokens=self.completion_tokens + other.completion_tokens,
+        )
+
+    def __iadd__(self, other: "RequestUsage") -> "RequestUsage":
+        # Runtime type check ensures robustness, even though static analysis indicates unreachable code.
+        if not isinstance(other, RequestUsage):
+            return NotImplemented
+        self.prompt_tokens += other.prompt_tokens
+        self.completion_tokens += other.completion_tokens
+        return self
+
 
 FinishReasons = Literal["stop", "length", "function_calls", "content_filter", "unknown"]
 
