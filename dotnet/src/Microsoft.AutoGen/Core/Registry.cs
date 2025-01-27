@@ -22,7 +22,7 @@ public class Registry : IRegistry
         _logger.LogInformation("Registry initialized.");
     }
 
-    public ValueTask<List<string>> GetSubscribedAndHandlingAgentsAsync(string topic, string eventType, CancellationToken cancellationToken = default)
+    public ValueTask<List<string>> GetSubscribedAndHandlingAgentsAsync(string topic, string eventType)
     {
         UpdateStateIfStale();
         List<string> agents = [];
@@ -61,7 +61,7 @@ public class Registry : IRegistry
 
         return new ValueTask<List<string>>(agents);
     }
-    public async ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest registration, IAgentRuntime runtime, CancellationToken cancellationToken = default)
+    public async ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest registration, IAgentRuntime runtime)
     {
         var retries = _retries;
         while (!await RegisterAgentTypeWriteAsync(registration, runtime))
@@ -99,7 +99,7 @@ public class Registry : IRegistry
         }
         return await WriteStateAsync(State, cancellationToken).ConfigureAwait(false);
     }
-    public async ValueTask SubscribeAsync(AddSubscriptionRequest subscription, CancellationToken cancellationToken = default)
+    public async ValueTask SubscribeAsync(AddSubscriptionRequest subscription)
     {
         var retries = _retries;
         while (!await SubscribeWriteAsync(subscription))
@@ -157,7 +157,7 @@ public class Registry : IRegistry
         }
         return await WriteStateAsync(State, cancellationToken).ConfigureAwait(false);
     }
-    public async ValueTask UnsubscribeAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask UnsubscribeAsync(RemoveSubscriptionRequest request)
     {
         var retries = _retries;
         while (!await UnsubscribeWriteAsync(request))
@@ -211,7 +211,7 @@ public class Registry : IRegistry
         }
         return true;
     }
-    public ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request, CancellationToken cancellationToken = default)
+    public ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request)
     {
         var _ = request;
         UpdateStateIfStale();
@@ -254,7 +254,7 @@ public class Registry : IRegistry
         }
     }
 
-    public ValueTask UnregisterAgentTypeAsync(string type, IAgentRuntime worker, CancellationToken cancellationToken = default)
+    public ValueTask UnregisterAgentTypeAsync(string type, IAgentRuntime worker)
     {
         throw new NotImplementedException();
     }

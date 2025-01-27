@@ -34,7 +34,7 @@ public class AgentRuntime(
     /// <inheritdoc />
     public override async ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest request, CancellationToken cancellationToken = default)
     {
-        await _registry.RegisterAgentTypeAsync(request, this, cancellationToken);
+        await _registry.RegisterAgentTypeAsync(request, this);
     }
 
     /// <inheritdoc />
