@@ -16,7 +16,7 @@ namespace Microsoft.AutoGen.Core;
 /// <summary>
 /// Represents the base class for an agent in the AutoGen system.
 /// </summary>
-public abstract class Agent
+public abstract class Agent : IAgent
 {
     private readonly object _lock = new();
     private readonly ConcurrentDictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = [];
@@ -422,7 +422,7 @@ public abstract class Agent
         return Task.CompletedTask;
     }
 
-    public Task<RpcResponse> HandleRequestAsync(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
+    public virtual Task<RpcResponse> HandleRequestAsync(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
 
     /// <summary>
     /// Handles a generic object
