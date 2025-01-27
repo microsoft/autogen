@@ -30,6 +30,6 @@ public interface IAgentRuntime : ISaveState<IAgentRuntime>
     //public void AddMessageSerializer(params object[] serializers);
 
     // Extras
-    public ValueTask<IAgent> TryGetAgentProxyAsync(AgentId agentId);
+    public ValueTask<AgentProxy> TryGetAgentProxyAsync(AgentId agentId);
 }
 
