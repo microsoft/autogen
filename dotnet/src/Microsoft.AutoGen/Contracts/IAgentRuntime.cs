@@ -42,6 +42,16 @@ public interface IAgentRuntime
     ValueTask RuntimeSendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Sends a message directly to another agent.
+    /// </summary>
+    /// <param name="message">The message to be sent.</param>
+    /// <param name="recipient">The recipient of the message.</param>
+    /// <param name="sender">The agent sending the message.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>A task that represents the response to th message.</returns>
+    ValueTask<RpcResponse> SendMessageAsync(IMessage message, AgentId recipient, AgentId? sender, CancellationToken? cancellationToken = default);
+
+    /// <summary>
     /// Publishes a message to a topic.
     /// </summary>
     /// <param name="message">The message to be published.</param>

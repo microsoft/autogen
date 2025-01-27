@@ -1,9 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentRuntime.cs
 using System.Collections.Concurrent;
+using System.Threading.Channels;
+using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Core;
 
@@ -19,24 +23,41 @@ namespace Microsoft.AutoGen.Core;
 public class AgentRuntime(
     IHostApplicationLifetime hostApplicationLifetime,
     IServiceProvider serviceProvider,
-    [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes) :
+    [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, System.Type>> configuredAgentTypes,
+    ILogger<AgentRuntime> logger) :
     AgentRuntimeBase(
         hostApplicationLifetime,
         serviceProvider,
-        configuredAgentTypes)
+        configuredAgentTypes,
+        logger)
 {
     private readonly ConcurrentDictionary<string, AgentState> _agentStates = new();
     private readonly ConcurrentDictionary<string, List<Subscription>> _subscriptionsByAgentType = new();
     private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
     private readonly ConcurrentDictionary<Guid, IDictionary<string, string>> _subscriptionsByGuid = new();
     private readonly IRegistry _registry = serviceProvider.GetRequiredService<IRegistry>();
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<RpcResponse>> _pendingRequests = new();
+    private static readonly TimeSpan s_agentResponseTimeout = TimeSpan.FromSeconds(300);
+    private new readonly ILogger<AgentRuntime> _logger = logger;
 
     /// <inheritdoc />
     public override async ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest request, CancellationToken cancellationToken = default)
     {
         await _registry.RegisterAgentTypeAsync(request, this);
     }
-
+    /// <inheritdoc />
+    public override async ValueTask<RpcResponse> SendMessageAsync(IMessage message, AgentId agentId, AgentId? agent = null, CancellationToken? cancellationToken = default)
+    {
+        var request = new RpcRequest
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            Source = agent,
+            Target = agentId,
+            Payload = new Payload { Data = Any.Pack(message).ToByteString() }
+        };
+        var response = await InvokeRequestAsync(request).ConfigureAwait(false);
+        return response;
+    }
     /// <inheritdoc />
     public override ValueTask SaveStateAsync(AgentState value, CancellationToken cancellationToken = default)
     {
@@ -142,7 +163,7 @@ public class AgentRuntime(
         return response;
     }
 
-    public ValueTask<List<Subscription>> GetSubscriptionsAsync(Type type)
+    public ValueTask<List<Subscription>> GetSubscriptionsAsync(System.Type type)
     {
         if (_subscriptionsByAgentType.TryGetValue(type.Name, out var subscriptions))
         {
@@ -158,5 +179,58 @@ public class AgentRuntime(
             subscriptions.AddRange(value);
         }
         return new ValueTask<List<Subscription>>(subscriptions);
+    }
+    public override async ValueTask DispatchRequestAsync(RpcRequest request)
+    {
+        var requestId = request.RequestId;
+        if (request.Target is null)
+        {
+            throw new InvalidOperationException($"Request message is missing a target. Message: '{request}'.");
+        }
+        var agentId = request.Target;
+        await InvokeRequestDelegate(_mailbox, request, async request =>
+        {
+            return await InvokeRequestAsync(request).ConfigureAwait(true);
+        }).ConfigureAwait(false);
+    }
+    public override void DispatchResponse(RpcResponse response)
+    {
+        if (!_pendingRequests.TryRemove(response.RequestId, out var completion))
+        {
+            _logger.LogWarning("Received response for unknown request id: {RequestId}.", response.RequestId);
+            return;
+        }
+        // Complete the request.
+        completion.SetResult(response);
+    }
+    public async ValueTask<RpcResponse> InvokeRequestAsync(RpcRequest request, CancellationToken cancellationToken = default)
+    {
+        var agentId = request.Target;
+        // get the agent
+        var agent = GetOrActivateAgent(agentId);
+
+        // Proxy the request to the agent.
+        var originalRequestId = request.RequestId;
+        var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _pendingRequests.TryAdd(request.RequestId, completion);
+        //request.RequestId = Guid.NewGuid().ToString();
+        agent.ReceiveMessage(new Message() { Request = request });
+        // Wait for the response and send it back to the caller.
+        var response = await completion.Task.WaitAsync(s_agentResponseTimeout);
+        response.RequestId = originalRequestId;
+        return response;
+    }
+    private static async Task InvokeRequestDelegate(Channel<object> mailbox, RpcRequest request, Func<RpcRequest, Task<RpcResponse>> func)
+    {
+        try
+        {
+            var response = await func(request);
+            response.RequestId = request.RequestId;
+            await mailbox.Writer.WriteAsync(new Message { Response = response }).ConfigureAwait(false);
+        }
+        catch (Exception ex)
+        {
+            await mailbox.Writer.WriteAsync(new Message { Response = new RpcResponse { RequestId = request.RequestId, Error = ex.Message } }).ConfigureAwait(false);
+        }
     }
 }

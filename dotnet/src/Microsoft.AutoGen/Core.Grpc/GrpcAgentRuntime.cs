@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using System.Reflection;
 using System.Threading.Channels;
+using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
@@ -16,19 +17,20 @@ public sealed class GrpcAgentRuntime(
     AgentRpc.AgentRpcClient client,
     IHostApplicationLifetime hostApplicationLifetime,
     IServiceProvider serviceProvider,
-    [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
+    [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, System.Type>> configuredAgentTypes,
     ILogger<GrpcAgentRuntime> logger
     ) : AgentRuntime(
         hostApplicationLifetime,
         serviceProvider,
-        configuredAgentTypes
+        configuredAgentTypes,
+        logger
         ), IDisposable
 {
     private readonly object _channelLock = new();
-    private readonly ConcurrentDictionary<string, Type> _agentTypes = new();
+    private readonly ConcurrentDictionary<string, global::System.Type> _agentTypes = new();
     private readonly ConcurrentDictionary<(string Type, string Key), Agent> _agents = new();
     private readonly ConcurrentDictionary<string, (Agent Agent, string OriginalRequestId)> _pendingRequests = new();
-    private readonly ConcurrentDictionary<string, HashSet<Type>> _agentsForEvent = new();
+    private readonly ConcurrentDictionary<string, HashSet<global::System.Type>> _agentsForEvent = new();
     private readonly Channel<(Message Message, TaskCompletionSource WriteCompletionSource)> _outboundMessagesChannel = Channel.CreateBounded<(Message, TaskCompletionSource)>(new BoundedChannelOptions(1024)
     {
         AllowSynchronousContinuations = true,
@@ -38,8 +40,8 @@ public sealed class GrpcAgentRuntime(
     });
     private readonly AgentRpc.AgentRpcClient _client = client;
     public readonly IServiceProvider ServiceProvider = serviceProvider;
-    private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes = configuredAgentTypes;
-    private readonly ILogger<GrpcAgentRuntime> _logger = logger;
+    private readonly IEnumerable<Tuple<string, System.Type>> _configuredAgentTypes = configuredAgentTypes;
+    private new readonly ILogger<GrpcAgentRuntime> _logger = logger;
     private readonly CancellationTokenSource _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
     private AsyncDuplexStreamingCall<Message, Message>? _channel;
     private Task? _readTask;
@@ -192,7 +194,7 @@ public sealed class GrpcAgentRuntime(
             item.WriteCompletionSource.TrySetCanceled();
         }
     }
-    private Agent GetOrActivateAgent(AgentId agentId)
+    private new Agent GetOrActivateAgent(AgentId agentId)
     {
         if (!_agents.TryGetValue((agentId.Type, agentId.Key), out var agent))
         {
@@ -289,6 +291,18 @@ public sealed class GrpcAgentRuntime(
                 }
             }
         }
+    }
+    public override async ValueTask<RpcResponse> SendMessageAsync(IMessage message, AgentId agentId, AgentId? agent = null, CancellationToken? cancellationToken = default)
+    {
+        var request = new RpcRequest
+        {
+            RequestId = Guid.NewGuid().ToString(),
+            Source = agent,
+            Target = agentId,
+            Payload = (Payload)message,
+        };
+        var response = await InvokeRequestAsync(request).ConfigureAwait(false);
+        return response;
     }
     // new is intentional
     public new async ValueTask RuntimeSendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)

@@ -2,6 +2,8 @@
 // TestAgent.cs
 
 using System.Collections.Concurrent;
+using Google.Protobuf;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -27,6 +29,15 @@ public class TestAgent(
     {
         ReceivedItems.Add(item);
         return Task.CompletedTask;
+    }
+    public override Task<RpcResponse> HandleRequestAsync(RpcRequest request)
+    {
+        var response = new RpcResponse
+        {
+            RequestId = request.RequestId,
+            Payload = new Payload { Data = Any.Pack(new TextMessage { TextMessage_ = "Response" }).ToByteString() }
+        };
+        return Task.FromResult(response);
     }
     public List<object> ReceivedItems { get; private set; } = [];
 
