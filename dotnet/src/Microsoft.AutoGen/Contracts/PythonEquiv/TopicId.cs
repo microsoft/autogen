@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
 // PythonInterfaces.cs
 
 using System.Diagnostics.CodeAnalysis;
@@ -40,5 +40,13 @@ public struct TopicId
     }
 
     public static explicit operator TopicId(string id) => FromStr(id);
+
+    // TODO: Implement < for wildcard matching (type, *)
+    // == => <
+    // Type == other.Type => <
+    public bool IsWildcardMatch(TopicId other)
+    {
+        return Type == other.Type;
+    }
 }
 
