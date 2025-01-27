@@ -422,7 +422,7 @@ public abstract class Agent : IAgent
         return Task.CompletedTask;
     }
 
-    public Task<RpcResponse> HandleRequestAsync(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
+    public virtual Task<RpcResponse> HandleRequestAsync(RpcRequest request) => Task.FromResult(new RpcResponse { Error = "Not implemented" });
 
     /// <summary>
     /// Handles a generic object
