@@ -1,4 +1,5 @@
 import asyncio
+import os
 
 from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntimeHost
 
@@ -6,7 +7,18 @@ from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntimeHost
 async def main() -> None:
     service = GrpcWorkerAgentRuntimeHost(address="localhost:50051")
     service.start()
-    await service.stop_when_signal()
+
+    try:
+        # Wait for the service to stop
+        if os.system() == "Windows":
+            # On Windows, the signal is not available, so we wait for a new event
+            await asyncio.Event().wait()
+        else:
+            await service.stop_when_signal()
+    except KeyboardInterrupt:
+        print("Stopping service...")
+    finally:
+        await service.stop()
 
 
 if __name__ == "__main__":
