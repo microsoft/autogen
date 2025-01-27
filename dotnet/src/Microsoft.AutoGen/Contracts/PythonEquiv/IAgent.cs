@@ -13,6 +13,6 @@ public interface IAgent : ISaveState<IAgent>
 
 public interface IHostableAgent : IAgent
 {
-    public ValueTask CloseAsync();
+    public ValueTask CloseAsync() => ValueTask.CompletedTask;
 }
 
