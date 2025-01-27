@@ -23,7 +23,7 @@ public interface IAgentRuntime : ISaveState<IAgentRuntime>
     /// <exception cref="CantHandleException">Thrown if the recipient cannot handle the message.</exception>
     /// <exception cref="UndeliverableException">Thrown if the message cannot be delivered.</exception>
     public ValueTask<object?> SendMessageAsync(object message, AgentId recepient, AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = default);
-    
+
     /// <summary>
     /// Publishes a message to all agents subscribed to the given topic.
     /// No responses are expected from publishing.
@@ -45,7 +45,7 @@ public interface IAgentRuntime : ISaveState<IAgentRuntime>
     /// <param name="lazy">If <c>true</c>, the agent is fetched lazily.</param>
     /// <returns>A task representing the asynchronous operation, returning the agent's ID.</returns>
     public ValueTask<AgentId> GetAgentAsync(AgentId agentId, bool lazy = true/*, CancellationToken? = default*/);
-    
+
     /// <summary>
     /// Retrieves an agent by its type.
     /// </summary>
@@ -54,7 +54,7 @@ public interface IAgentRuntime : ISaveState<IAgentRuntime>
     /// <param name="lazy">If <c>true</c>, the agent is fetched lazily.</param>
     /// <returns>A task representing the asynchronous operation, returning the agent's ID.</returns>
     public ValueTask<AgentId> GetAgentAsync(AgentType agentType, string key = "default", bool lazy = true/*, CancellationToken? = default*/);
-    
+
     /// <summary>
     /// Retrieves an agent by its string representation.
     /// </summary>
@@ -64,7 +64,7 @@ public interface IAgentRuntime : ISaveState<IAgentRuntime>
     /// <returns>A task representing the asynchronous operation, returning the agent's ID.</returns>
     public ValueTask<AgentId> GetAgentAsync(string agent, string key = "default", bool lazy = true/*, CancellationToken? = default*/);
 
-    
+
     /// <summary>
     /// Saves the state of an agent.
     /// The result must be JSON serializable.
@@ -72,7 +72,7 @@ public interface IAgentRuntime : ISaveState<IAgentRuntime>
     /// <param name="agentId">The ID of the agent whose state is being saved.</param>
     /// <returns>A task representing the asynchronous operation, returning a dictionary of the saved state.</returns>
     public ValueTask<StateDict> SaveAgentStateAsync(AgentId agentId/*, CancellationToken? cancellationToken = default*/);
-    
+
     /// <summary>
     /// Loads the saved state into an agent.
     /// </summary>
@@ -94,7 +94,7 @@ public interface IAgentRuntime : ISaveState<IAgentRuntime>
     /// <param name="subscription">The subscription to add.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     public ValueTask AddSubscriptionAsync(ISubscriptionDefinition subscription/*, CancellationToken? cancellationToken = default*/);
-    
+
     /// <summary>
     /// Removes a subscription from the runtime.
     /// </summary>
@@ -111,7 +111,7 @@ public interface IAgentRuntime : ISaveState<IAgentRuntime>
     /// <param name="type">The agent type to associate with the factory.</param>
     /// <param name="factoryFunc">A function that asynchronously creates the agent instance.</param>
     /// <returns>A task representing the asynchronous operation, returning the registered <see cref="AgentType"/>.</returns>
-    public ValueTask<AgentType> RegisterAgentFactoryAsync<TAgent>(AgentType type, Func<ValueTask<TAgent>> factoryFunc) where TAgent : IHostableAgent;
+    public ValueTask<AgentType> RegisterAgentFactoryAsync<TAgent>(AgentType type, Func<AgentId, IAgentRuntime, ValueTask<TAgent>> factoryFunc) where TAgent : IHostableAgent;
 
     // TODO:
     //public ValueTask<TAgent> TryGetUnderlyingAgentInstanceAsync<TAgent>(AgentId agentId) where TAgent : IHostableAgent;
