@@ -20,11 +20,13 @@ public class TestAgent(
         ReceivedMessages[item.Source] = item.TextMessage_;
         return Task.CompletedTask;
     }
+
     public Task Handle(string item)
     {
         ReceivedItems.Add(item);
         return Task.CompletedTask;
     }
+
     public Task Handle(int item)
     {
         ReceivedItems.Add(item);
@@ -46,4 +48,14 @@ public class TestAgent(
     /// Value: message
     /// </summary>
     public static ConcurrentDictionary<string, object> ReceivedMessages { get; private set; } = new();
+}
+
+[TopicSubscription("TestEvent")]
+public class SubscribedAgent : TestAgent
+{
+    public SubscribedAgent(
+     [FromKeyedServices("AgentsMetadata")] AgentsMetadata eventTypes,
+     Logger<Agent>? logger = null) : base(eventTypes, logger)
+    {
+    }
 }
