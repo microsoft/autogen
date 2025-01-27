@@ -57,7 +57,7 @@ public class AgentProxy(AgentId agentId, IAgentRuntime runtime)
     /// <returns>A task representing the asynchronous operation.</returns>
     public ValueTask LoadStateAsync(IDictionary<string, object> state)
     {
-        return this.runtime.LoadAgentStateAsync(state);
+        return this.runtime.LoadAgentStateAsync(this.Id, state);
     }
 
     /// <summary>
@@ -66,6 +66,6 @@ public class AgentProxy(AgentId agentId, IAgentRuntime runtime)
     /// <returns>A task representing the asynchronous operation, returning a dictionary containing the saved state.</returns>
     public ValueTask<IDictionary<string, object>> SaveStateAsync()
     {
-        return this.runtime.SaveAgentStateAsync();
+        return this.runtime.SaveAgentStateAsync(this.Id);
     }
 }
