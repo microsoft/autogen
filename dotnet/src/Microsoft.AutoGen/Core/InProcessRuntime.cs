@@ -176,7 +176,7 @@ public sealed class InProcessRuntime : IAgentRuntime
     }
 
     public ValueTask<AgentType> RegisterAgentFactoryAsync<TAgent>(AgentType type, Func<AgentId, IAgentRuntime, ValueTask<TAgent>> factoryFunc) where TAgent : IHostableAgent
-        => this.RegisterAgentFactoryAsync(type, async (agentId, runtime) => await factoryFunc(agentId, runtime));
+        => this.RegisterAgentFactoryAsync(type, async ValueTask<IHostableAgent> (agentId, runtime) => await factoryFunc(agentId, runtime));
 
     public ValueTask<AgentType> RegisterAgentFactoryAsync(AgentType type, Func<AgentId, IAgentRuntime, ValueTask<IHostableAgent>> factoryFunc)
     {
