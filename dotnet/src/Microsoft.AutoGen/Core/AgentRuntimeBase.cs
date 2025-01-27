@@ -203,8 +203,7 @@ public abstract class AgentRuntimeBase(
         }
         await Task.WhenAll(taskList).ConfigureAwait(false);
     }
+    public abstract ValueTask RuntimeSendRequestAsync(IAgent agent, RpcRequest request, CancellationToken cancellationToken = default);
 
-    public abstract ValueTask RuntimeSendRequestAsync(IAgent agent, RpcRequest request, CancellationToken cancellationToken = default)
-
-    public abstract ValueTask RuntimeSendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
+    public abstract ValueTask RuntimeSendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default);
 }

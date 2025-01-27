@@ -282,7 +282,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
                         throw new InvalidOperationException("Invalid subscription type");
                 }
             }
-            state.State.GuidSubscriptionsMap.Remove(guid);
+            state.State.GuidSubscriptionsMap.Remove(guid, out _);
         }
         await state.WriteStateAsync().ConfigureAwait(false);
     }

@@ -1,31 +1,30 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Registry.cs
-using System.Xml;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Microsoft.AutoGen.Core;
-internal sealed class Registry : IRegistry
+public class Registry : IRegistry
 {
-    private readonly Dictionary<(string Type, string Key), IAgentRuntime> _agentDirectory = [];
-    private readonly Dictionary<string, HashSet<IAgentRuntime>> _supportedAgentTypes = [];
-    private readonly TimeSpan _agentTimeout = TimeSpan.FromMinutes(1);
     private readonly IRegistryStorage Storage;
-    private readonly AgentsRegistryState State;
+    public AgentsRegistryState State { get; set; }
     private readonly ILogger<Registry> _logger;
-    private readonly string _registryETag;
+    private string _registryEtag;
+    private const int _retries = 5;
 
     public Registry(IRegistryStorage storage, ILogger<Registry> logger)
     {
         _logger = logger;
         Storage = storage;
         State = Storage.ReadStateAsync().ConfigureAwait(true).GetAwaiter().GetResult();
-        _registryETag = State.ETag;
+        _registryEtag = State.Etag;
         _logger.LogInformation("Registry initialized.");
     }
 
     public ValueTask<List<string>> GetSubscribedAndHandlingAgentsAsync(string topic, string eventType, CancellationToken cancellationToken = default)
     {
+        UpdateStateIfStale();
         List<string> agents = [];
         // get all agent types that are subscribed to the topic
         if (State.TopicToAgentTypesMap.TryGetValue(topic, out var subscribedAgentTypes))
@@ -64,37 +63,58 @@ internal sealed class Registry : IRegistry
     }
     public async ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest registration, IAgentRuntime runtime, CancellationToken cancellationToken = default)
     {
-        if (!_supportedAgentTypes.TryGetValue(registration.Type, out var supportedAgentTypes))
+        var retries = _retries;
+        while (!await RegisterAgentTypeWriteAsync(registration, runtime))
         {
-            supportedAgentTypes = _supportedAgentTypes[registration.Type] = [];
+            if (retries == 0)
+            {
+                throw new IOException($"Failed to register agent type after {_retries} retries.");
+            }
+            _logger.LogWarning("Failed to register agent type, retrying...");
+            retries--;
         }
-
-        if (!supportedAgentTypes.Contains(runtime))
-        {
-            supportedAgentTypes.Add(runtime);
-        }
-
-        var workerState = GetOrAddWorker(runtime);
-        workerState.SupportedTypes.Add(registration.Type);
-
-        await Storage.WriteStateAsync(State).ConfigureAwait(false);
     }
 
-    public ValueTask UnregisterAgentType(string type, IAgentRuntime worker)
+    private async ValueTask<bool> RegisterAgentTypeWriteAsync(RegisterAgentTypeRequest registration, IAgentRuntime runtime, CancellationToken cancellationToken = default)
     {
-        if (_workerStates.TryGetValue(worker, out var state))
+        UpdateStateIfStale();
+        if (registration.Type is null)
         {
-            SupportedTypes.Remove(type);
+            throw new InvalidOperationException("RegisterAgentType: Agent type is required.");
         }
-
-        if (_supportedAgentTypes.TryGetValue(type, out var workers))
+        var agentType = Type.GetType(registration.Type) ?? throw new InvalidOperationException($"RegisterAgentType: Invalid agent type {registration.Type}.");
+        try
         {
-            workers.Remove(worker);
+            var agentInstance = (Agent)runtime.RuntimeServiceProvider.GetRequiredService(agentType.GetType());
+            _logger.LogWarning("Agent type {agentType} is already registered.", agentType);
+            State.AgentTypes.TryAdd(agentInstance.AgentId, runtime);
         }
-        return ValueTask.CompletedTask;
+        catch (InvalidOperationException)
+        {
+            // Agent type was not yet in the registry - it won't be available in DI
+            _logger.LogInformation("Agent type {agentType} is not yet registered, activating", agentType);
+            var agent = (Agent)ActivatorUtilities.CreateInstance(runtime.RuntimeServiceProvider, instanceType: agentType);
+            Agent.Initialize(runtime, agent);
+            State.AgentTypes.TryAdd(agent.AgentId, runtime);
+        }
+        return await WriteStateAsync(State, cancellationToken).ConfigureAwait(false);
     }
     public async ValueTask SubscribeAsync(AddSubscriptionRequest subscription, CancellationToken cancellationToken = default)
     {
+        var retries = _retries;
+        while (!await SubscribeWriteAsync(subscription))
+        {
+            if (retries == 0)
+            {
+                throw new IOException($"Failed to subscribe after {_retries} retries.");
+            }
+            _logger.LogWarning("Failed to subscribe, retrying...");
+            retries--;
+        }
+    }
+    private async ValueTask<bool> SubscribeWriteAsync(AddSubscriptionRequest subscription, CancellationToken cancellationToken = default)
+    {
+        UpdateStateIfStale();
         var guid = Guid.NewGuid().ToString();
         subscription.Subscription.Id = guid;
         switch (subscription.Subscription.SubscriptionCase)
@@ -135,10 +155,24 @@ internal sealed class Registry : IRegistry
             default:
                 throw new InvalidOperationException("Invalid subscription type");
         }
-        await Storage.WriteStateAsync(State).ConfigureAwait(false);
+        return await WriteStateAsync(State, cancellationToken).ConfigureAwait(false);
     }
-    public async ValueTask UnsubscribeAsync(RemoveSubscriptionRequest request)
+    public async ValueTask UnsubscribeAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default)
     {
+        var retries = _retries;
+        while (!await UnsubscribeWriteAsync(request))
+        {
+            if (retries == 0)
+            {
+                throw new IOException($"Failed to unsubscribe after {_retries} retries.");
+            }
+            _logger.LogWarning("Failed to unsubscribe, retrying...");
+            retries--;
+        }
+    }
+    private async ValueTask<bool> UnsubscribeWriteAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default)
+    {
+        UpdateStateIfStale();
         var guid = request.Id;
         // does the guid parse?
         if (!Guid.TryParse(guid, out var _))
@@ -172,32 +206,15 @@ internal sealed class Registry : IRegistry
                         throw new InvalidOperationException("Invalid subscription type");
                 }
             }
-            State.GuidSubscriptionsMap.Remove(guid);
+            State.GuidSubscriptionsMap.Remove(guid, out _);
+            return await WriteStateAsync(State, cancellationToken).ConfigureAwait(false);
         }
-        await Storage.WriteStateAsync(State).ConfigureAwait(false);
+        return true;
     }
-
-    public ValueTask<List<Subscription>> GetSubscriptions(string agentType)
+    public ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request, CancellationToken cancellationToken = default)
     {
-        var subscriptions = new List<Subscription>();
-        if (State.AgentsToTopicsMap.TryGetValue(agentType, out var topics))
-        {
-            foreach (var topic in topics)
-            {
-                subscriptions.Add(new Subscription
-                {
-                    TypeSubscription = new TypeSubscription
-                    {
-                        AgentType = agentType,
-                        TopicType = topic
-                    }
-                });
-            }
-        }
-        return new(subscriptions);
-    }
-    public ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request)
-    {
+        var _ = request;
+        UpdateStateIfStale();
         var subscriptions = new List<Subscription>();
         foreach (var kvp in State.GuidSubscriptionsMap)
         {
@@ -205,9 +222,41 @@ internal sealed class Registry : IRegistry
         }
         return new(subscriptions);
     }
-    private WriteAsync()
+    /// <summary>
+    /// in case there is a write in between our last read and now...
+    /// </summary>
+    private void UpdateStateIfStale()
     {
-        await Storage.WriteStateAsync(State).ConfigureAwait(false);
+        if (State.Etag != _registryEtag)
+        {
+            State = Storage.ReadStateAsync().ConfigureAwait(true).GetAwaiter().GetResult();
+            _registryEtag = State.Etag;
+        }
+    }
+    /// <summary>
+    ///  Writes the state to the storage.
+    /// </summary>
+    /// <param name="state"></param>
+    /// <returns>bool true on success, false on failure</returns>
+    private async ValueTask<bool> WriteStateAsync(AgentsRegistryState state, CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            await Storage.WriteStateAsync(state, cancellationToken).ConfigureAwait(false);
+            _registryEtag = state.Etag;
+            State = state;
+            return true;
+        }
+        catch (Exception e)
+        {
+            _logger.LogError(e, "Failed to write state to storage.");
+            return false;
+        }
+    }
+
+    public ValueTask UnregisterAgentTypeAsync(string type, IAgentRuntime worker, CancellationToken cancellationToken = default)
+    {
+        throw new NotImplementedException();
     }
 }
 

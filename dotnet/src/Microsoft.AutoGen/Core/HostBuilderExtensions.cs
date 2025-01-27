@@ -6,6 +6,7 @@ using System.Diagnostics.CodeAnalysis;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Core;
 

@@ -29,13 +29,12 @@ public class AgentRuntime(
     private readonly ConcurrentDictionary<string, List<Subscription>> _subscriptionsByAgentType = new();
     private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
     private readonly ConcurrentDictionary<Guid, IDictionary<string, string>> _subscriptionsByGuid = new();
-    private readonly IRegistry _registry = new Registry();
+    private readonly IRegistry _registry = serviceProvider.GetRequiredService<IRegistry>();
 
     /// <inheritdoc />
-    public override ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest request, CancellationToken cancellationToken = default)
+    public override async ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest request, CancellationToken cancellationToken = default)
     {
-        _registry.RegisterAgentTypeAsync(request, this, cancellationToken);
-        throw new NotImplementedException();
+        await _registry.RegisterAgentTypeAsync(request, this, cancellationToken);
     }
 
     /// <inheritdoc />
