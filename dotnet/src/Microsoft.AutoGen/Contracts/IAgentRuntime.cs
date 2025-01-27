@@ -106,11 +106,10 @@ public interface IAgentRuntime : ISaveState<IAgentRuntime>
     /// Registers an agent factory with the runtime, associating it with a specific agent type.
     /// The type must be unique.
     /// </summary>
-    /// <typeparam name="TAgent">The agent type being registered.</typeparam>
     /// <param name="type">The agent type to associate with the factory.</param>
     /// <param name="factoryFunc">A function that asynchronously creates the agent instance.</param>
     /// <returns>A task representing the asynchronous operation, returning the registered <see cref="AgentType"/>.</returns>
-    public ValueTask<AgentType> RegisterAgentFactoryAsync<TAgent>(AgentType type, Func<AgentId, IAgentRuntime, ValueTask<TAgent>> factoryFunc) where TAgent : IHostableAgent;
+    public ValueTask<AgentType> RegisterAgentFactoryAsync(AgentType type, Func<AgentId, IAgentRuntime, ValueTask<IHostableAgent>> factoryFunc);
 
     // TODO:
     //public ValueTask<TAgent> TryGetUnderlyingAgentInstanceAsync<TAgent>(AgentId agentId) where TAgent : IHostableAgent;

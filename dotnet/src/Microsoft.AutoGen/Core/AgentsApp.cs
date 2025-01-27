@@ -4,6 +4,7 @@
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System.Reflection;
 
 namespace Microsoft.AutoGen.Core;
 
@@ -18,14 +19,38 @@ public class AgentsAppBuilder
         this.builder = baseBuilder ?? new HostApplicationBuilder();
     }
 
-    public void AddAgent<TAgent>(string name, bool skipClassSubscriptions = false, bool skipDirectMessageSubscription = false) where TAgent : IHostableAgent
+    public void AddAgentsFromAssemblies()
     {
-        this.AgentTypeRegistrations.Add(async app => {
-            var agentType = await app.AgentRuntime.RegisterAgentTypeAsync<TAgent>(name, app.Services);
-            await app.AgentRuntime.RegisterImplicitAgentSubscriptionsAsync<TAgent>(name, skipClassSubscriptions, skipDirectMessageSubscription);
+        this.AddAgentsFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
+    }
+
+    public void AddAgentsFromAssemblies(params Assembly[] assemblies)
+    {
+        IEnumerable<Type> agentTypes = assemblies.SelectMany(assembly => assembly.GetTypes())
+            .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(BaseAgent))
+                && !type.IsAbstract
+                // && !type.Name.Equals(nameof(Client))
+                );
+
+        foreach (Type agentType in agentTypes)
+        {
+            // TODO: Expose skipClassSubscriptions and skipDirectMessageSubscription as parameters?
+            this.AddAgent(agentType.Name, agentType);
+        }
+    }
+
+    private void AddAgent(AgentType agentType, Type runtimeType, bool skipClassSubscriptions = false, bool skipDirectMessageSubscription = false)
+    {
+        this.AgentTypeRegistrations.Add(async app =>
+        {
+            await app.AgentRuntime.RegisterAgentTypeAsync(agentType, runtimeType, app.Services);
+            await app.AgentRuntime.RegisterImplicitAgentSubscriptionsAsync(agentType, runtimeType, skipClassSubscriptions, skipDirectMessageSubscription);
             return agentType;
         });
     }
+
+    public void AddAgent<TAgent>(AgentType agentType, bool skipClassSubscriptions = false, bool skipDirectMessageSubscription = false) where TAgent : IHostableAgent
+        => this.AddAgent(agentType, typeof(TAgent), skipClassSubscriptions, skipDirectMessageSubscription);
 
     public async ValueTask<AgentsApp> BuildAsync()
     {
