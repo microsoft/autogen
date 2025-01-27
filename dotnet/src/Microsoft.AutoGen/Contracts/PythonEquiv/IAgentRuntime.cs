@@ -5,6 +5,9 @@ using StateDict = System.Collections.Generic.IDictionary<string, object>;
 
 namespace Microsoft.AutoGen.Contracts.Python;
 
+/// <summary>
+/// Defines the runtime environment for agents, managing message sending, subscriptions, agent resolution, and state persistence.
+/// </summary>
 public interface IAgentRuntime : ISaveState<IAgentRuntime>
 {
     public ValueTask<object?> SendMessageAsync(object message, AgentId recepient, AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = default);
