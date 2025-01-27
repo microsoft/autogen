@@ -83,10 +83,6 @@ public class AgentsApp
 
     public async ValueTask ShutdownAsync() => await this.Host.StopAsync();
 
-    public ValueTask PublishMessageAsync<TMessage>(TMessage message, string topic, string? messageId = null, CancellationToken? cancellationToken = default)
-        where TMessage : notnull
-        => this.AgentRuntime.PublishMessageAsync(message, TopicId.FromStr(topic), messageId: messageId, cancellationToken: cancellationToken);
-
     public ValueTask PublishMessageAsync<TMessage>(TMessage message, TopicId topic, string? messageId = null, CancellationToken? cancellationToken = default)
         where TMessage : notnull
     {
