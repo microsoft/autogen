@@ -82,20 +82,26 @@ public class Registry : IRegistry
         {
             throw new InvalidOperationException("RegisterAgentType: Agent type is required.");
         }
-        var agentType = Type.GetType(registration.Type) ?? throw new InvalidOperationException($"RegisterAgentType: Invalid agent type {registration.Type}.");
+        var agentTypes = AgentTypes.GetAgentTypesFromAssembly()
+                   ?? throw new InvalidOperationException("No agent types found in the assembly");
+
+        if (!agentTypes.Types.TryGetValue(registration.Type, out var value))
+        {
+            throw new InvalidOperationException($"RegisterAgentType: Invalid agent type {registration.Type}.");
+        }
         try
         {
-            var agentInstance = (Agent)runtime.RuntimeServiceProvider.GetRequiredService(agentType.GetType());
-            _logger.LogWarning("Agent type {agentType} is already registered.", agentType);
-            State.AgentTypes.TryAdd(agentType.GetType().Name, agentInstance.AgentId);
+            var agentInstance = (Agent)runtime.RuntimeServiceProvider.GetRequiredService(value);
+            _logger.LogWarning("Agent type {agentType} is already registered.", registration.Type);
+            State.AgentTypes.TryAdd(registration.Type, agentInstance.AgentId);
         }
         catch (InvalidOperationException)
         {
             // Agent type was not yet in the registry - it won't be available in DI
-            _logger.LogInformation("Agent type {agentType} is not yet registered, activating", agentType);
-            var agent = (Agent)ActivatorUtilities.CreateInstance(runtime.RuntimeServiceProvider, instanceType: agentType);
+            _logger.LogInformation("Agent type {agentType} is not yet registered, activating", registration.Type);
+            var agent = (Agent)ActivatorUtilities.CreateInstance(runtime.RuntimeServiceProvider, instanceType: value);
             Agent.Initialize(runtime, agent);
-            State.AgentTypes.TryAdd(agentType.GetType().Name, agent.AgentId);
+            State.AgentTypes.TryAdd(registration.Type, agent.AgentId);
         }
         return await WriteStateAsync(State, cancellationToken).ConfigureAwait(false);
     }
