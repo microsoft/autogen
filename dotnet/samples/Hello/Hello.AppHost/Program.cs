@@ -11,8 +11,9 @@ var client = builder.AddProject<Projects.HelloAgent>("HelloAgentsDotNET")
     .WithEnvironment("STAY_ALIVE_ON_GOODBYE", "true")
     .WaitFor(backend);
 #pragma warning disable ASPIREHOSTINGPYTHON001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
+var pythonDir = Path.Combine(Directory.GetCurrentDirectory(), "../../../../python/samples/core_xlang_hello_python_agent");
 // xlang is over http for now - in prod use TLS between containers
-builder.AddPythonApp("HelloAgentsPython", "../../../../python/samples/core_xlang_hello_python_agent", "hello_python_agent.py", "../../.venv").WithReference(backend)
+builder.AddPythonApp("HelloAgentsPython", pythonDir, "hello_python_agent.py", "../../.venv").WithReference(backend)
     .WithEnvironment("AGENT_HOST", backend.GetEndpoint("http"))
     .WithEnvironment("STAY_ALIVE_ON_GOODBYE", "true")
     .WithEnvironment("GRPC_DNS_RESOLVER", "native")
