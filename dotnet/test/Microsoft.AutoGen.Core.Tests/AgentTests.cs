@@ -53,7 +53,7 @@ public class AgentTests()
     {
         // Arrange
         var runtime = new InProcessRuntime();
-            Logger<BaseAgent> logger = new(new LoggerFactory());
+        Logger<BaseAgent> logger = new(new LoggerFactory());
         await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) => ValueTask.FromResult(new TestAgent(id, runtime, logger)));
         await runtime.RegisterImplicitAgentSubscriptionsAsync<TestAgent>("MyAgent");
 
@@ -63,7 +63,8 @@ public class AgentTests()
         // Assert
         Assert.NotNull(response);
         Assert.IsType<string>(response);
-        if (response is string responseString) {
+        if (response is string responseString)
+        {
             Assert.Equal("Request", responseString);
         }
     }
@@ -99,41 +100,59 @@ public class AgentTests()
     //     Assert.Equal(2, subscriptions.Count);
     //     fixture.Stop();
     // }
-    // /// <summary>
-    // /// Test SubscribeAsync method
-    // /// </summary>
-    // /// <returns>void</returns>
-    // [Fact]
-    // public async Task SubscribeAsync_UnsubscribeAsync_and_GetSubscriptionsTest()
-    // {
-    //     var fixture = new InMemoryAgentRuntimeFixture();
-    //     var (_, agent) = fixture.Start();
-    //     await agent.SubscribeAsync("TestEvent");
-    //     await Task.Delay(100);
-    //     var subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
-    //     var found = false;
-    //     foreach (var subscription in subscriptions)
-    //     {
-    //         if (subscription.TypeSubscription.TopicType == "TestEvent")
-    //         {
-    //             found = true;
-    //         }
-    //     }
-    //     Assert.True(found);
-    //     await agent.UnsubscribeAsync("TestEvent").ConfigureAwait(true);
-    //     await Task.Delay(500);
-    //     subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
-    //     found = false;
-    //     foreach (var subscription in subscriptions)
-    //     {
-    //         if (subscription.TypeSubscription.TopicType == "TestEvent")
-    //         {
-    //             found = true;
-    //         }
-    //     }
-    //     Assert.False(found);
-    //     fixture.Stop();
-    // }
+    /// <summary>
+    /// Test SubscribeAsync method
+    /// </summary>
+    /// <returns>void</returns>
+    ///
+
+    public class ReceiverAgent(AgentId id,
+            IAgentRuntime runtime) : BaseAgent(id, runtime, "Receiver Agent", null),
+            IHandle<string>
+    {
+        public ValueTask Handle(string item, MessageContext messageContext)
+        {
+            ReceivedItems.Add(item);
+            return ValueTask.CompletedTask;
+        }
+
+        public List<string> ReceivedItems { get; private set; } = [];
+    }
+
+    [Fact]
+    public async Task SubscribeAsync_UnsubscribeAsync_and_GetSubscriptionsTest()
+    {
+        var runtime = new InProcessRuntime();
+        ReceiverAgent? agent = null;
+        await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) => {
+            agent = new ReceiverAgent(id, runtime);
+            return ValueTask.FromResult(agent);
+        });
+
+        Assert.Null(agent);
+        await runtime.GetAgentAsync("MyAgent", lazy: false);
+        Assert.NotNull(agent);
+        Assert.True(agent.ReceivedItems.Count == 0);
+
+        var topicTypeName = "TestTopic";
+        await runtime.PublishMessageAsync("info", new TopicId(topicTypeName));
+        await Task.Delay(100);
+
+        Assert.True(agent.ReceivedItems.Count == 0);
+
+        var subscription = new TypeSubscription(topicTypeName, "MyAgent");
+        await runtime.AddSubscriptionAsync(subscription);
+
+        await runtime.PublishMessageAsync("info", new TopicId(topicTypeName));
+        await Task.Delay(100);
+        Assert.True(agent.ReceivedItems.Count == 1);
+        Assert.Equal("info", agent.ReceivedItems[0]);
+
+        await runtime.RemoveSubscriptionAsync(subscription.Id);
+        await runtime.PublishMessageAsync("info", new TopicId(topicTypeName));
+        await Task.Delay(100);
+        Assert.True(agent.ReceivedItems.Count == 1);
+    }
 
     // /// <summary>
     // /// Test StoreAsync and ReadAsync methods
