@@ -113,7 +113,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
 
   // Load initial config
   React.useEffect(() => {
-    if (team?.config) {
+    if (team?.component) {
       const { nodes: initialNodes, edges: initialEdges } = loadFromJson(
         team.config
       );

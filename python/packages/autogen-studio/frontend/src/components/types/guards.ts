@@ -7,6 +7,18 @@ import type {
   ToolConfig,
   TerminationConfig,
   ChatCompletionContextConfig,
+  SelectorGroupChatConfig,
+  RoundRobinGroupChatConfig,
+  MultimodalWebSurferConfig,
+  AssistantAgentConfig,
+  UserProxyAgentConfig,
+  OpenAIClientConfig,
+  AzureOpenAIClientConfig,
+  FunctionToolConfig,
+  OrTerminationConfig,
+  MaxMessageTerminationConfig,
+  TextMentionTerminationConfig,
+  UnboundedChatCompletionContextConfig,
 } from "./datamodel";
 
 // Provider constants
@@ -37,6 +49,48 @@ const PROVIDERS = {
   UNBOUNDED_CONTEXT:
     "autogen_core.model_context.UnboundedChatCompletionContext",
 } as const;
+
+// Provider type and mapping
+export type Provider = (typeof PROVIDERS)[keyof typeof PROVIDERS];
+
+type ProviderToConfig = {
+  // Teams
+  [PROVIDERS.SELECTOR_TEAM]: SelectorGroupChatConfig;
+  [PROVIDERS.ROUND_ROBIN_TEAM]: RoundRobinGroupChatConfig;
+
+  // Agents
+  [PROVIDERS.ASSISTANT_AGENT]: AssistantAgentConfig;
+  [PROVIDERS.USER_PROXY]: UserProxyAgentConfig;
+  [PROVIDERS.WEB_SURFER]: MultimodalWebSurferConfig;
+
+  // Models
+  [PROVIDERS.OPENAI]: OpenAIClientConfig;
+  [PROVIDERS.AZURE_OPENAI]: AzureOpenAIClientConfig;
+
+  // Tools
+  [PROVIDERS.FUNCTION_TOOL]: FunctionToolConfig;
+
+  // Termination
+  [PROVIDERS.OR_TERMINATION]: OrTerminationConfig;
+  [PROVIDERS.MAX_MESSAGE]: MaxMessageTerminationConfig;
+  [PROVIDERS.TEXT_MENTION]: TextMentionTerminationConfig;
+
+  // Contexts
+  [PROVIDERS.UNBOUNDED_CONTEXT]: UnboundedChatCompletionContextConfig;
+};
+
+// Helper type to get config type from provider
+type ConfigForProvider<P extends Provider> = P extends keyof ProviderToConfig
+  ? ProviderToConfig[P]
+  : never;
+
+// Generic component type guard
+function isComponentOfType<P extends Provider>(
+  component: Component<ComponentConfig>,
+  provider: P
+): component is Component<ConfigForProvider<P>> {
+  return component.provider === provider;
+}
 
 // Base component type guards
 export function isTeamComponent(
@@ -75,91 +129,94 @@ export function isChatCompletionContextComponent(
   return component.component_type === "chat_completion_context";
 }
 
-// Team provider guards
+// Team provider guards with proper type narrowing
 export function isRoundRobinTeam(
   component: Component<ComponentConfig>
-): boolean {
-  return component.provider === PROVIDERS.ROUND_ROBIN_TEAM;
+): component is Component<RoundRobinGroupChatConfig> {
+  return isComponentOfType(component, PROVIDERS.ROUND_ROBIN_TEAM);
 }
 
-export function isSelectorTeam(component: Component<ComponentConfig>): boolean {
-  return component.provider === PROVIDERS.SELECTOR_TEAM;
+export function isSelectorTeam(
+  component: Component<ComponentConfig>
+): component is Component<SelectorGroupChatConfig> {
+  return isComponentOfType(component, PROVIDERS.SELECTOR_TEAM);
 }
 
-// Agent provider guards
+// Agent provider guards with proper type narrowing
 export function isAssistantAgent(
   component: Component<ComponentConfig>
-): boolean {
-  return component.provider === PROVIDERS.ASSISTANT_AGENT;
+): component is Component<AssistantAgentConfig> {
+  return isComponentOfType(component, PROVIDERS.ASSISTANT_AGENT);
 }
 
 export function isUserProxyAgent(
   component: Component<ComponentConfig>
-): boolean {
-  return component.provider === PROVIDERS.USER_PROXY;
+): component is Component<UserProxyAgentConfig> {
+  return isComponentOfType(component, PROVIDERS.USER_PROXY);
 }
 
 export function isWebSurferAgent(
   component: Component<ComponentConfig>
-): boolean {
-  return component.provider === PROVIDERS.WEB_SURFER;
+): component is Component<MultimodalWebSurferConfig> {
+  return isComponentOfType(component, PROVIDERS.WEB_SURFER);
 }
 
-// Model provider guards
-export function isOpenAIModel(component: Component<ComponentConfig>): boolean {
-  return component.provider === PROVIDERS.OPENAI;
+// Model provider guards with proper type narrowing
+export function isOpenAIModel(
+  component: Component<ComponentConfig>
+): component is Component<OpenAIClientConfig> {
+  return isComponentOfType(component, PROVIDERS.OPENAI);
 }
 
 export function isAzureOpenAIModel(
   component: Component<ComponentConfig>
-): boolean {
-  return component.provider === PROVIDERS.AZURE_OPENAI;
+): component is Component<AzureOpenAIClientConfig> {
+  return isComponentOfType(component, PROVIDERS.AZURE_OPENAI);
 }
 
-// Tool provider guards
-export function isFunctionTool(component: Component<ComponentConfig>): boolean {
-  return component.provider === PROVIDERS.FUNCTION_TOOL;
+// Tool provider guards with proper type narrowing
+export function isFunctionTool(
+  component: Component<ComponentConfig>
+): component is Component<FunctionToolConfig> {
+  return isComponentOfType(component, PROVIDERS.FUNCTION_TOOL);
 }
 
-// Termination provider guards
+// Termination provider guards with proper type narrowing
 export function isOrTermination(
   component: Component<ComponentConfig>
-): boolean {
-  return component.provider === PROVIDERS.OR_TERMINATION;
+): component is Component<OrTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.OR_TERMINATION);
 }
 
 export function isMaxMessageTermination(
   component: Component<ComponentConfig>
-): boolean {
-  return component.provider === PROVIDERS.MAX_MESSAGE;
+): component is Component<MaxMessageTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.MAX_MESSAGE);
 }
 
 export function isTextMentionTermination(
   component: Component<ComponentConfig>
-): boolean {
-  return component.provider === PROVIDERS.TEXT_MENTION;
+): component is Component<TextMentionTerminationConfig> {
+  return isComponentOfType(component, PROVIDERS.TEXT_MENTION);
 }
 
-// Context provider guards
+// Context provider guards with proper type narrowing
 export function isUnboundedContext(
   component: Component<ComponentConfig>
-): boolean {
-  return component.provider === PROVIDERS.UNBOUNDED_CONTEXT;
+): component is Component<UnboundedChatCompletionContextConfig> {
+  return isComponentOfType(component, PROVIDERS.UNBOUNDED_CONTEXT);
 }
 
-// Helper function for type narrowing
-export function assertComponent<T extends ComponentConfig>(
+// Runtime assertions
+export function assertComponentType<P extends Provider>(
   component: Component<ComponentConfig>,
-  providerCheck: (component: Component<ComponentConfig>) => boolean
-): asserts component is Component<T> {
-  if (!providerCheck(component)) {
+  provider: P
+): asserts component is Component<ConfigForProvider<P>> {
+  if (!isComponentOfType(component, provider)) {
     throw new Error(
-      `Component provider ${component.provider} does not match expected type`
+      `Expected component with provider ${provider}, got ${component.provider}`
     );
   }
 }
 
-// Example usage:
-// const component: Component<ComponentConfig> = someComponent;
-// assertComponent<TeamConfig>(component, isRoundRobinTeam);
-// Now TypeScript knows component is Component<TeamConfig>
+export { PROVIDERS };

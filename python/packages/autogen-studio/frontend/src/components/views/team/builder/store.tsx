@@ -15,30 +15,19 @@ import {
   ComponentTypes,
   ComponentConfigTypes,
   TerminationConfig,
+  Component,
 } from "../../../types/datamodel";
 import { convertTeamConfigToGraph, getLayoutedElements } from "./utils";
+import {
+  isTeamComponent,
+  isAgentComponent,
+  isToolComponent,
+  isTerminationComponent,
+  isModelComponent,
+  isSelectorTeam,
+} from "../../../types/guards";
 
 const MAX_HISTORY = 50;
-
-const isTeamConfig = (config: any): config is TeamConfig => {
-  return "team_type" in config;
-};
-
-const isAgentConfig = (config: any): config is AgentConfig => {
-  return "agent_type" in config;
-};
-
-const isModelConfig = (config: any): config is ModelConfig => {
-  return "model_type" in config;
-};
-
-const isToolConfig = (config: any): config is ToolConfig => {
-  return "tool_type" in config;
-};
-
-const isTerminationConfig = (config: any): config is TerminationConfig => {
-  return "termination_type" in config;
-};
 
 export interface TeamBuilderState {
   nodes: CustomNode[];
@@ -46,7 +35,7 @@ export interface TeamBuilderState {
   selectedNodeId: string | null;
   history: Array<{ nodes: CustomNode[]; edges: CustomEdge[] }>;
   currentHistoryIndex: number;
-  originalConfig: TeamConfig | null;
+  originalComponent: Component<TeamConfig> | null;
   addNode: (
     type: ComponentTypes,
     position: Position,
@@ -66,20 +55,20 @@ export interface TeamBuilderState {
   redo: () => void;
 
   // Sync with JSON
-  syncToJson: () => TeamConfig | null;
-  loadFromJson: (config: TeamConfig) => GraphState;
+  syncToJson: () => Component<TeamConfig> | null;
+  loadFromJson: (config: Component<TeamConfig>) => GraphState;
   layoutNodes: () => void;
   resetHistory: () => void;
 }
 
-const buildTeamConfig = (
+const buildTeamComponent = (
   teamNode: CustomNode,
   nodes: CustomNode[],
   edges: CustomEdge[]
-): TeamConfig | null => {
-  if (!isTeamConfig(teamNode.data.config)) return null;
+): Component<TeamConfig> | null => {
+  if (!isTeamComponent(teamNode.data.component)) return null;
 
-  const config = { ...teamNode.data.config };
+  const component = { ...teamNode.data.component };
 
   // Use edge queries instead of connections
   const modelEdge = edges.find(
@@ -89,10 +78,10 @@ const buildTeamConfig = (
     const modelNode = nodes.find((n) => n.id === modelEdge.source);
     if (
       modelNode &&
-      isModelConfig(modelNode.data.config) &&
-      config.team_type === "SelectorGroupChat"
+      isModelComponent(modelNode.data.component) &&
+      isSelectorTeam(component)
     ) {
-      config.model_client = modelNode.data.config;
+      component.config.model_client = modelNode.data.component;
     }
   }
 
@@ -102,8 +91,14 @@ const buildTeamConfig = (
   );
   if (terminationEdge) {
     const terminationNode = nodes.find((n) => n.id === terminationEdge.source);
-    if (terminationNode && isTerminationConfig(terminationNode.data.config)) {
-      config.termination_condition = terminationNode.data.config;
+    // if (terminationNode && isTerminationConfig(terminationNode.data.config)) {
+    //   config.termination_condition = terminationNode.data.config;
+    // }
+    if (
+      terminationNode &&
+      isTerminationComponent(terminationNode.data.component)
+    ) {
+      component.config.termination_condition = terminationNode.data.component;
     }
   }
 
@@ -153,7 +148,7 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
   selectedNodeId: null,
   history: [],
   currentHistoryIndex: -1,
-  originalConfig: null,
+  originalComponent: null,
 
   addNode: (
     type: ComponentTypes,
@@ -623,7 +618,7 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
     if (teamNodes.length === 0) return null;
 
     const teamNode = teamNodes[0];
-    return buildTeamConfig(teamNode, state.nodes, state.edges);
+    return buildTeamComponent(teamNode, state.nodes, state.edges);
   },
 
   layoutNodes: () => {
@@ -655,7 +650,7 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
       return {
         nodes: layoutedNodes,
         edges: layoutedEdges,
-        originalConfig: config,
+        originalComponent: config,
         history: [{ nodes: layoutedNodes, edges: layoutedEdges }], // Reset history
         currentHistoryIndex: 0, // Reset to 0
         selectedNodeId: null,

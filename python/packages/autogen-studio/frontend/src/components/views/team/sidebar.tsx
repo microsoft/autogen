@@ -42,8 +42,6 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
   isLoading = false,
 }) => {
   const defaultGallery = useGalleryStore((state) => state.getDefaultGallery());
-  console.log(defaultGallery);
-
   const createTeam = () => {
     const newTeam = Object.assign({}, defaultTeam);
     newTeam.component.label = "new_team_" + new Date().getTime();
