@@ -3,15 +3,14 @@
 
 using Microsoft.AutoGen.Contracts.Python;
 
-namespace Microsoft.AutoGen.Core;
+namespace Microsoft.AutoGen.Core.Python;
 
-internal sealed class InProcessRuntime : IAgentRuntime
+public sealed class InProcessRuntime : IAgentRuntime
 {
     Dictionary<AgentId, IHostableAgent> agentInstances = new();
     Dictionary<string, ISubscriptionDefinition> subscriptions = new();
     Dictionary<AgentType, Func<AgentId, IAgentRuntime, ValueTask<IHostableAgent>>> agentFactories = new();
 
-    
     private ValueTask<T> ExecuteTracedAsync<T>(Func<ValueTask<T>> func)
     {
         // TODO: Bind tracing
@@ -176,12 +175,14 @@ internal sealed class InProcessRuntime : IAgentRuntime
         return state;
     }
 
-    public ValueTask<AgentType> RegisterAgentFactoryAsync<TAgent>(AgentType type, Func<ValueTask<TAgent>> factoryFunc) where TAgent : IHostableAgent
+    public ValueTask<AgentType> RegisterAgentFactoryAsync<TAgent>(AgentType type, Func<AgentId, IAgentRuntime, ValueTask<TAgent>> factoryFunc) where TAgent : IHostableAgent
     {
         if (this.agentFactories.ContainsKey(type))
         {
             throw new Exception($"Agent with type {type} already exists.");
         }
+
+        this.agentFactories.Add(type, async (agentId, runtime) => await factoryFunc(agentId, runtime));
 
         return ValueTask.FromResult(type);
     }

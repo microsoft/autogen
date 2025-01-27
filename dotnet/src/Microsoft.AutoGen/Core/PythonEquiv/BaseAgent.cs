@@ -22,7 +22,7 @@ public abstract class BaseAgent : IAgent, IHostableAgent
     /// Gets the unique identifier of the agent.
     /// </summary>
     public AgentId Id { get; private set; }
-    protected internal ILogger<Agent> _logger;
+    protected internal ILogger<BaseAgent> _logger;
 
     public Type[] HandledTypes {
         get {
@@ -55,35 +55,13 @@ public abstract class BaseAgent : IAgent, IHostableAgent
         AgentId id,
         IAgentRuntime runtime,
         string description,
-        ILogger<Agent>? logger = null)
+        ILogger<BaseAgent>? logger = null)
     {
         Id = id;
-        _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<Agent>();
+        _logger = logger ?? LoggerFactory.Create(builder => { }).CreateLogger<BaseAgent>();
         Description = description;
         Runtime = runtime;
         _handlersByMessageType = new(GetType().GetHandlersLookupTable());
-    }
-
-    public ISubscriptionDefinition[] BindSubscriptionsForAgentType(AgentType agentType, bool skipClassSubscriptions = false, bool skipDirectMessageSubscription = false)
-    {
-        // var topicAttributes = this.GetType().GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
-        var subscriptions = new List<ISubscriptionDefinition>();
-
-        if (!skipClassSubscriptions)
-        {
-            var classSubscriptions = this.GetType().GetCustomAttributes<TypeSubscriptionAttribute>().Select(t => t.Bind(agentType));
-            subscriptions.AddRange(classSubscriptions);
-
-            var prefixSubscriptions = this.GetType().GetCustomAttributes<TopicPrefixSubscriptionAttribute>().Select(t => t.Bind(agentType));
-            subscriptions.AddRange(prefixSubscriptions);
-        }
-
-        if (!skipDirectMessageSubscription)
-        {
-            subscriptions.Add(new TypePrefixSubscription(agentType.Name + ":", agentType));
-        }
-
-        return subscriptions.ToArray();
     }
 
     public ValueTask<object?> OnMessageAsync(object message, MessageContext messageContext)
@@ -93,7 +71,7 @@ public abstract class BaseAgent : IAgent, IHostableAgent
         if (_handlersByMessageType.TryGetValue(messageType, out var handlerMethod))
         {
             // Determine if this is a IHandle<T> or IHandle<T, U> method
-            var genericArguments = handlerMethod.GetGenericArguments();
+            var genericArguments = handlerMethod.GetParameters();
             if (genericArguments.Length == 1)
             {
                 // This is a IHandle<T> method
@@ -121,15 +99,13 @@ public abstract class BaseAgent : IAgent, IHostableAgent
         }
     }
 
-    public ValueTask<IDictionary<string, object>> SaveStateAsync()
+    public virtual ValueTask<IDictionary<string, object>> SaveStateAsync()
     {
-        // Raise not implemented exception
-        throw new NotImplementedException();
+        return ValueTask.FromResult<IDictionary<string, object>>(new Dictionary<string, object>());
     }
-    public ValueTask LoadStateAsync(IDictionary<string, object> state)
+    public virtual ValueTask LoadStateAsync(IDictionary<string, object> state)
     {
-        // Raise not implemented exception
-        throw new NotImplementedException();
+        return ValueTask.CompletedTask;
     }
 
     public ValueTask<object?> SendMessageAsync(object message, AgentId recepient, string? messageId = null, CancellationToken? cancellationToken = default)

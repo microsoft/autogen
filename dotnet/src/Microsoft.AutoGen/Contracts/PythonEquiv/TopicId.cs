@@ -10,7 +10,9 @@ public struct TopicId
     public string Type { get; }
     public string Source { get; }
 
-    public TopicId(string type, string source)
+    public const string DefaultSource = "default";
+
+    public TopicId(string type, string source = DefaultSource)
     {
         Type = type;
         Source = source;

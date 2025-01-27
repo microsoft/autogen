@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentRuntimeExtensions.cs
 
+using Microsoft.AutoGen.Core.Python;
 using Microsoft.Extensions.DependencyInjection;
+using System.Reflection;
 
 namespace Microsoft.AutoGen.Contracts.Python;
 
@@ -39,9 +41,40 @@ public static class AgentRuntimeExtensions
     /// <param name="serviceProvider">The service provider used for dependency injection.</param>
     /// <param name="additionalArguments">Additional arguments to pass to the agent's constructor.</param>
     /// <returns>A <see cref="ValueTask{AgentType}"/> representing the asynchronous operation of registering the agent.</returns>
-    public static ValueTask<AgentType> RegisterAgentTypeAsync<TAgent>(this IAgentRuntime runtime, AgentType type, IServiceProvider serviceProvider, params object[] additionalArguments) where TAgent : IHostableAgent
+    public static ValueTask<AgentType> RegisterAgentTypeAsync<TAgent>(this IAgentRuntime runtime, AgentType type, IServiceProvider serviceProvider, params IEnumerable<object> additionalArguments) where TAgent : IHostableAgent
     {
-        Func<ValueTask<TAgent>> factory = () => ActivateAgentAsync<TAgent>(serviceProvider, additionalArguments);
+        Func<AgentId, IAgentRuntime, ValueTask<TAgent>> factory = (id, runtime) => ActivateAgentAsync<TAgent>(serviceProvider, [id, runtime, ..additionalArguments]);
         return runtime.RegisterAgentFactoryAsync(type, factory);
+    }
+
+    private static ISubscriptionDefinition[] BindSubscriptionsForAgentType<T>(AgentType agentType, bool skipClassSubscriptions = false, bool skipDirectMessageSubscription = false)
+    {
+        // var topicAttributes = this.GetType().GetCustomAttributes<TopicSubscriptionAttribute>().Select(t => t.Topic);
+        var subscriptions = new List<ISubscriptionDefinition>();
+
+        if (!skipClassSubscriptions)
+        {
+            var classSubscriptions = typeof(T).GetCustomAttributes<TypeSubscriptionAttribute>().Select(t => t.Bind(agentType));
+            subscriptions.AddRange(classSubscriptions);
+
+            var prefixSubscriptions = typeof(T).GetCustomAttributes<TopicPrefixSubscriptionAttribute>().Select(t => t.Bind(agentType));
+            subscriptions.AddRange(prefixSubscriptions);
+        }
+
+        if (!skipDirectMessageSubscription)
+        {
+            subscriptions.Add(new TypePrefixSubscription(agentType.Name + ":", agentType));
+        }
+
+        return subscriptions.ToArray();
+    }
+
+    public static async ValueTask RegisterImplicitAgentSubscriptionsAsync<TAgent>(this IAgentRuntime runtime, AgentType type) where TAgent : IHostableAgent
+    {
+        var subscriptions = BindSubscriptionsForAgentType<TAgent>(type);
+        foreach (var subscription in subscriptions)
+        {
+            await runtime.AddSubscriptionAsync(subscription);
+        }
     }
 }
