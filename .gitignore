@@ -196,3 +196,6 @@ notebook/coding
 
 # dotnet artifacts
 artifacts
+
+# project data
+registry.json

@@ -701,3 +701,7 @@ generated_code = true
 
 # IDE1591 Missing XML comment for publicly visible type or member
 dotnet_diagnostic.CS1591.severity = none
+
+[I*.cs]
+# dont warn on missing accessibility modifiers for interfaces
+dotnet_diagnostic.IDE0040.severity = none

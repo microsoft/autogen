@@ -8,6 +8,7 @@ using Google.Protobuf;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Core;
 /// <summary>
@@ -19,7 +20,8 @@ namespace Microsoft.AutoGen.Core;
 public abstract class AgentRuntimeBase(
     IHostApplicationLifetime hostApplicationLifetime,
     IServiceProvider serviceProvider,
-    [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes) : IHostedService, IAgentRuntime
+    [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, Type>> configuredAgentTypes,
+    ILogger<AgentRuntimeBase> logger) : IHostedService, IAgentRuntime
 {
     public IServiceProvider RuntimeServiceProvider { get; } = serviceProvider;
     protected readonly ConcurrentDictionary<string, (Agent Agent, string OriginalRequestId)> _pendingClientRequests = new();
@@ -31,6 +33,7 @@ public abstract class AgentRuntimeBase(
     private readonly IEnumerable<Tuple<string, Type>> _configuredAgentTypes = configuredAgentTypes;
     private Task? _mailboxTask;
     private readonly object _channelLock = new();
+    protected readonly ILogger<AgentRuntimeBase> _logger = logger;
 
     /// <summary>
     /// Starts the agent runtime.
@@ -40,6 +43,7 @@ public abstract class AgentRuntimeBase(
     /// <returns>Task</returns>
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        _logger.LogInformation("Starting AgentRuntimeBase...");
         StartCore();
 
         foreach (var (typeName, type) in _configuredAgentTypes)
@@ -102,6 +106,12 @@ public abstract class AgentRuntimeBase(
                 if (message == null) { continue; }
                 switch (message)
                 {
+                    case Message msg when msg.Request != null:
+                        await DispatchRequestAsync(msg.Request).ConfigureAwait(true);
+                        break;
+                    case Message msg when msg.Response != null:
+                        DispatchResponse(msg.Response);
+                        break;
                     case Message msg when msg.CloudEvent != null:
 
                         var item = msg.CloudEvent;
@@ -132,11 +142,14 @@ public abstract class AgentRuntimeBase(
             }
         }
     }
-    public async ValueTask PublishMessageAsync(IMessage message, TopicId topic, Agent? sender, CancellationToken? cancellationToken = default)
+    public abstract void DispatchResponse(RpcResponse response);
+    public abstract ValueTask DispatchRequestAsync(RpcRequest request);
+    public abstract ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest request, CancellationToken cancellationToken = default);
+    public async ValueTask PublishMessageAsync(IMessage message, TopicId topic, IAgent? sender, CancellationToken? cancellationToken = default)
     {
         var topicString = topic.Type + "." + topic.Source;
         sender ??= RuntimeServiceProvider.GetRequiredService<Client>();
-        await PublishEventAsync(message.ToCloudEvent(key: sender.GetType().Name, topic: topicString), sender, cancellationToken.GetValueOrDefault()).ConfigureAwait(false);
+        await PublishEventAsync(message.ToCloudEvent(key: sender.GetType().Name, topic: topicString), (Agent)sender, cancellationToken.GetValueOrDefault()).ConfigureAwait(false);
     }
     public abstract ValueTask SaveStateAsync(AgentState value, CancellationToken cancellationToken = default);
     public abstract ValueTask<AgentState> LoadStateAsync(AgentId agentId, CancellationToken cancellationToken = default);
@@ -144,7 +157,7 @@ public abstract class AgentRuntimeBase(
     public abstract ValueTask<RemoveSubscriptionResponse> RemoveSubscriptionAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default);
     public abstract ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request, CancellationToken cancellationToken = default);
 
-    private Agent GetOrActivateAgent(AgentId agentId)
+    protected Agent GetOrActivateAgent(AgentId agentId)
     {
         if (!_agents.TryGetValue((agentId.Type, agentId.Key), out var agent))
         {
@@ -202,14 +215,8 @@ public abstract class AgentRuntimeBase(
         }
         await Task.WhenAll(taskList).ConfigureAwait(false);
     }
+    public abstract ValueTask RuntimeSendRequestAsync(IAgent agent, RpcRequest request, CancellationToken cancellationToken = default);
 
-    public ValueTask RuntimeSendRequestAsync(Agent agent, RpcRequest request, CancellationToken cancellationToken = default)
-    {
-        throw new NotImplementedException();
-    }
-
-    public ValueTask RuntimeSendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
-    {
-        throw new NotImplementedException();
-    }
+    public abstract ValueTask RuntimeSendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default);
+    public abstract ValueTask<RpcResponse> SendMessageAsync(IMessage message, AgentId recipient, AgentId? sender, CancellationToken? cancellationToken = default);
 }

@@ -84,7 +84,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             connection.AddSupportedType(request.Type);
             _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
 
-            await _gatewayRegistry.RegisterAgentType(request, _reference).ConfigureAwait(true);
+            await _gatewayRegistry.RegisterAgentTypeAsync(request, _reference).ConfigureAwait(true);
             return new RegisterAgentTypeResponse
             {
                 Success = true,
@@ -128,7 +128,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         {
             try
             {
-                await _gatewayRegistry.AddWorker(_reference);
+                await _gatewayRegistry.AddWorkerAsync(_reference);
             }
             catch (Exception exception)
             {
@@ -138,7 +138,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
         try
         {
-            await _gatewayRegistry.RemoveWorker(_reference);
+            await _gatewayRegistry.RemoveWorkerAsync(_reference);
         }
         catch (Exception exception)
         {
@@ -198,7 +198,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         connection.AddSupportedType(msg.Type);
         _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
 
-        await _gatewayRegistry.RegisterAgentType(msg, _reference).ConfigureAwait(true);
+        await _gatewayRegistry.RegisterAgentTypeAsync(msg, _reference).ConfigureAwait(true);
         Message response = new()
         {
             RegisterAgentTypeResponse = new()
@@ -214,7 +214,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         var registry = _clusterClient.GetGrain<IRegistryGrain>(0);
         //intentionally blocking
-        var targetAgentTypes = await registry.GetSubscribedAndHandlingAgents(evt.Source, evt.Type).ConfigureAwait(true);
+        var targetAgentTypes = await registry.GetSubscribedAndHandlingAgentsAsync(evt.Source, evt.Type).ConfigureAwait(true);
         if (targetAgentTypes is not null && targetAgentTypes.Count > 0)
         {
             targetAgentTypes = targetAgentTypes.Distinct().ToList();
@@ -383,7 +383,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     }
     public ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request, CancellationToken cancellationToken = default)
     {
-        return _gatewayRegistry.GetSubscriptions(request);
+        return _gatewayRegistry.GetSubscriptionsAsync(request);
     }
     async ValueTask<RpcResponse> IGateway.InvokeRequestAsync(RpcRequest request)
     {
