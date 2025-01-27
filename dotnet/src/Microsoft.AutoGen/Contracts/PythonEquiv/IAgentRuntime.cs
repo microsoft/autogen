@@ -64,7 +64,6 @@ public interface IAgentRuntime : ISaveState<IAgentRuntime>
     /// <returns>A task representing the asynchronous operation, returning the agent's ID.</returns>
     public ValueTask<AgentId> GetAgentAsync(string agent, string key = "default", bool lazy = true/*, CancellationToken? = default*/);
 
-
     /// <summary>
     /// Saves the state of an agent.
     /// The result must be JSON serializable.
