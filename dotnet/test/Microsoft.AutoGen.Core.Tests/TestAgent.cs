@@ -29,25 +29,25 @@ public class TestAgent(AgentId id,
         IHandle<RpcTextMessage, string>
 
 {
-    public ValueTask Handle(TextMessage item, MessageContext messageContext)
+    public ValueTask HandleAsync(TextMessage item, MessageContext messageContext)
     {
         ReceivedMessages[item.Source] = item.Content;
         return ValueTask.CompletedTask;
     }
 
-    public ValueTask Handle(string item, MessageContext messageContext)
+    public ValueTask HandleAsync(string item, MessageContext messageContext)
     {
         ReceivedItems.Add(item);
         return ValueTask.CompletedTask;
     }
 
-    public ValueTask Handle(int item, MessageContext messageContext)
+    public ValueTask HandleAsync(int item, MessageContext messageContext)
     {
         ReceivedItems.Add(item);
         return ValueTask.CompletedTask;
     }
 
-    public ValueTask<string> Handle(RpcTextMessage item, MessageContext messageContext)
+    public ValueTask<string> HandleAsync(RpcTextMessage item, MessageContext messageContext)
     {
         ReceivedMessages[item.Source] = item.Content;
         return ValueTask.FromResult(item.Content);
