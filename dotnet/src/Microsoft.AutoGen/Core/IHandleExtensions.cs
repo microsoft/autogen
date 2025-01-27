@@ -18,7 +18,7 @@ public static class IHandleExtensions
     public static MethodInfo[] GetHandlers(this Type type)
     {
         var handlers = type.GetInterfaces().Where(i => i.IsGenericType && (i.GetGenericTypeDefinition() == typeof(IHandle<>) || i.GetGenericTypeDefinition() == typeof(IHandle<,>)));
-        return handlers.SelectMany(h => h.GetMethods().Where(m => m.Name == "Handle")).ToArray();
+        return handlers.SelectMany(h => h.GetMethods().Where(m => m.Name == "HandleAsync")).ToArray();
     }
 
     /// <summary>

@@ -110,7 +110,7 @@ public class AgentTests()
             IAgentRuntime runtime) : BaseAgent(id, runtime, "Receiver Agent", null),
             IHandle<string>
     {
-        public ValueTask Handle(string item, MessageContext messageContext)
+        public ValueTask HandleAsync(string item, MessageContext messageContext)
         {
             ReceivedItems.Add(item);
             return ValueTask.CompletedTask;
