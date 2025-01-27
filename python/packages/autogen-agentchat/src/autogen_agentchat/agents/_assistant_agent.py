@@ -28,7 +28,7 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
-from autogen_core.tools import FunctionTool, BaseTool
+from autogen_core.tools import BaseTool, FunctionTool
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -388,7 +388,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         # Generate an inference result based on the current model context.
         llm_messages = self._system_messages + await self._model_context.get_messages()
         model_result = await self._model_client.create(
-            llm_messages, tools=self._tools + self._handoff_tools, extra_create_args=self._extra_create_args, cancellation_token=cancellation_token
+            llm_messages,
+            tools=self._tools + self._handoff_tools,
+            extra_create_args=self._extra_create_args,
+            cancellation_token=cancellation_token,
         )
 
         # Add the response to the model context.
