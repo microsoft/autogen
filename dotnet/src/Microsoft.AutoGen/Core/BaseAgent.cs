@@ -71,8 +71,12 @@ public abstract class BaseAgent : IAgent, IHostableAgent
         if (_handlersByMessageType.TryGetValue(messageType, out var handlerMethod))
         {
             // Determine if this is a IHandle<T> or IHandle<T, U> method
-            var genericArguments = handlerMethod.GetParameters();
-            if (genericArguments.Length == 1)
+            // We need to check if return type is a bare ValueTask or ValueTask<T>
+            var ret = handlerMethod.ReturnType;
+            var genericArguments = ret.GetGenericArguments();
+
+            // The non-returning type uses ValueTask
+            if (genericArguments.Length == 0)
             {
                 // This is a IHandle<T> method
                 var return_value = handlerMethod.Invoke(this, new object[] { message, messageContext });
@@ -82,7 +86,8 @@ public abstract class BaseAgent : IAgent, IHostableAgent
                 return ValueTask.CompletedTask;
 
             }
-            else if (genericArguments.Length == 2)
+            // The returning type uses ValueTask<T>
+            else if (genericArguments.Length == 1)
             {
                 // This is a IHandle<T, U> method
                 // var _messageType = genericArguments[0];
