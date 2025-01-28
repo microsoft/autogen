@@ -16,7 +16,7 @@ namespace AutoGen.LMStudio;
 /// agent that consumes local server from LM Studio
 /// </summary>
 /// <example>
-/// [!code-csharp[LMStudioAgent](../../samples/AutoGen.BasicSamples/Example08_LMStudio.cs?name=lmstudio_example_1)]
+/// [!code-csharp[LMStudioAgent](../../samples/AgentChat/Autogen.Basic.Sample/Example08_LMStudio.cs?name=lmstudio_example_1)]
 /// </example>
 [Obsolete("Use OpenAIChatAgent to connect to LM Studio")]
 public class LMStudioAgent : IAgent
