@@ -521,8 +521,6 @@ public sealed class GrpcAgentRuntime(
         }
         var protoAny = (SerializationRegistry.GetSerializer(message.GetType()) ?? throw new Exception()).Serialize(message);
         var typeName = SerializationRegistry.TypeNameResolver.ResolveTypeName(message);
-
-        const string PAYLOAD_DATA_CONTENT_TYPE = "application/x-protobuf";
         _ = CreateCloudEvent(protoAny, topic, typeName, sender ?? new Contracts.AgentId(), messageId ?? Guid.NewGuid().ToString());
 
     }
