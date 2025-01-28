@@ -20,10 +20,12 @@ public sealed class GrpcAgentRuntime(
     IHostApplicationLifetime hostApplicationLifetime,
     IServiceProvider serviceProvider,
     [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, System.Type>> configuredAgentTypes,
+    IMessageSerializer messageSerializer,
     ILogger<GrpcAgentRuntime> logger
     ) : IAgentRuntime, IDisposable
 {
     private readonly object _channelLock = new();
+    private readonly IMessageSerializer _messageSerializer = messageSerializer;
     private readonly ConcurrentDictionary<string, global::System.Type> _agentTypes = new();
     private readonly ConcurrentDictionary<(string Type, string Key), Agent> _agents = new();
     private readonly ConcurrentDictionary<string, (Agent Agent, string OriginalRequestId)> _pendingRequests = new();
@@ -457,20 +459,10 @@ public sealed class GrpcAgentRuntime(
         return response;
     }
 
-    public ValueTask<object?> SendMessageAsync(object message, Contracts.AgentId recepient, Contracts.AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = null)
+    public async ValueTask<object?> SendMessageAsync(object message, Contracts.AgentId recepient, Contracts.AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = null)
     {
-        // Check if message is a protobuf IMessage
-        IMessage? protoMessage = message as IMessage;
-
-        if (protoMessage is null)
-        {
-            throw new ArgumentException("Message must be a protobuf IMessage", nameof(message));
-        }
-
-
-
-
-        throw new NotImplementedException();
+        var rpcMessage = _messageSerializer.Serialize(message);
+        await SendMessageAsync(rpcMessage, recepient, sender, messageId, cancellationToken);
     }
 
     public ValueTask PublishMessageAsync(object message, TopicId topic, Contracts.AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = null)
