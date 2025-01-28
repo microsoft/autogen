@@ -20,5 +20,7 @@ public interface IProtoSerializationRegistry
     /// <returns>The serializer for the specified type.</returns>
     IProtoMessageSerializer? GetSerializer(System.Type type);
 
+    ITypeNameResolver TypeNameResolver { get; }
+
     bool Exists(System.Type type);
 }

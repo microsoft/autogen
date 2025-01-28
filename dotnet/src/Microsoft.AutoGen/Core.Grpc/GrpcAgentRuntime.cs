@@ -12,7 +12,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.AutoGen.Protobuf;
 
-
 namespace Microsoft.AutoGen.Core.Grpc;
 
 public sealed class GrpcAgentRuntime(
@@ -20,12 +19,10 @@ public sealed class GrpcAgentRuntime(
     IHostApplicationLifetime hostApplicationLifetime,
     IServiceProvider serviceProvider,
     [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, System.Type>> configuredAgentTypes,
-    IMessageSerializer messageSerializer,
     ILogger<GrpcAgentRuntime> logger
     ) : IAgentRuntime, IDisposable
 {
     private readonly object _channelLock = new();
-    private readonly IMessageSerializer _messageSerializer = messageSerializer;
     private readonly ConcurrentDictionary<string, global::System.Type> _agentTypes = new();
     private readonly ConcurrentDictionary<(string Type, string Key), Agent> _agents = new();
     private readonly ConcurrentDictionary<string, (Agent Agent, string OriginalRequestId)> _pendingRequests = new();
@@ -46,7 +43,7 @@ public sealed class GrpcAgentRuntime(
     private Task? _readTask;
     private Task? _writeTask;
 
-    private IProtoSerializationRegistry _serializationRegistry = new ProtoSerializationRegistry();
+    public IProtoSerializationRegistry SerializationRegistry { get; } = new ProtoSerializationRegistry();
 
     public void Dispose()
     {
@@ -294,18 +291,21 @@ public sealed class GrpcAgentRuntime(
             }
         }
     }
-    public override async ValueTask<RpcResponse> SendMessageAsync(IMessage message, AgentId agentId, AgentId? agent = null, CancellationToken? cancellationToken = default)
+
+    private override async ValueTask<RpcResponse> SendMessageAsync(Payload message, AgentId agentId, AgentId? agent = null, CancellationToken? cancellationToken = default)
     {
         var request = new RpcRequest
         {
             RequestId = Guid.NewGuid().ToString(),
             Source = agent,
             Target = agentId,
-            Payload = (Payload)message,
+            Payload = message,
         };
-        var response = await InvokeRequestAsync(request).ConfigureAwait(false);
-        return response;
+
+        // Actually send it and wait for the response
+        throw new NotImplementedException();
     }
+
     // new is intentional
     public new async ValueTask RuntimeSendResponseAsync(RpcResponse response, CancellationToken cancellationToken = default)
     {
@@ -464,13 +464,70 @@ public sealed class GrpcAgentRuntime(
 
     public async ValueTask<object?> SendMessageAsync(object message, Contracts.AgentId recepient, Contracts.AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = null)
     {
-        var rpcMessage = _messageSerializer.Serialize(message);
-        await SendMessageAsync(rpcMessage, recepient, sender, messageId, cancellationToken);
+        if (!SerializationRegistry.Exists(message.GetType()))
+        {
+            SerializationRegistry.RegisterSerializer(message.GetType());
+        }
+        var rpcMessage = (SerializationRegistry.GetSerializer(message.GetType()) ?? throw new Exception()).Serialize(message);
+
+        var typeName = SerializationRegistry.TypeNameResolver.ResolveTypeName(message);
+        const string PAYLOAD_DATA_CONTENT_TYPE = "application/x-protobuf";
+
+        // Protobuf any to byte array
+        Payload payload = new()
+        {
+            DataType = typeName,
+            DataContentType = PAYLOAD_DATA_CONTENT_TYPE,
+            Data = rpcMessage.ToByteString()
+        };
+
+        await SendMessageAsync(payload, recepient, sender, messageId, cancellationToken);
+    }
+
+    private CloudEvent CreateCloudEvent(Google.Protobuf.WellKnownTypes.Any payload, TopicId topic, string dataType, Contracts.AgentId sender, string messageId)
+    {
+        const string PAYLOAD_DATA_CONTENT_TYPE = "application/x-protobuf";
+        return new CloudEvent
+        {
+            ProtoData = payload,
+            Type = topic.Type,
+            Source = topic.Source,
+            Id = messageId,
+            Attributes = {
+                {
+                    "datacontenttype", new CloudEvent.Types.CloudEventAttributeValue { CeString = PAYLOAD_DATA_CONTENT_TYPE }
+                },
+                {
+                    "dataschema", new CloudEvent.Types.CloudEventAttributeValue { CeString = dataType }
+                },
+                {
+                    "agagentsendertype", new CloudEvent.Types.CloudEventAttributeValue { CeString = sender.Type }
+                },
+                {
+                    "agagentsenderkey", new CloudEvent.Types.CloudEventAttributeValue { CeString = sender.Key }
+                },
+                {
+                    "agmsgkind", new CloudEvent.Types.CloudEventAttributeValue { CeString = "publish" }
+                }
+            }
+        };
     }
 
     public ValueTask PublishMessageAsync(object message, TopicId topic, Contracts.AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = null)
     {
-        throw new NotImplementedException();
+        if (!SerializationRegistry.Exists(message.GetType()))
+        {
+            SerializationRegistry.RegisterSerializer(message.GetType());
+        }
+        var protoAny = (SerializationRegistry.GetSerializer(message.GetType()) ?? throw new Exception()).Serialize(message);
+        var typeName = SerializationRegistry.TypeNameResolver.ResolveTypeName(message);
+
+        const string PAYLOAD_DATA_CONTENT_TYPE = "application/x-protobuf";
+
+        var cloudEvent = CreateCloudEvent(protoAny, topic, typeName, sender ?? new Contracts.AgentId(), messageId ?? Guid.NewGuid().ToString());
+
+
+
     }
 
     public ValueTask<Contracts.AgentId> GetAgentAsync(Contracts.AgentId agentId, bool lazy = true)
