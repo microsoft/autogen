@@ -86,7 +86,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AgentChat", "AgentChat", "{
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Anthropic.Sample", "samples\AgentChat\AutoGen.Anthropic.Sample\AutoGen.Anthropic.Sample.csproj", "{84020C4A-933A-4693-9889-1B99304A7D76}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Basic.Sample", "samples\AgentChat\AutoGen.Basic.Sample\AutoGen.BasicSample.csproj", "{5777515F-4053-42F9-AF2B-95D8D0F5384A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Basic.Sample", "samples\AgentChat\AutoGen.Basic.Sample\AutoGen.Basic.Sample.csproj", "{5777515F-4053-42F9-AF2B-95D8D0F5384A}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Gemini.Sample", "samples\AgentChat\AutoGen.Gemini.Sample\AutoGen.Gemini.Sample.csproj", "{2E895A70-DF17-4C6C-BB84-F83B07C75AAD}"
 EndProject
