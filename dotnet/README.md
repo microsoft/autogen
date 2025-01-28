@@ -52,7 +52,7 @@ await userProxyAgent.InitiateChatAsync(
 
 ## Samples
 
-You can find more examples under the [sample project](https://github.com/microsoft/autogen/tree/dotnet/samples/AutoGen.Basic.Sample).
+You can find more examples under the [sample project](https://github.com/microsoft/autogen/tree/dotnet/samples/AgentChat/Autogen.Basic.Sample).
 
 ## Functionality
 
