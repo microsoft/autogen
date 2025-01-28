@@ -8,7 +8,7 @@ using AutoGen.OpenAI.Extension;
 #endregion Using
 using FluentAssertions;
 
-namespace AutoGen.BasicSample;
+namespace AutoGen.Basic.Sample;
 
 public class Image_Chat_With_Agent
 {

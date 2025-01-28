@@ -9,7 +9,7 @@ using AutoGen.SemanticKernel.Extension;
 using Microsoft.SemanticKernel;
 using OpenAI;
 
-namespace AutoGen.BasicSample;
+namespace AutoGen.Basic.Sample;
 
 public class Dynamic_Group_Chat
 {

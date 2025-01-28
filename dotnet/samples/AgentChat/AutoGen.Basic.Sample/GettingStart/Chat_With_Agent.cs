@@ -9,7 +9,7 @@ using AutoGen.OpenAI.Extension;
 
 using FluentAssertions;
 
-namespace AutoGen.BasicSample;
+namespace AutoGen.Basic.Sample;
 
 public class Chat_With_Agent
 {

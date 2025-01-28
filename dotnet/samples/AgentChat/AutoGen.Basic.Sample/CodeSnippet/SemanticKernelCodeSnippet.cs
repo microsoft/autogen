@@ -8,7 +8,7 @@ using FluentAssertions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 
-namespace AutoGen.BasicSample.CodeSnippet;
+namespace AutoGen.Basic.Sample.CodeSnippet;
 
 public class SemanticKernelCodeSnippet
 {

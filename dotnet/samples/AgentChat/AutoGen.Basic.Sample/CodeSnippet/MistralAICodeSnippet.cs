@@ -8,7 +8,7 @@ using AutoGen.Mistral.Extension;
 using FluentAssertions;
 #endregion using_statement
 
-namespace AutoGen.BasicSample.CodeSnippet;
+namespace AutoGen.Basic.Sample.CodeSnippet;
 
 #region weather_function
 public partial class MistralAgentFunction

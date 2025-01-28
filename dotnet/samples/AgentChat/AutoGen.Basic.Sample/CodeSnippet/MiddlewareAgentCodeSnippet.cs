@@ -6,7 +6,7 @@ using AutoGen.Core;
 using AutoGen.OpenAI;
 using FluentAssertions;
 
-namespace AutoGen.BasicSample.CodeSnippet;
+namespace AutoGen.Basic.Sample.CodeSnippet;
 
 public class MiddlewareAgentCodeSnippet
 {

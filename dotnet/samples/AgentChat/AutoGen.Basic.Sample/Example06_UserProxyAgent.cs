@@ -5,7 +5,7 @@ using AutoGen.Core;
 using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
 
-namespace AutoGen.BasicSample;
+namespace AutoGen.Basic.Sample;
 
 public static class Example06_UserProxyAgent
 {

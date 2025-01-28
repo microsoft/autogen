@@ -8,7 +8,7 @@ using FluentAssertions;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
-namespace AutoGen.BasicSample;
+namespace AutoGen.Basic.Sample;
 
 public class LightPlugin
 {

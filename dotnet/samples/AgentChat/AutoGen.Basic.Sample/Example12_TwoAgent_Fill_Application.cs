@@ -6,7 +6,7 @@ using AutoGen.Core;
 using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
 
-namespace AutoGen.BasicSample;
+namespace AutoGen.Basic.Sample;
 
 public partial class TwoAgent_Fill_Application
 {

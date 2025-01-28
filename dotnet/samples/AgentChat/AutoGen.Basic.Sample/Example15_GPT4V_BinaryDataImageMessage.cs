@@ -5,7 +5,7 @@ using AutoGen.Core;
 using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;
 
-namespace AutoGen.BasicSample;
+namespace AutoGen.Basic.Sample;
 
 /// <summary>
 /// This example shows usage of ImageMessage. The image is loaded as BinaryData and sent to GPT-4V 

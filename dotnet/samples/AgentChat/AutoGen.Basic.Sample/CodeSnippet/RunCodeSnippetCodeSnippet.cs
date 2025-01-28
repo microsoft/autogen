@@ -7,7 +7,7 @@ using AutoGen.DotnetInteractive;
 using AutoGen.DotnetInteractive.Extension;
 #endregion code_snippet_0_1
 
-namespace AutoGen.BasicSample.CodeSnippet;
+namespace AutoGen.Basic.Sample.CodeSnippet;
 public class RunCodeSnippetCodeSnippet
 {
     public async Task CodeSnippet1()

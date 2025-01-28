@@ -1,19 +1,19 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// BasicSampleTest.cs
+// Basic.SampleTest.cs
 
 using System;
 using System.IO;
 using System.Threading.Tasks;
-using AutoGen.BasicSample;
+using AutoGen.Basic.Sample;
 using Xunit.Abstractions;
 
 namespace AutoGen.Tests;
 
-public class BasicSampleTest
+public class Basic.SampleTest
 {
     private readonly ITestOutputHelper _output;
 
-    public BasicSampleTest(ITestOutputHelper output)
+    public Basic.SampleTest(ITestOutputHelper output)
     {
         _output = output;
         Console.SetOut(new ConsoleWriter(_output));
