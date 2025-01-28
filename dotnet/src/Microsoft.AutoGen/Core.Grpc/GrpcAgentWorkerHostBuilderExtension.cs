@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // GrpcAgentWorkerHostBuilderExtension.cs
+using System.Diagnostics;
 using System.Reflection;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
@@ -20,14 +21,26 @@ public static class GrpcAgentWorkerHostBuilderExtensions
             options.Address = new Uri(agentServiceAddress ?? builder.Configuration["AGENT_HOST"] ?? _defaultAgentServiceAddress);
             options.ChannelOptionsActions.Add(channelOptions =>
             {
-
-                channelOptions.HttpHandler = new SocketsHttpHandler
+                if (Debugger.IsAttached)
                 {
-                    EnableMultipleHttp2Connections = true,
-                    KeepAlivePingDelay = TimeSpan.FromSeconds(20),
-                    KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
-                    KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
-                };
+                    channelOptions.HttpHandler = new SocketsHttpHandler
+                    {
+                        EnableMultipleHttp2Connections = false,
+                        KeepAlivePingDelay = TimeSpan.FromSeconds(200),
+                        KeepAlivePingTimeout = TimeSpan.FromSeconds(100),
+                        KeepAlivePingPolicy = HttpKeepAlivePingPolicy.Always
+                    };
+                }
+                else
+                {
+                    channelOptions.HttpHandler = new SocketsHttpHandler
+                    {
+                        EnableMultipleHttp2Connections = true,
+                        KeepAlivePingDelay = TimeSpan.FromSeconds(20),
+                        KeepAlivePingTimeout = TimeSpan.FromSeconds(10),
+                        KeepAlivePingPolicy = HttpKeepAlivePingPolicy.WithActiveRequests
+                    };
+                }
 
                 var methodConfig = new MethodConfig
                 {
