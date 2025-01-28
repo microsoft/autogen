@@ -63,6 +63,8 @@ public static class GrpcAgentWorkerHostBuilderExtensions
         });
         var assemblies = AppDomain.CurrentDomain.GetAssemblies();
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
+        builder.Services.AddSingleton<IRegistryStorage, RegistryStorage>();
+        builder.Services.AddSingleton<IRegistry, Registry>();
         builder.Services.AddSingleton<IAgentRuntime, GrpcAgentRuntime>();
         builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<IAgentRuntime>());
         builder.Services.AddKeyedSingleton("AgentsMetadata", (sp, key) =>

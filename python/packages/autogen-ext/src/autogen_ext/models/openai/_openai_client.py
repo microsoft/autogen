@@ -336,6 +336,10 @@ def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
     stop_reason = stop_reason.lower()
 
     KNOWN_STOP_MAPPINGS: Dict[str, FinishReasons] = {
+        "stop": "stop",
+        "length": "length",
+        "content_filter": "content_filter",
+        "function_calls": "function_calls",
         "end_turn": "stop",
         "tool_calls": "function_calls",
     }
@@ -552,7 +556,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         content: Union[str, List[FunctionCall]]
         if choice.message.function_call is not None:
             raise ValueError("function_call is deprecated and is not supported by this model client.")
-        elif choice.message.tool_calls is not None:
+        elif choice.message.tool_calls is not None and len(choice.message.tool_calls) > 0:
             if choice.finish_reason != "tool_calls":
                 warnings.warn(
                     f"Finish reason mismatch: {choice.finish_reason} != tool_calls "

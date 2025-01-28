@@ -600,6 +600,25 @@ async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
             object="chat.completion",
             usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
         ),
+        # Should not be returning tool calls when the tool_calls are empty
+        ChatCompletion(
+            id="id5",
+            choices=[
+                Choice(
+                    finish_reason="stop",
+                    index=0,
+                    message=ChatCompletionMessage(
+                        content="I should make a tool call.",
+                        tool_calls=[],
+                        role="assistant",
+                    ),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
+        ),
     ]
     mock = _MockChatCompletion(chat_completions)
     monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
@@ -651,6 +670,11 @@ async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
         )
         assert create_result.content == [FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function")]
         assert create_result.finish_reason == "function_calls"
+
+    # Should not be returning tool calls when the tool_calls are empty
+    create_result = await model_client.create(messages=[UserMessage(content="Hello", source="user")], tools=[pass_tool])
+    assert create_result.content == "I should make a tool call."
+    assert create_result.finish_reason == "stop"
 
 
 async def _test_model_client(model_client: OpenAIChatCompletionClient) -> None:
