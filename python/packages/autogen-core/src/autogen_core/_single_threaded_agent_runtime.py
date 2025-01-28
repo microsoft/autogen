@@ -197,7 +197,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
             asyncio.run(main())
 
-        Example of creating a runtime, registering an agent, publishing a message and stopping the runtime:
+        An example of creating a runtime, registering an agent, publishing a message and stopping the runtime:
 
         .. code-block:: python
 
