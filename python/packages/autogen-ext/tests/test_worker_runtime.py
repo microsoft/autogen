@@ -67,7 +67,7 @@ async def test_agent_types_must_be_unique_multiple_workers() -> None:
 
     await worker1.register_factory(type=AgentType("name1"), agent_factory=lambda: NoopAgent(), expected_class=NoopAgent)
 
-    with pytest.raises(Exception):
+    with pytest.raises(Exception, match="Agent type name1 already registered"):
         await worker2.register_factory(
             type=AgentType("name1"), agent_factory=lambda: NoopAgent(), expected_class=NoopAgent
         )

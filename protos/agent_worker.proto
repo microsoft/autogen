@@ -79,16 +79,6 @@ message GetSubscriptionsResponse {
     repeated Subscription subscriptions = 1;
 }
 
-service AgentRpc {
-    rpc OpenChannel (stream Message) returns (stream Message);
-    rpc GetState(AgentId) returns (GetStateResponse);
-    rpc SaveState(AgentState) returns (SaveStateResponse);
-    rpc RegisterAgent(RegisterAgentTypeRequest) returns (RegisterAgentTypeResponse);
-    rpc AddSubscription(AddSubscriptionRequest) returns (AddSubscriptionResponse);
-    rpc RemoveSubscription(RemoveSubscriptionRequest) returns (RemoveSubscriptionResponse);
-    rpc GetSubscriptions(GetSubscriptionsRequest) returns (GetSubscriptionsResponse);
-}
-
 message AgentState {
   AgentId agent_id = 1;
   string eTag = 2;
@@ -114,3 +104,12 @@ message Message {
     }
 }
 
+service AgentRpc {
+    rpc OpenChannel (stream Message) returns (stream Message);
+    rpc GetState(AgentId) returns (GetStateResponse);
+    rpc SaveState(AgentState) returns (SaveStateResponse);
+    rpc RegisterAgent(RegisterAgentTypeRequest) returns (RegisterAgentTypeResponse);
+    rpc AddSubscription(AddSubscriptionRequest) returns (AddSubscriptionResponse);
+    rpc RemoveSubscription(RemoveSubscriptionRequest) returns (RemoveSubscriptionResponse);
+    rpc GetSubscriptions(GetSubscriptionsRequest) returns (GetSubscriptionsResponse);
+}
