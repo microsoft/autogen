@@ -24,6 +24,7 @@ Apprentice:
       distance_threshold: 100
   AgentWrapper:
     base_agent: thin_agent  # MagenticOneGroupChat, thin_agent, etc.
+    disable_prefix_caching: 1  # Prepends a small random string to decorrelate repeated runs.
 
 test:
   task_file_1: data_files/tasks/10_liars.yaml  # Train and test on this task.

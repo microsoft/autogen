@@ -1,4 +1,5 @@
 from typing import Tuple, Dict
+import random, time
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import MagenticOneGroupChat
@@ -33,6 +34,10 @@ class AgentWrapper:
         self.client = client
         self.logger = logger
         self.base_agent_name = self.settings["base_agent"]
+        self.disable_prefix_caching = self.settings["disable_prefix_caching"]
+        if self.disable_prefix_caching:
+            self.rand = random.Random()
+            self.rand.seed(int(time.time() * 1000))
 
     async def assign_task(self, task: str) -> Tuple[str, str]:
         """
@@ -66,6 +71,12 @@ In responding to every user message, you follow the same multi-step process give
 4. Critique the pros and cons above, looking for any flaws in your reasoning. But don't make up flaws that don't exist.
 5. Decide on the best response, looping back to step 1 if none of the responses are satisfactory.
 6. Finish by providing your final response in the particular format requested by the user."""
+
+        if self.disable_prefix_caching:
+            # Prepend a random int to disable prefix caching.
+            random_str = "({})\n\n".format(self.rand.randint(0, 1000000))
+            system_message_content = random_str + system_message_content
+
         if self.client.model_info["family"] == "o1":
             # No system message allowed, so pass it as the first user message.
             system_message = UserMessage(content=system_message_content, source="User")
