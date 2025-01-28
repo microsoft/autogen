@@ -14,6 +14,7 @@ public class AgentTests()
     public async Task Agent_ShouldNotReceiveMessages_WhenNotSubscribed()
     {
         var runtime = new InProcessRuntime();
+        await runtime.StartAsync();
 
         Logger<BaseAgent> logger = new(new LoggerFactory());
         await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) => ValueTask.FromResult(new TestAgent(id, runtime, logger)));
@@ -23,8 +24,7 @@ public class AgentTests()
 
         await runtime.PublishMessageAsync(new TextMessage { Source = topicType, Content = "test" }, new TopicId("TestTopic")).ConfigureAwait(true);
 
-        //await Task.Yield();
-        await Task.Delay(100);
+        await runtime.RunUntilIdleAsync();
 
         TestAgent.ReceivedMessages.Any().Should().BeFalse("Agent should not receive messages when not subscribed.");
     }
@@ -33,6 +33,7 @@ public class AgentTests()
     public async Task Agent_ShoulReceiveMessages_WhenSubscribed()
     {
         var runtime = new InProcessRuntime();
+        await runtime.StartAsync();
 
         Logger<BaseAgent> logger = new(new LoggerFactory());
         await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) => ValueTask.FromResult(new SubscribedAgent(id, runtime, logger)));
@@ -42,8 +43,7 @@ public class AgentTests()
 
         await runtime.PublishMessageAsync(new TextMessage { Source = topicType, Content = "test" }, new TopicId("TestTopic")).ConfigureAwait(true);
 
-        //await Task.Yield();
-        await Task.Delay(100);
+        await runtime.RunUntilIdleAsync();
 
         TestAgent.ReceivedMessages.Any().Should().BeTrue("Agent should receive messages when subscribed.");
     }
@@ -53,11 +53,14 @@ public class AgentTests()
     {
         // Arrange
         var runtime = new InProcessRuntime();
+        await runtime.StartAsync();
+
         Logger<BaseAgent> logger = new(new LoggerFactory());
         await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) => ValueTask.FromResult(new TestAgent(id, runtime, logger)));
         await runtime.RegisterImplicitAgentSubscriptionsAsync<TestAgent>("MyAgent");
 
         var agentId = new AgentId("MyAgent", "TestAgent");
+
         var response = await runtime.SendMessageAsync(new RpcTextMessage { Source = "TestTopic", Content = "Request" }, agentId);
 
         // Assert
@@ -123,6 +126,7 @@ public class AgentTests()
     public async Task SubscribeAsync_UnsubscribeAsync_and_GetSubscriptionsTest()
     {
         var runtime = new InProcessRuntime();
+        await runtime.StartAsync();
         ReceiverAgent? agent = null;
         await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) =>
         {
@@ -146,12 +150,14 @@ public class AgentTests()
 
         await runtime.PublishMessageAsync("info", new TopicId(topicTypeName));
         await Task.Delay(100);
+
         Assert.True(agent.ReceivedItems.Count == 1);
         Assert.Equal("info", agent.ReceivedItems[0]);
 
         await runtime.RemoveSubscriptionAsync(subscription.Id);
         await runtime.PublishMessageAsync("info", new TopicId(topicTypeName));
         await Task.Delay(100);
+
         Assert.True(agent.ReceivedItems.Count == 1);
     }
 

@@ -21,6 +21,7 @@ appBuilder.Services.TryAddSingleton(runUntilFunc);
 appBuilder.AddAgent<Checker>("Checker");
 appBuilder.AddAgent<Modifier>("Modifier");
 var app = await appBuilder.BuildAsync();
+await app.StartAsync();
 
 // Send the initial count to the agents app, running on the `local` runtime, and pass through the registered services via the application `builder`
 await app.PublishMessageAsync(new CountMessage
