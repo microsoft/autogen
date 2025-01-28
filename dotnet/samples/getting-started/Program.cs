@@ -1,14 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Program.cs
 
-using Microsoft.AutoGen.Core;
 using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-
 using Samples;
-
-using TerminationF = System.Func<int, bool>;
 using ModifyF = System.Func<int, int>;
+using TerminationF = System.Func<int, bool>;
 
 ModifyF modifyFunc = (int x) => x - 1;
 TerminationF runUntilFunc = (int x) =>

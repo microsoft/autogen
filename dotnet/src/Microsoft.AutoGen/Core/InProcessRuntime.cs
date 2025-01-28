@@ -42,7 +42,7 @@ public sealed class InProcessRuntime : IAgentRuntime
                     continue;
                 }
 
-                MessageContext messageContext = new (messageId ?? Guid.NewGuid().ToString(), cancellationToken ?? CancellationToken.None)
+                MessageContext messageContext = new(messageId ?? Guid.NewGuid().ToString(), cancellationToken ?? CancellationToken.None)
                 {
                     Sender = sender,
                     Topic = topic,

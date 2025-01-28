@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // RegisterAgentTypeResponseSurrogate.cs
 
-using Microsoft.AutoGen.Contracts;
-
 namespace Microsoft.AutoGen.Runtime.Grpc.Orleans.Surrogates;
 
 [GenerateSerializer]
