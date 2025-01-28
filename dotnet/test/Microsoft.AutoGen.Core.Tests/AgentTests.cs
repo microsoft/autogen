@@ -124,7 +124,8 @@ public class AgentTests()
     {
         var runtime = new InProcessRuntime();
         ReceiverAgent? agent = null;
-        await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) => {
+        await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) =>
+        {
             agent = new ReceiverAgent(id, runtime);
             return ValueTask.FromResult(agent);
         });
