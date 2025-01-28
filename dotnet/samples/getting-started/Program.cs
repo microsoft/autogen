@@ -15,7 +15,7 @@ TerminationF runUntilFunc = (int x) =>
 };
 
 AgentsAppBuilder appBuilder = new AgentsAppBuilder();
-appBuilder.UseInProcessRuntime(); 
+appBuilder.UseInProcessRuntime();
 
 appBuilder.Services.TryAddSingleton(modifyFunc);
 appBuilder.Services.TryAddSingleton(runUntilFunc);
