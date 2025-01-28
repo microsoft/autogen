@@ -27,7 +27,6 @@ if sys.version_info >= (3, 13):
 else:
     from ._queue import Queue, QueueShutDown  # type: ignore
 
-from typing_extensions import deprecated
 
 from ._agent import Agent
 from ._agent_id import AgentId
