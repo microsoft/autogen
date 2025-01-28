@@ -155,3 +155,4 @@ class MagenticOne(MagenticOneGroupChat):
                 "MagenticOne performs best with OpenAI GPT-4o model either " "through OpenAI or Azure OpenAI.",
                 stacklevel=2,
             )
+            
