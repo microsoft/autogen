@@ -12,10 +12,13 @@ To watch operations live in a browser and see how agentic memory works,
 open the HTML page at the location specified at the top of the settings file, 
 such as: `~/pagelogs/teachability/0  Call Tree.html`
 
+The settings files specify a _thin agent_ by default, which is just the model client plus a canned system prompt.
+To use _MagenticOneGroupChat_ instead, specify that in the yaml file where indicated.
+
 
 ## Setup
 
-After installing AutoGen core, install its extension package from the `autogen/python/packages/autogen-ext` directory as follows:
+After installing AutoGen-Core, install its extension package from the `autogen/python/packages/autogen-ext` directory as follows:
 
 `pip install -e .[agentic-memory]`
 
