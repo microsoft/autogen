@@ -45,6 +45,9 @@ public sealed class GrpcAgentRuntime(
     private AsyncDuplexStreamingCall<Message, Message>? _channel;
     private Task? _readTask;
     private Task? _writeTask;
+
+    private IProtoSerializationRegistry _serializationRegistry = new ProtoSerializationRegistry();
+
     public void Dispose()
     {
         _outboundMessagesChannel.Writer.TryComplete();
