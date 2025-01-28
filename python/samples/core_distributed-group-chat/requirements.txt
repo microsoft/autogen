@@ -24,11 +24,11 @@ asyncer==0.0.7 \
     --hash=sha256:d5e563fb0f56eb87b97257984703658a4f5bbdb52ff851b3e8ed864cc200b1d2 \
     --hash=sha256:f0d579d4f67c4ead52ede3a45c854f462cae569058a8a6a68a4ebccac1c335d8
     # via chainlit
-autogen-core==0.4.3 \
+autogen-core==0.4.4 \
     --hash=sha256:39b889fdb03f58d1d656ac8aca8b80d28d447b2a505f77fd2ce27b932b02aa85 \
     --hash=sha256:ffff153f42bd96ab99fac2ec7b00939e39a45e334e4653b04b1039f2d6b3b4e4
     # via autogen-ext
-autogen-ext==0.4.3 \
+autogen-ext==0.4.4 \
     --hash=sha256:a32c1646fccdd5d3f2a81c961cbf18f0e795dc9b9c4c9ecfbf659a83d5c49896 \
     --hash=sha256:a96546dfb055c137d6ab10b8ae1764d7037c5a7c1f6aa44b4b0ccf926d566229
     # via -r requirements.in

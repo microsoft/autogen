@@ -67,7 +67,7 @@ async def test_agent_types_must_be_unique_multiple_workers() -> None:
 
     await worker1.register_factory(type=AgentType("name1"), agent_factory=lambda: NoopAgent(), expected_class=NoopAgent)
 
-    with pytest.raises(RuntimeError):
+    with pytest.raises(Exception, match="Agent type name1 already registered"):
         await worker2.register_factory(
             type=AgentType("name1"), agent_factory=lambda: NoopAgent(), expected_class=NoopAgent
         )
@@ -323,7 +323,7 @@ async def test_duplicate_subscription() -> None:
         worker1_2.start()
 
         # Note: This passes because worker1 is still running
-        with pytest.raises(RuntimeError, match="Agent type worker1 already registered"):
+        with pytest.raises(Exception, match="Agent type worker1 already registered"):
             await NoopAgent.register(worker1_2, "worker1", lambda: NoopAgent())
 
         # This is somehow covered in test_disconnected_agent as well as a stop will also disconnect the agent.
