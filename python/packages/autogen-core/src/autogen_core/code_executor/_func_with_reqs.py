@@ -42,7 +42,7 @@ class ImportFromModule:
     module: str
     imports: Tuple[Union[str, Alias], ...]
 
-    ## backward compatibility
+    # backward compatibility
     def __init__(
         self,
         module: str,
@@ -214,3 +214,11 @@ def to_stub(func: Union[Callable[..., Any], FunctionWithRequirementsStr]) -> str
 
     content += "    ..."
     return content
+
+
+def to_code(func: Union[FunctionWithRequirements[T, P], Callable[P, T], FunctionWithRequirementsStr]) -> str:
+    return _to_code(func)
+
+
+def import_to_str(im: Import) -> str:
+    return _import_to_str(im)

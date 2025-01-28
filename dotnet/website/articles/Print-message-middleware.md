@@ -13,7 +13,7 @@
 ## Use @AutoGen.Core.PrintMessageMiddleware in an agent
 You can use @AutoGen.Core.PrintMessageMiddlewareExtension.RegisterPrintMessage* to register the @AutoGen.Core.PrintMessageMiddleware to an agent.
 
-[!code-csharp[](../../samples/AutoGen.BasicSamples/CodeSnippet/PrintMessageMiddlewareCodeSnippet.cs?name=PrintMessageMiddleware)]
+[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/CodeSnippet/PrintMessageMiddlewareCodeSnippet.cs?name=PrintMessageMiddleware)]
 
 @AutoGen.Core.PrintMessageMiddlewareExtension.RegisterPrintMessage* will format the message and print it to console
 ![image](../images/articles/PrintMessageMiddleware/printMessage.png)
@@ -22,6 +22,6 @@ You can use @AutoGen.Core.PrintMessageMiddlewareExtension.RegisterPrintMessage* 
 
 @AutoGen.Core.PrintMessageMiddleware also supports streaming message types like @AutoGen.Core.TextMessageUpdate and @AutoGen.Core.ToolCallMessageUpdate. If you register @AutoGen.Core.PrintMessageMiddleware to a @AutoGen.Core.IStreamingAgent, it will format the streaming message and print it to console if the message is of supported type.
 
-[!code-csharp[](../../samples/AutoGen.BasicSamples/CodeSnippet/PrintMessageMiddlewareCodeSnippet.cs?name=print_message_streaming)]
+[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/CodeSnippet/PrintMessageMiddlewareCodeSnippet.cs?name=print_message_streaming)]
 
 ![image](../images/articles/PrintMessageMiddleware/streamingoutput.gif)

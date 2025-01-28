@@ -16,7 +16,6 @@ public static class OrleansRuntimeHostingExtenions
     public static WebApplicationBuilder AddOrleans(this WebApplicationBuilder builder)
     {
         builder.Services.AddSerializer(serializer => serializer.AddProtobufSerializer());
-        builder.Services.AddSingleton<IRegistryGrain, RegistryGrain>();
 
         // Ensure Orleans is added before the hosted service to guarantee that it starts first.
         //TODO: make all of this configurable
@@ -28,6 +27,7 @@ public static class OrleansRuntimeHostingExtenions
                 siloBuilder.UseLocalhostClustering()
                        .AddMemoryStreams("StreamProvider")
                        .AddMemoryGrainStorage("PubSubStore")
+                       .AddMemoryGrainStorage("AgentRegistryStore")
                        .AddMemoryGrainStorage("AgentStateStore");
 
                 siloBuilder.UseInMemoryReminderService();
@@ -40,12 +40,7 @@ public static class OrleansRuntimeHostingExtenions
                 var cosmosDbconnectionString = builder.Configuration.GetValue<string>("Orleans:CosmosDBConnectionString") ??
                     throw new ConfigurationErrorsException(
                         "Orleans:CosmosDBConnectionString is missing from configuration. This is required for persistence in production environments.");
-                siloBuilder.Configure<ClusterOptions>(options =>
-                {
-                    //TODO: make this configurable
-                    options.ClusterId = "AutoGen-cluster";
-                    options.ServiceId = "AutoGen-cluster";
-                });
+
                 siloBuilder.Configure<SiloMessagingOptions>(options =>
                 {
                     options.ResponseTimeout = TimeSpan.FromMinutes(3);
