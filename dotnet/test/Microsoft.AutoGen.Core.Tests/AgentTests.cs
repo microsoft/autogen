@@ -84,7 +84,7 @@ public class AgentTests()
     //     await Assert.ThrowsAsync<UninitializedAgentWorker.AgentInitalizedIncorrectlyException>(
     //         async () =>
     //         {
-    //             await agent.SubscribeAsync("TestEvent");
+    //             await agent.AddSubscriptionAsync("TestEvent");
     //         }
     //     );
     // }
@@ -104,7 +104,7 @@ public class AgentTests()
     //     fixture.Stop();
     // }
     /// <summary>
-    /// Test SubscribeAsync method
+    /// Test AddSubscriptionAsync method
     /// </summary>
     /// <returns>void</returns>
     ///
@@ -196,7 +196,7 @@ public class AgentTests()
     //     var fixture = new InMemoryAgentRuntimeFixture();
     //     var (_, agent) = fixture.Start();
     //     var topicType = "TestTopic";
-    //     await agent.SubscribeAsync(topicType).ConfigureAwait(true);
+    //     await agent.AddSubscriptionAsync(topicType).ConfigureAwait(true);
     //     var subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
     //     var found = false;
     //     foreach (var subscription in subscriptions)
