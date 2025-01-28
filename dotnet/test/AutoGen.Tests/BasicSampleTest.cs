@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// Basic.SampleTest.cs
+// BasicSampleTest.cs
 
 using System;
 using System.IO;
@@ -9,11 +9,11 @@ using Xunit.Abstractions;
 
 namespace AutoGen.Tests;
 
-public class Basic.SampleTest
+public class BasicSampleTest
 {
     private readonly ITestOutputHelper _output;
 
-    public Basic.SampleTest(ITestOutputHelper output)
+    public BasicSampleTest(ITestOutputHelper output)
     {
         _output = output;
         Console.SetOut(new ConsoleWriter(_output));
