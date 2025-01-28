@@ -130,22 +130,6 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
                     self._background_tasks.add(task)
                     task.add_done_callback(self._raise_on_exception)
                     task.add_done_callback(self._background_tasks.discard)
-                case "registerAgentTypeRequest":
-                    register_agent_type: agent_worker_pb2.RegisterAgentTypeRequest = message.registerAgentTypeRequest
-                    task = asyncio.create_task(
-                        self._process_register_agent_type_request(register_agent_type, client_id)
-                    )
-                    self._background_tasks.add(task)
-                    task.add_done_callback(self._raise_on_exception)
-                    task.add_done_callback(self._background_tasks.discard)
-                case "addSubscriptionRequest":
-                    add_subscription: agent_worker_pb2.AddSubscriptionRequest = message.addSubscriptionRequest
-                    task = asyncio.create_task(self._process_add_subscription_request(add_subscription, client_id))
-                    self._background_tasks.add(task)
-                    task.add_done_callback(self._raise_on_exception)
-                    task.add_done_callback(self._background_tasks.discard)
-                case "registerAgentTypeResponse" | "addSubscriptionResponse":
-                    logger.warning(f"Received unexpected message type: {oneofcase}")
                 case None:
                     logger.warning("Received empty message")
 
@@ -204,53 +188,6 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         for client_id in client_ids:
             await self._send_queues[client_id].put(agent_worker_pb2.Message(cloudEvent=event))
 
-    async def _process_register_agent_type_request(
-        self, register_agent_type_req: agent_worker_pb2.RegisterAgentTypeRequest, client_id: ClientConnectionId
-    ) -> None:
-        # Register the agent type with the host runtime.
-        async with self._agent_type_to_client_id_lock:
-            if register_agent_type_req.type in self._agent_type_to_client_id:
-                existing_client_id = self._agent_type_to_client_id[register_agent_type_req.type]
-                logger.error(
-                    f"Agent type {register_agent_type_req.type} already registered with client {existing_client_id}."
-                )
-                success = False
-                error = f"Agent type {register_agent_type_req.type} already registered."
-            else:
-                self._agent_type_to_client_id[register_agent_type_req.type] = client_id
-                success = True
-                error = None
-        # Send a response back to the client.
-        await self._send_queues[client_id].put(
-            agent_worker_pb2.Message(
-                registerAgentTypeResponse=agent_worker_pb2.RegisterAgentTypeResponse(
-                    request_id=register_agent_type_req.request_id, success=success, error=error
-                )
-            )
-        )
-
-    async def _process_add_subscription_request(
-        self, add_subscription_req: agent_worker_pb2.AddSubscriptionRequest, client_id: ClientConnectionId
-    ) -> None:
-        subscription = subscription_from_proto(add_subscription_req.subscription)
-        try:
-            await self._subscription_manager.add_subscription(subscription)
-            subscription_ids = self._client_id_to_subscription_id_mapping.setdefault(client_id, set())
-            subscription_ids.add(subscription.id)
-            success = True
-            error = None
-        except ValueError as e:
-            success = False
-            error = str(e)
-        # Send a response back to the client.
-        await self._send_queues[client_id].put(
-            agent_worker_pb2.Message(
-                addSubscriptionResponse=agent_worker_pb2.AddSubscriptionResponse(
-                    request_id=add_subscription_req.request_id, success=success, error=error
-                )
-            )
-        )
-
     async def RegisterAgent(  # type: ignore
         self,
         request: agent_worker_pb2.RegisterAgentTypeRequest,
@@ -263,14 +200,14 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         async with self._agent_type_to_client_id_lock:
             if request.type in self._agent_type_to_client_id:
                 existing_client_id = self._agent_type_to_client_id[request.type]
-                logger.error(f"Agent type {request.type} already registered with client {existing_client_id}.")
-                success = False
-                error = f"Agent type {request.type} already registered."
+                await context.abort(
+                    grpc.StatusCode.INVALID_ARGUMENT,
+                    f"Agent type {request.type} already registered with client {existing_client_id}.",
+                )
             else:
                 self._agent_type_to_client_id[request.type] = client_id
-                success = True
-                error = None
-        return agent_worker_pb2.RegisterAgentTypeResponse(request_id=request.request_id, success=success, error=error)
+
+        return agent_worker_pb2.RegisterAgentTypeResponse()
 
     async def AddSubscription(  # type: ignore
         self,
@@ -286,13 +223,9 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
             await self._subscription_manager.add_subscription(subscription)
             subscription_ids = self._client_id_to_subscription_id_mapping.setdefault(client_id, set())
             subscription_ids.add(subscription.id)
-            success = True
-            error = None
         except ValueError as e:
-            success = False
-            error = str(e)
-        # Send a response back to the client.
-        return agent_worker_pb2.AddSubscriptionResponse(request_id=request.request_id, success=success, error=error)
+            await context.abort(grpc.StatusCode.INVALID_ARGUMENT, str(e))
+        return agent_worker_pb2.AddSubscriptionResponse()
 
     async def RemoveSubscription(  # type: ignore
         self,
