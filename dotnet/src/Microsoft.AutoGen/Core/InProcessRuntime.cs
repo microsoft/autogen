@@ -1,12 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // InProcessRuntime.cs
 
+using System.Collections.Concurrent;
+using System.Diagnostics;
 using Microsoft.AutoGen.Contracts;
+using Microsoft.Extensions.Hosting;
 
 namespace Microsoft.AutoGen.Core;
 
-public sealed class InProcessRuntime : IAgentRuntime
+public sealed class InProcessRuntime : IAgentRuntime, IHostedService
 {
+    public bool DeliverToSelf { get; set; } //= false;
+
     Dictionary<AgentId, IHostableAgent> agentInstances = new();
     Dictionary<string, ISubscriptionDefinition> subscriptions = new();
     Dictionary<AgentType, Func<AgentId, IAgentRuntime, ValueTask<IHostableAgent>>> agentFactories = new();
@@ -27,49 +32,85 @@ public sealed class InProcessRuntime : IAgentRuntime
     {
     }
 
-    public ValueTask PublishMessageAsync(object message, TopicId topic, AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = null)
+    private ConcurrentQueue<MessageDelivery> messageDeliveryQueue = new();
+
+    private async ValueTask PublishMessageServicer(MessageEnvelope envelope, CancellationToken deliveryToken)
     {
-        return this.ExecuteTracedAsync(async () =>
+        if (!envelope.Topic.HasValue)
         {
-            messageId ??= Guid.NewGuid().ToString();
+            throw new InvalidOperationException("Message must have a topic to be published.");
+        }
 
-            foreach (var subscription in this.subscriptions.Values.Where(subscription => subscription.Matches(topic)))
-            {
-                AgentId agentId = subscription.MapToAgent(topic);
-                if (sender.HasValue && sender == agentId)
-                {
-                    // TODO: enable re-entrant mode
-                    continue;
-                }
-
-                MessageContext messageContext = new(messageId ?? Guid.NewGuid().ToString(), cancellationToken ?? CancellationToken.None)
-                {
-                    Sender = sender,
-                    Topic = topic,
-                    IsRpc = false
-                };
-
-                IHostableAgent agent = await this.EnsureAgentAsync(agentId);
-                await agent.OnMessageAsync(message, messageContext);
-            }
-        });
-    }
-
-    public ValueTask<object?> SendMessageAsync(object message, AgentId recepient, AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = null)
-    {
-        return this.ExecuteTracedAsync(async () =>
+        TopicId topic = envelope.Topic.Value;
+        foreach (var subscription in this.subscriptions.Values.Where(subscription => subscription.Matches(topic)))
         {
-            cancellationToken ??= CancellationToken.None;
-            messageId ??= Guid.NewGuid().ToString();
+            AgentId? sender = envelope.Sender;
 
-            MessageContext messageContext = new(messageId ?? Guid.NewGuid().ToString(), cancellationToken ?? CancellationToken.None)
+            CancellationTokenSource combinedSource = CancellationTokenSource.CreateLinkedTokenSource(envelope.Cancellation, deliveryToken);
+            MessageContext messageContext = new(envelope.MessageId, combinedSource.Token)
             {
                 Sender = sender,
+                Topic = topic,
                 IsRpc = false
             };
 
-            IHostableAgent agent = await this.EnsureAgentAsync(recepient);
-            return await agent.OnMessageAsync(message, messageContext);
+            AgentId agentId = subscription.MapToAgent(topic);
+            if (this.DeliverToSelf || sender.HasValue && sender == agentId)
+            {
+                continue;
+            }
+
+            IHostableAgent agent = await this.EnsureAgentAsync(agentId);
+
+            // TODO: Cancellation propagation!
+            await agent.OnMessageAsync(envelope.Message, messageContext);
+        }
+    }
+
+    public ValueTask PublishMessageAsync(object message, TopicId topic, AgentId? sender = null, string? messageId = null, CancellationToken cancellation = default)
+    {
+        return this.ExecuteTracedAsync(() =>
+        {
+            MessageDelivery delivery = new MessageEnvelope(message, messageId, cancellation)
+                                        .WithSender(sender)
+                                        .ForPublish(topic, this.PublishMessageServicer);
+
+            this.messageDeliveryQueue.Enqueue(delivery);
+
+            return ValueTask.CompletedTask;
+        });
+    }
+
+    private async ValueTask<object?> SendMessageServicer(MessageEnvelope envelope, CancellationToken deliveryToken)
+    {
+        if (!envelope.Receiver.HasValue)
+        {
+            throw new InvalidOperationException("Message must have a receiver to be sent.");
+        }
+
+        CancellationTokenSource combinedSource = CancellationTokenSource.CreateLinkedTokenSource(envelope.Cancellation, deliveryToken);
+        MessageContext messageContext = new(envelope.MessageId, combinedSource.Token)
+        {
+            Sender = envelope.Sender,
+            IsRpc = false
+        };
+
+        AgentId receiver = envelope.Receiver.Value;
+        IHostableAgent agent = await this.EnsureAgentAsync(receiver);
+
+        return await agent.OnMessageAsync(envelope.Message, messageContext);
+    }
+
+    public ValueTask<object?> SendMessageAsync(object message, AgentId recepient, AgentId? sender = null, string? messageId = null, CancellationToken cancellationToken = default)
+    {
+        return this.ExecuteTracedAsync(() =>
+        {
+            MessageDelivery delivery = new MessageEnvelope(message, messageId, cancellationToken)
+                                            .WithSender(sender)
+                                            .ForSend(recepient, this.SendMessageServicer);
+
+            this.messageDeliveryQueue.Enqueue(delivery);
+            return delivery.Future;
         });
     }
 
@@ -176,6 +217,8 @@ public sealed class InProcessRuntime : IAgentRuntime
     }
 
     public ValueTask<AgentType> RegisterAgentFactoryAsync<TAgent>(AgentType type, Func<AgentId, IAgentRuntime, ValueTask<TAgent>> factoryFunc) where TAgent : IHostableAgent
+        // Declare the lambda return type explicitly, as otherwise the compiler will infer 'ValueTask<TAgent>'
+        // and recurse into the same call, causing a stack overflow.
         => this.RegisterAgentFactoryAsync(type, async ValueTask<IHostableAgent> (agentId, runtime) => await factoryFunc(agentId, runtime));
 
     public ValueTask<AgentType> RegisterAgentFactoryAsync(AgentType type, Func<AgentId, IAgentRuntime, ValueTask<IHostableAgent>> factoryFunc)
@@ -194,4 +237,87 @@ public sealed class InProcessRuntime : IAgentRuntime
     {
         return ValueTask.FromResult(new AgentProxy(agentId, this));
     }
+
+    public ValueTask ProcessNextMessage(CancellationToken cancellation = default)
+    {
+        Debug.WriteLine("Processing next message...");
+        if (this.messageDeliveryQueue.TryDequeue(out MessageDelivery? delivery))
+        {
+            Debug.WriteLine($"Processing message {delivery.Message.MessageId}...");
+            return delivery.InvokeAsync(cancellation);
+        }
+
+        return ValueTask.CompletedTask;
+    }
+
+    private Func<bool> shouldContinue = () => true;
+    private CancellationTokenSource? finishSource;
+    private async Task RunAsync(CancellationToken cancellation)
+    {
+        while (!cancellation.IsCancellationRequested && shouldContinue())
+        {
+            await this.ProcessNextMessage(cancellation);
+        }
+
+        await this.FinishAsync(this.finishSource?.Token ?? CancellationToken.None);
+    }
+
+    private CancellationTokenSource? shutdownSource;
+    private Task messageDeliveryTask = Task.CompletedTask;
+    public ValueTask StartAsync(CancellationToken token = default)
+    {
+        if (this.shutdownSource != null)
+        {
+            throw new InvalidOperationException("Runtime is already running.");
+        }
+
+        this.shutdownSource = new CancellationTokenSource();
+        this.messageDeliveryTask = Task.Run(() => this.RunAsync(this.shutdownSource.Token));
+
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask StopAsync(CancellationToken token = default)
+    {
+        if (this.shutdownSource == null)
+        {
+            throw new InvalidOperationException("Runtime is not running.");
+        }
+
+        if (this.finishSource != null)
+        {
+            // TODO: Log as warning instead?
+            throw new InvalidOperationException("Runtime is already stopping.");
+        }
+
+        this.finishSource = CancellationTokenSource.CreateLinkedTokenSource(token);
+
+        this.shutdownSource.Cancel();
+        this.shutdownSource = null;
+
+        return ValueTask.CompletedTask;
+    }
+
+    public Task RunUntilIdleAsync()
+    {
+        this.shouldContinue = () => !this.messageDeliveryQueue.IsEmpty;
+
+        // TODO: Do we want detach semantics?
+        return this.messageDeliveryTask;
+    }
+
+    private async Task FinishAsync(CancellationToken token)
+    {
+        foreach (IHostableAgent agent in this.agentInstances.Values)
+        {
+            if (!token.IsCancellationRequested)
+            {
+                await agent.CloseAsync();
+            }
+        }
+    }
+
+    Task IHostedService.StartAsync(CancellationToken cancellationToken) => this.StartAsync(cancellationToken).AsTask();
+
+    Task IHostedService.StopAsync(CancellationToken cancellationToken) => this.StopAsync(cancellationToken).AsTask();
 }
