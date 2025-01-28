@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-ext"
-version = "0.4.3"
+version = "0.4.4"
 license = {file = "LICENSE-CODE"}
 description = "AutoGen extensions library"
 readme = "README.md"
@@ -15,33 +15,37 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "autogen-core==0.4.3",
+    "autogen-core==0.4.4",
 ]
 
 [project.optional-dependencies]
 langchain = ["langchain_core~= 0.3.3"]
-azure = ["azure-core", "azure-identity"]
+azure = [
+    "azure-ai-inference>=1.0.0b7",
+    "azure-core",
+    "azure-identity",
+]
 docker = ["docker~=7.0"]
 openai = ["openai>=1.52.2", "tiktoken>=0.8.0", "aiofiles"]
 file-surfer = [
-    "autogen-agentchat==0.4.3",
+    "autogen-agentchat==0.4.4",
     "markitdown>=0.0.1a2",
 ]
 graphrag = ["graphrag>=1.0.1"]
 web-surfer = [
-    "autogen-agentchat==0.4.3",
+    "autogen-agentchat==0.4.4",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
     "markitdown>=0.0.1a2",
 ]
 magentic-one = [
-    "autogen-agentchat==0.4.3",
+    "autogen-agentchat==0.4.4",
     "markitdown>=0.0.1a2",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
 ]
 video-surfer = [
-    "autogen-agentchat==0.4.3",
+    "autogen-agentchat==0.4.4",
     "opencv-python>=4.5",
     "ffmpeg-python",
     "openai-whisper",
@@ -56,6 +60,7 @@ redis = [
 grpc = [
     "grpcio~=1.62.0", # TODO: update this once we have a stable version.
 ]
+
 jupyter-executor = [
     "ipykernel>=6.29.5",
     "nbclient>=0.10.2",
@@ -105,6 +110,8 @@ semantic-kernel-dapr = [
 semantic-kernel-all = [
     "semantic-kernel[google,hugging_face,mistralai,ollama,onnx,anthropic,usearch,pandas,aws,dapr]>=1.17.1",
 ]
+
+rich = ["rich>=13.9.4"]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]

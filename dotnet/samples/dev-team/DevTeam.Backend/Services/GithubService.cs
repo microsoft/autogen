@@ -8,7 +8,7 @@ using Microsoft.Extensions.Options;
 using Octokit;
 using Octokit.Helpers;
 
-namespace DevTeam.Backend;
+namespace DevTeam.Backend.Services;
 
 public class GithubService : IManageGithub
 {
