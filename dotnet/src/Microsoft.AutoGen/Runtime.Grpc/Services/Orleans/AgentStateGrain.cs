@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentStateGrain.cs
 
-using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Runtime.Grpc.Abstractions;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
