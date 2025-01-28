@@ -47,6 +47,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
     newTeam.component.label = "new_team_" + new Date().getTime();
     onCreateTeam(newTeam);
   };
+
   // Render collapsed state
   if (!isOpen) {
     return (
@@ -160,7 +161,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                     {/* Team Name and Actions Row */}
                     <div className="flex items-center justify-between">
                       <span className="font-medium truncate">
-                        {team.component.label}
+                        {team.component?.label}
                       </span>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         {/* <Tooltip title="Edit team">

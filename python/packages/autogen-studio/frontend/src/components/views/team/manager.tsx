@@ -37,6 +37,7 @@ export const TeamManager: React.FC = () => {
       setIsLoading(true);
       const data = await teamAPI.listTeams(user.email);
       setTeams(data);
+      console.log("team data", data);
       if (!currentTeam && data.length > 0) {
         setCurrentTeam(data[0]);
       }
@@ -201,7 +202,7 @@ export const TeamManager: React.FC = () => {
               <>
                 <ChevronRight className="w-4 h-4 text-secondary" />
                 <span className="text-secondary">
-                  {currentTeam.component.label}
+                  {currentTeam.component?.label}
                   {currentTeam.id ? (
                     ""
                   ) : (

@@ -1,14 +1,12 @@
 import dagre from "@dagrejs/dagre";
-import { CustomNode, CustomEdge } from "./types";
+import { CustomNode, CustomEdge, EdgeTypes } from "./types";
 import { nanoid } from "nanoid";
 import {
   TeamConfig,
-  ModelConfig,
-  AgentConfig,
-  ToolConfig,
-  ComponentTypes,
-  TerminationConfig,
+  Component,
+  ComponentConfig,
 } from "../../../types/datamodel";
+import { isAssistantAgent, isSelectorTeam } from "../../../types/guards";
 
 interface ConversionResult {
   nodes: CustomNode[];
@@ -39,29 +37,16 @@ const calculateParticipantPosition = (
 
 // Helper to create nodes with consistent structure
 const createNode = (
-  type: ComponentTypes,
   position: Position,
-  config:
-    | TeamConfig
-    | ModelConfig
-    | AgentConfig
-    | ToolConfig
-    | TerminationConfig,
+  component: Component<ComponentConfig>,
   label?: string
 ): CustomNode => ({
   id: nanoid(),
-  type,
   position,
+  type: component.component_type,
   data: {
-    label: label || type,
-    type,
-    config,
-    connections: {
-      modelClient: null,
-      tools: [],
-      participants: [],
-      termination: null,
-    },
+    label: label || component.label || component.component_type,
+    component,
   },
 });
 
@@ -69,12 +54,7 @@ const createNode = (
 const createEdge = (
   source: string,
   target: string,
-  type:
-    | "model-connection"
-    | "tool-connection"
-    | "agent-connection"
-    | "team-connection"
-    | "termination-connection"
+  type: EdgeTypes
 ): CustomEdge => ({
   id: `e${source}-${target}`,
   source,
@@ -83,29 +63,21 @@ const createEdge = (
 });
 
 export const convertTeamConfigToGraph = (
-  config: TeamConfig
+  teamComponent: Component<TeamConfig>
 ): ConversionResult => {
   const nodes: CustomNode[] = [];
   const edges: CustomEdge[] = [];
 
   // Create team node
-  const teamNode = createNode(
-    "team",
-    { x: 400, y: 50 },
-    {
-      ...config,
-      // participants: [], // Clear participants as we'll rebuild from edges
-    }
-  );
+  const teamNode = createNode({ x: 400, y: 50 }, teamComponent);
   nodes.push(teamNode);
 
   // Add model client if present
-  if (config.team_type === "SelectorGroupChat" && config.model_client) {
+  if (isSelectorTeam(teamComponent) && teamComponent.config.model_client) {
     const modelNode = createNode(
-      "model",
       { x: 200, y: 50 },
-      config.model_client,
-      config.model_client.model
+      teamComponent.config.model_client,
+      teamComponent.config.model_client.config.model
     );
     nodes.push(modelNode);
     edges.push({
@@ -119,15 +91,12 @@ export const convertTeamConfigToGraph = (
   }
 
   // Add participants (agents)
-  config.participants.forEach((participant, index) => {
+  teamComponent.config.participants.forEach((participant, index) => {
     const position = calculateParticipantPosition(
       index,
-      config.participants.length
+      teamComponent.config.participants.length
     );
-    const agentNode = createNode("agent", position, {
-      ...participant,
-      // tools: [], // Clear tools as we'll rebuild from edges
-    });
+    const agentNode = createNode(position, participant);
     nodes.push(agentNode);
 
     // Connect to team
@@ -141,15 +110,14 @@ export const convertTeamConfigToGraph = (
     });
 
     // Add agent's model client if present
-    if (participant.model_client) {
+    if (isAssistantAgent(participant) && participant.config.model_client) {
       const agentModelNode = createNode(
-        "model",
         {
           x: position.x - 150,
           y: position.y,
         },
-        participant.model_client,
-        participant.model_client.model
+        participant.config.model_client,
+        participant.config.model_client.config.model
       );
       nodes.push(agentModelNode);
       edges.push({
@@ -163,33 +131,33 @@ export const convertTeamConfigToGraph = (
     }
 
     // Add agent's tools
-    participant.tools?.forEach((tool, toolIndex) => {
-      const toolNode = createNode(
-        "tool",
-        {
-          x: position.x + 150,
-          y: position.y + toolIndex * 100,
-        },
-        tool
-      );
-      nodes.push(toolNode);
-      edges.push({
-        id: nanoid(),
-        source: toolNode.id,
-        target: agentNode.id,
-        sourceHandle: `${toolNode.id}-tool-output-handle`,
-        targetHandle: `${agentNode.id}-tool-input-handle`,
-        type: "tool-connection",
+    if (isAssistantAgent(participant) && participant.config.tools) {
+      participant.config.tools.forEach((tool, toolIndex) => {
+        const toolNode = createNode(
+          {
+            x: position.x + 150,
+            y: position.y + toolIndex * 100,
+          },
+          tool
+        );
+        nodes.push(toolNode);
+        edges.push({
+          id: nanoid(),
+          source: toolNode.id,
+          target: agentNode.id,
+          sourceHandle: `${toolNode.id}-tool-output-handle`,
+          targetHandle: `${agentNode.id}-tool-input-handle`,
+          type: "tool-connection",
+        });
       });
-    });
+    }
   });
 
   // Add termination condition if present
-  if (config?.termination_condition) {
+  if (teamComponent.config.termination_condition) {
     const terminationNode = createNode(
-      "termination",
       { x: 600, y: 50 },
-      config.termination_condition
+      teamComponent.config.termination_condition
     );
     nodes.push(terminationNode);
     edges.push({
@@ -205,6 +173,7 @@ export const convertTeamConfigToGraph = (
   return { nodes, edges };
 };
 
+// Rest of the file remains the same since it deals with layout calculations
 const NODE_WIDTH = 272;
 const NODE_HEIGHT = 200;
 
@@ -285,13 +254,31 @@ export const getNodeConnections = (nodeId: string, edges: CustomEdge[]) => {
     modelClient:
       edges.find((e) => e.target === nodeId && e.type === "model-connection")
         ?.source || null,
-
     tools: edges
       .filter((e) => e.target === nodeId && e.type === "tool-connection")
       .map((e) => e.source),
-
     participants: edges
       .filter((e) => e.source === nodeId && e.type === "agent-connection")
       .map((e) => e.target),
   };
+};
+
+export const getUniqueName = (
+  baseName: string,
+  existingNames: string[]
+): string => {
+  // Convert baseName to valid identifier format
+  let validBaseName = baseName
+    // Replace spaces and special characters with underscore
+    .replace(/[^a-zA-Z0-9_$]/g, "_")
+    // Ensure it starts with a letter, underscore, or dollar sign
+    .replace(/^([^a-zA-Z_$])/, "_$1");
+
+  if (!existingNames.includes(validBaseName)) return validBaseName;
+
+  let counter = 1;
+  while (existingNames.includes(`${validBaseName}_${counter}`)) {
+    counter++;
+  }
+  return `${validBaseName}_${counter}`;
 };

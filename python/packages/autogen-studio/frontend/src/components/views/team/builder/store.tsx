@@ -1,4 +1,6 @@
+// builder/store.tsx
 import { create } from "zustand";
+import { isEqual } from "lodash";
 import {
   CustomNode,
   CustomEdge,
@@ -10,14 +12,15 @@ import { nanoid } from "nanoid";
 import {
   TeamConfig,
   AgentConfig,
-  ModelConfig,
   ToolConfig,
-  ComponentTypes,
-  ComponentConfigTypes,
-  TerminationConfig,
   Component,
+  ComponentConfig,
 } from "../../../types/datamodel";
-import { convertTeamConfigToGraph, getLayoutedElements } from "./utils";
+import {
+  convertTeamConfigToGraph,
+  getLayoutedElements,
+  getUniqueName,
+} from "./utils";
 import {
   isTeamComponent,
   isAgentComponent,
@@ -25,6 +28,8 @@ import {
   isTerminationComponent,
   isModelComponent,
   isSelectorTeam,
+  isAssistantAgent,
+  isFunctionTool,
 } from "../../../types/guards";
 
 const MAX_HISTORY = 50;
@@ -37,9 +42,8 @@ export interface TeamBuilderState {
   currentHistoryIndex: number;
   originalComponent: Component<TeamConfig> | null;
   addNode: (
-    type: ComponentTypes,
     position: Position,
-    config: ComponentConfigTypes,
+    component: Component<ComponentConfig>,
     targetNodeId?: string
   ) => void;
 
@@ -106,21 +110,26 @@ const buildTeamComponent = (
   const participantEdges = edges.filter(
     (e) => e.source === teamNode.id && e.type === "agent-connection"
   );
-  config.participants = participantEdges
+  component.config.participants = participantEdges
     .map((edge) => {
       const agentNode = nodes.find((n) => n.id === edge.target);
-      if (!agentNode || !isAgentConfig(agentNode.data.config)) return null;
+      if (!agentNode || !isAgentComponent(agentNode.data.component))
+        return null;
 
-      const agentConfig = { ...agentNode.data.config };
-
+      const agentComponent = { ...agentNode.data.component };
       // Get agent's model using edges
       const agentModelEdge = edges.find(
         (e) => e.target === edge.target && e.type === "model-connection"
       );
       if (agentModelEdge) {
         const modelNode = nodes.find((n) => n.id === agentModelEdge.source);
-        if (modelNode && isModelConfig(modelNode.data.config)) {
-          agentConfig.model_client = modelNode.data.config;
+        if (
+          modelNode &&
+          isModelComponent(modelNode.data.component) &&
+          isAssistantAgent(agentComponent)
+        ) {
+          // Check specific agent type
+          agentComponent.config.model_client = modelNode.data.component;
         }
       }
 
@@ -128,18 +137,24 @@ const buildTeamComponent = (
       const toolEdges = edges.filter(
         (e) => e.target === edge.target && e.type === "tool-connection"
       );
-      agentConfig.tools = toolEdges
-        .map((toolEdge) => {
-          const toolNode = nodes.find((n) => n.id === toolEdge.source);
-          return toolNode?.data.config as ToolConfig;
-        })
-        .filter((tool): tool is ToolConfig => tool !== null);
 
-      return agentConfig;
+      if (isAssistantAgent(agentComponent)) {
+        agentComponent.config.tools = toolEdges
+          .map((toolEdge) => {
+            const toolNode = nodes.find((n) => n.id === toolEdge.source);
+            if (toolNode && isToolComponent(toolNode.data.component)) {
+              return toolNode.data.component;
+            }
+            return null;
+          })
+          .filter((tool): tool is Component<ToolConfig> => tool !== null);
+      }
+
+      return agentComponent;
     })
-    .filter((agent): agent is AgentConfig => agent !== null);
+    .filter((agent): agent is Component<AgentConfig> => agent !== null);
 
-  return config;
+  return component;
 };
 
 export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
@@ -151,35 +166,26 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
   originalComponent: null,
 
   addNode: (
-    type: ComponentTypes,
     position: Position,
-    config: ComponentConfigTypes,
+    component: Component<ComponentConfig>,
     targetNodeId?: string
   ) => {
     set((state) => {
-      // Determine label based on config type
-      let label = "";
-      if (isTeamConfig(config)) {
-        label = config.name || "Team";
-      } else if (isAgentConfig(config)) {
-        label = config.name || "Agent";
-      } else if (isModelConfig(config)) {
-        label = config.model || "Model";
-      } else if (isToolConfig(config)) {
-        label = config.name || "Tool";
-      } else if (isTerminationConfig(config)) {
-        label = config.termination_type || "Termination";
-      }
+      // Deep clone the incoming component to avoid reference issues
+      const clonedComponent = JSON.parse(JSON.stringify(component));
 
-      // Create new node without connections object
+      // Determine label based on component type
+      let label = clonedComponent.label || clonedComponent.component_type;
+
+      // Create new node
       const newNode: CustomNode = {
         id: nanoid(),
-        type,
         position,
+        type: clonedComponent.component_type,
         data: {
           label: label || "Node",
-          type,
-          config,
+          component: clonedComponent,
+          type: clonedComponent.component_type as NodeData["type"],
         },
       };
 
@@ -191,8 +197,9 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
 
         if (targetNode) {
           if (
-            type === "model" &&
-            ["team", "agent"].includes(targetNode.data.type)
+            clonedComponent.component_type === "model" &&
+            (isTeamComponent(targetNode.data.component) ||
+              isAgentComponent(targetNode.data.component))
           ) {
             // Find existing model connection and node
             const existingModelEdge = newEdges.find(
@@ -229,23 +236,18 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
             });
 
             // Update config
-            if (
-              isTeamConfig(targetNode.data.config) &&
-              isModelConfig(config) &&
-              targetNode.data.config.team_type === "SelectorGroupChat"
-            ) {
-              targetNode.data.config.model_client = config;
-            } else if (
-              isAgentConfig(targetNode.data.config) &&
-              isModelConfig(config)
-            ) {
-              targetNode.data.config.model_client = config;
+            if (isModelComponent(clonedComponent)) {
+              if (isSelectorTeam(targetNode.data.component)) {
+                targetNode.data.component.config.model_client = clonedComponent;
+              } else if (isAssistantAgent(targetNode.data.component)) {
+                targetNode.data.component.config.model_client = clonedComponent;
+              }
             }
           } else if (
-            type === "termination" &&
+            clonedComponent.component_type === "termination" &&
             targetNode.data.type === "team"
           ) {
-            // Find existing termination connection and node
+            // Handle termination connection
             const existingTerminationEdge = newEdges.find(
               (edge) =>
                 edge.target === targetNodeId &&
@@ -253,13 +255,10 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
             );
 
             if (existingTerminationEdge) {
-              // Remove the existing termination node
               const existingTerminationNodeId = existingTerminationEdge.source;
               newNodes = newNodes.filter(
                 (node) => node.id !== existingTerminationNodeId
               );
-
-              // Remove all edges connected to the old termination node
               newEdges = newEdges.filter(
                 (edge) =>
                   edge.source !== existingTerminationNodeId &&
@@ -267,10 +266,7 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
               );
             }
 
-            // Add the new termination node
             newNodes.push(newNode);
-
-            // Add new termination connection
             newEdges.push({
               id: nanoid(),
               source: newNode.id,
@@ -280,15 +276,31 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
               type: "termination-connection",
             });
 
-            // Update config
             if (
-              isTeamConfig(targetNode.data.config) &&
-              isTerminationConfig(config)
+              isTeamComponent(targetNode.data.component) &&
+              isTerminationComponent(clonedComponent)
             ) {
-              targetNode.data.config.termination_condition = config;
+              targetNode.data.component.config.termination_condition =
+                clonedComponent;
             }
-          } else if (type === "tool" && targetNode.data.type === "agent") {
-            // Add tool connection
+          } else if (
+            clonedComponent.component_type === "tool" &&
+            targetNode.data.type === "agent"
+          ) {
+            // Handle tool connection with unique name
+            if (
+              isAssistantAgent(targetNode.data.component) &&
+              isAssistantAgent(newNode.data.component)
+            ) {
+              const existingTools =
+                targetNode.data.component.config.tools || [];
+              const existingNames = existingTools.map((t) => t.config.name);
+              newNode.data.component.config.name = getUniqueName(
+                clonedComponent.config.name,
+                existingNames
+              );
+            }
+
             newNodes.push(newNode);
             newEdges.push({
               id: nanoid(),
@@ -299,15 +311,34 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
               type: "tool-connection",
             });
 
-            // Update config
-            if (isAgentConfig(targetNode.data.config) && isToolConfig(config)) {
-              if (!targetNode.data.config.tools) {
-                targetNode.data.config.tools = [];
+            if (
+              isAssistantAgent(targetNode.data.component) &&
+              isToolComponent(newNode.data.component)
+            ) {
+              if (!targetNode.data.component.config.tools) {
+                targetNode.data.component.config.tools = [];
               }
-              targetNode.data.config.tools.push(config);
+              targetNode.data.component.config.tools.push(
+                newNode.data.component
+              );
             }
-          } else if (type === "agent" && targetNode.data.type === "team") {
-            // Add agent connection
+          } else if (
+            clonedComponent.component_type === "agent" &&
+            isTeamComponent(targetNode.data.component) &&
+            isAssistantAgent(newNode.data.component)
+          ) {
+            // Handle agent connection with unique name
+            const existingParticipants =
+              targetNode.data.component.config.participants || [];
+            const existingNames = existingParticipants.map(
+              (p) => p.config.name
+            );
+
+            newNode.data.component.config.name = getUniqueName(
+              clonedComponent.config.name,
+              existingNames
+            );
+
             newNodes.push(newNode);
             newEdges.push({
               id: nanoid(),
@@ -318,12 +349,16 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
               type: "agent-connection",
             });
 
-            // Update config
-            if (isTeamConfig(targetNode.data.config) && isAgentConfig(config)) {
-              if (!targetNode.data.config.participants) {
-                targetNode.data.config.participants = [];
+            if (
+              isTeamComponent(targetNode.data.component) &&
+              isAgentComponent(newNode.data.component)
+            ) {
+              if (!targetNode.data.component.config.participants) {
+                targetNode.data.component.config.participants = [];
               }
-              targetNode.data.config.participants.push(config);
+              targetNode.data.component.config.participants.push(
+                newNode.data.component
+              );
             }
           } else {
             // For all other cases, just add the new node
@@ -353,71 +388,84 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
   updateNode: (nodeId: string, updates: Partial<NodeData>) => {
     set((state) => {
       const newNodes = state.nodes.map((node) => {
-        if (node.id !== nodeId) return node;
+        if (node.id !== nodeId) {
+          // If this isn't the directly updated node, check if it needs related updates
+          const isTeamWithUpdatedAgent =
+            isTeamComponent(node.data.component) &&
+            state.edges.some(
+              (e) =>
+                e.type === "agent-connection" &&
+                e.target === nodeId &&
+                e.source === node.id
+            );
 
-        // Update the node with new data
-        const updatedNode = {
+          if (isTeamWithUpdatedAgent && isTeamComponent(node.data.component)) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                component: {
+                  ...node.data.component,
+                  config: {
+                    ...node.data.component.config,
+                    participants: node.data.component.config.participants.map(
+                      (participant) =>
+                        participant ===
+                        state.nodes.find((n) => n.id === nodeId)?.data.component
+                          ? updates.component
+                          : participant
+                    ),
+                  },
+                },
+              },
+            };
+          }
+
+          const isAgentWithUpdatedTool =
+            isAssistantAgent(node.data.component) &&
+            state.edges.some(
+              (e) =>
+                e.type === "tool-connection" &&
+                e.source === nodeId &&
+                e.target === node.id
+            );
+
+          if (isAgentWithUpdatedTool && isAssistantAgent(node.data.component)) {
+            return {
+              ...node,
+              data: {
+                ...node.data,
+                component: {
+                  ...node.data.component,
+                  config: {
+                    ...node.data.component.config,
+                    tools: (node.data.component.config.tools || []).map(
+                      (tool) =>
+                        tool ===
+                        state.nodes.find((n) => n.id === nodeId)?.data.component
+                          ? updates.component
+                          : tool
+                    ),
+                  },
+                },
+              },
+            };
+          }
+
+          return node;
+        }
+
+        // This is the directly updated node
+        const updatedComponent = updates.component || node.data.component;
+        return {
           ...node,
           data: {
             ...node.data,
             ...updates,
-            // Update label based on config type
-            label: (() => {
-              const config = { ...node.data.config, ...updates.config };
-              if (isTeamConfig(config)) return config.name || "Team";
-              if (isAgentConfig(config)) return config.name || "Agent";
-              if (isModelConfig(config)) return config.model || "Model";
-              if (isToolConfig(config)) return config.name || "Tool";
-              if (isTerminationConfig(config))
-                return config.termination_type || "Termination";
-              return node.data.label;
-            })(),
+            component: updatedComponent,
           },
         };
-
-        return updatedNode;
       });
-
-      // Update related nodes' configs
-      const updatedNode = newNodes.find((n) => n.id === nodeId);
-      if (!updatedNode) return state;
-
-      // If an agent was updated, update its parent team's participants
-      if (updatedNode.data.type === "agent") {
-        const teamEdge = state.edges.find(
-          (e) => e.type === "agent-connection" && e.target === nodeId
-        );
-        if (teamEdge) {
-          newNodes.forEach((node) => {
-            if (node.id === teamEdge.source && isTeamConfig(node.data.config)) {
-              const agentConfig = updatedNode.data.config as AgentConfig;
-              node.data.config.participants = node.data.config.participants.map(
-                (p) => (p.name === agentConfig.name ? agentConfig : p)
-              );
-            }
-          });
-        }
-      }
-
-      // If a tool was updated, update its parent agent's tools
-      if (updatedNode.data.type === "tool") {
-        const agentEdge = state.edges.find(
-          (e) => e.type === "tool-connection" && e.source === nodeId
-        );
-        if (agentEdge) {
-          newNodes.forEach((node) => {
-            if (
-              node.id === agentEdge.target &&
-              isAgentConfig(node.data.config)
-            ) {
-              const toolConfig = updatedNode.data.config as ToolConfig;
-              node.data.config.tools = node.data.config.tools?.map((t) =>
-                t.name === toolConfig.name ? toolConfig : t
-              );
-            }
-          });
-        }
-      }
 
       return {
         nodes: newNodes,
@@ -433,6 +481,7 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
   removeNode: (nodeId: string) => {
     set((state) => {
       const nodesToRemove = new Set<string>();
+      const updatedNodes = new Map<string, CustomNode>();
 
       const collectNodesToRemove = (id: string) => {
         const node = state.nodes.find((n) => n.id === id);
@@ -445,9 +494,9 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
           (edge) => edge.source === id || edge.target === id
         );
 
-        // Handle cascading deletes based on node type
-        if (node.data.type === "team") {
-          // Find and remove all agents
+        // Handle cascading deletes based on component type
+        if (isTeamComponent(node.data.component)) {
+          // Find and remove all connected agents
           connectedEdges
             .filter((e) => e.type === "agent-connection")
             .forEach((e) => collectNodesToRemove(e.target));
@@ -461,7 +510,7 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
           connectedEdges
             .filter((e) => e.type === "termination-connection")
             .forEach((e) => collectNodesToRemove(e.source));
-        } else if (node.data.type === "agent") {
+        } else if (isAgentComponent(node.data.component)) {
           // Remove agent's model if exists
           connectedEdges
             .filter((e) => e.type === "model-connection")
@@ -472,22 +521,43 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
             .filter((e) => e.type === "tool-connection")
             .forEach((e) => collectNodesToRemove(e.source));
 
-          // Also need to remove agent from team's config
+          // Update team's participants if agent is connected to a team
           const teamEdge = connectedEdges.find(
             (e) => e.type === "agent-connection"
           );
           if (teamEdge) {
             const teamNode = state.nodes.find((n) => n.id === teamEdge.source);
-            if (teamNode && isTeamConfig(teamNode.data.config)) {
-              const agentConfig = node.data.config as AgentConfig;
-              teamNode.data.config.participants =
-                teamNode.data.config.participants.filter(
-                  (p) => p.name !== agentConfig.name
-                );
+            if (teamNode && isTeamComponent(teamNode.data.component)) {
+              // Create updated team node with filtered participants
+              const updatedTeamNode = {
+                ...teamNode,
+                data: {
+                  ...teamNode.data,
+                  component: {
+                    ...teamNode.data.component,
+                    config: {
+                      ...teamNode.data.component.config,
+                      participants:
+                        teamNode.data.component.config.participants.filter(
+                          (p) => {
+                            // Find a node that matches this participant but isn't being deleted
+                            const participantNode = state.nodes.find(
+                              (n) =>
+                                !nodesToRemove.has(n.id) &&
+                                isEqual(n.data.component, p)
+                            );
+                            return participantNode !== undefined;
+                          }
+                        ),
+                    },
+                  },
+                },
+              };
+              updatedNodes.set(teamNode.id, updatedTeamNode);
             }
           }
-        } else if (node.data.type === "tool") {
-          // Update agent's tools array when removing a tool
+        } else if (isToolComponent(node.data.component)) {
+          // Update connected agent's tools array
           const agentEdge = connectedEdges.find(
             (e) => e.type === "tool-connection"
           );
@@ -495,22 +565,56 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
             const agentNode = state.nodes.find(
               (n) => n.id === agentEdge.target
             );
-            if (agentNode && isAgentConfig(agentNode.data.config)) {
-              const toolConfig = node.data.config as ToolConfig;
-              agentNode.data.config.tools = agentNode.data.config.tools?.filter(
-                (t) => t.name !== toolConfig.name
-              );
+            if (agentNode && isAssistantAgent(agentNode.data.component)) {
+              // Create updated agent node with filtered tools
+              const updatedAgentNode = {
+                ...agentNode,
+                data: {
+                  ...agentNode.data,
+                  component: {
+                    ...agentNode.data.component,
+                    config: {
+                      ...agentNode.data.component.config,
+                      tools: (
+                        agentNode.data.component.config.tools || []
+                      ).filter((t) => {
+                        // Find a node that matches this tool but isn't being deleted
+                        const toolNode = state.nodes.find(
+                          (n) =>
+                            !nodesToRemove.has(n.id) &&
+                            isEqual(n.data.component, t)
+                        );
+                        return toolNode !== undefined;
+                      }),
+                    },
+                  },
+                },
+              };
+              updatedNodes.set(agentNode.id, updatedAgentNode);
             }
           }
-        } else if (node.data.type === "termination") {
-          // Update team's termination condition when removing it
+        } else if (isTerminationComponent(node.data.component)) {
+          // Update connected team's termination condition
           const teamEdge = connectedEdges.find(
             (e) => e.type === "termination-connection"
           );
           if (teamEdge) {
             const teamNode = state.nodes.find((n) => n.id === teamEdge.target);
-            if (teamNode && isTeamConfig(teamNode.data.config)) {
-              teamNode.data.config.termination_condition = undefined;
+            if (teamNode && isTeamComponent(teamNode.data.component)) {
+              const updatedTeamNode = {
+                ...teamNode,
+                data: {
+                  ...teamNode.data,
+                  component: {
+                    ...teamNode.data.component,
+                    config: {
+                      ...teamNode.data.component.config,
+                      termination_condition: undefined,
+                    },
+                  },
+                },
+              };
+              updatedNodes.set(teamNode.id, updatedTeamNode);
             }
           }
         }
@@ -519,10 +623,10 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
       // Start the cascade deletion from the initial node
       collectNodesToRemove(nodeId);
 
-      // Remove all collected nodes
-      const newNodes = state.nodes.filter(
-        (node) => !nodesToRemove.has(node.id)
-      );
+      // Create new nodes array with both removals and updates
+      const newNodes = state.nodes
+        .filter((node) => !nodesToRemove.has(node.id))
+        .map((node) => updatedNodes.get(node.id) || node);
 
       // Remove all affected edges
       const newEdges = state.edges.filter(
@@ -614,7 +718,9 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
 
   syncToJson: () => {
     const state = get();
-    const teamNodes = state.nodes.filter((node) => node.data.type === "team");
+    const teamNodes = state.nodes.filter(
+      (node) => node.data.component.component_type === "team"
+    );
     if (teamNodes.length === 0) return null;
 
     const teamNode = teamNodes[0];
@@ -639,24 +745,27 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
     });
   },
 
-  loadFromJson: (config: TeamConfig) => {
-    const { nodes, edges } = convertTeamConfigToGraph(config);
+  loadFromJson: (component: Component<TeamConfig>) => {
+    // Get graph representation of team config
+    const { nodes, edges } = convertTeamConfigToGraph(component);
+
+    // Apply layout to elements
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
       nodes,
       edges
     );
 
-    set((state) => {
-      return {
-        nodes: layoutedNodes,
-        edges: layoutedEdges,
-        originalComponent: config,
-        history: [{ nodes: layoutedNodes, edges: layoutedEdges }], // Reset history
-        currentHistoryIndex: 0, // Reset to 0
-        selectedNodeId: null,
-      };
+    // Update store with new state and reset history
+    set({
+      nodes: layoutedNodes,
+      edges: layoutedEdges,
+      originalComponent: component, // Store original component for reference
+      history: [{ nodes: layoutedNodes, edges: layoutedEdges }], // Reset history with initial state
+      currentHistoryIndex: 0,
+      selectedNodeId: null,
     });
 
+    // Return final graph state
     return { nodes: layoutedNodes, edges: layoutedEdges };
   },
   resetHistory: () => {

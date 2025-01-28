@@ -1,13 +1,14 @@
 // Base Component System
+
+export type ComponentTypes =
+  | "team"
+  | "agent"
+  | "model"
+  | "tool"
+  | "termination";
 export interface Component<T extends ComponentConfig> {
   provider: string;
-  component_type:
-    | "team"
-    | "agent"
-    | "model"
-    | "tool"
-    | "termination"
-    | "chat_completion_context";
+  component_type: ComponentTypes;
   version?: number;
   component_version?: number;
   description?: string | null;

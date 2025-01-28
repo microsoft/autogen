@@ -26,13 +26,28 @@ import {
   ToolConfig,
   TerminationConfig,
   ComponentTypes,
+  Component,
+  ComponentConfig,
 } from "../../../types/datamodel";
 import { useDroppable } from "@dnd-kit/core";
 import { TruncatableText } from "../../atoms";
 import { useTeamBuilderStore } from "./store";
+import {
+  isAssistantAgent,
+  isAzureOpenAIModel,
+  isFunctionTool,
+  isMaxMessageTermination,
+  isOpenAIModel,
+  isOrTermination,
+  isSelectorTeam,
+  isTextMentionTermination,
+} from "../../../types/guards";
 
 // Icon mapping for different node types
-const iconMap: Record<NodeData["type"], LucideIcon> = {
+const iconMap: Record<
+  Component<ComponentConfig>["component_type"],
+  LucideIcon
+> = {
   team: Users,
   agent: Bot,
   tool: Wrench,
@@ -123,7 +138,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
             <span className="text-xs px-2 py-1 bg-gray-200 rounded text-gray-700">
-              {data.type}
+              {data.component.component_type}
             </span>
             <button
               onClick={(e) => {
@@ -153,14 +168,9 @@ const BaseNode: React.FC<BaseNodeProps> = ({
         {headerContent}
       </div>
 
-      {data.config.description && (
-        <div className="px-3 py-2 border-b text-sm text-gray-600">
-          <TruncatableText
-            content={data.config.description}
-            textThreshold={150}
-          />
-        </div>
-      )}
+      <div className="px-3 py-2 border-b text-sm text-gray-600">
+        {descriptionContent}
+      </div>
 
       <div className="p-3 space-y-2">{children}</div>
     </div>
@@ -194,10 +204,9 @@ const ConnectionBadge: React.FC<{
 
 // Team Node
 export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
-  const config = props.data.config as TeamConfig;
-  const hasModel =
-    config.team_type === "SelectorGroupChat" && !!config.model_client;
-  const participantCount = config.participants?.length || 0;
+  const component = props.data.component as Component<TeamConfig>;
+  const hasModel = isSelectorTeam(component) && !!component.config.model_client;
+  const participantCount = component.config.participants?.length || 0;
 
   return (
     <BaseNode
@@ -208,7 +217,7 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
           <ConnectionBadge connected={hasModel} label="Model" />
           <ConnectionBadge
             connected={participantCount > 0}
-            label={`${participantCount} Agent ${
+            label={`${participantCount} Agent${
               participantCount > 1 ? "s" : ""
             }`}
           />
@@ -216,21 +225,25 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
       }
       descriptionContent={
         <div>
-          <div>Type: {config.team_type}</div>
-          {config.team_type === "SelectorGroupChat" &&
-            config.selector_prompt && (
-              <div className="mt-1 text-xs">
-                Selector:{" "}
-                <TruncatableText
-                  content={config.selector_prompt}
-                  textThreshold={150}
-                />
-              </div>
-            )}
+          <div>
+            <TruncatableText
+              content={component.description || component.label || ""}
+              textThreshold={150}
+            />
+          </div>
+          {isSelectorTeam(component) && component.config.selector_prompt && (
+            <div className="mt-1 text-xs">
+              Selector:{" "}
+              <TruncatableText
+                content={component.config.selector_prompt}
+                textThreshold={150}
+              />
+            </div>
+          )}
         </div>
       }
     >
-      {config.team_type === "SelectorGroupChat" && (
+      {isSelectorTeam(component) && (
         <NodeSection title="Model">
           <Handle
             type="target"
@@ -241,7 +254,9 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
 
           <div className="relative">
             {hasModel && (
-              <div className="text-sm">{config.model_client.model}</div>
+              <div className="text-sm">
+                {component.config.model_client.config.model}
+              </div>
             )}
             <DroppableZone id={`${props.id}-model-zone`} accepts={["model"]}>
               <div className="text-secondary text-xs my-1 text-center">
@@ -260,22 +275,20 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
           </div>
         }
       >
-        {true && (
-          <Handle
-            type="source"
-            position={Position.Right}
-            id={`${props.id}-agent-output-handle`}
-            className="my-right-handle"
-          />
-        )}
+        <Handle
+          type="source"
+          position={Position.Right}
+          id={`${props.id}-agent-output-handle`}
+          className="my-right-handle"
+        />
         <div className="space-y-1">
-          {config.participants?.map((participant, index) => (
+          {component.config.participants?.map((participant, index) => (
             <div
               key={index}
               className="relative text-sm py-1 px-2 bg-white rounded flex items-center gap-2"
             >
               <Brain className="w-4 h-4 text-gray-500" />
-              <span>{participant.name}</span>
+              <span>{participant.config.name}</span>
             </div>
           ))}
           <DroppableZone id={`${props.id}-agent-zone`} accepts={["agent"]}>
@@ -287,19 +300,21 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
       </NodeSection>
 
       <NodeSection title="Terminations">
-        {config.termination_condition && (
+        {
           <Handle
             type="target"
             position={Position.Left}
             id={`${props.id}-termination-input-handle`}
             className="my-left-handle"
           />
-        )}
+        }
         <div className="space-y-1">
-          {config.termination_condition && (
+          {component.config.termination_condition && (
             <div className="text-sm py-1 px-2 bg-white rounded flex items-center gap-2">
               <Timer className="w-4 h-4 text-gray-500" />
-              <span>{config.termination_condition.termination_type}</span>
+              <span>
+                {component.config.termination_condition.component_type}
+              </span>
             </div>
           )}
           <DroppableZone
@@ -317,9 +332,12 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
 };
 
 export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
-  const config = props.data.config as AgentConfig;
-  const hasModel = !!config.model_client;
-  const toolCount = config.tools?.length || 0;
+  const component = props.data.component as Component<AgentConfig>;
+  const hasModel =
+    isAssistantAgent(component) && !!component.config.model_client;
+  const toolCount = isAssistantAgent(component)
+    ? component.config.tools?.length || 0
+    : 0;
 
   return (
     <BaseNode
@@ -327,24 +345,24 @@ export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
       icon={iconMap.agent}
       headerContent={
         <div className="flex gap-2 mt-2">
-          <ConnectionBadge connected={hasModel} label="Model" />
-          <ConnectionBadge
-            connected={toolCount > 0}
-            label={`${toolCount} Tools`}
-          />
+          {isAssistantAgent(component) && (
+            <>
+              <ConnectionBadge connected={hasModel} label="Model" />
+              <ConnectionBadge
+                connected={toolCount > 0}
+                label={`${toolCount} Tools`}
+              />
+            </>
+          )}
         </div>
       }
       descriptionContent={
         <div>
-          <div>Type: {config.agent_type}</div>
-          {config.system_message && (
-            <div className="mt-1 text-xs">
-              <TruncatableText
-                content={config.system_message}
-                textThreshold={150}
-              />
-            </div>
-          )}
+          <div className="break-words truncate mb-1">
+            {" "}
+            {component.config.name}
+          </div>
+          <div className="break-words"> {component.description}</div>
         </div>
       }
     >
@@ -355,66 +373,69 @@ export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
         className="my-left-handle"
       />
 
-      <NodeSection title="Model">
-        <Handle
-          type="target"
-          position={Position.Left}
-          id={`${props.id}-model-input-handle`}
-          className="my-left-handle"
-        />
+      {isAssistantAgent(component) && (
+        <>
+          <NodeSection title="Model">
+            <Handle
+              type="target"
+              position={Position.Left}
+              id={`${props.id}-model-input-handle`}
+              className="my-left-handle"
+            />
 
-        <div className="relative">
-          {config.model_client && (
-            <>
-              {" "}
-              <div className="text-sm">{config.model_client.model}</div>
-            </>
-          )}
-          <DroppableZone id={`${props.id}-model-zone`} accepts={["model"]}>
-            <div className="text-secondary text-xs my-1 text-center">
-              Drop model here
-            </div>
-          </DroppableZone>
-        </div>
-      </NodeSection>
-
-      <NodeSection title="Tools">
-        {
-          <Handle
-            type="target"
-            position={Position.Left}
-            id={`${props.id}-tool-input-handle`}
-            className="my-left-handle"
-          />
-        }
-        <div className="space-y-1">
-          {config.tools && toolCount > 0 && (
-            <div className="space-y-1">
-              {config.tools.map((tool, index) => (
-                <div
-                  key={index}
-                  className="relative text-sm py-1 px-2 bg-white rounded flex items-center gap-2"
-                >
-                  <Wrench className="w-4 h-4 text-gray-500" />
-                  <span>{tool.name}</span>
+            <div className="relative">
+              {component.config.model_client && (
+                <div className="text-sm">
+                  {component.config.model_client.config.model}
                 </div>
-              ))}
+              )}
+              <DroppableZone id={`${props.id}-model-zone`} accepts={["model"]}>
+                <div className="text-secondary text-xs my-1 text-center">
+                  Drop model here
+                </div>
+              </DroppableZone>
             </div>
-          )}
-          <DroppableZone id={`${props.id}-tool-zone`} accepts={["tool"]}>
-            <div className="text-secondary text-xs my-1 text-center">
-              Drop tools here
+          </NodeSection>
+
+          <NodeSection title="Tools">
+            <Handle
+              type="target"
+              position={Position.Left}
+              id={`${props.id}-tool-input-handle`}
+              className="my-left-handle"
+            />
+            <div className="space-y-1">
+              {component.config.tools && toolCount > 0 && (
+                <div className="space-y-1">
+                  {component.config.tools.map((tool, index) => (
+                    <div
+                      key={index}
+                      className="relative text-sm py-1 px-2 bg-white rounded flex items-center gap-2"
+                    >
+                      <Wrench className="w-4 h-4 text-gray-500" />
+                      <span>{tool.config.name}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <DroppableZone id={`${props.id}-tool-zone`} accepts={["tool"]}>
+                <div className="text-secondary text-xs my-1 text-center">
+                  Drop tools here
+                </div>
+              </DroppableZone>
             </div>
-          </DroppableZone>
-        </div>
-      </NodeSection>
+          </NodeSection>
+        </>
+      )}
     </BaseNode>
   );
 };
 
 // Model Node
 export const ModelNode: React.FC<NodeProps<CustomNode>> = (props) => {
-  const config = props.data.config as ModelConfig;
+  const component = props.data.component as Component<ModelConfig>;
+  const isOpenAI = isOpenAIModel(component);
+  const isAzure = isAzureOpenAIModel(component);
 
   return (
     <BaseNode
@@ -422,21 +443,26 @@ export const ModelNode: React.FC<NodeProps<CustomNode>> = (props) => {
       icon={iconMap.model}
       descriptionContent={
         <div>
-          <div>Type: {config.model_type}</div>
-          {config.base_url && (
-            <div className="mt-1 text-xs">URL: {config.base_url}</div>
+          <div className="break-words"> {component.description}</div>
+          {isOpenAI && component.config.base_url && (
+            <div className="mt-1 text-xs">URL: {component.config.base_url}</div>
+          )}
+          {isAzure && (
+            <div className="mt-1 text-xs">
+              Endpoint: {component.config.azure_endpoint}
+            </div>
           )}
         </div>
       }
     >
       <Handle
-        type="source" // This model's handle should be source since it connects TO team/agent
+        type="source"
         position={Position.Right}
         id={`${props.id}-model-output-handle`}
         className="my-right-handle"
       />
       <NodeSection title="Configuration">
-        <div className="text-sm">Model: {config.model}</div>
+        <div className="text-sm">Model: {component.config.model}</div>
       </NodeSection>
     </BaseNode>
   );
@@ -444,29 +470,43 @@ export const ModelNode: React.FC<NodeProps<CustomNode>> = (props) => {
 
 // Tool Node
 export const ToolNode: React.FC<NodeProps<CustomNode>> = (props) => {
-  const config = props.data.config as ToolConfig;
+  const component = props.data.component as Component<ToolConfig>;
+  const isFunctionToolType = isFunctionTool(component);
 
   return (
     <BaseNode
       {...props}
       icon={iconMap.tool}
-      descriptionContent={<div>Tool Type: {config.tool_type}</div>}
+      descriptionContent={
+        <div
+          className=" "
+          title={component.description || component.config.name}
+        >
+          {" "}
+          {component.config.name}
+        </div>
+      }
     >
       <Handle
         type="source"
         position={Position.Right}
-        id={`${props.id}-tool-output-handle`} // Add index to match store logic
+        id={`${props.id}-tool-output-handle`}
         className="my-right-handle"
       />
       <NodeSection title="Configuration">
-        <div className="text-sm">{config.description}</div>
+        <div className="text-sm">{component.config.description}</div>
       </NodeSection>
 
-      <NodeSection title="Content">
-        <div className="text-sm break-all">
-          <TruncatableText content={config.content || ""} textThreshold={150} />
-        </div>
-      </NodeSection>
+      {isFunctionToolType && (
+        <NodeSection title="Content">
+          <div className="text-sm break-all">
+            <TruncatableText
+              content={component.config.source_code || ""}
+              textThreshold={150}
+            />
+          </div>
+        </NodeSection>
+      )}
     </BaseNode>
   );
 };
@@ -475,13 +515,18 @@ export const ToolNode: React.FC<NodeProps<CustomNode>> = (props) => {
 
 // First, let's add the Termination Node component
 export const TerminationNode: React.FC<NodeProps<CustomNode>> = (props) => {
-  const config = props.data.config as TerminationConfig;
+  const component = props.data.component as Component<TerminationConfig>;
+  const isMaxMessages = isMaxMessageTermination(component);
+  const isTextMention = isTextMentionTermination(component);
+  const isOr = isOrTermination(component);
 
   return (
     <BaseNode
       {...props}
       icon={iconMap.termination}
-      descriptionContent={<div>Type: {config.termination_type}</div>}
+      descriptionContent={
+        <div> {component.description || component.label}</div>
+      }
     >
       <Handle
         type="source"
@@ -492,11 +537,12 @@ export const TerminationNode: React.FC<NodeProps<CustomNode>> = (props) => {
 
       <NodeSection title="Configuration">
         <div className="text-sm">
-          {config.termination_type === "MaxMessageTermination" && (
-            <div>Max Messages: {config.max_messages}</div>
+          {isMaxMessages && (
+            <div>Max Messages: {component.config.max_messages}</div>
           )}
-          {config.termination_type === "TextMentionTermination" && (
-            <div>Text: {config.text}</div>
+          {isTextMention && <div>Text: {component.config.text}</div>}
+          {isOr && (
+            <div>OR Conditions: {component.config.conditions.length}</div>
           )}
         </div>
       </NodeSection>
@@ -514,23 +560,46 @@ export const nodeTypes = {
 };
 
 const EDGE_STYLES = {
-  "model-connection": { stroke: "rgb(59, 130, 246)" },
-  "tool-connection": { stroke: "rgb(34, 197, 94)" },
-  "agent-connection": { stroke: "rgb(168, 85, 247)" },
-  "termination-connection": { stroke: "rgb(255, 159, 67)" },
+  "model-connection": { stroke: "rgb(220,220,220)" },
+  "tool-connection": { stroke: "rgb(220,220,220)" },
+  "agent-connection": { stroke: "rgb(220,220,220)" },
+  "termination-connection": { stroke: "rgb(220,220,220)" },
 } as const;
 
 type EdgeType = keyof typeof EDGE_STYLES;
+type CustomEdgeProps = EdgeProps & {
+  type: EdgeType;
+};
 
-export const CustomEdge = ({ data, ...props }: EdgeProps) => {
+export const CustomEdge = ({
+  type,
+  data,
+  deletable,
+  ...props
+}: CustomEdgeProps) => {
   const [edgePath] = getBezierPath(props);
-  const edgeType = (data?.type as EdgeType) || "model-connection";
+  const edgeType = type || "model-connection";
+
+  // Extract only the SVG path properties we want to pass
+  const { style: baseStyle, ...pathProps } = props;
+  const {
+    // Filter out the problematic props
+    sourceX,
+    sourceY,
+    sourcePosition,
+    targetPosition,
+    sourceHandleId,
+    targetHandleId,
+    pathOptions,
+    selectable,
+    ...validPathProps
+  } = pathProps;
 
   return (
     <BaseEdge
       path={edgePath}
       style={{ ...EDGE_STYLES[edgeType], strokeWidth: 2 }}
-      {...props}
+      {...validPathProps}
     />
   );
 };

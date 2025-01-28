@@ -123,11 +123,11 @@ export function isTerminationComponent(
   return component.component_type === "termination";
 }
 
-export function isChatCompletionContextComponent(
-  component: Component<ComponentConfig>
-): component is Component<ChatCompletionContextConfig> {
-  return component.component_type === "chat_completion_context";
-}
+// export function isChatCompletionContextComponent(
+//   component: Component<ComponentConfig>
+// ): component is Component<ChatCompletionContextConfig> {
+//   return component.component_type === "chat_completion_context";
+// }
 
 // Team provider guards with proper type narrowing
 export function isRoundRobinTeam(

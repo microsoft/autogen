@@ -81,7 +81,7 @@ export const TruncatableText = memo(
             ${className}
           `}
         >
-          {displayContent}
+          {/* {displayContent} */}
           <ReactMarkdown>{displayContent}</ReactMarkdown>
           {shouldTruncate && !isExpanded && (
             <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-secondary/20 to-transparent" />

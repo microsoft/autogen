@@ -1,5 +1,10 @@
+// builder/types.ts
 import { Node, Edge } from "@xyflow/react";
-import { Component, ComponentConfig } from "../../../types/datamodel";
+import {
+  Component,
+  ComponentConfig,
+  ComponentTypes,
+} from "../../../types/datamodel";
 
 export interface NodeData extends Record<string, unknown> {
   label: string;

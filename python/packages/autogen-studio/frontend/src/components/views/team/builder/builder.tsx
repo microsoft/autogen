@@ -1,3 +1,4 @@
+//team/builder/builder.tsx
 import React, { useCallback, useRef, useState } from "react";
 import {
   DndContext,
@@ -115,7 +116,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
   React.useEffect(() => {
     if (team?.component) {
       const { nodes: initialNodes, edges: initialEdges } = loadFromJson(
-        team.config
+        team.component
       );
       setNodes(initialNodes);
       setEdges(initialEdges);
@@ -139,21 +140,21 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
   // Handle save
   const handleSave = useCallback(async () => {
     try {
-      const config = syncToJson();
-      if (!config) {
+      const component = syncToJson();
+      if (!component) {
         throw new Error("Unable to generate valid configuration");
       }
 
       if (onChange) {
-        console.log("Saving team configuration", config);
+        console.log("Saving team configuration", component);
         const teamData: Partial<Team> = team
           ? {
               ...team,
-              config,
+              component,
               created_at: undefined,
               updated_at: undefined,
             }
-          : { config };
+          : { component };
         await onChange(teamData);
         resetHistory();
       }
@@ -212,7 +213,10 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
     const targetNode = nodes.find((node) => node.id === over.id);
     if (!targetNode) return;
 
-    const isValid = validateDropTarget(draggedType, targetNode.data.type);
+    const isValid = validateDropTarget(
+      draggedType,
+      targetNode.data.component.component_type
+    );
     // Add visual feedback class to target node
     if (isValid) {
       targetNode.className = "drop-target-valid";
@@ -235,7 +239,10 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
     if (!targetNode) return;
 
     // Validate drop
-    const isValid = validateDropTarget(draggedItem.type, targetNode.data.type);
+    const isValid = validateDropTarget(
+      draggedItem.type,
+      targetNode.data.component.component_type
+    );
     if (!isValid) return;
 
     const position = {
@@ -244,12 +251,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
     };
 
     // Pass both new node data AND target node id
-    addNode(
-      draggedItem.type as ComponentTypes,
-      position,
-      draggedItem.config,
-      nodeId
-    );
+    addNode(position, draggedItem.config, nodeId);
   };
 
   const onDragStart = (item: DragItem) => {
