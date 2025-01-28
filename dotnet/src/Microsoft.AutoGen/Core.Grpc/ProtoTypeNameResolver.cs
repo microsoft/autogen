@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// ITypeNameResolver.cs
+// ProtoTypeNameResolver.cs
 
 using Google.Protobuf;
 

@@ -2,7 +2,6 @@
 // AgentRuntimeBase.cs
 
 using System.Collections.Concurrent;
-using System.Diagnostics;
 using Google.Protobuf;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Protobuf;

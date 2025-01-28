@@ -7,10 +7,10 @@ using System.Threading.Channels;
 using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Protobuf;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.Core.Grpc;
 
@@ -294,7 +294,7 @@ public sealed class GrpcAgentRuntime(
 
     private override async ValueTask<RpcResponse> SendMessageAsync(Payload message, AgentId agentId, AgentId? agent = null, CancellationToken? cancellationToken = default)
     {
-        var request = new RpcRequest
+        _ = new RpcRequest
         {
             RequestId = Guid.NewGuid().ToString(),
             Source = agent,
@@ -523,10 +523,7 @@ public sealed class GrpcAgentRuntime(
         var typeName = SerializationRegistry.TypeNameResolver.ResolveTypeName(message);
 
         const string PAYLOAD_DATA_CONTENT_TYPE = "application/x-protobuf";
-
-        var cloudEvent = CreateCloudEvent(protoAny, topic, typeName, sender ?? new Contracts.AgentId(), messageId ?? Guid.NewGuid().ToString());
-
-
+        _ = CreateCloudEvent(protoAny, topic, typeName, sender ?? new Contracts.AgentId(), messageId ?? Guid.NewGuid().ToString());
 
     }
 
