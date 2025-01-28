@@ -7,7 +7,7 @@ using AutoGen.Anthropic.Utils;
 using AutoGen.Core;
 using FluentAssertions;
 
-namespace AutoGen.Anthropic.Samples;
+namespace AutoGen.Anthropic.Sample;
 
 #region WeatherFunction
 
