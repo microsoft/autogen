@@ -1,49 +1,73 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // TestAgent.cs
 
-using System.Collections.Concurrent;
-using Google.Protobuf;
-using Google.Protobuf.WellKnownTypes;
 using Microsoft.AutoGen.Contracts;
-using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+
 namespace Microsoft.AutoGen.Core.Tests;
+
+public class TextMessage
+{
+    public string Source { get; set; } = "";
+    public string Content { get; set; } = "";
+}
+
+public class RpcTextMessage
+{
+    public string Source { get; set; } = "";
+    public string Content { get; set; } = "";
+}
+
 /// <summary>
 /// The test agent is a simple agent that is used for testing purposes.
 /// </summary>
-public class TestAgent(
-    [FromKeyedServices("AgentsMetadata")] AgentsMetadata eventTypes,
-    Logger<Agent>? logger = null) : Agent(eventTypes, logger), IHandle<TextMessage>
+public class TestAgent(AgentId id,
+        IAgentRuntime runtime,
+        Logger<BaseAgent>? logger = null) : BaseAgent(id, runtime, "Test Agent", logger),
+        IHandle<TextMessage>,
+        IHandle<string>,
+        IHandle<RpcTextMessage, string>
+
 {
-    public Task Handle(TextMessage item, CancellationToken cancellationToken = default)
+    public ValueTask HandleAsync(TextMessage item, MessageContext messageContext)
     {
-        ReceivedMessages[item.Source] = item.TextMessage_;
-        return Task.CompletedTask;
+        ReceivedMessages[item.Source] = item.Content;
+        return ValueTask.CompletedTask;
     }
-    public Task Handle(string item)
-    {
-        ReceivedItems.Add(item);
-        return Task.CompletedTask;
-    }
-    public Task Handle(int item)
+
+    public ValueTask HandleAsync(string item, MessageContext messageContext)
     {
         ReceivedItems.Add(item);
-        return Task.CompletedTask;
+        return ValueTask.CompletedTask;
     }
-    public override Task<RpcResponse> HandleRequestAsync(RpcRequest request)
+
+    public ValueTask HandleAsync(int item, MessageContext messageContext)
     {
-        var response = new RpcResponse
-        {
-            RequestId = request.RequestId,
-            Payload = new Payload { Data = Any.Pack(new TextMessage { TextMessage_ = "Response" }).ToByteString() }
-        };
-        return Task.FromResult(response);
+        ReceivedItems.Add(item);
+        return ValueTask.CompletedTask;
     }
+
+    public ValueTask<string> HandleAsync(RpcTextMessage item, MessageContext messageContext)
+    {
+        ReceivedMessages[item.Source] = item.Content;
+        return ValueTask.FromResult(item.Content);
+    }
+
     public List<object> ReceivedItems { get; private set; } = [];
 
     /// <summary>
     /// Key: source
     /// Value: message
     /// </summary>
-    public static ConcurrentDictionary<string, object> ReceivedMessages { get; private set; } = new();
+    public static Dictionary<string, object> ReceivedMessages { get; private set; } = new();
+}
+
+[TypeSubscription("TestTopic")]
+public class SubscribedAgent : TestAgent
+{
+    public SubscribedAgent(AgentId id,
+        IAgentRuntime runtime,
+        Logger<BaseAgent>? logger = null) : base(id, runtime, logger)
+    {
+    }
 }

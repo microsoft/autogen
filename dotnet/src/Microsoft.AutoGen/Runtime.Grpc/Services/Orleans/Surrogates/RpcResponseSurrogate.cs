@@ -2,7 +2,6 @@
 // RpcResponseSurrogate.cs
 
 using Google.Protobuf.Collections;
-using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Orleans.Surrogates;
 
