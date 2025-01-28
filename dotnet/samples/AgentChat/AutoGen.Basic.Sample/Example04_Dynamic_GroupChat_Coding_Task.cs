@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Example04_Dynamic_GroupChat_Coding_Task.cs
 
-using AutoGen.BasicSample;
+using AutoGen.Basic.Sample;
 using AutoGen.Core;
 using AutoGen.DotnetInteractive;
 using AutoGen.DotnetInteractive.Extension;

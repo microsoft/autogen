@@ -3,7 +3,7 @@
 
 //await Example07_Dynamic_GroupChat_Calculate_Fibonacci.RunAsync();
 
-using AutoGen.BasicSample;
+using AutoGen.Basic.Sample;
 
 //Define allSamples collection for all examples
 var allSamples = new List<(string, Func<Task>)>

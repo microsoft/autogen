@@ -12,7 +12,7 @@ using Microsoft.SemanticKernel.Plugins.Web;
 using Microsoft.SemanticKernel.Plugins.Web.Bing;
 #endregion using_statement
 
-namespace AutoGen.BasicSample;
+namespace AutoGen.Basic.Sample;
 
 public partial class Sequential_GroupChat_Example
 {

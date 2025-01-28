@@ -10,7 +10,7 @@ using FluentAssertions;
 using OpenAI;
 using OpenAI.Chat;
 
-namespace AutoGen.BasicSample.CodeSnippet;
+namespace AutoGen.Basic.Sample.CodeSnippet;
 #region weather_function
 public partial class Functions
 {

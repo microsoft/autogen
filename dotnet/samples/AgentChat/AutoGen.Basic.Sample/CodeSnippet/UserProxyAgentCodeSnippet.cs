@@ -3,7 +3,7 @@
 
 using AutoGen.Core;
 
-namespace AutoGen.BasicSample.CodeSnippet;
+namespace AutoGen.Basic.Sample.CodeSnippet;
 
 public class UserProxyAgentCodeSnippet
 {

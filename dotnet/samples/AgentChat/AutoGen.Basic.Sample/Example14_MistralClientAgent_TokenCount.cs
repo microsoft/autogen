@@ -7,7 +7,7 @@ using AutoGen.Mistral;
 #endregion using_statements
 using FluentAssertions;
 
-namespace AutoGen.BasicSample;
+namespace AutoGen.Basic.Sample;
 
 public class Example14_MistralClientAgent_TokenCount
 {

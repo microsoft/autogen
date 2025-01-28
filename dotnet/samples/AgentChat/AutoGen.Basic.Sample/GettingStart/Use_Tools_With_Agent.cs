@@ -9,7 +9,7 @@ using AutoGen.OpenAI.Extension;
 using FluentAssertions;
 using OpenAI;
 
-namespace AutoGen.BasicSample;
+namespace AutoGen.Basic.Sample;
 
 #region Tools
 public partial class Tools

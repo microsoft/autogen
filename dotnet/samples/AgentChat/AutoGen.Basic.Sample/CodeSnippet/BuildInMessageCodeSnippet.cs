@@ -2,7 +2,7 @@
 // BuildInMessageCodeSnippet.cs
 
 using AutoGen.Core;
-namespace AutoGen.BasicSample.CodeSnippet;
+namespace AutoGen.Basic.Sample.CodeSnippet;
 
 internal class BuildInMessageCodeSnippet
 {

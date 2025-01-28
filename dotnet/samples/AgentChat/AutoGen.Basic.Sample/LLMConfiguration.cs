@@ -4,7 +4,7 @@
 using OpenAI;
 using OpenAI.Chat;
 
-namespace AutoGen.BasicSample;
+namespace AutoGen.Basic.Sample;
 
 internal static class LLMConfiguration
 {

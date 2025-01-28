@@ -2,7 +2,7 @@
 // Example01_AssistantAgent.cs
 
 using AutoGen;
-using AutoGen.BasicSample;
+using AutoGen.Basic.Sample;
 using AutoGen.Core;
 using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;

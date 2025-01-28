@@ -9,7 +9,7 @@ using AutoGen.OpenAI.Extension;
 using OpenAI;
 #endregion lmstudio_using_statements
 
-namespace AutoGen.BasicSample;
+namespace AutoGen.Basic.Sample;
 
 public class Example08_LMStudio
 {

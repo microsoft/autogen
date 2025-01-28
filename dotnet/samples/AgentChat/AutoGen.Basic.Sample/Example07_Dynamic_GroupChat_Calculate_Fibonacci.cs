@@ -3,7 +3,7 @@
 
 using System.Text;
 using System.Text.Json;
-using AutoGen.BasicSample;
+using AutoGen.Basic.Sample;
 using AutoGen.Core;
 using AutoGen.DotnetInteractive;
 using AutoGen.DotnetInteractive.Extension;

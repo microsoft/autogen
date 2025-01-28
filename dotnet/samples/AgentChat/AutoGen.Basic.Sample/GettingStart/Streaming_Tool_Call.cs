@@ -7,7 +7,7 @@ using AutoGen.OpenAI.Extension;
 using FluentAssertions;
 using OpenAI;
 
-namespace AutoGen.BasicSample.GettingStart;
+namespace AutoGen.Basic.Sample.GettingStart;
 
 internal class Streaming_Tool_Call
 {

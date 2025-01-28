@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Example02_TwoAgent_MathChat.cs
 
-using AutoGen.BasicSample;
+using AutoGen.Basic.Sample;
 using AutoGen.Core;
 using AutoGen.OpenAI;
 using AutoGen.OpenAI.Extension;

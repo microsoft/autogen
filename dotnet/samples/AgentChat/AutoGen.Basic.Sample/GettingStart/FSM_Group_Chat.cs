@@ -10,7 +10,7 @@ using OpenAI;
 using OpenAI.Chat;
 #endregion Using
 
-namespace AutoGen.BasicSample;
+namespace AutoGen.Basic.Sample;
 
 #region FillFormTool
 public partial class FillFormTool

@@ -7,7 +7,7 @@ using AutoGen.OpenAI.Extension;
 using OpenAI;
 using OpenAI.Chat;
 
-namespace AutoGen.BasicSample;
+namespace AutoGen.Basic.Sample;
 
 public class OpenAIReActAgent : IAgent
 {
