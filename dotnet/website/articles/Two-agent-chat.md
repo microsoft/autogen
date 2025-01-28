@@ -16,4 +16,4 @@ The following example shows how to start a conversation between the teacher agen
 > [!NOTE]
 > The teacher agent uses @AutoGen.Core.MiddlewareExtension.RegisterPostProcess* to register a post process function which returns a hard-coded termination message when a certain condition is met. Comparing with putting the @AutoGen.Core.GroupChatExtension.TERMINATE keyword in the prompt, this approach is more robust especially when a weaker LLM model is used.
 
-[!code-csharp[](../../samples/AutoGen.BasicSamples/Example02_TwoAgent_MathChat.cs?name=code_snippet_1)]
+[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/Example02_TwoAgent_MathChat.cs?name=code_snippet_1)]
