@@ -185,6 +185,9 @@ class ReplayChatCompletionClient(ChatCompletionClient):
                     yield token + " "
                 else:
                     yield token
+            yield CreateResult(
+                finish_reason="stop", content=response, usage=self._cur_usage, cached=self._cached_bool_value
+            )
             self._update_total_usage()
         else:
             self._cur_usage = RequestUsage(
@@ -226,7 +229,7 @@ class ReplayChatCompletionClient(ChatCompletionClient):
                 total_tokens += len(tokens)
                 all_tokens.extend(tokens)
             else:
-                logger.warning("Token count has been done only on string content", RuntimeWarning)
+                logger.warning("Token count has been done only on string content")
         elif isinstance(messages, Sequence):
             for message in messages:
                 if isinstance(message.content, str):  # type: ignore [reportAttributeAccessIssue, union-attr]
@@ -234,7 +237,7 @@ class ReplayChatCompletionClient(ChatCompletionClient):
                     total_tokens += len(tokens)
                     all_tokens.extend(tokens)
                 else:
-                    logger.warning("Token count has been done only on string content", RuntimeWarning)
+                    logger.warning("Token count has been done only on string content")
         return all_tokens, total_tokens
 
     def _update_total_usage(self) -> None:

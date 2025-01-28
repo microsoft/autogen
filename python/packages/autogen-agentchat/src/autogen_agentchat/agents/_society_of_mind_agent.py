@@ -13,6 +13,7 @@ from ..messages import (
     AgentEvent,
     BaseChatMessage,
     ChatMessage,
+    ModelClientStreamingChunkEvent,
     TextMessage,
 )
 from ._base_chat_agent import BaseChatAgent
@@ -150,6 +151,9 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
                     # Skip the task messages.
                     continue
                 yield inner_msg
+                if isinstance(inner_msg, ModelClientStreamingChunkEvent):
+                    # Skip the model client streaming chunk events.
+                    continue
                 inner_messages.append(inner_msg)
         assert result is not None
 

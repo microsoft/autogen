@@ -9,6 +9,7 @@ from ..messages import (
     AgentEvent,
     BaseChatMessage,
     ChatMessage,
+    ModelClientStreamingChunkEvent,
     TextMessage,
 )
 from ..state import BaseState
@@ -178,8 +179,11 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
                 output_messages.append(message.chat_message)
                 yield TaskResult(messages=output_messages)
             else:
-                output_messages.append(message)
                 yield message
+                if isinstance(message, ModelClientStreamingChunkEvent):
+                    # Skip the model client streaming chunk events.
+                    continue
+                output_messages.append(message)
 
     @abstractmethod
     async def on_reset(self, cancellation_token: CancellationToken) -> None:

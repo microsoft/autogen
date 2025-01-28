@@ -1,7 +1,7 @@
 import logging
 from typing import Any, Dict
 
-from autogen_core.tools import FunctionTool, BaseTool
+from autogen_core.tools import BaseTool, FunctionTool
 from pydantic import BaseModel, Field, model_validator
 
 from .. import EVENT_LOGGER_NAME

@@ -16,6 +16,7 @@ from autogen_agentchat.base import Response, TaskResult
 from autogen_agentchat.messages import (
     AgentEvent,
     ChatMessage,
+    ModelClientStreamingChunkEvent,
     MultiModalMessage,
     UserInputRequestedEvent,
 )
@@ -185,6 +186,9 @@ async def RichConsole(
         elif isinstance(message, UserInputRequestedEvent):
             if user_input_manager is not None:
                 user_input_manager.notify_event_received(message.request_id)
+        elif isinstance(message, ModelClientStreamingChunkEvent):
+            # TODO: Handle model client streaming chunk events.
+            pass
         else:
             # Cast required for mypy to be happy
             message = cast(AgentEvent | ChatMessage, message)  # type: ignore

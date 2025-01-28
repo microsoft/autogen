@@ -128,6 +128,15 @@ class MemoryQueryEvent(BaseAgentEvent):
     type: Literal["MemoryQueryEvent"] = "MemoryQueryEvent"
 
 
+class ModelClientStreamingChunkEvent(BaseAgentEvent):
+    """An event signaling a text output chunk from a model client in streaming mode."""
+
+    content: str
+    """The partial text chunk."""
+
+    type: Literal["ModelClientStreamingChunkEvent"] = "ModelClientStreamingChunkEvent"
+
+
 ChatMessage = Annotated[
     TextMessage | MultiModalMessage | StopMessage | ToolCallSummaryMessage | HandoffMessage, Field(discriminator="type")
 ]
@@ -135,7 +144,11 @@ ChatMessage = Annotated[
 
 
 AgentEvent = Annotated[
-    ToolCallRequestEvent | ToolCallExecutionEvent | MemoryQueryEvent | UserInputRequestedEvent,
+    ToolCallRequestEvent
+    | ToolCallExecutionEvent
+    | MemoryQueryEvent
+    | UserInputRequestedEvent
+    | ModelClientStreamingChunkEvent,
     Field(discriminator="type"),
 ]
 """Events emitted by agents and teams when they work, not used for agent-to-agent communication."""
@@ -154,4 +167,5 @@ __all__ = [
     "ToolCallSummaryMessage",
     "MemoryQueryEvent",
     "UserInputRequestedEvent",
+    "ModelClientStreamingChunkEvent",
 ]
