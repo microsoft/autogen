@@ -70,9 +70,10 @@ public abstract class BaseAgent : IAgent, IHostableAgent
         Dictionary<Type, HandlerInvoker> invokers = new();
         foreach (Type interface_ in candidateInterfaces)
         {
-            MethodInfo? maybeHandle = interface_.GetMethod(nameof(IHandle<object>.HandleAsync), BindingFlags.Instance | BindingFlags.Public);
+            MethodInfo handleAsync = interface_.GetMethod(nameof(IHandle<object>.HandleAsync), BindingFlags.Instance | BindingFlags.Public)
+                                     ?? throw new InvalidOperationException($"No handler method found for interface {interface_.FullName}");
 
-            HandlerInvoker invoker = new(maybeHandle ?? throw new InvalidOperationException($"No handler method found for interface {interface_.FullName}"), this);
+            HandlerInvoker invoker = new(handleAsync, this);
             invokers.Add(interface_.GetGenericArguments()[0], invoker);
         }
 
