@@ -28,7 +28,7 @@ can benefit other users in similar situations.
 ![agentic_memory.png](../../../imgs/agentic_memory.png)
 
 The block diagram above outlines the key components of our baseline agentic memory architecture, 
-which augments a base agent with the agentic memory mechanisms described above. 
+which augments a base agent with the agentic memory mechanisms. 
 
 The **Agentic Memory Controller** implements the fast-learning methods described below, 
 and manages communication with an **Agentic Memory Bank** containing a vector DB and associated structures. 
@@ -37,7 +37,7 @@ The **Apprentice** is a thin wrapper around the combination of agentic memory wi
 Some applications will use the Apprentice class, and others will instantiate and use the Agentic Memory Controller directly.
 
 The **Base Agent** is any agent or team orchestrator designed to perform tasks passed to it, 
-perhaps by interacting with an Environment such as a web browser. 
+perhaps by interacting with an **Environment** such as a web browser. 
 We’ve successfully connected and tested several different base agents: a simple LLM client, 
 the Magentic-One orchestrator, and the GitHub Copilot Chat agent. 
 
@@ -75,9 +75,9 @@ Retrieved insights that pass the filtering steps are listed under a heading like
 
 ## Setup and Usage
 
-After installing AutoGen core, install its extension package as follows:
+After installing AutoGen core, install its extension package from the `autogen/python/packages/autogen-ext` directlry as follows:
 
-`pip install -e .[agentic_memory]`
+`pip install -e .[agentic-memory]`
 
 We provide [sample code](../../../../../samples/agentic_memory/README.md) to illustrate the following forms of memory-based fast learning:
 * Agent learning from user advice and corrections
