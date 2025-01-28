@@ -22,7 +22,7 @@ public interface IAgentRuntime : ISaveState<IAgentRuntime>
     /// <returns>A task representing the asynchronous operation, returning the response from the agent.</returns>
     /// <exception cref="CantHandleException">Thrown if the recipient cannot handle the message.</exception>
     /// <exception cref="UndeliverableException">Thrown if the message cannot be delivered.</exception>
-    public ValueTask<object?> SendMessageAsync(object message, AgentId recepient, AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = default);
+    public ValueTask<object?> SendMessageAsync(object message, AgentId recepient, AgentId? sender = null, string? messageId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Publishes a message to all agents subscribed to the given topic.
@@ -35,7 +35,7 @@ public interface IAgentRuntime : ISaveState<IAgentRuntime>
     /// <param name="cancellationToken">A token to cancel the operation if needed.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <exception cref="UndeliverableException">Thrown if the message cannot be delivered.</exception>
-    public ValueTask PublishMessageAsync(object message, TopicId topic, AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = default);
+    public ValueTask PublishMessageAsync(object message, TopicId topic, AgentId? sender = null, string? messageId = null, CancellationToken cancellationToken = default);
 
     // TODO: Can we call this Resolve?
     /// <summary>

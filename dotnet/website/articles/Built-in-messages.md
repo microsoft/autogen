@@ -30,8 +30,8 @@ AutoGen also introduces @AutoGen.Core.IStreamingMessage and @AutoGen.Core.IStrea
 #### Usage
 
 The below code snippet shows how to print a streaming update to console and update the final result on the caller side.
-[!code-csharp[](../../samples/AutoGen.BasicSamples/CodeSnippet/BuildInMessageCodeSnippet.cs?name=StreamingCallCodeSnippet)]
+[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/CodeSnippet/BuildInMessageCodeSnippet.cs?name=StreamingCallCodeSnippet)]
 
 If the agent returns a final result instead of the last update as the last message in the streaming call method, the caller can directly use the final result without assembling the final result from multiple updates.
 
-[!code-csharp[](../../samples/AutoGen.BasicSamples/CodeSnippet/BuildInMessageCodeSnippet.cs?name=StreamingCallWithFinalMessage)]
+[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/CodeSnippet/BuildInMessageCodeSnippet.cs?name=StreamingCallWithFinalMessage)]
