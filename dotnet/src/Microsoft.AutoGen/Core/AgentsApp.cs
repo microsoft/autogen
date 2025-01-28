@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentsApp.cs
 
+using System.Diagnostics;
 using System.Reflection;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,7 +19,7 @@ public class AgentsAppBuilder
     {
         this.builder = baseBuilder ?? new HostApplicationBuilder();
 
-        this.builder.Services.AddSingleton<IAgentRuntime, InProcessRuntime>();
+        this.AddInProcessRuntime();
     }
 
     public IServiceCollection Services => this.builder.Services;
@@ -28,7 +29,18 @@ public class AgentsAppBuilder
         this.AddAgentsFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
     }
 
-    public void AddAgentsFromAssemblies(params Assembly[] assemblies)
+    public AgentsAppBuilder AddInProcessRuntime()
+    {
+        this.Services.AddSingleton<IAgentRuntime, InProcessRuntime>();
+        this.Services.AddHostedService<InProcessRuntime>(services =>
+        {
+            return (services.GetRequiredService<IAgentRuntime>() as InProcessRuntime)!;
+        });
+
+        return this;
+    }
+
+    public AgentsAppBuilder AddAgentsFromAssemblies(params Assembly[] assemblies)
     {
         IEnumerable<Type> agentTypes = assemblies.SelectMany(assembly => assembly.GetTypes())
             .Where(type => ReflectionHelper.IsSubclassOfGeneric(type, typeof(BaseAgent))
@@ -41,9 +53,11 @@ public class AgentsAppBuilder
             // TODO: Expose skipClassSubscriptions and skipDirectMessageSubscription as parameters?
             this.AddAgent(agentType.Name, agentType);
         }
+
+        return this;
     }
 
-    private void AddAgent(AgentType agentType, Type runtimeType, bool skipClassSubscriptions = false, bool skipDirectMessageSubscription = false)
+    private AgentsAppBuilder AddAgent(AgentType agentType, Type runtimeType, bool skipClassSubscriptions = false, bool skipDirectMessageSubscription = false)
     {
         this.AgentTypeRegistrations.Add(async app =>
         {
@@ -51,9 +65,11 @@ public class AgentsAppBuilder
             await app.AgentRuntime.RegisterImplicitAgentSubscriptionsAsync(agentType, runtimeType, skipClassSubscriptions, skipDirectMessageSubscription);
             return agentType;
         });
+
+        return this;
     }
 
-    public void AddAgent<TAgent>(AgentType agentType, bool skipClassSubscriptions = false, bool skipDirectMessageSubscription = false) where TAgent : IHostableAgent
+    public AgentsAppBuilder AddAgent<TAgent>(AgentType agentType, bool skipClassSubscriptions = false, bool skipDirectMessageSubscription = false) where TAgent : IHostableAgent
         => this.AddAgent(agentType, typeof(TAgent), skipClassSubscriptions, skipDirectMessageSubscription);
 
     public async ValueTask<AgentsApp> BuildAsync()
@@ -81,16 +97,42 @@ public class AgentsApp
 
     public IServiceProvider Services => this.Host.Services;
 
+    public IHostApplicationLifetime ApplicationLifetime => this.Services.GetRequiredService<IHostApplicationLifetime>();
+
     public IAgentRuntime AgentRuntime => this.Services.GetRequiredService<IAgentRuntime>();
 
-    public async ValueTask StartAsync() => await this.Host.StartAsync();
+    private int runningCount;
+    public async ValueTask StartAsync()
+    {
+        if (Interlocked.Exchange(ref this.runningCount, 1) != 0)
+        {
+            throw new InvalidOperationException("Application is already running.");
+        }
 
-    public async ValueTask ShutdownAsync() => await this.Host.StopAsync();
+        Debug.Assert(this.AgentRuntime != null);
 
-    public ValueTask PublishMessageAsync<TMessage>(TMessage message, TopicId topic, string? messageId = null, CancellationToken? cancellationToken = default)
+        await this.Host.StartAsync();
+    }
+
+    public async ValueTask ShutdownAsync()
+    {
+        if (Interlocked.Exchange(ref this.runningCount, 0) != 1)
+        {
+            throw new InvalidOperationException("Application is already stopped.");
+        }
+
+        await this.Host.StopAsync();
+    }
+
+    public async ValueTask PublishMessageAsync<TMessage>(TMessage message, TopicId topic, string? messageId = null, CancellationToken cancellationToken = default)
         where TMessage : notnull
     {
-        return this.AgentRuntime.PublishMessageAsync(message, topic, messageId: messageId, cancellationToken: cancellationToken);
+        if (Volatile.Read(ref this.runningCount) == 0)
+        {
+            await this.StartAsync();
+        }
+
+        await this.AgentRuntime.PublishMessageAsync(message, topic, messageId: messageId, cancellationToken: cancellationToken);
     }
 
     public Task WaitForShutdownAsync()
