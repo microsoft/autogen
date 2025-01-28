@@ -30,20 +30,24 @@ Execute the following commands from this (autogen_ext/agentic_memory) directory.
 
 ### Agent Learning from User Advice and Corrections
 
-This sample first tests the agent for knowledge it currently lacks.
+This sample first tests the agent (once) for knowledge it currently lacks.
 Then the agent is given advice to help it solve the task, and the context window is cleared.
-Finally the agent is tested again to see if it can retrieve and use the advice successfully.
+Finally the agent is once tested again to see if it can retrieve and use the advice successfully.
 
 `python eval_teachability.py settings/teachability.yaml`
+
+By using memory, the agent nearly always succeeds on the second test.
 
 
 ### Agent Learning from User Demonstrations
 
-This sample asks the agent to perform a reasoning task on which it usually fails.
+This sample asks the agent to perform a reasoning task (ten times) on which it usually fails.
 The agent is then given a demonstration of how to solve a similar but different task, and the context window is cleared.
-Finally the agent is tested again to see if it can retrieve and apply the demonstration to the original task.
+Finally the agent is tested 10 more times to see if it can retrieve and apply the demonstration to the original task.
 
 `python eval_learning_from_demonstration.py settings/demonstration.yaml`
+
+By using memory, the agent's success rate is usually higher on the second set of tests.
 
 
 ### Agent Learning from Its Own Experience
@@ -52,6 +56,8 @@ This sample asks the agent to perform a reasoning task on which it usually fails
 Then the agent (running in the background) iterates through a learning loop in an effort to find a solution, 
 which it then stores as an insight in memory.
 Finally the agent is tested again to see if it can retrieve and apply the insight to the original task,
-as well as to a similar but different task.
+as well as to a similar but different task to test generalization.
 
 `python eval_self_teaching.py settings/self_teaching.yaml`
+
+By using memory, the agent usually completes both tasks successfully in the second set of tests.
