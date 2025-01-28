@@ -75,7 +75,7 @@ Retrieved insights that pass the filtering steps are listed under a heading like
 
 ## Setup and Usage
 
-After installing AutoGen core, install its extension package from the `autogen/python/packages/autogen-ext` directlry as follows:
+After installing AutoGen core, install its extension package from the `autogen/python/packages/autogen-ext` directory as follows:
 
 `pip install -e .[agentic-memory]`
 

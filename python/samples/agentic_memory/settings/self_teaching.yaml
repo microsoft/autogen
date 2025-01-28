@@ -1,7 +1,7 @@
 
 PageLogger:
   level: DEBUG  # DEBUG, INFO, WARNING, ERROR, CRITICAL, or NONE.
-  path: ~/pagelogs/temp18
+  path: ~/pagelogs/self-teaching
 
 client:
   model: gpt-4o-2024-08-06
