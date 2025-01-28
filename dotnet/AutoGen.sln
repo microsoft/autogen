@@ -84,23 +84,21 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Extension
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "AgentChat", "AgentChat", "{668726B9-77BC-45CF-B576-0F0773BF1615}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Anthropic.Samples", "samples\AutoGen.Anthropic.Samples\AutoGen.Anthropic.Samples.csproj", "{84020C4A-933A-4693-9889-1B99304A7D76}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Anthropic.Sample", "samples\AgentChat\AutoGen.Anthropic.Sample\AutoGen.Anthropic.Sample.csproj", "{84020C4A-933A-4693-9889-1B99304A7D76}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.BasicSample", "samples\AutoGen.BasicSamples\AutoGen.BasicSample.csproj", "{5777515F-4053-42F9-AF2B-95D8D0F5384A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Basic.Sample", "samples\AgentChat\AutoGen.Basic.Sample\AutoGen.BasicSample.csproj", "{5777515F-4053-42F9-AF2B-95D8D0F5384A}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Gemini.Sample", "samples\AutoGen.Gemini.Sample\AutoGen.Gemini.Sample.csproj", "{2E895A70-DF17-4C6C-BB84-F83B07C75AAD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Gemini.Sample", "samples\AgentChat\AutoGen.Gemini.Sample\AutoGen.Gemini.Sample.csproj", "{2E895A70-DF17-4C6C-BB84-F83B07C75AAD}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Ollama.Sample", "samples\AutoGen.Ollama.Sample\AutoGen.Ollama.Sample.csproj", "{20DA47F2-F6C4-4503-B9D4-420994E28EF0}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.Ollama.Sample", "samples\AgentChat\AutoGen.Ollama.Sample\AutoGen.Ollama.Sample.csproj", "{20DA47F2-F6C4-4503-B9D4-420994E28EF0}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.OpenAI.Sample", "samples\AutoGen.OpenAI.Sample\AutoGen.OpenAI.Sample.csproj", "{1F86E48B-8674-4C20-A3BE-9431049A5BEC}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.OpenAI.Sample", "samples\AgentChat\AutoGen.OpenAI.Sample\AutoGen.OpenAI.Sample.csproj", "{1F86E48B-8674-4C20-A3BE-9431049A5BEC}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.SemanticKernel.Sample", "samples\AutoGen.SemanticKernel.Sample\AutoGen.SemanticKernel.Sample.csproj", "{CB8824F5-9475-451F-87E8-F2AEF2490A12}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.SemanticKernel.Sample", "samples\AgentChat\AutoGen.SemanticKernel.Sample\AutoGen.SemanticKernel.Sample.csproj", "{CB8824F5-9475-451F-87E8-F2AEF2490A12}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.WebAPI.Sample", "samples\AutoGen.WebAPI.Sample\AutoGen.WebAPI.Sample.csproj", "{4385AFCF-AB4A-49B2-BEBA-D33C950E1EE6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "AutoGen.WebAPI.Sample", "samples\AgentChat\AutoGen.WebAPI.Sample\AutoGen.WebAPI.Sample.csproj", "{4385AFCF-AB4A-49B2-BEBA-D33C950E1EE6}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Extensions.MEAI", "src\Microsoft.AutoGen\Extensions\MEAI\Microsoft.AutoGen.Extensions.MEAI.csproj", "{97550E87-48C6-4EBF-85E1-413ABAE9DBFD}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "sample", "sample", "{686480D7-8FEC-4ED3-9C5D-CEBE1057A7ED}"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Microsoft.AutoGen.Extensions.Aspire", "src\Microsoft.AutoGen\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj", "{65059914-5527-4A00-9308-9FAF23D5E85A}"
 EndProject
@@ -112,7 +110,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Tests.Sha
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "samples", "samples", "{CE0AA8D5-12B8-4628-9589-DAD8CB0DDCF6}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "getting-started", "samples\getting-started\getting-started.csproj", "{70A8D4B5-D0A6-4098-A6F3-6ED274B65E7D}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "GettingStarted", "samples\GettingStarted\GettingStarted.csproj", "{70A8D4B5-D0A6-4098-A6F3-6ED274B65E7D}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -377,7 +375,7 @@ Global
 		{4BB66E06-37D8-45A0-9B97-DE590AFBA340} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{FD87BD33-4616-460B-AC85-A412BA08BB78} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{952827D4-8D4C-4327-AE4D-E8D25811EF35} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
-		{668726B9-77BC-45CF-B576-0F0773BF1615} = {686480D7-8FEC-4ED3-9C5D-CEBE1057A7ED}
+		{668726B9-77BC-45CF-B576-0F0773BF1615} = {CE0AA8D5-12B8-4628-9589-DAD8CB0DDCF6}
 		{84020C4A-933A-4693-9889-1B99304A7D76} = {668726B9-77BC-45CF-B576-0F0773BF1615}
 		{5777515F-4053-42F9-AF2B-95D8D0F5384A} = {668726B9-77BC-45CF-B576-0F0773BF1615}
 		{2E895A70-DF17-4C6C-BB84-F83B07C75AAD} = {668726B9-77BC-45CF-B576-0F0773BF1615}

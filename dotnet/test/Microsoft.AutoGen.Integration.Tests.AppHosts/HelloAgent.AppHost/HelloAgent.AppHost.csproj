@@ -16,6 +16,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\samples\Hello\HelloAgent\HelloAgent.csproj" />
+    <ProjectReference Include="..\..\..\samples\AgentChat\Hello\HelloAgent\HelloAgent.csproj" />
   </ItemGroup>
 </Project>
