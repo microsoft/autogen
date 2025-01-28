@@ -79,7 +79,7 @@ After installing AutoGen core, install its extension package from the `autogen/p
 
 `pip install -e .[agentic-memory]`
 
-We provide [sample code](../../../../../samples/agentic_memory/README.md) to illustrate the following forms of memory-based fast learning:
+We provide [sample code](../../../../../samples/agentic_memory) to illustrate the following forms of memory-based fast learning:
 * Agent learning from user advice and corrections
 * Agent learning from user demonstrations    
 * Agent learning from its own experience

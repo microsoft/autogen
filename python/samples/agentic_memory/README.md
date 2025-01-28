@@ -6,9 +6,10 @@ This directory contains code samples that illustrate the following forms of memo
 * Agent learning from its own experience
 
 Each sample is contained in a separate python script, using data and settings stored in yaml files.
-Note that since agent behavior is non-deterministic, the results may vary between runs.
+Note that since agent behavior is non-deterministic, results will vary between runs.
 
-To watch all operations in a browser, open the HTML page at the location specified at the top of the settings file, 
+To watch operations live in a browser and see how agentic memory works, 
+open the HTML page at the location specified at the top of the settings file, 
 such as: `~/pagelogs/teachability/0  Call Tree.html`
 
 
@@ -21,7 +22,7 @@ After installing AutoGen core, install its extension package from the `autogen/p
 
 ## Running the Samples
 
-Execute the following commands from this directory.
+Execute the following commands from this (autogen_ext/agentic_memory) directory.
 
 
 ### Agent Learning from User Advice and Corrections
