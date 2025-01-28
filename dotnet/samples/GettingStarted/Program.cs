@@ -15,11 +15,14 @@ TerminationF runUntilFunc = (int x) =>
 };
 
 AgentsAppBuilder appBuilder = new AgentsAppBuilder();
+appBuilder.UseInProcessRuntime();
+
 appBuilder.Services.TryAddSingleton(modifyFunc);
 appBuilder.Services.TryAddSingleton(runUntilFunc);
 
 appBuilder.AddAgent<Checker>("Checker");
 appBuilder.AddAgent<Modifier>("Modifier");
+
 var app = await appBuilder.BuildAsync();
 await app.StartAsync();
 

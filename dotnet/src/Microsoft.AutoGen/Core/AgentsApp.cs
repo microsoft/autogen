@@ -18,8 +18,6 @@ public class AgentsAppBuilder
     public AgentsAppBuilder(HostApplicationBuilder? baseBuilder = null)
     {
         this.builder = baseBuilder ?? new HostApplicationBuilder();
-
-        this.AddInProcessRuntime();
     }
 
     public IServiceCollection Services => this.builder.Services;
@@ -29,9 +27,9 @@ public class AgentsAppBuilder
         this.AddAgentsFromAssemblies(AppDomain.CurrentDomain.GetAssemblies());
     }
 
-    public AgentsAppBuilder AddInProcessRuntime()
+    public AgentsAppBuilder UseInProcessRuntime(bool deliverToSelf = false)
     {
-        this.Services.AddSingleton<IAgentRuntime, InProcessRuntime>();
+        this.Services.AddSingleton<IAgentRuntime, InProcessRuntime>(_ => new InProcessRuntime { DeliverToSelf = deliverToSelf });
         this.Services.AddHostedService<InProcessRuntime>(services =>
         {
             return (services.GetRequiredService<IAgentRuntime>() as InProcessRuntime)!;

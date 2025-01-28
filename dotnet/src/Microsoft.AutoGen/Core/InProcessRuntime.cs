@@ -55,7 +55,7 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
             };
 
             AgentId agentId = subscription.MapToAgent(topic);
-            if (this.DeliverToSelf || sender.HasValue && sender == agentId)
+            if (!this.DeliverToSelf && sender.HasValue && sender == agentId)
             {
                 continue;
             }
