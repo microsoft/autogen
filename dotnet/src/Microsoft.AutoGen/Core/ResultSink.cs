@@ -14,7 +14,7 @@ internal interface IResultSink<TResult> : IValueTaskSource<TResult>
     ValueTask<TResult> Future { get; }
 }
 
-internal sealed class ResultSink<TResult> : IResultSink<TResult>
+public sealed class ResultSink<TResult> : IResultSink<TResult>
 {
     private ManualResetValueTaskSourceCore<TResult> core;
 
