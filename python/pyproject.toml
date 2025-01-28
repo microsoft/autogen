@@ -1,13 +1,11 @@
-[tool.uv.workspace]
-members = ["packages/*"]
-
-[tool.uv]
-dev-dependencies = [
-    "pyright==1.1.378",
-    "mypy==1.10.0",
+[dependency-groups]
+dev = [
+    "pyright==1.1.389",
+    "mypy==1.13.0",
     "ruff==0.4.8",
     "pytest",
     "pytest-asyncio",
+    "pytest-cov",
     "pytest-xdist",
     "typer",
     "rich",
@@ -20,10 +18,30 @@ dev-dependencies = [
     "cookiecutter",
     "poethepoet",
     "tomli",
+    "tomli-w",
+    "chainlit",
 ]
 
+[tool.uv]
+override-dependencies = [
+    "tenacity>=9.0.0",
+    "aiofiles>=24.1.0",
+    "chainlit>=2.0.1",
+    "httpx>=0.27.0",
+]
+[tool.uv.workspace]
+members = ["packages/*"]
+
 [tool.uv.sources]
+agbench = { workspace = true }
+autogen-agentchat = { workspace = true }
 autogen-core = { workspace = true }
+autogen-ext = { workspace = true }
+autogen-magentic-one = { workspace = true }
+autogen-test-utils = { workspace = true }
+autogenstudio = { workspace = true }
+component-schema-gen = { workspace = true }
+magentic-one-cli = { workspace = true }
 
 [tool.ruff]
 line-length = 120
@@ -61,10 +79,10 @@ disallow_any_unimported = true
 
 [tool.pyright]
 include = ["src", "tests", "samples"]
+exclude = ["samples/core_xlang_hello_python_agent/protos"]
 typeCheckingMode = "strict"
 reportUnnecessaryIsInstance = false
 reportMissingTypeStubs = false
-exclude = ["src/autogen_core/application/protos"]
 
 [tool.poe.tasks]
 fmt = "python run_task_in_pkgs_if_exist.py fmt"
@@ -73,7 +91,21 @@ lint = "python run_task_in_pkgs_if_exist.py lint"
 pyright = "python run_task_in_pkgs_if_exist.py pyright"
 mypy = "python run_task_in_pkgs_if_exist.py mypy"
 test = "python run_task_in_pkgs_if_exist.py test"
+markdown-code-lint = """python check_md_code_blocks.py ../README.md ./packages/autogen-core/docs/src/**/*.md"""
+samples-code-check = """pyright ./samples"""
 
-check = ["fmt", "lint", "pyright", "mypy", "test"]
+check = ["fmt", "lint", "pyright", "mypy", "test", "markdown-code-lint", "samples-code-check"]
 
-gen-proto = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/src/autogen_core/application/protos --grpc_python_out=./packages/autogen-core/src/autogen_core/application/protos --mypy_out=./packages/autogen-core/src/autogen_core/application/protos --mypy_grpc_out=./packages/autogen-core/src/autogen_core/application/protos --proto_path ../protos/ agent_worker.proto --proto_path ../protos/ cloudevent.proto"
+gen-proto = [
+    { cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --grpc_python_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --mypy_grpc_out=./packages/autogen-ext/src/autogen_ext/runtimes/grpc/protos --proto_path ../protos/ agent_worker.proto --proto_path ../protos/ cloudevent.proto" },
+    { script = "fixup_generated_files:main" }
+]
+
+
+gen-proto-samples = "python -m grpc_tools.protoc --python_out=./samples/core_xlang_hello_python_agent/protos --grpc_python_out=./samples/core_xlang_hello_python_agent/protos --mypy_out=./samples/core_xlang_hello_python_agent/protos --mypy_grpc_out=./samples/core_xlang_hello_python_agent/protos --proto_path ../protos/ agent_events.proto"
+
+[[tool.poe.tasks.gen-test-proto.sequence]]
+cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/tests/protos --grpc_python_out=./packages/autogen-core/tests/protos --mypy_out=./packages/autogen-core/tests/protos --mypy_grpc_out=./packages/autogen-core/tests/protos --proto_path ./packages/autogen-core/tests/protos serialization_test.proto"
+
+[[tool.poe.tasks.gen-test-proto.sequence]]
+cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/tests/protos --grpc_python_out=./packages/autogen-ext/tests/protos --mypy_out=./packages/autogen-ext/tests/protos --mypy_grpc_out=./packages/autogen-ext/tests/protos --proto_path ./packages/autogen-core/tests/protos serialization_test.proto"

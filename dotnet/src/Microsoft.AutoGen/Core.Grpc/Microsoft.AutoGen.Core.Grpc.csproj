@@ -1,0 +1,16 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Core\Microsoft.AutoGen.Core.csproj" />
+    <ProjectReference Include="..\Contracts\Microsoft.AutoGen.Contracts.csproj" />
+    <ProjectReference Include="..\Runtime.Grpc\Microsoft.AutoGen.Runtime.Grpc.csproj" />
+  </ItemGroup>
+
+
+</Project>

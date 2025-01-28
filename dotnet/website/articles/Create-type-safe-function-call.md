@@ -1,4 +1,4 @@
-## Type-safe function call
+## Create type-safe function call using AutoGen.SourceGenerator
 
 `AutoGen` provides a source generator to easness the trouble of manually craft function definition and function call wrapper from a function. To use this feature, simply add the `AutoGen.SourceGenerator` package to your project and decorate your function with @AutoGen.Core.FunctionAttribute.
 

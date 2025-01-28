@@ -1,9 +1,14 @@
 import pytest
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, TopicId
-from autogen_core.base.exceptions import CantHandleException
-from autogen_core.components import DefaultSubscription, DefaultTopicId, TypeSubscription
-from test_utils import LoopbackAgent, MessageType
+from autogen_core import (
+    AgentId,
+    DefaultSubscription,
+    DefaultTopicId,
+    SingleThreadedAgentRuntime,
+    TopicId,
+    TypeSubscription,
+)
+from autogen_core.exceptions import CantHandleException
+from autogen_test_utils import LoopbackAgent, MessageType
 
 
 def test_type_subscription_match() -> None:
@@ -27,7 +32,7 @@ def test_type_subscription_map() -> None:
 async def test_non_default_default_subscription() -> None:
     runtime = SingleThreadedAgentRuntime()
 
-    await runtime.register("MyAgent", LoopbackAgent)
+    await LoopbackAgent.register(runtime, "MyAgent", LoopbackAgent, skip_class_subscriptions=True)
     runtime.start()
     await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
     await runtime.stop_when_idle()

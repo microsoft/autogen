@@ -1,3 +1,5 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// AzureService.cs
 
 using System.Text;
 using Azure;
@@ -10,7 +12,7 @@ using Azure.Storage.Files.Shares;
 using DevTeam.Options;
 using Microsoft.Extensions.Options;
 
-namespace DevTeam.Backend;
+namespace DevTeam.Backend.Services;
 
 public class AzureService : IManageAzure
 {

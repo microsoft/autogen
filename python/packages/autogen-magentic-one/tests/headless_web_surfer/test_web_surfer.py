@@ -1,6 +1,7 @@
 #!/usr/bin/env python3 -m pytest
 
 import asyncio
+import json
 import os
 import re
 from json import dumps
@@ -8,13 +9,12 @@ from math import ceil
 from typing import Mapping
 
 import pytest
-from autogen_core.application import SingleThreadedAgentRuntime
-from autogen_core.base import AgentId, AgentProxy
-from autogen_core.components import FunctionCall
-from autogen_core.components.models import (
+from autogen_core import AgentId, AgentProxy, FunctionCall, SingleThreadedAgentRuntime
+from autogen_core.models import (
     UserMessage,
 )
-from autogen_core.components.tools._base import ToolSchema
+from autogen_core.models._model_client import ChatCompletionClient
+from autogen_core.tools._base import ToolSchema
 from autogen_magentic_one.agents.multimodal_web_surfer import MultimodalWebSurfer
 from autogen_magentic_one.agents.multimodal_web_surfer.tool_definitions import (
     TOOL_PAGE_DOWN,
@@ -27,11 +27,6 @@ from autogen_magentic_one.agents.multimodal_web_surfer.tool_definitions import (
 from autogen_magentic_one.agents.orchestrator import RoundRobinOrchestrator
 from autogen_magentic_one.agents.user_proxy import UserProxy
 from autogen_magentic_one.messages import BroadcastMessage
-from autogen_magentic_one.utils import (
-    ENVIRON_KEY_CHAT_COMPLETION_KWARGS_JSON,
-    ENVIRON_KEY_CHAT_COMPLETION_PROVIDER,
-    create_completion_client_from_env,
-)
 from conftest import MOCK_CHAT_COMPLETION_KWARGS, reason
 from openai import AuthenticationError
 
@@ -41,7 +36,7 @@ pytest_plugins = ("pytest_asyncio",)
 BLOG_POST_URL = "https://microsoft.github.io/autogen/blog/2023/04/21/LLM-tuning-math"
 BLOG_POST_TITLE = "Does Model and Inference Parameter Matter in LLM Applications? - A Case Study for MATH | AutoGen"
 BING_QUERY = "Microsoft"
-
+DEBUG_DIR = "test_logs_web_surfer_autogen"
 
 skip_all = False
 
@@ -59,10 +54,26 @@ skip_all = False
 # Search currently does not require an API key
 skip_bing = False
 
-if os.getenv(ENVIRON_KEY_CHAT_COMPLETION_KWARGS_JSON):
+if os.getenv("CHAT_COMPLETION_CLIENT_CONFIG"):
     skip_openai = False
 else:
     skip_openai = True
+
+
+def _rm_folder(path: str) -> None:
+    """Remove all the regular files in a folder, then deletes the folder. Assumes a flat file structure, with no subdirectories."""
+    for fname in os.listdir(path):
+        fpath = os.path.join(path, fname)
+        if os.path.isfile(fpath):
+            os.unlink(fpath)
+    os.rmdir(path)
+
+
+def _create_logs_dir() -> None:
+    logs_dir = os.path.join(os.getcwd(), DEBUG_DIR)
+    if os.path.isdir(logs_dir):
+        _rm_folder(logs_dir)
+    os.mkdir(logs_dir)
 
 
 def generate_tool_request(tool: ToolSchema, args: Mapping[str, str]) -> list[FunctionCall]:
@@ -85,14 +96,10 @@ async def make_browser_request(browser: MultimodalWebSurfer, tool: ToolSchema, a
 @pytest.mark.skip(reason="Need to fix this test to use a local website instead of a public one.")
 @pytest.mark.asyncio
 async def test_web_surfer() -> None:
-    env = {
-        ENVIRON_KEY_CHAT_COMPLETION_PROVIDER: "openai",
-        ENVIRON_KEY_CHAT_COMPLETION_KWARGS_JSON: MOCK_CHAT_COMPLETION_KWARGS,
-    }
-
     runtime = SingleThreadedAgentRuntime()
     # Create an appropriate client
-    client = create_completion_client_from_env(env)
+    config = {"provider": "OpenAIChatCompletionClient", "config": json.loads(MOCK_CHAT_COMPLETION_KWARGS)}
+    client = ChatCompletionClient.load_component(config)
 
     # Register agents.
 
@@ -106,7 +113,9 @@ async def test_web_surfer() -> None:
     runtime.start()
 
     actual_surfer = await runtime.try_get_underlying_agent_instance(web_surfer, MultimodalWebSurfer)
-    await actual_surfer.init(model_client=client, downloads_folder=os.getcwd(), browser_channel="chromium")
+    await actual_surfer.init(
+        model_client=client, downloads_folder=os.getcwd(), browser_channel="chromium", debug_dir=DEBUG_DIR
+    )
 
     # Test some basic navigations
     tool_resp = await make_browser_request(actual_surfer, TOOL_VISIT_URL, {"url": BLOG_POST_URL})
@@ -167,7 +176,7 @@ async def test_web_surfer_oai() -> None:
     runtime = SingleThreadedAgentRuntime()
 
     # Create an appropriate client
-    client = create_completion_client_from_env()
+    client = ChatCompletionClient.load_component(json.loads(os.environ["CHAT_COMPLETION_CLIENT_CONFIG"]))
 
     # Register agents.
     await MultimodalWebSurfer.register(
@@ -189,7 +198,9 @@ async def test_web_surfer_oai() -> None:
     runtime.start()
 
     actual_surfer = await runtime.try_get_underlying_agent_instance(web_surfer.id, MultimodalWebSurfer)
-    await actual_surfer.init(model_client=client, downloads_folder=os.getcwd(), browser_channel="chromium")
+    await actual_surfer.init(
+        model_client=client, downloads_folder=os.getcwd(), browser_channel="chromium", debug_dir=DEBUG_DIR
+    )
 
     await runtime.send_message(
         BroadcastMessage(
@@ -229,14 +240,10 @@ async def test_web_surfer_oai() -> None:
 )
 @pytest.mark.asyncio
 async def test_web_surfer_bing() -> None:
-    env = {
-        ENVIRON_KEY_CHAT_COMPLETION_PROVIDER: "openai",
-        ENVIRON_KEY_CHAT_COMPLETION_KWARGS_JSON: MOCK_CHAT_COMPLETION_KWARGS,
-    }
-
     runtime = SingleThreadedAgentRuntime()
     # Create an appropriate client
-    client = create_completion_client_from_env(env)
+    config = {"provider": "OpenAIChatCompletionClient", "config": json.loads(MOCK_CHAT_COMPLETION_KWARGS)}
+    client = ChatCompletionClient.load_component(config)
 
     # Register agents.
     await MultimodalWebSurfer.register(
@@ -248,7 +255,9 @@ async def test_web_surfer_bing() -> None:
 
     runtime.start()
     actual_surfer = await runtime.try_get_underlying_agent_instance(web_surfer.id, MultimodalWebSurfer)
-    await actual_surfer.init(model_client=client, downloads_folder=os.getcwd(), browser_channel="chromium")
+    await actual_surfer.init(
+        model_client=client, downloads_folder=os.getcwd(), browser_channel="chromium", debug_dir=DEBUG_DIR
+    )
 
     # Test some basic navigations
     tool_resp = await make_browser_request(actual_surfer, TOOL_WEB_SEARCH, {"query": BING_QUERY})
@@ -262,10 +271,15 @@ async def test_web_surfer_bing() -> None:
     markdown = await actual_surfer._get_page_markdown()  # type: ignore
     assert "https://en.wikipedia.org/wiki/" in markdown
     await runtime.stop_when_idle()
+    # remove the logs directory
+    _rm_folder(DEBUG_DIR)
 
 
 if __name__ == "__main__":
     """Runs this file's tests from the command line."""
+
+    _create_logs_dir()
     asyncio.run(test_web_surfer())
     asyncio.run(test_web_surfer_oai())
+    # IMPORTANT: last test should remove the logs directory
     asyncio.run(test_web_surfer_bing())

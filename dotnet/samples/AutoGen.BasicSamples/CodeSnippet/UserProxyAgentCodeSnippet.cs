@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // UserProxyAgentCodeSnippet.cs
+
 using AutoGen.Core;
 
 namespace AutoGen.BasicSample.CodeSnippet;

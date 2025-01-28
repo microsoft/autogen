@@ -193,3 +193,9 @@ notebook/result.png
 samples/apps/autogen-studio/autogenstudio/models/test/
 
 notebook/coding
+
+# dotnet artifacts
+artifacts
+
+# project data
+registry.json

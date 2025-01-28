@@ -1,8 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
+  <Sdk Name="Aspire.AppHost.Sdk" Version="9.0.0" />
+
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net8.0</TargetFramework>
+        <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsAspireHost>true</IsAspireHost>
@@ -19,8 +21,6 @@
 
    <ItemGroup>
     <ProjectReference Include="..\DevTeam.Backend\DevTeam.Backend.csproj" />
-    <ProjectReference Include="..\DevTeam.AgentHost\DevTeam.AgentHost.csproj" />
-    <ProjectReference Include="..\DevTeam.Agents\DevTeam.Agents.csproj" />
   </ItemGroup>
 
 </Project>

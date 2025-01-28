@@ -10,7 +10,7 @@ authors = [
 description = "AutoGen Studio"
 readme = "README.md"
 license = {file = "LICENSE-CODE"}
-requires-python = ">=3.9, <3.13"
+requires-python = ">=3.9"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -20,11 +20,11 @@ classifiers = [
 
 dependencies = [
     "pydantic",
+    "pydantic-settings",
     "fastapi",
     "typer",
     "uvicorn",
-    "arxiv",
-    "pyautogen[gemini,anthropic,mistral]==0.2.34",
+    "aiofiles",
     "python-dotenv",
     "websockets",
     "numpy < 2.0.0",
@@ -32,6 +32,11 @@ dependencies = [
     "psycopg",
     "alembic",
     "loguru",
+    "pyyaml",
+    "autogen-core>=0.4.2,<0.5",
+    "autogen-agentchat>=0.4.2,<0.5",
+    "autogen-ext[magentic-one, openai, azure]>=0.4.2,<0.5",
+    "azure-identity"
 ]
 optional-dependencies = {web = ["fastapi", "uvicorn"], database = ["psycopg"]}
 
@@ -66,3 +71,21 @@ filterwarnings = [
 
 [project.scripts]
 autogenstudio = "autogenstudio.cli:run"
+
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+exclude = ["build", "dist"]
+include = [
+    "autogenstudio/**"
+]
+
+[tool.ruff.lint]
+ignore = ["B008"]
+
+
+[tool.poe.tasks]
+fmt = "ruff format"
+format.ref = "fmt"
+lint = "ruff check"
+test = "pytest -n 0 --cov=autogenstudio --cov-report=term-missing"

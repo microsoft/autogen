@@ -15,5 +15,6 @@
     <ProjectReference Include="..\..\src\AutoGen\AutoGen.csproj" />
     <PackageReference Include="FluentAssertions" />
     <PackageReference Include="Microsoft.SemanticKernel.Plugins.Web" />
+    <PackageReference Include="Microsoft.Extensions.AI" />
   </ItemGroup>
 </Project>
