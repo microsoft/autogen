@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IGatewayRegistry.cs
-
+using Microsoft.AutoGen.Protobuf;
 using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Abstractions;
@@ -15,7 +15,7 @@ public interface IGatewayRegistry : IRegistry
     /// </summary>
     /// <param name="agentId">The ID of the agent.</param>
     /// <returns>A tuple containing the worker and a boolean indicating if it's a new placement.</returns>
-    ValueTask<(IGateway? Worker, bool NewPlacement)> GetOrPlaceAgent(AgentId agentId);
+    ValueTask<(IGateway? Worker, bool NewPlacement)> GetOrPlaceAgent(Protobuf.AgentId agentId);
 
     /// <summary>
     /// Removes a worker from the registry.

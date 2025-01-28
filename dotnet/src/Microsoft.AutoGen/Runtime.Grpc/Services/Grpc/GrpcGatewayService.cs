@@ -2,7 +2,8 @@
 // GrpcGatewayService.cs
 
 using Grpc.Core;
-using Microsoft.AutoGen.Contracts;
+
+using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
 
@@ -26,7 +27,7 @@ public sealed class GrpcGatewayService(GrpcGateway gateway) : AgentRpc.AgentRpcB
             throw;
         }
     }
-    public override async Task<GetStateResponse> GetState(AgentId request, ServerCallContext context)
+    public override async Task<GetStateResponse> GetState(Protobuf.AgentId request, ServerCallContext context)
     {
         var state = await Gateway.ReadAsync(request);
         return new GetStateResponse { AgentState = state };
@@ -42,11 +43,11 @@ public sealed class GrpcGatewayService(GrpcGateway gateway) : AgentRpc.AgentRpcB
     public override async Task<AddSubscriptionResponse> AddSubscription(AddSubscriptionRequest request, ServerCallContext context)
     {
         request.RequestId = context.Peer;
-        return await Gateway.SubscribeAsync(request).ConfigureAwait(true);
+        return await Gateway.AddSubscriptionAsync(request).ConfigureAwait(true);
     }
     public override async Task<RemoveSubscriptionResponse> RemoveSubscription(RemoveSubscriptionRequest request, ServerCallContext context)
     {
-        return await Gateway.UnsubscribeAsync(request).ConfigureAwait(true);
+        return await Gateway.RemoveSubscriptionAsync(request).ConfigureAwait(true);
     }
     public override async Task<GetSubscriptionsResponse> GetSubscriptions(GetSubscriptionsRequest request, ServerCallContext context)
     {

@@ -10,6 +10,8 @@ using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.AutoGen.Protobuf;
+
 
 namespace Microsoft.AutoGen.Core.Grpc;
 
@@ -19,12 +21,7 @@ public sealed class GrpcAgentRuntime(
     IServiceProvider serviceProvider,
     [FromKeyedServices("AgentTypes")] IEnumerable<Tuple<string, System.Type>> configuredAgentTypes,
     ILogger<GrpcAgentRuntime> logger
-    ) : AgentRuntime(
-        hostApplicationLifetime,
-        serviceProvider,
-        configuredAgentTypes,
-        logger
-        ), IDisposable
+    ) : IAgentRuntime, IDisposable
 {
     private readonly object _channelLock = new();
     private readonly ConcurrentDictionary<string, global::System.Type> _agentTypes = new();
@@ -458,6 +455,87 @@ public sealed class GrpcAgentRuntime(
     {
         var response = _client.RemoveSubscription(request, null, null, cancellationToken);
         return response;
+    }
+
+    public ValueTask<object?> SendMessageAsync(object message, Contracts.AgentId recepient, Contracts.AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = null)
+    {
+        // Check if message is a protobuf IMessage
+        IMessage? protoMessage = message as IMessage;
+
+        if (protoMessage is null)
+        {
+            throw new ArgumentException("Message must be a protobuf IMessage", nameof(message));
+        }
+
+
+
+
+        throw new NotImplementedException();
+    }
+
+    public ValueTask PublishMessageAsync(object message, TopicId topic, Contracts.AgentId? sender = null, string? messageId = null, CancellationToken? cancellationToken = null)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<Contracts.AgentId> GetAgentAsync(Contracts.AgentId agentId, bool lazy = true)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<Contracts.AgentId> GetAgentAsync(AgentType agentType, string key = "default", bool lazy = true)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<Contracts.AgentId> GetAgentAsync(string agent, string key = "default", bool lazy = true)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<IDictionary<string, object>> SaveAgentStateAsync(Contracts.AgentId agentId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask LoadAgentStateAsync(Contracts.AgentId agentId, IDictionary<string, object> state)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<AgentMetadata> GetAgentMetadataAsync(Contracts.AgentId agentId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask AddSubscriptionAsync(ISubscriptionDefinition subscription)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask RemoveSubscriptionAsync(string subscriptionId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<AgentType> RegisterAgentFactoryAsync(AgentType type, Func<Contracts.AgentId, IAgentRuntime, ValueTask<IHostableAgent>> factoryFunc)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<AgentProxy> TryGetAgentProxyAsync(Contracts.AgentId agentId)
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask<IDictionary<string, object>> SaveStateAsync()
+    {
+        throw new NotImplementedException();
+    }
+
+    public ValueTask LoadStateAsync(IDictionary<string, object> state)
+    {
+        throw new NotImplementedException();
     }
 }
 

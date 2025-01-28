@@ -3,6 +3,7 @@
 
 using System.Threading.Channels;
 using Grpc.Core;
+using Microsoft.AutoGen.Runtime.Grpc.Abstractions;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
 
