@@ -21,8 +21,6 @@
     <EnableNetAnalyzers>true</EnableNetAnalyzers>
     <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
     <IsTestProject>false</IsTestProject>
-    <DebugType>embedded</DebugType>
-    <DebugSymbols>true</DebugSymbols>
   </PropertyGroup>
 
   <PropertyGroup>
