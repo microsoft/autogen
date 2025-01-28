@@ -7,7 +7,6 @@ using System.Threading.Channels;
 using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.AutoGen.Contracts;
-using Microsoft.AutoGen.Protobuf;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -295,7 +294,7 @@ public sealed class GrpcAgentRuntime(
     }
     public override async ValueTask<RpcResponse> SendMessageAsync(IMessage message, AgentId agentId, AgentId? agent = null, CancellationToken? cancellationToken = default)
     {
-        _ = new RpcRequest
+        var request = new RpcRequest
         {
             RequestId = Guid.NewGuid().ToString(),
             Source = agent,
