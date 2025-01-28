@@ -172,7 +172,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
 
         return null;
     }
-    public async ValueTask AddSubscriptionAsync(AddSubscriptionRequest subscription)
+    public async ValueTask SubscribeAsync(AddSubscriptionRequest subscription)
     {
         var guid = Guid.NewGuid().ToString();
         subscription.Subscription.Id = guid;
@@ -216,7 +216,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
         }
         await state.WriteStateAsync().ConfigureAwait(false);
     }
-    public async ValueTask RemoveSubscriptionAsync(RemoveSubscriptionRequest request)
+    public async ValueTask UnsubscribeAsync(RemoveSubscriptionRequest request)
     {
         var guid = request.Id;
         // does the guid parse?

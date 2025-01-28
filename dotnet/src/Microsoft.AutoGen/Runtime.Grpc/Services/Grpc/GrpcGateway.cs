@@ -7,7 +7,6 @@ using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Runtime.Grpc.Abstractions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
 
@@ -72,7 +71,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         var agentState = _clusterClient.GetGrain<IAgentGrain>($"{value.AgentId.Type}:{value.AgentId.Key}");
         await agentState.WriteStateAsync(value, value.ETag);
     }
-    public async ValueTask<AgentState> ReadAsync(Protobuf.AgentId agentId, CancellationToken cancellationToken = default)
+    public async ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
     {
         var agentState = _clusterClient.GetGrain<IAgentGrain>($"{agentId.Type}:{agentId.Key}");
         return await agentState.ReadStateAsync();
@@ -102,11 +101,11 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             };
         }
     }
-    public async ValueTask<AddSubscriptionResponse> AddSubscriptionAsync(AddSubscriptionRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<AddSubscriptionResponse> SubscribeAsync(AddSubscriptionRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _gatewayRegistry.AddSubscriptionAsync(request).ConfigureAwait(true);
+            await _gatewayRegistry.SubscribeAsync(request).ConfigureAwait(true);
             return new AddSubscriptionResponse
             {
                 Success = true,
@@ -314,7 +313,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
         _subscriptionsByAgentType[agentType] = request.Subscription;
         _subscriptionsByTopic.GetOrAdd(topic, _ => []).Add(agentType);
-        await _subscriptions.AddSubscriptionAsync(topic, agentType);
+        await _subscriptions.SubscribeAsync(topic, agentType);
         //var response = new SubscriptionResponse { RequestId = request.RequestId, Error = "", Success = true };
         Message response = new()
         {
@@ -362,11 +361,11 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         await queue.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);
     }
 
-    public async ValueTask<RemoveSubscriptionResponse> RemoveSubscriptionAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default)
     {
         try
         {
-            await _gatewayRegistry.RemoveSubscriptionAsync(request).ConfigureAwait(true);
+            await _gatewayRegistry.UnsubscribeAsync(request).ConfigureAwait(true);
             return new RemoveSubscriptionResponse
 
             {
@@ -398,7 +397,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         return StoreAsync(value, default);
     }
-    ValueTask<AgentState> IGateway.ReadAsync(Protobuf.AgentId agentId)
+    ValueTask<AgentState> IGateway.ReadAsync(AgentId agentId)
     {
         return ReadAsync(agentId, default);
     }
@@ -406,13 +405,13 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         return RegisterAgentTypeAsync(request, default);
     }
-    ValueTask<AddSubscriptionResponse> IGateway.AddSubscriptionAsync(AddSubscriptionRequest request)
+    ValueTask<AddSubscriptionResponse> IGateway.SubscribeAsync(AddSubscriptionRequest request)
     {
-        return AddSubscriptionAsync(request, default);
+        return SubscribeAsync(request, default);
     }
-    ValueTask<RemoveSubscriptionResponse> IGateway.RemoveSubscriptionAsync(RemoveSubscriptionRequest request)
+    ValueTask<RemoveSubscriptionResponse> IGateway.UnsubscribeAsync(RemoveSubscriptionRequest request)
     {
-        return RemoveSubscriptionAsync(request, default);
+        return UnsubscribeAsync(request, default);
     }
     ValueTask<List<Subscription>> IGateway.GetSubscriptionsAsync(GetSubscriptionsRequest request)
     {
