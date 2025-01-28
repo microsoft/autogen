@@ -423,7 +423,7 @@ wheels = [
 
 [[package]]
 name = "autogen-agentchat"
-version = "0.4.3"
+version = "0.4.4"
 source = { editable = "packages/autogen-agentchat" }
 dependencies = [
     { name = "autogen-core" },
@@ -434,7 +434,7 @@ requires-dist = [{ name = "autogen-core", editable = "packages/autogen-core" }]
 
 [[package]]
 name = "autogen-core"
-version = "0.4.3"
+version = "0.4.4"
 source = { editable = "packages/autogen-core" }
 dependencies = [
     { name = "jsonref" },
@@ -553,7 +553,7 @@ dev = [
 
 [[package]]
 name = "autogen-ext"
-version = "0.4.3"
+version = "0.4.4"
 source = { editable = "packages/autogen-ext" }
 dependencies = [
     { name = "autogen-core" },
@@ -3395,7 +3395,7 @@ wheels = [
 
 [[package]]
 name = "llama-index-readers-file"
-version = "0.4.3"
+version = "0.4.4"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "beautifulsoup4" },
@@ -3404,9 +3404,9 @@ dependencies = [
     { name = "pypdf" },
     { name = "striprtf" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/bc/35/62edc3eed9d69d9b5b5faae4c0c82ff05e608b07b0c547a988c23f19a79c/llama_index_readers_file-0.4.3.tar.gz", hash = "sha256:07514bebed7ce431c1b3ef9279d09aa3d1bba8e342d661860a033355b98fb33a", size = 22046 }
+sdist = { url = "https://files.pythonhosted.org/packages/f4/73/66e6fbb79a99d2bb9ae01d9f494372ea40c57e18653c9b0c9355d49396f0/llama_index_readers_file-0.4.4.tar.gz", hash = "sha256:e076b3fa1e68eea1594d47cec1f64b384fb6067f2697ca8aae22b4a21ad27ca7", size = 22264 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/a5/06/f41f795000c623d4cdaf95729a045a2be819c31f39951d5e88f4bccf37db/llama_index_readers_file-0.4.3-py3-none-any.whl", hash = "sha256:c669da967ea534e3af3660f9fd730c71c725288f5c57906bcce338414ebeee5c", size = 38914 },
+    { url = "https://files.pythonhosted.org/packages/f5/e0/80a3db5ea458dc2c6686b8cf2e7d98bea2750d2cca0d69c35250e6aba205/llama_index_readers_file-0.4.4-py3-none-any.whl", hash = "sha256:01589a4895e2d4abad30294c9b0d2813520ee1f5164922ad92f11e64a1d65d6c", size = 39148 },
 ]
 
 [[package]]
@@ -3586,7 +3586,7 @@ wheels = [
 
 [[package]]
 name = "magentic-one-cli"
-version = "0.2.1"
+version = "0.2.3"
 source = { editable = "packages/magentic-one-cli" }
 dependencies = [
     { name = "autogen-agentchat" },
