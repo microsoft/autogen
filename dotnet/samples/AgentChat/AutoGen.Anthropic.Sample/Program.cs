@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Program.cs
 
-namespace AutoGen.Anthropic.Samples;
+namespace AutoGen.Anthropic.Sample;
 
 internal static class Program
 {

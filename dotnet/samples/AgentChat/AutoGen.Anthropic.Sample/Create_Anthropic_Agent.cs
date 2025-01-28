@@ -5,7 +5,7 @@ using AutoGen.Anthropic.Extensions;
 using AutoGen.Anthropic.Utils;
 using AutoGen.Core;
 
-namespace AutoGen.Anthropic.Samples;
+namespace AutoGen.Anthropic.Sample;
 
 public static class Create_Anthropic_Agent
 {

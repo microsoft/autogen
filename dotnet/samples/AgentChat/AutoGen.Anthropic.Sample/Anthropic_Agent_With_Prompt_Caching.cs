@@ -6,7 +6,7 @@ using AutoGen.Anthropic.Extensions;
 using AutoGen.Anthropic.Utils;
 using AutoGen.Core;
 
-namespace AutoGen.Anthropic.Samples;
+namespace AutoGen.Anthropic.Sample;
 
 public class Anthropic_Agent_With_Prompt_Caching
 {
