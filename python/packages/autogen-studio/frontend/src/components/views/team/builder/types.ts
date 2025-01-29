@@ -7,7 +7,6 @@ import {
 } from "../../../types/datamodel";
 
 export interface NodeData extends Record<string, unknown> {
-  label: string;
   component: Component<ComponentConfig>;
 }
 
@@ -57,6 +56,7 @@ export interface NodeComponentProps {
 export interface NodeEditorProps {
   node: CustomNode | null;
   onUpdate: (updates: Partial<NodeData>) => void;
+  onClose: () => void;
 }
 
 export interface LibraryProps {

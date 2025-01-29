@@ -119,7 +119,7 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
       if (targetNodeId) {
         const targetNode = state.nodes.find((n) => n.id === targetNodeId);
 
-        console.log("Target node", targetNode);
+        // console.log("Target node", targetNode);
         if (!targetNode) return state;
 
         // Handle configuration updates based on component type

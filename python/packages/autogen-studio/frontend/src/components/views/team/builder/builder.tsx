@@ -67,6 +67,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
     history,
     updateNode,
     selectedNodeId,
+    setSelectedNode,
   } = useTeamBuilderStore();
 
   const currentHistoryIndex = useTeamBuilderStore(
@@ -410,6 +411,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
                 handleSave();
               }
             }}
+            onClose={() => setSelectedNode(null)}
           />
         </Layout>
       </DndContext>

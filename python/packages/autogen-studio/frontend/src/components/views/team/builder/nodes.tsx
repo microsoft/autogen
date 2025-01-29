@@ -133,7 +133,7 @@ const BaseNode: React.FC<BaseNodeProps> = ({
           <div className="flex items-center gap-2 min-w-0 flex-1">
             <Icon className="flex-shrink-0 w-5 h-5 text-gray-600" />
             <span className="font-medium text-gray-800 truncate">
-              {data.label}
+              {data.component.label}
             </span>
           </div>
           <div className="flex items-center gap-2 flex-shrink-0">
@@ -245,12 +245,12 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
     >
       {isSelectorTeam(component) && (
         <NodeSection title="Model">
-          <Handle
+          {/* <Handle
             type="target"
             position={Position.Left}
             id={`${props.id}-model-input-handle`}
             className="my-left-handle"
-          />
+          /> */}
 
           <div className="relative">
             {hasModel && (
@@ -300,14 +300,14 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
       </NodeSection>
 
       <NodeSection title="Terminations">
-        {
+        {/* {
           <Handle
             type="target"
             position={Position.Left}
             id={`${props.id}-termination-input-handle`}
             className="my-left-handle"
           />
-        }
+        } */}
         <div className="space-y-1">
           {component.config.termination_condition && (
             <div className="text-sm py-1 px-2 bg-white rounded flex items-center gap-2">
@@ -377,12 +377,12 @@ export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
       {isAssistantAgent(component) && (
         <>
           <NodeSection title="Model">
-            <Handle
+            {/* <Handle
               type="target"
               position={Position.Left}
               id={`${props.id}-model-input-handle`}
               className="my-left-handle"
-            />
+            /> */}
 
             <div className="relative">
               {component.config.model_client && (
@@ -399,12 +399,12 @@ export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
           </NodeSection>
 
           <NodeSection title="Tools">
-            <Handle
+            {/* <Handle
               type="target"
               position={Position.Left}
               id={`${props.id}-tool-input-handle`}
               className="my-left-handle"
-            />
+            /> */}
             <div className="space-y-1">
               {component.config.tools && toolCount > 0 && (
                 <div className="space-y-1">

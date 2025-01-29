@@ -74,6 +74,10 @@ class TeamManager:
 
         # Use Component.load_component directly
         team = Team.load_component(config)
+
+        for agent in team._participants:
+            if hasattr(agent, "input_func"):
+                agent.input_func = input_func
         
         # TBD - set input function 
         return team

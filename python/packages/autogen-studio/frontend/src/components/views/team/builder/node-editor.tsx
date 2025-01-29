@@ -1,665 +1,439 @@
-import React, { useEffect, useState } from "react";
-import { Drawer, Button, Space, message, Select, Input } from "antd";
+import React from "react";
+import { Input, Select, Switch, InputNumber, Form, Button, Drawer } from "antd";
 import { NodeEditorProps } from "./types";
-import { useTeamBuilderStore } from "./store";
 import {
-  TeamConfig,
-  ComponentTypes,
-  TeamTypes,
-  ModelTypes,
-  SelectorGroupChatConfig,
-  RoundRobinGroupChatConfig,
-  ModelConfig,
-  AzureOpenAIModelConfig,
-  OpenAIModelConfig,
-  ComponentConfigTypes,
-  AgentConfig,
-  ToolConfig,
-  AgentTypes,
-  ToolTypes,
-  TerminationConfig,
-  TerminationTypes,
-  MaxMessageTerminationConfig,
-  TextMentionTerminationConfig,
-  CombinationTerminationConfig,
-} from "../../../types/datamodel";
+  isTeamComponent,
+  isAgentComponent,
+  isModelComponent,
+  isToolComponent,
+  isTerminationComponent,
+  isSelectorTeam,
+  isRoundRobinTeam,
+  isAssistantAgent,
+  isUserProxyAgent,
+  isWebSurferAgent,
+  isOpenAIModel,
+  isAzureOpenAIModel,
+  isFunctionTool,
+  isOrTermination,
+  isMaxMessageTermination,
+  isTextMentionTermination,
+} from "../../../types/guards";
 
 const { TextArea } = Input;
+const { Option } = Select;
 
-interface EditorProps<T> {
-  value: T;
-  onChange: (value: T) => void;
-  disabled?: boolean;
-}
+export const NodeEditor: React.FC<
+  NodeEditorProps & { onClose: () => void }
+> = ({ node, onUpdate, onClose }) => {
+  const [form] = Form.useForm();
 
-const TeamEditor: React.FC<EditorProps<TeamConfig>> = ({
-  value,
-  onChange,
-  disabled,
-}) => {
-  const handleTypeChange = (teamType: TeamTypes) => {
-    if (teamType === "SelectorGroupChat") {
-      onChange({
-        ...value,
-        team_type: teamType,
-        selector_prompt: "",
-        model_client: {
-          component_type: "model",
-          model: "",
-          model_type: "OpenAIChatCompletionClient",
-        },
-      } as SelectorGroupChatConfig);
-    } else {
-      const { selector_prompt, model_client, ...rest } =
-        value as SelectorGroupChatConfig;
-      onChange({
-        ...rest,
-        team_type: teamType,
-      } as RoundRobinGroupChatConfig);
-    }
-  };
-
-  return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
-      <div>
-        <label className="block text-sm font-medium mb-2">Team Type</label>
-        <Select
-          value={value.team_type}
-          onChange={handleTypeChange}
-          disabled={disabled}
-          style={{ width: "100%" }}
-          options={[
-            { value: "RoundRobinGroupChat", label: "Round Robin" },
-            { value: "SelectorGroupChat", label: "Selector" },
-          ]}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">Name</label>
-        <Input
-          value={value.name}
-          onChange={(e) => onChange({ ...value, name: e.target.value })}
-          disabled={disabled}
-        />
-      </div>
-
-      {value.team_type === "SelectorGroupChat" && (
-        <>
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Selector Prompt
-            </label>
-            <TextArea
-              value={(value as SelectorGroupChatConfig).selector_prompt}
-              onChange={(e) =>
-                onChange({
-                  ...value,
-                  selector_prompt: e.target.value,
-                } as SelectorGroupChatConfig)
-              }
-              disabled={disabled}
-              rows={4}
-            />
-          </div>
-
-          <ModelEditor
-            value={(value as SelectorGroupChatConfig).model_client}
-            onChange={(modelConfig) =>
-              onChange({
-                ...value,
-                model_client: modelConfig,
-              } as SelectorGroupChatConfig)
-            }
-            disabled={disabled}
-          />
-        </>
-      )}
-    </Space>
-  );
-};
-
-const ModelEditor: React.FC<EditorProps<ModelConfig>> = ({
-  value,
-  onChange,
-  disabled,
-}) => {
-  const handleTypeChange = (modelType: ModelTypes) => {
-    if (modelType === "AzureOpenAIChatCompletionClient") {
-      onChange({
-        ...value,
-        model_type: modelType,
-        azure_deployment: "",
-        api_version: "",
-        azure_endpoint: "",
-        azure_ad_token_provider: "",
-      } as AzureOpenAIModelConfig);
-    } else {
-      const {
-        azure_deployment,
-        api_version,
-        azure_endpoint,
-        azure_ad_token_provider,
-        ...rest
-      } = value as AzureOpenAIModelConfig;
-      onChange({
-        ...rest,
-        model_type: modelType,
-      } as OpenAIModelConfig);
-    }
-  };
-
-  return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
-      <div>
-        <label className="block text-sm font-medium mb-2">Model Type</label>
-        <Select
-          value={value.model_type}
-          onChange={handleTypeChange}
-          disabled={disabled}
-          style={{ width: "100%" }}
-          options={[
-            { value: "OpenAIChatCompletionClient", label: "OpenAI" },
-            { value: "AzureOpenAIChatCompletionClient", label: "Azure OpenAI" },
-          ]}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">Model</label>
-        <Input
-          value={value.model}
-          onChange={(e) => onChange({ ...value, model: e.target.value })}
-          disabled={disabled}
-        />
-      </div>
-
-      {value.model_type === "OpenAIChatCompletionClient" && (
-        <div>
-          <label className="block text-sm font-medium mb-2">API Key</label>
-          <Input.Password
-            value={(value as OpenAIModelConfig).api_key}
-            onChange={(e) =>
-              onChange({
-                ...value,
-                api_key: e.target.value,
-              } as OpenAIModelConfig)
-            }
-            disabled={disabled}
-          />
-        </div>
-      )}
-
-      {value.model_type === "AzureOpenAIChatCompletionClient" && (
-        <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Azure Deployment
-            </label>
-            <Input
-              value={(value as AzureOpenAIModelConfig).azure_deployment}
-              onChange={(e) =>
-                onChange({
-                  ...value,
-                  azure_deployment: e.target.value,
-                } as AzureOpenAIModelConfig)
-              }
-              disabled={disabled}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              API Version
-            </label>
-            <Input
-              value={(value as AzureOpenAIModelConfig).api_version}
-              onChange={(e) =>
-                onChange({
-                  ...value,
-                  api_version: e.target.value,
-                } as AzureOpenAIModelConfig)
-              }
-              disabled={disabled}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">
-              Azure Endpoint
-            </label>
-            <Input
-              value={(value as AzureOpenAIModelConfig).azure_endpoint}
-              onChange={(e) =>
-                onChange({
-                  ...value,
-                  azure_endpoint: e.target.value,
-                } as AzureOpenAIModelConfig)
-              }
-              disabled={disabled}
-            />
-          </div>
-        </Space>
-      )}
-    </Space>
-  );
-};
-
-const AgentEditor: React.FC<EditorProps<AgentConfig>> = ({
-  value,
-  onChange,
-  disabled,
-}) => {
-  return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
-      <div>
-        <label className="block text-sm font-medium mb-2">Agent Type</label>
-        <Select
-          value={value.agent_type}
-          onChange={(type: AgentTypes) =>
-            onChange({ ...value, agent_type: type })
-          }
-          disabled={disabled}
-          style={{ width: "100%" }}
-          options={[
-            { value: "AssistantAgent", label: "Assistant Agent" },
-            { value: "CodingAssistantAgent", label: "Coding Assistant" },
-            { value: "UserProxyAgent", label: "User Proxy" },
-            { value: "MultimodalWebSurfer", label: "Web Surfer" },
-            { value: "FileSurfer", label: "File Surfer" },
-            { value: "MagenticOneCoderAgent", label: "Magnetic One Coder" },
-          ]}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">Name</label>
-        <Input
-          value={value.name}
-          onChange={(e) => onChange({ ...value, name: e.target.value })}
-          disabled={disabled}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">System Message</label>
-        <TextArea
-          value={value.system_message}
-          onChange={(e) =>
-            onChange({ ...value, system_message: e.target.value })
-          }
-          disabled={disabled}
-          rows={4}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">Description</label>
-        <TextArea
-          value={value.description}
-          onChange={(e) => onChange({ ...value, description: e.target.value })}
-          disabled={disabled}
-          rows={2}
-        />
-      </div>
-    </Space>
-  );
-};
-
-const ToolEditor: React.FC<EditorProps<ToolConfig>> = ({
-  value,
-  onChange,
-  disabled,
-}) => {
-  return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
-      <div>
-        <label className="block text-sm font-medium mb-2">Tool Type</label>
-        <Select
-          value={value.tool_type}
-          onChange={(type: ToolTypes) =>
-            onChange({ ...value, tool_type: type })
-          }
-          disabled={disabled}
-          style={{ width: "100%" }}
-          options={[{ value: "PythonFunction", label: "Python Function" }]}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">Name</label>
-        <Input
-          value={value.name}
-          onChange={(e) => onChange({ ...value, name: e.target.value })}
-          disabled={disabled}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">Description</label>
-        <TextArea
-          value={value.description}
-          onChange={(e) => onChange({ ...value, description: e.target.value })}
-          disabled={disabled}
-          rows={2}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium mb-2">Content</label>
-        <TextArea
-          value={value.content}
-          onChange={(e) => onChange({ ...value, content: e.target.value })}
-          disabled={disabled}
-          rows={8}
-        />
-      </div>
-    </Space>
-  );
-};
-
-const TerminationEditor: React.FC<EditorProps<TerminationConfig>> = ({
-  value,
-  onChange,
-  disabled,
-}) => {
-  const handleTypeChange = (terminationType: TerminationTypes) => {
-    if (terminationType === "MaxMessageTermination") {
-      onChange({
-        component_type: "termination",
-        termination_type: terminationType,
-        max_messages: 100,
-      } as MaxMessageTerminationConfig);
-    } else if (terminationType === "TextMentionTermination") {
-      onChange({
-        component_type: "termination",
-        termination_type: terminationType,
-        text: "",
-      } as TextMentionTerminationConfig);
-    } else if (terminationType === "CombinationTermination") {
-      onChange({
-        component_type: "termination",
-        termination_type: terminationType,
-        operator: "or",
-        conditions: [],
-      } as CombinationTerminationConfig);
-    }
-  };
-
-  const handleOperatorChange = (operator: "and" | "or") => {
-    if (value.termination_type === "CombinationTermination") {
-      onChange({
-        ...value,
-        operator,
-      } as CombinationTerminationConfig);
-    }
-  };
-
-  const handleAddCondition = () => {
-    if (value.termination_type === "CombinationTermination") {
-      onChange({
-        ...value,
-        conditions: [
-          ...value.conditions,
-          {
-            component_type: "termination",
-            termination_type: "MaxMessageTermination",
-            max_messages: 100,
-          },
-        ],
-      } as CombinationTerminationConfig);
-    }
-  };
-
-  const handleUpdateCondition = (
-    index: number,
-    newCondition: TerminationConfig
-  ) => {
-    if (value.termination_type === "CombinationTermination") {
-      const newConditions = [...value.conditions];
-      newConditions[index] = newCondition;
-      onChange({
-        ...value,
-        conditions: newConditions,
-      } as CombinationTerminationConfig);
-    }
-  };
-
-  const handleRemoveCondition = (index: number) => {
-    if (value.termination_type === "CombinationTermination") {
-      onChange({
-        ...value,
-        conditions: value.conditions.filter((_, i) => i !== index),
-      } as CombinationTerminationConfig);
-    }
-  };
-
-  return (
-    <Space direction="vertical" size="large" style={{ width: "100%" }}>
-      <div>
-        <label className="block text-sm font-medium mb-2">
-          Termination Type
-        </label>
-        <Select
-          value={value.termination_type}
-          onChange={handleTypeChange}
-          disabled={disabled}
-          style={{ width: "100%" }}
-          options={[
-            { value: "MaxMessageTermination", label: "Max Messages" },
-            { value: "TextMentionTermination", label: "Text Mention" },
-            { value: "CombinationTermination", label: "Combination" },
-          ]}
-        />
-      </div>
-
-      {value.termination_type === "MaxMessageTermination" && (
-        <div>
-          <label className="block text-sm font-medium mb-2">Max Messages</label>
-          <Input
-            type="number"
-            value={(value as MaxMessageTerminationConfig).max_messages}
-            onChange={(e) =>
-              onChange({
-                ...value,
-                max_messages: parseInt(e.target.value),
-              } as MaxMessageTerminationConfig)
-            }
-            disabled={disabled}
-          />
-        </div>
-      )}
-
-      {value.termination_type === "TextMentionTermination" && (
-        <div>
-          <label className="block text-sm font-medium mb-2">
-            Text to Match
-          </label>
-          <Input
-            value={(value as TextMentionTerminationConfig).text}
-            onChange={(e) =>
-              onChange({
-                ...value,
-                text: e.target.value,
-              } as TextMentionTerminationConfig)
-            }
-            disabled={disabled}
-          />
-        </div>
-      )}
-
-      {value.termination_type === "CombinationTermination" && (
-        <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-          <div>
-            <label className="block text-sm font-medium mb-2">Operator</label>
-            <Select
-              value={(value as CombinationTerminationConfig).operator}
-              onChange={handleOperatorChange}
-              disabled={disabled}
-              style={{ width: "100%" }}
-              options={[
-                { value: "and", label: "AND" },
-                { value: "or", label: "OR" },
-              ]}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-2">Conditions</label>
-            <Space direction="vertical" size="middle" style={{ width: "100%" }}>
-              {(value as CombinationTerminationConfig).conditions.map(
-                (condition, index) => (
-                  <div key={index} className="border p-4 rounded-md">
-                    <Space
-                      direction="vertical"
-                      size="middle"
-                      style={{ width: "100%" }}
-                    >
-                      <TerminationEditor
-                        value={condition}
-                        onChange={(newCondition) =>
-                          handleUpdateCondition(index, newCondition)
-                        }
-                        disabled={disabled}
-                      />
-                      <Button
-                        danger
-                        onClick={() => handleRemoveCondition(index)}
-                        disabled={disabled}
-                      >
-                        Remove Condition
-                      </Button>
-                    </Space>
-                  </div>
-                )
-              )}
-              <Button
-                type="dashed"
-                onClick={handleAddCondition}
-                disabled={disabled}
-                style={{ width: "100%" }}
-              >
-                Add Condition
-              </Button>
-            </Space>
-          </div>
-        </Space>
-      )}
-    </Space>
-  );
-};
-
-// Component type to editor mapping
-const EditorComponents: Record<ComponentTypes, React.FC<EditorProps<any>>> = {
-  team: TeamEditor,
-  model: ModelEditor,
-  agent: AgentEditor,
-  tool: ToolEditor,
-  termination: TerminationEditor,
-};
-
-export const NodeEditor: React.FC<NodeEditorProps> = ({ node, onUpdate }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [config, setConfig] = useState<ComponentConfigTypes | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const setSelectedNode = useTeamBuilderStore((state) => state.setSelectedNode);
-  const [messageApi, contextHolder] = message.useMessage();
-
-  useEffect(() => {
+  // Initialize form values when node changes
+  React.useEffect(() => {
     if (node) {
-      setIsOpen(true);
-      setConfig(node.data.config as ComponentConfigTypes);
-    } else {
-      setIsOpen(false);
+      form.setFieldsValue(node.data.component);
     }
-  }, [node]);
+  }, [node, form]);
 
-  const handleClose = () => {
-    setSelectedNode(null);
+  if (!node) return null;
+
+  const component = node.data.component;
+
+  const handleFormSubmit = (values: any) => {
+    const updatedData = {
+      ...node.data,
+      component: {
+        ...node.data.component,
+        label: values.label, // These go on the component
+        description: values.description, // Not on NodeData
+        config: {
+          ...node.data.component.config,
+          ...values.config,
+        },
+      },
+    };
+    onUpdate(updatedData);
   };
 
-  const handleSave = async () => {
-    try {
-      setIsSaving(true);
-      if (!config) throw new Error("No configuration to save");
+  const renderTeamFields = () => {
+    if (!component) return null;
 
-      // Validate config based on its type
-      validateConfig(config);
-
-      onUpdate({ config });
-      messageApi.success("Changes saved successfully");
-      setSelectedNode(null);
-    } catch (error) {
-      console.error("Save failed:", error);
-      messageApi.error(error instanceof Error ? error.message : "Save failed");
-    } finally {
-      setIsSaving(false);
+    if (isSelectorTeam(component)) {
+      return (
+        <>
+          <Form.Item
+            label="Selector Prompt"
+            name={["config", "selector_prompt"]}
+            rules={[{ required: true }]}
+          >
+            <TextArea rows={4} />
+          </Form.Item>
+          <Form.Item label="Max Turns" name={["config", "max_turns"]}>
+            <InputNumber min={1} />
+          </Form.Item>
+          <Form.Item
+            label="Allow Repeated Speaker"
+            name={["config", "allow_repeated_speaker"]}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        </>
+      );
     }
+    if (isRoundRobinTeam(component)) {
+      return (
+        <Form.Item label="Max Turns" name={["config", "max_turns"]}>
+          <InputNumber min={1} />
+        </Form.Item>
+      );
+    }
+    return null;
   };
 
-  if (!node || !config) return null;
+  const renderAgentFields = () => {
+    if (!component) return null;
 
-  const EditorComponent = EditorComponents[node.data.type];
-  if (!EditorComponent) return null;
+    if (isAssistantAgent(component)) {
+      return (
+        <>
+          <Form.Item
+            label="Name"
+            name={["config", "name"]}
+            rules={[{ required: true }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Description"
+            name={["config", "description"]}
+            rules={[{ required: true }]}
+          >
+            <TextArea rows={4} />
+          </Form.Item>
+          <Form.Item label="System Message" name={["config", "system_message"]}>
+            <TextArea rows={4} />
+          </Form.Item>
+          <Form.Item
+            label="Reflect on Tool Use"
+            name={["config", "reflect_on_tool_use"]}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            label="Tool Call Summary Format"
+            name={["config", "tool_call_summary_format"]}
+          >
+            <Input />
+          </Form.Item>
+        </>
+      );
+    }
+    if (isUserProxyAgent(component)) {
+      return (
+        <>
+          <Form.Item
+            label="Name"
+            name={["config", "name"]}
+            rules={[{ required: true }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Description"
+            name={["config", "description"]}
+            rules={[{ required: true }]}
+          >
+            <TextArea rows={4} />
+          </Form.Item>
+        </>
+      );
+    }
+    if (isWebSurferAgent(component)) {
+      return (
+        <>
+          <Form.Item
+            label="Name"
+            name={["config", "name"]}
+            rules={[{ required: true }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Downloads Folder"
+            name={["config", "downloads_folder"]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item label="Description" name={["config", "description"]}>
+            <TextArea rows={4} />
+          </Form.Item>
+          <Form.Item label="Start Page" name={["config", "start_page"]}>
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Headless"
+            name={["config", "headless"]}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            label="Animate Actions"
+            name={["config", "animate_actions"]}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            label="Save Screenshots"
+            name={["config", "to_save_screenshots"]}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            label="Use OCR"
+            name={["config", "use_ocr"]}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+          <Form.Item
+            label="Browser Channel"
+            name={["config", "browser_channel"]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Browser Data Directory"
+            name={["config", "browser_data_dir"]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Resize Viewport"
+            name={["config", "to_resize_viewport"]}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        </>
+      );
+    }
+    return null;
+  };
+
+  const renderModelFields = () => {
+    if (!component) return null;
+
+    // Common CreateArgumentsConfig fields
+    const createArgumentsFields = (
+      <>
+        <Form.Item label="Temperature" name={["config", "temperature"]}>
+          <InputNumber min={0} max={2} step={0.1} />
+        </Form.Item>
+        <Form.Item label="Max Tokens" name={["config", "max_tokens"]}>
+          <InputNumber min={1} />
+        </Form.Item>
+        <Form.Item label="Top P" name={["config", "top_p"]}>
+          <InputNumber min={0} max={1} step={0.1} />
+        </Form.Item>
+        <Form.Item
+          label="Frequency Penalty"
+          name={["config", "frequency_penalty"]}
+        >
+          <InputNumber min={-2} max={2} step={0.1} />
+        </Form.Item>
+        <Form.Item
+          label="Presence Penalty"
+          name={["config", "presence_penalty"]}
+        >
+          <InputNumber min={-2} max={2} step={0.1} />
+        </Form.Item>
+        <Form.Item label="Stop Sequences" name={["config", "stop"]}>
+          <Select mode="tags" />
+        </Form.Item>
+      </>
+    );
+
+    if (isOpenAIModel(component)) {
+      return (
+        <>
+          <Form.Item
+            label="Model"
+            name={["config", "model"]}
+            rules={[{ required: true }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item label="API Key" name={["config", "api_key"]}>
+            <Input.Password />
+          </Form.Item>
+          <Form.Item label="Organization" name={["config", "organization"]}>
+            <Input />
+          </Form.Item>
+          <Form.Item label="Base URL" name={["config", "base_url"]}>
+            <Input />
+          </Form.Item>
+          <Form.Item label="Timeout" name={["config", "timeout"]}>
+            <InputNumber min={1} />
+          </Form.Item>
+          <Form.Item label="Max Retries" name={["config", "max_retries"]}>
+            <InputNumber min={0} />
+          </Form.Item>
+          {createArgumentsFields}
+        </>
+      );
+    }
+    if (isAzureOpenAIModel(component)) {
+      return (
+        <>
+          <Form.Item
+            label="Model"
+            name={["config", "model"]}
+            rules={[{ required: true }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Azure Endpoint"
+            name={["config", "azure_endpoint"]}
+            rules={[{ required: true }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Azure Deployment"
+            name={["config", "azure_deployment"]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="API Version"
+            name={["config", "api_version"]}
+            rules={[{ required: true }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item label="Azure AD Token" name={["config", "azure_ad_token"]}>
+            <Input.Password />
+          </Form.Item>
+          {createArgumentsFields}
+        </>
+      );
+    }
+    return null;
+  };
+
+  const renderToolFields = () => {
+    if (!component) return null;
+
+    if (isFunctionTool(component)) {
+      return (
+        <>
+          <Form.Item
+            label="Name"
+            name={["config", "name"]}
+            rules={[{ required: true }]}
+          >
+            <Input />
+          </Form.Item>
+          <Form.Item
+            label="Description"
+            name={["config", "description"]}
+            rules={[{ required: true }]}
+          >
+            <TextArea rows={4} />
+          </Form.Item>
+          <Form.Item
+            label="Source Code"
+            name={["config", "source_code"]}
+            rules={[{ required: true }]}
+          >
+            <TextArea rows={8} />
+          </Form.Item>
+          <Form.Item
+            label="Has Cancellation Support"
+            name={["config", "has_cancellation_support"]}
+            valuePropName="checked"
+          >
+            <Switch />
+          </Form.Item>
+        </>
+      );
+    }
+    return null;
+  };
+
+  const renderTerminationFields = () => {
+    if (!component) return null;
+
+    if (isOrTermination(component)) {
+      return (
+        <Form.Item label="Number of Conditions" name={["config", "conditions"]}>
+          <InputNumber disabled />
+        </Form.Item>
+      );
+    }
+    if (isMaxMessageTermination(component)) {
+      return (
+        <Form.Item
+          label="Max Messages"
+          name={["config", "max_messages"]}
+          rules={[{ required: true }]}
+        >
+          <InputNumber min={1} />
+        </Form.Item>
+      );
+    }
+    if (isTextMentionTermination(component)) {
+      return (
+        <Form.Item
+          label="Text"
+          name={["config", "text"]}
+          rules={[{ required: true }]}
+        >
+          <Input />
+        </Form.Item>
+      );
+    }
+    return null;
+  };
 
   return (
     <Drawer
-      title={`Edit ${node.data.label}`}
+      title={`Edit ${component.component_type}`}
       placement="right"
-      width={500}
-      open={isOpen}
-      onClose={handleClose}
-      extra={
-        <Space>
-          <Button onClick={handleClose}>Cancel</Button>
-          <Button type="primary" onClick={handleSave} loading={isSaving}>
-            Update
-          </Button>
-        </Space>
-      }
+      width={400}
+      onClose={onClose}
+      open={true}
     >
-      {contextHolder}
-      <EditorComponent
-        value={config}
-        onChange={setConfig}
-        disabled={isSaving}
-      />
+      <Form form={form} layout="vertical" onFinish={handleFormSubmit}>
+        <Form.Item label="Label" name="label">
+          <Input />
+        </Form.Item>
+
+        <Form.Item label="Description" name="description">
+          <TextArea rows={4} />
+        </Form.Item>
+
+        {isTeamComponent(component) && renderTeamFields()}
+        {isAgentComponent(component) && renderAgentFields()}
+        {isModelComponent(component) && renderModelFields()}
+        {isToolComponent(component) && renderToolFields()}
+        {isTerminationComponent(component) && renderTerminationFields()}
+
+        <div className="flex justify-end gap-2 mt-4">
+          <Button onClick={onClose}>Cancel</Button>
+          <Button type="primary" htmlType="submit">
+            Save Changes
+          </Button>
+        </div>
+      </Form>
     </Drawer>
   );
 };
-
-// Type-safe validation functions
-function validateConfig(config: ComponentConfigTypes): void {
-  switch (config.component_type) {
-    case "team": {
-      const teamConfig = config as TeamConfig;
-      if ("selector_prompt" in teamConfig) {
-        // Type guard for SelectorGroupChatConfig
-        if (!teamConfig.selector_prompt) {
-          throw new Error("Selector prompt is required");
-        }
-        if (!teamConfig.model_client) {
-          throw new Error("Model configuration is required for selector team");
-        }
-      }
-      break;
-    }
-
-    case "model":
-      const modelConfig = config as ModelConfig;
-      if ("AzureOpenAIChatCompletionClient" in modelConfig) {
-        const azureConfig = config as AzureOpenAIModelConfig;
-        if (
-          !azureConfig.azure_deployment ||
-          !azureConfig.api_version ||
-          !azureConfig.azure_endpoint
-        ) {
-          throw new Error("Azure OpenAI configuration is incomplete");
-        }
-      }
-      break;
-    // Add other type-specific validations as needed
-  }
-}
 
 export default NodeEditor;

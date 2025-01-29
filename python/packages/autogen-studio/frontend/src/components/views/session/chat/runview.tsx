@@ -54,7 +54,7 @@ const RunView: React.FC<RunViewProps> = ({
   }, [run.messages]); // Only depend on messages changing
 
   const calculateThreadTokens = (messages: Message[]) => {
-    console.log("messages", messages);
+    // console.log("messages", messages);
     return messages.reduce((total, msg) => {
       if (!msg.config.models_usage) return total;
       return (
