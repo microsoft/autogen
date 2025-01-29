@@ -25,6 +25,7 @@ import {
   AgentConfig,
   TeamConfig,
   Run,
+  Component,
 } from "../../../../types/datamodel";
 import { CustomEdge, CustomEdgeData } from "./edge";
 import { useConfigStore } from "../../../../../hooks/store";
@@ -32,7 +33,7 @@ import { AgentFlowToolbar } from "./toolbar";
 import { EdgeMessageModal } from "./edgemessagemodal";
 
 interface AgentFlowProps {
-  teamConfig: TeamConfig;
+  teamConfig: Component<TeamConfig>;
   run: Run;
 }
 
@@ -151,7 +152,7 @@ const getLayoutedElements = (
 const createNode = (
   id: string,
   type: "user" | "agent" | "end",
-  agentConfig?: AgentConfig,
+  agentConfig?: Component<AgentConfig>,
   isActive: boolean = false,
   run?: Run
 ): Node => {
@@ -218,7 +219,7 @@ const createNode = (
     data: {
       type: "agent",
       label: id,
-      agentType: agentConfig?.agent_type || "",
+      agentType: agentConfig?.label || "",
       description: agentConfig?.description || "",
       isActive,
       status: "",
@@ -281,8 +282,8 @@ const AgentFlow: React.FC<AgentFlowProps> = ({ teamConfig, run }) => {
 
       // Add first message node if it exists
       if (messages.length > 0) {
-        const firstAgentConfig = teamConfig.participants.find(
-          (p) => p.name === messages[0].source
+        const firstAgentConfig = teamConfig.config.participants.find(
+          (p) => p.config.name === messages[0].source
         );
         nodeMap.set(
           messages[0].source,
@@ -322,8 +323,8 @@ const AgentFlow: React.FC<AgentFlowProps> = ({ teamConfig, run }) => {
         }
 
         if (!nodeMap.has(nextMsg.source)) {
-          const agentConfig = teamConfig.participants.find(
-            (p) => p.name === nextMsg.source
+          const agentConfig = teamConfig.config.participants.find(
+            (p) => p.config.name === nextMsg.source
           );
           nodeMap.set(
             nextMsg.source,
@@ -479,7 +480,7 @@ const AgentFlow: React.FC<AgentFlowProps> = ({ teamConfig, run }) => {
 
       return { nodes: Array.from(nodeMap.values()), edges: newEdges };
     },
-    [teamConfig.participants, run, settings]
+    [teamConfig.config.participants, run, settings]
   );
 
   const handleToggleFullscreen = useCallback(() => {

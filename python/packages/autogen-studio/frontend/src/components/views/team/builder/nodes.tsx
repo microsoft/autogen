@@ -313,7 +313,8 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
             <div className="text-sm py-1 px-2 bg-white rounded flex items-center gap-2">
               <Timer className="w-4 h-4 text-gray-500" />
               <span>
-                {component.config.termination_condition.component_type}
+                {component.config.termination_condition.label ||
+                  component.config.termination_condition.component_type}
               </span>
             </div>
           )}
@@ -370,7 +371,7 @@ export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
         type="target"
         position={Position.Left}
         id={`${props.id}-agent-input-handle`}
-        className="my-left-handle"
+        className="my-left-handle z-100"
       />
 
       {isAssistantAgent(component) && (

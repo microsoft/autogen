@@ -348,8 +348,7 @@ class DatabaseManager:
         teams = self.get(Team, {"user_id": user_id}).data
         
        
-        for team in teams:
-            print(team.config, "******" ,config)
+        for team in teams: 
             if team.config == config:
                 return team
                 

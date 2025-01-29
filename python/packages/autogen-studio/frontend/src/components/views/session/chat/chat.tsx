@@ -11,6 +11,7 @@ import {
   RunStatus,
   TeamResult,
   Session,
+  Component,
 } from "../../../types/datamodel";
 import { appContext } from "../../../../hooks/provider";
 import ChatInput from "./chatinput";
@@ -46,7 +47,8 @@ export default function ChatView({ session }: ChatViewProps) {
   const [activeSocket, setActiveSocket] = React.useState<WebSocket | null>(
     null
   );
-  const [teamConfig, setTeamConfig] = React.useState<TeamConfig | null>(null);
+  const [teamConfig, setTeamConfig] =
+    React.useState<Component<TeamConfig> | null>(null);
 
   const inputTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
   const activeSocketRef = React.useRef<WebSocket | null>(null);
@@ -94,7 +96,7 @@ export default function ChatView({ session }: ChatViewProps) {
       teamAPI
         .getTeam(session.team_id, user.email)
         .then((team) => {
-          setTeamConfig(team.config);
+          setTeamConfig(team.component);
         })
         .catch((error) => {
           console.error("Error loading team config:", error);
