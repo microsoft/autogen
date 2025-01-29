@@ -31,9 +31,6 @@
  
     <!-- Optional: Embed source files that are not tracked by the source control manager in the PDB -->
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
-
-    <!-- Include the XML documentation file in the NuGet package. -->
-    <DocumentationFile>bin\$(Configuration)\$(TargetFramework)\$(AssemblyName).xml</DocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
@@ -44,8 +41,8 @@
 
   <ItemGroup>
     <!-- Include icon.png and NUGET.md in the project. -->
-    <None Include="$(RepoRoot)/nuget/icon.png" Link="icon.png" Pack="true" PackagePath="." />
-    <None Include="$(RepoRoot)/nuget/NUGET.md" Link="NUGET.md" Pack="true" PackagePath="." />
+    <None Include="$(RepoRoot)nuget/icon.png" Link="icon.png" Pack="true" PackagePath="." />
+    <None Include="$(RepoRoot)nuget/NUGET.md" Link="NUGET.md" Pack="true" PackagePath="." />
   </ItemGroup>
 
   <PropertyGroup Condition=" '$(Configuration)' == 'Release' ">

@@ -26,9 +26,9 @@ public class AgentGrpcTests
         using var runtime = new GrpcRuntime();
         var (_, agent) = runtime.Start(false); // Do not initialize
 
-        // Expect an exception when calling SubscribeAsync because the agent is uninitialized
+        // Expect an exception when calling AddSubscriptionAsync because the agent is uninitialized
         await Assert.ThrowsAsync<UninitializedAgentWorker.AgentInitalizedIncorrectlyException>(
-            async () => await agent.SubscribeAsync("TestEvent")
+            async () => await agent.AddSubscriptionAsync("TestEvent")
         );
     }
 
@@ -41,13 +41,13 @@ public class AgentGrpcTests
     {
         using var runtime = new GrpcRuntime();
         var (worker, agent) = runtime.Start();
-        Assert.Equal("GrpcAgentWorker", worker.GetType().Name);
+        Assert.Equal(nameof(GrpcAgentRuntime), worker.GetType().Name);
         await Task.Delay(5000);
         var subscriptions = await agent.GetSubscriptionsAsync();
         Assert.Equal(2, subscriptions.Count);
     }
     /// <summary>
-    /// Test SubscribeAsync method
+    /// Test AddSubscriptionAsync method
     /// </summary>
     /// <returns>void</returns>
     [Fact]
@@ -55,7 +55,7 @@ public class AgentGrpcTests
     {
         using var runtime = new GrpcRuntime();
         var (_, agent) = runtime.Start();
-        await agent.SubscribeAsync("TestEvent");
+        await agent.AddSubscriptionAsync("TestEvent");
         await Task.Delay(100);
         var subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
         var found = false;
@@ -67,7 +67,7 @@ public class AgentGrpcTests
             }
         }
         Assert.True(found);
-        await agent.UnsubscribeAsync("TestEvent").ConfigureAwait(true);
+        await agent.RemoveSubscriptionAsync("TestEvent").ConfigureAwait(true);
         await Task.Delay(1000);
         subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
         found = false;
@@ -115,7 +115,7 @@ public class AgentGrpcTests
         using var runtime = new GrpcRuntime();
         var (_, agent) = runtime.Start();
         var topicType = "TestTopic";
-        await agent.SubscribeAsync(topicType).ConfigureAwait(true);
+        await agent.AddSubscriptionAsync(topicType).ConfigureAwait(true);
         var subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
         var found = false;
         foreach (var subscription in subscriptions)
@@ -222,7 +222,7 @@ public sealed class GrpcRuntime : IDisposable
     /// <summary>
     /// Start - gets a new port and starts fresh instances
     /// </summary>
-    public (IAgentWorker, TestAgent) Start(bool initialize = true)
+    public (IAgentRuntime, TestAgent) Start(bool initialize = true)
     {
         int port = GetAvailablePort(); // Get a new port per test run
 
@@ -234,7 +234,7 @@ public sealed class GrpcRuntime : IDisposable
         Client = StartClientAsync().GetAwaiter().GetResult();
 
         var agent = ActivatorUtilities.CreateInstance<TestAgent>(Client.Services);
-        var worker = Client.Services.GetRequiredService<IAgentWorker>();
+        var worker = Client.Services.GetRequiredService<IAgentRuntime>();
         if (initialize)
         {
             Agent.Initialize(worker, agent);
