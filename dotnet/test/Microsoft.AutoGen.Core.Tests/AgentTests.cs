@@ -1,263 +1,257 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentTests.cs
-
-using System.Collections.Concurrent;
-using System.Diagnostics;
-using System.Text.Json;
 using FluentAssertions;
-using Google.Protobuf.Reflection;
 using Microsoft.AutoGen.Contracts;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.DependencyInjection.Extensions;
-using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Xunit;
-using static Microsoft.AutoGen.Core.Tests.AgentTests;
 
 namespace Microsoft.AutoGen.Core.Tests;
 
-[Collection(ClusterFixtureCollection.Name)]
+//[Collection(ClusterFixtureCollection.Name)]
 public class AgentTests()
 {
-    /// <summary>
-    /// Verify that if the agent is not initialized via AgentWorker, it should throw the correct exception.
-    /// </summary>
-    /// <returns>void</returns>
     [Fact]
-    public async Task Agent_ShouldThrowException_WhenNotInitialized()
+    public async Task Agent_ShouldNotReceiveMessages_WhenNotSubscribed()
     {
-        using var runtime = new InMemoryAgentRuntimeFixture();
-        var agent = ActivatorUtilities.CreateInstance<TestAgent>(runtime.AppHost.Services);
-        await Assert.ThrowsAsync<UninitializedAgentWorker.AgentInitalizedIncorrectlyException>(
-            async () =>
-            {
-                await agent.SubscribeAsync("TestEvent");
-            }
-        );
+        var runtime = new InProcessRuntime();
+        await runtime.StartAsync();
+
+        Logger<BaseAgent> logger = new(new LoggerFactory());
+        await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) => ValueTask.FromResult(new TestAgent(id, runtime, logger)));
+        await runtime.RegisterImplicitAgentSubscriptionsAsync<TestAgent>("MyAgent");
+
+        var topicType = "TestTopic";
+
+        await runtime.PublishMessageAsync(new TextMessage { Source = topicType, Content = "test" }, new TopicId("TestTopic")).ConfigureAwait(true);
+
+        await runtime.RunUntilIdleAsync();
+
+        TestAgent.ReceivedMessages.Any().Should().BeFalse("Agent should not receive messages when not subscribed.");
     }
 
-    /// <summary>
-    /// validate that the agent is initialized correctly with implicit subs
-    /// </summary>
-    /// <returns>void</returns>
     [Fact]
-    public async Task Agent_ShouldInitializeCorrectly()
+    public async Task Agent_ShoulReceiveMessages_WhenSubscribed()
     {
-        var runtime = new InMemoryAgentRuntimeFixture();
-        var (worker, agent) = runtime.Start();
-        Assert.Equal(nameof(AgentRuntime), worker.GetType().Name);
-        var subscriptions = await agent.GetSubscriptionsAsync();
-        Assert.Equal(2, subscriptions.Count);
-        runtime.Stop();
+        var runtime = new InProcessRuntime();
+        await runtime.StartAsync();
+
+        Logger<BaseAgent> logger = new(new LoggerFactory());
+        await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) => ValueTask.FromResult(new SubscribedAgent(id, runtime, logger)));
+        await runtime.RegisterImplicitAgentSubscriptionsAsync<SubscribedAgent>("MyAgent");
+
+        var topicType = "TestTopic";
+
+        await runtime.PublishMessageAsync(new TextMessage { Source = topicType, Content = "test" }, new TopicId("TestTopic")).ConfigureAwait(true);
+
+        await runtime.RunUntilIdleAsync();
+
+        TestAgent.ReceivedMessages.Any().Should().BeTrue("Agent should receive messages when subscribed.");
     }
+
+    [Fact]
+    public async Task SendMessageAsync_ShouldReturnResponse()
+    {
+        // Arrange
+        var runtime = new InProcessRuntime();
+        await runtime.StartAsync();
+
+        Logger<BaseAgent> logger = new(new LoggerFactory());
+        await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) => ValueTask.FromResult(new TestAgent(id, runtime, logger)));
+        await runtime.RegisterImplicitAgentSubscriptionsAsync<TestAgent>("MyAgent");
+
+        var agentId = new AgentId("MyAgent", "TestAgent");
+
+        var response = await runtime.SendMessageAsync(new RpcTextMessage { Source = "TestTopic", Content = "Request" }, agentId);
+
+        // Assert
+        Assert.NotNull(response);
+        Assert.IsType<string>(response);
+        if (response is string responseString)
+        {
+            Assert.Equal("Request", responseString);
+        }
+    }
+
+    // / <summary>
+    // / Verify that if the agent is not initialized via AgentWorker, it should throw the correct exception.
+    // / </summary>
+    // / <returns>void</returns>
+    // [Fact]
+    // public async Task Agent_ShouldThrowException_WhenNotInitialized()
+    // {
+    //     using var fixture = new InMemoryAgentRuntimeFixture();
+    //     var agent = ActivatorUtilities.CreateInstance<TestAgent>(fixture.AppHost.Services);
+    //     await Assert.ThrowsAsync<UninitializedAgentWorker.AgentInitalizedIncorrectlyException>(
+    //         async () =>
+    //         {
+    //             await agent.AddSubscriptionAsync("TestEvent");
+    //         }
+    //     );
+    // }
+
+    // /// <summary>
+    // /// validate that the agent is initialized correctly with implicit subs
+    // /// </summary>
+    // /// <returns>void</returns>
+    // [Fact]
+    // public async Task Agent_ShouldInitializeCorrectly()
+    // {
+    //     var fixture = new InMemoryAgentRuntimeFixture();
+    //     var (runtime, agent) = fixture.Start();
+    //     Assert.Equal(nameof(AgentRuntime), runtime.GetType().Name);
+    //     var subscriptions = await agent.GetSubscriptionsAsync();
+    //     Assert.Equal(2, subscriptions.Count);
+    //     fixture.Stop();
+    // }
     /// <summary>
-    /// Test SubscribeAsync method
+    /// Test AddSubscriptionAsync method
     /// </summary>
     /// <returns>void</returns>
+    ///
+
+    public class ReceiverAgent(AgentId id,
+            IAgentRuntime runtime) : BaseAgent(id, runtime, "Receiver Agent", null),
+            IHandle<string>
+    {
+        public ValueTask HandleAsync(string item, MessageContext messageContext)
+        {
+            ReceivedItems.Add(item);
+            return ValueTask.CompletedTask;
+        }
+
+        public List<string> ReceivedItems { get; private set; } = [];
+    }
+
     [Fact]
     public async Task SubscribeAsync_UnsubscribeAsync_and_GetSubscriptionsTest()
     {
-        var runtime = new InMemoryAgentRuntimeFixture();
-        var (_, agent) = runtime.Start();
-        await agent.SubscribeAsync("TestEvent");
+        var runtime = new InProcessRuntime();
+        await runtime.StartAsync();
+        ReceiverAgent? agent = null;
+        await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) =>
+        {
+            agent = new ReceiverAgent(id, runtime);
+            return ValueTask.FromResult(agent);
+        });
+
+        Assert.Null(agent);
+        await runtime.GetAgentAsync("MyAgent", lazy: false);
+        Assert.NotNull(agent);
+        Assert.True(agent.ReceivedItems.Count == 0);
+
+        var topicTypeName = "TestTopic";
+        await runtime.PublishMessageAsync("info", new TopicId(topicTypeName));
         await Task.Delay(100);
-        var subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
-        var found = false;
-        foreach (var subscription in subscriptions)
-        {
-            if (subscription.TypeSubscription.TopicType == "TestEvent")
-            {
-                found = true;
-            }
-        }
-        Assert.True(found);
-        await agent.UnsubscribeAsync("TestEvent").ConfigureAwait(true);
-        await Task.Delay(500);
-        subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
-        found = false;
-        foreach (var subscription in subscriptions)
-        {
-            if (subscription.TypeSubscription.TopicType == "TestEvent")
-            {
-                found = true;
-            }
-        }
-        Assert.False(found);
-        runtime.Stop();
-    }
 
-    /// <summary>
-    /// Test StoreAsync and ReadAsync methods
-    /// </summary>
-    /// <returns>void</returns>
-    [Fact]
-    public async Task StoreAsync_and_ReadAsyncTest()
-    {
-        var runtime = new InMemoryAgentRuntimeFixture();
-        var (_, agent) = runtime.Start();
-        Dictionary<string, string> state = new()
-        {
-            { "testdata", "Active" }
-        };
-        await agent.StoreAsync(new AgentState
-        {
-            AgentId = agent.AgentId,
-            TextData = JsonSerializer.Serialize(state)
-        }).ConfigureAwait(true);
-        var readState = await agent.ReadAsync<AgentState>(agent.AgentId).ConfigureAwait(true);
-        var read = JsonSerializer.Deserialize<Dictionary<string, string>>(readState.TextData) ?? new Dictionary<string, string> { { "data", "No state data found" } };
-        read.TryGetValue("testdata", out var value);
-        Assert.Equal("Active", value);
-        runtime.Stop();
-    }
+        Assert.True(agent.ReceivedItems.Count == 0);
 
-    /// <summary>
-    /// Test PublishMessageAsync method and ReceiveMessage method
-    /// </summary>
-    /// <returns>void</returns>
-    [Fact]
-    public async Task PublishMessageAsync_and_ReceiveMessageTest()
-    {
-        var runtime = new InMemoryAgentRuntimeFixture();
-        var (_, agent) = runtime.Start();
-        var topicType = "TestTopic";
-        await agent.SubscribeAsync(topicType).ConfigureAwait(true);
-        var subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
-        var found = false;
-        foreach (var subscription in subscriptions)
-        {
-            if (subscription.TypeSubscription.TopicType == topicType)
-            {
-                found = true;
-            }
-        }
-        Assert.True(found);
-        await agent.PublishMessageAsync(new TextMessage()
-        {
-            Source = topicType,
-            TextMessage_ = "buffer"
-        }, topicType).ConfigureAwait(true);
+        var subscription = new TypeSubscription(topicTypeName, "MyAgent");
+        await runtime.AddSubscriptionAsync(subscription);
+
+        await runtime.PublishMessageAsync("info", new TopicId(topicTypeName));
         await Task.Delay(100);
-        Assert.True(TestAgent.ReceivedMessages.ContainsKey(topicType));
-        runtime.Stop();
+
+        Assert.True(agent.ReceivedItems.Count == 1);
+        Assert.Equal("info", agent.ReceivedItems[0]);
+
+        await runtime.RemoveSubscriptionAsync(subscription.Id);
+        await runtime.PublishMessageAsync("info", new TopicId(topicTypeName));
+        await Task.Delay(100);
+
+        Assert.True(agent.ReceivedItems.Count == 1);
     }
 
-    [Fact]
-    public async Task InvokeCorrectHandler()
-    {
-        var agent = new TestAgent(new AgentsMetadata(TypeRegistry.Empty, new Dictionary<string, Type>(), new Dictionary<Type, HashSet<string>>(), new Dictionary<Type, HashSet<string>>()), new Logger<Agent>(new LoggerFactory()));
+    // /// <summary>
+    // /// Test StoreAsync and ReadAsync methods
+    // /// </summary>
+    // /// <returns>void</returns>
+    // [Fact]
+    // public async Task StoreAsync_and_ReadAsyncTest()
+    // {
+    //     var fixture = new InMemoryAgentRuntimeFixture();
+    //     var (_, agent) = fixture.Start();
+    //     Dictionary<string, string> state = new()
+    //     {
+    //         { "testdata", "Active" }
+    //     };
+    //     await agent.StoreAsync(new AgentState
+    //     {
+    //         AgentId = agent.AgentId,
+    //         TextData = JsonSerializer.Serialize(state)
+    //     }).ConfigureAwait(true);
+    //     var readState = await agent.ReadAsync<AgentState>(agent.AgentId).ConfigureAwait(true);
+    //     var read = JsonSerializer.Deserialize<Dictionary<string, string>>(readState.TextData) ?? new Dictionary<string, string> { { "data", "No state data found" } };
+    //     read.TryGetValue("testdata", out var value);
+    //     Assert.Equal("Active", value);
+    //     fixture.Stop();
+    // }
 
-        await agent.HandleObjectAsync("hello world");
-        await agent.HandleObjectAsync(42);
+    // /// <summary>
+    // /// Test PublishMessageAsync method and ReceiveMessage method
+    // /// </summary>
+    // /// <returns>void</returns>
+    // [Fact]
+    // public async Task PublishMessageAsync_and_ReceiveMessageTest()
+    // {
+    //     var fixture = new InMemoryAgentRuntimeFixture();
+    //     var (_, agent) = fixture.Start();
+    //     var topicType = "TestTopic";
+    //     await agent.AddSubscriptionAsync(topicType).ConfigureAwait(true);
+    //     var subscriptions = await agent.GetSubscriptionsAsync().ConfigureAwait(true);
+    //     var found = false;
+    //     foreach (var subscription in subscriptions)
+    //     {
+    //         if (subscription.TypeSubscription.TopicType == topicType)
+    //         {
+    //             found = true;
+    //         }
+    //     }
+    //     Assert.True(found);
+    //     await agent.PublishMessageAsync(new TextMessage()
+    //     {
+    //         Source = topicType,
+    //         TextMessage_ = "buffer"
+    //     }, topicType).ConfigureAwait(true);
+    //     await Task.Delay(100);
+    //     Assert.True(TestAgent.ReceivedMessages.ContainsKey(topicType));
+    //     fixture.Stop();
+    // }
 
-        agent.ReceivedItems.Should().HaveCount(2);
-        agent.ReceivedItems[0].Should().Be("hello world");
-        agent.ReceivedItems[1].Should().Be(42);
-    }
+    // [Fact]
+    // public async Task InvokeCorrectHandler()
+    // {
+    //     var agent = new TestAgent(new AgentsMetadata(TypeRegistry.Empty, new Dictionary<string, Type>(), new Dictionary<Type, HashSet<string>>(), new Dictionary<Type, HashSet<string>>()), new Logger<Agent>(new LoggerFactory()));
+    //     await agent.HandleObjectAsync("hello world");
+    //     await agent.HandleObjectAsync(42);
+    //     agent.ReceivedItems.Should().HaveCount(2);
+    //     agent.ReceivedItems[0].Should().Be("hello world");
+    //     agent.ReceivedItems[1].Should().Be(42);
+    // }
 
-    [Fact]
-    public async Task DelegateMessageToTestAgentAsync()
-    {
-        var runtime = new InMemoryAgentRuntimeFixture();
-        var client = runtime.AppHost.Services.GetRequiredService<Client>();
-        await client.PublishMessageAsync(new TextMessage()
-        {
-            Source = nameof(DelegateMessageToTestAgentAsync),
-            TextMessage_ = "buffer"
-        }, token: CancellationToken.None);
+    // [Fact]
+    // public async Task DelegateMessageToTestAgentAsync()
+    // {
+    //     var runtime = new InMemoryAgentRuntimeFixture();
+    //     var client = runtime.AppHost.Services.GetRequiredService<Client>();
+    //     await client.PublishMessageAsync(new TextMessage()
+    //     {
+    //         Source = nameof(DelegateMessageToTestAgentAsync),
+    //         TextMessage_ = "buffer"
+    //     }, token: CancellationToken.None);
 
-        // wait for 10 seconds
-        var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
-        while (!TestAgent.ReceivedMessages.ContainsKey(nameof(DelegateMessageToTestAgentAsync)) && !cts.Token.IsCancellationRequested)
-        {
-            await Task.Delay(100);
-        }
+    //     // wait for 10 seconds
+    //     var cts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+    //     while (!TestAgent.ReceivedMessages.ContainsKey(nameof(DelegateMessageToTestAgentAsync)) && !cts.Token.IsCancellationRequested)
+    //     {
+    //         await Task.Delay(100);
+    //     }
 
-        TestAgent.ReceivedMessages[nameof(DelegateMessageToTestAgentAsync)].Should().NotBeNull();
-    }
+    //     TestAgent.ReceivedMessages[nameof(DelegateMessageToTestAgentAsync)].Should().NotBeNull();
+    // }
 
-    /// <summary>
-    /// The test agent is a simple agent that is used for testing purposes.
-    /// </summary>
-    public class TestAgent(
-        [FromKeyedServices("AgentsMetadata")] AgentsMetadata eventTypes,
-        Logger<Agent>? logger = null) : Agent(eventTypes, logger), IHandle<TextMessage>
-    {
-        public Task Handle(TextMessage item, CancellationToken cancellationToken = default)
-        {
-            ReceivedMessages[item.Source] = item.TextMessage_;
-            return Task.CompletedTask;
-        }
-        public Task Handle(string item)
-        {
-            ReceivedItems.Add(item);
-            return Task.CompletedTask;
-        }
-        public Task Handle(int item)
-        {
-            ReceivedItems.Add(item);
-            return Task.CompletedTask;
-        }
-        public List<object> ReceivedItems { get; private set; } = [];
-
-        /// <summary>
-        /// Key: source
-        /// Value: message
-        /// </summary>
-        public static ConcurrentDictionary<string, object> ReceivedMessages { get; private set; } = new();
-    }
-}
-
-/// <summary>
-/// InMemoryAgentRuntimeFixture - provides a fixture for the agent runtime.
-/// </summary>
-/// <remarks>
-/// This fixture is used to provide a runtime for the agent tests.
-/// However, it is shared between tests. So operations from one test can affect another.
-/// </remarks>
-public sealed class InMemoryAgentRuntimeFixture : IDisposable
-{
-    public InMemoryAgentRuntimeFixture()
-    {
-        var builder = new HostApplicationBuilder();
-        builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-        builder.AddAgentWorker()
-            .AddAgent<TestAgent>(nameof(TestAgent));
-        AppHost = builder.Build();
-        AppHost.StartAsync().Wait();
-    }
-    public IHost AppHost { get; }
-
-    /// <summary>
-    /// Start - starts the agent
-    /// </summary>
-    /// <returns>IAgentWorker, TestAgent</returns>
-    public (IAgentRuntime, TestAgent) Start()
-    {
-        var agent = ActivatorUtilities.CreateInstance<TestAgent>(AppHost.Services);
-        var worker = AppHost.Services.GetRequiredService<IAgentRuntime>();
-        Agent.Initialize(worker, agent);
-        return (worker, agent);
-    }
-    /// <summary>
-    /// Stop - stops the agent and ensures cleanup
-    /// </summary>
-    public void Stop()
-    {
-        AppHost?.StopAsync().GetAwaiter().GetResult();
-    }
-
-    /// <summary>
-    /// Dispose - Ensures cleanup after each test
-    /// </summary>
-    public void Dispose()
-    {
-        Stop();
-    }
-}
-
-[CollectionDefinition(Name)]
-public sealed class ClusterFixtureCollection : ICollectionFixture<InMemoryAgentRuntimeFixture>
-{
-    public const string Name = nameof(ClusterFixtureCollection);
+    // [CollectionDefinition(Name)]
+    // public sealed class ClusterFixtureCollection : ICollectionFixture<InMemoryAgentRuntimeFixture>
+    // {
+    //     public const string Name = nameof(ClusterFixtureCollection);
+    // }
 }

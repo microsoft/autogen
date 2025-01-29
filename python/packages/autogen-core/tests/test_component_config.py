@@ -33,6 +33,15 @@ class MyComponent(ComponentBase[MyConfig], Component[MyConfig]):
         return cls(info=config.info)
 
 
+class ComponentWithDescription(MyComponent):
+    component_description = "Explicit description"
+    component_label = "Custom Component"
+
+
+class ComponentWithDocstring(MyComponent):
+    """A component using just docstring."""
+
+
 def test_custom_component() -> None:
     comp = MyComponent("test")
     comp2 = MyComponent.load_component(comp.dump_component())
@@ -350,3 +359,12 @@ async def test_function_tool() -> None:
     cancelled_token.cancel()
     with pytest.raises(Exception, match="Cancelled"):
         await loaded_async.run_json({"x": 1.0, "y": 2.0}, cancelled_token)
+
+
+@pytest.mark.asyncio
+def test_component_descriptions() -> None:
+    """Test different ways of setting component descriptions."""
+    assert MyComponent("test").dump_component().description is None
+    assert ComponentWithDocstring("test").dump_component().description == "A component using just docstring."
+    assert ComponentWithDescription("test").dump_component().description == "Explicit description"
+    assert ComponentWithDescription("test").dump_component().label == "Custom Component"

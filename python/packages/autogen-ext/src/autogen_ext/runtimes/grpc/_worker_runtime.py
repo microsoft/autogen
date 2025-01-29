@@ -275,8 +275,6 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                 message = await self._host_connection.recv()
                 oneofcase = agent_worker_pb2.Message.WhichOneof(message, "message")
                 match oneofcase:
-                    case "registerAgentTypeRequest" | "addSubscriptionRequest":
-                        logger.warning(f"Cant handle {oneofcase}, skipping.")
                     case "request":
                         task = asyncio.create_task(self._process_request(message.request))
                         self._background_tasks.add(task)
@@ -289,20 +287,6 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
                         task.add_done_callback(self._background_tasks.discard)
                     case "cloudEvent":
                         task = asyncio.create_task(self._process_event(message.cloudEvent))
-                        self._background_tasks.add(task)
-                        task.add_done_callback(self._raise_on_exception)
-                        task.add_done_callback(self._background_tasks.discard)
-                    case "registerAgentTypeResponse":
-                        task = asyncio.create_task(
-                            self._process_register_agent_type_response(message.registerAgentTypeResponse)
-                        )
-                        self._background_tasks.add(task)
-                        task.add_done_callback(self._raise_on_exception)
-                        task.add_done_callback(self._background_tasks.discard)
-                    case "addSubscriptionResponse":
-                        task = asyncio.create_task(
-                            self._process_add_subscription_response(message.addSubscriptionResponse)
-                        )
                         self._background_tasks.add(task)
                         task.add_done_callback(self._raise_on_exception)
                         task.add_done_callback(self._background_tasks.discard)
@@ -737,27 +721,12 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
 
         self._agent_factories[type.type] = factory_wrapper
 
-        # Create a future for the registration response.
-        future = asyncio.get_event_loop().create_future()
-        request_id = await self._get_new_request_id()
-        self._pending_requests[request_id] = future
-
         # Send the registration request message to the host.
-        message = agent_worker_pb2.RegisterAgentTypeRequest(request_id=request_id, type=type.type)
-        response: agent_worker_pb2.RegisterAgentTypeResponse = await self._host_connection.stub.RegisterAgent(
+        message = agent_worker_pb2.RegisterAgentTypeRequest(type=type.type)
+        _response: agent_worker_pb2.RegisterAgentTypeResponse = await self._host_connection.stub.RegisterAgent(
             message, metadata=self._host_connection.metadata
         )
-        # TODO: just use grpc error handling
-        if not response.success:
-            raise RuntimeError(response.error)
         return type
-
-    async def _process_register_agent_type_response(self, response: agent_worker_pb2.RegisterAgentTypeResponse) -> None:
-        future = self._pending_requests.pop(response.request_id)
-        if response.HasField("error") and response.error != "":
-            future.set_exception(RuntimeError(response.error))
-        else:
-            future.set_result(None)
 
     async def _invoke_agent_factory(
         self,
@@ -812,27 +781,13 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         if self._host_connection is None:
             raise RuntimeError("Host connection is not set.")
 
-        # Create a future for the subscription response.
-        request_id = await self._get_new_request_id()
-
-        message = agent_worker_pb2.AddSubscriptionRequest(
-            request_id=request_id, subscription=subscription_to_proto(subscription)
-        )
-        response: agent_worker_pb2.AddSubscriptionResponse = await self._host_connection.stub.AddSubscription(
+        message = agent_worker_pb2.AddSubscriptionRequest(subscription=subscription_to_proto(subscription))
+        _response: agent_worker_pb2.AddSubscriptionResponse = await self._host_connection.stub.AddSubscription(
             message, metadata=self._host_connection.metadata
         )
-        if not response.success:
-            raise RuntimeError(response.error)
 
         # Add to local subscription manager.
         await self._subscription_manager.add_subscription(subscription)
-
-    async def _process_add_subscription_response(self, response: agent_worker_pb2.AddSubscriptionResponse) -> None:
-        future = self._pending_requests.pop(response.request_id)
-        if response.HasField("error") and response.error != "":
-            future.set_exception(RuntimeError(response.error))
-        else:
-            future.set_result(None)
 
     async def remove_subscription(self, id: str) -> None:
         raise NotImplementedError("Subscriptions cannot be removed while using distributed runtime currently.")
