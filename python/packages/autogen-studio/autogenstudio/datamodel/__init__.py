@@ -1,6 +1,6 @@
 from .db import Team, Run, RunStatus, Session, Team, Message
 from .types import (
-    MessageConfig, MessageMeta, TeamResult, Response, SocketMessage
+    MessageConfig, MessageMeta, TeamResult, Response, SocketMessage, GalleryMetadata, GalleryComponents, GalleryItems, Gallery
 )
 
 
