@@ -72,6 +72,7 @@ from openai.types.shared_params import FunctionDefinition, FunctionParameters
 from pydantic import BaseModel
 from typing_extensions import Self, Unpack
 
+from .._utils.parse_r1_content import parse_r1_content
 from . import _model_info
 from .config import (
     AzureOpenAIClientConfiguration,
@@ -595,12 +596,19 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 )
                 for x in choice.logprobs.content
             ]
+
+        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
+            thought, content = parse_r1_content(content)
+        else:
+            thought = None
+
         response = CreateResult(
             finish_reason=normalize_stop_reason(finish_reason),
             content=content,
             usage=usage,
             cached=False,
             logprobs=logprobs,
+            thought=thought,
         )
 
         self._total_usage = _add_usage(self._total_usage, usage)
@@ -808,12 +816,18 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             completion_tokens=completion_tokens,
         )
 
+        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
+            thought, content = parse_r1_content(content)
+        else:
+            thought = None
+
         result = CreateResult(
             finish_reason=normalize_stop_reason(stop_reason),
             content=content,
             usage=usage,
             cached=False,
             logprobs=logprobs,
+            thought=thought,
         )
 
         self._total_usage = _add_usage(self._total_usage, usage)
