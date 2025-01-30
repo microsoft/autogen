@@ -20,11 +20,62 @@ class SseMcpToolAdapter(
     Component[SseMcpToolAdapterConfig],
 ):
     """
-    Adapter for MCP tools to make them compatible with AutoGen.
+    Allows you to wrap an MCP tool running over Server-Sent Events (SSE) and make it available to AutoGen.
+
+    This adapter enables using MCP-compatible tools that communicate over HTTP with SSE
+    with AutoGen agents. Common use cases include integrating with remote MCP services,
+    cloud-based tools, and web APIs that implement the Model Context Protocol (MCP).
 
     Args:
-        server_params (SseServerParameters): Parameters for the MCP server connection.
-        tool (Tool): The MCP tool to wrap.
+        server_params (SseServerParameters): Parameters for the MCP server connection,
+            including URL, headers, and timeouts
+        tool (Tool): The MCP tool to wrap
+
+    Examples:
+        Use a remote translation service that implements MCP over SSE to create tools
+        that allow AutoGen agents to perform translations:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_ext.tools.mcp import SseMcpToolAdapter, SseServerParams
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_agentchat.ui import Console
+            from autogen_core import CancellationToken
+
+
+            async def main() -> None:
+                # Create server params for the remote MCP service
+                server_params = SseServerParams(
+                    url="https://api.example.com/mcp",
+                    headers={"Authorization": "Bearer your-api-key", "Content-Type": "application/json"},
+                    timeout=30,  # Connection timeout in seconds
+                )
+
+                # Get the translation tool from the server
+                adapter = await SseMcpToolAdapter.from_server_params(server_params, "translate")
+
+                # Create an agent that can use the translation tool
+                model_client = OpenAIChatCompletionClient(model="gpt-4")
+                agent = AssistantAgent(
+                    name="translator",
+                    model_client=model_client,
+                    tools=[adapter],
+                    system_message="You are a helpful translation assistant.",
+                )
+
+                # Let the agent translate some text
+                await Console(
+                    agent.run_stream(
+                        task="Translate 'Hello, how are you?' to Spanish", cancellation_token=CancellationToken()
+                    )
+                )
+
+
+            if __name__ == "__main__":
+                asyncio.run(main())
+
     """
 
     component_config_schema = SseMcpToolAdapterConfig
