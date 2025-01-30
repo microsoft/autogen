@@ -2,8 +2,10 @@
 // GrpcGateway.cs
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using Grpc.Core;
 using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core.Grpc;
 using Microsoft.AutoGen.Protobuf;
 using Microsoft.AutoGen.Runtime.Grpc.Abstractions;
 using Microsoft.Extensions.Hosting;
@@ -26,6 +28,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
     private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
     private readonly ISubscriptionsGrain _subscriptions;
+
+    private IProtoSerializationRegistry SerializationRegistry { get; } = new ProtoSerializationRegistry();
 
     // The mapping from agent id to worker process.
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
@@ -86,20 +90,20 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         return response;
     }
 
-    public async ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
+    private async ValueTask StoreAsync(AgentState value, CancellationToken __ = default)
     {
         _ = value.AgentId ?? throw new ArgumentNullException(nameof(value.AgentId));
         var agentState = _clusterClient.GetGrain<IAgentGrain>($"{value.AgentId.Type}:{value.AgentId.Key}");
         await agentState.WriteStateAsync(value, value.ETag);
     }
 
-    public async ValueTask<AgentState> ReadAsync(Protobuf.AgentId agentId, CancellationToken cancellationToken = default)
+    private async ValueTask<AgentState> ReadAsync(Protobuf.AgentId agentId, CancellationToken _ = default)
     {
         var agentState = _clusterClient.GetGrain<IAgentGrain>($"{agentId.Type}:{agentId.Key}");
         return await agentState.ReadStateAsync();
     }
 
-    public async ValueTask<RegisterAgentTypeResponse> RegisterAgentTypeAsync(RegisterAgentTypeRequest request, CancellationToken _ = default)
+    private async ValueTask<RegisterAgentTypeResponse> RegisterAgentTypeAsync(RegisterAgentTypeRequest request, CancellationToken _ = default)
     {
         string requestId = string.Empty;
         try
@@ -248,7 +252,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         var registry = _clusterClient.GetGrain<IRegistryGrain>(0);
         //intentionally blocking
-        var targetAgentTypes = await registry.GetSubscribedAndHandlingAgentsAsync(evt.Source, evt.Type).ConfigureAwait(true);
+        var targetAgentTypes = await registry.GetSubscribedAndHandlingAgentsAsync(topic: evt.Source, eventType: evt.Type).ConfigureAwait(true);
         if (targetAgentTypes is not null && targetAgentTypes.Count > 0)
         {
             targetAgentTypes = targetAgentTypes.Distinct().ToList();
@@ -279,12 +283,25 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         if (request.Target is null)
         {
             // If the gateway knows how to service this request, treat the target as the "Gateway"
-            if (request.Method == "RegisterAgent")
+            if (request.Method == "RegisterAgent" &&
+                request.Payload is not null &&
+                request.Payload.DataType == nameof(RegisterAgentTypeRequest) &&
+                request.Payload.Data is not null)
             {
-                //RegisterAgentTypeRequest request = 
+                object? payloadData = this.SerializationRegistry.PayloadToObject(request.Payload);
+                if (payloadData is RegisterAgentTypeRequest registerAgentTypeRequest)
+                {
+                    await RegisterAgentTypeAsync(requestId, connection, registerAgentTypeRequest).ConfigureAwait(false);
+                    return;
+                }
+                else
+                {
+                    await RespondBadRequestAsync(connection, $"Invalid payload type for \"RegisterAgent\" Expected: {nameof(RegisterAgentTypeRequest)}; got: {payloadData?.GetType().Name ?? "null"}.").ConfigureAwait(false);
+                    return;
+                }
 
                 //await RegisterAgentTypeAsync(requestId, connection, request.Payload).ConfigureAwait(false);
-                return;
+                //return;
             }
 
             throw new InvalidOperationException($"Request message is missing a target. Message: '{request}'.");
@@ -413,7 +430,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         await queue.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);
     }
 
-    public async ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(RemoveSubscriptionRequest request, CancellationToken cancellationToken = default)
+    private async ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(RemoveSubscriptionRequest request, CancellationToken _ = default)
     {
         try
         {
@@ -433,7 +450,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
     }
 
-    public ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request, CancellationToken cancellationToken = default)
+    private ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request, CancellationToken _ = default)
     {
         return _gatewayRegistry.GetSubscriptionsAsync(request);
     }
@@ -450,31 +467,37 @@ public sealed class GrpcGateway : BackgroundService, IGateway
 
     ValueTask IGateway.StoreAsync(AgentState value)
     {
+        Debug.Fail("This method should not be called.");
         return StoreAsync(value, default);
     }
 
     ValueTask<AgentState> IGateway.ReadAsync(Protobuf.AgentId agentId)
     {
+        Debug.Fail("This method should not be called.");
         return ReadAsync(agentId, default);
     }
 
     ValueTask<RegisterAgentTypeResponse> IGateway.RegisterAgentTypeAsync(string requestId, RegisterAgentTypeRequest request)
     {
+        Debug.Fail("This method should not be called.");
         return RegisterAgentTypeAsync(request, default);
     }
 
     ValueTask<AddSubscriptionResponse> IGateway.SubscribeAsync(AddSubscriptionRequest request)
     {
+        Debug.Fail("This method should not be called.");
         return SubscribeAsync(request, default);
     }
 
     ValueTask<RemoveSubscriptionResponse> IGateway.UnsubscribeAsync(RemoveSubscriptionRequest request)
     {
+        Debug.Fail("This method should not be called.");
         return UnsubscribeAsync(request, default);
     }
 
     ValueTask<List<Subscription>> IGateway.GetSubscriptionsAsync(GetSubscriptionsRequest request)
     {
+        Debug.Fail("This method should not be called.");
         return GetSubscriptionsAsync(request);
     }
 }

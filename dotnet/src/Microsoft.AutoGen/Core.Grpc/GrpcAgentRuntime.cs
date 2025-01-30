@@ -2,7 +2,6 @@
 // GrpcAgentRuntime.cs
 
 using System.Collections.Concurrent;
-using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Hosting;
@@ -155,7 +154,7 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
 
         // Convert payload back to object
         var payload = request.Payload;
-        var message = PayloadToObject(payload);
+        var message = this.SerializationRegistry.PayloadToObject(payload);
 
         var messageContext = new MessageContext(request.RequestId, cancellationToken)
         {
@@ -171,7 +170,7 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
             var response = new RpcResponse
             {
                 RequestId = request.RequestId,
-                Payload = ObjectToPayload(result)
+                Payload = this.SerializationRegistry.ObjectToPayload(result)
             };
 
             var responseMessage = new Message
@@ -201,7 +200,7 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
         if (_pendingRequests.TryRemove(request.RequestId, out var resultSink))
         {
             var payload = request.Payload;
-            var message = PayloadToObject(payload);
+            var message = this.SerializationRegistry.PayloadToObject(payload);
             resultSink.SetResult(message);
         }
     }
@@ -255,35 +254,35 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
         return this._messageRouter.StopAsync();
     }
 
-    private Payload ObjectToPayload(object message) {
-        if (!SerializationRegistry.Exists(message.GetType()))
-        {
-            SerializationRegistry.RegisterSerializer(message.GetType());
-        }
-        var rpcMessage = (SerializationRegistry.GetSerializer(message.GetType()) ?? throw new Exception()).Serialize(message);
+    //private Payload ObjectToPayload(object message) {
+    //    if (!SerializationRegistry.Exists(message.GetType()))
+    //    {
+    //        SerializationRegistry.RegisterSerializer(message.GetType());
+    //    }
+    //    var rpcMessage = (SerializationRegistry.GetSerializer(message.GetType()) ?? throw new Exception()).Serialize(message);
 
-        var typeName = SerializationRegistry.TypeNameResolver.ResolveTypeName(message);
-        const string PAYLOAD_DATA_CONTENT_TYPE = "application/x-protobuf";
+    //    var typeName = SerializationRegistry.TypeNameResolver.ResolveTypeName(message);
+    //    const string PAYLOAD_DATA_CONTENT_TYPE = "application/x-protobuf";
 
-        // Protobuf any to byte array
-        Payload payload = new()
-        {
-            DataType = typeName,
-            DataContentType = PAYLOAD_DATA_CONTENT_TYPE,
-            Data = rpcMessage.ToByteString()
-        };
+    //    // Protobuf any to byte array
+    //    Payload payload = new()
+    //    {
+    //        DataType = typeName,
+    //        DataContentType = PAYLOAD_DATA_CONTENT_TYPE,
+    //        Data = rpcMessage.ToByteString()
+    //    };
 
-        return payload;
-    }
+    //    return payload;
+    //}
 
-    private object PayloadToObject(Payload payload) {
-        var typeName = payload.DataType;
-        var data = payload.Data;
-        var type = SerializationRegistry.TypeNameResolver.ResolveTypeName(typeName);
-        var serializer = SerializationRegistry.GetSerializer(type) ?? throw new Exception();
-        var any = Google.Protobuf.WellKnownTypes.Any.Parser.ParseFrom(data);
-        return serializer.Deserialize(any);
-    }
+    //private object PayloadToObject(Payload payload) {
+    //    var typeName = payload.DataType;
+    //    var data = payload.Data;
+    //    var type = SerializationRegistry.TypeNameResolver.ResolveTypeName(typeName);
+    //    var serializer = SerializationRegistry.GetSerializer(type) ?? throw new Exception();
+    //    var any = Google.Protobuf.WellKnownTypes.Any.Parser.ParseFrom(data);
+    //    return serializer.Deserialize(any);
+    //}
 
     public async ValueTask<object?> SendMessageAsync(object message, Contracts.AgentId recepient, Contracts.AgentId? sender = null, string? messageId = null, CancellationToken cancellationToken = default)
     {
@@ -292,7 +291,7 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
             SerializationRegistry.RegisterSerializer(message.GetType());
         }
 
-        var payload = ObjectToPayload(message);
+        var payload = this.SerializationRegistry.ObjectToPayload(message);
         var request = new RpcRequest
         {
             RequestId = Guid.NewGuid().ToString(),
@@ -388,6 +387,8 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
 
         // Because we have an extensible definition of ISubscriptionDefinition, we cannot project it to the Gateway.
         // What this means is that we will have a much chattier interface between the Gateway and the Runtime.
+        // TODO: We will be able to make this better by treating unknown subscription types as an "everything"
+        // subscription. This will allow us to have a single subscription for all unknown types.
 
         //await this._client.AddSubscriptionAsync(new AddSubscriptionRequest
         //{
