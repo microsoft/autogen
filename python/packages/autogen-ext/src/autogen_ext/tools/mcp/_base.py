@@ -12,6 +12,7 @@ from ._session import create_mcp_server_session
 
 TServerParams = TypeVar("TServerParams", bound=McpServerParams)
 
+
 class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
     """
     Base adapter class for MCP tools to make them compatible with AutoGen.
@@ -20,6 +21,7 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
         server_params (TServerParams): Parameters for the MCP server connection.
         tool (Tool): The MCP tool to wrap.
     """
+
     component_type = "tool"
 
     def __init__(self, server_params: TServerParams, tool: Tool) -> None:

@@ -14,12 +14,6 @@ async def mcp_server_tools(
         tools = await session.list_tools()
 
     if isinstance(server_params, StdioServerParams):
-        return [
-            StdioMcpToolAdapter(server_params=server_params, tool=tool)
-            for tool in tools.tools
-        ]
+        return [StdioMcpToolAdapter(server_params=server_params, tool=tool) for tool in tools.tools]
     elif isinstance(server_params, SseServerParams):
-        return [
-            SseMcpToolAdapter(server_params=server_params, tool=tool)
-            for tool in tools.tools
-        ]
+        return [SseMcpToolAdapter(server_params=server_params, tool=tool) for tool in tools.tools]
