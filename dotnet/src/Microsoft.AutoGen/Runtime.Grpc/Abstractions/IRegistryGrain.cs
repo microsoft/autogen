@@ -7,5 +7,5 @@ namespace Microsoft.AutoGen.Runtime.Grpc.Abstractions;
 /// Orleans specific interface, needed to mark the key
 /// </summary>
 [Alias("Microsoft.AutoGen.Runtime.Grpc.Abstractions.IRegistryGrain")]
-public interface IRegistryGrain : IRegistry, IGrainWithIntegerKey
+public interface IRegistryGrain : IGatewayRegistry, IGrainWithIntegerKey
 { }

@@ -174,7 +174,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
     Args:
         endpoint (str): The endpoint to use. **Required.**
-        credentials (union, AzureKeyCredential, AsyncTokenCredential): The credentials to use. **Required**
+        credential (union, AzureKeyCredential, AsyncTokenCredential): The credentials to use. **Required**
         model_info (ModelInfo): The model family and capabilities of the model. **Required.**
         model (str): The name of the model. **Required if model is hosted on GitHub Models.**
         frequency_penalty: (optional,float)
@@ -182,7 +182,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         temperature: (optional,float)
         top_p: (optional,float)
         max_tokens: (optional,int)
-        response_format: (optional,ChatCompletionsResponseFormat)
+        response_format: (optional, literal["text", "json_object"])
         stop: (optional,List[str])
         tools: (optional,List[ChatCompletionsToolDefinition])
         tool_choice: (optional,Union[str, ChatCompletionsToolChoicePreset, ChatCompletionsNamedToolChoice]])

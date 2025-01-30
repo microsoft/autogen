@@ -2,15 +2,11 @@ syntax = "proto3";
 
 package agents;
 
-option csharp_namespace = "Microsoft.AutoGen.Contracts";
+option csharp_namespace = "Microsoft.AutoGen.Protobuf";
 
 import "cloudevent.proto";
 import "google/protobuf/any.proto";
 
-message TopicId {
-  string type = 1;
-  string source = 2;
-}
 
 message AgentId {
     string type = 1;
@@ -39,23 +35,11 @@ message RpcResponse {
     map<string, string> metadata = 4;
 }
 
-message Event {
-    string topic_type = 1;
-    string topic_source = 2;
-    optional AgentId source = 3;
-    Payload payload = 4;
-    map<string, string> metadata = 5;
-}
-
 message RegisterAgentTypeRequest {
-    string request_id = 1; // TODO: remove once message based requests are removed
-    string type = 2;
+    string type = 1;
 }
 
 message RegisterAgentTypeResponse {
-    string request_id = 1; // TODO: remove once message based requests are removed
-    bool success = 2;
-    optional string error = 3;
 }
 
 message TypeSubscription {
@@ -77,14 +61,10 @@ message Subscription {
 }
 
 message AddSubscriptionRequest {
-    string request_id = 1; // TODO: remove once message based requests are removed
-    Subscription subscription = 2;
+    Subscription subscription = 1;
 }
 
 message AddSubscriptionResponse {
-    string request_id = 1; // TODO: remove once message based requests are removed
-    bool success = 2;
-    optional string error = 3;
 }
 
 message RemoveSubscriptionRequest {
@@ -92,23 +72,11 @@ message RemoveSubscriptionRequest {
 }
 
 message RemoveSubscriptionResponse {
-    bool success = 1;
-    optional string error = 2;
 }
 
 message GetSubscriptionsRequest {}
 message GetSubscriptionsResponse {
     repeated Subscription subscriptions = 1;
-}
-
-service AgentRpc {
-    rpc OpenChannel (stream Message) returns (stream Message);
-    rpc GetState(AgentId) returns (GetStateResponse);
-    rpc SaveState(AgentState) returns (SaveStateResponse);
-    rpc RegisterAgent(RegisterAgentTypeRequest) returns (RegisterAgentTypeResponse);
-    rpc AddSubscription(AddSubscriptionRequest) returns (AddSubscriptionResponse);
-    rpc RemoveSubscription(RemoveSubscriptionRequest) returns (RemoveSubscriptionResponse);
-    rpc GetSubscriptions(GetSubscriptionsRequest) returns (GetSubscriptionsResponse);
 }
 
 message AgentState {
@@ -123,13 +91,9 @@ message AgentState {
 
 message GetStateResponse {
 	AgentState agent_state = 1;
-	bool success = 2;
-    optional string error = 3;
 }
 
 message SaveStateResponse {
-	bool success = 1;
-    optional string error = 2;
 }
 
 message Message {
@@ -137,10 +101,15 @@ message Message {
         RpcRequest request = 1;
         RpcResponse response = 2;
         io.cloudevents.v1.CloudEvent cloudEvent = 3;
-        RegisterAgentTypeRequest registerAgentTypeRequest = 4;
-        RegisterAgentTypeResponse registerAgentTypeResponse = 5;
-        AddSubscriptionRequest addSubscriptionRequest = 6;
-        AddSubscriptionResponse addSubscriptionResponse = 7;
     }
 }
 
+service AgentRpc {
+    rpc OpenChannel (stream Message) returns (stream Message);
+    rpc GetState(AgentId) returns (GetStateResponse);
+    rpc SaveState(AgentState) returns (SaveStateResponse);
+    rpc RegisterAgent(RegisterAgentTypeRequest) returns (RegisterAgentTypeResponse);
+    rpc AddSubscription(AddSubscriptionRequest) returns (AddSubscriptionResponse);
+    rpc RemoveSubscription(RemoveSubscriptionRequest) returns (RemoveSubscriptionResponse);
+    rpc GetSubscriptions(GetSubscriptionsRequest) returns (GetSubscriptionsResponse);
+}
