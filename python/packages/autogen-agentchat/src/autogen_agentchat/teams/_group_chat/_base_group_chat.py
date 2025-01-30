@@ -12,10 +12,10 @@ from autogen_core import (
     CancellationToken,
     ClosureAgent,
     ComponentBase,
+    ExceptionHandlingPolicy,
     MessageContext,
     SingleThreadedAgentRuntime,
     TypeSubscription,
-    ExceptionHandlingPolicy
 )
 from autogen_core._closure_agent import ClosureContext
 from pydantic import BaseModel

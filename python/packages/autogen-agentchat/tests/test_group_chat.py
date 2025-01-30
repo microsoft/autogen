@@ -29,7 +29,7 @@ from autogen_agentchat.teams._group_chat._round_robin_group_chat import RoundRob
 from autogen_agentchat.teams._group_chat._selector_group_chat import SelectorGroupChatManager
 from autogen_agentchat.teams._group_chat._swarm_group_chat import SwarmGroupChatManager
 from autogen_agentchat.ui import Console
-from autogen_core import AgentId, CancellationToken, FunctionCall, ExceptionHandlingPolicy
+from autogen_core import AgentId, CancellationToken, ExceptionHandlingPolicy, FunctionCall
 from autogen_core.models import (
     AssistantMessage,
     FunctionExecutionResult,
@@ -99,9 +99,12 @@ class _EchoAgent(BaseChatAgent):
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         self._last_message = None
 
+
 class _FlakyAgent(BaseChatAgent):
     def __init__(self, name: str, description: str) -> None:
         super().__init__(name, description)
+        self._last_message: str | None = None
+        self._total_messages = 0
 
     @property
     def produced_message_types(self) -> Sequence[type[ChatMessage]]:
@@ -424,12 +427,18 @@ async def test_round_robin_group_chat_with_exception_handling_policy_raise() -> 
     agent_2 = _FlakyAgent("agent_2", description="echo agent 2")
     agent_3 = _EchoAgent("agent_3", description="echo agent 3")
     termination = MaxMessageTermination(3)
-    team = RoundRobinGroupChat(participants=[agent_1, agent_2, agent_3], termination_condition=termination, exception_handling_policy=ExceptionHandlingPolicy.RAISE)
+    team = RoundRobinGroupChat(
+        participants=[agent_1, agent_2, agent_3],
+        termination_condition=termination,
+        exception_handling_policy=ExceptionHandlingPolicy.RAISE,
+    )
 
     with pytest.raises(Exception) as exc_info:
-        result = await team.run(
+        await team.run(
             task="Write a program that prints 'Hello, world!'",
         )
+
+    assert str(exc_info.value.__cause__) == "I am a flaky agent..."
 
 
 @pytest.mark.asyncio
@@ -438,7 +447,11 @@ async def test_round_robin_group_chat_with_exception_handling_policy_ignore_and_
     agent_2 = _FlakyAgent("agent_2", description="echo agent 2")
     agent_3 = _EchoAgent("agent_3", description="echo agent 3")
     termination = MaxMessageTermination(3)
-    team = RoundRobinGroupChat(participants=[agent_1, agent_2, agent_3], termination_condition=termination, exception_handling_policy=ExceptionHandlingPolicy.IGNORE_AND_LOG)
+    team = RoundRobinGroupChat(
+        participants=[agent_1, agent_2, agent_3],
+        termination_condition=termination,
+        exception_handling_policy=ExceptionHandlingPolicy.IGNORE_AND_LOG,
+    )
 
     result = await team.run(
         task="Write a program that prints 'Hello, world!'",

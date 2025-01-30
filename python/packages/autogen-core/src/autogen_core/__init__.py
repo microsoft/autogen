@@ -36,6 +36,7 @@ from ._constants import (
 )
 from ._default_subscription import DefaultSubscription, default_subscription, type_subscription
 from ._default_topic import DefaultTopicId
+from ._exception_handling_policy import ExceptionHandlingPolicy
 from ._image import Image
 from ._intervention import (
     DefaultInterventionHandler,
@@ -63,7 +64,6 @@ from ._topic import TopicId
 from ._type_prefix_subscription import TypePrefixSubscription
 from ._type_subscription import TypeSubscription
 from ._types import FunctionCall
-from ._exception_handling_policy import ExceptionHandlingPolicy
 
 EVENT_LOGGER_NAME = EVENT_LOGGER_NAME_ALIAS
 """The name of the logger used for structured events."""
@@ -133,5 +133,5 @@ __all__ = [
     "DropMessage",
     "InterventionHandler",
     "DefaultInterventionHandler",
-    "ExceptionHandlingPolicy"
+    "ExceptionHandlingPolicy",
 ]

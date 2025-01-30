@@ -35,6 +35,7 @@ from ._agent_metadata import AgentMetadata
 from ._agent_runtime import AgentRuntime
 from ._agent_type import AgentType
 from ._cancellation_token import CancellationToken
+from ._exception_handling_policy import ExceptionHandlingPolicy
 from ._intervention import DropMessage, InterventionHandler
 from ._message_context import MessageContext
 from ._message_handler_context import MessageHandlerContext
@@ -44,7 +45,6 @@ from ._subscription import Subscription
 from ._telemetry import EnvelopeMetadata, MessageRuntimeTracingConfig, TraceHelper, get_telemetry_envelope_metadata
 from ._topic import TopicId
 from .exceptions import MessageDroppedException
-from ._exception_handling_policy import ExceptionHandlingPolicy
 
 logger = logging.getLogger("autogen_core")
 event_logger = logging.getLogger("autogen_core.events")
