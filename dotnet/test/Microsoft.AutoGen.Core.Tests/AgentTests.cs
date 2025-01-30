@@ -17,35 +17,58 @@ public class AgentTests()
         await runtime.StartAsync();
 
         Logger<BaseAgent> logger = new(new LoggerFactory());
-        await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) => ValueTask.FromResult(new TestAgent(id, runtime, logger)));
-        await runtime.RegisterImplicitAgentSubscriptionsAsync<TestAgent>("MyAgent");
+        TestAgent agent = null!;
+
+        await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) =>
+        {
+            agent = new TestAgent(id, runtime, logger);
+            return ValueTask.FromResult(agent);
+        });
+
+        // Ensure the agent is actually created
+        AgentId agentId = await runtime.GetAgentAsync("MyAgent", lazy: false);
+
+        // Validate agent ID
+        agentId.Should().Be(agent.Id, "Agent ID should match the registered agent");
 
         var topicType = "TestTopic";
 
-        await runtime.PublishMessageAsync(new TextMessage { Source = topicType, Content = "test" }, new TopicId("TestTopic")).ConfigureAwait(true);
-
+        await runtime.PublishMessageAsync(new TextMessage { Source = topicType, Content = "test" }, new TopicId(topicType)).ConfigureAwait(true);
         await runtime.RunUntilIdleAsync();
 
-        TestAgent.ReceivedMessages.Any().Should().BeFalse("Agent should not receive messages when not subscribed.");
+        agent.ReceivedMessages.Any().Should().BeFalse("Agent should not receive messages when not subscribed.");
     }
 
     [Fact]
-    public async Task Agent_ShoulReceiveMessages_WhenSubscribed()
+    public async Task Agent_ShouldReceiveMessages_WhenSubscribed()
     {
         var runtime = new InProcessRuntime();
         await runtime.StartAsync();
 
         Logger<BaseAgent> logger = new(new LoggerFactory());
-        await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) => ValueTask.FromResult(new SubscribedAgent(id, runtime, logger)));
+        SubscribedAgent agent = null!;
+
+        await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) =>
+        {
+            agent = new SubscribedAgent(id, runtime, logger);
+            return ValueTask.FromResult(agent);
+        });
+
+        // Ensure the agent is actually created
+        AgentId agentId = await runtime.GetAgentAsync("MyAgent", lazy: false);
+
+        // Validate agent ID
+        agentId.Should().Be(agent.Id, "Agent ID should match the registered agent");
+
         await runtime.RegisterImplicitAgentSubscriptionsAsync<SubscribedAgent>("MyAgent");
 
         var topicType = "TestTopic";
 
-        await runtime.PublishMessageAsync(new TextMessage { Source = topicType, Content = "test" }, new TopicId("TestTopic")).ConfigureAwait(true);
+        await runtime.PublishMessageAsync(new TextMessage { Source = topicType, Content = "test" }, new TopicId(topicType)).ConfigureAwait(true);
 
         await runtime.RunUntilIdleAsync();
 
-        TestAgent.ReceivedMessages.Any().Should().BeTrue("Agent should receive messages when subscribed.");
+        agent.ReceivedMessages.Any().Should().BeTrue("Agent should receive messages when subscribed.");
     }
 
     [Fact]
