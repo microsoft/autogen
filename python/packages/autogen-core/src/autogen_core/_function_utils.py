@@ -3,6 +3,7 @@
 
 import inspect
 import typing
+from functools import partial
 from logging import getLogger
 from typing import (
     Annotated,
@@ -41,7 +42,8 @@ def get_typed_signature(call: Callable[..., Any]) -> inspect.Signature:
     """
     signature = inspect.signature(call)
     globalns = getattr(call, "__globals__", {})
-    type_hints = typing.get_type_hints(call, globalns, include_extras=True)
+    func_call = call.func if isinstance(call, partial) else call
+    type_hints = typing.get_type_hints(func_call, globalns, include_extras=True)
     typed_params = [
         inspect.Parameter(
             name=param.name,
@@ -304,18 +306,18 @@ def normalize_annotated_type(type_hint: Type[Any]) -> Type[Any]:
 
 def args_base_model_from_signature(name: str, sig: inspect.Signature) -> Type[BaseModel]:
     fields: Dict[str, tuple[Type[Any], Any]] = {}
-    for name, param in sig.parameters.items():
+    for param_name, param in sig.parameters.items():
         # This is handled externally
-        if name == "cancellation_token":
+        if param_name == "cancellation_token":
             continue
 
         if param.annotation is inspect.Parameter.empty:
             raise ValueError("No annotation")
 
         type = normalize_annotated_type(param.annotation)
-        description = type2description(name, param.annotation)
+        description = type2description(param_name, param.annotation)
         default_value = param.default if param.default is not inspect.Parameter.empty else PydanticUndefined
 
-        fields[name] = (type, Field(default=default_value, description=description))
+        fields[param_name] = (type, Field(default=default_value, description=description))
 
     return cast(BaseModel, create_model(name, **fields))  # type: ignore

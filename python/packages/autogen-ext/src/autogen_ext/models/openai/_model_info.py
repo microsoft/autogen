@@ -37,6 +37,12 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": False,
         "family": ModelFamily.O1,
     },
+    "gpt-4o-2024-11-20": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GPT_4O,
+    },
     "gpt-4o-2024-08-06": {
         "vision": True,
         "function_calling": True,
@@ -127,6 +133,7 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "o1-2024-12-17": 200000,
     "o1-preview-2024-09-12": 128000,
     "o1-mini-2024-09-12": 128000,
+    "gpt-4o-2024-11-20": 128000,
     "gpt-4o-2024-08-06": 128000,
     "gpt-4o-2024-05-13": 128000,
     "gpt-4o-mini-2024-07-18": 128000,

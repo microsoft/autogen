@@ -40,8 +40,8 @@ class ReplayChatCompletionClient(ChatCompletionClient):
 
         .. code-block:: python
 
-            from autogen_ext.models.replay import ReplayChatCompletionClient
             from autogen_core.models import UserMessage
+            from autogen_ext.models.replay import ReplayChatCompletionClient
 
 
             async def example():
@@ -60,8 +60,8 @@ class ReplayChatCompletionClient(ChatCompletionClient):
         .. code-block:: python
 
             import asyncio
-            from autogen_ext.models.replay import ReplayChatCompletionClient
             from autogen_core.models import UserMessage
+            from autogen_ext.models.replay import ReplayChatCompletionClient
 
 
             async def example():
@@ -86,8 +86,8 @@ class ReplayChatCompletionClient(ChatCompletionClient):
         .. code-block:: python
 
             import asyncio
-            from autogen_ext.models.replay import ReplayChatCompletionClient
             from autogen_core.models import UserMessage
+            from autogen_ext.models.replay import ReplayChatCompletionClient
 
 
             async def example():
@@ -129,6 +129,7 @@ class ReplayChatCompletionClient(ChatCompletionClient):
         self._cur_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._current_index = 0
+        self._cached_bool_value = True
 
     async def create(
         self,
@@ -148,7 +149,9 @@ class ReplayChatCompletionClient(ChatCompletionClient):
         if isinstance(response, str):
             _, output_token_count = self._tokenize(response)
             self._cur_usage = RequestUsage(prompt_tokens=prompt_token_count, completion_tokens=output_token_count)
-            response = CreateResult(finish_reason="stop", content=response, usage=self._cur_usage, cached=True)
+            response = CreateResult(
+                finish_reason="stop", content=response, usage=self._cur_usage, cached=self._cached_bool_value
+            )
         else:
             self._cur_usage = RequestUsage(
                 prompt_tokens=prompt_token_count, completion_tokens=response.usage.completion_tokens
@@ -182,6 +185,9 @@ class ReplayChatCompletionClient(ChatCompletionClient):
                     yield token + " "
                 else:
                     yield token
+            yield CreateResult(
+                finish_reason="stop", content=response, usage=self._cur_usage, cached=self._cached_bool_value
+            )
             self._update_total_usage()
         else:
             self._cur_usage = RequestUsage(
@@ -207,6 +213,9 @@ class ReplayChatCompletionClient(ChatCompletionClient):
             0, self._total_available_tokens - self._total_usage.prompt_tokens - self._total_usage.completion_tokens
         )
 
+    def set_cached_bool_value(self, value: bool) -> None:
+        self._cached_bool_value = value
+
     def _tokenize(self, messages: Union[str, LLMMessage, Sequence[LLMMessage]]) -> tuple[list[str], int]:
         total_tokens = 0
         all_tokens: List[str] = []
@@ -220,7 +229,7 @@ class ReplayChatCompletionClient(ChatCompletionClient):
                 total_tokens += len(tokens)
                 all_tokens.extend(tokens)
             else:
-                logger.warning("Token count has been done only on string content", RuntimeWarning)
+                logger.warning("Token count has been done only on string content")
         elif isinstance(messages, Sequence):
             for message in messages:
                 if isinstance(message.content, str):  # type: ignore [reportAttributeAccessIssue, union-attr]
@@ -228,7 +237,7 @@ class ReplayChatCompletionClient(ChatCompletionClient):
                     total_tokens += len(tokens)
                     all_tokens.extend(tokens)
                 else:
-                    logger.warning("Token count has been done only on string content", RuntimeWarning)
+                    logger.warning("Token count has been done only on string content")
         return all_tokens, total_tokens
 
     def _update_total_usage(self) -> None:

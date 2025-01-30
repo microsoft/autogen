@@ -7,7 +7,7 @@ using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 
 // send a message to the agent
-var builder = WebApplication.CreateBuilder();
+var builder = new HostApplicationBuilder();
 // put these in your environment or appsettings.json
 builder.Configuration["HelloAIAgents:ModelType"] = "azureopenai";
 builder.Configuration["HelloAIAgents:LlmModelName"] = "gpt-3.5-turbo";
@@ -16,33 +16,32 @@ if (Environment.GetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING") == null
 {
     throw new InvalidOperationException("AZURE_OPENAI_CONNECTION_STRING not set, try something like AZURE_OPENAI_CONNECTION_STRING = \"Endpoint=https://TODO.openai.azure.com/;Key=TODO;Deployment=TODO\"");
 }
-builder.Configuration["ConectionStrings:HelloAIAgents"] = Environment.GetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING");
+builder.Configuration["ConnectionStrings:HelloAIAgents"] = Environment.GetEnvironmentVariable("AZURE_OPENAI_CONNECTION_STRING");
 builder.AddChatCompletionService("HelloAIAgents");
-var agentTypes = new AgentTypes(new Dictionary<string, Type>
+var _ = new AgentTypes(new Dictionary<string, Type>
 {
     { "HelloAIAgents", typeof(HelloAIAgent) }
 });
-var app = await AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
+var local = true;
+if (Environment.GetEnvironmentVariable("AGENT_HOST") != null) { local = false; }
+var app = await Microsoft.AutoGen.Core.Grpc.AgentsApp.PublishMessageAsync("HelloAgents", new NewMessageReceived
 {
     Message = "World"
-}, builder, agentTypes, local: true);
-
+}, local: local).ConfigureAwait(false);
 await app.WaitForShutdownAsync();
 
 namespace Hello
 {
-    [TopicSubscription("agents")]
+    [TopicSubscription("HelloAgents")]
     public class HelloAgent(
-        IAgentWorker worker,
-        [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
+        [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry,
         IHostApplicationLifetime hostApplicationLifetime) : ConsoleAgent(
-            worker,
             typeRegistry),
             ISayHello,
             IHandle<NewMessageReceived>,
             IHandle<ConversationClosed>
     {
-        public async Task Handle(NewMessageReceived item)
+        public async Task Handle(NewMessageReceived item, CancellationToken cancellationToken = default)
         {
             var response = await SayHello(item.Message).ConfigureAwait(false);
             var evt = new Output
@@ -57,7 +56,7 @@ namespace Hello
             };
             await PublishMessageAsync(goodbye).ConfigureAwait(false);
         }
-        public async Task Handle(ConversationClosed item)
+        public async Task Handle(ConversationClosed item, CancellationToken cancellationToken = default)
         {
             var goodbye = $"*********************  {item.UserId} said {item.UserMessage}  ************************";
             var evt = new Output

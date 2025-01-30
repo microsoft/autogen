@@ -67,12 +67,16 @@ async def test_replay_chat_completion_client_create_stream() -> None:
     reply_model_client = ReplayChatCompletionClient(messages)
 
     for i in range(num_messages):
-        result: List[str] = []
+        chunks: List[str] = []
+        result: CreateResult | None = None
         async for completion in reply_model_client.create_stream([UserMessage(content="dummy", source="_")]):
-            text = completion.content if isinstance(completion, CreateResult) else completion
-            assert isinstance(text, str)
-            result.append(text)
-        assert "".join(result) == messages[i]
+            if isinstance(completion, CreateResult):
+                result = completion
+            else:
+                assert isinstance(completion, str)
+                chunks.append(completion)
+        assert result is not None
+        assert "".join(chunks) == messages[i] == result.content
 
     with pytest.raises(ValueError, match="No more mock responses available"):
         await reply_model_client.create([UserMessage(content="dummy", source="_")])

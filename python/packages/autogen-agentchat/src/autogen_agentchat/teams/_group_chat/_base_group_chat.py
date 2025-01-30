@@ -11,15 +11,17 @@ from autogen_core import (
     AgentType,
     CancellationToken,
     ClosureAgent,
+    ComponentBase,
     MessageContext,
     SingleThreadedAgentRuntime,
     TypeSubscription,
 )
 from autogen_core._closure_agent import ClosureContext
+from pydantic import BaseModel
 
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
-from ...messages import AgentEvent, BaseChatMessage, ChatMessage, TextMessage
+from ...messages import AgentEvent, BaseChatMessage, ChatMessage, ModelClientStreamingChunkEvent, TextMessage
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
 from ._events import GroupChatMessage, GroupChatReset, GroupChatStart, GroupChatTermination
@@ -28,12 +30,14 @@ from ._sequential_routed_agent import SequentialRoutedAgent
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
-class BaseGroupChat(Team, ABC):
+class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
     """The base class for group chat teams.
 
     To implement a group chat team, first create a subclass of :class:`BaseGroupChatManager` and then
     create a subclass of :class:`BaseGroupChat` that uses the group chat manager.
     """
+
+    component_type = "team"
 
     def __init__(
         self,
@@ -186,6 +190,9 @@ class BaseGroupChat(Team, ABC):
                 and it may not reset the termination condition.
                 To gracefully stop the team, use :class:`~autogen_agentchat.conditions.ExternalTermination` instead.
 
+        Returns:
+            result: The result of the task as :class:`~autogen_agentchat.base.TaskResult`. The result contains the messages produced by the team and the stop reason.
+
         Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
 
 
@@ -275,8 +282,14 @@ class BaseGroupChat(Team, ABC):
         cancellation_token: CancellationToken | None = None,
     ) -> AsyncGenerator[AgentEvent | ChatMessage | TaskResult, None]:
         """Run the team and produces a stream of messages and the final result
-        of the type :class:`TaskResult` as the last item in the stream. Once the
+        of the type :class:`~autogen_agentchat.base.TaskResult` as the last item in the stream. Once the
         team is stopped, the termination condition is reset.
+
+        .. note::
+
+            If an agent produces :class:`~autogen_agentchat.messages.ModelClientStreamingChunkEvent`,
+            the message will be yielded in the stream but it will not be included in the
+            :attr:`~autogen_agentchat.base.TaskResult.messages`.
 
         Args:
             task (str | ChatMessage | Sequence[ChatMessage] | None): The task to run the team with. Can be a string, a single :class:`ChatMessage` , or a list of :class:`ChatMessage`.
@@ -284,6 +297,9 @@ class BaseGroupChat(Team, ABC):
                 Setting the cancellation token potentially put the team in an inconsistent state,
                 and it may not reset the termination condition.
                 To gracefully stop the team, use :class:`~autogen_agentchat.conditions.ExternalTermination` instead.
+
+        Returns:
+            stream: an :class:`~collections.abc.AsyncGenerator` that yields :class:`~autogen_agentchat.messages.AgentEvent`, :class:`~autogen_agentchat.messages.ChatMessage`, and the final result :class:`~autogen_agentchat.base.TaskResult` as the last item in the stream.
 
         Example using the :class:`~autogen_agentchat.teams.RoundRobinGroupChat` team:
 
@@ -418,6 +434,9 @@ class BaseGroupChat(Team, ABC):
                 if message is None:
                     break
                 yield message
+                if isinstance(message, ModelClientStreamingChunkEvent):
+                    # Skip the model client streaming chunk events.
+                    continue
                 output_messages.append(message)
 
             # Yield the final result.
