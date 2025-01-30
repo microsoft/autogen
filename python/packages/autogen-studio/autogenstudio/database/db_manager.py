@@ -12,7 +12,6 @@ from ..teammanager import TeamManager
 from .schema_manager import SchemaManager
 
 
-
 class DatabaseManager:
     _init_lock = threading.Lock()
 
@@ -247,12 +246,8 @@ class DatabaseManager:
 
         return Response(message=status_message, status=status, data=None)
 
-     
     async def import_team(
-        self,
-        team_config: Union[str, Path, dict],
-        user_id: str,
-        check_exists: bool = False
+        self, team_config: Union[str, Path, dict], user_id: str, check_exists: bool = False
     ) -> Response:
         try:
             # Load config if path provided
@@ -260,23 +255,18 @@ class DatabaseManager:
                 config = await TeamManager.load_from_file(team_config)
             else:
                 config = team_config
-                
+
             # Check existence if requested
             if check_exists:
                 existing = await self._check_team_exists(config, user_id)
                 if existing:
                     return Response(
-                        message="Identical team configuration already exists",
-                        status=True,
-                        data={"id": existing.id}
+                        message="Identical team configuration already exists", status=True, data={"id": existing.id}
                     )
 
             # Store in database
-            team_db = Team(
-                user_id=user_id,
-                config=config
-            )
-            
+            team_db = Team(user_id=user_id, config=config)
+
             result = self.upsert(team_db)
             return result
 
@@ -285,73 +275,55 @@ class DatabaseManager:
             return Response(message=str(e), status=False)
 
     async def import_teams_from_directory(
-        self,
-        directory: Union[str, Path],
-        user_id: str,
-        check_exists: bool = False
+        self, directory: Union[str, Path], user_id: str, check_exists: bool = False
     ) -> Response:
         """
         Import all team configurations from a directory.
-        
+
         Args:
             directory: Path to directory containing team configs
             user_id: User ID to associate with imported teams
             check_exists: Whether to check for existing teams
-            
+
         Returns:
             Response containing import results for all files
-        """ 
+        """
         try:
             # Load all configs from directory
             configs = await TeamManager.load_from_directory(directory)
-            
+
             results = []
             for config in configs:
                 try:
-                    result = await self.import_team(
-                        team_config=config,
-                        user_id=user_id,
-                        check_exists=check_exists
-                    )
-                    
+                    result = await self.import_team(team_config=config, user_id=user_id, check_exists=check_exists)
+
                     # Add result info
-                    results.append({
-                        "status": result.status,
-                        "message": result.message,
-                        "id": result.data.get("id") if result.status else None
-                    })
-                    
+                    results.append(
+                        {
+                            "status": result.status,
+                            "message": result.message,
+                            "id": result.data.get("id") if result.status else None,
+                        }
+                    )
+
                 except Exception as e:
                     logger.error(f"Failed to import team config: {str(e)}")
-                    results.append({
-                        "status": False,
-                        "message": str(e),
-                        "id": None
-                    })
+                    results.append({"status": False, "message": str(e), "id": None})
 
-            return Response(
-                message="Directory import complete",
-                status=True,
-                data=results
-            )
+            return Response(message="Directory import complete", status=True, data=results)
 
         except Exception as e:
             logger.error(f"Failed to import directory: {str(e)}")
             return Response(message=str(e), status=False)
 
-    async def _check_team_exists(
-        self,
-        config: dict,
-        user_id: str
-    ) -> Optional[Team]:
+    async def _check_team_exists(self, config: dict, user_id: str) -> Optional[Team]:
         """Check if identical team config already exists"""
         teams = self.get(Team, {"user_id": user_id}).data
-        
-       
-        for team in teams: 
+
+        for team in teams:
             if team.config == config:
                 return team
-                
+
         return None
 
     async def close(self):

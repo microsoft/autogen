@@ -103,7 +103,7 @@ api.include_router(
     tags=["teams"],
     responses={404: {"description": "Not found"}},
 )
- 
+
 
 api.include_router(
     ws.router,

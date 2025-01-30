@@ -6,12 +6,10 @@ from autogen_core import ComponentModel
 from pydantic import BaseModel
 
 
-
 class MessageConfig(BaseModel):
     source: str
     content: str
     message_type: Optional[str] = "text"
-
 
 
 class TeamResult(BaseModel):
@@ -42,15 +40,18 @@ class GalleryMetadata(BaseModel):
     category: Optional[str] = None
     last_synced: Optional[datetime] = None
 
+
 class GalleryComponents(BaseModel):
     agents: List[ComponentModel]
     models: List[ComponentModel]
     tools: List[ComponentModel]
     terminations: List[ComponentModel]
 
+
 class GalleryItems(BaseModel):
     teams: List[ComponentModel]
     components: GalleryComponents
+
 
 class Gallery(BaseModel):
     id: str
@@ -58,6 +59,7 @@ class Gallery(BaseModel):
     url: Optional[str] = None
     metadata: GalleryMetadata
     items: GalleryItems
+
 
 # web request/response data models
 
@@ -72,4 +74,3 @@ class SocketMessage(BaseModel):
     connection_id: str
     data: Dict[str, Any]
     type: str
-

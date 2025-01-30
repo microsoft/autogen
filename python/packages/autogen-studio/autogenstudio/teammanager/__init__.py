@@ -1,6 +1,4 @@
 from .teammanager import TeamManager
 
 
-__all__ = [
-    "TeamManager"
-]
+__all__ = ["TeamManager"]

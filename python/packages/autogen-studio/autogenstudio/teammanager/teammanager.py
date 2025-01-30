@@ -15,10 +15,9 @@ from ..datamodel.types import TeamResult
 logger = logging.getLogger(__name__)
 
 
-
 class TeamManager:
     """Manages team operations including loading configs and running teams"""
-    
+
     @staticmethod
     async def load_from_file(path: Union[str, Path]) -> dict:
         """Load team configuration from JSON/YAML file"""
@@ -37,17 +36,17 @@ class TeamManager:
     @staticmethod
     async def load_from_directory(directory: Union[str, Path]) -> List[dict]:
         """Load all team configurations from a directory
-        
+
         Args:
             directory (Union[str, Path]): Path to directory containing config files
-            
+
         Returns:
             List[dict]: List of loaded team configurations
         """
         directory = Path(directory)
         configs = []
-        valid_extensions = {'.json', '.yaml', '.yml'}
-        
+        valid_extensions = {".json", ".yaml", ".yml"}
+
         for path in directory.iterdir():
             if path.is_file() and path.suffix.lower() in valid_extensions:
                 try:
@@ -55,13 +54,11 @@ class TeamManager:
                     configs.append(config)
                 except Exception as e:
                     logger.error(f"Failed to load {path}: {e}")
-                    
+
         return configs
 
     async def _create_team(
-        self, 
-        team_config: Union[str, Path, dict, ComponentModel],
-        input_func: Optional[Callable] = None
+        self, team_config: Union[str, Path, dict, ComponentModel], input_func: Optional[Callable] = None
     ) -> Component:
         """Create team instance from config"""
         # Handle different input types
@@ -78,8 +75,8 @@ class TeamManager:
         for agent in team._participants:
             if hasattr(agent, "input_func"):
                 agent.input_func = input_func
-        
-        # TBD - set input function 
+
+        # TBD - set input function
         return team
 
     async def run_stream(
@@ -95,20 +92,13 @@ class TeamManager:
 
         try:
             team = await self._create_team(team_config, input_func)
-            
-            async for message in team.run_stream(
-                task=task, 
-                cancellation_token=cancellation_token
-            ):
+
+            async for message in team.run_stream(task=task, cancellation_token=cancellation_token):
                 if cancellation_token and cancellation_token.is_cancelled():
                     break
 
                 if isinstance(message, TaskResult):
-                    yield TeamResult(
-                        task_result=message,
-                        usage="",
-                        duration=time.time() - start_time
-                    )
+                    yield TeamResult(task_result=message, usage="", duration=time.time() - start_time)
                 else:
                     yield message
 
@@ -132,16 +122,9 @@ class TeamManager:
 
         try:
             team = await self._create_team(team_config, input_func)
-            result = await team.run(
-                task=task,
-                cancellation_token=cancellation_token
-            )
-            
-            return TeamResult(
-                task_result=result,
-                usage="",
-                duration=time.time() - start_time
-            )
+            result = await team.run(task=task, cancellation_token=cancellation_token)
+
+            return TeamResult(task_result=result, usage="", duration=time.time() - start_time)
 
         finally:
             # Ensure cleanup happens

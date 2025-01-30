@@ -8,9 +8,9 @@ from uuid import UUID, uuid4
 from sqlalchemy import ForeignKey, Integer
 from sqlmodel import JSON, Column, DateTime, Field, SQLModel, func
 
-from .types import  MessageConfig, MessageMeta, TeamResult
+from .types import MessageConfig, MessageMeta, TeamResult
 from autogen_core import ComponentModel
- 
+
 
 class Team(SQLModel, table=True):
     __table_args__ = {"sqlite_autoincrement": True}
@@ -26,7 +26,6 @@ class Team(SQLModel, table=True):
     user_id: Optional[str] = None
     version: Optional[str] = "0.0.1"
     component: Union[ComponentModel, dict] = Field(sa_column=Column(JSON))
-       
 
 
 class Message(SQLModel, table=True):
@@ -104,4 +103,3 @@ class Run(SQLModel, table=True):
 
     class Config:
         json_encoders = {UUID: str, datetime: lambda v: v.isoformat()}
-

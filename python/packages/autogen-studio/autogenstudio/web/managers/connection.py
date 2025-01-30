@@ -90,8 +90,6 @@ class WebSocketManager:
 
             input_func = self.create_input_func(run_id)
 
-             
-
             async for message in team_manager.run_stream(
                 task=task, team_config=team_config, input_func=input_func, cancellation_token=cancellation_token
             ):
@@ -147,7 +145,7 @@ class WebSocketManager:
 
     async def _save_message(self, run_id: UUID, message: Union[AgentEvent | ChatMessage, ChatMessage]) -> None:
         """Save a message to the database"""
-         
+
         run = await self._get_run(run_id)
         if run:
             db_message = Message(
