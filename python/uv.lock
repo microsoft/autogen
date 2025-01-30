@@ -654,6 +654,7 @@ web-surfer = [
 [package.dev-dependencies]
 dev = [
     { name = "autogen-test-utils" },
+    { name = "httpx" },
     { name = "langchain-experimental" },
     { name = "pandas-stubs" },
 ]
@@ -706,6 +707,7 @@ requires-dist = [
 [package.metadata.requires-dev]
 dev = [
     { name = "autogen-test-utils", editable = "packages/autogen-test-utils" },
+    { name = "httpx", specifier = ">=0.28.1" },
     { name = "langchain-experimental" },
     { name = "pandas-stubs", specifier = ">=2.2.3.241126" },
 ]
