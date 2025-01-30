@@ -33,7 +33,7 @@ jobs:
           [
             # For main use the workflow target
             { ref: "${{github.ref}}", dest-dir: dev, uv-version: "0.5.13", sphinx-release-override: "dev" },
-            { ref: "v0.4.3", dest-dir: stable, uv-version: "0.5.13", sphinx-release-override: "stable" },
+            { ref: "v0.4.4", dest-dir: stable, uv-version: "0.5.13", sphinx-release-override: "stable" },
             { ref: "v0.4.0.dev0", dest-dir: "0.4.0.dev0", uv-version: "0.5.11", sphinx-release-override: "" },
             { ref: "v0.4.0.dev1", dest-dir: "0.4.0.dev1", uv-version: "0.5.11", sphinx-release-override: "" },
             { ref: "v0.4.0.dev2", dest-dir: "0.4.0.dev2", uv-version: "0.5.11", sphinx-release-override: "" },
@@ -52,6 +52,7 @@ jobs:
             { ref: "v0.4.1", dest-dir: "0.4.1", uv-version: "0.5.13", sphinx-release-override: "" },
             { ref: "v0.4.2", dest-dir: "0.4.2", uv-version: "0.5.13", sphinx-release-override: "" },
             { ref: "v0.4.3", dest-dir: "0.4.3", uv-version: "0.5.13", sphinx-release-override: "" },
+            { ref: "v0.4.4", dest-dir: "0.4.4", uv-version: "0.5.13", sphinx-release-override: "" },
           ]
     steps:
       - name: Checkout
