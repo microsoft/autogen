@@ -2,7 +2,7 @@ import asyncio
 from abc import ABC, abstractmethod
 from typing import Any, List
 
-from autogen_core import DefaultTopicId, MessageContext, event, rpc
+from autogen_core import DefaultTopicId, MessageContext, event, rpc, ExceptionHandlingPolicy
 
 from ...base import TerminationCondition
 from ...messages import AgentEvent, ChatMessage, StopMessage
@@ -36,6 +36,7 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
+        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ):
         super().__init__(description="Group chat manager")
         self._group_topic_type = group_topic_type

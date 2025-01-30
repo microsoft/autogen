@@ -29,7 +29,7 @@ from autogen_agentchat.teams._group_chat._round_robin_group_chat import RoundRob
 from autogen_agentchat.teams._group_chat._selector_group_chat import SelectorGroupChatManager
 from autogen_agentchat.teams._group_chat._swarm_group_chat import SwarmGroupChatManager
 from autogen_agentchat.ui import Console
-from autogen_core import AgentId, CancellationToken, FunctionCall
+from autogen_core import AgentId, CancellationToken, FunctionCall, ExceptionHandlingPolicy
 from autogen_core.models import (
     AssistantMessage,
     FunctionExecutionResult,
@@ -95,6 +95,24 @@ class _EchoAgent(BaseChatAgent):
             assert self._last_message is not None
             self._total_messages += 1
             return Response(chat_message=TextMessage(content=self._last_message, source=self.name))
+
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
+        self._last_message = None
+
+class _FlakyAgent(BaseChatAgent):
+    def __init__(self, name: str, description: str) -> None:
+        super().__init__(name, description)
+
+    @property
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+        return (TextMessage,)
+
+    @property
+    def total_messages(self) -> int:
+        return self._total_messages
+
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+        raise Exception("I am a flaky agent...")
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         self._last_message = None
@@ -397,6 +415,38 @@ async def test_round_robin_group_chat_with_resume_and_reset() -> None:
     assert len(result.messages) == 3
     assert result.messages[1].source == "agent_1"
     assert result.messages[2].source == "agent_2"
+    assert result.stop_reason is not None
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_with_exception_handling_policy_raise() -> None:
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+    agent_2 = _FlakyAgent("agent_2", description="echo agent 2")
+    agent_3 = _EchoAgent("agent_3", description="echo agent 3")
+    termination = MaxMessageTermination(3)
+    team = RoundRobinGroupChat(participants=[agent_1, agent_2, agent_3], termination_condition=termination, exception_handling_policy=ExceptionHandlingPolicy.RAISE)
+
+    with pytest.raises(Exception) as exc_info:
+        result = await team.run(
+            task="Write a program that prints 'Hello, world!'",
+        )
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_with_exception_handling_policy_ignore_and_log() -> None:
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+    agent_2 = _FlakyAgent("agent_2", description="echo agent 2")
+    agent_3 = _EchoAgent("agent_3", description="echo agent 3")
+    termination = MaxMessageTermination(3)
+    team = RoundRobinGroupChat(participants=[agent_1, agent_2, agent_3], termination_condition=termination, exception_handling_policy=ExceptionHandlingPolicy.IGNORE_AND_LOG)
+
+    result = await team.run(
+        task="Write a program that prints 'Hello, world!'",
+    )
+
+    assert len(result.messages) == 2
+    assert result.messages[1].source == "agent_1"
+    assert result.messages[2].source == "agent_3"
     assert result.stop_reason is not None
 
 

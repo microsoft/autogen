@@ -1,6 +1,6 @@
 from typing import Any, Callable, List, Mapping
 
-from autogen_core import Component, ComponentModel
+from autogen_core import Component, ComponentModel, ExceptionHandlingPolicy
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -22,6 +22,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
         max_turns: int | None = None,
+        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ) -> None:
         super().__init__(
             group_topic_type,

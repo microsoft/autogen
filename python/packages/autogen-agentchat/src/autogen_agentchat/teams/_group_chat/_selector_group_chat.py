@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Any, Callable, Dict, List, Mapping, Sequence
 
-from autogen_core import Component, ComponentModel
+from autogen_core import Component, ComponentModel, ExceptionHandlingPolicy
 from autogen_core.models import ChatCompletionClient, SystemMessage
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -35,6 +35,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
+        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
         model_client: ChatCompletionClient,
         selector_prompt: str,
         allow_repeated_speaker: bool,
