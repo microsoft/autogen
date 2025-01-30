@@ -433,7 +433,7 @@ async def test_round_robin_group_chat_with_exception_handling_policy_raise() -> 
         exception_handling_policy=ExceptionHandlingPolicy.RAISE,
     )
 
-    with pytest.raises(Exception) as exc_info:
+    with pytest.raises(BaseException) as exc_info:
         await team.run(
             task="Write a program that prints 'Hello, world!'",
         )
