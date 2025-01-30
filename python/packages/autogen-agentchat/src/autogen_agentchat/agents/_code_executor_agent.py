@@ -80,9 +80,8 @@ class CodeExecutorAgent(BaseChatAgent):
         code_blocks: List[CodeBlock] = []
         for msg in messages:
             if isinstance(msg, TextMessage):
-                if self._sources is not None and msg.source not in self._sources:
-                    continue
-                code_blocks.extend(self._extract_markdown_code_blocks(msg.content))
+                if self._sources is None or msg.source in self._sources:
+                    code_blocks.extend(self._extract_markdown_code_blocks(msg.content))
         if code_blocks:
             # Execute the code blocks.
             result = await self._code_executor.execute_code_blocks(code_blocks, cancellation_token=cancellation_token)
