@@ -120,6 +120,7 @@ dev = [
     "autogen_test_utils",
     "langchain-experimental",
     "pandas-stubs>=2.2.3.241126",
+    "httpx>=0.28.1",
 ]
 
 [tool.ruff]
