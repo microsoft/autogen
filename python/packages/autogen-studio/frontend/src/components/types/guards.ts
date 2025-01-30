@@ -84,6 +84,15 @@ type ConfigForProvider<P extends Provider> = P extends keyof ProviderToConfig
   ? ProviderToConfig[P]
   : never;
 
+export function isComponent(value: any): value is Component<ComponentConfig> {
+  return (
+    value &&
+    typeof value === "object" &&
+    "provider" in value &&
+    "component_type" in value &&
+    "config" in value
+  );
+}
 // Generic component type guard
 function isComponentOfType<P extends Provider>(
   component: Component<ComponentConfig>,

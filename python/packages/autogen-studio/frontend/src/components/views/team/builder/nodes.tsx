@@ -41,6 +41,7 @@ import {
   isOrTermination,
   isSelectorTeam,
   isTextMentionTermination,
+  isWebSurferAgent,
 } from "../../../types/guards";
 
 // Icon mapping for different node types
@@ -374,7 +375,7 @@ export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
         className="my-left-handle z-100"
       />
 
-      {isAssistantAgent(component) && (
+      {(isAssistantAgent(component) || isWebSurferAgent(component)) && (
         <>
           <NodeSection title="Model">
             {/* <Handle
@@ -398,34 +399,36 @@ export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
             </div>
           </NodeSection>
 
-          <NodeSection title="Tools">
-            {/* <Handle
+          {isAssistantAgent(component) && (
+            <NodeSection title="Tools">
+              {/* <Handle
               type="target"
               position={Position.Left}
               id={`${props.id}-tool-input-handle`}
               className="my-left-handle"
             /> */}
-            <div className="space-y-1">
-              {component.config.tools && toolCount > 0 && (
-                <div className="space-y-1">
-                  {component.config.tools.map((tool, index) => (
-                    <div
-                      key={index}
-                      className="relative text-sm py-1 px-2 bg-white rounded flex items-center gap-2"
-                    >
-                      <Wrench className="w-4 h-4 text-gray-500" />
-                      <span>{tool.config.name}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-              <DroppableZone id={`${props.id}-tool-zone`} accepts={["tool"]}>
-                <div className="text-secondary text-xs my-1 text-center">
-                  Drop tools here
-                </div>
-              </DroppableZone>
-            </div>
-          </NodeSection>
+              <div className="space-y-1">
+                {component.config.tools && toolCount > 0 && (
+                  <div className="space-y-1">
+                    {component.config.tools.map((tool, index) => (
+                      <div
+                        key={index}
+                        className="relative text-sm py-1 px-2 bg-white rounded flex items-center gap-2"
+                      >
+                        <Wrench className="w-4 h-4 text-gray-500" />
+                        <span>{tool.config.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <DroppableZone id={`${props.id}-tool-zone`} accepts={["tool"]}>
+                  <div className="text-secondary text-xs my-1 text-center">
+                    Drop tools here
+                  </div>
+                </DroppableZone>
+              </div>
+            </NodeSection>
+          )}
         </>
       )}
     </BaseNode>

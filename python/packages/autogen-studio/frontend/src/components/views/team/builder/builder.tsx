@@ -30,7 +30,7 @@ import { edgeTypes, nodeTypes } from "./nodes";
 import "./builder.css";
 import TeamBuilderToolbar from "./toolbar";
 import { MonacoEditor } from "../../monaco";
-import { NodeEditor } from "./node-editor";
+import { NodeEditor } from "./node-editor/node-editor";
 
 const { Sider, Content } = Layout;
 

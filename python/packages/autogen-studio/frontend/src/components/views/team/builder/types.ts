@@ -10,6 +10,12 @@ export interface NodeData extends Record<string, unknown> {
   component: Component<ComponentConfig>;
 }
 
+export interface EditingState {
+  component: Component<ComponentConfig>;
+  path: string[];
+  changes?: Partial<Component<ComponentConfig>>;
+}
+
 // Define our node type that extends the XYFlow Node type
 export type CustomNode = Node<NodeData>;
 // export type CustomEdge = Edge;

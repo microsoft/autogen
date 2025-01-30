@@ -1,6 +1,6 @@
 import React from "react";
-import { Input, Select, Switch, InputNumber, Form, Button, Drawer } from "antd";
-import { NodeEditorProps } from "./types";
+import { Input, Select, Switch, InputNumber, Form, Button } from "antd";
+import { Edit } from "lucide-react";
 import {
   isTeamComponent,
   isAgentComponent,
@@ -18,41 +18,66 @@ import {
   isOrTermination,
   isMaxMessageTermination,
   isTextMentionTermination,
-} from "../../../types/guards";
+} from "../../../../types/guards";
+import { Component, ComponentConfig } from "../../../../types/datamodel";
+import DetailGroup from "./detailgroup";
 
 const { TextArea } = Input;
 const { Option } = Select;
 
-export const NodeEditor: React.FC<
-  NodeEditorProps & { onClose: () => void }
-> = ({ node, onUpdate, onClose }) => {
-  const [form] = Form.useForm();
+interface NodeEditorFieldsProps {
+  component: Component<ComponentConfig>;
+  onNavigate: (componentType: string, id: string, parentField: string) => void;
+}
 
-  // Initialize form values when node changes
-  React.useEffect(() => {
-    if (node) {
-      form.setFieldsValue(node.data.component);
+export const NodeEditorFields: React.FC<NodeEditorFieldsProps> = ({
+  component,
+  onNavigate,
+}) => {
+  const renderNestedComponentButton = (
+    label: string,
+    component: Component<ComponentConfig> | Component<ComponentConfig>[],
+    parentField: string
+  ) => {
+    if (Array.isArray(component)) {
+      return (
+        <div className="space-y-2 mb-4">
+          <div className="flex justify-between items-center">
+            <span className="text-sm font-medium">{label}</span>
+          </div>
+          {component.map((item) => (
+            <Button
+              key={item.label}
+              onClick={() =>
+                onNavigate(item.component_type, item.label || "", parentField)
+              }
+              className="w-full flex justify-between items-center"
+            >
+              <span>{item.label}</span>
+              <Edit className="w-4 h-4" />
+            </Button>
+          ))}
+        </div>
+      );
     }
-  }, [node, form]);
 
-  if (!node) return null;
-
-  const component = node.data.component;
-
-  const handleFormSubmit = (values: any) => {
-    const updatedData = {
-      ...node.data,
-      component: {
-        ...node.data.component,
-        label: values.label, // These go on the component
-        description: values.description, // Not on NodeData
-        config: {
-          ...node.data.component.config,
-          ...values.config,
-        },
-      },
-    };
-    onUpdate(updatedData);
+    return component ? (
+      <div className="mb-4">
+        <Button
+          onClick={() =>
+            onNavigate(
+              component.component_type,
+              component.label || "",
+              parentField
+            )
+          }
+          className="w-full flex justify-between items-center"
+        >
+          <span>{label}</span>
+          <Edit className="w-4 h-4" />
+        </Button>
+      </div>
+    ) : null;
   };
 
   const renderTeamFields = () => {
@@ -78,14 +103,34 @@ export const NodeEditor: React.FC<
           >
             <Switch />
           </Form.Item>
+          {component.config.model_client &&
+            renderNestedComponentButton(
+              "Model Client",
+              component.config.model_client,
+              "model_client"
+            )}
+          {component.config.termination_condition &&
+            renderNestedComponentButton(
+              "Termination Condition",
+              component.config.termination_condition,
+              "termination_condition"
+            )}
         </>
       );
     }
     if (isRoundRobinTeam(component)) {
       return (
-        <Form.Item label="Max Turns" name={["config", "max_turns"]}>
-          <InputNumber min={1} />
-        </Form.Item>
+        <>
+          <Form.Item label="Max Turns" name={["config", "max_turns"]}>
+            <InputNumber min={1} />
+          </Form.Item>
+          {component.config.termination_condition &&
+            renderNestedComponentButton(
+              "Termination Condition",
+              component.config.termination_condition,
+              "termination_condition"
+            )}
+        </>
       );
     }
     return null;
@@ -127,6 +172,19 @@ export const NodeEditor: React.FC<
           >
             <Input />
           </Form.Item>
+          {component.config.model_client &&
+            renderNestedComponentButton(
+              "Model Client",
+              component.config.model_client,
+              "model_client"
+            )}
+          {component.config.tools &&
+            component.config.tools.length > 0 &&
+            renderNestedComponentButton(
+              "Tools",
+              component.config.tools,
+              "tools"
+            )}
         </>
       );
     }
@@ -219,6 +277,12 @@ export const NodeEditor: React.FC<
           >
             <Switch />
           </Form.Item>
+          {component.config.model_client &&
+            renderNestedComponentButton(
+              "Model Client",
+              component.config.model_client,
+              "model_client"
+            )}
         </>
       );
     }
@@ -228,7 +292,6 @@ export const NodeEditor: React.FC<
   const renderModelFields = () => {
     if (!component) return null;
 
-    // Common CreateArgumentsConfig fields
     const createArgumentsFields = (
       <>
         <Form.Item label="Temperature" name={["config", "temperature"]}>
@@ -372,9 +435,21 @@ export const NodeEditor: React.FC<
 
     if (isOrTermination(component)) {
       return (
-        <Form.Item label="Number of Conditions" name={["config", "conditions"]}>
-          <InputNumber disabled />
-        </Form.Item>
+        <>
+          <Form.Item
+            label="Number of Conditions"
+            name={["config", "conditions"]}
+          >
+            <InputNumber disabled />
+          </Form.Item>
+          {component.config.conditions &&
+            component.config.conditions.length > 0 &&
+            renderNestedComponentButton(
+              "Conditions",
+              component.config.conditions,
+              "conditions"
+            )}
+        </>
       );
     }
     if (isMaxMessageTermination(component)) {
@@ -402,38 +477,48 @@ export const NodeEditor: React.FC<
     return null;
   };
 
+  // Common fields for all components
+  const commonFields = (
+    <DetailGroup title="Component Details">
+      <Form.Item label="Label" name="label">
+        <Input />
+      </Form.Item>
+      <Form.Item label="Description" name="description">
+        <TextArea rows={4} />
+      </Form.Item>
+    </DetailGroup>
+  );
+  // Component-specific fields
+  let specificFields = null;
+  if (isTeamComponent(component)) {
+    specificFields = (
+      <DetailGroup title="Configuration">{renderTeamFields()}</DetailGroup>
+    );
+  } else if (isAgentComponent(component)) {
+    specificFields = (
+      <DetailGroup title="Configuration">{renderAgentFields()}</DetailGroup>
+    );
+  } else if (isModelComponent(component)) {
+    specificFields = (
+      <DetailGroup title="Configuration">{renderModelFields()}</DetailGroup>
+    );
+  } else if (isToolComponent(component)) {
+    specificFields = (
+      <DetailGroup title="Configuration">{renderToolFields()}</DetailGroup>
+    );
+  } else if (isTerminationComponent(component)) {
+    specificFields = (
+      <DetailGroup title="Configuration">
+        {renderTerminationFields()}
+      </DetailGroup>
+    );
+  }
   return (
-    <Drawer
-      title={`Edit ${component.component_type}`}
-      placement="right"
-      width={400}
-      onClose={onClose}
-      open={true}
-    >
-      <Form form={form} layout="vertical" onFinish={handleFormSubmit}>
-        <Form.Item label="Label" name="label">
-          <Input />
-        </Form.Item>
-
-        <Form.Item label="Description" name="description">
-          <TextArea rows={4} />
-        </Form.Item>
-
-        {isTeamComponent(component) && renderTeamFields()}
-        {isAgentComponent(component) && renderAgentFields()}
-        {isModelComponent(component) && renderModelFields()}
-        {isToolComponent(component) && renderToolFields()}
-        {isTerminationComponent(component) && renderTerminationFields()}
-
-        <div className="flex justify-end gap-2 mt-4">
-          <Button onClick={onClose}>Cancel</Button>
-          <Button type="primary" htmlType="submit">
-            Save Changes
-          </Button>
-        </div>
-      </Form>
-    </Drawer>
+    <>
+      {commonFields}
+      {specificFields}
+    </>
   );
 };
 
-export default NodeEditor;
+export default NodeEditorFields;
