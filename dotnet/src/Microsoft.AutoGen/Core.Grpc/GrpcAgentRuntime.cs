@@ -254,36 +254,6 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
         return this._messageRouter.StopAsync();
     }
 
-    //private Payload ObjectToPayload(object message) {
-    //    if (!SerializationRegistry.Exists(message.GetType()))
-    //    {
-    //        SerializationRegistry.RegisterSerializer(message.GetType());
-    //    }
-    //    var rpcMessage = (SerializationRegistry.GetSerializer(message.GetType()) ?? throw new Exception()).Serialize(message);
-
-    //    var typeName = SerializationRegistry.TypeNameResolver.ResolveTypeName(message);
-    //    const string PAYLOAD_DATA_CONTENT_TYPE = "application/x-protobuf";
-
-    //    // Protobuf any to byte array
-    //    Payload payload = new()
-    //    {
-    //        DataType = typeName,
-    //        DataContentType = PAYLOAD_DATA_CONTENT_TYPE,
-    //        Data = rpcMessage.ToByteString()
-    //    };
-
-    //    return payload;
-    //}
-
-    //private object PayloadToObject(Payload payload) {
-    //    var typeName = payload.DataType;
-    //    var data = payload.Data;
-    //    var type = SerializationRegistry.TypeNameResolver.ResolveTypeName(typeName);
-    //    var serializer = SerializationRegistry.GetSerializer(type) ?? throw new Exception();
-    //    var any = Google.Protobuf.WellKnownTypes.Any.Parser.ParseFrom(data);
-    //    return serializer.Deserialize(any);
-    //}
-
     public async ValueTask<object?> SendMessageAsync(object message, Contracts.AgentId recepient, Contracts.AgentId? sender = null, string? messageId = null, CancellationToken cancellationToken = default)
     {
         if (!SerializationRegistry.Exists(message.GetType()))
