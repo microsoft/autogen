@@ -11,7 +11,74 @@ using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.Core.Grpc;
 
+internal sealed class AgentsContainer(IAgentRuntime hostingRuntime)
+{
+    private readonly IAgentRuntime hostingRuntime = hostingRuntime;
 
+    private Dictionary<Contracts.AgentId, IHostableAgent> agentInstances = new();
+    private Dictionary<string, ISubscriptionDefinition> subscriptions = new();
+    private Dictionary<AgentType, Func<Contracts.AgentId, IAgentRuntime, ValueTask<IHostableAgent>>> agentFactories = new();
+
+    public async ValueTask<IHostableAgent> EnsureAgentAsync(Contracts.AgentId agentId)
+    {
+        if (!this.agentInstances.TryGetValue(agentId, out IHostableAgent? agent))
+        {
+            if (!this.agentFactories.TryGetValue(agentId.Type, out Func<Contracts.AgentId, IAgentRuntime, ValueTask<IHostableAgent>>? factoryFunc))
+            {
+                throw new Exception($"Agent with name {agentId.Type} not found.");
+            }
+
+            agent = await factoryFunc(agentId, this.hostingRuntime);
+            this.agentInstances.Add(agentId, agent);
+        }
+
+        return this.agentInstances[agentId];
+    }
+
+    public async ValueTask<Contracts.AgentId> GetAgentAsync(Contracts.AgentId agentId, bool lazy = true)
+    {
+        if (!lazy)
+        {
+            await this.EnsureAgentAsync(agentId);
+        }
+
+        return agentId;
+    }
+
+    public AgentType RegisterAgentFactory(AgentType type, Func<Contracts.AgentId, IAgentRuntime, ValueTask<IHostableAgent>> factoryFunc)
+    {
+        if (this.agentFactories.ContainsKey(type))
+        {
+            throw new Exception($"Agent factory with type {type} already exists.");
+        }
+
+        this.agentFactories.Add(type, factoryFunc);
+        return type;
+    }
+
+    public void AddSubscription(ISubscriptionDefinition subscription)
+    {
+        if (this.subscriptions.ContainsKey(subscription.Id))
+        {
+            throw new Exception($"Subscription with id {subscription.Id} already exists.");
+        }
+
+        this.subscriptions.Add(subscription.Id, subscription);
+    }
+
+    public bool RemoveSubscriptionAsync(string subscriptionId)
+    {
+        if (!this.subscriptions.ContainsKey(subscriptionId))
+        {
+            throw new Exception($"Subscription with id {subscriptionId} does not exist.");
+        }
+
+        return this.subscriptions.Remove(subscriptionId);
+    }
+
+    public HashSet<AgentType> RegisteredAgentTypes => this.agentFactories.Keys.ToHashSet();
+    public IEnumerable<IHostableAgent> LiveAgents => this.agentInstances.Values;
+}
 
 public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSink<Message>, IDisposable
 {
@@ -25,21 +92,21 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
         this._shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
 
         this._messageRouter = new GrpcMessageRouter(client, this, logger, this._shutdownCts.Token);
+        this._agentsContainer = new AgentsContainer(this);
 
         this.ServiceProvider = serviceProvider;
     }
 
-    // Request ID ->
+    // Request ID -> ResultSink<...>
     private readonly ConcurrentDictionary<string, ResultSink<object?>> _pendingRequests = new();
-
-    private Dictionary<AgentType, Func<Contracts.AgentId, IAgentRuntime, ValueTask<IHostableAgent>>> agentFactories = new();
-    private Dictionary<Contracts.AgentId, IHostableAgent> agentInstances = new();
 
     private readonly AgentRpc.AgentRpcClient _client;
     private readonly GrpcMessageRouter _messageRouter;
 
     private readonly ILogger<GrpcAgentRuntime> _logger;
     private readonly CancellationTokenSource _shutdownCts;
+
+    private readonly AgentsContainer _agentsContainer;
     
     public IServiceProvider ServiceProvider { get; }
 
@@ -84,7 +151,7 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
         }
 
         var agentId = request.Target;
-        var agent = await EnsureAgentAsync(agentId.FromProtobuf());
+        var agent = await this._agentsContainer.EnsureAgentAsync(agentId.FromProtobuf());
 
         // Convert payload back to object
         var payload = request.Payload;
@@ -172,36 +239,9 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
             Topic = topic,
             IsRpc = false
         };
-        var agent = await EnsureAgentAsync(sender);
+        var agent = await this._agentsContainer.EnsureAgentAsync(sender);
         await agent.OnMessageAsync(message, messageContext);
     }
-
-    
-
-    // private override async ValueTask<RpcResponse> SendMessageAsync(Payload message, AgentId agentId, AgentId? agent = null, CancellationToken? cancellationToken = default)
-    // {
-    //     var request = new RpcRequest
-    //     {
-    //         RequestId = Guid.NewGuid().ToString(),
-    //         Source = agent,
-    //         Target = agentId,
-    //         Payload = message,
-    //     };
-
-    //     // Actually send it and wait for the response
-    //     throw new NotImplementedException();
-    // }
-
-    // new is intentional
-
-    // public new async ValueTask RuntimeSendRequestAsync(IAgent agent, RpcRequest request, CancellationToken cancellationToken = default)
-    // {
-    //     var requestId = Guid.NewGuid().ToString();
-    //     _pendingRequests[requestId] = ((Agent)agent, request.RequestId);
-    //     request.RequestId = requestId;
-    //     await WriteChannelAsync(new Message { Request = request }, cancellationToken).ConfigureAwait(false);
-    // }
-
    
     public ValueTask StartAsync(CancellationToken cancellationToken)
     {
@@ -213,22 +253,6 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
     public Task StopAsync(CancellationToken cancellationToken)
     {
         return this._messageRouter.StopAsync();
-    }
-
-    private async ValueTask<IHostableAgent> EnsureAgentAsync(Contracts.AgentId agentId)
-    {
-        if (!this.agentInstances.TryGetValue(agentId, out IHostableAgent? agent))
-        {
-            if (!this.agentFactories.TryGetValue(agentId.Type, out Func<Contracts.AgentId, IAgentRuntime, ValueTask<IHostableAgent>>? factoryFunc))
-            {
-                throw new Exception($"Agent with name {agentId.Type} not found.");
-            }
-
-            agent = await factoryFunc(agentId, this);
-            this.agentInstances.Add(agentId, agent);
-        }
-
-        return this.agentInstances[agentId];
     }
 
     private Payload ObjectToPayload(object message) {
@@ -338,77 +362,98 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
         await this._messageRouter.RouteMessageAsync(msg, cancellationToken);
     }
 
-    public ValueTask<Contracts.AgentId> GetAgentAsync(Contracts.AgentId agentId, bool lazy = true)
+    public ValueTask<Contracts.AgentId> GetAgentAsync(Contracts.AgentId agentId, bool lazy = true) => this._agentsContainer.GetAgentAsync(agentId, lazy);
+
+    public async ValueTask<IDictionary<string, object>> SaveAgentStateAsync(Contracts.AgentId agentId)
     {
-        throw new NotImplementedException();
+        IHostableAgent agent = await this._agentsContainer.EnsureAgentAsync(agentId);
+        return await agent.SaveStateAsync();
     }
 
-    public ValueTask<Contracts.AgentId> GetAgentAsync(AgentType agentType, string key = "default", bool lazy = true)
+    public async ValueTask LoadAgentStateAsync(Contracts.AgentId agentId, IDictionary<string, object> state)
     {
-        throw new NotImplementedException();
+        IHostableAgent agent = await this._agentsContainer.EnsureAgentAsync(agentId);
+        await agent.LoadStateAsync(state);
     }
 
-    public ValueTask<Contracts.AgentId> GetAgentAsync(string agent, string key = "default", bool lazy = true)
+    public async ValueTask<AgentMetadata> GetAgentMetadataAsync(Contracts.AgentId agentId)
     {
-        throw new NotImplementedException();
+        IHostableAgent agent = await this._agentsContainer.EnsureAgentAsync(agentId);
+        return agent.Metadata;
     }
 
-    public ValueTask<IDictionary<string, object>> SaveAgentStateAsync(Contracts.AgentId agentId)
+    public ValueTask AddSubscriptionAsync(ISubscriptionDefinition subscription)
     {
-        throw new NotImplementedException();
-    }
+        this._agentsContainer.AddSubscription(subscription);
 
-    public ValueTask LoadAgentStateAsync(Contracts.AgentId agentId, IDictionary<string, object> state)
-    {
-        throw new NotImplementedException();
-    }
+        // Because we have an extensible definition of ISubscriptionDefinition, we cannot project it to the Gateway.
+        // What this means is that we will have a much chattier interface between the Gateway and the Runtime.
 
-    public ValueTask<AgentMetadata> GetAgentMetadataAsync(Contracts.AgentId agentId)
-    {
-        throw new NotImplementedException();
-    }
+        //await this._client.AddSubscriptionAsync(new AddSubscriptionRequest
+        //{
+        //    Subscription = new Subscription
+        //    {
+        //        Id = subscription.Id,
+        //        TopicType = subscription.TopicType,
+        //        AgentType = subscription.AgentType.Name
+        //    }
+        //}, this.CallOptions);
 
-    public async ValueTask AddSubscriptionAsync(ISubscriptionDefinition subscription)
-    {
-        var _ = await this._client.AddSubscriptionAsync(new AddSubscriptionRequest{
-            Subscription = subscription.ToProtobuf()
-        },this.CallOptions);
+        return ValueTask.CompletedTask;
     }
 
     public ValueTask RemoveSubscriptionAsync(string subscriptionId)
     {
-        throw new NotImplementedException();
+        this._agentsContainer.RemoveSubscriptionAsync(subscriptionId);
+
+        // See above (AddSubscriptionAsync) for why this is commented out.
+
+        //await this._client.RemoveSubscriptionAsync(new RemoveSubscriptionRequest
+        //{
+        //    Id = subscriptionId
+        //}, this.CallOptions);
+
+        return ValueTask.CompletedTask;
     }
 
     public ValueTask<AgentType> RegisterAgentFactoryAsync(AgentType type, Func<Contracts.AgentId, IAgentRuntime, ValueTask<IHostableAgent>> factoryFunc)
-    {
-        if (this.agentFactories.ContainsKey(type))
-        {
-            throw new Exception($"Agent with type {type} already exists.");
-        }
-        this.agentFactories.Add(type, async (agentId, runtime) => await factoryFunc(agentId, runtime));
-
-        this._client.RegisterAgentAsync(new RegisterAgentTypeRequest
-        {
-            Type = type.Name,
-
-        }, this.CallOptions);
-        return ValueTask.FromResult(type);
-    }
+        => ValueTask.FromResult(this._agentsContainer.RegisterAgentFactory(type, factoryFunc));
 
     public ValueTask<AgentProxy> TryGetAgentProxyAsync(Contracts.AgentId agentId)
     {
-        throw new NotImplementedException();
+        // TODO: Do we want to support getting remote agent proxies?
+        return ValueTask.FromResult(new AgentProxy(agentId, this));
     }
 
-    public ValueTask<IDictionary<string, object>> SaveStateAsync()
+    public async ValueTask<IDictionary<string, object>> SaveStateAsync()
     {
-        throw new NotImplementedException();
+        Dictionary<string, object> state = new();
+        foreach (var agent in this._agentsContainer.LiveAgents)
+        {
+            state[agent.Id.ToString()] = await agent.SaveStateAsync();
+        }
+
+        return state;
     }
 
-    public ValueTask LoadStateAsync(IDictionary<string, object> state)
+    public async ValueTask LoadStateAsync(IDictionary<string, object> state)
     {
-        throw new NotImplementedException();
+        HashSet<AgentType> registeredTypes = this._agentsContainer.RegisteredAgentTypes;
+
+        foreach (var agentIdStr in state.Keys)
+        {
+            Contracts.AgentId agentId = Contracts.AgentId.FromStr(agentIdStr);
+            if (state[agentIdStr] is not IDictionary<string, object> agentStateDict)
+            {
+                throw new Exception($"Agent state for {agentId} is not a {typeof(IDictionary<string, object>)}: {state[agentIdStr].GetType()}");
+            }
+
+            if (registeredTypes.Contains(agentId.Type))
+            {
+                IHostableAgent agent = await this._agentsContainer.EnsureAgentAsync(agentId);
+                await agent.LoadStateAsync(agentStateDict);
+            }
+        }
     }
 
     public async ValueTask OnMessageAsync(Message message, CancellationToken cancellation = default)
