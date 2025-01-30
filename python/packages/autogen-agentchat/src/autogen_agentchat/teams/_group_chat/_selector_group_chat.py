@@ -35,11 +35,11 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
-        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
         model_client: ChatCompletionClient,
         selector_prompt: str,
         allow_repeated_speaker: bool,
         selector_func: Callable[[Sequence[AgentEvent | ChatMessage]], str | None] | None,
+        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ) -> None:
         super().__init__(
             group_topic_type,
