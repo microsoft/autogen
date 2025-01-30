@@ -7,7 +7,6 @@ using Xunit;
 
 namespace Microsoft.AutoGen.Core.Tests;
 
-//[Collection(ClusterFixtureCollection.Name)]
 public class AgentTests()
 {
     [Fact]
@@ -165,26 +164,6 @@ public class AgentTests()
     // }
 
     // /// <summary>
-    // /// validate that the agent is initialized correctly with implicit subs
-    // /// </summary>
-    // /// <returns>void</returns>
-    // [Fact]
-    // public async Task Agent_ShouldInitializeCorrectly()
-    // {
-    //     var fixture = new InMemoryAgentRuntimeFixture();
-    //     var (runtime, agent) = fixture.Start();
-    //     Assert.Equal(nameof(AgentRuntime), runtime.GetType().Name);
-    //     var subscriptions = await agent.GetSubscriptionsAsync();
-    //     Assert.Equal(2, subscriptions.Count);
-    //     fixture.Stop();
-    // }
-    // /// <summary>
-    // /// Test AddSubscriptionAsync method
-    // /// </summary>
-    // /// <returns>void</returns>
-    // ///
-
-    // /// <summary>
     // /// Test StoreAsync and ReadAsync methods
     // /// </summary>
     // /// <returns>void</returns>
@@ -270,11 +249,5 @@ public class AgentTests()
     //     }
 
     //     TestAgent.ReceivedMessages[nameof(DelegateMessageToTestAgentAsync)].Should().NotBeNull();
-    // }
-
-    // [CollectionDefinition(Name)]
-    // public sealed class ClusterFixtureCollection : ICollectionFixture<InMemoryAgentRuntimeFixture>
-    // {
-    //     public const string Name = nameof(ClusterFixtureCollection);
     // }
 }
