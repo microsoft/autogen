@@ -107,7 +107,7 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
     private readonly CancellationTokenSource _shutdownCts;
 
     private readonly AgentsContainer _agentsContainer;
-    
+
     public IServiceProvider ServiceProvider { get; }
 
     private string _clientId = Guid.NewGuid().ToString();
@@ -242,7 +242,7 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
         var agent = await this._agentsContainer.EnsureAgentAsync(sender);
         await agent.OnMessageAsync(message, messageContext);
     }
-   
+
     public ValueTask StartAsync(CancellationToken cancellationToken)
     {
         return this._messageRouter.StartAsync(cancellationToken);
