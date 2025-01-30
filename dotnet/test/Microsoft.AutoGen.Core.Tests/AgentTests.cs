@@ -135,7 +135,7 @@ public class AgentTests()
         });
 
         Assert.Null(agent);
-        await runtime.GetAgentAsync("MyAgent", lazy: false);
+        await runtime.GetAgentAsync(AgentId.FromStr("MyAgent"), lazy: false);
         Assert.NotNull(agent);
         Assert.True(agent.ReceivedItems.Count == 0);
 
