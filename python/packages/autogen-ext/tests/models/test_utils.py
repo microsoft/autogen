@@ -2,7 +2,7 @@ import pytest
 from autogen_ext.models._utils.parse_r1_content import parse_r1_content
 
 
-def test_parse_r1_content():
+def test_parse_r1_content() -> None:
     content = "Hello, <think>world</think> How are you?"
     thought, content = parse_r1_content(content)
     assert thought == "world"
