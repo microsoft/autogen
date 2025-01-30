@@ -796,6 +796,8 @@ async def test_ollama() -> None:
             response.raise_for_status()
     except httpx.HTTPStatusError as e:
         pytest.skip(f"{model} model is not running locally: {e}")
+    except httpx.ConnectError as e:
+        pytest.skip(f"Ollama is not running locally: {e}")
 
     model_client = OpenAIChatCompletionClient(
         model=model,
