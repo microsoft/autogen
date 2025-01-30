@@ -9,7 +9,7 @@
     <MicrosoftExtensionLogging>9.0.0</MicrosoftExtensionLogging>
     <MicrosoftOrleans>9.0.1</MicrosoftOrleans>
     <OpenTelemetryInstrumentation>1.9.0</OpenTelemetryInstrumentation>
-    <MicrosoftDotNetInteractive>1.0.0-beta.24229.4</MicrosoftDotNetInteractive>
+    <MicrosoftDotNetInteractive>1.0.0-beta.24568.1</MicrosoftDotNetInteractive>
     <NuGetAuditMode>direct</NuGetAuditMode>
   </PropertyGroup>
   <ItemGroup>
@@ -96,7 +96,7 @@
     <PackageVersion Include="Microsoft.Orleans.Streaming" Version="$(MicrosoftOrleans)" />
     <PackageVersion Include="Microsoft.Orleans.Streaming.EventHubs" Version="$(MicrosoftOrleans)" />
     <PackageVersion Include="Microsoft.Orleans.TestingHost" Version="9.0.1" />
-    <PackageVersion Include="Microsoft.PowerShell.SDK" Version="7.4.5" />
+    <PackageVersion Include="Microsoft.PowerShell.SDK" Version="7.5.0" />
     <PackageVersion Include="Microsoft.SemanticKernel" Version="1.29.0" />
     <PackageVersion Include="Microsoft.SemanticKernel.Agents.Core" Version="$(MicrosoftSemanticKernelExperimentalVersion)" />
     <PackageVersion Include="Microsoft.SemanticKernel.Connectors.AzureOpenAI" Version="1.29.0" />
