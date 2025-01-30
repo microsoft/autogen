@@ -44,6 +44,7 @@ from ._subscription import Subscription
 from ._telemetry import EnvelopeMetadata, MessageRuntimeTracingConfig, TraceHelper, get_telemetry_envelope_metadata
 from ._topic import TopicId
 from .exceptions import MessageDroppedException
+from ._exception_handling_policy import ExceptionHandlingPolicy
 
 logger = logging.getLogger("autogen_core")
 event_logger = logging.getLogger("autogen_core.events")
@@ -248,6 +249,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         *,
         intervention_handlers: List[InterventionHandler] | None = None,
         tracer_provider: TracerProvider | None = None,
+        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ) -> None:
         self._tracer_helper = TraceHelper(tracer_provider, MessageRuntimeTracingConfig("SingleThreadedAgentRuntime"))
         self._message_queue: Queue[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope] = Queue()
@@ -261,6 +263,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         self._subscription_manager = SubscriptionManager()
         self._run_context: RunContext | None = None
         self._serialization_registry = SerializationRegistry()
+        self._exception_handling_policy = exception_handling_policy
 
     @property
     def unprocessed_messages_count(
@@ -515,15 +518,19 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                                             exception=e,
                                         )
                                     )
-                                    raise
+                                    raise e
 
                     future = _on_message(agent, message_context)
                     responses.append(future)
 
                 await asyncio.gather(*responses)
-            except BaseException:
-                # Ignore exceptions raised during publishing. We've already logged them above.
-                pass
+            except BaseException as e:
+                if self._exception_handling_policy is ExceptionHandlingPolicy.RAISE:
+                    # Re-raise the exception if the policy is RAISE
+                    raise e
+                else:
+                    # Ignore exceptions raised during publishing. We've already logged them above.
+                    pass
             finally:
                 self._message_queue.task_done()
             # TODO if responses are given for a publish
