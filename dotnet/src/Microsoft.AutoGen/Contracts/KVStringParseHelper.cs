@@ -8,7 +8,7 @@ namespace Microsoft.AutoGen.Contracts;
 /// <summary>
 /// Provides helper methods for parsing key-value string representations.
 /// </summary>
-public static class KVStringParseHelper
+internal static class KVStringParseHelper
 {
     /// <summary>
     /// The regular expression pattern used to match key-value pairs in the format "key/value".
