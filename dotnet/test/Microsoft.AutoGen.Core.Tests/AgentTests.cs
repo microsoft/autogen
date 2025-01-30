@@ -108,7 +108,7 @@ public class AgentTests()
     }
 
     [Fact]
-    public async Task SubscribeAsyncUnsubscribeAsyncAndGetSubscriptionsTest()
+    public async Task SubscribeAsyncRemoveSubscriptionAsyncAndGetSubscriptionsTest()
     {
         var runtime = new InProcessRuntime();
         await runtime.StartAsync();
