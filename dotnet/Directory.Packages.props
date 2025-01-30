@@ -7,6 +7,7 @@
     <MicrosoftExtensionConfiguration>9.0.0</MicrosoftExtensionConfiguration>
     <MicrosoftExtensionDependencyInjection>9.0.0</MicrosoftExtensionDependencyInjection>
     <MicrosoftExtensionLogging>9.0.0</MicrosoftExtensionLogging>
+    <MicrosoftExtensionOptions>9.0.0</MicrosoftExtensionOptions>
     <MicrosoftOrleans>9.0.1</MicrosoftOrleans>
     <OpenTelemetryInstrumentation>1.9.0</OpenTelemetryInstrumentation>
     <MicrosoftDotNetInteractive>1.0.0-beta.24568.1</MicrosoftDotNetInteractive>
@@ -74,8 +75,10 @@
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="9.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Http.Resilience" Version="9.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="$(MicrosoftExtensionLogging)" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Console" Version="$(MicrosoftExtensionLogging)" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="$(MicrosoftExtensionLogging)" />
+    <PackageVersion Include="Microsoft.Extensions.Options.DataAnnotations" Version="$(MicrosoftExtensionOptions)" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="9.0.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="17.12.0" />
     <PackageVersion Include="Microsoft.Orleans.Clustering.Cosmos" Version="$(MicrosoftOrleans)" />
