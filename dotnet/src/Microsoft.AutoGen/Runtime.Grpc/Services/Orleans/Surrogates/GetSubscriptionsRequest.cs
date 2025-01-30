@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // GetSubscriptionsRequest.cs
 
+using Microsoft.AutoGen.Protobuf;
+
 namespace Microsoft.AutoGen.Runtime.Grpc.Orleans.Surrogates;
 
 [GenerateSerializer]

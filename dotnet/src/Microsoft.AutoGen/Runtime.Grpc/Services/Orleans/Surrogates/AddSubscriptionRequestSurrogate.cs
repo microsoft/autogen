@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AddSubscriptionRequestSurrogate.cs
 
+using Microsoft.AutoGen.Protobuf;
+
 namespace Microsoft.AutoGen.Runtime.Grpc.Orleans.Surrogates;
 
 [GenerateSerializer]
@@ -21,7 +23,7 @@ public sealed class AddSubscriptionRequestSurrogateConverter :
     {
         var request = new AddSubscriptionRequest()
         {
-            RequestId = surrogate.RequestId,
+            //RequestId = surrogate.RequestId,
             Subscription = surrogate.Subscription
         };
         return request;
@@ -31,7 +33,7 @@ public sealed class AddSubscriptionRequestSurrogateConverter :
         in AddSubscriptionRequest value) =>
         new AddSubscriptionRequestSurrogate
         {
-            RequestId = value.RequestId,
+            //RequestId = value.RequestId,
             Subscription = value.Subscription
         };
 }

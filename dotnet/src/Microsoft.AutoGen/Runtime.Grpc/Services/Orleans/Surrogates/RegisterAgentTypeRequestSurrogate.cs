@@ -2,6 +2,7 @@
 // RegisterAgentTypeRequestSurrogate.cs
 
 using Google.Protobuf.Collections;
+using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Orleans.Surrogates;
 
@@ -27,7 +28,7 @@ public sealed class RegisterAgentTypeRequestSurrogateConverter :
     {
         var request = new RegisterAgentTypeRequest()
         {
-            RequestId = surrogate.RequestId,
+            //RequestId = surrogate.RequestId,
             Type = surrogate.Type
         };
         /* future
@@ -40,7 +41,7 @@ public sealed class RegisterAgentTypeRequestSurrogateConverter :
         in RegisterAgentTypeRequest value) =>
         new RegisterAgentTypeRequestSurrogate
         {
-            RequestId = value.RequestId,
+            //RequestId = value.RequestId,
             Type = value.Type,
             /* future
             Events = value.Events,

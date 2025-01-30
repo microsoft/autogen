@@ -1,9 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // RegistryGrain.cs
 using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Protobuf;
 using Microsoft.AutoGen.Runtime.Grpc.Abstractions;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
+
 internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStore")] IPersistentState<AgentsRegistryState> state) : Grain, IRegistryGrain
 {
     private readonly Dictionary<IGateway, WorkerState> _workerStates = new();
@@ -54,7 +56,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
 
         return new ValueTask<List<string>>(agents);
     }
-    public ValueTask<(IGateway? Worker, bool NewPlacement)> GetOrPlaceAgent(AgentId agentId)
+    public ValueTask<(IGateway? Worker, bool NewPlacement)> GetOrPlaceAgent(Protobuf.AgentId agentId)
     {
         // TODO: Clarify the logic
         bool isNewPlacement;

@@ -3,6 +3,7 @@
 
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
+using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Orleans.Surrogates;
 

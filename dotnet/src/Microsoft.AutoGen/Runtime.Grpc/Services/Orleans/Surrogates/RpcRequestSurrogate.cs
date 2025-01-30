@@ -2,7 +2,7 @@
 // RpcRequestSurrogate.cs
 
 using Google.Protobuf.Collections;
-using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Orleans.Surrogates;
 

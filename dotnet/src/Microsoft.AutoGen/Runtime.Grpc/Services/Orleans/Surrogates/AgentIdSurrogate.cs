@@ -3,7 +3,7 @@
 
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentIdSurrogate.cs
-using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Orleans.Surrogates;
 
