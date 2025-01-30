@@ -996,20 +996,23 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         print(result)
 
 
-    To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model capabilities:
+    To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model info.
+    For example, to use Ollama, you can use the following code snippet:
 
     .. code-block:: python
 
         from autogen_ext.models.openai import OpenAIChatCompletionClient
+        from autogen_core.models import ModelFamily
 
         custom_model_client = OpenAIChatCompletionClient(
-            model="custom-model-name",
-            base_url="https://custom-model.com/reset/of/the/path",
+            model="deepseek-r1:1.5b",
+            base_url="http://localhost:11434/v1",
             api_key="placeholder",
-            model_capabilities={
-                "vision": True,
-                "function_calling": True,
-                "json_output": True,
+            model_info={
+                "vision": False,
+                "function_calling": False,
+                "json_output": False,
+                "family": ModelFamily.R1,
             },
         )
 
