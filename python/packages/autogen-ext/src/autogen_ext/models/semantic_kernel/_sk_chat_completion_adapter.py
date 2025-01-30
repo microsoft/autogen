@@ -35,11 +35,20 @@ class SKChatCompletionAdapter(ChatCompletionClient):
 
     By leveraging this adapter, you can:
 
-        - Pass in a `Kernel` and any supported Semantic Kernel `ChatCompletionClientBase` connector.
-        - Provide tools (via Autogen `Tool` or `ToolSchema`) for function calls during chat completion.
-        - Stream responses or retrieve them in a single request.
-        - Provide prompt settings to control the chat completion behavior either globally through the constructor
-          or on a per-request basis through the `extra_create_args` dictionary.
+    - Pass in a `Kernel` and any supported Semantic Kernel `ChatCompletionClientBase` connector.
+    - Provide tools (via Autogen `Tool` or `ToolSchema`) for function calls during chat completion.
+    - Stream responses or retrieve them in a single request.
+    - Provide prompt settings to control the chat completion behavior either globally through the constructor
+        or on a per-request basis through the `extra_create_args` dictionary.
+
+    The list of extras that can be installed:
+
+    - `semantic-kernel-anthropic`: Install this extra to use Anthropic models.
+    - `semantic-kernel-google`: Install this extra to use Google Gemini models.
+    - `semantic-kernel-ollama`: Install this extra to use Ollama models.
+    - `semantic-kernel-mistralai`: Install this extra to use MistralAI models.
+    - `semantic-kernel-aws`: Install this extra to use AWS models.
+    - `semantic-kernel-hugging-face`: Install this extra to use Hugging Face models.
 
     Args:
         sk_client (ChatCompletionClientBase):
@@ -54,124 +63,148 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         service_id (Optional[str]):
             Optional service identifier.
 
-    Example usage:
+    Examples:
 
-    .. code-block:: python
+        Anthropic models:
 
-        import asyncio
-        from semantic_kernel import Kernel
-        from semantic_kernel.memory.null_memory import NullMemory
-        from semantic_kernel.connectors.ai.open_ai.services.azure_chat_completion import AzureChatCompletion
-        from semantic_kernel.connectors.ai.open_ai.prompt_execution_settings.azure_chat_prompt_execution_settings import (
-            AzureChatPromptExecutionSettings,
-        )
-        from semantic_kernel.connectors.ai.google.google_ai import GoogleAIChatCompletion
-        from semantic_kernel.connectors.ai.ollama import OllamaChatCompletion, OllamaChatPromptExecutionSettings
-        from autogen_core.models import SystemMessage, UserMessage, LLMMessage
-        from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
-        from autogen_core import CancellationToken
-        from autogen_core.tools import BaseTool
-        from pydantic import BaseModel
+        .. code-block:: bash
 
+            pip install "autogen-ext[semantic-kernel-anthropic]"
 
-        # 1) Basic tool definition (for demonstration)
-        class CalculatorArgs(BaseModel):
-            a: float
-            b: float
+        .. code-block:: python
+
+            import asyncio
+            import os
+
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_core.models import UserMessage
+            from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
+            from semantic_kernel import Kernel
+            from semantic_kernel.connectors.ai.anthropic import AnthropicChatCompletion, AnthropicChatPromptExecutionSettings
+            from semantic_kernel.memory.null_memory import NullMemory
 
 
-        class CalculatorResult(BaseModel):
-            result: float
-
-
-        class CalculatorTool(BaseTool[CalculatorArgs, CalculatorResult]):
-            def __init__(self) -> None:
-                super().__init__(
-                    args_type=CalculatorArgs,
-                    return_type=CalculatorResult,
-                    name="calculator",
-                    description="Add two numbers together",
+            async def main() -> None:
+                sk_client = AnthropicChatCompletion(
+                    ai_model_id="claude-3-5-sonnet-20241022",
+                    api_key=os.environ["ANTHROPIC_API_KEY"],
+                    service_id="my-service-id",  # Optional; for targeting specific services within Semantic Kernel
+                )
+                settings = AnthropicChatPromptExecutionSettings(
+                    temperature=0.2,
                 )
 
-            async def run(self, args: CalculatorArgs, cancellation_token: CancellationToken) -> CalculatorResult:
-                return CalculatorResult(result=args.a + args.b)
+                model_client = SKChatCompletionAdapter(sk_client, kernel=Kernel(memory=NullMemory()), prompt_settings=settings)
+
+                # Call the model directly.
+                model_result = await model_client.create(
+                    messages=[UserMessage(content="What is the capital of France?", source="User")]
+                )
+                print(model_result)
+
+                # Create an assistant agent with the model client.
+                assistant = AssistantAgent("assistant", model_client=model_client)
+                # Call the assistant with a task.
+                result = await assistant.run(task="What is the capital of France?")
+                print(result)
 
 
-        async def main():
-            # 2) Create a Semantic Kernel instance (with null memory for simplicity)
-            kernel = Kernel(memory=NullMemory())
-
-            # ----------------------------------------------------------------
-            # Example A: Azure OpenAI
-            # ----------------------------------------------------------------
-            deployment_name = "<AZURE_OPENAI_DEPLOYMENT_NAME>"
-            endpoint = "<AZURE_OPENAI_ENDPOINT>"
-            api_key = "<AZURE_OPENAI_API_KEY>"
-
-            azure_client = AzureChatCompletion(deployment_name=deployment_name, endpoint=endpoint, api_key=api_key)
-            azure_settings = AzureChatPromptExecutionSettings(temperature=0.8)
-            azure_adapter = SKChatCompletionAdapter(sk_client=azure_client, kernel=kernel, prompt_settings=azure_settings)
-
-            # ----------------------------------------------------------------
-            # Example B: Google Gemini
-            # ----------------------------------------------------------------
-            google_api_key = "<GCP_API_KEY>"
-            google_model = "gemini-1.5-flash"
-            google_client = GoogleAIChatCompletion(gemini_model_id=google_model, api_key=google_api_key)
-            google_adapter = SKChatCompletionAdapter(sk_client=google_client)
-
-            # ----------------------------------------------------------------
-            # Example C: Ollama (local Llama-based model)
-            # ----------------------------------------------------------------
-            ollama_client = OllamaChatCompletion(
-                service_id="ollama",  # custom ID
-                host="http://localhost:11434",
-                ai_model_id="llama3.1",
-            )
-            request_settings = OllamaChatPromptExecutionSettings(
-                # For model specific settings, specify them in the options dictionary.
-                # For more information on the available options, refer to the Ollama API documentation:
-                # https://github.com/ollama/ollama/blob/main/docs/modelfile.md#valid-parameters-and-values
-                options={
-                    "temperature": 0.8,
-                },
-            )
-            ollama_adapter = SKChatCompletionAdapter(sk_client=ollama_client, prompt_settings=request_settings)
-
-            # 3) Create a tool and register it with the kernel
-            calc_tool = CalculatorTool()
-
-            # 4) Prepare messages for a chat completion
-            messages: list[LLMMessage] = [
-                SystemMessage(content="You are a helpful assistant."),
-                UserMessage(content="What is 2 + 2?", source="user"),
-            ]
-
-            # 5) Invoke chat completion with different adapters
-            # Azure example
-            azure_result = await azure_adapter.create(
-                messages=messages,
-                tools=[calc_tool],
-            )
-            print("Azure result:", azure_result.content)
-
-            # Google example
-            google_result = await google_adapter.create(
-                messages=messages,
-                tools=[calc_tool],
-            )
-            print("Google result:", google_result.content)
-
-            # Ollama example
-            ollama_result = await ollama_adapter.create(
-                messages=messages,
-                tools=[calc_tool],
-            )
-            print("Ollama result:", ollama_result.content)
-
-
-        if __name__ == "__main__":
             asyncio.run(main())
+
+        Google Gemini models:
+
+        .. code-block:: bash
+
+            pip install "autogen-ext[semantic-kernel-google]"
+
+        .. code-block:: python
+
+            import asyncio
+            import os
+
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_core.models import UserMessage
+            from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
+            from semantic_kernel import Kernel
+            from semantic_kernel.connectors.ai.google.google_ai import (
+                GoogleAIChatCompletion,
+                GoogleAIChatPromptExecutionSettings,
+            )
+            from semantic_kernel.memory.null_memory import NullMemory
+
+
+            async def main() -> None:
+                sk_client = GoogleAIChatCompletion(
+                    gemini_model_id="gemini-1.5-flash",
+                    api_key=os.environ["GEMINI_API_KEY"],
+                )
+                settings = GoogleAIChatPromptExecutionSettings(
+                    temperature=0.2,
+                )
+
+                model_client = SKChatCompletionAdapter(sk_client, kernel=Kernel(memory=NullMemory()), prompt_settings=settings)
+
+                # Call the model directly.
+                model_result = await model_client.create(
+                    messages=[UserMessage(content="What is the capital of France?", source="User")]
+                )
+                print(model_result)
+
+                # Create an assistant agent with the model client.
+                assistant = AssistantAgent("assistant", model_client=model_client)
+                # Call the assistant with a task.
+                result = await assistant.run(task="What is the capital of France?")
+                print(result)
+
+
+            asyncio.run(main())
+
+        Ollama models:
+
+        .. code-block:: bash
+
+            pip install "autogen-ext[semantic-kernel-ollama]"
+
+        .. code-block:: python
+
+            import asyncio
+
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_core.models import UserMessage
+            from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
+            from semantic_kernel import Kernel
+            from semantic_kernel.connectors.ai.ollama import OllamaChatCompletion, OllamaChatPromptExecutionSettings
+            from semantic_kernel.memory.null_memory import NullMemory
+
+
+            async def main() -> None:
+                sk_client = OllamaChatCompletion(
+                    host="http://localhost:11434",
+                    ai_model_id="llama3.2:latest",
+                )
+                ollama_settings = OllamaChatPromptExecutionSettings(
+                    options={"temperature": 0.5},
+                )
+
+                model_client = SKChatCompletionAdapter(
+                    sk_client, kernel=Kernel(memory=NullMemory()), prompt_settings=ollama_settings
+                )
+
+                # Call the model directly.
+                model_result = await model_client.create(
+                    messages=[UserMessage(content="What is the capital of France?", source="User")]
+                )
+                print(model_result)
+
+                # Create an assistant agent with the model client.
+                assistant = AssistantAgent("assistant", model_client=model_client)
+                # Call the assistant with a task.
+                result = await assistant.run(task="What is the capital of France?")
+                print(result)
+
+
+            asyncio.run(main())
+
     """
 
     def __init__(
