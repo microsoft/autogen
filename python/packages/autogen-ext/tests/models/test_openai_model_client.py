@@ -471,6 +471,72 @@ async def test_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_r1_think_field(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = "r1"
+    chat_completions = [
+        # Successful completion with think field
+        ChatCompletion(
+            id="id1",
+            choices=[
+                Choice(
+                    finish_reason="stop",
+                    index=0,
+                    message=ChatCompletionMessage(
+                        content="<think> I am happy.</think> I am happy.",
+                        role="assistant",
+                    ),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
+        ),
+        # Warning completion when think field is not present
+        ChatCompletion(
+            id="id2",
+            choices=[
+                Choice(
+                    finish_reason="stop",
+                    index=0,
+                    message=ChatCompletionMessage(
+                        content="I am happy.",
+                        role="assistant",
+                    ),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
+        ),
+    ]
+    mock = _MockChatCompletion(chat_completions)
+    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
+
+    model_client = OpenAIChatCompletionClient(
+        model=model,
+        api_key="",
+        model_info={"family": ModelFamily.R1, "vision": False, "function_calling": False, "json_output": False},
+    )
+
+    # Successful completion with think field.
+    create_result = await model_client.create(messages=[UserMessage(content="I am happy.", source="user")])
+    assert create_result.content == "I am happy."
+    assert create_result.finish_reason == "stop"
+    assert not create_result.cached
+    assert create_result.thought == "I am happy."
+
+    # Warning completion when think field is not present.
+    with pytest.warns(UserWarning, match="Could not find <think>..</think> field in model response content."):
+        create_result = await model_client.create(messages=[UserMessage(content="I am happy.", source="user")])
+        assert create_result.content == "I am happy."
+        assert create_result.finish_reason == "stop"
+        assert not create_result.cached
+        assert create_result.thought is None
+
+
+@pytest.mark.asyncio
 async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
     model = "gpt-4o-2024-05-13"
     chat_completions = [
