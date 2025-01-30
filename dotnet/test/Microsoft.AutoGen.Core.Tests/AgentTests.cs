@@ -95,43 +95,6 @@ public class AgentTests()
         }
     }
 
-    // / <summary>
-    // / Verify that if the agent is not initialized via AgentWorker, it should throw the correct exception.
-    // / </summary>
-    // / <returns>void</returns>
-    // [Fact]
-    // public async Task Agent_ShouldThrowException_WhenNotInitialized()
-    // {
-    //     using var fixture = new InMemoryAgentRuntimeFixture();
-    //     var agent = ActivatorUtilities.CreateInstance<TestAgent>(fixture.AppHost.Services);
-    //     await Assert.ThrowsAsync<UninitializedAgentWorker.AgentInitalizedIncorrectlyException>(
-    //         async () =>
-    //         {
-    //             await agent.AddSubscriptionAsync("TestEvent");
-    //         }
-    //     );
-    // }
-
-    // /// <summary>
-    // /// validate that the agent is initialized correctly with implicit subs
-    // /// </summary>
-    // /// <returns>void</returns>
-    // [Fact]
-    // public async Task Agent_ShouldInitializeCorrectly()
-    // {
-    //     var fixture = new InMemoryAgentRuntimeFixture();
-    //     var (runtime, agent) = fixture.Start();
-    //     Assert.Equal(nameof(AgentRuntime), runtime.GetType().Name);
-    //     var subscriptions = await agent.GetSubscriptionsAsync();
-    //     Assert.Equal(2, subscriptions.Count);
-    //     fixture.Stop();
-    // }
-    /// <summary>
-    /// Test AddSubscriptionAsync method
-    /// </summary>
-    /// <returns>void</returns>
-    ///
-
     public class ReceiverAgent(AgentId id,
             IAgentRuntime runtime) : BaseAgent(id, runtime, "Receiver Agent", null),
             IHandle<string>
@@ -183,6 +146,43 @@ public class AgentTests()
 
         Assert.True(agent.ReceivedItems.Count == 1);
     }
+
+    // / <summary>
+    // / Verify that if the agent is not initialized via AgentWorker, it should throw the correct exception.
+    // / </summary>
+    // / <returns>void</returns>
+    // [Fact]
+    // public async Task Agent_ShouldThrowException_WhenNotInitialized()
+    // {
+    //     using var fixture = new InMemoryAgentRuntimeFixture();
+    //     var agent = ActivatorUtilities.CreateInstance<TestAgent>(fixture.AppHost.Services);
+    //     await Assert.ThrowsAsync<UninitializedAgentWorker.AgentInitalizedIncorrectlyException>(
+    //         async () =>
+    //         {
+    //             await agent.AddSubscriptionAsync("TestEvent");
+    //         }
+    //     );
+    // }
+
+    // /// <summary>
+    // /// validate that the agent is initialized correctly with implicit subs
+    // /// </summary>
+    // /// <returns>void</returns>
+    // [Fact]
+    // public async Task Agent_ShouldInitializeCorrectly()
+    // {
+    //     var fixture = new InMemoryAgentRuntimeFixture();
+    //     var (runtime, agent) = fixture.Start();
+    //     Assert.Equal(nameof(AgentRuntime), runtime.GetType().Name);
+    //     var subscriptions = await agent.GetSubscriptionsAsync();
+    //     Assert.Equal(2, subscriptions.Count);
+    //     fixture.Stop();
+    // }
+    // /// <summary>
+    // /// Test AddSubscriptionAsync method
+    // /// </summary>
+    // /// <returns>void</returns>
+    // ///
 
     // /// <summary>
     // /// Test StoreAsync and ReadAsync methods
