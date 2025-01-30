@@ -12,36 +12,313 @@ using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.Core.Grpc;
 
-public sealed class GrpcAgentRuntime(
-    AgentRpc.AgentRpcClient client,
-    IHostApplicationLifetime hostApplicationLifetime,
-    IServiceProvider serviceProvider,
-    ILogger<GrpcAgentRuntime> logger
-    ) : IAgentRuntime, IDisposable
+// TODO: Consider whether we want to just reuse IHandle
+internal interface IMessageSink<TMessage>
+{
+    public ValueTask OnMessageAsync(TMessage message, CancellationToken cancellation = default);
+}
+
+internal sealed class AutoRestartChannel : IDisposable
 {
     private readonly object _channelLock = new();
+    private readonly AgentRpc.AgentRpcClient _client;
+    private readonly ILogger<GrpcAgentRuntime> _logger;
+    private readonly CancellationTokenSource _shutdownCts;
+    private AsyncDuplexStreamingCall<Message, Message>? _channel;
 
-    // Request ID ->
-    private readonly ConcurrentDictionary<string, ResultSink<object?>> _pendingRequests = new();
-    private Dictionary<AgentType, Func<Contracts.AgentId, IAgentRuntime, ValueTask<IHostableAgent>>> agentFactories = new();
-    private Dictionary<Contracts.AgentId, IHostableAgent> agentInstances = new();
+    public AutoRestartChannel(AgentRpc.AgentRpcClient client,
+                              ILogger<GrpcAgentRuntime> logger,
+                              CancellationToken shutdownCancellation = default)
+    {
+        _client = client;
+        _logger = logger;
+        _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellation);
+    }
 
-    private readonly Channel<(Message Message, TaskCompletionSource WriteCompletionSource)> _outboundMessagesChannel = Channel.CreateBounded<(Message, TaskCompletionSource)>(new BoundedChannelOptions(1024)
+    public void EnsureConnected()
+    {
+        _logger.LogInformation("Connecting to gRPC endpoint " + Environment.GetEnvironmentVariable("AGENT_HOST"));
+
+        if (this.RecreateChannel(null) == null)
+        {
+            throw new Exception("Failed to connect to gRPC endpoint.");
+        };
+    }
+
+    public AsyncDuplexStreamingCall<Message, Message> StreamingCall
+    {
+        get
+        {
+            if (_channel is { } channel)
+            {
+                return channel;
+            }
+
+            lock (_channelLock)
+            {
+                if (_channel is not null)
+                {
+                    return _channel;
+                }
+
+                return RecreateChannel(null);
+            }
+        }
+    }
+
+    public AsyncDuplexStreamingCall<Message, Message> RecreateChannel() => RecreateChannel(this._channel);
+
+    private AsyncDuplexStreamingCall<Message, Message> RecreateChannel(AsyncDuplexStreamingCall<Message, Message>? ownedChannel)
+    {
+        // Make sure we are only re-creating the channel if it does not exit or we are the owner.
+        if (_channel is null || _channel == ownedChannel)
+        {
+            lock (_channelLock)
+            {
+                if (_channel is null || _channel == ownedChannel)
+                {
+                    _channel?.Dispose();
+                    _channel = _client.OpenChannel(cancellationToken: _shutdownCts.Token);
+                }
+            }
+        }
+
+        return _channel;
+    }
+
+    public void Dispose()
+    {
+        IDisposable? channelDisposable = Interlocked.Exchange(ref this._channel, null);
+        channelDisposable?.Dispose();
+    }
+}
+
+internal sealed class MessageRouter(AgentRpc.AgentRpcClient client,
+                                    IMessageSink<Message> incomingMessageSink,
+                                    ILogger<GrpcAgentRuntime> logger,
+                                    CancellationToken shutdownCancellation = default) : IDisposable
+{
+    private static readonly BoundedChannelOptions DefaultChannelOptions = new BoundedChannelOptions(1024)
     {
         AllowSynchronousContinuations = true,
         SingleReader = true,
         SingleWriter = false,
         FullMode = BoundedChannelFullMode.Wait
-    });
-
-    private readonly AgentRpc.AgentRpcClient _client = client;
-    public readonly IServiceProvider ServiceProvider = serviceProvider;
+    };
 
     private readonly ILogger<GrpcAgentRuntime> _logger = logger;
-    private readonly CancellationTokenSource _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
-    private AsyncDuplexStreamingCall<Message, Message>? _channel;
+
+    private readonly CancellationTokenSource _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellation);
+
+    private readonly IMessageSink<Message> _incomingMessageSink = incomingMessageSink;
+    private readonly Channel<(Message Message, TaskCompletionSource WriteCompletionSource)> _outboundMessagesChannel
+        // TODO: Enable a way to configure the channel options
+        = Channel.CreateBounded<(Message, TaskCompletionSource)>(DefaultChannelOptions);
+
+    private readonly AutoRestartChannel _incomingMessageChannel = new AutoRestartChannel(client, logger, shutdownCancellation);
+
     private Task? _readTask;
     private Task? _writeTask;
+
+    private async Task RunReadPump()
+    {
+        var cachedChannel = _incomingMessageChannel.StreamingCall;
+        while (!_shutdownCts.Token.IsCancellationRequested)
+        {
+            try
+            {
+                await foreach (var message in cachedChannel.ResponseStream.ReadAllAsync(_shutdownCts.Token))
+                {
+                    // next if message is null
+                    if (message == null)
+                    {
+                        continue;
+                    }
+
+                    await _incomingMessageSink.OnMessageAsync(message, _shutdownCts.Token);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Time to shut down.
+                break;
+            }
+            catch (Exception ex) when (!_shutdownCts.IsCancellationRequested)
+            {
+                _logger.LogError(ex, "Error reading from channel.");
+                cachedChannel = this._incomingMessageChannel.RecreateChannel();
+            }
+            catch
+            {
+                // Shutdown requested.
+                break;
+            }
+        }
+    }
+
+    private async Task RunWritePump()
+    {
+        var cachedChannel = this._incomingMessageChannel.StreamingCall;
+        var outboundMessages = _outboundMessagesChannel.Reader;
+        while (!_shutdownCts.IsCancellationRequested)
+        {
+            (Message Message, TaskCompletionSource WriteCompletionSource) item = default;
+            try
+            {
+                await outboundMessages.WaitToReadAsync().ConfigureAwait(false);
+
+                // Read the next message if we don't already have an unsent message
+                // waiting to be sent.
+                if (!outboundMessages.TryRead(out item))
+                {
+                    break;
+                }
+
+                while (!_shutdownCts.IsCancellationRequested)
+                {
+                    await cachedChannel.RequestStream.WriteAsync(item.Message, _shutdownCts.Token).ConfigureAwait(false);
+                    item.WriteCompletionSource.TrySetResult();
+                    break;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                // Time to shut down.
+                item.WriteCompletionSource?.TrySetCanceled();
+                break;
+            }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.Unavailable)
+            {
+                // we could not connect to the endpoint - most likely we have the wrong port or failed ssl
+                // we need to let the user know what port we tried to connect to and then do backoff and retry
+                _logger.LogError(ex, "Error connecting to GRPC endpoint {Endpoint}.", Environment.GetEnvironmentVariable("AGENT_HOST"));
+                break;
+            }
+            catch (RpcException ex) when (ex.StatusCode == StatusCode.OK)
+            {
+                _logger.LogError(ex, "Error writing to channel, continuing (Status OK). {ex}", cachedChannel.ToString());
+                break;
+            }
+            catch (Exception ex) when (!_shutdownCts.IsCancellationRequested)
+            {
+                item.WriteCompletionSource?.TrySetException(ex);
+                _logger.LogError(ex, $"Error writing to channel.{ex}");
+                cachedChannel = this._incomingMessageChannel.RecreateChannel();
+                continue;
+            }
+            catch
+            {
+                // Shutdown requested.
+                item.WriteCompletionSource?.TrySetCanceled();
+                break;
+            }
+        }
+
+        while (outboundMessages.TryRead(out var item))
+        {
+            item.WriteCompletionSource.TrySetCanceled();
+        }
+    }
+
+    public ValueTask RouteMessageAsync(Message message, CancellationToken cancellation = default)
+    {
+        var tcs = new TaskCompletionSource();
+        return _outboundMessagesChannel.Writer.WriteAsync((message, tcs), cancellation);
+    }
+
+    public ValueTask StartAsync(CancellationToken cancellation)
+    {
+        // TODO: Should we error out on a noncancellable token?
+
+        this._incomingMessageChannel.EnsureConnected();
+        var didSuppress = false;
+
+        // Make sure we do not mistakenly flow the ExecutionContext into the background pumping tasks.
+        if (!ExecutionContext.IsFlowSuppressed())
+        {
+            didSuppress = true;
+            ExecutionContext.SuppressFlow();
+        }
+
+        try
+        {
+            _readTask = Task.Run(RunReadPump, cancellation);
+            _writeTask = Task.Run(RunWritePump, cancellation);
+
+            return ValueTask.CompletedTask;
+        }
+        catch (Exception ex)
+        {
+            return ValueTask.FromException(ex);
+        }
+        finally
+        {
+            if (didSuppress)
+            {
+                ExecutionContext.RestoreFlow();
+            }
+        }
+    }
+
+    // No point in returning a ValueTask here, since we are awaiting the two tasks
+    public async Task StopAsync()
+    {
+        _shutdownCts.Cancel();
+
+        _outboundMessagesChannel.Writer.TryComplete();
+
+        List<Task> pendingTasks = new();
+        if (_readTask is { } readTask)
+        {
+            pendingTasks.Add(readTask);
+        }
+
+        if (_writeTask is { } writeTask)
+        {
+            pendingTasks.Add(writeTask);
+        }
+
+        await Task.WhenAll(pendingTasks).ConfigureAwait(false);
+
+        this._incomingMessageChannel.Dispose();
+    }
+
+    public void Dispose()
+    {
+        _outboundMessagesChannel.Writer.TryComplete();
+        this._incomingMessageChannel.Dispose();
+    }
+}
+
+public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSink<Message>, IDisposable
+{
+    public GrpcAgentRuntime(AgentRpc.AgentRpcClient client,
+                            IHostApplicationLifetime hostApplicationLifetime,
+                            IServiceProvider serviceProvider,
+                            ILogger<GrpcAgentRuntime> logger)
+    {
+        this._client = client;
+        this._logger = logger;
+        this._shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
+
+        this._messageRouter = new MessageRouter(client, this, logger, this._shutdownCts.Token);
+
+        this.ServiceProvider = serviceProvider;
+    }
+
+    // Request ID ->
+    private readonly ConcurrentDictionary<string, ResultSink<object?>> _pendingRequests = new();
+
+    private Dictionary<AgentType, Func<Contracts.AgentId, IAgentRuntime, ValueTask<IHostableAgent>>> agentFactories = new();
+    private Dictionary<Contracts.AgentId, IHostableAgent> agentInstances = new();
+
+    private readonly AgentRpc.AgentRpcClient _client;
+    private readonly MessageRouter _messageRouter;
+
+    private readonly ILogger<GrpcAgentRuntime> _logger;
+    private readonly CancellationTokenSource _shutdownCts;
+    
+    public IServiceProvider ServiceProvider { get; }
 
     private string _clientId = Guid.NewGuid().ToString();
     private CallOptions CallOptions
@@ -60,59 +337,8 @@ public sealed class GrpcAgentRuntime(
 
     public void Dispose()
     {
-        _outboundMessagesChannel.Writer.TryComplete();
-        _channel?.Dispose();
-    }
-
-    private async Task RunReadPump()
-    {
-        var channel = GetChannel();
-        while (!_shutdownCts.Token.IsCancellationRequested)
-        {
-            try
-            {
-                await foreach (var message in channel.ResponseStream.ReadAllAsync(_shutdownCts.Token))
-                {
-                    // next if message is null
-                    if (message == null)
-                    {
-                        continue;
-                    }
-                    switch (message.MessageCase)
-                    {
-                        case Message.MessageOneofCase.Request:
-                            var request = message.Request ?? throw new InvalidOperationException("Request is null.");
-                            await HandleRequest(request);
-                            break;
-                        case Message.MessageOneofCase.Response:
-                            var response = message.Response ?? throw new InvalidOperationException("Response is null.");
-                            await HandleResponse(response);
-                            break;
-                        case Message.MessageOneofCase.CloudEvent:
-                            var cloudEvent = message.CloudEvent ?? throw new InvalidOperationException("CloudEvent is null.");
-                            await HandlePublish(cloudEvent);
-                            break;
-                        default:
-                            throw new InvalidOperationException($"Unexpected message '{message}'.");
-                    }
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // Time to shut down.
-                break;
-            }
-            catch (Exception ex) when (!_shutdownCts.IsCancellationRequested)
-            {
-                _logger.LogError(ex, "Error reading from channel.");
-                channel = RecreateChannel(channel);
-            }
-            catch
-            {
-                // Shutdown requested.
-                break;
-            }
-        }
+        this._shutdownCts.Cancel();
+        this._messageRouter.Dispose();
     }
 
     private async ValueTask HandleRequest(RpcRequest request, CancellationToken cancellationToken = default)
@@ -163,7 +389,7 @@ public sealed class GrpcAgentRuntime(
                 Response = response
             };
 
-            await WriteChannelAsync(responseMessage, cancellationToken);
+            await this._messageRouter.RouteMessageAsync(responseMessage, cancellationToken);
         }
     }
 
@@ -227,69 +453,7 @@ public sealed class GrpcAgentRuntime(
         await agent.OnMessageAsync(message, messageContext);
     }
 
-    private async Task RunWritePump()
-    {
-        var channel = GetChannel();
-        var outboundMessages = _outboundMessagesChannel.Reader;
-        while (!_shutdownCts.IsCancellationRequested)
-        {
-            (Message Message, TaskCompletionSource WriteCompletionSource) item = default;
-            try
-            {
-                await outboundMessages.WaitToReadAsync().ConfigureAwait(false);
-
-                // Read the next message if we don't already have an unsent message
-                // waiting to be sent.
-                if (!outboundMessages.TryRead(out item))
-                {
-                    break;
-                }
-
-                while (!_shutdownCts.IsCancellationRequested)
-                {
-                    await channel.RequestStream.WriteAsync(item.Message, _shutdownCts.Token).ConfigureAwait(false);
-                    item.WriteCompletionSource.TrySetResult();
-                    break;
-                }
-            }
-            catch (OperationCanceledException)
-            {
-                // Time to shut down.
-                item.WriteCompletionSource?.TrySetCanceled();
-                break;
-            }
-            catch (RpcException ex) when (ex.StatusCode == StatusCode.Unavailable)
-            {
-                // we could not connect to the endpoint - most likely we have the wrong port or failed ssl
-                // we need to let the user know what port we tried to connect to and then do backoff and retry
-                _logger.LogError(ex, "Error connecting to GRPC endpoint {Endpoint}.", Environment.GetEnvironmentVariable("AGENT_HOST"));
-                break;
-            }
-            catch (RpcException ex) when (ex.StatusCode == StatusCode.OK)
-            {
-                _logger.LogError(ex, "Error writing to channel, continuing (Status OK). {ex}", channel.ToString());
-                break;
-            }
-            catch (Exception ex) when (!_shutdownCts.IsCancellationRequested)
-            {
-                item.WriteCompletionSource?.TrySetException(ex);
-                _logger.LogError(ex, $"Error writing to channel.{ex}");
-                channel = RecreateChannel(channel);
-                continue;
-            }
-            catch
-            {
-                // Shutdown requested.
-                item.WriteCompletionSource?.TrySetCanceled();
-                break;
-            }
-        }
-
-        while (outboundMessages.TryRead(out var item))
-        {
-            item.WriteCompletionSource.TrySetCanceled();
-        }
-    }
+    
 
     // private override async ValueTask<RpcResponse> SendMessageAsync(Payload message, AgentId agentId, AgentId? agent = null, CancellationToken? cancellationToken = default)
     // {
@@ -315,89 +479,17 @@ public sealed class GrpcAgentRuntime(
     //     await WriteChannelAsync(new Message { Request = request }, cancellationToken).ConfigureAwait(false);
     // }
 
-    private async Task WriteChannelAsync(Message message, CancellationToken cancellationToken = default)
+   
+    public ValueTask StartAsync(CancellationToken cancellationToken)
     {
-        var tcs = new TaskCompletionSource();
-        await _outboundMessagesChannel.Writer.WriteAsync((message, tcs), cancellationToken).ConfigureAwait(false);
-    }
-    private AsyncDuplexStreamingCall<Message, Message> GetChannel()
-    {
-        if (_channel is { } channel)
-        {
-            return channel;
-        }
-
-        lock (_channelLock)
-        {
-            if (_channel is not null)
-            {
-                return _channel;
-            }
-
-            return RecreateChannel(null);
-        }
+        return this._messageRouter.StartAsync(cancellationToken);
     }
 
-    private AsyncDuplexStreamingCall<Message, Message> RecreateChannel(AsyncDuplexStreamingCall<Message, Message>? channel)
+    Task IHostedService.StartAsync(CancellationToken cancellationToken) => this._messageRouter.StartAsync(cancellationToken).AsTask();
+
+    public Task StopAsync(CancellationToken cancellationToken)
     {
-        if (_channel is null || _channel == channel)
-        {
-            lock (_channelLock)
-            {
-                if (_channel is null || _channel == channel)
-                {
-                    _channel?.Dispose();
-                    _channel = _client.OpenChannel(cancellationToken: _shutdownCts.Token);
-                }
-            }
-        }
-
-        return _channel;
-    }
-    public async Task StartAsync(CancellationToken cancellationToken)
-    {
-        _channel = GetChannel();
-        _logger.LogInformation("Starting " + GetType().Name + ",connecting to gRPC endpoint " + Environment.GetEnvironmentVariable("AGENT_HOST"));
-        var didSuppress = false;
-        if (!ExecutionContext.IsFlowSuppressed())
-        {
-            didSuppress = true;
-            ExecutionContext.SuppressFlow();
-        }
-
-        try
-        {
-            _readTask = Task.Run(RunReadPump, cancellationToken);
-            _writeTask = Task.Run(RunWritePump, cancellationToken);
-        }
-        finally
-        {
-            if (didSuppress)
-            {
-                ExecutionContext.RestoreFlow();
-            }
-        }
-    }
-
-    public async Task StopAsync(CancellationToken cancellationToken)
-    {
-        _shutdownCts.Cancel();
-
-        _outboundMessagesChannel.Writer.TryComplete();
-
-        if (_readTask is { } readTask)
-        {
-            await readTask.ConfigureAwait(false);
-        }
-
-        if (_writeTask is { } writeTask)
-        {
-            await writeTask.ConfigureAwait(false);
-        }
-        lock (_channelLock)
-        {
-            _channel?.Dispose();
-        }
+        return this._messageRouter.StopAsync();
     }
 
     private async ValueTask<IHostableAgent> EnsureAgentAsync(Contracts.AgentId agentId)
@@ -466,10 +558,11 @@ public sealed class GrpcAgentRuntime(
         {
             Request = request
         };
+
         // Create a future that will be completed when the response is received
         var resultSink = new ResultSink<object?>();
         this._pendingRequests.TryAdd(request.RequestId, resultSink);
-        await WriteChannelAsync(msg, cancellationToken);
+        await this._messageRouter.RouteMessageAsync(msg, cancellationToken);
 
         return await resultSink.Future;
     }
@@ -518,7 +611,8 @@ public sealed class GrpcAgentRuntime(
         {
             CloudEvent = cloudEvent
         };
-        await WriteChannelAsync(msg, cancellationToken);
+
+        await this._messageRouter.RouteMessageAsync(msg, cancellationToken);
     }
 
     public ValueTask<Contracts.AgentId> GetAgentAsync(Contracts.AgentId agentId, bool lazy = true)
@@ -592,6 +686,27 @@ public sealed class GrpcAgentRuntime(
     public ValueTask LoadStateAsync(IDictionary<string, object> state)
     {
         throw new NotImplementedException();
+    }
+
+    public async ValueTask OnMessageAsync(Message message, CancellationToken cancellation = default)
+    {
+        switch (message.MessageCase)
+        {
+            case Message.MessageOneofCase.Request:
+                var request = message.Request ?? throw new InvalidOperationException("Request is null.");
+                await HandleRequest(request);
+                break;
+            case Message.MessageOneofCase.Response:
+                var response = message.Response ?? throw new InvalidOperationException("Response is null.");
+                await HandleResponse(response);
+                break;
+            case Message.MessageOneofCase.CloudEvent:
+                var cloudEvent = message.CloudEvent ?? throw new InvalidOperationException("CloudEvent is null.");
+                await HandlePublish(cloudEvent);
+                break;
+            default:
+                throw new InvalidOperationException($"Unexpected message '{message}'.");
+        }
     }
 }
 
