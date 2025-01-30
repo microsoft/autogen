@@ -59,4 +59,30 @@ public class AgentIdTests()
         agentId1.GetHashCode().Should().Be(agentId2.GetHashCode());
         agentId1.GetHashCode().Should().NotBe(agentId3.GetHashCode());
     }
+
+    [Fact]
+    public void AgentIdShouldConvertExplicitlyFromStringTest()
+    {
+        var agentId = (AgentId)"ConvertedType/ConvertedKey";
+
+        agentId.Type.Should().Be("ConvertedType");
+        agentId.Key.Should().Be("ConvertedKey");
+    }
+
+    [Fact]
+    public void AgentIdShouldReturnCorrectToStringTest()
+    {
+        var agentId = new AgentId("ToStringType", "ToStringKey");
+
+        agentId.ToString().Should().Be("ToStringType/ToStringKey");
+    }
+
+    [Fact]
+    public void AgentIdShouldCompareInequalityCorrectlyTest()
+    {
+        var agentId1 = new AgentId("Type1", "Key1");
+        var agentId2 = new AgentId("Type2", "Key2");
+
+        (agentId1 != agentId2).Should().BeTrue();
+    }
 }
