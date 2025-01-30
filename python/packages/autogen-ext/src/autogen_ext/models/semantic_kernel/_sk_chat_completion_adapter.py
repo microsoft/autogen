@@ -168,7 +168,6 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         .. code-block:: python
 
             import asyncio
-            import os
 
             from autogen_agentchat.agents import AssistantAgent
             from autogen_core.models import UserMessage
