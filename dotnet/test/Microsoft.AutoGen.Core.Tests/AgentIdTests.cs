@@ -85,4 +85,25 @@ public class AgentIdTests()
 
         (agentId1 != agentId2).Should().BeTrue();
     }
+
+    [Fact]
+    public void AgentIdShouldRejectInvalidNamesTest()
+    {
+        // Invalid: 'Type' cannot start with a number and must only contain a-z, 0-9, or underscores.
+        Action invalidType = () => new AgentId("123InvalidType", "ValidKey");
+        invalidType.Should().Throw<ArgumentException>("Agent type cannot start with a number and must only contain alphanumeric letters or underscores.");
+
+        Action invalidTypeWithSpaces = () => new AgentId("Invalid Type", "ValidKey");
+        invalidTypeWithSpaces.Should().Throw<ArgumentException>("Agent type cannot contain spaces.");
+
+        Action invalidTypeWithSpecialChars = () => new AgentId("Invalid@Type", "ValidKey");
+        invalidTypeWithSpecialChars.Should().Throw<ArgumentException>("Agent type cannot contain special characters.");
+
+        // Invalid: 'Key' must contain only ASCII characters 32 (space) to 126 (~).
+        Action invalidKey = () => new AgentId("ValidType", "InvalidKey💀");
+        invalidKey.Should().Throw<ArgumentException>("Agent key must only contain ASCII characters between 32 (space) and 126 (~).");
+
+        Action validCase = () => new AgentId("Valid_Type", "Valid_Key_123");
+        validCase.Should().NotThrow("This is a correctly formatted AgentId.");
+    }
 }
