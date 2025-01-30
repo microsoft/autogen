@@ -14,6 +14,13 @@ class CodeExecutorAgent(BaseChatAgent):
 
     It is typically used within a team with another agent that generates code snippets to be executed.
 
+    Args:
+        name: The name of the agent.
+        code_executor: The CodeExecutor responsible for executing code received in messages (:py:class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor` recommended. See example below)
+        description (optional): The description of the agent.
+        sources (optional): Check only messages from the specified agents for the code to execute.
+
+
     .. note::
 
         It is recommended that the `CodeExecutorAgent` agent uses a Docker container to execute code. This ensures that model-generated code is executed in an isolated environment. To use Docker, your environment must have Docker installed and running.
