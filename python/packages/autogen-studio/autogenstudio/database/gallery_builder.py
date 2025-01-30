@@ -1,15 +1,16 @@
 from datetime import datetime
 from typing import List, Optional
 
-from autogen_core.models import ModelInfo
-from autogenstudio.datamodel import Gallery, GalleryMetadata, GalleryItems, GalleryComponents
-from autogen_core import ComponentModel
 from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
-from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
-from autogen_ext.models.openai import OpenAIChatCompletionClient
-from autogen_core.tools import FunctionTool
 from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermination
+from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
+from autogen_core import ComponentModel
+from autogen_core.models import ModelInfo
+from autogen_core.tools import FunctionTool
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+from autogenstudio.datamodel import Gallery, GalleryComponents, GalleryItems, GalleryMetadata
 
 
 class GalleryBuilder:
@@ -212,9 +213,7 @@ def create_default_gallery() -> Gallery:
 
     # Create web surfer team
     selector_prompt = """You are the cordinator of role play game. The following roles are available:
-{roles}. Given a task, the websurfer_agent will be tasked to address it by browsing the web and providing information.  The assistant_agent will be tasked with verifying the information provided by the websurfer_agent and summarizing the information to present a final answer to the user. 
-If the task  needs assistance from a human user (e.g., providing feedback, preferences, or the task is stalled), you should select the user_proxy role to provide the necessary information.
-
+{roles}. Given a task, the websurfer_agent will be tasked to address it by browsing the web and providing information.  The assistant_agent will be tasked with verifying the information provided by the websurfer_agent and summarizing the information to present a final answer to the user. If the task  needs assistance from a human user (e.g., providing feedback, preferences, or the task is stalled), you should select the user_proxy role to provide the necessary information.
 Read the following conversation. Then select the next role from {participants} to play. Only return the role.
 
 {history}

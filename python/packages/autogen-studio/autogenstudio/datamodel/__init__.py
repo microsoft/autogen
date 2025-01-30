@@ -1,16 +1,15 @@
-from .db import Team, Run, RunStatus, Session, Team, Message
+from .db import Message, Run, RunStatus, Session, Team
 from .types import (
-    MessageConfig,
-    MessageMeta,
-    TeamResult,
-    Response,
-    SocketMessage,
-    GalleryMetadata,
+    Gallery,
     GalleryComponents,
     GalleryItems,
-    Gallery,
+    GalleryMetadata,
+    MessageConfig,
+    MessageMeta,
+    Response,
+    SocketMessage,
+    TeamResult,
 )
-
 
 __all__ = [
     "Team",

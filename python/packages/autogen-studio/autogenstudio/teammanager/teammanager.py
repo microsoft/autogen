@@ -6,10 +6,10 @@ from typing import AsyncGenerator, Callable, List, Optional, Union
 
 import aiofiles
 import yaml
-from autogen_agentchat.base import TaskResult
+from autogen_agentchat.base import TaskResult, Team
 from autogen_agentchat.messages import AgentEvent, ChatMessage
 from autogen_core import CancellationToken, Component, ComponentModel
-from autogen_agentchat.base import Team
+
 from ..datamodel.types import TeamResult
 
 logger = logging.getLogger(__name__)

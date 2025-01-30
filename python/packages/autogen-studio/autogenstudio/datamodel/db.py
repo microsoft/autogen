@@ -5,11 +5,11 @@ from enum import Enum
 from typing import List, Optional, Union
 from uuid import UUID, uuid4
 
+from autogen_core import ComponentModel
 from sqlalchemy import ForeignKey, Integer
 from sqlmodel import JSON, Column, DateTime, Field, SQLModel, func
 
 from .types import MessageConfig, MessageMeta, TeamResult
-from autogen_core import ComponentModel
 
 
 class Team(SQLModel, table=True):
