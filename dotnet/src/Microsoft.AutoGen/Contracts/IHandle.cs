@@ -1,9 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IHandle.cs
 
-using Microsoft.AutoGen.Contracts;
-
-namespace Microsoft.AutoGen.Core;
+namespace Microsoft.AutoGen.Contracts;
 
 /// <summary>
 /// Defines a handler interface for processing items of type <typeparamref name="T"/>.
