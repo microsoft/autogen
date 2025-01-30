@@ -571,14 +571,24 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     stacklevel=2,
                 )
             # NOTE: If OAI response type changes, this will need to be updated
-            content = [
-                FunctionCall(
-                    id=x.id,
-                    arguments=x.function.arguments,
-                    name=normalize_name(x.function.name),
+            content = []
+            for tool_call in choice.message.tool_calls:
+                if not isinstance(tool_call.function.arguments, str):
+                    warnings.warn(
+                        f"Tool call function arguments field is not a string: {tool_call.function.arguments}."
+                        "This is unexpected and may due to the API used not returning the correct type. "
+                        "Attempting to convert it to string.",
+                        stacklevel=2,
+                    )
+                    if isinstance(tool_call.function.arguments, dict):
+                        tool_call.function.arguments = json.dumps(tool_call.function.arguments)
+                content.append(
+                    FunctionCall(
+                        id=tool_call.id,
+                        arguments=tool_call.function.arguments,
+                        name=normalize_name(tool_call.function.name),
+                    )
                 )
-                for x in choice.message.tool_calls
-            ]
             finish_reason = "tool_calls"
         else:
             finish_reason = choice.finish_reason
