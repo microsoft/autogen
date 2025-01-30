@@ -89,6 +89,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
+        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ) -> Callable[[], SequentialRoutedAgent]: ...
 
     def _create_participant_factory(

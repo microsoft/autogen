@@ -2,7 +2,16 @@ import json
 import logging
 from typing import Any, Dict, List, Mapping
 
-from autogen_core import AgentId, CancellationToken, DefaultTopicId, Image, MessageContext, event, rpc
+from autogen_core import (
+    AgentId,
+    CancellationToken,
+    DefaultTopicId,
+    ExceptionHandlingPolicy,
+    Image,
+    MessageContext,
+    event,
+    rpc,
+)
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -60,6 +69,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         max_stalls: int,
         final_answer_prompt: str,
         termination_condition: TerminationCondition | None,
+        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ):
         super().__init__(
             group_topic_type,
@@ -68,6 +78,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             participant_descriptions,
             termination_condition,
             max_turns,
+            exception_handling_policy=exception_handling_policy,
         )
         self._model_client = model_client
         self._max_stalls = max_stalls

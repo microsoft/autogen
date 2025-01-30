@@ -155,12 +155,14 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
         participants: List[ChatAgent],
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
+        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ) -> None:
         super().__init__(
             participants,
             group_chat_manager_class=RoundRobinGroupChatManager,
             termination_condition=termination_condition,
             max_turns=max_turns,
+            exception_handling_policy=exception_handling_policy,
         )
 
     def _create_group_chat_manager_factory(
@@ -171,6 +173,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
+        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ) -> Callable[[], RoundRobinGroupChatManager]:
         def _factory() -> RoundRobinGroupChatManager:
             return RoundRobinGroupChatManager(
@@ -180,6 +183,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
                 participant_descriptions,
                 termination_condition,
                 max_turns,
+                exception_handling_policy=exception_handling_policy,
             )
 
         return _factory

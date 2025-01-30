@@ -359,12 +359,14 @@ Read the above conversation. Then select the next role from {participants} to pl
 """,
         allow_repeated_speaker: bool = False,
         selector_func: Callable[[Sequence[AgentEvent | ChatMessage]], str | None] | None = None,
+        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ):
         super().__init__(
             participants,
             group_chat_manager_class=SelectorGroupChatManager,
             termination_condition=termination_condition,
             max_turns=max_turns,
+            exception_handling_policy=exception_handling_policy,
         )
         # Validate the participants.
         if len(participants) < 2:
@@ -389,6 +391,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
+        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ) -> Callable[[], BaseGroupChatManager]:
         return lambda: SelectorGroupChatManager(
             group_topic_type,
@@ -401,6 +404,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             self._selector_prompt,
             self._allow_repeated_speaker,
             self._selector_func,
+            exception_handling_policy=exception_handling_policy,
         )
 
     def _to_config(self) -> SelectorGroupChatConfig:
