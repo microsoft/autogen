@@ -43,14 +43,13 @@ class Grader:
 
         self.logger.info("Testing the apprentice on the given task.\n")
 
-        grader = Grader(client, logger)
         num_successes = 0
 
         for trial in range(num_trials):
             self.logger.info("\n-----  TRIAL {}  -----\n".format(trial + 1))
             self.logger.info("Try to solve the task.\n")
             response = await apprentice.assign_task(task_description, use_memory=use_memory)
-            response_is_correct, extracted_answer = await grader.is_response_correct(
+            response_is_correct, extracted_answer = await self.is_response_correct(
                 task_description, response, expected_answer
             )
             self.logger.info("Extracted answer:  {}".format(extracted_answer))
