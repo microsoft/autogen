@@ -30,6 +30,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             participant_descriptions,
             termination_condition,
             max_turns,
+            exception_handling_policy,
         )
         self._current_speaker = participant_topic_types[0]
 

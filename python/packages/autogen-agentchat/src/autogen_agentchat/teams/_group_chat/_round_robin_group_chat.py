@@ -31,6 +31,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
             participant_descriptions,
             termination_condition,
             max_turns,
+            exception_handling_policy,
         )
         self._next_speaker_index = 0
 

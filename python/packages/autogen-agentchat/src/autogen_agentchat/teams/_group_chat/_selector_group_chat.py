@@ -48,6 +48,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             participant_descriptions,
             termination_condition,
             max_turns,
+            exception_handling_policy,
         )
         self._model_client = model_client
         self._selector_prompt = selector_prompt
