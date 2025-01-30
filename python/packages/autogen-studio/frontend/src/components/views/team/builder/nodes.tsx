@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo } from "react";
 import {
   Handle,
   Position,
@@ -63,34 +63,32 @@ interface DroppableZoneProps {
   id: string; // Add this to make each zone uniquely identifiable
 }
 
-const DroppableZone: React.FC<DroppableZoneProps> = ({
-  accepts,
-  children,
-  className,
-  id,
-}) => {
-  const { isOver, setNodeRef, active } = useDroppable({
-    id,
-    data: { accepts },
-  });
+const DroppableZone = memo<DroppableZoneProps>(
+  ({ accepts, children, className, id }) => {
+    const { isOver, setNodeRef, active } = useDroppable({
+      id,
+      data: { accepts },
+    });
 
-  // Fix the data path to handle nested current objects
-  const isValidDrop =
-    isOver &&
-    active?.data?.current?.current?.type &&
-    accepts.includes(active.data.current.current.type);
+    // Fix the data path to handle nested current objects
+    const isValidDrop =
+      isOver &&
+      active?.data?.current?.current?.type &&
+      accepts.includes(active.data.current.current.type);
 
-  return (
-    <div
-      ref={setNodeRef}
-      className={`droppable-zone p-2 ${isValidDrop ? "can-drop" : ""} ${
-        className || ""
-      }`}
-    >
-      {children}
-    </div>
-  );
-};
+    return (
+      <div
+        ref={setNodeRef}
+        className={`droppable-zone p-2 ${isValidDrop ? "can-drop" : ""} ${
+          className || ""
+        }`}
+      >
+        {children}
+      </div>
+    );
+  }
+);
+DroppableZone.displayName = "DroppableZone";
 
 // Base node layout component
 interface BaseNodeProps extends NodeProps<CustomNode> {
@@ -103,80 +101,86 @@ interface BaseNodeProps extends NodeProps<CustomNode> {
   onEditClick?: (id: string) => void;
 }
 
-const BaseNode: React.FC<BaseNodeProps> = ({
-  id,
-  data,
-  selected,
-  dragHandle,
-  icon: Icon,
-  children,
-  headerContent,
-  descriptionContent,
-  className,
-  onEditClick,
-}) => {
-  const removeNode = useTeamBuilderStore((state) => state.removeNode);
-  const setSelectedNode = useTeamBuilderStore((state) => state.setSelectedNode);
-  const showDelete = data.type !== "team";
+const BaseNode = memo<BaseNodeProps>(
+  ({
+    id,
+    data,
+    selected,
+    dragHandle,
+    icon: Icon,
+    children,
+    headerContent,
+    descriptionContent,
+    className,
+    onEditClick,
+  }) => {
+    const removeNode = useTeamBuilderStore((state) => state.removeNode);
+    const setSelectedNode = useTeamBuilderStore(
+      (state) => state.setSelectedNode
+    );
+    const showDelete = data.type !== "team";
 
-  return (
-    <div
-      ref={dragHandle}
-      className={`
+    return (
+      <div
+        ref={dragHandle}
+        className={`
         bg-white text-primary relative rounded-lg shadow-lg w-72 
         ${selected ? "ring-2 ring-accent" : ""}
         ${className || ""} 
         transition-all duration-200
       `}
-    >
-      <div className="border-b p-3 bg-gray-50 rounded-t-lg">
-        <div className="flex items-center justify-between min-w-0">
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <Icon className="flex-shrink-0 w-5 h-5 text-gray-600" />
-            <span className="font-medium text-gray-800 truncate">
-              {data.component.label}
-            </span>
+      >
+        <div className="border-b p-3 bg-gray-50 rounded-t-lg">
+          <div className="flex items-center justify-between min-w-0">
+            <div className="flex items-center gap-2 min-w-0 flex-1">
+              <Icon className="flex-shrink-0 w-5 h-5 text-gray-600" />
+              <span className="font-medium text-gray-800 truncate">
+                {data.component.label}
+              </span>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <span className="text-xs px-2 py-1 bg-gray-200 rounded text-gray-700">
+                {data.component.component_type}
+              </span>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedNode(id);
+                }}
+                className="p-1 hover:bg-secondary rounded"
+              >
+                <Edit className="w-4 h-4 text-accent" />
+              </button>
+              {showDelete && (
+                <>
+                  <button
+                    onClick={(e) => {
+                      console.log("remove node", id);
+                      e.stopPropagation();
+                      if (id) removeNode(id);
+                    }}
+                    className="p-1 hover:bg-red-100 rounded"
+                  >
+                    <Trash2Icon className="w-4 h-4 text-red-500" />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <span className="text-xs px-2 py-1 bg-gray-200 rounded text-gray-700">
-              {data.component.component_type}
-            </span>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                setSelectedNode(id);
-              }}
-              className="p-1 hover:bg-secondary rounded"
-            >
-              <Edit className="w-4 h-4 text-accent" />
-            </button>
-            {showDelete && (
-              <>
-                <button
-                  onClick={(e) => {
-                    console.log("remove node", id);
-                    e.stopPropagation();
-                    if (id) removeNode(id);
-                  }}
-                  className="p-1 hover:bg-red-100 rounded"
-                >
-                  <Trash2Icon className="w-4 h-4 text-red-500" />
-                </button>
-              </>
-            )}
-          </div>
+          {headerContent}
         </div>
-        {headerContent}
-      </div>
 
-      <div className="px-3 py-2 border-b text-sm text-gray-600">
-        {descriptionContent}
-      </div>
+        <div className="px-3 py-2 border-b text-sm text-gray-600">
+          {descriptionContent}
+        </div>
 
-      <div className="p-3 space-y-2">{children}</div>
-    </div>
-  );
-};
+        <div className="p-3 space-y-2">{children}</div>
+      </div>
+    );
+  }
+);
+
+BaseNode.displayName = "BaseNode";
 
 // Reusable components
 const NodeSection: React.FC<{
@@ -204,7 +208,7 @@ const ConnectionBadge: React.FC<{
 );
 
 // Team Node
-export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
+export const TeamNode = memo<NodeProps<CustomNode>>((props) => {
   const component = props.data.component as Component<TeamConfig>;
   const hasModel = isSelectorTeam(component) && !!component.config.model_client;
   const participantCount = component.config.participants?.length || 0;
@@ -259,7 +263,7 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
                 {component.config.model_client.config.model}
               </div>
             )}
-            <DroppableZone id={`${props.id}-model-zone`} accepts={["model"]}>
+            <DroppableZone id={`${props.id}@@@model-zone`} accepts={["model"]}>
               <div className="text-secondary text-xs my-1 text-center">
                 Drop model here
               </div>
@@ -292,7 +296,7 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
               <span>{participant.config.name}</span>
             </div>
           ))}
-          <DroppableZone id={`${props.id}-agent-zone`} accepts={["agent"]}>
+          <DroppableZone id={`${props.id}@@@agent-zone`} accepts={["agent"]}>
             <div className="text-secondary text-xs my-1 text-center">
               Drop agents here
             </div>
@@ -331,9 +335,11 @@ export const TeamNode: React.FC<NodeProps<CustomNode>> = (props) => {
       </NodeSection>
     </BaseNode>
   );
-};
+});
 
-export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
+TeamNode.displayName = "TeamNode";
+
+export const AgentNode = memo<NodeProps<CustomNode>>((props) => {
   const component = props.data.component as Component<AgentConfig>;
   const hasModel =
     isAssistantAgent(component) && !!component.config.model_client;
@@ -391,7 +397,10 @@ export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
                   {component.config.model_client.config.model}
                 </div>
               )}
-              <DroppableZone id={`${props.id}-model-zone`} accepts={["model"]}>
+              <DroppableZone
+                id={`${props.id}@@@model-zone`}
+                accepts={["model"]}
+              >
                 <div className="text-secondary text-xs my-1 text-center">
                   Drop model here
                 </div>
@@ -421,7 +430,10 @@ export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
                     ))}
                   </div>
                 )}
-                <DroppableZone id={`${props.id}-tool-zone`} accepts={["tool"]}>
+                <DroppableZone
+                  id={`${props.id}@@@tool-zone`}
+                  accepts={["tool"]}
+                >
                   <div className="text-secondary text-xs my-1 text-center">
                     Drop tools here
                   </div>
@@ -433,134 +445,14 @@ export const AgentNode: React.FC<NodeProps<CustomNode>> = (props) => {
       )}
     </BaseNode>
   );
-};
+});
 
-// Model Node
-export const ModelNode: React.FC<NodeProps<CustomNode>> = (props) => {
-  const component = props.data.component as Component<ModelConfig>;
-  const isOpenAI = isOpenAIModel(component);
-  const isAzure = isAzureOpenAIModel(component);
-
-  return (
-    <BaseNode
-      {...props}
-      icon={iconMap.model}
-      descriptionContent={
-        <div>
-          <div className="break-words"> {component.description}</div>
-          {isOpenAI && component.config.base_url && (
-            <div className="mt-1 text-xs">URL: {component.config.base_url}</div>
-          )}
-          {isAzure && (
-            <div className="mt-1 text-xs">
-              Endpoint: {component.config.azure_endpoint}
-            </div>
-          )}
-        </div>
-      }
-    >
-      <Handle
-        type="source"
-        position={Position.Right}
-        id={`${props.id}-model-output-handle`}
-        className="my-right-handle"
-      />
-      <NodeSection title="Configuration">
-        <div className="text-sm">Model: {component.config.model}</div>
-      </NodeSection>
-    </BaseNode>
-  );
-};
-
-// Tool Node
-export const ToolNode: React.FC<NodeProps<CustomNode>> = (props) => {
-  const component = props.data.component as Component<ToolConfig>;
-  const isFunctionToolType = isFunctionTool(component);
-
-  return (
-    <BaseNode
-      {...props}
-      icon={iconMap.tool}
-      descriptionContent={
-        <div
-          className=" "
-          title={component.description || component.config.name}
-        >
-          {" "}
-          {component.config.name}
-        </div>
-      }
-    >
-      <Handle
-        type="source"
-        position={Position.Right}
-        id={`${props.id}-tool-output-handle`}
-        className="my-right-handle"
-      />
-      <NodeSection title="Configuration">
-        <div className="text-sm">{component.config.description}</div>
-      </NodeSection>
-
-      {isFunctionToolType && (
-        <NodeSection title="Content">
-          <div className="text-sm break-all">
-            <TruncatableText
-              content={component.config.source_code || ""}
-              textThreshold={150}
-            />
-          </div>
-        </NodeSection>
-      )}
-    </BaseNode>
-  );
-};
-
-// Termination Node
-
-// First, let's add the Termination Node component
-export const TerminationNode: React.FC<NodeProps<CustomNode>> = (props) => {
-  const component = props.data.component as Component<TerminationConfig>;
-  const isMaxMessages = isMaxMessageTermination(component);
-  const isTextMention = isTextMentionTermination(component);
-  const isOr = isOrTermination(component);
-
-  return (
-    <BaseNode
-      {...props}
-      icon={iconMap.termination}
-      descriptionContent={
-        <div> {component.description || component.label}</div>
-      }
-    >
-      <Handle
-        type="source"
-        position={Position.Right}
-        id={`${props.id}-termination-output-handle`}
-        className="my-right-handle"
-      />
-
-      <NodeSection title="Configuration">
-        <div className="text-sm">
-          {isMaxMessages && (
-            <div>Max Messages: {component.config.max_messages}</div>
-          )}
-          {isTextMention && <div>Text: {component.config.text}</div>}
-          {isOr && (
-            <div>OR Conditions: {component.config.conditions.length}</div>
-          )}
-        </div>
-      </NodeSection>
-    </BaseNode>
-  );
-};
+AgentNode.displayName = "AgentNode";
 
 // Export all node types
 export const nodeTypes = {
   team: TeamNode,
   agent: AgentNode,
-  model: ModelNode,
-  tool: ToolNode,
-  termination: TerminationNode,
 };
 
 const EDGE_STYLES = {

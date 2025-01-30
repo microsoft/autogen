@@ -60,9 +60,13 @@ export interface TeamBuilderState {
 
   // Sync with JSON
   syncToJson: () => Component<TeamConfig> | null;
-  loadFromJson: (config: Component<TeamConfig>) => GraphState;
+  loadFromJson: (
+    config: Component<TeamConfig>,
+    isInitialLoad?: boolean
+  ) => GraphState;
   layoutNodes: () => void;
   resetHistory: () => void;
+  addToHistory: () => void;
 }
 
 const buildTeamComponent = (
@@ -108,13 +112,6 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
       const clonedComponent = JSON.parse(JSON.stringify(component));
       let newNodes = [...state.nodes];
       let newEdges = [...state.edges];
-
-      console.log(
-        "Adding node",
-        clonedComponent,
-        isTerminationComponent(clonedComponent),
-        targetNodeId
-      );
 
       if (targetNodeId) {
         const targetNode = state.nodes.find((n) => n.id === targetNodeId);
@@ -520,27 +517,46 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
     });
   },
 
-  loadFromJson: (config: Component<TeamConfig>) => {
+  loadFromJson: (
+    config: Component<TeamConfig>,
+    isInitialLoad: boolean = true
+  ) => {
     // Get graph representation of team config
     const { nodes, edges } = convertTeamConfigToGraph(config);
-
-    // Apply layout to elements
     const { nodes: layoutedNodes, edges: layoutedEdges } = getLayoutedElements(
       nodes,
       edges
     );
 
-    // Update store with new state and reset history
-    set({
-      nodes: layoutedNodes,
-      edges: layoutedEdges,
-      originalComponent: config,
-      history: [{ nodes: layoutedNodes, edges: layoutedEdges }],
-      currentHistoryIndex: 0,
-      selectedNodeId: null,
-    });
+    if (isInitialLoad) {
+      // Initial load - reset history
+      set({
+        nodes: layoutedNodes,
+        edges: layoutedEdges,
+        originalComponent: config,
+        history: [{ nodes: layoutedNodes, edges: layoutedEdges }],
+        currentHistoryIndex: 0,
+        selectedNodeId: null,
+      });
+    } else {
+      // JSON edit - check if state actually changed
+      const currentState = get();
+      if (
+        !isEqual(layoutedNodes, currentState.nodes) ||
+        !isEqual(layoutedEdges, currentState.edges)
+      ) {
+        set((state) => ({
+          nodes: layoutedNodes,
+          edges: layoutedEdges,
+          history: [
+            ...state.history.slice(0, state.currentHistoryIndex + 1),
+            { nodes: layoutedNodes, edges: layoutedEdges },
+          ].slice(-MAX_HISTORY),
+          currentHistoryIndex: state.currentHistoryIndex + 1,
+        }));
+      }
+    }
 
-    // Return final graph state
     return { nodes: layoutedNodes, edges: layoutedEdges };
   },
 
@@ -548,6 +564,16 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
     set((state) => ({
       history: [{ nodes: state.nodes, edges: state.edges }],
       currentHistoryIndex: 0,
+    }));
+  },
+
+  addToHistory: () => {
+    set((state) => ({
+      history: [
+        ...state.history.slice(0, state.currentHistoryIndex + 1),
+        { nodes: state.nodes, edges: state.edges },
+      ].slice(-MAX_HISTORY),
+      currentHistoryIndex: state.currentHistoryIndex + 1,
     }));
   },
 }));

@@ -1,5 +1,5 @@
 //team/builder/builder.tsx
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   DndContext,
   useSensor,
@@ -31,6 +31,7 @@ import "./builder.css";
 import TeamBuilderToolbar from "./toolbar";
 import { MonacoEditor } from "../../monaco";
 import { NodeEditor } from "./node-editor/node-editor";
+import debounce from "lodash.debounce";
 
 const { Sider, Content } = Layout;
 
@@ -126,17 +127,26 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
 
   // Handle JSON changes
   const handleJsonChange = useCallback(
-    (value: string) => {
+    debounce((value: string) => {
       try {
         const config = JSON.parse(value);
-        loadFromJson(config);
-        // dirty ?
+        // Always consider JSON edits as changes that should affect isDirty state
+        loadFromJson(config, false);
+        // Force history update even if nodes/edges appear same
+        useTeamBuilderStore.getState().addToHistory();
       } catch (error) {
         console.error("Invalid JSON:", error);
       }
-    },
+    }, 1000),
     [loadFromJson]
   );
+
+  // Cleanup debounced function
+  useEffect(() => {
+    return () => {
+      handleJsonChange.cancel();
+    };
+  }, [handleJsonChange]);
 
   // Handle save
   const handleSave = useCallback(async () => {
@@ -233,8 +243,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
     const draggedItem = active.data.current.current;
     const dropZoneId = over.id as string;
 
-    const [nodeId, zoneType] = dropZoneId.split("-zone")[0].split("-");
-
+    const [nodeId] = dropZoneId.split("@@@");
     // Find target node
     const targetNode = nodes.find((node) => node.id === nodeId);
     if (!targetNode) return;
