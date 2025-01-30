@@ -4,6 +4,7 @@ import os
 from typing import Annotated, Any, AsyncGenerator, Dict, Generic, List, Literal, Tuple, TypeVar
 from unittest.mock import MagicMock
 
+import httpx
 import pytest
 from autogen_core import CancellationToken, FunctionCall, Image
 from autogen_core.models import (
@@ -12,6 +13,7 @@ from autogen_core.models import (
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
+    ModelInfo,
     RequestUsage,
     SystemMessage,
     UserMessage,
@@ -469,6 +471,154 @@ async def test_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.mark.asyncio
+async def test_r1_think_field(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatCompletionChunk, None]:
+        chunks = ["<think> Hello</think>", " Another Hello", " Yet Another Hello"]
+        for i, chunk in enumerate(chunks):
+            await asyncio.sleep(0.1)
+            yield ChatCompletionChunk(
+                id="id",
+                choices=[
+                    ChunkChoice(
+                        finish_reason="stop" if i == len(chunks) - 1 else None,
+                        index=0,
+                        delta=ChoiceDelta(
+                            content=chunk,
+                            role="assistant",
+                        ),
+                    ),
+                ],
+                created=0,
+                model="r1",
+                object="chat.completion.chunk",
+                usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            )
+
+    async def _mock_create(*args: Any, **kwargs: Any) -> ChatCompletion | AsyncGenerator[ChatCompletionChunk, None]:
+        stream = kwargs.get("stream", False)
+        if not stream:
+            await asyncio.sleep(0.1)
+            return ChatCompletion(
+                id="id",
+                choices=[
+                    Choice(
+                        finish_reason="stop",
+                        index=0,
+                        message=ChatCompletionMessage(
+                            content="<think> Hello</think> Another Hello Yet Another Hello", role="assistant"
+                        ),
+                    )
+                ],
+                created=0,
+                model="r1",
+                object="chat.completion",
+                usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            )
+        else:
+            return _mock_create_stream(*args, **kwargs)
+
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
+
+    model_client = OpenAIChatCompletionClient(
+        model="r1",
+        api_key="",
+        model_info={"family": ModelFamily.R1, "vision": False, "function_calling": False, "json_output": False},
+    )
+
+    # Successful completion with think field.
+    create_result = await model_client.create(messages=[UserMessage(content="I am happy.", source="user")])
+    assert create_result.content == "Another Hello Yet Another Hello"
+    assert create_result.finish_reason == "stop"
+    assert not create_result.cached
+    assert create_result.thought == "Hello"
+
+    # Stream completion with think field.
+    chunks: List[str | CreateResult] = []
+    async for chunk in model_client.create_stream(messages=[UserMessage(content="Hello", source="user")]):
+        chunks.append(chunk)
+    assert len(chunks) > 0
+    assert isinstance(chunks[-1], CreateResult)
+    assert chunks[-1].content == "Another Hello Yet Another Hello"
+    assert chunks[-1].thought == "Hello"
+    assert not chunks[-1].cached
+
+
+@pytest.mark.asyncio
+async def test_r1_think_field_not_present(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatCompletionChunk, None]:
+        chunks = ["Hello", " Another Hello", " Yet Another Hello"]
+        for i, chunk in enumerate(chunks):
+            await asyncio.sleep(0.1)
+            yield ChatCompletionChunk(
+                id="id",
+                choices=[
+                    ChunkChoice(
+                        finish_reason="stop" if i == len(chunks) - 1 else None,
+                        index=0,
+                        delta=ChoiceDelta(
+                            content=chunk,
+                            role="assistant",
+                        ),
+                    ),
+                ],
+                created=0,
+                model="r1",
+                object="chat.completion.chunk",
+                usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            )
+
+    async def _mock_create(*args: Any, **kwargs: Any) -> ChatCompletion | AsyncGenerator[ChatCompletionChunk, None]:
+        stream = kwargs.get("stream", False)
+        if not stream:
+            await asyncio.sleep(0.1)
+            return ChatCompletion(
+                id="id",
+                choices=[
+                    Choice(
+                        finish_reason="stop",
+                        index=0,
+                        message=ChatCompletionMessage(
+                            content="Hello Another Hello Yet Another Hello", role="assistant"
+                        ),
+                    )
+                ],
+                created=0,
+                model="r1",
+                object="chat.completion",
+                usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            )
+        else:
+            return _mock_create_stream(*args, **kwargs)
+
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
+
+    model_client = OpenAIChatCompletionClient(
+        model="r1",
+        api_key="",
+        model_info={"family": ModelFamily.R1, "vision": False, "function_calling": False, "json_output": False},
+    )
+
+    # Warning completion when think field is not present.
+    with pytest.warns(UserWarning, match="Could not find <think>..</think> field in model response content."):
+        create_result = await model_client.create(messages=[UserMessage(content="I am happy.", source="user")])
+        assert create_result.content == "Hello Another Hello Yet Another Hello"
+        assert create_result.finish_reason == "stop"
+        assert not create_result.cached
+        assert create_result.thought is None
+
+    # Stream completion with think field.
+    with pytest.warns(UserWarning, match="Could not find <think>..</think> field in model response content."):
+        chunks: List[str | CreateResult] = []
+        async for chunk in model_client.create_stream(messages=[UserMessage(content="Hello", source="user")]):
+            chunks.append(chunk)
+        assert len(chunks) > 0
+        assert isinstance(chunks[-1], CreateResult)
+        assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
+        assert chunks[-1].thought is None
+        assert not chunks[-1].cached
+
+
+@pytest.mark.asyncio
 async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
     model = "gpt-4o-2024-05-13"
     chat_completions = [
@@ -834,6 +984,70 @@ async def test_hugging_face() -> None:
     )
 
     await _test_model_client_basic_completion(model_client)
+
+
+@pytest.mark.asyncio
+async def test_ollama() -> None:
+    model = "deepseek-r1:1.5b"
+    model_info: ModelInfo = {
+        "function_calling": False,
+        "json_output": False,
+        "vision": False,
+        "family": ModelFamily.R1,
+    }
+    # Check if the model is running locally.
+    try:
+        async with httpx.AsyncClient() as client:
+            response = await client.get(f"http://localhost:11434/v1/models/{model}")
+            response.raise_for_status()
+    except httpx.HTTPStatusError as e:
+        pytest.skip(f"{model} model is not running locally: {e}")
+    except httpx.ConnectError as e:
+        pytest.skip(f"Ollama is not running locally: {e}")
+
+    model_client = OpenAIChatCompletionClient(
+        model=model,
+        api_key="placeholder",
+        base_url="http://localhost:11434/v1",
+        model_info=model_info,
+    )
+
+    # Test basic completion with the Ollama deepseek-r1:1.5b model.
+    create_result = await model_client.create(
+        messages=[
+            UserMessage(
+                content="Taking two balls from a bag of 10 green balls and 20 red balls, "
+                "what is the probability of getting a green and a red balls?",
+                source="user",
+            ),
+        ]
+    )
+    assert isinstance(create_result.content, str)
+    assert len(create_result.content) > 0
+    assert create_result.finish_reason == "stop"
+    assert create_result.usage is not None
+    if model_info["family"] == ModelFamily.R1:
+        assert create_result.thought is not None
+
+    # Test streaming completion with the Ollama deepseek-r1:1.5b model.
+    chunks: List[str | CreateResult] = []
+    async for chunk in model_client.create_stream(
+        messages=[
+            UserMessage(
+                content="Taking two balls from a bag of 10 green balls and 20 red balls, "
+                "what is the probability of getting a green and a red balls?",
+                source="user",
+            ),
+        ]
+    ):
+        chunks.append(chunk)
+    assert len(chunks) > 0
+    assert isinstance(chunks[-1], CreateResult)
+    assert chunks[-1].finish_reason == "stop"
+    assert len(chunks[-1].content) > 0
+    assert chunks[-1].usage is not None
+    if model_info["family"] == ModelFamily.R1:
+        assert chunks[-1].thought is not None
 
 
 # TODO: add integration tests for Azure OpenAI using AAD token.
