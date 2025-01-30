@@ -11,7 +11,7 @@ namespace Microsoft.AutoGen.Core.Tests;
 public class AgentTests()
 {
     [Fact]
-    public async Task Agent_ShouldNotReceiveMessages_WhenNotSubscribed()
+    public async Task AgentShouldNotReceiveMessagesWhenNotSubscribedTest()
     {
         var runtime = new InProcessRuntime();
         await runtime.StartAsync();
@@ -40,7 +40,7 @@ public class AgentTests()
     }
 
     [Fact]
-    public async Task Agent_ShouldReceiveMessages_WhenSubscribed()
+    public async Task AgentShouldReceiveMessagesWhenSubscribedTest()
     {
         var runtime = new InProcessRuntime();
         await runtime.StartAsync();
@@ -72,7 +72,7 @@ public class AgentTests()
     }
 
     [Fact]
-    public async Task SendMessageAsync_ShouldReturnResponse()
+    public async Task SendMessageAsyncShouldReturnResponseTest()
     {
         // Arrange
         var runtime = new InProcessRuntime();
@@ -146,7 +146,7 @@ public class AgentTests()
     }
 
     [Fact]
-    public async Task SubscribeAsync_UnsubscribeAsync_and_GetSubscriptionsTest()
+    public async Task SubscribeAsyncUnsubscribeAsyncAndGetSubscriptionsTest()
     {
         var runtime = new InProcessRuntime();
         await runtime.StartAsync();
