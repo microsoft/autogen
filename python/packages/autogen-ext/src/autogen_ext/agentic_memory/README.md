@@ -28,20 +28,17 @@ can benefit other users in similar situations.
 ![agentic_memory.png](../../../imgs/agentic_memory.png)
 
 The block diagram above outlines the key components of our baseline agentic memory architecture, 
-which augments a base agent with the agentic memory mechanisms. 
+which augments an agent or team with the agentic memory mechanisms. 
 
 The **Agentic Memory Controller** implements the fast-learning methods described below, 
 and manages communication with an **Agentic Memory Bank** containing a vector DB and associated structures. 
 
-The **Apprentice** is a thin wrapper around the combination of agentic memory with some base agent. 
-Some applications will use the Apprentice class, and others will instantiate and use the Agentic Memory Controller directly.
+The **Apprentice** is a placeholder for whatever app wraps the combination of agentic memory plus an arbitrary agent or team. 
+Some applications will use the Apprentice class, while others will instantiate and use the Agentic Memory Controller directly.
 
-The **Base Agent** is any agent or team orchestrator designed to perform tasks passed to it, 
-perhaps by interacting with an **Environment** such as a web browser. 
-We’ve successfully connected and tested several different base agents: a simple LLM client, 
+The agent or team may interact with an **Environment** such as a web browser. 
+We’ve successfully run agentic memory with a simple AssistantAgent, 
 the Magentic-One orchestrator, and the GitHub Copilot Chat agent. 
-
-The **AgentWrapper** contains the code that instantiates and connects to the selected base agent. 
 
 ## Memory Creation and Storage
 
@@ -75,9 +72,9 @@ Retrieved insights that pass the filtering steps are listed under a heading like
 
 ## Setup and Usage
 
-After installing AutoGen-Core, install its extension package from the `autogen/python/packages/autogen-ext` directory as follows:
+Install AutoGen and its extension package as follows:
 
-`pip install -e .[agentic-memory]`
+`pip install "autogen-ext[agentic-memory]"`
 
 We provide [sample code](../../../../../samples/agentic_memory) to illustrate the following forms of memory-based fast learning:
 * Agent learning from user advice and corrections

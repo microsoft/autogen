@@ -18,9 +18,9 @@ To use _MagenticOneGroupChat_ instead, specify that in the yaml file where indic
 
 ## Setup
 
-After installing AutoGen-Core, install its extension package from the `autogen/python/packages/autogen-ext` directory as follows:
+Install AutoGen and its extension package as follows:
 
-`pip install -e .[agentic-memory]`
+`pip install "autogen-ext[agentic-memory]"`
 
 
 ## Running the Samples
