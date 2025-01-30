@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Modifier.cs
-
+#region snippet_Modifier
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 
 using ModifyF = System.Func<int, int>;
 
-namespace Samples;
+namespace GettingStartedSample;
 
 [TypeSubscription("default")]
 public class Modifier(
@@ -27,3 +27,4 @@ public class Modifier(
         await this.PublishMessageAsync(updateMessage, topic: new TopicId("default"));
     }
 }
+#endregion snippet_Modifier

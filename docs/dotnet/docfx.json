@@ -1,0 +1,78 @@
+{
+  "metadata": [
+    {
+      "src": [
+        {
+          "files": [
+            "Contracts/Microsoft.AutoGen.Contracts.csproj",
+            "Core/Microsoft.AutoGen.Core.csproj"
+          ],
+          "src": "../../dotnet/src/Microsoft.Autogen/"
+        }
+      ],
+      "dest": "api",
+      "includePrivateMembers": false,
+      "disableGitFeatures": false,
+      "disableDefaultFilter": false,
+      "noRestore": false,
+      "namespaceLayout": "flattened",
+      "memberLayout": "samePage",
+      "allowCompilationErrors": false
+    }
+  ],
+  "build": {
+    "content": [
+      {
+        "files": [
+          "api/**.yml",
+          "api/index.md"
+        ]
+      },
+      {
+        "files": [
+          "core/**.md",
+          "core/**/toc.yml",
+          "articles/**.md",
+          "articles/**/toc.yml",
+          "tutorial/**.md",
+          "tutorial/**/toc.yml",
+          "release_note/**.md",
+          "release_note/**/toc.yml",
+          "toc.yml",
+          "*.md"
+        ]
+      }
+    ],
+    "resource": [
+      {
+        "files": [
+          "images/**"
+        ]
+      }
+    ],
+    "output": "_site",
+    "globalMetadataFiles": [],
+    "fileMetadataFiles": [],
+    "template": [
+      "default",
+      "modern",
+      "template"
+    ],
+    "globalMetadata": {
+      "_appTitle": "AutoGen .NET",
+      "_appName": "AutoGen .NET",
+      "_appLogoPath": "images/logo.svg",
+      "_appFooter": "AutoGen",
+      "_appFaviconPath": "images/favicon.ico",
+      "_gitContribute": {
+        "repo": "https://github.com/microsoft/autogen.git"
+      }
+    },
+    "postProcessors": [
+      "ExtractSearchIndex"
+    ],
+    "_enableSearch": true,
+    "keepFileLink": false,
+    "disableGitFeatures": false
+  }
+}

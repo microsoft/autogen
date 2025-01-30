@@ -6,7 +6,7 @@ using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Samples;
+namespace GettingStartedSample;
 
 [TypeSubscription("HelloTopic")]
 public class HelloAgent(

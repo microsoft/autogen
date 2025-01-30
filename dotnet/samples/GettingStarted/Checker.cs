@@ -1,12 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Checker.cs
 
+#region snippet_Checker
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.Hosting;
 using TerminationF = System.Func<int, bool>;
 
-namespace Samples;
+namespace GettingStartedSample;
 
 [TypeSubscription("default")]
 public class Checker(
@@ -32,3 +33,4 @@ public class Checker(
         }
     }
 }
+#endregion snippet_Checker
