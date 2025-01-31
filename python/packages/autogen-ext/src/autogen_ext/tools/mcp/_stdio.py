@@ -26,7 +26,7 @@ class StdioMcpToolAdapter(
     that implement the Model Context Protocol (MCP).
 
     Args:
-        server_params (StdioServerParameters): Parameters for the MCP server connection,
+        server_params (StdioServerParams): Parameters for the MCP server connection,
             including command to run and its arguments
         tool (Tool): The MCP tool to wrap
 
