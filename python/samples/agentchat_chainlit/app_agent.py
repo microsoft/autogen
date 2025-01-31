@@ -1,3 +1,5 @@
+from typing import List, cast
+
 import chainlit as cl
 import yaml
 from autogen_agentchat.agents import AssistantAgent
@@ -7,8 +9,8 @@ from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient
 
 
-@cl.set_starters
-async def set_starts() -> list[cl.Starter]:
+@cl.set_starters  # type: ignore
+async def set_starts() -> List[cl.Starter]:
     return [
         cl.Starter(
             label="Greetings",
@@ -21,13 +23,13 @@ async def set_starts() -> list[cl.Starter]:
     ]
 
 
-@cl.step(type="tool")
+@cl.step(type="tool")  # type: ignore
 async def get_weather(city: str) -> str:
     return f"The weather in {city} is 73 degrees and Sunny."
 
 
 @cl.on_chat_start  # type: ignore
-async def start_chat():
+async def start_chat() -> None:
     # Load model configuration and create the model client.
     with open("model_config.yaml", "r") as f:
         model_config = yaml.safe_load(f)
@@ -49,9 +51,9 @@ async def start_chat():
 
 
 @cl.on_message  # type: ignore
-async def chat(message: cl.Message):
+async def chat(message: cl.Message) -> None:
     # Get the assistant agent from the user session.
-    agent = cl.user_session.get("agent")  # type: ignore
+    agent = cast(AssistantAgent, cl.user_session.get("agent"))  # type: ignore
     # Construct the response message.
     response = cl.Message(content="")
     async for msg in agent.on_messages_stream(

@@ -1,4 +1,4 @@
-from typing import cast
+from typing import List, cast
 
 import chainlit as cl
 import yaml
@@ -11,8 +11,8 @@ from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient
 
 
-@cl.on_chat_start
-async def start_chat():
+@cl.on_chat_start  # type: ignore
+async def start_chat() -> None:
     # Load model configuration and create the model client.
     with open("model_config.yaml", "r") as f:
         model_config = yaml.safe_load(f)
@@ -46,8 +46,8 @@ async def start_chat():
     cl.user_session.set("team", group_chat)  # type: ignore
 
 
-@cl.set_starters
-async def set_starts() -> list[cl.Starter]:
+@cl.set_starters  # type: ignore
+async def set_starts() -> List[cl.Starter]:
     return [
         cl.Starter(
             label="Poem Writing",
@@ -64,7 +64,7 @@ async def set_starts() -> list[cl.Starter]:
     ]
 
 
-@cl.on_message
+@cl.on_message  # type: ignore
 async def chat(message: cl.Message) -> None:
     # Get the team from the user session.
     team = cast(RoundRobinGroupChat, cl.user_session.get("team"))  # type: ignore
