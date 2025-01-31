@@ -2,7 +2,8 @@
 
 In this sample, we will demonstrate how to build simple chat interface that
 interacts with an [AgentChat](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/index.html)
-agent or a team, using [Chainlit](https://github.com/Chainlit/chainlit).
+agent or a team, using [Chainlit](https://github.com/Chainlit/chainlit),
+and support streaming messages.
 
 ![AgentChat](docs/chainlit_autogen.png).
 
