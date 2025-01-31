@@ -5,6 +5,7 @@ from autogen_core.models import ModelFamily, ModelInfo
 # Based on: https://platform.openai.com/docs/models/continuous-model-upgrades
 # This is a moving target, so correctness is checked by the model value returned by openai against expected values at runtime``
 _MODEL_POINTERS = {
+    "o3-mini": "o3-mini-2025-01-31",
     "o1": "o1-2024-12-17",
     "o1-preview": "o1-preview-2024-09-12",
     "o1-mini": "o1-mini-2024-09-12",
@@ -19,6 +20,12 @@ _MODEL_POINTERS = {
 }
 
 _MODEL_INFO: Dict[str, ModelInfo] = {
+    "o3-mini-2025-01-31": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.O3,
+    },
     "o1-2024-12-17": {
         "vision": False,
         "function_calling": False,
