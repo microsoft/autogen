@@ -4,10 +4,10 @@
       "src": [
         {
           "files": [
-            "Contracts/Microsoft.AutoGen.Contracts.csproj",
-            "Core/Microsoft.AutoGen.Core.csproj"
+            "src/Microsoft.AutoGen/Core/**/*.csproj",
+            "src/Microsoft.AutoGen/Contracts/**/*.csproj"
           ],
-          "src": "../../dotnet/src/Microsoft.Autogen/"
+          "src": "../../dotnet/"
         }
       ],
       "dest": "api",
@@ -32,12 +32,6 @@
         "files": [
           "core/**.md",
           "core/**/toc.yml",
-          "articles/**.md",
-          "articles/**/toc.yml",
-          "tutorial/**.md",
-          "tutorial/**/toc.yml",
-          "release_note/**.md",
-          "release_note/**/toc.yml",
           "toc.yml",
           "*.md"
         ]

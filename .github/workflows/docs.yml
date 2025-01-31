@@ -194,15 +194,14 @@ jobs:
       - name: Setup .NET 8.0
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '8.0.x'
           global-json-file: dotnet/global.json
       - run: dotnet tool update -g docfx
       - run: |
-          mkdir -p ./build/dotnet/dev/
-          docfx docfx.json --output ./build/dotnet/dev/
-        working-directory: ./docs/dotnet
+          docfx docs/dotnet/docfx.json
+          mkdir -p build/dotnet/
+          mv docs/dotnet/_site build/dotnet/dev
       - name: insert clarity snippet to *.html
-        working-directory: ./docs/dotnet/build/dotnet/dev/
+        working-directory: build/dotnet/dev/
         shell: python
         run: |
           import os
@@ -234,7 +233,7 @@ jobs:
                       print(f'Clarity script inserted into {html_path}')
       - uses: actions/upload-artifact@v4
         with:
-          path: "./docs/dotnet/build"
+          path: "build/"
           name: "dotnet-dev-docs"
 
   deploy:
