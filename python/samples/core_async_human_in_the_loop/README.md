@@ -2,22 +2,20 @@
 
 An example showing human-in-the-loop which waits for human input before making the tool call.
 
-## Running the examples
-
-### Prerequisites
+## Prerequisites
 
 First, you need a shell with AutoGen core and required dependencies installed.
 
 ```bash
-pip install "autogen-core" "autogen-ext[openai,azure]"
+pip install "autogen-ext[openai,azure]"
 ```
 
-### Model Configuration
+## Model Configuration
 
-The model configuration should defined in a `model_config.json` file.
-Use `model_config_template.json` as a template.
+The model configuration should defined in a `model_config.yml` file.
+Use `model_config_template.yml` as a template.
 
-### Running the example
+## Running the example
 
 ```bash
 python main.py
