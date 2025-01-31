@@ -1,17 +1,16 @@
 import yaml
-
-from autogen_core import CancellationToken
-from autogen_agentchat.messages import TextMessage
 from autogen_agentchat.agents import AssistantAgent
-from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
+from autogen_agentchat.messages import TextMessage
+from autogen_core import CancellationToken
+from autogen_core.models import ChatCompletionClient
 
 
 class Agent:
-    def __init__(self):
+    def __init__(self) -> None:
         # Load the model client from config.
         with open("model_config.yml", "r") as f:
             model_config = yaml.safe_load(f)
-        model_client = AzureOpenAIChatCompletionClient.load_component(model_config)
+        model_client = ChatCompletionClient.load_component(model_config)
         self.agent = AssistantAgent(
             name="assistant",
             model_client=model_client,
@@ -23,5 +22,5 @@ class Agent:
             [TextMessage(content=prompt, source="user")],
             CancellationToken(),
         )
-
+        assert isinstance(response.chat_message.content, str)
         return response.chat_message.content
