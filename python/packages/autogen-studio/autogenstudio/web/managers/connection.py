@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import traceback
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Optional, Union
 from uuid import UUID
@@ -137,12 +138,14 @@ class WebSocketManager:
 
         except Exception as e:
             logger.error(f"Stream error for run {run_id}: {e}")
+            traceback.print_exc()
             await self._handle_stream_error(run_id, e)
         finally:
             self._cancellation_tokens.pop(run_id, None)
 
     async def _save_message(self, run_id: UUID, message: Union[AgentEvent | ChatMessage, ChatMessage]) -> None:
         """Save a message to the database"""
+
         run = await self._get_run(run_id)
         if run:
             db_message = Message(

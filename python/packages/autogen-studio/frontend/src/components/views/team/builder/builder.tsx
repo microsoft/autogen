@@ -1,4 +1,5 @@
-import React, { useCallback, useRef, useState } from "react";
+//team/builder/builder.tsx
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   DndContext,
   useSensor,
@@ -29,7 +30,8 @@ import { edgeTypes, nodeTypes } from "./nodes";
 import "./builder.css";
 import TeamBuilderToolbar from "./toolbar";
 import { MonacoEditor } from "../../monaco";
-import { NodeEditor } from "./node-editor";
+import { NodeEditor } from "./node-editor/node-editor";
+import debounce from "lodash.debounce";
 
 const { Sider, Content } = Layout;
 
@@ -66,6 +68,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
     history,
     updateNode,
     selectedNodeId,
+    setSelectedNode,
   } = useTeamBuilderStore();
 
   const currentHistoryIndex = useTeamBuilderStore(
@@ -113,9 +116,9 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
 
   // Load initial config
   React.useEffect(() => {
-    if (team?.config) {
+    if (team?.component) {
       const { nodes: initialNodes, edges: initialEdges } = loadFromJson(
-        team.config
+        team.component
       );
       setNodes(initialNodes);
       setEdges(initialEdges);
@@ -124,36 +127,45 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
 
   // Handle JSON changes
   const handleJsonChange = useCallback(
-    (value: string) => {
+    debounce((value: string) => {
       try {
         const config = JSON.parse(value);
-        loadFromJson(config);
-        // dirty ?
+        // Always consider JSON edits as changes that should affect isDirty state
+        loadFromJson(config, false);
+        // Force history update even if nodes/edges appear same
+        useTeamBuilderStore.getState().addToHistory();
       } catch (error) {
         console.error("Invalid JSON:", error);
       }
-    },
+    }, 1000),
     [loadFromJson]
   );
+
+  // Cleanup debounced function
+  useEffect(() => {
+    return () => {
+      handleJsonChange.cancel();
+    };
+  }, [handleJsonChange]);
 
   // Handle save
   const handleSave = useCallback(async () => {
     try {
-      const config = syncToJson();
-      if (!config) {
+      const component = syncToJson();
+      if (!component) {
         throw new Error("Unable to generate valid configuration");
       }
 
       if (onChange) {
-        console.log("Saving team configuration", config);
+        console.log("Saving team configuration", component);
         const teamData: Partial<Team> = team
           ? {
               ...team,
-              config,
+              component,
               created_at: undefined,
               updated_at: undefined,
             }
-          : { config };
+          : { component };
         await onChange(teamData);
         resetHistory();
       }
@@ -212,7 +224,10 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
     const targetNode = nodes.find((node) => node.id === over.id);
     if (!targetNode) return;
 
-    const isValid = validateDropTarget(draggedType, targetNode.data.type);
+    const isValid = validateDropTarget(
+      draggedType,
+      targetNode.data.component.component_type
+    );
     // Add visual feedback class to target node
     if (isValid) {
       targetNode.className = "drop-target-valid";
@@ -228,14 +243,16 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
     const draggedItem = active.data.current.current;
     const dropZoneId = over.id as string;
 
-    const [nodeId, zoneType] = dropZoneId.split("-zone")[0].split("-");
-
+    const [nodeId] = dropZoneId.split("@@@");
     // Find target node
     const targetNode = nodes.find((node) => node.id === nodeId);
     if (!targetNode) return;
 
     // Validate drop
-    const isValid = validateDropTarget(draggedItem.type, targetNode.data.type);
+    const isValid = validateDropTarget(
+      draggedItem.type,
+      targetNode.data.component.component_type
+    );
     if (!isValid) return;
 
     const position = {
@@ -244,12 +261,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
     };
 
     // Pass both new node data AND target node id
-    addNode(
-      draggedItem.type as ComponentTypes,
-      position,
-      draggedItem.config,
-      nodeId
-    );
+    addNode(position, draggedItem.config, nodeId);
   };
 
   const onDragStart = (item: DragItem) => {
@@ -408,6 +420,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
                 handleSave();
               }
             }}
+            onClose={() => setSelectedNode(null)}
           />
         </Layout>
       </DndContext>

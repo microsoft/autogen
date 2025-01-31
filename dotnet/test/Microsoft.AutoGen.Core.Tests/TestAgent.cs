@@ -59,7 +59,8 @@ public class TestAgent(AgentId id,
     /// Key: source
     /// Value: message
     /// </summary>
-    public static Dictionary<string, object> ReceivedMessages { get; private set; } = new();
+    private readonly Dictionary<string, object> _receivedMessages = new();
+    public Dictionary<string, object> ReceivedMessages => _receivedMessages;
 }
 
 [TypeSubscription("TestTopic")]

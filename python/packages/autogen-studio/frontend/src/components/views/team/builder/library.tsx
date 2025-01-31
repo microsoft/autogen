@@ -10,21 +10,15 @@ import {
   Timer,
   Maximize2,
   Minimize2,
+  GripVertical,
 } from "lucide-react";
-import type {
-  AgentConfig,
-  ModelConfig,
-  TerminationConfig,
-  ToolConfig,
-} from "../../../types/datamodel";
 import Sider from "antd/es/layout/Sider";
 import { useGalleryStore } from "../../gallery/store";
+import { ComponentTypes } from "../../../types/datamodel";
 
 interface ComponentConfigTypes {
   [key: string]: any;
 }
-
-type ComponentTypes = "agent" | "model" | "tool" | "termination";
 
 interface LibraryProps {}
 
@@ -66,11 +60,12 @@ const PresetItem: React.FC<PresetItemProps> = ({
       style={style}
       {...attributes}
       {...listeners}
-      className="p-2 text-primary mb-2 border border-secondary rounded cursor-move hover:bg-secondary transition-colors"
+      className="p-2 text-primary mb-2 border border-secondary rounded cursor-move hover:bg-secondary transition-colors "
     >
       <div className="flex items-center gap-2">
+        <GripVertical className="w-4 h-4 inline-block" />
         {icon}
-        <span>{label}</span>
+        <span className=" text-sm">{label}</span>
       </div>
     </div>
   );
@@ -91,7 +86,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
         title: "Agents",
         type: "agent" as ComponentTypes,
         items: defaultGallery.items.components.agents.map((agent) => ({
-          label: agent.name,
+          label: agent.label,
           config: agent,
         })),
         icon: <Bot className="w-4 h-4" />,
@@ -100,7 +95,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
         title: "Models",
         type: "model" as ComponentTypes,
         items: defaultGallery.items.components.models.map((model) => ({
-          label: `${model.model_type} - ${model.model}`,
+          label: `${model.component_type} - ${model.config.model}`,
           config: model,
         })),
         icon: <Brain className="w-4 h-4" />,
@@ -109,7 +104,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
         title: "Tools",
         type: "tool" as ComponentTypes,
         items: defaultGallery.items.components.tools.map((tool) => ({
-          label: tool.name,
+          label: tool.config.name,
           config: tool,
         })),
         icon: <Wrench className="w-4 h-4" />,
@@ -119,7 +114,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
         type: "termination" as ComponentTypes,
         items: defaultGallery.items.components.terminations.map(
           (termination) => ({
-            label: `${termination.termination_type}`,
+            label: `${termination.label}`,
             config: termination,
           })
         ),
@@ -131,7 +126,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
 
   const items: CollapseProps["items"] = sections.map((section) => {
     const filteredItems = section.items.filter((item) =>
-      item.label.toLowerCase().includes(searchTerm.toLowerCase())
+      item.label?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return {
@@ -153,7 +148,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
               id={`${section.title.toLowerCase()}-${itemIndex}`}
               type={section.type}
               config={item.config}
-              label={item.label}
+              label={item.label || ""}
               icon={section.icon}
             />
           ))}

@@ -1,15 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IHandle.cs
 
-using Google.Protobuf;
-using Microsoft.AutoGen.Contracts;
-
-namespace Microsoft.AutoGen.Core;
+namespace Microsoft.AutoGen.Contracts;
 
 /// <summary>
 /// Defines a handler interface for processing items of type <typeparamref name="T"/>.
 /// </summary>
-/// <typeparam name="T">The type of item to be handled, which must implement <see cref="IMessage"/>.</typeparam>
+/// <typeparam name="T">The type of item to be handled.</typeparam>
 public interface IHandle<in T>
 {
     /// <summary>
