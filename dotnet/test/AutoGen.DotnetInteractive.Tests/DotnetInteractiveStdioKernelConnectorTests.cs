@@ -10,7 +10,7 @@ using Xunit.Abstractions;
 namespace AutoGen.DotnetInteractive.Tests;
 
 [Collection("Sequential")]
-[Trait("Category", "UnitV1")]
+[Trait("Category", "UnitV1KernelConnectorTests")]
 public class DotnetInteractiveStdioKernelConnectorTests : IDisposable
 {
     private string _workingDir;
