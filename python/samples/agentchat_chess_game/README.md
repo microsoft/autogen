@@ -27,7 +27,16 @@ For example, to use `gpt-4o` model from OpenAI, you can use the following config
 provider: autogen_ext.models.openai.OpenAIChatCompletionClient
 config:
   model: gpt-4o
-  api_key: REPLACE_WITH_YOUR_API_KEY
+  api_key: replace with your API key or skip it if you have environment variable OPENAI_API_KEY set
+```
+
+To use `o3-mini-2025-01-31` model from OpenAI, you can use the following configuration:
+
+```yaml
+provider: autogen_ext.models.openai.OpenAIChatCompletionClient
+config:
+  model: o3-mini-2025-01-31
+  api_key: replace with your API key or skip it if you have environment variable OPENAI_API_KEY set
 ```
 
 To use a locally hosted DeepSeek-R1:8b model using Ollama throught its compatibility endpoint,
