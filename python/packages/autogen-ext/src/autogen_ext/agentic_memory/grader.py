@@ -1,4 +1,6 @@
-from typing import List, Tuple
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, List, Tuple
 
 from autogen_core.models import (
     AssistantMessage,
@@ -11,6 +13,9 @@ from autogen_core.models import (
 
 from .page_logger import PageLogger
 from ._utils import UserContent
+
+if TYPE_CHECKING:
+    from .apprentice import Apprentice
 
 
 class Grader:
@@ -37,7 +42,8 @@ class Grader:
         self._chat_history: List[LLMMessage] = []
 
     async def test_apprentice(
-        self, apprentice, task_description, expected_answer, num_trials, use_memory, client, logger
+        self, apprentice: Apprentice, task_description: str, expected_answer: str, num_trials: int, use_memory: bool,
+        client: ChatCompletionClient, logger: PageLogger
     ) -> Tuple[int, int]:
         logger.enter_function()
 
@@ -64,7 +70,7 @@ class Grader:
         return num_successes, num_trials
 
     async def call_model(
-        self, summary: str, user_content: UserContent = None, system_message_content: str = None, keep_these_messages: bool = True
+        self, summary: str, user_content: UserContent, system_message_content: str | None = None, keep_these_messages: bool = True
     ) -> str:
         """
         Calls the model client with the given input and returns the response.
@@ -115,7 +121,7 @@ class Grader:
         sys_message = """You are a helpful and thoughtful assistant."""
 
         # Ask the model to extract the answer from the response.
-        user_message = [
+        user_message: UserContent = [
             """Your job is to extract a possible answer to the following question from the given text.
 - First review the following task.
 - Then review the text that follows, which may an answer, plus reasoning that led to the answer.
@@ -135,7 +141,7 @@ class Grader:
         self.logger.info("Extracted answer: " + extracted_answer)
 
         # Ask the model to check the answer for correctness.
-        user_message = [
+        user_message: UserContent = [
             """Your job is to decide whether a given answer to a task is correct or not.
 - You will be given the task description and the correct, gold-standard answer, along with the answer to be graded.
 - In general, an answer is correct if it is equivalent to the correct answer.

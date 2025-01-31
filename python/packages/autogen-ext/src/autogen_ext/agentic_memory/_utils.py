@@ -1,7 +1,7 @@
-from typing import Any, Dict, List, Union, Tuple
+from typing import List, Union
 
 from autogen_core import FunctionCall, Image
-from autogen_core.models import FunctionExecutionResult, LLMMessage
+from autogen_core.models import FunctionExecutionResult
 
 # Convenience types
 UserContent = Union[str, List[Union[str, Image]]]
@@ -11,7 +11,7 @@ SystemContent = str
 MessageContent = UserContent | AssistantContent | SystemContent | FunctionExecutionContent
 
 
-def message_content_to_str(message_content: MessageContent) -> str:
+def message_content_to_str(message_content: MessageContent | None) -> str:
     """
     Converts the message content to a string.
     """
