@@ -108,10 +108,10 @@ service AgentRpc {
     rpc OpenChannel (stream Message) returns (stream Message);
 
     // These should be coming through the RpcRequest/Response pathway through the Message Channel
-    //rpc GetState(AgentId) returns (GetStateResponse);
-    //rpc SaveState(AgentState) returns (SaveStateResponse);
-    //rpc RegisterAgent(RegisterAgentTypeRequest) returns (RegisterAgentTypeResponse);
-    //rpc AddSubscription(AddSubscriptionRequest) returns (AddSubscriptionResponse);
-    //rpc RemoveSubscription(RemoveSubscriptionRequest) returns (RemoveSubscriptionResponse);
-    //rpc GetSubscriptions(GetSubscriptionsRequest) returns (GetSubscriptionsResponse);
+    rpc GetState(AgentId) returns (GetStateResponse);
+    rpc SaveState(AgentState) returns (SaveStateResponse);
+    rpc RegisterAgent(RegisterAgentTypeRequest) returns (RegisterAgentTypeResponse);
+    rpc AddSubscription(AddSubscriptionRequest) returns (AddSubscriptionResponse);
+    rpc RemoveSubscription(RemoveSubscriptionRequest) returns (RemoveSubscriptionResponse);
+    rpc GetSubscriptions(GetSubscriptionsRequest) returns (GetSubscriptionsResponse);
 }
