@@ -52,11 +52,17 @@ message TypePrefixSubscription {
     string agent_type = 2;
 }
 
+message WildcardSubscription {
+}
+
 message Subscription {
     string id = 1;
     oneof subscription {
         TypeSubscription typeSubscription = 2;
         TypePrefixSubscription typePrefixSubscription = 3;
+
+        // TODO: Implement a meaningful variant of this in Python
+        WildcardSubscription wildcardSubscription = 4;
     }
 }
 

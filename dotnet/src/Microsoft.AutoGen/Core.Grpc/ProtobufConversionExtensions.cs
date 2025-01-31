@@ -39,7 +39,14 @@ public static class ProtobufConversionExtensions
             };
         }
 
-        return null;
+        // Because we support arbitrary ISubscriptionDefinition implementations, we cannot rely on
+        // having either a TypeSubscription or TypePrefixSubscription. In this case, we must demand
+        // that the Gateway implementation route all messages to the appropriate GrpcRuntime instance.
+        return new Subscription
+        {
+            Id = subscriptionDefinition.Id,
+            WildcardSubscription = new()
+        };
     }
 
     // Convert AgentId from Protobuf to AgentId
