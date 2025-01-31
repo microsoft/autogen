@@ -6,8 +6,8 @@ using System.IO;
 using System.Threading.Tasks;
 using AutoGen.OpenAI.Sample;
 using AutoGen.Tests;
-using Xunit.Abstractions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace AutoGen.OpenAI.Tests;
 

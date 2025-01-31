@@ -6,9 +6,9 @@ using AutoGen.Gemini.Extension;
 using AutoGen.Tests;
 using FluentAssertions;
 using Google.Cloud.AIPlatform.V1;
+using Xunit;
 using Xunit.Abstractions;
 using static Google.Cloud.AIPlatform.V1.Part;
-using Xunit;
 namespace AutoGen.Gemini.Tests;
 
 [Trait("Category", "UnitV1")]

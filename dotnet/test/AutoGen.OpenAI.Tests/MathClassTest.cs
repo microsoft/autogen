@@ -12,8 +12,8 @@ using AutoGen.Tests;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using OpenAI;
-using Xunit.Abstractions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace AutoGen.OpenAI.Tests;
 

@@ -5,8 +5,8 @@ using AutoGen.Tests;
 using FluentAssertions;
 using Google.Cloud.AIPlatform.V1;
 using Google.Protobuf;
-using static Google.Cloud.AIPlatform.V1.Candidate.Types;
 using Xunit;
+using static Google.Cloud.AIPlatform.V1.Candidate.Types;
 namespace AutoGen.Gemini.Tests;
 
 [Trait("Category", "UnitV1")]

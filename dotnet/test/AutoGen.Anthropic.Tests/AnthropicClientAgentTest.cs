@@ -7,7 +7,7 @@ using AutoGen.Anthropic.Utils;
 using AutoGen.Core;
 using AutoGen.Tests;
 using FluentAssertions;
-using Xunit; 
+using Xunit;
 
 namespace AutoGen.Anthropic.Tests;
 

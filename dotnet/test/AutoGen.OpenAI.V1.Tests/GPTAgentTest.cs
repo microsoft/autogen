@@ -10,8 +10,8 @@ using AutoGen.OpenAI.V1.Extension;
 using AutoGen.Tests;
 using Azure.AI.OpenAI;
 using FluentAssertions;
-using Xunit.Abstractions;
 using Xunit;
+using Xunit.Abstractions;
 
 namespace AutoGen.OpenAI.V1.Tests;
 
