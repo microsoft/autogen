@@ -31,6 +31,7 @@ override-dependencies = [
 ]
 [tool.uv.workspace]
 members = ["packages/*"]
+exclude = ["packages/autogen-magentic-one"]
 
 [tool.uv.sources]
 agbench = { workspace = true }
