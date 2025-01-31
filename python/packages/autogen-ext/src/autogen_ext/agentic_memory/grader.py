@@ -11,8 +11,8 @@ from autogen_core.models import (
     UserMessage,
 )
 
-from .page_logger import PageLogger
 from ._utils import UserContent
+from .page_logger import PageLogger
 
 if TYPE_CHECKING:
     from .apprentice import Apprentice
@@ -31,6 +31,7 @@ class Grader:
         call_model: Calls the model with the given input and returns the response.
         is_response_correct: Determines whether the response is equivalent to the task's correct answer.
     """
+
     def __init__(self, client: ChatCompletionClient, logger: PageLogger):
         self.client = client
         self.logger = logger
@@ -42,8 +43,14 @@ class Grader:
         self._chat_history: List[LLMMessage] = []
 
     async def test_apprentice(
-        self, apprentice: Apprentice, task_description: str, expected_answer: str, num_trials: int, use_memory: bool,
-        client: ChatCompletionClient, logger: PageLogger
+        self,
+        apprentice: Apprentice,
+        task_description: str,
+        expected_answer: str,
+        num_trials: int,
+        use_memory: bool,
+        client: ChatCompletionClient,
+        logger: PageLogger,
     ) -> Tuple[int, int]:
         logger.enter_function()
 
@@ -70,7 +77,11 @@ class Grader:
         return num_successes, num_trials
 
     async def call_model(
-        self, summary: str, user_content: UserContent, system_message_content: str | None = None, keep_these_messages: bool = True
+        self,
+        summary: str,
+        user_content: UserContent,
+        system_message_content: str | None = None,
+        keep_these_messages: bool = True,
     ) -> str:
         """
         Calls the model client with the given input and returns the response.
@@ -112,7 +123,9 @@ class Grader:
         """
         self._chat_history = []
 
-    async def is_response_correct(self, task_description: str, response_to_be_graded: str, correct_answer: str) -> Tuple[bool, str]:
+    async def is_response_correct(
+        self, task_description: str, response_to_be_graded: str, correct_answer: str
+    ) -> Tuple[bool, str]:
         """
         Determines whether the response is equivalent to the task's correct answer.
         """
@@ -165,7 +178,5 @@ class Grader:
         )
         self.logger.info("Decision: " + decision)
 
-        if self.report_results:
-            self.client.report_result(decision)
         self.logger.leave_function()
         return decision == "1", extracted_answer
