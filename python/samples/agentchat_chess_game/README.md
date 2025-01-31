@@ -7,7 +7,7 @@ This is a simple chess game that you can play with an AI agent.
 Install the `chess` package with the following command:
 
 ```bash
-pip install "chess" "cairosvg"
+pip install "chess"
 ```
 
 To use OpenAI models or models hosted on OpenAI-compatible API endpoints,
