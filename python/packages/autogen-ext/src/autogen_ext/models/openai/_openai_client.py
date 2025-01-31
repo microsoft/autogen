@@ -958,6 +958,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         temperature (optional, float):
         top_p (optional, float):
         user (optional, str):
+        default_headers (optional, dict[str, str]):  Custom headers; useful for authentication or other custom requirements.
 
 
     To use this client, you must install the `openai` extension:
@@ -1089,6 +1090,8 @@ class AzureOpenAIChatCompletionClient(
         temperature (optional, float):
         top_p (optional, float):
         user (optional, str):
+        default_headers (optional, dict[str, str]):  Custom headers; useful for authentication or other custom requirements.
+
 
 
     To use this client, you must install the `azure` and `openai` extensions:
