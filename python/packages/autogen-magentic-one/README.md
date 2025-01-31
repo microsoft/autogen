@@ -9,17 +9,16 @@ Moving forward, the Magentic-One orchestrator [MagenticOneGroupChat](https://mic
 Lastly, there is a helper class, [MagenticOne](https://microsoft.github.io/autogen/stable/reference/python/autogen_ext.teams.magentic_one.html#autogen_ext.teams.magentic_one.MagenticOne), which bundles all of this together as it was in the paper with minimal configuration.
 
 
-```{caution}
-Using Magentic-One involves interacting with a digital world designed for humans, which carries inherent risks. To minimize these risks, consider the following precautions:
-
-1. **Use Containers**: Run all tasks in docker containers to isolate the agents and prevent direct system attacks.
-2. **Virtual Environment**: Use a virtual environment to run the agents and prevent them from accessing sensitive data.
-3. **Monitor Logs**: Closely monitor logs during and after execution to detect and mitigate risky behavior.
-4. **Human Oversight**: Run the examples with a human in the loop to supervise the agents and prevent unintended consequences.
-5. **Limit Access**: Restrict the agents' access to the internet and other resources to prevent unauthorized actions.
-6. **Safeguard Data**: Ensure that the agents do not have access to sensitive data or resources that could be compromised. Do not share sensitive information with the agents.
-Be aware that agents may occasionally attempt risky actions, such as recruiting humans for help or accepting cookie agreements without human involvement. Always ensure agents are monitored and operate within a controlled environment to prevent unintended consequences. Moreover, be cautious that Magentic-One may be susceptible to prompt injection attacks from webpages.
-```
+> [!CAUTION]
+> Using Magentic-One involves interacting with a digital world designed for humans, which carries inherent risks. To minimize these risks, consider the following precautions:
+>
+> 1. **Use Containers**: Run all tasks in docker containers to isolate the agents and prevent direct system attacks.
+> 2. **Virtual Environment**: Use a virtual environment to run the agents and prevent them from accessing sensitive data.
+> 3. **Monitor Logs**: Closely monitor logs during and after execution to detect and mitigate risky behavior.
+> 4. **Human Oversight**: Run the examples with a human in the loop to supervise the agents and prevent unintended consequences.
+> 5. **Limit Access**: Restrict the agents' access to the internet and other resources to prevent unauthorized actions.
+> 6. **Safeguard Data**: Ensure that the agents do not have access to sensitive data or resources that could be compromised. Do not share sensitive information with the agents.
+> Be aware that agents may occasionally attempt risky actions, such as recruiting humans for help or accepting cookie agreements without human involvement. Always ensure agents are monitored and operate within a controlled environment to prevent unintended consequences. Moreover, be cautious that Magentic-One may be susceptible to prompt injection attacks from webpages.
 
 ## Getting started
 
