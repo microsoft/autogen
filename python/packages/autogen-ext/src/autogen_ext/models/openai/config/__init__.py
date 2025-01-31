@@ -35,6 +35,7 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     model_capabilities: ModelCapabilities  # type: ignore
     model_info: ModelInfo
     """What functionality the model supports, determined by default from model name but is overriden if value passed."""
+    default_headers: Dict[str, str] | None
 
 
 # See OpenAI docs for explanation of these parameters
