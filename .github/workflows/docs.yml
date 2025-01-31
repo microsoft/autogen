@@ -199,7 +199,7 @@ jobs:
       - run: dotnet tool update -g docfx
       - run: |
           mkdir -p ./build/dotnet/dev/
-          docfx build docfx.json --output ./build/dotnet/dev/
+          docfx docfx.json --output ./build/dotnet/dev/
         working-directory: ./docs/dotnet
       - name: insert clarity snippet to *.html
         working-directory: ./docs/dotnet/build/dotnet/dev/
