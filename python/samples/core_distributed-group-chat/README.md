@@ -7,7 +7,11 @@ This example runs a gRPC server using [GrpcWorkerAgentRuntimeHost](../../src/aut
 ### Setup Python Environment
 
 1. Create a virtual environment and activate it. (e.g. `python3.12 -m venv .venv && source .venv/bin/activate`)
-2. Run `uv pip install -r requirements.txt` to install compiled set of dependencies.
+2. Install dependencies.
+
+```bash
+pip install "autogen-ext[openai,azure,chainlit,rich,pyyaml]"
+```
 
 ### General Configuration
 

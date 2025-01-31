@@ -3,6 +3,7 @@
 
 using System.Text.Json;
 using DevTeam.Backend.Services;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 
 namespace DevTeam.Backend.Agents;

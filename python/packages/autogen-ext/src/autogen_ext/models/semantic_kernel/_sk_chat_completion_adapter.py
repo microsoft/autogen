@@ -25,6 +25,8 @@ from typing_extensions import AsyncGenerator, Union
 
 from autogen_ext.tools.semantic_kernel import KernelFunctionFromTool
 
+from .._utils.parse_r1_content import parse_r1_content
+
 
 class SKChatCompletionAdapter(ChatCompletionClient):
     """
@@ -402,11 +404,17 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             content = result[0].content
             finish_reason = "stop"
 
+        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
+            thought, content = parse_r1_content(content)
+        else:
+            thought = None
+
         return CreateResult(
             content=content,
             finish_reason=finish_reason,
             usage=RequestUsage(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
             cached=False,
+            thought=thought,
         )
 
     async def create_stream(
@@ -485,11 +493,18 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         if accumulated_content:
             self._total_prompt_tokens += prompt_tokens
             self._total_completion_tokens += completion_tokens
+
+            if isinstance(accumulated_content, str) and self._model_info["family"] == ModelFamily.R1:
+                thought, accumulated_content = parse_r1_content(accumulated_content)
+            else:
+                thought = None
+
             yield CreateResult(
                 content=accumulated_content,
                 finish_reason="stop",
                 usage=RequestUsage(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
                 cached=False,
+                thought=thought,
             )
 
     def actual_usage(self) -> RequestUsage:

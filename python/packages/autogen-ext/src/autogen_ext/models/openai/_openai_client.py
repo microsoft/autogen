@@ -72,6 +72,7 @@ from openai.types.shared_params import FunctionDefinition, FunctionParameters
 from pydantic import BaseModel
 from typing_extensions import Self, Unpack
 
+from .._utils.parse_r1_content import parse_r1_content
 from . import _model_info
 from .config import (
     AzureOpenAIClientConfiguration,
@@ -605,12 +606,19 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 )
                 for x in choice.logprobs.content
             ]
+
+        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
+            thought, content = parse_r1_content(content)
+        else:
+            thought = None
+
         response = CreateResult(
             finish_reason=normalize_stop_reason(finish_reason),
             content=content,
             usage=usage,
             cached=False,
             logprobs=logprobs,
+            thought=thought,
         )
 
         self._total_usage = _add_usage(self._total_usage, usage)
@@ -818,12 +826,18 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             completion_tokens=completion_tokens,
         )
 
+        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
+            thought, content = parse_r1_content(content)
+        else:
+            thought = None
+
         result = CreateResult(
             finish_reason=normalize_stop_reason(stop_reason),
             content=content,
             usage=usage,
             cached=False,
             logprobs=logprobs,
+            thought=thought,
         )
 
         self._total_usage = _add_usage(self._total_usage, usage)
@@ -992,20 +1006,23 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         print(result)
 
 
-    To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model capabilities:
+    To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model info.
+    For example, to use Ollama, you can use the following code snippet:
 
     .. code-block:: python
 
         from autogen_ext.models.openai import OpenAIChatCompletionClient
+        from autogen_core.models import ModelFamily
 
         custom_model_client = OpenAIChatCompletionClient(
-            model="custom-model-name",
-            base_url="https://custom-model.com/reset/of/the/path",
+            model="deepseek-r1:1.5b",
+            base_url="http://localhost:11434/v1",
             api_key="placeholder",
-            model_capabilities={
-                "vision": True,
-                "function_calling": True,
-                "json_output": True,
+            model_info={
+                "vision": False,
+                "function_calling": False,
+                "json_output": False,
+                "family": ModelFamily.R1,
             },
         )
 
