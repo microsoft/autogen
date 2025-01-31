@@ -11,7 +11,7 @@ import {
   ChevronUp,
   Bot,
 } from "lucide-react";
-import { Run, Message, TeamConfig } from "../../../types/datamodel";
+import { Run, Message, TeamConfig, Component } from "../../../types/datamodel";
 import AgentFlow from "./agentflow/agentflow";
 import { RenderMessage } from "./rendermessage";
 import InputRequestView from "./inputrequest";
@@ -24,7 +24,7 @@ import {
 
 interface RunViewProps {
   run: Run;
-  teamConfig?: TeamConfig;
+  teamConfig?: Component<TeamConfig>;
   onInputResponse?: (response: string) => void;
   onCancel?: () => void;
   isFirstRun?: boolean;
@@ -54,6 +54,7 @@ const RunView: React.FC<RunViewProps> = ({
   }, [run.messages]); // Only depend on messages changing
 
   const calculateThreadTokens = (messages: Message[]) => {
+    // console.log("messages", messages);
     return messages.reduce((total, msg) => {
       if (!msg.config.models_usage) return total;
       return (

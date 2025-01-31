@@ -132,7 +132,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
               }
               options={teams.map((team) => ({
                 value: team.id,
-                label: `${team.config.name} (${team.config.team_type})`,
+                label: `${team.component.label} (${team.component.component_type})`,
               }))}
               notFoundContent={loading ? <Spin size="small" /> : null}
             />

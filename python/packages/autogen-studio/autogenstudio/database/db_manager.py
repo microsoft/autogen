@@ -1,16 +1,15 @@
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 from loguru import logger
-from sqlalchemy import exc, func, inspect, text
+from sqlalchemy import exc, inspect, text
 from sqlmodel import Session, SQLModel, and_, create_engine, select
 
-from ..datamodel import LinkTypes, Response
+from ..datamodel import Response, Team
+from ..teammanager import TeamManager
 from .schema_manager import SchemaManager
-
-# from .dbutils import init_db_samples
 
 
 class DatabaseManager:
@@ -247,152 +246,85 @@ class DatabaseManager:
 
         return Response(message=status_message, status=status, data=None)
 
-    def link(
-        self,
-        link_type: LinkTypes,
-        primary_id: int,
-        secondary_id: int,
-        sequence: Optional[int] = None,
-    ):
-        """Link two entities with automatic sequence handling."""
-        with Session(self.engine) as session:
-            try:
-                # Get classes from LinkTypes
-                primary_class = link_type.primary_class
-                secondary_class = link_type.secondary_class
-                link_table = link_type.link_table
+    async def import_team(
+        self, team_config: Union[str, Path, dict], user_id: str, check_exists: bool = False
+    ) -> Response:
+        try:
+            # Load config if path provided
+            if isinstance(team_config, (str, Path)):
+                config = await TeamManager.load_from_file(team_config)
+            else:
+                config = team_config
 
-                # Get entities
-                primary_entity = session.get(primary_class, primary_id)
-                secondary_entity = session.get(secondary_class, secondary_id)
-
-                if not primary_entity or not secondary_entity:
-                    return Response(message="One or both entities do not exist", status=False)
-
-                # Get field names
-                primary_id_field = f"{primary_class.__name__.lower()}_id"
-                secondary_id_field = f"{secondary_class.__name__.lower()}_id"
-
-                # Check for existing link
-                existing_link = session.exec(
-                    select(link_table).where(
-                        and_(
-                            getattr(link_table, primary_id_field) == primary_id,
-                            getattr(link_table, secondary_id_field) == secondary_id,
-                        )
+            # Check existence if requested
+            if check_exists:
+                existing = await self._check_team_exists(config, user_id)
+                if existing:
+                    return Response(
+                        message="Identical team configuration already exists", status=True, data={"id": existing.id}
                     )
-                ).first()
 
-                if existing_link:
-                    return Response(message="Link already exists", status=False)
+            # Store in database
+            team_db = Team(user_id=user_id, config=config)
 
-                # Get the next sequence number if not provided
-                if sequence is None:
-                    max_seq_result = session.exec(
-                        select(func.max(link_table.sequence)).where(getattr(link_table, primary_id_field) == primary_id)
-                    ).first()
-                    sequence = 0 if max_seq_result is None else max_seq_result + 1
+            result = self.upsert(team_db)
+            return result
 
-                # Create new link
-                new_link = link_table(
-                    **{primary_id_field: primary_id, secondary_id_field: secondary_id, "sequence": sequence}
-                )
-                session.add(new_link)
-                session.commit()
+        except Exception as e:
+            logger.error(f"Failed to import team: {str(e)}")
+            return Response(message=str(e), status=False)
 
-                return Response(message=f"Entities linked successfully with sequence {sequence}", status=True)
+    async def import_teams_from_directory(
+        self, directory: Union[str, Path], user_id: str, check_exists: bool = False
+    ) -> Response:
+        """
+        Import all team configurations from a directory.
 
-            except Exception as e:
-                session.rollback()
-                return Response(message=f"Error linking entities: {str(e)}", status=False)
+        Args:
+            directory: Path to directory containing team configs
+            user_id: User ID to associate with imported teams
+            check_exists: Whether to check for existing teams
 
-    def unlink(self, link_type: LinkTypes, primary_id: int, secondary_id: int, sequence: Optional[int] = None):
-        """Unlink two entities and reorder sequences if needed."""
-        with Session(self.engine) as session:
-            try:
-                # Get classes from LinkTypes
-                primary_class = link_type.primary_class
-                secondary_class = link_type.secondary_class
-                link_table = link_type.link_table
+        Returns:
+            Response containing import results for all files
+        """
+        try:
+            # Load all configs from directory
+            configs = await TeamManager.load_from_directory(directory)
 
-                # Get field names
-                primary_id_field = f"{primary_class.__name__.lower()}_id"
-                secondary_id_field = f"{secondary_class.__name__.lower()}_id"
+            results = []
+            for config in configs:
+                try:
+                    result = await self.import_team(team_config=config, user_id=user_id, check_exists=check_exists)
 
-                # Find existing link
-                statement = select(link_table).where(
-                    and_(
-                        getattr(link_table, primary_id_field) == primary_id,
-                        getattr(link_table, secondary_id_field) == secondary_id,
+                    # Add result info
+                    results.append(
+                        {
+                            "status": result.status,
+                            "message": result.message,
+                            "id": result.data.get("id") if result.status else None,
+                        }
                     )
-                )
 
-                if sequence is not None:
-                    statement = statement.where(link_table.sequence == sequence)
+                except Exception as e:
+                    logger.error(f"Failed to import team config: {str(e)}")
+                    results.append({"status": False, "message": str(e), "id": None})
 
-                existing_link = session.exec(statement).first()
+            return Response(message="Directory import complete", status=True, data=results)
 
-                if not existing_link:
-                    return Response(message="Link does not exist", status=False)
+        except Exception as e:
+            logger.error(f"Failed to import directory: {str(e)}")
+            return Response(message=str(e), status=False)
 
-                deleted_sequence = existing_link.sequence
-                session.delete(existing_link)
+    async def _check_team_exists(self, config: dict, user_id: str) -> Optional[Team]:
+        """Check if identical team config already exists"""
+        teams = self.get(Team, {"user_id": user_id}).data
 
-                # Reorder sequences for remaining links
-                remaining_links = session.exec(
-                    select(link_table)
-                    .where(getattr(link_table, primary_id_field) == primary_id)
-                    .where(link_table.sequence > deleted_sequence)
-                    .order_by(link_table.sequence)
-                ).all()
+        for team in teams:
+            if team.config == config:
+                return team
 
-                # Decrease sequence numbers to fill the gap
-                for link in remaining_links:
-                    link.sequence -= 1
-
-                session.commit()
-
-                return Response(message="Entities unlinked successfully and sequences reordered", status=True)
-
-            except Exception as e:
-                session.rollback()
-                return Response(message=f"Error unlinking entities: {str(e)}", status=False)
-
-    def get_linked_entities(
-        self,
-        link_type: LinkTypes,
-        primary_id: int,
-        return_json: bool = False,
-    ):
-        """Get linked entities based on link type and primary ID, ordered by sequence."""
-        with Session(self.engine) as session:
-            try:
-                # Get classes from LinkTypes
-                primary_class = link_type.primary_class
-                secondary_class = link_type.secondary_class
-                link_table = link_type.link_table
-
-                # Get field names
-                primary_id_field = f"{primary_class.__name__.lower()}_id"
-                secondary_id_field = f"{secondary_class.__name__.lower()}_id"
-
-                # Query both link and entity, ordered by sequence
-                items = session.exec(
-                    select(secondary_class)
-                    .join(link_table, getattr(link_table, secondary_id_field) == secondary_class.id)
-                    .where(getattr(link_table, primary_id_field) == primary_id)
-                    .order_by(link_table.sequence)
-                ).all()
-
-                result = [item.model_dump() if return_json else item for item in items]
-
-                return Response(message="Linked entities retrieved successfully", status=True, data=result)
-
-            except Exception as e:
-                logger.error(f"Error getting linked entities: {str(e)}")
-                return Response(message=f"Error getting linked entities: {str(e)}", status=False, data=[])
-
-    # Add new close method
+        return None
 
     async def close(self):
         """Close database connections and cleanup resources"""
