@@ -586,6 +586,7 @@ diskcache = [
     { name = "diskcache" },
 ]
 docker = [
+    { name = "asyncio-atexit" },
     { name = "docker" },
 ]
 file-surfer = [
@@ -679,6 +680,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "aiofiles", marker = "extra == 'openai'" },
+    { name = "asyncio-atexit", marker = "extra == 'docker'", specifier = ">=1.0.1" },
     { name = "autogen-agentchat", marker = "extra == 'file-surfer'", editable = "packages/autogen-agentchat" },
     { name = "autogen-agentchat", marker = "extra == 'magentic-one'", editable = "packages/autogen-agentchat" },
     { name = "autogen-agentchat", marker = "extra == 'video-surfer'", editable = "packages/autogen-agentchat" },
