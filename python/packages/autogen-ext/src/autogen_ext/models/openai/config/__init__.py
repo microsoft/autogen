@@ -74,7 +74,7 @@ class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
     max_retries: int | None = None
     model_capabilities: ModelCapabilities | None = None  # type: ignore
     model_info: ModelInfo | None = None
-    default_header: Dict[str, str] | None = None
+    default_headers: Dict[str, str] | None = None
 
 
 # See OpenAI docs for explanation of these parameters
