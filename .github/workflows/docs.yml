@@ -197,7 +197,7 @@ jobs:
           global-json-file: dotnet/global.json
       - run: dotnet tool update -g docfx
       - run: |
-          docfx docs/dotnet/docfx.json
+          docfx docs/dotnet/docfx.json --verbose
           mv docs/dotnet/_site build/dotnet/dev/
       - name: insert clarity snippet to *.html
         working-directory: build/dotnet/dev/
