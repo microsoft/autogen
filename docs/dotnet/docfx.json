@@ -4,10 +4,10 @@
       "src": [
         {
           "files": [
-            "Contracts/Microsoft.AutoGen.Contracts.csproj",
-            "Core/Microsoft.AutoGen.Core.csproj"
+            "src/Microsoft.AutoGen/Core/**/*.csproj",
+            "src/Microsoft.AutoGen/Contracts/**/*.csproj"
           ],
-          "src": "../../dotnet/src/Microsoft.Autogen/"
+          "src": "../../dotnet/"
         }
       ],
       "dest": "api",
