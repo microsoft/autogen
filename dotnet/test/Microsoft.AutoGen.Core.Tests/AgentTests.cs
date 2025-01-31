@@ -53,7 +53,7 @@ public class AgentTests()
             return ValueTask.FromResult(agent);
         });
 
-        // Ensure the agent is actually created
+        // Ensure the agent id is registered
         AgentId agentId = await runtime.GetAgentAsync("MyAgent", lazy: false);
 
         // Validate agent ID
@@ -147,23 +147,50 @@ public class AgentTests()
     }
 
     [Fact]
-    public async Task AgentShouldSaveStateCorrectlyTest()
+    public async Task AgentShouldSaveLoadStateCorrectlyTest()
     {
         var runtime = new InProcessRuntime();
         await runtime.StartAsync();
 
         Logger<BaseAgent> logger = new(new LoggerFactory());
-        TestAgent agent = new TestAgent(new AgentId("TestType", "TestKey"), runtime, logger);
+        SubscribedSaveLoadAgent agent = null!;
 
-        var state = await agent.SaveStateAsync();
+        await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) =>
+        {
+            agent = new SubscribedSaveLoadAgent(id, runtime, logger);
+            return ValueTask.FromResult(agent);
+        });
 
-        // Ensure state is a dictionary
-        state.Should().NotBeNull();
-        state.Should().BeOfType<Dictionary<string, object>>();
-        state.Should().BeEmpty("Default SaveStateAsync should return an empty dictionary.");
+        // Ensure the agent id is registered
+        AgentId agentId = await runtime.GetAgentAsync("MyAgent", lazy: false);
 
-        // Add a sample value and verify it updates correctly
-        state["testKey"] = "testValue";
-        state.Should().ContainKey("testKey").WhoseValue.Should().Be("testValue");
+        // Validate agent ID
+        agentId.Should().Be(agent.Id, "Agent ID should match the registered agent");
+
+        await runtime.RegisterImplicitAgentSubscriptionsAsync<SubscribedSaveLoadAgent>("MyAgent");
+
+        var topicType = "TestTopic";
+
+        await runtime.PublishMessageAsync(new TextMessage { Source = topicType, Content = "test" }, new TopicId(topicType)).ConfigureAwait(true);
+
+        await runtime.RunUntilIdleAsync();
+
+        agent.ReceivedMessages.Any().Should().BeTrue("Agent should receive messages when subscribed.");
+
+        // Save the state
+        var savedState = await agent.SaveStateAsync();
+
+        // Ensure the state contains receivedMessages
+        savedState.Should().ContainKey("receivedMessages");
+        savedState["receivedMessages"].Should().BeOfType<Dictionary<string, object>>();
+
+        // Create a new instance of the agent to simulate a restart
+        var newAgent = new SubscribedSaveLoadAgent(agent.Id, runtime, logger);
+
+        // Load the saved state into the new agent
+        await newAgent.LoadStateAsync(savedState);
+
+        // Verify that the loaded state contains the received message
+        newAgent.ReceivedMessages.Should().ContainKey(topicType).WhoseValue.Should().Be("test");
     }
 }

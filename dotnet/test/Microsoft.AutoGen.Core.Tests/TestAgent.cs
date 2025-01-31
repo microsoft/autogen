@@ -59,7 +59,7 @@ public class TestAgent(AgentId id,
     /// Key: source
     /// Value: message
     /// </summary>
-    private readonly Dictionary<string, object> _receivedMessages = new();
+    protected Dictionary<string, object> _receivedMessages = new();
     public Dictionary<string, object> ReceivedMessages => _receivedMessages;
 }
 
@@ -70,5 +70,40 @@ public class SubscribedAgent : TestAgent
         IAgentRuntime runtime,
         Logger<BaseAgent>? logger = null) : base(id, runtime, logger)
     {
+    }
+}
+
+[TypeSubscription("TestTopic")]
+public class SubscribedSaveLoadAgent : TestAgent
+{
+    private const string SavedStateKey = "receivedMessages";
+
+    public SubscribedSaveLoadAgent(AgentId id,
+        IAgentRuntime runtime,
+        Logger<BaseAgent>? logger = null) : base(id, runtime, logger)
+    {
+    }
+
+    public override ValueTask<IDictionary<string, object>> SaveStateAsync()
+    {
+        return ValueTask.FromResult<IDictionary<string, object>>(new Dictionary<string, object>
+        {
+            { SavedStateKey, new Dictionary<string, object>(_receivedMessages) } // Save _receivedMessages
+        });
+    }
+
+    public override ValueTask LoadStateAsync(IDictionary<string, object> state)
+    {
+        if (state.TryGetValue(SavedStateKey, out var loadedMessagesObj) &&
+            loadedMessagesObj is Dictionary<string, object> loadedMessages)
+        {
+            _receivedMessages.Clear();
+            foreach (var kvp in loadedMessages)
+            {
+                _receivedMessages[kvp.Key] = kvp.Value;
+            }
+        }
+
+        return ValueTask.CompletedTask;
     }
 }
