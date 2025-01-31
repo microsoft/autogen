@@ -14,43 +14,89 @@ After defining a team, users can test it in the Playground view to accomplish va
 
 ## Declarative Specification of Componenents
 
-AutoGen Studio uses a declarative specification system to build its GUI components. At runtime, the AGS API loads these specifications into AutoGen AgentChat objects to address tasks.
+AutoGen Studio is built on the declarative specification behaviors of AutoGen AgentChat. This allows users to define teams, agents, models, tools, and termination conditions in python and then dump them into a JSON file for use in AutoGen Studio.
 
-Here's an example of a declarative team specification:
+Here's an example of an agent team and how it is converted to a JSON file:
+
+```python
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.teams import RoundRobinGroupChat
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_agentchat.conditions import  TextMentionTermination
+
+agent = AssistantAgent(
+        name="weather_agent",
+        model_client=OpenAIChatCompletionClient(
+            model="gpt-4o-mini",
+        ),
+    )
+
+agent_team = RoundRobinGroupChat([agent], termination_condition=TextMentionTermination("TERMINATE"))
+config = agent_team.dump_component()
+print(config.model_dump_json())
+```
 
 ```json
 {
-  "version": "1.0.0",
+  "provider": "autogen_agentchat.teams.RoundRobinGroupChat",
   "component_type": "team",
-  "name": "sample_team",
-  "participants": [
-    {
-      "component_type": "agent",
-      "name": "assistant_agent",
-      "agent_type": "AssistantAgent",
-      "system_message": "You are a helpful assistant. Solve tasks carefully. When done respond with TERMINATE",
-      "model_client": {
-        "component_type": "model",
-        "model": "gpt-4o-2024-08-06",
-        "model_type": "OpenAIChatCompletionClient"
-      },
-      "tools": []
+  "version": 1,
+  "component_version": 1,
+  "description": "A team that runs a group chat with participants taking turns in a round-robin fashion\n    to publish a message to all.",
+  "label": "RoundRobinGroupChat",
+  "config": {
+    "participants": [
+      {
+        "provider": "autogen_agentchat.agents.AssistantAgent",
+        "component_type": "agent",
+        "version": 1,
+        "component_version": 1,
+        "description": "An agent that provides assistance with tool use.",
+        "label": "AssistantAgent",
+        "config": {
+          "name": "weather_agent",
+          "model_client": {
+            "provider": "autogen_ext.models.openai.OpenAIChatCompletionClient",
+            "component_type": "model",
+            "version": 1,
+            "component_version": 1,
+            "description": "Chat completion client for OpenAI hosted models.",
+            "label": "OpenAIChatCompletionClient",
+            "config": { "model": "gpt-4o-mini" }
+          },
+          "tools": [],
+          "handoffs": [],
+          "model_context": {
+            "provider": "autogen_core.model_context.UnboundedChatCompletionContext",
+            "component_type": "chat_completion_context",
+            "version": 1,
+            "component_version": 1,
+            "description": "An unbounded chat completion context that keeps a view of the all the messages.",
+            "label": "UnboundedChatCompletionContext",
+            "config": {}
+          },
+          "description": "An agent that provides assistance with ability to use tools.",
+          "system_message": "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
+          "model_client_stream": false,
+          "reflect_on_tool_use": false,
+          "tool_call_summary_format": "{result}"
+        }
+      }
+    ],
+    "termination_condition": {
+      "provider": "autogen_agentchat.conditions.TextMentionTermination",
+      "component_type": "termination",
+      "version": 1,
+      "component_version": 1,
+      "description": "Terminate the conversation if a specific text is mentioned.",
+      "label": "TextMentionTermination",
+      "config": { "text": "TERMINATE" }
     }
-  ],
-  "team_type": "RoundRobinGroupChat",
-  "termination_condition": {
-    "component_type": "termination",
-    "termination_type": "MaxMessageTermination",
-    "max_messages": 3
   }
 }
 ```
 
-This example shows a team with a single agent, using the `RoundRobinGroupChat` type and a `MaxMessageTermination` condition limited to 3 messages.
-
-```{note}
-Work is currently in progress to make the entire AgentChat API declarative. This will allow all agentchat components to be `dumped` into the same declarative specification format used by AGS.
-```
+This example shows a team with a single agent, using the `RoundRobinGroupChat` type and a `TextMentionTermination` condition.
 
 ## Building an Agent Team
 

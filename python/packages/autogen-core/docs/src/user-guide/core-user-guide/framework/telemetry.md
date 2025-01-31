@@ -53,7 +53,7 @@ worker_runtime = GrpcWorkerAgentRuntime(tracer_provider=tracer_provider)
 
 And that's it! Your application is now instrumented with open telemetry. You can now view your telemetry data in your telemetry backend.
 
-### Exisiting instrumentation
+### Existing instrumentation
 
 If you have open telemetry already set up in your application, you can pass the tracer provider to the runtime when creating it:
 ```python

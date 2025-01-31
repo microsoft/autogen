@@ -81,5 +81,5 @@ pip install "autogen-ext[azure]"
 We recommend using Docker to use {py:class}`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor` for execution of model-generated code.
 To install Docker, follow the instructions for your operating system on the [Docker website](https://docs.docker.com/get-docker/).
 
-To learn more code execution, see [Command Line Code Executors](./framework/command-line-code-executors.ipynb)
+To learn more code execution, see [Command Line Code Executors](./components/command-line-code-executors.ipynb)
 and [Code Execution](./design-patterns/code-execution-groupchat.ipynb).

@@ -3,6 +3,7 @@ import { persist } from "zustand/middleware";
 import { Gallery } from "./types";
 import {
   AgentConfig,
+  Component,
   ModelConfig,
   TeamConfig,
   TerminationConfig,
@@ -25,12 +26,12 @@ interface GalleryStore {
   syncGallery: (id: string) => Promise<void>;
   getLastSyncTime: (id: string) => string | null;
   getGalleryComponents: () => {
-    teams: TeamConfig[];
+    teams: Component<TeamConfig>[];
     components: {
-      agents: AgentConfig[];
-      models: ModelConfig[];
-      tools: ToolConfig[];
-      terminations: TerminationConfig[];
+      agents: Component<AgentConfig>[];
+      models: Component<ModelConfig>[];
+      tools: Component<ToolConfig>[];
+      terminations: Component<TerminationConfig>[];
     };
   };
 }
@@ -150,7 +151,7 @@ export const useGalleryStore = create<GalleryStore>()(
       },
     }),
     {
-      name: "gallery-storage",
+      name: "gallery-storage-v1",
     }
   )
 );

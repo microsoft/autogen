@@ -1,8 +1,8 @@
 import asyncio
 import functools
+import warnings
 from textwrap import dedent
 from typing import Any, Callable, Sequence
-import warnings
 
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -88,7 +88,7 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
         self._func = func
         self._global_imports = global_imports
         signature = get_typed_signature(func)
-        func_name = name or func.__name__
+        func_name = name or func.func.__name__ if isinstance(func, functools.partial) else name or func.__name__
         args_model = args_base_model_from_signature(func_name + "args", signature)
         return_type = signature.return_annotation
         self._has_cancellation_support = "cancellation_token" in signature.parameters

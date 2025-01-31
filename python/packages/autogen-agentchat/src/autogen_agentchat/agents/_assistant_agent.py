@@ -22,13 +22,14 @@ from autogen_core.model_context import (
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
+    CreateResult,
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
     SystemMessage,
     UserMessage,
 )
-from autogen_core.tools import FunctionTool, Tool
+from autogen_core.tools import BaseTool, FunctionTool
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -40,6 +41,7 @@ from ..messages import (
     ChatMessage,
     HandoffMessage,
     MemoryQueryEvent,
+    ModelClientStreamingChunkEvent,
     MultiModalMessage,
     TextMessage,
     ToolCallExecutionEvent,
@@ -57,11 +59,12 @@ class AssistantAgentConfig(BaseModel):
 
     name: str
     model_client: ComponentModel
-    # tools: List[Any] | None = None # TBD
+    tools: List[ComponentModel] | None
     handoffs: List[HandoffBase | str] | None = None
     model_context: ComponentModel | None = None
     description: str
     system_message: str | None = None
+    model_client_stream: bool
     reflect_on_tool_use: bool
     tool_call_summary_format: str
 
@@ -126,11 +129,19 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     This will limit the number of recent messages sent to the model and can be useful
     when the model has a limit on the number of tokens it can process.
 
+    Streaming mode:
+
+    The assistant agent can be used in streaming mode by setting `model_client_stream=True`.
+    In this mode, the :meth:`on_messages_stream` and :meth:`BaseChatAgent.run_stream` methods will also yield
+    :class:`~autogen_agentchat.messages.ModelClientStreamingChunkEvent`
+    messages as the model client produces chunks of response.
+    The chunk messages will not be included in the final response's inner messages.
+
 
     Args:
         name (str): The name of the agent.
         model_client (ChatCompletionClient): The model client to use for inference.
-        tools (List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional): The tools to register with the agent.
+        tools (List[BaseTool[Any, Any]  | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None, optional): The tools to register with the agent.
         handoffs (List[HandoffBase | str] | None, optional): The handoff configurations for the agent,
             allowing it to transfer to other agents by responding with a :class:`HandoffMessage`.
             The transfer is only executed when the team is in :class:`~autogen_agentchat.teams.Swarm`.
@@ -138,6 +149,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_context (ChatCompletionContext | None, optional): The model context for storing and retrieving :class:`~autogen_core.models.LLMMessage`. It can be preloaded with initial messages. The initial messages will be cleared when the agent is reset.
         description (str, optional): The description of the agent.
         system_message (str, optional): The system message for the model. If provided, it will be prepended to the messages in the model context when making an inference. Set to `None` to disable.
+        model_client_stream (bool, optional): If `True`, the model client will be used in streaming mode.
+            :meth:`on_messages_stream` and :meth:`BaseChatAgent.run_stream` methods will also yield :class:`~autogen_agentchat.messages.ModelClientStreamingChunkEvent`
+            messages as the model client produces chunks of response. Defaults to `False`.
         reflect_on_tool_use (bool, optional): If `True`, the agent will make another model inference using the tool call and result
             to generate a response. If `False`, the tool call result will be returned as the response. Defaults to `False`.
         tool_call_summary_format (str, optional): The format string used to create a tool call summary for every tool call result.
@@ -261,19 +275,21 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         name: str,
         model_client: ChatCompletionClient,
         *,
-        tools: List[Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
+        tools: List[BaseTool[Any, Any] | Callable[..., Any] | Callable[..., Awaitable[Any]]] | None = None,
         handoffs: List[HandoffBase | str] | None = None,
         model_context: ChatCompletionContext | None = None,
         description: str = "An agent that provides assistance with ability to use tools.",
         system_message: (
             str | None
         ) = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
+        model_client_stream: bool = False,
         reflect_on_tool_use: bool = False,
         tool_call_summary_format: str = "{result}",
         memory: Sequence[Memory] | None = None,
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client
+        self._model_client_stream = model_client_stream
         self._memory = None
         if memory is not None:
             if isinstance(memory, list):
@@ -288,12 +304,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             self._system_messages = []
         else:
             self._system_messages = [SystemMessage(content=system_message)]
-        self._tools: List[Tool] = []
+        self._tools: List[BaseTool[Any, Any]] = []
         if tools is not None:
             if model_client.model_info["function_calling"] is False:
                 raise ValueError("The model does not support function calling.")
             for tool in tools:
-                if isinstance(tool, Tool):
+                if isinstance(tool, BaseTool):
                     self._tools.append(tool)
                 elif callable(tool):
                     if hasattr(tool, "__doc__") and tool.__doc__ is not None:
@@ -308,7 +324,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         if len(tool_names) != len(set(tool_names)):
             raise ValueError(f"Tool names must be unique: {tool_names}")
         # Handoff tools.
-        self._handoff_tools: List[Tool] = []
+        self._handoff_tools: List[BaseTool[Any, Any]] = []
         self._handoffs: Dict[str, HandoffBase] = {}
         if handoffs is not None:
             if model_client.model_info["function_calling"] is False:
@@ -340,7 +356,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
     @property
     def produced_message_types(self) -> Sequence[type[ChatMessage]]:
-        """The types of messages that the assistant agent produces."""
+        """The types of final response messages that the assistant agent produces."""
         message_types: List[type[ChatMessage]] = [TextMessage]
         if self._handoffs:
             message_types.append(HandoffMessage)
@@ -383,9 +399,23 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         # Generate an inference result based on the current model context.
         llm_messages = self._system_messages + await self._model_context.get_messages()
-        model_result = await self._model_client.create(
-            llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
-        )
+        model_result: CreateResult | None = None
+        if self._model_client_stream:
+            # Stream the model client.
+            async for chunk in self._model_client.create_stream(
+                llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
+            ):
+                if isinstance(chunk, CreateResult):
+                    model_result = chunk
+                elif isinstance(chunk, str):
+                    yield ModelClientStreamingChunkEvent(content=chunk, source=self.name)
+                else:
+                    raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
+            assert isinstance(model_result, CreateResult)
+        else:
+            model_result = await self._model_client.create(
+                llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
+            )
 
         # Add the response to the model context.
         await self._model_context.add_message(AssistantMessage(content=model_result.content, source=self.name))
@@ -465,14 +495,34 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         if self._reflect_on_tool_use:
             # Generate another inference result based on the tool call and result.
             llm_messages = self._system_messages + await self._model_context.get_messages()
-            model_result = await self._model_client.create(llm_messages, cancellation_token=cancellation_token)
-            assert isinstance(model_result.content, str)
+            reflection_model_result: CreateResult | None = None
+            if self._model_client_stream:
+                # Stream the model client.
+                async for chunk in self._model_client.create_stream(
+                    llm_messages, cancellation_token=cancellation_token
+                ):
+                    if isinstance(chunk, CreateResult):
+                        reflection_model_result = chunk
+                    elif isinstance(chunk, str):
+                        yield ModelClientStreamingChunkEvent(content=chunk, source=self.name)
+                    else:
+                        raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
+                assert isinstance(reflection_model_result, CreateResult)
+            else:
+                reflection_model_result = await self._model_client.create(
+                    llm_messages, cancellation_token=cancellation_token
+                )
+            assert isinstance(reflection_model_result.content, str)
             # Add the response to the model context.
-            await self._model_context.add_message(AssistantMessage(content=model_result.content, source=self.name))
+            await self._model_context.add_message(
+                AssistantMessage(content=reflection_model_result.content, source=self.name)
+            )
             # Yield the response.
             yield Response(
                 chat_message=TextMessage(
-                    content=model_result.content, source=self.name, models_usage=model_result.usage
+                    content=reflection_model_result.content,
+                    source=self.name,
+                    models_usage=reflection_model_result.usage,
                 ),
                 inner_messages=inner_messages,
             )
@@ -528,21 +578,17 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     def _to_config(self) -> AssistantAgentConfig:
         """Convert the assistant agent to a declarative config."""
 
-        # raise an error if tools is not empty until it is implemented
-        # TBD : Implement serializing tools and remove this check.
-        if self._tools and len(self._tools) > 0:
-            raise NotImplementedError("Serializing tools is not implemented yet.")
-
         return AssistantAgentConfig(
             name=self.name,
             model_client=self._model_client.dump_component(),
-            # tools=[], # TBD
+            tools=[tool.dump_component() for tool in self._tools],
             handoffs=list(self._handoffs.values()),
             model_context=self._model_context.dump_component(),
             description=self.description,
             system_message=self._system_messages[0].content
             if self._system_messages and isinstance(self._system_messages[0].content, str)
             else None,
+            model_client_stream=self._model_client_stream,
             reflect_on_tool_use=self._reflect_on_tool_use,
             tool_call_summary_format=self._tool_call_summary_format,
         )
@@ -553,11 +599,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         return cls(
             name=config.name,
             model_client=ChatCompletionClient.load_component(config.model_client),
-            # tools=[], # TBD
+            tools=[BaseTool.load_component(tool) for tool in config.tools] if config.tools else None,
             handoffs=config.handoffs,
             model_context=None,
             description=config.description,
             system_message=config.system_message,
+            model_client_stream=config.model_client_stream,
             reflect_on_tool_use=config.reflect_on_tool_use,
             tool_call_summary_format=config.tool_call_summary_format,
         )
