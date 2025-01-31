@@ -98,12 +98,17 @@ jobs:
         echo "Format check"
         echo "If you see any error in this step, please run 'dotnet format' locally to format the code."
         dotnet format --verify-no-changes -v diag --no-restore
+    - name: Install PowerShell (macOS only)
+      if: matrix.os == 'macos-latest'
+      run: brew install powershell
     - name: Build
       run: |
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
-    - name: Unit Test
-      run: dotnet test --no-build -bl --configuration Release --filter "Category!=Integration"
+    - name: Unit Test V1
+      run: dotnet test --no-build -bl --configuration Release --filter "Category==UnitV1"
+    - name: Unit Test V2
+      run: dotnet test --no-build -bl --configuration Release --filter "Category==UnitV2"
 
   integration-test:
     strategy:
