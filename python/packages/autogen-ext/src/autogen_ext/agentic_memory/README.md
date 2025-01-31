@@ -28,17 +28,16 @@ can benefit other users in similar situations.
 ![agentic_memory.png](../../../imgs/agentic_memory.png)
 
 The block diagram above outlines the key components of our baseline agentic memory architecture, 
-which augments an agent or team with the agentic memory mechanisms. 
+which augments an agent or team with agentic memory mechanisms. 
 
 The **Agentic Memory Controller** implements the fast-learning methods described below, 
 and manages communication with an **Agentic Memory Bank** containing a vector DB and associated structures. 
 
-The **Apprentice** is a placeholder for whatever app wraps the combination of agentic memory plus an arbitrary agent or team. 
-Some applications will use the Apprentice class, while others will instantiate and use the Agentic Memory Controller directly.
+The **Apprentice** is a minimal reference implementation that wraps the combination of agentic memory plus some agent or team. 
+Certain applications will use the Apprentice, 
+while others will directly instantiate and call the Agentic Memory Controller.
 
-The agent or team may interact with an **Environment** such as a web browser. 
-We’ve successfully run agentic memory with a simple AssistantAgent, 
-the Magentic-One orchestrator, and the GitHub Copilot Chat agent. 
+We’ve successfully tested agentic memory with a simple AssistantAgent and MagenticOneGroupChat. 
 
 ## Memory Creation and Storage
 

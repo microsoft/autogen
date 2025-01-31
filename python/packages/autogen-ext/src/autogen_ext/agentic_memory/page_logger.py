@@ -12,7 +12,9 @@ from autogen_core.models import (
     LLMMessage,
     SystemMessage,
     UserMessage,
+    CreateResult,
 )
+from autogen_agentchat.base import TaskResult
 from ._utils import MessageContent
 
 
@@ -238,7 +240,7 @@ class PageLogger:
         page.add_lines(self._format_message_content(page, message_content=message_content))
         page.flush()
 
-    def log_model_call(self, summary: str, input_messages: List[LLMMessage], response: LLMMessage) -> Optional["Page"]:
+    def log_model_call(self, summary: str, input_messages: List[LLMMessage], response: Union[CreateResult, TaskResult]) -> Optional["Page"]:
         """
         Adds a page containing all messages to or from a model, including any images.
         """
@@ -246,13 +248,21 @@ class PageLogger:
             return None
         page = self._add_page(summary=summary, show_in_call_tree=False)
         self.page_stack.write_stack_to_page(page)
-        page.add_lines("{} prompt tokens".format(response.usage.prompt_tokens))
-        page.add_lines("{} completion tokens".format(response.usage.completion_tokens))
+
+        if isinstance(response, TaskResult):
+            usage = response.messages[-1].models_usage
+            message = response.messages[-1]
+        else:
+            usage = response.usage
+            message = response
+
+        page.add_lines("{} prompt tokens".format(usage.prompt_tokens))
+        page.add_lines("{} completion tokens".format(usage.completion_tokens))
         for m in input_messages:
             page.add_lines("\n" + self._message_source(m))
             page.add_lines(self._format_message_content(page, message=m))
         page.add_lines("\n" + self._decorate_text("ASSISTANT RESPONSE", "green", demarcate=True))
-        page.add_lines(self._format_message_content(page, message=response))
+        page.add_lines(self._format_message_content(page, message=message))
         page.flush()
         return page
 

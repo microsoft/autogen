@@ -6,7 +6,6 @@ from autogen_core.models import (
 from ._agentic_memory_bank import AgenticMemoryBank
 from .grader import Grader
 from ._prompter import Prompter
-from .agent_wrapper import AgentWrapper
 from .page_logger import PageLogger
 
 
@@ -16,27 +15,27 @@ class AgenticMemoryController:
 
     Args:
         settings: Settings for the memory controller.
-        agent: The agent to use for task completion.
         reset: True to clear the memory bank before starting.
         client: The client to call the model.
+        task_assignment_callback: The callback to assign a task to the agent.
         logger: The logger to log the model calls.
 
     Methods:
         reset_memory: Resets the memory bank.
-        train_on_task: Repeatedly assigns a task to the completion agent, and tries to learn from failures by creating useful insights as memories.
-        test_on_task: Assigns a task to the completion agent, along with any relevant insights retrieved from memory.
+        train_on_task: Repeatedly assigns a task to the agent, and tries to learn from failures by creating useful insights as memories.
+        test_on_task: Assigns a task to the agent, along with any relevant insights retrieved from memory.
         add_insight_to_memory: Adds one insight to the memory bank, using the task (if provided) as context.
         add_task_solution_pair_to_memory: Adds a task-solution pair to the memory bank, to be retrieved together later as a combined insight.
         retrieve_relevant_insights: Retrieve any insights from the DB that seem relevant to the task.
         assign_task: Assigns a task to the agent, along with any relevant insights/memories.
         handle_user_message: Handles a user message, extracting any advice and assigning a task to the agent.
     """
-    def __init__(self, settings: Dict, agent: AgentWrapper, reset: bool, client: ChatCompletionClient, logger: PageLogger) -> None:
+    def __init__(self, settings: Dict, reset: bool, client: ChatCompletionClient, task_assignment_callback: Callable, logger: PageLogger) -> None:
         self.logger = logger
         self.logger.enter_function()
         self.settings = settings
-        self.agent = agent
         self.client = client
+        self.task_assignment_callback = task_assignment_callback
         self.prompter = Prompter(client, logger)
         self.memory_bank = AgenticMemoryBank(self.settings["AgenticMemoryBank"], reset=reset, logger=logger)
         self.grader = Grader(client, logger)
@@ -50,7 +49,7 @@ class AgenticMemoryController:
 
     async def train_on_task(self, task: str, expected_answer: str) -> None:
         """
-        Repeatedly assigns a task to the completion agent, and tries to learn from failures by creating useful insights as memories.
+        Repeatedly assigns a task to the agent, and tries to learn from failures by creating useful insights as memories.
         """
         self.logger.enter_function()
         self.logger.info("Iterate on the task, possibly discovering a useful new insight.\n")
@@ -66,7 +65,7 @@ class AgenticMemoryController:
 
     async def test_on_task(self, task: str, expected_answer: str, num_trials=1) -> Tuple[str, int, int]:
         """
-        Assigns a task to the completion agent, along with any relevant insights retrieved from memory.
+        Assigns a task to the agent, along with any relevant insights retrieved from memory.
         """
         self.logger.enter_function()
         response = None
@@ -86,7 +85,7 @@ class AgenticMemoryController:
 
             # Attempt to solve the task.
             self.logger.info("Try to solve the task.\n")
-            response, _ = await self.agent.assign_task(task_plus_insights)
+            response, _ = await self.task_assignment_callback(task_plus_insights)
 
             # Check if the response is correct.
             response_is_correct, extracted_answer = await self.grader.is_response_correct(
@@ -226,7 +225,7 @@ class AgenticMemoryController:
 
             # Attempt to solve the task.
             self.logger.info("Try to solve the task.")
-            response, work_history = await self.agent.assign_task(task_plus_insights)
+            response, work_history = await self.task_assignment_callback(task_plus_insights)
 
             response_is_correct, extracted_answer = await self.grader.is_response_correct(
                 task, response, expected_answer
@@ -244,7 +243,7 @@ class AgenticMemoryController:
 
     async def _iterate_on_task(self, task: str, expected_answer: str, max_train_trials: int, max_test_trials: int) -> Tuple[str, None | str]:
         """
-        Repeatedly assigns a task to the completion agent, and tries to learn from failures by creating useful insights as memories.
+        Repeatedly assigns a task to the agent, and tries to learn from failures by creating useful insights as memories.
         """
         self.logger.enter_function()
         self.logger.info("\nTask description:  {}".format(task))
@@ -325,9 +324,9 @@ class AgenticMemoryController:
         # Attempt to solve the task.
         self.logger.info("Try to solve the task.\n")
         if should_await:
-            response, _ = await self.agent.assign_task(task)
+            response, _ = await self.task_assignment_callback(task)
         else:
-            response, _ = self.agent.assign_task(task)
+            response, _ = self.task_assignment_callback(task)
 
         self.logger.leave_function()
         return response
