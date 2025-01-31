@@ -18,39 +18,32 @@ pip install "autogen-ext[openai]"
 # pip install "autogen-ext[openai,azure]" for Azure OpenAI models
 ```
 
-Create a new file named `model_config.json` in the the same directory as the script
+Create a new file named `model_config.yaml` in the the same directory as the script
 to configure the model you want to use.
 
 For example, to use `gpt-4o` model from OpenAI, you can use the following configuration:
 
-```json
-{
-    "provider": "autogen_ext.models.openai.OpenAIChatCompletionClient",
-    "config": {
-        "model": "gpt-4o",
-        "api_key": "REPLACE_WITH_YOUR_API_KEY"
-    }
-}
+```yaml
+provider: autogen_ext.models.openai.OpenAIChatCompletionClient
+config:
+  model: gpt-4o
+  api_key: REPLACE_WITH_YOUR_API_KEY
 ```
 
 To use a locally hosted DeepSeek-R1:8b model using Ollama throught its compatibility endpoint,
 you can use the following configuration:
 
-```json
-{
-    "provider": "autogen_ext.models.openai.OpenAIChatCompletionClient",
-    "config": {
-        "model": "deepseek-r1:8b",
-        "base_url": "http://localhost:11434/v1",
-        "api_key": "ollama",
-        "model_info": {
-            "function_calling": false,
-            "json_output": false,
-            "vision": false,
-            "family": "r1"
-        }
-    }
-}
+```yaml
+provider: autogen_ext.models.openai.OpenAIChatCompletionClient
+config:
+  model: deepseek-r1:8b
+  base_url: http://localhost:11434/v1
+  api_key: ollama
+  model_info:
+    function_calling: false
+    json_output: false
+    vision: false
+    family: r1
 ```
 
 For more information on how to configure the model and use other providers,

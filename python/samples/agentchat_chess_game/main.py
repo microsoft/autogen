@@ -1,6 +1,6 @@
 import argparse
 import asyncio
-import json
+import yaml
 import random
 
 import chess
@@ -12,8 +12,8 @@ from autogen_core.models import ChatCompletionClient
 
 def create_ai_player() -> AssistantAgent:
     # Load the model client from config.
-    with open("model_config.json", "r") as f:
-        model_config = json.load(f)
+    with open("model_config.yml", "r") as f:
+        model_config = yaml.safe_load(f)
     model_client = ChatCompletionClient.load_component(model_config)
     # Create an agent that can use the model client.
     player = AssistantAgent(
