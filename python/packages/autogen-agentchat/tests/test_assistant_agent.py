@@ -11,6 +11,7 @@ from autogen_agentchat.messages import (
     ChatMessage,
     HandoffMessage,
     MemoryQueryEvent,
+    ModelClientStreamingChunkEvent,
     MultiModalMessage,
     TextMessage,
     ToolCallExecutionEvent,
@@ -20,10 +21,11 @@ from autogen_agentchat.messages import (
 from autogen_core import FunctionCall, Image
 from autogen_core.memory import ListMemory, Memory, MemoryContent, MemoryMimeType, MemoryQueryResult
 from autogen_core.model_context import BufferedChatCompletionContext
-from autogen_core.models import FunctionExecutionResult, LLMMessage
+from autogen_core.models import CreateResult, FunctionExecutionResult, LLMMessage, RequestUsage
 from autogen_core.models._model_client import ModelFamily
 from autogen_core.tools import FunctionTool
 from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.models.replay import ReplayChatCompletionClient
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import ChatCompletionChunk
@@ -776,3 +778,65 @@ async def test_assistant_agent_declarative(monkeypatch: pytest.MonkeyPatch) -> N
     )
     agent3_config = agent3.dump_component()
     assert agent3_config.provider == "autogen_agentchat.agents.AssistantAgent"
+
+
+@pytest.mark.asyncio
+async def test_model_client_stream() -> None:
+    mock_client = ReplayChatCompletionClient(
+        [
+            "Response to message 3",
+        ]
+    )
+    agent = AssistantAgent(
+        "test_agent",
+        model_client=mock_client,
+        model_client_stream=True,
+    )
+    chunks: List[str] = []
+    async for message in agent.run_stream(task="task"):
+        if isinstance(message, TaskResult):
+            assert message.messages[-1].content == "Response to message 3"
+        elif isinstance(message, ModelClientStreamingChunkEvent):
+            chunks.append(message.content)
+    assert "".join(chunks) == "Response to message 3"
+
+
+@pytest.mark.asyncio
+async def test_model_client_stream_with_tool_calls() -> None:
+    mock_client = ReplayChatCompletionClient(
+        [
+            CreateResult(
+                content=[
+                    FunctionCall(id="1", name="_pass_function", arguments=r'{"input": "task"}'),
+                    FunctionCall(id="3", name="_echo_function", arguments=r'{"input": "task"}'),
+                ],
+                finish_reason="function_calls",
+                usage=RequestUsage(prompt_tokens=10, completion_tokens=5),
+                cached=False,
+            ),
+            "Example response 2 to task",
+        ]
+    )
+    mock_client._model_info["function_calling"] = True  # pyright: ignore
+    agent = AssistantAgent(
+        "test_agent",
+        model_client=mock_client,
+        model_client_stream=True,
+        reflect_on_tool_use=True,
+        tools=[_pass_function, _echo_function],
+    )
+    chunks: List[str] = []
+    async for message in agent.run_stream(task="task"):
+        if isinstance(message, TaskResult):
+            assert message.messages[-1].content == "Example response 2 to task"
+            assert message.messages[1].content == [
+                FunctionCall(id="1", name="_pass_function", arguments=r'{"input": "task"}'),
+                FunctionCall(id="3", name="_echo_function", arguments=r'{"input": "task"}'),
+            ]
+            assert message.messages[2].content == [
+                FunctionExecutionResult(call_id="1", content="pass"),
+                FunctionExecutionResult(call_id="3", content="task"),
+            ]
+        elif isinstance(message, ModelClientStreamingChunkEvent):
+            chunks.append(message.content)
+    assert "".join(chunks) == "Example response 2 to task"
