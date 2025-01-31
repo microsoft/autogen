@@ -38,7 +38,6 @@ agbench = { workspace = true }
 autogen-agentchat = { workspace = true }
 autogen-core = { workspace = true }
 autogen-ext = { workspace = true }
-autogen-magentic-one = { workspace = true }
 autogen-test-utils = { workspace = true }
 autogenstudio = { workspace = true }
 component-schema-gen = { workspace = true }
