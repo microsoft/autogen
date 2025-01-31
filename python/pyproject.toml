@@ -32,13 +32,13 @@ override-dependencies = [
 ]
 [tool.uv.workspace]
 members = ["packages/*"]
+exclude = ["packages/autogen-magentic-one"]
 
 [tool.uv.sources]
 agbench = { workspace = true }
 autogen-agentchat = { workspace = true }
 autogen-core = { workspace = true }
 autogen-ext = { workspace = true }
-autogen-magentic-one = { workspace = true }
 autogen-test-utils = { workspace = true }
 autogenstudio = { workspace = true }
 component-schema-gen = { workspace = true }
@@ -92,7 +92,7 @@ lint = "python run_task_in_pkgs_if_exist.py lint"
 pyright = "python run_task_in_pkgs_if_exist.py pyright"
 mypy = "python run_task_in_pkgs_if_exist.py mypy"
 test = "python run_task_in_pkgs_if_exist.py test"
-markdown-code-lint = """python check_md_code_blocks.py ../README.md ./packages/autogen-core/docs/src/**/*.md"""
+markdown-code-lint = """python check_md_code_blocks.py ../README.md ./packages/autogen-core/docs/src/**/*.md ./packages/autogen-magentic-one/README.md"""
 samples-code-check = """pyright ./samples"""
 
 check = ["fmt", "lint", "pyright", "mypy", "test", "markdown-code-lint", "samples-code-check"]
