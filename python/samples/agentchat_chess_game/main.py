@@ -99,10 +99,9 @@ async def get_ai_move(board: chess.Board, player: AssistantAgent, max_tries: int
     return get_random_move(board)
 
 
-async def main(human_player: bool) -> None:
+async def main(human_player: bool, max_tries: int) -> None:
     board = chess.Board()
     player = create_ai_player()
-    max_tries = 3
     while not board.is_game_over():
         # Get the AI's move.
         ai_move = await get_ai_move(board, player, max_tries)
@@ -131,5 +130,8 @@ async def main(human_player: bool) -> None:
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--human", action="store_true", help="Enable human vs. AI mode.")
+    parser.add_argument(
+        "--max-tries", type=int, default=10, help="Maximum number of tries for AI input before a random move take over."
+    )
     args = parser.parse_args()
-    asyncio.run(main(args.human))
+    asyncio.run(main(args.human, args.max_tries))
