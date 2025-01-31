@@ -103,7 +103,7 @@ jobs:
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: Unit Test
-      run: dotnet test --no-build -bl --configuration Release --filter type=!integration
+      run: dotnet test --no-build -bl --configuration Release --filter "Category!=Integration"
 
   integration-test:
     strategy:

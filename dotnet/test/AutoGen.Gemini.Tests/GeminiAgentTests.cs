@@ -8,8 +8,10 @@ using FluentAssertions;
 using Google.Cloud.AIPlatform.V1;
 using Xunit.Abstractions;
 using static Google.Cloud.AIPlatform.V1.Part;
+using Xunit;
 namespace AutoGen.Gemini.Tests;
 
+[Trait("Category", "UnitV1")]
 public class GeminiAgentTests
 {
     private readonly Functions functions = new Functions();

@@ -12,9 +12,11 @@ using AutoGen.Tests;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using Xunit.Abstractions;
+using Xunit;
 
 namespace AutoGen.OpenAI.V1.Tests;
 
+[Trait("Category", "UnitV1")]
 public partial class MathClassTest
 {
     private readonly ITestOutputHelper _output;

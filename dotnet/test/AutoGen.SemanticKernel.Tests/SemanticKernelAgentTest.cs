@@ -9,9 +9,11 @@ using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.Agents;
 using Microsoft.SemanticKernel.ChatCompletion;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
+using Xunit;
 
 namespace AutoGen.SemanticKernel.Tests;
 
+[Trait("Category", "UnitV1")]
 public partial class SemanticKernelAgentTest
 {
     /// <summary>

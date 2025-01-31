@@ -7,9 +7,11 @@ using AutoGen.Mistral.Extension;
 using AutoGen.Tests;
 using FluentAssertions;
 using Xunit.Abstractions;
+using Xunit;
 
 namespace AutoGen.Mistral.Tests;
 
+[Trait("Category", "UnitV1")]
 public partial class MistralClientAgentTests
 {
     private ITestOutputHelper _output;

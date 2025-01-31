@@ -8,6 +8,7 @@ using Xunit;
 namespace AutoGen.DotnetInteractive.Tests;
 
 [Collection("Sequential")]
+[Trait("Category", "UnitV1")]
 public class InProcessDotnetInteractiveKernelBuilderTest
 {
     [Fact]

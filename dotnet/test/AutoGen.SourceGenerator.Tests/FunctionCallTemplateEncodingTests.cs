@@ -6,6 +6,7 @@ using Xunit; // Needed for Fact and Assert
 
 namespace AutoGen.SourceGenerator.Tests;
 
+[Trait("Category", "UnitV1")]
 public class FunctionCallTemplateEncodingTests
 {
     [Fact]

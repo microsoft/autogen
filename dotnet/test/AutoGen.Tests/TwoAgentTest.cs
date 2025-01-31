@@ -8,9 +8,11 @@ using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
 using Xunit.Abstractions;
+using Xunit;
 
 namespace AutoGen.Tests;
 
+[Trait("Category", "UnitV1")]
 public partial class TwoAgentTest
 {
     private ITestOutputHelper _output;
