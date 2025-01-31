@@ -21,7 +21,6 @@ members = [
     "autogen-agentchat",
     "autogen-core",
     "autogen-ext",
-    "autogen-magentic-one",
     "autogen-test-utils",
     "autogenstudio",
     "component-schema-gen",
@@ -729,75 +728,6 @@ dev = [
     { name = "httpx", specifier = ">=0.28.1" },
     { name = "langchain-experimental" },
     { name = "pandas-stubs", specifier = ">=2.2.3.241126" },
-]
-
-[[package]]
-name = "autogen-magentic-one"
-version = "0.0.1"
-source = { editable = "packages/autogen-magentic-one" }
-dependencies = [
-    { name = "aiofiles" },
-    { name = "autogen-core" },
-    { name = "autogen-ext", extra = ["docker"] },
-    { name = "beautifulsoup4" },
-    { name = "mammoth" },
-    { name = "markdownify" },
-    { name = "numpy" },
-    { name = "openpyxl" },
-    { name = "pandas" },
-    { name = "pathvalidate" },
-    { name = "pdfminer-six" },
-    { name = "playwright" },
-    { name = "puremagic" },
-    { name = "pydantic" },
-    { name = "pydub" },
-    { name = "python-pptx" },
-    { name = "requests" },
-    { name = "speechrecognition" },
-    { name = "youtube-transcript-api" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "aiofiles" },
-    { name = "azure-identity" },
-    { name = "openpyxl" },
-    { name = "types-aiofiles" },
-    { name = "types-pillow" },
-    { name = "types-requests" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "aiofiles" },
-    { name = "autogen-core", editable = "packages/autogen-core" },
-    { name = "autogen-ext", extras = ["docker"], editable = "packages/autogen-ext" },
-    { name = "beautifulsoup4" },
-    { name = "mammoth" },
-    { name = "markdownify" },
-    { name = "numpy" },
-    { name = "openpyxl" },
-    { name = "pandas" },
-    { name = "pathvalidate" },
-    { name = "pdfminer-six" },
-    { name = "playwright" },
-    { name = "puremagic" },
-    { name = "pydantic", specifier = ">=2.0.0,<3.0.0" },
-    { name = "pydub" },
-    { name = "python-pptx" },
-    { name = "requests" },
-    { name = "speechrecognition" },
-    { name = "youtube-transcript-api" },
-]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "aiofiles" },
-    { name = "azure-identity" },
-    { name = "openpyxl" },
-    { name = "types-aiofiles" },
-    { name = "types-pillow" },
-    { name = "types-requests" },
 ]
 
 [[package]]

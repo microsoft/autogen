@@ -56,7 +56,6 @@ jobs:
         package:
           [
             "./packages/autogen-core",
-            "./packages/autogen-magentic-one",
             "./packages/agbench",
             "./packages/autogen-ext",
             "./packages/autogen-agentchat",
@@ -86,7 +85,6 @@ jobs:
         package:
           [
             "./packages/autogen-core",
-            "./packages/autogen-magentic-one",
             "./packages/agbench",
             "./packages/autogen-ext",
             "./packages/autogen-agentchat",
@@ -116,7 +114,6 @@ jobs:
         package:
           [
             "./packages/autogen-core",
-            "./packages/autogen-magentic-one",
             "./packages/autogen-ext",
             "./packages/autogen-agentchat",
           ]
@@ -160,7 +157,6 @@ jobs:
         package:
           [
             "./packages/autogen-core",
-            "./packages/autogen-magentic-one",
             "./packages/autogen-ext",
             "./packages/autogen-agentchat",
           ]
