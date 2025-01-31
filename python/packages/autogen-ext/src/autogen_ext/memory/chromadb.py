@@ -28,7 +28,7 @@ class ChromaMemoryConfig(BaseModel):
     collection_name: str = Field(default="memory_store", description="Name of the ChromaDB collection")
     persistence_path: str | None = Field(default=None, description="Path for persistent storage. None for in-memory.")
     distance_metric: str = Field(default="cosine", description="Distance metric for similarity search")
-    k: int = Field(default=5, description="Number of results to return in queries")
+    k: int = Field(default=3, description="Number of results to return in queries")
     score_threshold: float | None = Field(default=None, description="Minimum similarity score threshold")
     allow_reset: bool = Field(default=False, description="Whether to allow resetting the ChromaDB client")
 
