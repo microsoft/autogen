@@ -10,7 +10,7 @@ async def main() -> None:
 
     try:
         # Wait for the service to stop
-        if os.system() == "Windows":
+        if os.name == "nt":
             # On Windows, the signal is not available, so we wait for a new event
             await asyncio.Event().wait()
         else:
