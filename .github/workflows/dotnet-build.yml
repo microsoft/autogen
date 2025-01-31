@@ -106,9 +106,9 @@ jobs:
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: Unit Test V1
-      run: dotnet test --no-build -bl --configuration Release --filter "Category==UnitV1"
+      run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV1"
     - name: Unit Test V2
-      run: dotnet test --no-build -bl --configuration Release --filter "Category==UnitV2"
+      run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV2"
 
   integration-test:
     strategy:
