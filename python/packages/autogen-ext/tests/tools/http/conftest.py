@@ -1,11 +1,11 @@
 import asyncio
-from typing import AsyncGenerator
+from typing import Any, AsyncGenerator, Dict
 
 import pytest
 import pytest_asyncio
 import uvicorn
 from autogen_core import ComponentModel
-from fastapi import Body, FastAPI
+from fastapi import FastAPI
 from pydantic import BaseModel, Field
 
 
@@ -33,8 +33,8 @@ async def test_path_params_endpoint(query: str, value: int) -> TestResponse:
 
 
 @app.put("/test/{query}/{value}")
-async def test_path_params_and_body_endpoint(query: str, value: int, body: dict) -> TestResponse:
-    return TestResponse(result=f"Received: {query} with value {value} and extra {body.get('extra')}")
+async def test_path_params_and_body_endpoint(query: str, value: int, body: Dict[str, Any]) -> TestResponse:
+    return TestResponse(result=f"Received: {query} with value {value} and extra {body.get('extra')}")  # type: ignore
 
 
 @app.get("/test")
@@ -82,7 +82,7 @@ def test_config() -> ComponentModel:
     )
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture  # type: ignore
 async def test_server() -> AsyncGenerator[None, None]:
     # Start the test server
     config = uvicorn.Config(app, host="127.0.0.1", port=8000, log_level="error")
