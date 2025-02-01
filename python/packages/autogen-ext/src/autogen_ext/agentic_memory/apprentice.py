@@ -1,20 +1,23 @@
-from typing import Tuple, Dict
-import random, time
+import random
+import time
+from typing import Any, Dict, List, Tuple
 
-from .agentic_memory_controller import AgenticMemoryController
-from autogen_ext.agents.web_surfer import MultimodalWebSurfer
-from autogen_ext.agents.web_surfer._utils import message_content_to_str
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.messages import TextMessage
 from autogen_agentchat.teams import MagenticOneGroupChat
 from autogen_agentchat.ui._console import Console
-from autogen_agentchat.base import TaskResult
 from autogen_core.models import (
     ChatCompletionClient,
+    LLMMessage,
     SystemMessage,
     UserMessage,
 )
 
+from autogen_ext.agents.web_surfer import MultimodalWebSurfer
+from autogen_ext.agents.web_surfer._utils import message_content_to_str
+
+from .agentic_memory_controller import AgenticMemoryController
+from .page_logger import PageLogger
 
 
 class Apprentice:
@@ -35,7 +38,8 @@ class Apprentice:
         add_task_solution_pair_to_memory: Adds a task-solution pair to the memory bank, to be retrieved together later as a combined insight.
         train_on_task: Repeatedly assigns a task to the completion agent, and tries to learn from failures by creating useful insights as memories.
     """
-    def __init__(self, settings, client, logger) -> None:
+
+    def __init__(self, settings: Dict[str, Any], client: ChatCompletionClient, logger: PageLogger) -> None:
         self.client = client
         self.logger = logger
         self.name_of_agent_or_team = settings["name_of_agent_or_team"]
@@ -58,8 +62,7 @@ class Apprentice:
         """
         Resets the memory bank.
         """
-        if self.memory_controller is not None:
-            self.memory_controller.reset_memory()
+        self.memory_controller.reset_memory()
 
     async def handle_user_message(self, text: str, should_await: bool = True) -> str:
         """
@@ -73,7 +76,7 @@ class Apprentice:
         self.logger.leave_function()
         return response
 
-    async def add_task_solution_pair_to_memory(self, task, solution) -> None:
+    async def add_task_solution_pair_to_memory(self, task: str, solution: str) -> None:
         """
         Adds a task-solution pair to the memory bank, to be retrieved together later as a combined insight.
         This is useful when the insight is a demonstration of how to solve a given type of task.
@@ -119,15 +122,13 @@ class Apprentice:
             response, work_history = await self._assign_task_to_magentic_one(task)
         elif self.name_of_agent_or_team == "SimpleAgent":
             response, work_history = await self._assign_task_to_simple_agent(task)
-        elif self.name_of_agent_or_team == "thin_agent":
-            response, work_history = await self._assign_task_to_thin_agent(task)
         else:
             raise AssertionError("Invalid base agent")
 
         self.logger.leave_function()
         return response, work_history
 
-    async def _assign_task_to_simple_agent(self, task: str) -> Tuple[str, str]:
+    async def _assign_task_to_simple_agent(self, task: str) -> Tuple[Any, Any]:
         """
         Passes the given task to a newly created AssistantAgent with a generic 6-step system prompt.
         """
@@ -150,13 +151,15 @@ In responding to every user message, you follow the same multi-step process give
 
         if self.client.model_info["family"] == "o1":
             # No system message allowed, so pass it as the first user message.
-            system_message = UserMessage(content=system_message_content, source="User")
+            system_message: LLMMessage = UserMessage(content=system_message_content, source="User")
         else:
             # System message allowed.
-            system_message = SystemMessage(content=system_message_content)
+            system_message: LLMMessage = SystemMessage(content=system_message_content)
 
-        user_message = UserMessage(content=task, source="User")
-        input_messages = [system_message] + [user_message]
+        user_message: LLMMessage = UserMessage(content=task, source="User")
+        system_message_list: List[LLMMessage] = [system_message]
+        user_message_list: List[LLMMessage] = [user_message]
+        input_messages: List[LLMMessage] = system_message_list + user_message_list
 
         simple_agent = AssistantAgent(
             "simple_agent",
@@ -165,8 +168,9 @@ In responding to every user message, you follow the same multi-step process give
         )
 
         # Get the agent's response to the task.
-        task_result: TaskResult = await simple_agent.run(task=TextMessage(content=task, source="User"))
-        message = task_result.messages[-1]
+        task_result = await simple_agent.run(task=TextMessage(content=task, source="User"))
+        messages = task_result.messages
+        message = messages[-1]
         response_str = message.content
 
         # Log the model call
@@ -181,7 +185,7 @@ In responding to every user message, you follow the same multi-step process give
         self.logger.leave_function()
         return response_str, work_history
 
-    async def _assign_task_to_magentic_one(self, task) -> Tuple[str, str]:
+    async def _assign_task_to_magentic_one(self, task: str) -> Tuple[str, str]:
         """
         Instantiates a MagenticOneGroupChat team, and passes the given task to it.
         """

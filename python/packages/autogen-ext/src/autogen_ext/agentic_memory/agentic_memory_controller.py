@@ -134,7 +134,7 @@ class AgenticMemoryController:
         self.memory_bank.add_insight(insight, topics, generalized_task)
         self.logger.leave_function()
 
-    async def add_task_solution_pair_to_memory(self, task, solution) -> None:
+    async def add_task_solution_pair_to_memory(self, task: str, solution: str) -> None:
         """
         Adds a task-solution pair to the memory bank, to be retrieved together later as a combined insight.
         This is useful when the insight is a demonstration of how to solve a given type of task.
