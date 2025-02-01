@@ -1,12 +1,11 @@
 import argparse
 import errno
 import json
-import yaml
 import logging
 import os
-import re
 import pathlib
 import random
+import re
 import shutil
 import subprocess
 import sys
@@ -16,6 +15,7 @@ from multiprocessing import Pool
 from typing import Any, Callable, Dict, List, Mapping, Optional, Sequence, Tuple, Union, cast
 
 import docker
+import yaml
 from azure.core.exceptions import ClientAuthenticationError
 from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 from docker.errors import APIError, DockerException, ImageNotFound
@@ -59,7 +59,7 @@ def run_scenarios(
     scenario: str,
     n_repeats: int,
     is_native: bool,
-    config_file: Union[None,str],
+    config_file: Union[None, str],
     token_provider: Optional[Callable[[], str]],
     docker_image: Optional[str] = None,
     results_dir: str = "Results",
@@ -177,7 +177,9 @@ def run_scenarios(
             file_handle.close()
 
 
-def expand_scenario(scenario_dir: str, scenario: ScenarioInstance, output_dir: str, config_file: Union[str,None]) -> None:
+def expand_scenario(
+    scenario_dir: str, scenario: ScenarioInstance, output_dir: str, config_file: Union[str, None]
+) -> None:
     """
     Expand a scenario into a folder.
     Despite some awkwardness created by backwards compatibility and notational conveniences, expansion is conceptually simple.
@@ -263,10 +265,7 @@ def expand_scenario(scenario_dir: str, scenario: ScenarioInstance, output_dir: s
         logging.warning(f"No {DEFAULT_CONFIG_YAML} file found.")
 
 
-def get_scenario_env(
-    token_provider: Optional[Callable[[], str]] = None,
-    env_file: str | None = None
-) -> Dict[str, str]:
+def get_scenario_env(token_provider: Optional[Callable[[], str]] = None, env_file: str | None = None) -> Dict[str, str]:
     """
     Return a dictionary of environment variables needed to run a scenario.
 
@@ -306,33 +305,38 @@ def get_scenario_env(
         elif os.path.isfile(DEFAULT_ENV_FILE_JSON):
             with open(DEFAULT_ENV_FILE_JSON, "rt") as fh:
                 env_file_contents = json.loads(fh.read())
-            logging.warning(f"JSON environment files are deprecated. Migrate to '{DEFAULT_ENV_FILE_YAML}'")  
+            logging.warning(f"JSON environment files are deprecated. Migrate to '{DEFAULT_ENV_FILE_YAML}'")
         else:
-            logging.warning(f"The environment file '{DEFAULT_ENV_FILE_YAML}' was not found. A default environment will be provided, containing the keys: {env.keys()}")  
+            logging.warning(
+                f"The environment file '{DEFAULT_ENV_FILE_YAML}' was not found. A default environment will be provided, containing the keys: {env.keys()}"
+            )
     else:
         # Env file was specified. Throw an error if the file can't be read.
         with open(env_file, "rt") as fh:
             if env_file.endswith(".json"):
-                logging.warning("JSON environment files are deprecated. Migrate to YAML")  
+                logging.warning("JSON environment files are deprecated. Migrate to YAML")
                 env_file_contents = json.loads(fh.read())
             else:
-                env_file_contents = yaml.safe_load(f)
+                env_file_contents = yaml.safe_load(fh)
 
     # Apply substitutions in-place
     substitute_env_variables(env_file_contents)
 
     # Flatten any structures
     for key, value in env_file_contents.items():
-        if isinstance(value, dict) or  isinstance(value, list):
+        if isinstance(value, dict) or isinstance(value, list):
             env_file_contents[key] = json.dumps(value)
 
     # Warn about carrying env variables
     if "OPENAI_API_KEY" in env and "OPENAI_API_KEY" not in env_file_contents:
-        logging.warning(f"Implicit inclusion of OPENAI_API_KEY in the task environment is deprecated. Add it to {DEFAULT_ENV_FILE_YAML} instead. E.g.,\n" + """
+        logging.warning(
+            f"Implicit inclusion of OPENAI_API_KEY in the task environment is deprecated. Add it to {DEFAULT_ENV_FILE_YAML} instead. E.g.,\n"
+            + """
 
 OPENAI_API_KEY: ${OPENAI_API_KEY}
 
-""")
+"""
+        )
 
     # Apply the loaded variables
     env.update(cast(Dict[str, str], env_file_contents))
@@ -349,8 +353,8 @@ def substitute_env_variables(json_data: Any):
         var_name = match.group(1)
         return os.environ.get(var_name)
 
-    pattern = re.compile(r'\$\{(\w+)\}')
-    
+    pattern = re.compile(r"\$\{(\w+)\}")
+
     def replace_in_dict(d):
         for key, value in d.items():
             if isinstance(value, str):
@@ -359,7 +363,7 @@ def substitute_env_variables(json_data: Any):
                 replace_in_dict(value)
             elif isinstance(value, list):
                 replace_in_list(value)
-    
+
     def replace_in_list(lst):
         for i, item in enumerate(lst):
             if isinstance(item, str):
@@ -368,7 +372,7 @@ def substitute_env_variables(json_data: Any):
                 replace_in_dict(item)
             elif isinstance(item, list):
                 replace_in_list(item)
-    
+
     if isinstance(json_data, dict):
         replace_in_dict(json_data)
     elif isinstance(json_data, list):
@@ -733,9 +737,11 @@ def run_scenarios_subset(
     scenarios: List[Dict[str, Any]],
     n_repeats: int,
     is_native: bool,
+    config_file: Union[None, str],
     docker_image: Optional[str] = None,
     results_dir: str = "Results",
     subsample: Union[None, int, float] = None,
+    env_file: Union[None, str] = None,
 ) -> None:
     """
     Run a subset of agbench scenarios a given number of times.
@@ -766,7 +772,7 @@ def run_scenarios_subset(
             print(f"Running scenario {results_repetition}")
 
             # Expand the scenario
-            expand_scenario(".", instance, results_repetition)  # type: ignore
+            expand_scenario(".", instance, results_repetition, config_file)  # type: ignore
 
             # Prepare the environment (keys/values that need to be added)
             env = get_scenario_env(env_file=env_file)
@@ -830,7 +836,7 @@ def get_azure_token_provider() -> Optional[Callable[[], str]]:
         except ClientAuthenticationError:
             error_message = traceback.format_exc()
             print(
-                    f"Azure token provider failed loading. Try using 'az login --use-device-code'\n\nError details:\n{error_message}\n\nContinuing without Azure token provider..."
+                f"Azure token provider failed loading. Try using 'az login --use-device-code'\n\nError details:\n{error_message}\n\nContinuing without Azure token provider..."
             )
         logging.disable(logging.NOTSET)
     return None
@@ -876,7 +882,8 @@ def run_cli(args: Sequence[str]) -> None:
         "--env",
         type=str,
         help="The environment file to load into Docker, or into the native task context (default: '"
-        + DEFAULT_ENV_FILE_YAML + "').",
+        + DEFAULT_ENV_FILE_YAML
+        + "').",
         default=None,
     )
     parser.add_argument(
@@ -905,7 +912,7 @@ def run_cli(args: Sequence[str]) -> None:
 
     if parsed_args.config is not None:
         # Make sure the config file is readable, so that we fail early
-        with open(parsed_args.config, "r") as fh:
+        with open(parsed_args.config, "r"):
             pass
 
     # don't support parallel and subsample together
