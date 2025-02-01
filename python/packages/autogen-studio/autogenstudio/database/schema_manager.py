@@ -2,6 +2,8 @@ import os
 import shutil
 from pathlib import Path
 from typing import List, Optional, Tuple
+import io
+from contextlib import redirect_stdout
 
 import sqlmodel
 from alembic import command
@@ -45,7 +47,7 @@ class SchemaManager:
     def initialize_migrations(self, force: bool = False) -> bool:
         try:
             if force:
-                logger.info("Force reinitialization of migrations...")
+                # logger.info("Force reinitialization of migrations...")
                 self._cleanup_existing_alembic()
                 if not self._initialize_alembic():
                     return False
@@ -60,7 +62,7 @@ class SchemaManager:
                         return False
 
             # Only generate initial revision if alembic is properly initialized
-            logger.info("Creating initial migration...")
+            # logger.info("Creating initial migration...")
             return self.generate_revision("Initial schema") is not None
 
         except Exception as e:
@@ -88,7 +90,7 @@ class SchemaManager:
         Completely remove existing Alembic configuration including versions.
         For fresh initialization, we don't need to preserve anything.
         """
-        logger.info("Cleaning up existing Alembic configuration...")
+        # logger.info("Cleaning up existing Alembic configuration...")
 
         # Remove entire alembic directory if it exists
         if self.alembic_dir.exists():
@@ -130,7 +132,7 @@ class SchemaManager:
             self.alembic_dir.parent.mkdir(exist_ok=True)
 
             # Run alembic init to create fresh directory structure
-            logger.info("Initializing alembic directory structure...")
+            # logger.info("Initializing alembic directory structure...")
 
             # Create initial config file for alembic init
             config_content = self._generate_alembic_ini_content()
@@ -139,7 +141,10 @@ class SchemaManager:
 
             # Use the config we just created
             config = Config(str(self.alembic_ini_path))
-            command.init(config, str(self.alembic_dir))
+
+            
+            with redirect_stdout(io.StringIO()):
+                command.init(config, str(self.alembic_dir)) 
 
             # Update script template after initialization
             self.update_script_template()
@@ -264,8 +269,7 @@ datefmt = %H:%M:%S
 
             with open(template_path, "w") as f:
                 f.write(content)
-
-            logger.info("Updated script template")
+ 
             return True
 
         except Exception as e:
@@ -319,9 +323,7 @@ datefmt = %H:%M:%S
             )
 
             with open(env_path, "w") as f:
-                f.write(content)
-
-            logger.info("Updated env.py with SQLModel metadata")
+                f.write(content) 
         except Exception as e:
             logger.error(f"Failed to update env.py: {e}")
             raise
@@ -481,8 +483,9 @@ datefmt = %H:%M:%S
         """
         try:
             config = self.get_alembic_config()
-            command.revision(config, message=message, autogenerate=True)
-            return self.get_head_revision()
+            with redirect_stdout(io.StringIO()):
+                command.revision(config, message=message, autogenerate=True)
+                return self.get_head_revision()
 
         except Exception as e:
             logger.error(f"Failed to generate revision: {str(e)}")
