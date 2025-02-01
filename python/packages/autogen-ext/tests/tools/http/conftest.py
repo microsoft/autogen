@@ -4,8 +4,7 @@ from typing import AsyncGenerator
 import pytest
 import pytest_asyncio
 import uvicorn
-from autogen_core import CancellationToken, ComponentModel
-from autogen_ext.tools.http import HttpTool
+from autogen_core import ComponentModel
 from fastapi import Body, FastAPI
 from pydantic import BaseModel, Field
 
@@ -24,20 +23,19 @@ app = FastAPI()
 
 
 @app.post("/test")
-async def test_endpoint(body: TestArgs = Body(...)) -> TestResponse:
+async def test_endpoint(body: TestArgs) -> TestResponse:
     return TestResponse(result=f"Received: {body.query} with value {body.value}")
+
 
 @app.post("/test/{query}/{value}")
 async def test_path_params_endpoint(query: str, value: int) -> TestResponse:
     return TestResponse(result=f"Received: {query} with value {value}")
 
+
 @app.put("/test/{query}/{value}")
-async def test_path_params_and_body_endpoint(
-    query: str,
-    value: int,
-    body: dict = Body(...)
-) -> TestResponse:
-    return TestResponse(result=f"Received: {query} with value {value} and extra {body.get("extra")}")
+async def test_path_params_and_body_endpoint(query: str, value: int, body: dict) -> TestResponse:
+    return TestResponse(result=f"Received: {query} with value {value} and extra {body.get('extra')}")
+
 
 @app.get("/test")
 async def test_get_endpoint(query: str, value: int) -> TestResponse:
@@ -45,7 +43,7 @@ async def test_get_endpoint(query: str, value: int) -> TestResponse:
 
 
 @app.put("/test")
-async def test_put_endpoint(body: TestArgs = Body(...)) -> TestResponse:
+async def test_put_endpoint(body: TestArgs) -> TestResponse:
     return TestResponse(result=f"Received: {body.query} with value {body.value}")
 
 
@@ -55,7 +53,7 @@ async def test_delete_endpoint(query: str, value: int) -> TestResponse:
 
 
 @app.patch("/test")
-async def test_patch_endpoint(body: TestArgs = Body(...)) -> TestResponse:
+async def test_patch_endpoint(body: TestArgs) -> TestResponse:
     return TestResponse(result=f"Received: {body.query} with value {body.value}")
 
 

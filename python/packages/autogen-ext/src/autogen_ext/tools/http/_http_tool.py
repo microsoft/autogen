@@ -90,7 +90,7 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
               "properties": {
                   "value": {"type": "string", "description": "The base64 value to decode"},
               },
-              "required": ["value"]
+              "required": ["value"],
           }
 
           # Create an HTTP tool for the weather API
@@ -102,23 +102,22 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
               port=443,
               path="/base64/{value}",
               method="GET",
-              json_schema=base64_schema
+              json_schema=base64_schema,
           )
+
 
           async def main():
               # Create an assistant with the base64 tool
               model = OpenAIChatCompletionClient(model="gpt-4")
-              assistant = AssistantAgent(
-                  "base64_assistant",
-                  model_client=model,
-                  tools=[base64_tool]
-              )
+              assistant = AssistantAgent("base64_assistant", model_client=model, tools=[base64_tool])
 
               # The assistant can now use the base64 tool to decode the string
-              response = await assistant.on_messages([
-                  TextMessage(content="Can you base64 decode the value 'YWJjZGU=', please?", source="user")
-              ], CancellationToken())
+              response = await assistant.on_messages(
+                  [TextMessage(content="Can you base64 decode the value 'YWJjZGU=', please?", source="user")],
+                  CancellationToken(),
+              )
               print(response.chat_message.content)
+
 
           asyncio.run(main())
     """
@@ -161,9 +160,9 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
         input_model = create_model(json_schema)
 
         # Use Any as return type since HTTP responses can vary
-        return_type: Type[Any] = object
+        base_return_type: Type[Any] = object
 
-        super().__init__(input_model, return_type, name, description)
+        super().__init__(input_model, base_return_type, name, description)
 
     def _to_config(self) -> HttpToolConfig:
         copied_config = self.server_params.model_copy()
@@ -187,7 +186,6 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
         Raises:
             Exception: If tool execution fails
         """
-
 
         model_dump = args.model_dump()
         path_params = {k: v for k, v in model_dump.items() if k in self._path_params}

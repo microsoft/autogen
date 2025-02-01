@@ -90,6 +90,7 @@ async def test_put_request(test_config: ComponentModel, test_server: None) -> No
     assert isinstance(result, str)
     assert json.loads(result)["result"] == "Received: test query with value 42"
 
+
 @pytest.mark.asyncio
 async def test_path_params(test_config: ComponentModel, test_server: None) -> None:
     # Modify config to use path parameters
@@ -102,6 +103,7 @@ async def test_path_params(test_config: ComponentModel, test_server: None) -> No
     assert isinstance(result, str)
     assert json.loads(result)["result"] == "Received: test query with value 42"
 
+
 @pytest.mark.asyncio
 async def test_path_params_and_body(test_config: ComponentModel, test_server: None) -> None:
     # Modify config to use path parameters and include body parameters
@@ -109,26 +111,20 @@ async def test_path_params_and_body(test_config: ComponentModel, test_server: No
     config.config["method"] = "PUT"
     config.config["path"] = "/test/{query}/{value}"
     config.config["json_schema"] = {
-        "type": "object", 
+        "type": "object",
         "properties": {
             "query": {"type": "string", "description": "The test query"},
             "value": {"type": "integer", "description": "A test value"},
-            "extra": {"type": "string", "description": "Extra body parameter"}
+            "extra": {"type": "string", "description": "Extra body parameter"},
         },
-        "required": ["query", "value", "extra"]
+        "required": ["query", "value", "extra"],
     }
     tool = HttpTool.load_component(config)
 
-    result = await tool.run_json({
-        "query": "test query",
-        "value": 42,
-        "extra": "extra data"
-    }, CancellationToken())
+    result = await tool.run_json({"query": "test query", "value": 42, "extra": "extra data"}, CancellationToken())
 
     assert isinstance(result, str)
     assert json.loads(result)["result"] == "Received: test query with value 42 and extra extra data"
-
-
 
 
 @pytest.mark.asyncio
@@ -161,7 +157,7 @@ async def test_patch_request(test_config: ComponentModel, test_server: None) -> 
 async def test_invalid_schema(test_config: ComponentModel, test_server: None) -> None:
     # Create an invalid schema missing required properties
     config: ComponentModel = test_config.model_copy()
-    config.config["host"] = True # Incorrect type
+    config.config["host"] = True  # Incorrect type
 
     with pytest.raises(ValidationError):
         # Should fail when trying to create model from invalid schema
@@ -181,16 +177,16 @@ async def test_invalid_request(test_config: ComponentModel, test_server: None) -
 
 def test_config_serialization(test_config: ComponentModel) -> None:
     tool = HttpTool.load_component(test_config)
-    config = tool._to_config()
+    config = tool.dump_component()
 
-    assert config.name == test_config.config["name"]
-    assert config.description == test_config.config["description"]
-    assert config.host == test_config.config["host"]
-    assert config.port == test_config.config["port"]
-    assert config.path == test_config.config["path"]
-    assert config.scheme == test_config.config["scheme"]
-    assert config.method == test_config.config["method"]
-    assert config.headers == test_config.config["headers"]
+    assert config.config["name"] == test_config.config["name"]
+    assert config.config["description"] == test_config.config["description"]
+    assert config.config["host"] == test_config.config["host"]
+    assert config.config["port"] == test_config.config["port"]
+    assert config.config["path"] == test_config.config["path"]
+    assert config.config["scheme"] == test_config.config["scheme"]
+    assert config.config["method"] == test_config.config["method"]
+    assert config.config["headers"] == test_config.config["headers"]
 
 
 def test_config_deserialization(test_config: ComponentModel) -> None:
