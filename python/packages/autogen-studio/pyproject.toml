@@ -21,9 +21,8 @@ classifiers = [
 dependencies = [
     "pydantic",
     "pydantic-settings",
-    "fastapi",
-    "typer",
-    "uvicorn",
+    "fastapi[standard]",
+    "typer", 
     "aiofiles",
     "python-dotenv",
     "websockets",
@@ -33,8 +32,8 @@ dependencies = [
     "alembic",
     "loguru",
     "pyyaml",
-    "autogen-core>=0.4.2,<0.5",
-    "autogen-agentchat>=0.4.2,<0.5",
+    "autogen-core>=0.4.5,<0.5",
+    "autogen-agentchat>=0.4.5,<0.5",
     "autogen-ext[magentic-one, openai, azure]>=0.4.2,<0.5",
     "azure-identity"
 ]
