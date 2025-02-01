@@ -48,6 +48,10 @@ class HttpToolConfig(BaseModel):
     A JSON Schema object defining the expected parameters for the tool.
     Path parameters MUST also be included in the json_schema. They must also MUST be set to string
     """
+    return_type: Optional[Literal["text", "json"]] = "text"
+    """
+    The type of response to return from the tool.
+    """
 
 
 class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
@@ -66,6 +70,8 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
         headers (dict[str, Any], optional): A dictionary of headers to send with the request.
         json_schema (dict[str, Any]): A JSON Schema object defining the expected parameters for the tool.
             Path parameters must also be included in the schema and must be strings.
+        return_type (Literal["text", "json"], optional): The type of response to return from the tool.
+            Defaults to "text".
 
     Example:
         Simple use case::
@@ -132,6 +138,7 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
         path: str = "/",
         scheme: Literal["http", "https"] = "http",
         method: Literal["GET", "POST", "PUT", "DELETE", "PATCH"] = "POST",
+        return_type: Literal["text", "json"] = "text",
     ) -> None:
         self.server_params = HttpToolConfig(
             name=name,
@@ -143,6 +150,7 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
             method=method,
             headers=headers,
             json_schema=json_schema,
+            return_type=return_type,
         )
 
         # Use regex to find all path parameters, we will need those later to template the path
@@ -208,5 +216,10 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
                 case _:  # Default case POST
                     response = await client.post(url, json=model_dump)
 
-        # TODO: (EItanya): Think about adding the ability to parse the response as JSON, or check a schema
-        return response.text
+        match self.server_params.return_type:
+            case "text":
+                return response.text
+            case "json":
+                return response.json()
+            case _:
+                raise ValueError(f"Invalid return type: {self.server_params.return_type}")

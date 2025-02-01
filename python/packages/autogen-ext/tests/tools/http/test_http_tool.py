@@ -54,6 +54,18 @@ async def test_post_request(test_config: ComponentModel, test_server: None) -> N
 
 
 @pytest.mark.asyncio
+async def test_post_request_json_return(test_config: ComponentModel, test_server: None) -> None:
+    # Modify config to use json return type
+    config = test_config.model_copy()
+    config.config["return_type"] = "json"
+    tool = HttpTool.load_component(config)
+    result = await tool.run_json({"query": "test query", "value": 45}, CancellationToken())
+
+    assert isinstance(result, dict)
+    assert result["result"] == "Received: test query with value 45"
+
+
+@pytest.mark.asyncio
 async def test_get_request(test_config: ComponentModel, test_server: None) -> None:
     # Modify config for GET request
     config = test_config.model_copy()
