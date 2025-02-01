@@ -1,9 +1,9 @@
+import io
 import os
 import shutil
+from contextlib import redirect_stdout
 from pathlib import Path
 from typing import List, Optional, Tuple
-import io
-from contextlib import redirect_stdout
 
 import sqlmodel
 from alembic import command
@@ -142,9 +142,8 @@ class SchemaManager:
             # Use the config we just created
             config = Config(str(self.alembic_ini_path))
 
-            
             with redirect_stdout(io.StringIO()):
-                command.init(config, str(self.alembic_dir)) 
+                command.init(config, str(self.alembic_dir))
 
             # Update script template after initialization
             self.update_script_template()
@@ -269,7 +268,7 @@ datefmt = %H:%M:%S
 
             with open(template_path, "w") as f:
                 f.write(content)
- 
+
             return True
 
         except Exception as e:
@@ -323,7 +322,7 @@ datefmt = %H:%M:%S
             )
 
             with open(env_path, "w") as f:
-                f.write(content) 
+                f.write(content)
         except Exception as e:
             logger.error(f"Failed to update env.py: {e}")
             raise

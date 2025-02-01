@@ -12,9 +12,7 @@ class Settings(BaseSettings):
     DEFAULT_USER_ID: str = "guestuser@gmail.com"
     UPGRADE_DATABASE: bool = False
 
-    model_config = {
-        "env_prefix": "AUTOGENSTUDIO_"
-    }
+    model_config = {"env_prefix": "AUTOGENSTUDIO_"}
 
 
 settings = Settings()

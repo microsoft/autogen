@@ -102,9 +102,4 @@ class Run(SQLModel, table=True):
     version: Optional[str] = "0.0.1"
     messages: Union[List[Message], List[dict]] = Field(default_factory=list, sa_column=Column(JSON))
 
-    model_config = ConfigDict(
-        json_encoders={
-            UUID: str,
-            datetime: lambda v: v.isoformat()
-        }
-    )
+    model_config = ConfigDict(json_encoders={UUID: str, datetime: lambda v: v.isoformat()})

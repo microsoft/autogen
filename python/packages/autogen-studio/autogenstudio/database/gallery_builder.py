@@ -12,6 +12,7 @@ from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 from autogenstudio.datamodel import Gallery, GalleryComponents, GalleryItems, GalleryMetadata
 
+
 class GalleryBuilder:
     """Enhanced builder class for creating AutoGen component galleries with custom labels."""
 
@@ -38,10 +39,7 @@ class GalleryBuilder:
         )
 
     def _update_component_metadata(
-        self, 
-        component: ComponentModel, 
-        label: Optional[str] = None, 
-        description: Optional[str] = None
+        self, component: ComponentModel, label: Optional[str] = None, description: Optional[str] = None
     ) -> ComponentModel:
         """Helper method to update component metadata."""
         if label is not None:
@@ -75,50 +73,35 @@ class GalleryBuilder:
         return self
 
     def add_team(
-        self, 
-        team: ComponentModel, 
-        label: Optional[str] = None, 
-        description: Optional[str] = None
+        self, team: ComponentModel, label: Optional[str] = None, description: Optional[str] = None
     ) -> "GalleryBuilder":
         """Add a team component to the gallery with optional custom label and description."""
         self.teams.append(self._update_component_metadata(team, label, description))
         return self
 
     def add_agent(
-        self, 
-        agent: ComponentModel, 
-        label: Optional[str] = None, 
-        description: Optional[str] = None
+        self, agent: ComponentModel, label: Optional[str] = None, description: Optional[str] = None
     ) -> "GalleryBuilder":
         """Add an agent component to the gallery with optional custom label and description."""
         self.agents.append(self._update_component_metadata(agent, label, description))
         return self
 
     def add_model(
-        self, 
-        model: ComponentModel, 
-        label: Optional[str] = None, 
-        description: Optional[str] = None
+        self, model: ComponentModel, label: Optional[str] = None, description: Optional[str] = None
     ) -> "GalleryBuilder":
         """Add a model component to the gallery with optional custom label and description."""
         self.models.append(self._update_component_metadata(model, label, description))
         return self
 
     def add_tool(
-        self, 
-        tool: ComponentModel, 
-        label: Optional[str] = None, 
-        description: Optional[str] = None
+        self, tool: ComponentModel, label: Optional[str] = None, description: Optional[str] = None
     ) -> "GalleryBuilder":
         """Add a tool component to the gallery with optional custom label and description."""
         self.tools.append(self._update_component_metadata(tool, label, description))
         return self
 
     def add_termination(
-        self, 
-        termination: ComponentModel, 
-        label: Optional[str] = None, 
-        description: Optional[str] = None
+        self, termination: ComponentModel, label: Optional[str] = None, description: Optional[str] = None
     ) -> "GalleryBuilder":
         """Add a termination condition component with optional custom label and description."""
         self.terminations.append(self._update_component_metadata(termination, label, description))
@@ -137,13 +120,11 @@ class GalleryBuilder:
             items=GalleryItems(
                 teams=self.teams,
                 components=GalleryComponents(
-                    agents=self.agents,
-                    models=self.models,
-                    tools=self.tools,
-                    terminations=self.terminations
+                    agents=self.agents, models=self.models, tools=self.tools, terminations=self.terminations
                 ),
             ),
         )
+
 
 def create_default_gallery() -> Gallery:
     """Create a default gallery with all components including calculator and web surfer teams."""
@@ -169,7 +150,7 @@ def create_default_gallery() -> Gallery:
     builder.add_model(
         mistral_vllm_model.dump_component(),
         label="Mistral-7B vllm",
-        description="Example on how to use the OpenAIChatCopletionClient with local models (Ollama, vllm etc)."
+        description="Example on how to use the OpenAIChatCopletionClient with local models (Ollama, vllm etc).",
     )
 
     def calculator(a: float, b: float, operator: str) -> str:
@@ -206,8 +187,7 @@ def create_default_gallery() -> Gallery:
         tools=[calculator_tool],
     )
     builder.add_agent(
-        calc_assistant.dump_component(),
-        description="An agent that provides assistance with ability to use tools."
+        calc_assistant.dump_component(), description="An agent that provides assistance with ability to use tools."
     )
 
     # Create termination conditions
@@ -220,14 +200,11 @@ def create_default_gallery() -> Gallery:
     builder.add_termination(calc_or_term.dump_component())
 
     # Create calculator team
-    calc_team = RoundRobinGroupChat(
-        participants=[calc_assistant], 
-        termination_condition=calc_or_term
-    )
+    calc_team = RoundRobinGroupChat(participants=[calc_assistant], termination_condition=calc_or_term)
     builder.add_team(
         calc_team.dump_component(),
         label="Default Team",
-        description="A single AssistantAgent (with a calculator tool) in a RoundRobinGroupChat team. "
+        description="A single AssistantAgent (with a calculator tool) in a RoundRobinGroupChat team. ",
     )
 
     # Create web surfer agent
@@ -262,8 +239,7 @@ def create_default_gallery() -> Gallery:
 
     # Create web surfer team
     selector_prompt = """You are the cordinator of role play game. The following roles are available:
-{roles}. Given a task, the websurfer_agent will be tasked to address it by browsing the web and providing information.  The assistant_agent will be tasked with verifying the information provided by the websurfer_agent and summarizing the information to present a final answer to the user. 
-If the task  needs assistance from a human user (e.g., providing feedback, preferences, or the task is stalled), you should select the user_proxy role to provide the necessary information.
+{roles}. Given a task, the websurfer_agent will be tasked to address it by browsing the web and providing information.  The assistant_agent will be tasked with verifying the information provided by the websurfer_agent and summarizing the information to present a final answer to the user. If the task  needs assistance from a human user (e.g., providing feedback, preferences, or the task is stalled), you should select the user_proxy role to provide the necessary information.
 
 Read the following conversation. Then select the next role from {participants} to play. Only return the role.
 
@@ -280,17 +256,15 @@ Read the above conversation. Then select the next role from {participants} to pl
     builder.add_team(
         websurfer_team.dump_component(),
         label="Web Agent Team (Operator)",
-        description="A group chat team that have participants takes turn to publish a message\n    to all, using a ChatCompletion model to select the next speaker after each message."
+        description="A group chat team that have participants takes turn to publish a message\n    to all, using a ChatCompletion model to select the next speaker after each message.",
     )
 
     return builder.build()
 
+
 if __name__ == "__main__":
     # Create and save the gallery
     gallery = create_default_gallery()
-
-    # Print as JSON
-    print(gallery.model_dump_json(indent=2))
 
     # Save to file
     with open("gallery_default.json", "w") as f:

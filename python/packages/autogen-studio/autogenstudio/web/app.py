@@ -31,13 +31,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Lifecycle manager for the FastAPI application.
     Handles initialization and cleanup of application resources.
     """
-    
+
     try:
         # Initialize managers (DB, Connection, Team)
-        await init_managers(initializer.database_uri, initializer.config_dir, initializer.app_root) 
+        await init_managers(initializer.database_uri, initializer.config_dir, initializer.app_root)
 
         # Any other initialization code
-        logger.info(f"Application startup complete. Navigate to http://{os.environ.get('AUTOGENSTUDIO_HOST', '127.0.0.1')}:{os.environ.get('AUTOGENSTUDIO_PORT', '8081')}")
+        logger.info(
+            f"Application startup complete. Navigate to http://{os.environ.get('AUTOGENSTUDIO_HOST', '127.0.0.1')}:{os.environ.get('AUTOGENSTUDIO_PORT', '8081')}"
+        )
 
     except Exception as e:
         logger.error(f"Failed to initialize application: {str(e)}")
