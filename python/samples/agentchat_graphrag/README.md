@@ -36,7 +36,7 @@ pip install -r requirements.txt
 
 3. Adjust the `settings.yaml` file with your LLM and embedding configuration. Ensure that the API keys and other necessary details are correctly set.
 
-4. Create a `model_config.json` file with the Assistant model configuration. Use the `model_config_template.json` file as a reference. Make sure to remove the comments in the template file. 
+4. Create a `model_config.yaml` file with the Assistant model configuration. Use the `model_config_template.yaml` file as a reference. Make sure to remove the comments in the template file. 
 
 5. Run the `graphrag prompt-tune` command to tune the prompts. This step adjusts the prompts to better fit the context of the downloaded text.
 

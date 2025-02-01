@@ -5,7 +5,7 @@ from typing import Any, AsyncGenerator, List
 
 import pytest
 from autogen_core import CancellationToken, FunctionCall, Image
-from autogen_core.models import CreateResult, UserMessage
+from autogen_core.models import CreateResult, ModelFamily, UserMessage
 from autogen_ext.models.azure import AzureAIChatCompletionClient
 from azure.ai.inference.aio import (
     ChatCompletionsClient,
@@ -295,3 +295,82 @@ async def test_multimodal_supported(monkeypatch: pytest.MonkeyPatch) -> None:
         ]
     )
     assert result.content == "Handled image"
+
+
+@pytest.mark.asyncio
+async def test_r1_content(monkeypatch: pytest.MonkeyPatch) -> None:
+    """
+    Ensures that the content is parsed correctly when it contains an R1-style think field.
+    """
+
+    async def _mock_create_r1_content_stream(
+        *args: Any, **kwargs: Any
+    ) -> AsyncGenerator[StreamingChatCompletionsUpdate, None]:
+        mock_chunks_content = ["<think>Thought</think> Hello", " Another Hello", " Yet Another Hello"]
+
+        mock_chunks = [
+            StreamingChatChoiceUpdate(
+                index=0,
+                finish_reason="stop",
+                delta=StreamingChatResponseMessageUpdate(role="assistant", content=chunk_content),
+            )
+            for chunk_content in mock_chunks_content
+        ]
+
+        for mock_chunk in mock_chunks:
+            await asyncio.sleep(0.1)
+            yield StreamingChatCompletionsUpdate(
+                id="id",
+                choices=[mock_chunk],
+                created=datetime.now(),
+                model="model",
+                usage=CompletionsUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            )
+
+    async def _mock_create_r1_content(
+        *args: Any, **kwargs: Any
+    ) -> ChatCompletions | AsyncGenerator[StreamingChatCompletionsUpdate, None]:
+        stream = kwargs.get("stream", False)
+
+        if not stream:
+            await asyncio.sleep(0.1)
+            return ChatCompletions(
+                id="id",
+                created=datetime.now(),
+                model="model",
+                choices=[
+                    ChatChoice(
+                        index=0,
+                        finish_reason="stop",
+                        message=ChatResponseMessage(content="<think>Thought</think> Hello", role="assistant"),
+                    )
+                ],
+                usage=CompletionsUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+            )
+        else:
+            return _mock_create_r1_content_stream(*args, **kwargs)
+
+    monkeypatch.setattr(ChatCompletionsClient, "complete", _mock_create_r1_content)
+
+    client = AzureAIChatCompletionClient(
+        endpoint="endpoint",
+        credential=AzureKeyCredential("api_key"),
+        model_info={
+            "json_output": False,
+            "function_calling": False,
+            "vision": True,
+            "family": ModelFamily.R1,
+        },
+        model="model",
+    )
+
+    result = await client.create(messages=[UserMessage(content="Hello", source="user")])
+    assert result.content == "Hello"
+    assert result.thought == "Thought"
+
+    chunks: List[str | CreateResult] = []
+    async for chunk in client.create_stream(messages=[UserMessage(content="Hello", source="user")]):
+        chunks.append(chunk)
+    assert isinstance(chunks[-1], CreateResult)
+    assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
+    assert chunks[-1].thought == "Thought"

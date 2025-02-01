@@ -1,7 +1,13 @@
 # Magentic-One
 
-> [!IMPORTANT]
-> **Note (December 22nd, 2024):** We recommend using the [Magentic-One API](https://github.com/microsoft/autogen/tree/main/python/packages/autogen-ext/src/autogen_ext/teams/magentic_one.py) as the preferred way to interact with Magentic-One. The API provides a more streamlined and robust interface for integrating Magentic-One into your projects.
+[Magentic-One](https://aka.ms/magentic-one-blog) is a generalist multi-agent system for solving open-ended web and file-based tasks across a variety of domains. It represents a significant step forward for multi-agent systems, achieving competitive performance on a number of agentic benchmarks (see the [technical report](https://arxiv.org/abs/2411.04468) for full details).
+
+When originally released in [November 2024](https://aka.ms/magentic-one-blog) Magentic-One was [implemented directly on the `autogen-core` library](https://github.com/microsoft/autogen/tree/v0.4.4/python/packages/autogen-magentic-one). We have now ported Magentic-One to use `autogen-agentchat`, providing a more modular and easier to use interface. To this end, the older implementation is deprecated, but can be accessed at [https://github.com/microsoft/autogen/tree/v0.4.4/python/packages/autogen-magentic-one](https://github.com/microsoft/autogen/tree/v0.4.4/python/packages/autogen-magentic-one).
+
+Moving forward, the Magentic-One orchestrator [MagenticOneGroupChat](https://microsoft.github.io/autogen/stable/reference/python/autogen_agentchat.teams.html#autogen_agentchat.teams.MagenticOneGroupChat) is now simply an AgentChat team, supporting all standard AgentChat agents and features. Likewise, Magentic-One's [MultimodalWebSurfer](https://microsoft.github.io/autogen/stable/reference/python/autogen_ext.agents.web_surfer.html#autogen_ext.agents.web_surfer.MultimodalWebSurfer), [FileSurfer](https://microsoft.github.io/autogen/stable/reference/python/autogen_ext.agents.file_surfer.html#autogen_ext.agents.file_surfer.FileSurfer), and [MagenticOneCoderAgent](https://microsoft.github.io/autogen/stable/reference/python/autogen_ext.agents.magentic_one.html#autogen_ext.agents.magentic_one.MagenticOneCoderAgent) agents are now broadly available as AgentChat agents, to be used in any AgentChat workflows.
+
+Lastly, there is a helper class, [MagenticOne](https://microsoft.github.io/autogen/stable/reference/python/autogen_ext.teams.magentic_one.html#autogen_ext.teams.magentic_one.MagenticOne), which bundles all of this together as it was in the paper with minimal configuration.
+
 
 > [!CAUTION]
 > Using Magentic-One involves interacting with a digital world designed for humans, which carries inherent risks. To minimize these risks, consider the following precautions:
@@ -14,23 +20,71 @@
 > 6. **Safeguard Data**: Ensure that the agents do not have access to sensitive data or resources that could be compromised. Do not share sensitive information with the agents.
 > Be aware that agents may occasionally attempt risky actions, such as recruiting humans for help or accepting cookie agreements without human involvement. Always ensure agents are monitored and operate within a controlled environment to prevent unintended consequences. Moreover, be cautious that Magentic-One may be susceptible to prompt injection attacks from webpages.
 
-> [!NOTE]
-> This code is currently being ported to AutoGen AgentChat. If you want to build on top of Magentic-One, we recommend waiting for the port to be completed. In the meantime, you can use this codebase to experiment with Magentic-One.
+## Getting started
+
+Install the required packages:
+```bash
+pip install autogen-agentchat autogen-ext[magentic-one,openai]
+
+# If using the MultimodalWebSurfer, you also need to install playwright dependencies:
+playwright install --with-deps chromium
+```
+
+If you haven't done so already, go through the AgentChat tutorial to learn about the concepts of AgentChat.
+
+Then, you can try swapping out a SelectorGroupChat with MagenticOneGroupChat. For example:
+
+```python
+import asyncio
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.teams import MagenticOneGroupChat
+from autogen_agentchat.ui import Console
 
 
-We are introducing Magentic-One, our new generalist multi-agent system for solving open-ended web and file-based tasks across a variety of domains. Magentic-One represents a significant step towards developing agents that can complete tasks that people encounter in their work and personal lives.
+async def main() -> None:
+    model_client = OpenAIChatCompletionClient(model="gpt-4o")
 
-Find additional information about Magentic-one in our [blog post](https://aka.ms/magentic-one-blog) and [technical report](https://arxiv.org/abs/2411.04468).
+    assistant = AssistantAgent(
+        "Assistant",
+        model_client=model_client,
+    )
+    team = MagenticOneGroupChat([assistant], model_client=model_client)
+    await Console(team.run_stream(task="Provide a different proof for Fermat's Last Theorem"))
 
-![](./imgs/autogen-magentic-one-example.png)
 
-> _Example_: The figure above illustrates Magentic-One mutli-agent team completing a complex task from the GAIA benchmark. Magentic-One's Orchestrator agent creates a plan, delegates tasks to other agents, and tracks progress towards the goal, dynamically revising the plan as needed. The Orchestrator can delegate tasks to a FileSurfer agent to read and handle files, a WebSurfer agent to operate a web browser, or a Coder or Computer Terminal agent to write or execute code, respectively.
+asyncio.run(main())
+```
+
+Or, use the Magentic-One agents in a team:
+
+```{caution}
+The example code may download files from the internet, execute code, and interact with web pages. Ensure you are in a safe environment before running the example code.
+```
+
+```python
+import asyncio
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_agentchat.teams import MagenticOneGroupChat
+from autogen_agentchat.ui import Console
+from autogen_ext.agents.web_surfer import MultimodalWebSurfer
+
+
+async def main() -> None:
+    model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+    surfer = MultimodalWebSurfer(
+        "WebSurfer",
+        model_client=model_client,
+    )
+    team = MagenticOneGroupChat([surfer], model_client=model_client)
+    await Console(team.run_stream(task="What is the UV index in Melbourne today?"))
+
+
+asyncio.run(main())
+```
 
 ## Architecture
-
-
-
-![](./imgs/autogen-magentic-one-agents.png)
 
 Magentic-One work is based on a multi-agent architecture where a lead Orchestrator agent is responsible for high-level planning, directing other agents and tracking task progress. The Orchestrator begins by creating a plan to tackle the task, gathering needed facts and educated guesses in a Task Ledger that is maintained. At each step of its plan, the Orchestrator creates a Progress Ledger where it self-reflects on task progress and checks whether the task is completed. If the task is not yet completed, it assigns one of Magentic-One other agents a subtask to complete. After the assigned agent completes its subtask, the Orchestrator updates the Progress Ledger and continues in this way until the task is complete. If the Orchestrator finds that progress is not being made for enough steps, it can update the Task Ledger and create a new plan. This is illustrated in the figure above; the Orchestrator work is thus divided into an outer loop where it updates the Task Ledger and an inner loop to update the Progress Ledger.
 
@@ -44,161 +98,6 @@ Overall, Magentic-One consists of the following agents:
 Together, Magentic-One’s agents provide the Orchestrator with the tools and capabilities that it needs to solve a broad variety of open-ended problems, as well as the ability to autonomously adapt to, and act in, dynamic and ever-changing web and file-system environments.
 
 While the default multimodal LLM we use for all agents is GPT-4o, Magentic-One is model agnostic and can incorporate heterogonous models to support different capabilities or meet different cost requirements when getting tasks done. For example, it can use different LLMs and SLMs and their specialized versions to power different agents. We recommend a strong reasoning model for the Orchestrator agent such as GPT-4o. In a different configuration of Magentic-One, we also experiment with using OpenAI o1-preview for the outer loop of the Orchestrator and for the Coder, while other agents continue to use GPT-4o.
-
-
-### Logging in Team One Agents
-
-Team One agents can emit several log events that can be consumed by a log handler (see the example log handler in [utils.py](src/autogen_magentic_one/utils.py)). A list of currently emitted events are:
-
-- OrchestrationEvent : emitted by a an [Orchestrator](src/autogen_magentic_one/agents/base_orchestrator.py) agent.
-- WebSurferEvent : emitted by a [WebSurfer](src/autogen_magentic_one/agents/multimodal_web_surfer/multimodal_web_surfer.py) agent.
-
-In addition, developers can also handle and process logs generated from the AutoGen core library (e.g., LLMCallEvent etc). See the example log handler in [utils.py](src/autogen_magentic_one/utils.py) on how this can be implemented. By default, the logs are written to a file named `log.jsonl` which can be configured as a parameter to the defined log handler. These logs can be parsed to retrieved data agent actions.
-
-# Setup and Usage
-
-You can install the Magentic-One package and then run the example code to see how the agents work together to accomplish a task.
-
-1. Clone the code and install the package:
-
-    The easiest way to install is with the [uv package installer](https://docs.astral.sh/uv/getting-started/installation/) which you need to install separately, however, this is not necessary.
-
-    Clone repo, use uv to setup and activate virtual environment:
-    ```bash
-    git clone https://github.com/microsoft/autogen.git
-    cd autogen/python
-    uv sync  --all-extras
-    source .venv/bin/activate
-    ```
-   For Windows, run `.venv\Scripts\activate` to activate the environment.
-
-2. Install magentic-one from source:
-    ```bash
-    cd packages/autogen-magentic-one
-    pip install -e .
-    ```
-
-    The following instructions are for running the example code:
-
-3. Configure the environment variables for the chat completion client. See instructions below [Environment Configuration for Chat Completion Client](#environment-configuration-for-chat-completion-client).
-4. Magentic-One code uses code execution, you need to have [Docker installed](https://docs.docker.com/engine/install/) to run any examples.
-5. Magentic-One uses playwright to interact with web pages. You need to install the playwright dependencies. Run the following command to install the playwright dependencies:
-
-```bash
-playwright install --with-deps chromium
-```
-6. Now you can run the example code to see how the agents work together to accomplish a task.
-
-> [!CAUTION]
-> The example code may download files from the internet, execute code, and interact with web pages. Ensure you are in a safe environment before running the example code.
-
-> [!NOTE]
-> You will need to ensure Docker is running prior to running the example.
-
-  ```bash
-
-  # Specify logs directory
-  python examples/example.py --logs_dir ./logs
-
-  # Enable human-in-the-loop mode
-  python examples/example.py --logs_dir ./logs --hil_mode
-
-  # Save screenshots of browser
-  python examples/example.py --logs_dir ./logs --save_screenshots
-  ```
-
-  Arguments:
-
-  - logs_dir: (Required) Directory for logs, downloads and screenshots of browser (default: current directory)
-  - hil_mode: (Optional) Enable human-in-the-loop mode (default: disabled)
-  - save_screenshots: (Optional) Save screenshots of browser (default: disabled)
-
-7. [Preview] We have a preview API for Magentic-One.
- You can use the `MagenticOneHelper` class to interact with the system and stream logs. See the [interface README](interface/README.md) for more details.
-
-
-## Environment Configuration for Chat Completion Client
-
-This guide outlines how to structure the config to load a ChatCompletionClient for Magentic-One.
-
-```python
-from autogen_core.models import ChatCompletionClient
-
-config = {}
-client = ChatCompletionClient.load_component(config)
-```
-
-Currently, Magentic-One only supports OpenAI's GPT-4o as the underlying LLM.
-
-### Azure OpenAI service
-
-To configure for Azure OpenAI service, use the following config:
-
-```json
-{
-    "provider": "AzureOpenAIChatCompletionClient",
-    "config": {
-        "model": "gpt-4o-2024-05-13",
-        "azure_endpoint": "https://{your-custom-endpoint}.openai.azure.com/",
-        "azure_deployment": "{your-azure-deployment}",
-        "api_version": "2024-06-01",
-        "azure_ad_token_provider": {
-            "provider": "autogen_ext.auth.azure.AzureTokenProvider",
-            "config": {
-                "provider_kind": "DefaultAzureCredential",
-                "scopes": [
-                    "https://cognitiveservices.azure.com/.default"
-                ]
-            }
-        }
-    }
-}
-```
-
-This project uses Azure OpenAI service with [Entra ID authentcation by default](https://learn.microsoft.com/azure/ai-services/openai/how-to/managed-identity). If you run the examples on a local device, you can use the Azure CLI cached credentials for testing:
-
-Log in to Azure using `az login`, and then run the examples. The account used must have [RBAC permissions](https://learn.microsoft.com/azure/ai-services/openai/how-to/role-based-access-control) like `Azure Cognitive Services OpenAI User` for the OpenAI service; otherwise, you will receive the error: Principal does not have access to API/Operation.
-
-Note that even if you are the owner of the subscription, you still need to grant the necessary Azure Cognitive Services OpenAI permissions to call the API.
-
-Or, to use an API key:
-```json
-{
-    "provider": "AzureOpenAIChatCompletionClient",
-    "config": {
-        "model": "gpt-4o-2024-05-13",
-        "azure_endpoint": "https://{your-custom-endpoint}.openai.azure.com/",
-        "azure_deployment": "{your-azure-deployment}",
-        "api_version": "2024-06-01",
-        "api_key": "REPLACE_WITH_YOUR_API_KEY"
-    }
-}
-```
-
-### With OpenAI
-
-To configure for OpenAI, use the following config:
-
-```json
-{
-  "provider": "OpenAIChatCompletionClient",
-  "config": {
-      "model": "gpt-4o-2024-05-13",
-      "api_key": "REPLACE_WITH_YOUR_API_KEY"
-  }
-}
-```
-
-Feel free to replace the model with newer versions of gpt-4o if needed.
-
-### Other Keys (Optional)
-
-Some functionalities, such as using web-search requires an API key for Bing.
-You can set it using:
-
-```bash
-export BING_API_KEY=xxxxxxx
-```
 
 ## Citation
 

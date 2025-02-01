@@ -13,7 +13,7 @@ from ..version import VERSION
 from .config import settings
 from .deps import cleanup_managers, init_managers
 from .initialization import AppInitializer
-from .routes import agents, models, runs, sessions, teams, tools, ws
+from .routes import runs, sessions, teams, ws
 
 # Configure logging
 # logger = logging.getLogger(__name__)
@@ -104,26 +104,6 @@ api.include_router(
     responses={404: {"description": "Not found"}},
 )
 
-api.include_router(
-    agents.router,
-    prefix="/agents",
-    tags=["agents"],
-    responses={404: {"description": "Not found"}},
-)
-
-api.include_router(
-    models.router,
-    prefix="/models",
-    tags=["models"],
-    responses={404: {"description": "Not found"}},
-)
-
-api.include_router(
-    tools.router,
-    prefix="/tools",
-    tags=["tools"],
-    responses={404: {"description": "Not found"}},
-)
 
 api.include_router(
     ws.router,
