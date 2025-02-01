@@ -1,7 +1,7 @@
 import os
 import pickle
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Tuple
 
 from ._string_similarity_map import StringSimilarityMap
 from .page_logger import PageLogger
@@ -12,9 +12,10 @@ class Insight:
     """
     Represents a task-completion insight, which is a string that may help solve a task.
     """
+
     id: str
     insight_str: str
-    task_str: str
+    task_str: str | None
     topics: List[str]
 
 
@@ -35,7 +36,8 @@ class AgenticMemoryBank:
         - add_task_with_solution: Adds a task-insight pair to the memory bank, to be retrieved together later.
         - get_relevant_insights: Returns any insights from the memory bank that appear sufficiently relevant to the given
     """
-    def __init__(self, settings: Dict, reset: bool, logger: PageLogger) -> None:
+
+    def __init__(self, settings: Dict[str, Any], reset: bool, logger: PageLogger) -> None:
         self.settings = settings
         self.logger = logger
         self.logger.enter_function()
@@ -78,7 +80,7 @@ class AgenticMemoryBank:
         """
         Forces immediate deletion of the insights, in memory and on disk.
         """
-        self.uid_insight_dict = {}
+        self.uid_insight_dict: Dict[str, Insight] = {}
         self.save_insights()
 
     def save_insights(self) -> None:
@@ -133,8 +135,8 @@ class AgenticMemoryBank:
         Returns any insights from the memory bank that appear sufficiently relevant to the given task topics.
         """
         # Process the matching topics to build a dict of insight-relevance pairs.
-        matches = []  # Each match is a tuple: (topic, insight, distance)
-        insight_relevance_dict = {}
+        matches: List[Tuple[str, str, float]] = []  # Each match is a tuple: (topic, insight, distance)
+        insight_relevance_dict: Dict[str, float] = {}
         for topic in task_topics:
             matches.extend(self.string_map.get_related_string_pairs(topic, self.n_results, self.distance_threshold))
         for match in matches:
