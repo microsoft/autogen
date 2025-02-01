@@ -1,5 +1,5 @@
 import time
-from typing import List
+from typing import List, Union
 
 from autogen_core import Image
 from autogen_core.models import (
@@ -11,8 +11,8 @@ from autogen_core.models import (
     UserMessage,
 )
 
-from .page_logger import PageLogger
 from ._utils import UserContent
+from .page_logger import PageLogger
 
 
 class Prompter:
@@ -32,6 +32,7 @@ class Prompter:
         extract_task: Returns a task found in the given text, or None if not found.
         extract_advice: Returns advice from the given text, or None if not found.
     """
+
     def __init__(self, client: ChatCompletionClient, logger: PageLogger):
         self.client = client
         self.logger = logger
@@ -44,7 +45,11 @@ class Prompter:
         self._chat_history: List[LLMMessage] = []
 
     async def call_model(
-        self, summary: str, user_content: UserContent = None, system_message_content: str = None, keep_these_messages: bool = True
+        self,
+        summary: str,
+        user_content: UserContent,
+        system_message_content: str | None = None,
+        keep_these_messages: bool = True,
     ) -> str:
         """
         Calls the model client with the given input and returns the response.
@@ -106,7 +111,7 @@ class Prompter:
         sys_message = """- You are a patient and thorough teacher.
 - Your job is to review work done by students and help them learn how to do better."""
 
-        user_message = []
+        user_message: List[Union[str, Image]] = []
         user_message.append("# A team of students made a mistake on the following task:\n")
         user_message.extend([task_description])
 
@@ -159,7 +164,7 @@ class Prompter:
         """
         sys_message = """You are an expert at semantic analysis."""
 
-        user_message = []
+        user_message: List[Union[str, Image]] = []
         user_message.append("""- My job is to create a thorough index for a book called Task Completion, and I need your help.
 - Every paragraph in the book needs to be indexed by all the topics related to various kinds of tasks and strategies for completing them.
 - Your job is to read the text below and extract the task-completion topics that are covered.
@@ -177,9 +182,9 @@ class Prompter:
         )
 
         # Parse the topics into a list.
-        topic_list = []
+        topic_list: List[str] = []
         for line in topics.split("\n"):
-            if (line is not None) and (len(line) > 0):
+            if len(line) > 0:
                 topic_list.append(line)
 
         return topic_list
@@ -191,7 +196,7 @@ class Prompter:
 
         sys_message = """You are a helpful and thoughtful assistant."""
 
-        user_message = [
+        user_message: List[Union[str, Image]] = [
             "We have been given a task description. Our job is not to complete the task, but merely rephrase the task in simpler, more general terms, if possible. Please reach through the following task description, then explain your understanding of the task in detail, as a single, flat list of all the important points."
         ]
         user_message.append("\n# Task description")
@@ -230,8 +235,8 @@ class Prompter:
 
         sys_message = """You are a helpful and thoughtful assistant."""
 
-        user_message = [
-            """We have been given a potential insight that may or may not be useful for solving a given task. 
+        user_message: List[Union[str, Image]] = [
+            """We have been given a potential insight that may or may not be useful for solving a given task.
 - First review the following task.
 - Then review the insight that follows, and consider whether it might help solve the given task.
 - Do not attempt to actually solve the task.
@@ -249,12 +254,12 @@ class Prompter:
         )
         return response == "1"
 
-    async def extract_task(self, text: str) -> str:
+    async def extract_task(self, text: str) -> str | None:
         """
         Returns a task found in the given text, or None if not found.
         """
         sys_message = """You are a helpful and thoughtful assistant."""
-        user_message = [
+        user_message: List[Union[str, Image]] = [
             """Does the following text contain a question or a some task we are being asked to perform?
 - If so, please reply with the full question or task description, along with any supporting information, but without adding extra commentary or formatting.
 - If the task is just to remember something, that doesn't count as a task, so don't include it.
@@ -268,12 +273,12 @@ class Prompter:
         )
         return response if response != "None" else None
 
-    async def extract_advice(self, text: str) -> str:
+    async def extract_advice(self, text: str) -> str | None:
         """
         Returns advice from the given text, or None if not found.
         """
         sys_message = """You are a helpful and thoughtful assistant."""
-        user_message = [
+        user_message: List[Union[str, Image]] = [
             """Does the following text contain any information or advice that might be useful later?
 - If so, please copy the information or advice, adding no extra commentary or formatting.
 - If there is no potentially useful information or advice at all, simply write "None" with no punctuation."""
