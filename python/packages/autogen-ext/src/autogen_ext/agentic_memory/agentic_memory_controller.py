@@ -1,11 +1,12 @@
-from typing import Callable, Dict, List, Optional, Union, Tuple
+from typing import Any, Awaitable, Callable, Dict, List, Tuple
 
 from autogen_core.models import (
     ChatCompletionClient,
 )
+
 from ._agentic_memory_bank import AgenticMemoryBank
-from .grader import Grader
 from ._prompter import Prompter
+from .grader import Grader
 from .page_logger import PageLogger
 
 
@@ -30,7 +31,15 @@ class AgenticMemoryController:
         assign_task: Assigns a task to the agent, along with any relevant insights/memories.
         handle_user_message: Handles a user message, extracting any advice and assigning a task to the agent.
     """
-    def __init__(self, settings: Dict, reset: bool, client: ChatCompletionClient, task_assignment_callback: Callable, logger: PageLogger) -> None:
+
+    def __init__(
+        self,
+        settings: Dict[str, Any],
+        reset: bool,
+        client: ChatCompletionClient,
+        task_assignment_callback: Callable[[str], Awaitable[Tuple[str, str]]],
+        logger: PageLogger,
+    ) -> None:
         self.logger = logger
         self.logger.enter_function()
         self.settings = settings
@@ -63,12 +72,12 @@ class AgenticMemoryController:
             await self.add_insight_to_memory(insight, task)
         self.logger.leave_function()
 
-    async def test_on_task(self, task: str, expected_answer: str, num_trials=1) -> Tuple[str, int, int]:
+    async def test_on_task(self, task: str, expected_answer: str, num_trials: int = 1) -> Tuple[str, int, int]:
         """
         Assigns a task to the agent, along with any relevant insights retrieved from memory.
         """
         self.logger.enter_function()
-        response = None
+        response = ""
         num_successes = 0
 
         for trial in range(num_trials):
@@ -109,7 +118,7 @@ class AgenticMemoryController:
         """
         self.logger.enter_function()
 
-        generalized_task = None
+        generalized_task = ""
         if task is not None:
             self.logger.info("\nGIVEN TASK:")
             self.logger.info(task)
@@ -176,14 +185,14 @@ class AgenticMemoryController:
 
             # Retrieve relevant insights from the memory bank.
             relevant_insights_and_relevances = self.memory_bank.get_relevant_insights(task_topics=task_topics)
-            relevant_insights = []
+            relevant_insights: List[str] = []
             self.logger.info("\n{} POTENTIALLY RELEVANT INSIGHTS".format(len(relevant_insights_and_relevances)))
             for insight, relevance in relevant_insights_and_relevances.items():
                 self.logger.info("\n  INSIGHT: {}\n  RELEVANCE: {:.3f}".format(insight, relevance))
                 relevant_insights.append(insight)
 
             # Apply a final validation stage to keep only the insights that the LLM concludes are relevant.
-            validated_insights = []
+            validated_insights: List[str] = []
             for insight in relevant_insights:
                 if await self.prompter.validate_insight(insight, task):
                     validated_insights.append(insight)
@@ -198,7 +207,7 @@ class AgenticMemoryController:
         self.logger.leave_function()
         return validated_insights
 
-    def _format_memory_section(self, memories) -> str:
+    def _format_memory_section(self, memories: List[str]) -> str:
         """
         Formats a list of memories as a section for appending to a task description.
         """
@@ -209,7 +218,9 @@ class AgenticMemoryController:
                 memory_section += "- " + mem + "\n"
         return memory_section
 
-    async def _test_for_failure(self, task: str, task_plus_insights: str, expected_answer: str, num_trials: int) -> Tuple[bool, str, str]:
+    async def _test_for_failure(
+        self, task: str, task_plus_insights: str, expected_answer: str, num_trials: int
+    ) -> Tuple[bool, str, str]:
         """
         Attempts to solve the given task multiple times to find a failure case to learn from.
         """
@@ -218,7 +229,7 @@ class AgenticMemoryController:
         self.logger.info("\nExpected answer:  {}\n".format(expected_answer))
 
         failure_found = False
-        response, work_history = None, None
+        response, work_history = "", ""
 
         for trial in range(num_trials):
             self.logger.info("\n-----  TRIAL {}  -----\n".format(trial + 1))
@@ -241,7 +252,9 @@ class AgenticMemoryController:
         self.logger.leave_function()
         return failure_found, response, work_history
 
-    async def _iterate_on_task(self, task: str, expected_answer: str, max_train_trials: int, max_test_trials: int) -> Tuple[str, None | str]:
+    async def _iterate_on_task(
+        self, task: str, expected_answer: str, max_train_trials: int, max_test_trials: int
+    ) -> Tuple[str, None | str]:
         """
         Repeatedly assigns a task to the agent, and tries to learn from failures by creating useful insights as memories.
         """
@@ -249,9 +262,9 @@ class AgenticMemoryController:
         self.logger.info("\nTask description:  {}".format(task))
         self.logger.info("\nExpected answer:  {}\n".format(expected_answer))
 
-        final_response = None
+        final_response = ""
         old_insights = await self.retrieve_relevant_insights(task)
-        new_insights = []
+        new_insights: List[str] = []
         last_insight = None
         insight = None
         successful_insight = None
@@ -323,10 +336,8 @@ class AgenticMemoryController:
 
         # Attempt to solve the task.
         self.logger.info("Try to solve the task.\n")
-        if should_await:
-            response, _ = await self.task_assignment_callback(task)
-        else:
-            response, _ = self.task_assignment_callback(task)
+        assert should_await
+        response, _ = await self.task_assignment_callback(task)
 
         self.logger.leave_function()
         return response
