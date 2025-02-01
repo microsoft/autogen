@@ -6,6 +6,7 @@ from autogen_core import CancellationToken, Component
 from autogen_core.tools import BaseTool
 from json_schema_to_pydantic import create_model
 from pydantic import BaseModel, Field
+from typing_extensions import Self
 
 
 class HttpToolConfig(BaseModel):
@@ -169,7 +170,7 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
         return copied_config
 
     @classmethod
-    def _from_config(cls, config: HttpToolConfig):
+    def _from_config(cls, config: HttpToolConfig) -> Self:
         copied_config = config.model_copy().model_dump()
         return cls(**copied_config)
 
