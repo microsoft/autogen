@@ -231,13 +231,13 @@ Read the above conversation. Then select the next role from {participants} to pl
     return builder.build()
 
 
-# if __name__ == "__main__":
-#     # Create and save the gallery
-#     gallery = create_default_gallery()
+if __name__ == "__main__":
+    # Create and save the gallery
+    gallery = create_default_gallery()
 
-#     # Print as JSON
-#     print(gallery.model_dump_json(indent=2))
+    # Print as JSON
+    print(gallery.model_dump_json(indent=2))
 
-#     # Save to file
-#     with open("gallery_default.json", "w") as f:
-#         f.write(gallery.model_dump_json(indent=2))
+    # Save to file
+    with open("gallery_default.json", "w") as f:
+        f.write(gallery.model_dump_json(indent=2))
