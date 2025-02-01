@@ -1,8 +1,11 @@
 import os
 import pickle
-from typing import Optional, Union, Dict, List, Tuple
+from typing import Dict, List, Tuple, Union
 
 import chromadb
+from chromadb.api.types import (
+    QueryResult,
+)
 from chromadb.config import Settings
 
 from .page_logger import PageLogger
@@ -27,6 +30,7 @@ class StringSimilarityMap:
         - reset_db: Forces immediate deletion of the DB's contents, in memory and on disk.
         - save_string_pairs: Saves the string-pair dict to disk.
     """
+
     def __init__(self, reset: bool, path_to_db_dir: str, logger: PageLogger) -> None:
         self.logger = logger
         self.path_to_db_dir = path_to_db_dir
@@ -40,7 +44,7 @@ class StringSimilarityMap:
 
         # Load or create the associated string-pair dict on disk.
         self.path_to_dict = os.path.join(path_to_db_dir, "uid_text_dict.pkl")
-        self.uid_text_dict = {}
+        self.uid_text_dict: Dict[str, Tuple[str, str]] = {}
         self.last_string_pair_id = 0
         if (not reset) and os.path.exists(self.path_to_dict):
             self.logger.debug("\nLOADING STRING SIMILARITY MAP FROM DISK  {}".format(self.path_to_dict))
@@ -96,28 +100,29 @@ class StringSimilarityMap:
         )
         # self._log_string_pairs()  # For deeper debugging, uncomment to log all string pairs after each addition.
 
-    def get_related_string_pairs(self, query_text: str, n_results: int, threshold: Union[int, float]) -> List[Tuple[str, str, float]]:
+    def get_related_string_pairs(
+        self, query_text: str, n_results: int, threshold: Union[int, float]
+    ) -> List[Tuple[str, str, float]]:
         """
         Retrieves up to n string pairs that are related to the given query text within the specified distance threshold.
         """
+        string_pairs_with_distances: List[Tuple[str, str, float]] = []
         if n_results > len(self.uid_text_dict):
             n_results = len(self.uid_text_dict)
         if n_results > 0:
-            results = self.vec_db.query(query_texts=[query_text], n_results=n_results)
+            results: QueryResult = self.vec_db.query(query_texts=[query_text], n_results=n_results)
             num_results = len(results["ids"][0])
-        else:
-            results = []
-            num_results = 0
-        string_pairs = []
-        for i in range(num_results):
-            uid, input_text, distance = results["ids"][0][i], results["documents"][0][i], results["distances"][0][i]
-            if distance < threshold:
-                input_text_2, output_text = self.uid_text_dict[uid]
-                assert input_text == input_text_2
-                self.logger.debug(
-                    "\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT1\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
-                        input_text, output_text, distance
+            for i in range(num_results):
+                uid = results["ids"][0][i]
+                input_text = results["documents"][0][i] if results["documents"] else ""
+                distance = results["distances"][0][i] if results["distances"] else 0.0
+                if distance < threshold:
+                    input_text_2, output_text = self.uid_text_dict[uid]
+                    assert input_text == input_text_2
+                    self.logger.debug(
+                        "\nINPUT-OUTPUT PAIR RETRIEVED FROM VECTOR DATABASE:\n  INPUT1\n    {}\n  OUTPUT\n    {}\n  DISTANCE\n    {}".format(
+                            input_text, output_text, distance
+                        )
                     )
-                )
-                string_pairs.append((input_text, output_text, distance))
-        return string_pairs
+                    string_pairs_with_distances.append((input_text, output_text, distance))
+        return string_pairs_with_distances
