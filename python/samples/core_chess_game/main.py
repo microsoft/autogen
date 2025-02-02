@@ -5,8 +5,8 @@ moves to the default topic."""
 
 import argparse
 import asyncio
-import json
 import logging
+import yaml
 from typing import Annotated, Any, Dict, List, Literal
 
 from autogen_core import (
@@ -266,7 +266,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run a chess game between two agents.")
     parser.add_argument("--verbose", action="store_true", help="Enable verbose logging.")
     parser.add_argument(
-        "--model-config", type=str, help="Path to the model configuration file.", default="model_config.json"
+        "--model-config", type=str, help="Path to the model configuration file.", default="model_config.yml"
     )
     args = parser.parse_args()
     if args.verbose:
@@ -276,5 +276,5 @@ if __name__ == "__main__":
         logging.getLogger("autogen_core").addHandler(handler)
 
     with open(args.model_config, "r") as f:
-        model_config = json.load(f)
+        model_config = yaml.safe_load(f)
     asyncio.run(main(model_config))

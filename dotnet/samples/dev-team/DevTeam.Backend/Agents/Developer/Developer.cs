@@ -2,6 +2,7 @@
 // Developer.cs
 
 using DevTeam.Agents;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 
 namespace DevTeam.Backend.Agents.Developer;

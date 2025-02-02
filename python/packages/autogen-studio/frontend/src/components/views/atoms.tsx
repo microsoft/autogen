@@ -1,5 +1,6 @@
 import React, { memo, useState } from "react";
 import { Loader2, Maximize2, Minimize2, X } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 
 export const LoadingIndicator = ({ size = 16 }: { size: number }) => (
   <div className="inline-flex items-center gap-2 text-accent   mr-2">
@@ -80,7 +81,8 @@ export const TruncatableText = memo(
             ${className}
           `}
         >
-          {displayContent}
+          {/* {displayContent} */}
+          <ReactMarkdown>{displayContent}</ReactMarkdown>
           {shouldTruncate && !isExpanded && (
             <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-secondary/20 to-transparent" />
           )}

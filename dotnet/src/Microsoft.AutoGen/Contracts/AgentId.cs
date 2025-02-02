@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.RegularExpressions;
 
 namespace Microsoft.AutoGen.Contracts;
 
@@ -16,6 +17,9 @@ namespace Microsoft.AutoGen.Contracts;
 [DebuggerDisplay($"AgentId(type=\"{nameof(Type)}\", key=\"{nameof(Key)}\")")]
 public struct AgentId
 {
+    private static readonly Regex TypeRegex = new(@"^[a-zA-Z_][a-zA-Z0-9_]*$", RegexOptions.Compiled);
+    private static readonly Regex KeyRegex = new(@"^[\x20-\x7E]+$", RegexOptions.Compiled); // ASCII 32-126
+
     /// <summary>
     /// An identifier that associates an agent with a specific factory function.
     /// Strings may only be composed of alphanumeric letters (a-z) and (0-9), or underscores (_).
@@ -35,6 +39,16 @@ public struct AgentId
     /// <param name="key">Agent instance identifier.</param>
     public AgentId(string type, string key)
     {
+        if (string.IsNullOrWhiteSpace(type) || !TypeRegex.IsMatch(type))
+        {
+            throw new ArgumentException($"Invalid AgentId type: '{type}'. Must be alphanumeric (a-z, 0-9, _) and cannot start with a number or contain spaces.");
+        }
+
+        if (string.IsNullOrWhiteSpace(key) || !KeyRegex.IsMatch(key))
+        {
+            throw new ArgumentException($"Invalid AgentId key: '{key}'. Must only contain ASCII characters 32-126.");
+        }
+
         Type = type;
         Key = key;
     }
