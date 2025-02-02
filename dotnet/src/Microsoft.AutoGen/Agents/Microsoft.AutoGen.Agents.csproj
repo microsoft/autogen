@@ -14,9 +14,12 @@
 		<ProjectReference Include="..\Core\Microsoft.AutoGen.Core.csproj" />
 		<ProjectReference Include="..\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj" />
   </ItemGroup>
-
   <ItemGroup>
 	  <PackageReference Include="Microsoft.SemanticKernel" />
-   	  <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
+   	<PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
+  </ItemGroup>
+  <ItemGroup>
+      <Protobuf Include="..\..\..\..\protos\agent_events.proto" GrpcServices="Client;Server" Link="Protos\agent_events.proto" />
   </ItemGroup>
 </Project>

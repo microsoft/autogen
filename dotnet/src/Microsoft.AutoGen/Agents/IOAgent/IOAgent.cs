@@ -1,8 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IOAgent.cs
 
-using Microsoft.AutoGen.Contracts;
-using Microsoft.AutoGen.Core;
 namespace Microsoft.AutoGen.Agents;
 
 public abstract class IOAgent(AgentsMetadata eventTypes) : Agent(eventTypes)
