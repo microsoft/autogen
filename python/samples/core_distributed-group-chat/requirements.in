@@ -1,5 +1,0 @@
-autogen-ext[openai]==0.4.3
-azure-identity
-chainlit
-rich
-pyyaml

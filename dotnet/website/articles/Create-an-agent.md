@@ -4,8 +4,8 @@
 
 ## Create an `AssistantAgent` using OpenAI model.
 
-[!code-csharp[](../../samples/AutoGen.BasicSamples/CodeSnippet/CreateAnAgent.cs?name=code_snippet_1)]
+[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/CodeSnippet/CreateAnAgent.cs?name=code_snippet_1)]
 
 ## Create an `AssistantAgent` using Azure OpenAI model.
 
-[!code-csharp[](../../samples/AutoGen.BasicSamples/CodeSnippet/CreateAnAgent.cs?name=code_snippet_2)]
+[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/CodeSnippet/CreateAnAgent.cs?name=code_snippet_2)]

@@ -18,8 +18,8 @@ The following code shows how to create a graph that represents the diagram above
 > [!TIP]
 > @AutoGen.Core.Graph supports conditional transitions. To create a conditional transition, you can pass a lambda function to `canTransitionAsync` when creating a @AutoGen.Core.Transition. The lambda function should return a boolean value indicating if the transition can be taken.
 
-[!code-csharp[](../../samples/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_workflow)]
+[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_workflow)]
 
 Once the graph is created, you can pass it to the group chat. The group chat will then use the graph along with admin agent to orchestrate the conversation flow.
 
-[!code-csharp[](../../samples/AutoGen.BasicSamples/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_group_chat_with_workflow)]
+[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/Example07_Dynamic_GroupChat_Calculate_Fibonacci.cs?name=create_group_chat_with_workflow)]

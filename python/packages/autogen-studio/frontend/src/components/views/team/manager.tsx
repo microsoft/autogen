@@ -37,6 +37,7 @@ export const TeamManager: React.FC = () => {
       setIsLoading(true);
       const data = await teamAPI.listTeams(user.email);
       setTeams(data);
+      // console.log("team data", data);
       if (!currentTeam && data.length > 0) {
         setCurrentTeam(data[0]);
       }
@@ -143,7 +144,7 @@ export const TeamManager: React.FC = () => {
         updated_at: undefined, // Let server handle timestamps
       };
 
-      console.log("teamData", sanitizedTeamData);
+      // console.log("teamData", sanitizedTeamData);
       const savedTeam = await teamAPI.createTeam(sanitizedTeamData, user.email);
 
       messageApi.success(
@@ -201,7 +202,7 @@ export const TeamManager: React.FC = () => {
               <>
                 <ChevronRight className="w-4 h-4 text-secondary" />
                 <span className="text-secondary">
-                  {currentTeam.config.name}
+                  {currentTeam.component?.label}
                   {currentTeam.id ? (
                     ""
                   ) : (

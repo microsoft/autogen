@@ -10,7 +10,13 @@ from autogen_core.models import RequestUsage
 
 from autogen_agentchat.agents import UserProxyAgent
 from autogen_agentchat.base import Response, TaskResult
-from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage, UserInputRequestedEvent
+from autogen_agentchat.messages import (
+    AgentEvent,
+    ChatMessage,
+    ModelClientStreamingChunkEvent,
+    MultiModalMessage,
+    UserInputRequestedEvent,
+)
 
 
 def _is_running_in_iterm() -> bool:
@@ -106,6 +112,8 @@ async def Console(
 
     last_processed: Optional[T] = None
 
+    streaming_chunks: List[str] = []
+
     async for message in stream:
         if isinstance(message, TaskResult):
             duration = time.time() - start_time
@@ -159,13 +167,28 @@ async def Console(
         else:
             # Cast required for mypy to be happy
             message = cast(AgentEvent | ChatMessage, message)  # type: ignore
-            output = f"{'-' * 10} {message.source} {'-' * 10}\n{_message_to_str(message, render_image_iterm=render_image_iterm)}\n"
-            if message.models_usage:
-                if output_stats:
-                    output += f"[Prompt tokens: {message.models_usage.prompt_tokens}, Completion tokens: {message.models_usage.completion_tokens}]\n"
-                total_usage.completion_tokens += message.models_usage.completion_tokens
-                total_usage.prompt_tokens += message.models_usage.prompt_tokens
-            await aprint(output, end="")
+            if not streaming_chunks:
+                # Print message sender.
+                await aprint(f"{'-' * 10} {message.source} {'-' * 10}", end="\n")
+            if isinstance(message, ModelClientStreamingChunkEvent):
+                await aprint(message.content, end="")
+                streaming_chunks.append(message.content)
+            else:
+                if streaming_chunks:
+                    streaming_chunks.clear()
+                    # Chunked messages are already printed, so we just print a newline.
+                    await aprint("", end="\n")
+                else:
+                    # Print message content.
+                    await aprint(_message_to_str(message, render_image_iterm=render_image_iterm), end="\n")
+                if message.models_usage:
+                    if output_stats:
+                        await aprint(
+                            f"[Prompt tokens: {message.models_usage.prompt_tokens}, Completion tokens: {message.models_usage.completion_tokens}]",
+                            end="\n",
+                        )
+                    total_usage.completion_tokens += message.models_usage.completion_tokens
+                    total_usage.prompt_tokens += message.models_usage.prompt_tokens
 
     if last_processed is None:
         raise ValueError("No TaskResult or Response was processed.")

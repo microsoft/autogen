@@ -33,6 +33,9 @@ class ComponentModel(BaseModel):
     description: str | None = None
     """Description of the component."""
 
+    label: str | None = None
+    """Human readable label for the component. If missing the component assumes the class name of the provider."""
+
     config: dict[str, Any]
     """The schema validated config field is passed to a given class's implmentation of :py:meth:`autogen_core.ComponentConfigImpl._from_config` to create a new instance of the component class."""
 
@@ -95,6 +98,10 @@ class ComponentToConfig(Generic[ToConfigT]):
     """The version of the component, if schema incompatibilities are introduced this should be updated."""
     component_provider_override: ClassVar[str | None] = None
     """Override the provider string for the component. This should be used to prevent internal module names being a part of the module name."""
+    component_description: ClassVar[str | None] = None
+    """A description of the component. If not provided, the docstring of the class will be used."""
+    component_label: ClassVar[str | None] = None
+    """A human readable label for the component. If not provided, the component class name will be used."""
 
     def _to_config(self) -> ToConfigT:
         """Dump the configuration that would be requite to create a new instance of a component matching the configuration of this instance.
@@ -132,13 +139,22 @@ class ComponentToConfig(Generic[ToConfigT]):
         if not hasattr(self, "component_type"):
             raise AttributeError("component_type not defined")
 
+        description = self.component_description
+        if description is None and self.__class__.__doc__:
+            # use docstring as description
+            docstring = self.__class__.__doc__.strip()
+            for marker in ["\n\nArgs:", "\n\nParameters:", "\n\nAttributes:", "\n\n"]:
+                docstring = docstring.split(marker)[0]
+            description = docstring.strip()
+
         obj_config = self._to_config().model_dump(exclude_none=True)
         model = ComponentModel(
             provider=provider,
             component_type=self.component_type,
             version=self.component_version,
             component_version=self.component_version,
-            description=None,
+            description=description,
+            label=self.component_label or self.__class__.__name__,
             config=obj_config,
         )
         return model

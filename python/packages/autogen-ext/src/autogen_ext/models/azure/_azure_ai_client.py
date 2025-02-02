@@ -12,6 +12,7 @@ from autogen_core.models import (
     FinishReasons,
     FunctionExecutionResultMessage,
     LLMMessage,
+    ModelFamily,
     ModelInfo,
     RequestUsage,
     SystemMessage,
@@ -54,6 +55,8 @@ from autogen_ext.models.azure.config import (
     GITHUB_MODELS_ENDPOINT,
     AzureAIChatCompletionClientConfig,
 )
+
+from .._utils.parse_r1_content import parse_r1_content
 
 create_kwargs = set(getfullargspec(ChatCompletionsClient.complete).kwonlyargs)
 AzureMessage = Union[AzureSystemMessage, AzureUserMessage, AzureAssistantMessage, AzureToolMessage]
@@ -174,7 +177,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
     Args:
         endpoint (str): The endpoint to use. **Required.**
-        credentials (union, AzureKeyCredential, AsyncTokenCredential): The credentials to use. **Required**
+        credential (union, AzureKeyCredential, AsyncTokenCredential): The credentials to use. **Required**
         model_info (ModelInfo): The model family and capabilities of the model. **Required.**
         model (str): The name of the model. **Required if model is hosted on GitHub Models.**
         frequency_penalty: (optional,float)
@@ -182,7 +185,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         temperature: (optional,float)
         top_p: (optional,float)
         max_tokens: (optional,int)
-        response_format: (optional,ChatCompletionsResponseFormat)
+        response_format: (optional, literal["text", "json_object"])
         stop: (optional,List[str])
         tools: (optional,List[ChatCompletionsToolDefinition])
         tool_choice: (optional,Union[str, ChatCompletionsToolChoicePreset, ChatCompletionsNamedToolChoice]])
@@ -354,11 +357,17 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                 finish_reason = choice.finish_reason  # type: ignore
             content = choice.message.content or ""
 
+        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
+            thought, content = parse_r1_content(content)
+        else:
+            thought = None
+
         response = CreateResult(
             finish_reason=finish_reason,  # type: ignore
             content=content,
             usage=usage,
             cached=False,
+            thought=thought,
         )
 
         self.add_usage(usage)
@@ -464,11 +473,17 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             prompt_tokens=prompt_tokens,
         )
 
+        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
+            thought, content = parse_r1_content(content)
+        else:
+            thought = None
+
         result = CreateResult(
             finish_reason=finish_reason,
             content=content,
             usage=usage,
             cached=False,
+            thought=thought,
         )
 
         self.add_usage(usage)
