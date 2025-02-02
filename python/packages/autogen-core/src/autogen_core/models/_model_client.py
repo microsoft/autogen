@@ -18,6 +18,7 @@ class ModelFamily:
 
     This namespace class holds constants for the model families that AutoGen understands. Other families definitely exist and can be represented by a string, however, AutoGen will treat them as unknown."""
 
+    O3 = "o3"
     GPT_4O = "gpt-4o"
     O1 = "o1"
     GPT_4 = "gpt-4"
@@ -25,7 +26,7 @@ class ModelFamily:
     R1 = "r1"
     UNKNOWN = "unknown"
 
-    ANY: TypeAlias = Literal["gpt-4o", "o1", "gpt-4", "gpt-35", "r1", "unknown"]
+    ANY: TypeAlias = Literal["o3", "gpt-4o", "o1", "gpt-4", "gpt-35", "r1", "unknown"]
 
     def __new__(cls, *args: Any, **kwargs: Any) -> ModelFamily:
         raise TypeError(f"{cls.__name__} is a namespace class and cannot be instantiated.")
