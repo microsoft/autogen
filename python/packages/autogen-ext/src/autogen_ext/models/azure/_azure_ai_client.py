@@ -12,6 +12,7 @@ from autogen_core.models import (
     FinishReasons,
     FunctionExecutionResultMessage,
     LLMMessage,
+    ModelFamily,
     ModelInfo,
     RequestUsage,
     SystemMessage,
@@ -54,6 +55,8 @@ from autogen_ext.models.azure.config import (
     GITHUB_MODELS_ENDPOINT,
     AzureAIChatCompletionClientConfig,
 )
+
+from .._utils.parse_r1_content import parse_r1_content
 
 create_kwargs = set(getfullargspec(ChatCompletionsClient.complete).kwonlyargs)
 AzureMessage = Union[AzureSystemMessage, AzureUserMessage, AzureAssistantMessage, AzureToolMessage]
@@ -354,11 +357,17 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                 finish_reason = choice.finish_reason  # type: ignore
             content = choice.message.content or ""
 
+        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
+            thought, content = parse_r1_content(content)
+        else:
+            thought = None
+
         response = CreateResult(
             finish_reason=finish_reason,  # type: ignore
             content=content,
             usage=usage,
             cached=False,
+            thought=thought,
         )
 
         self.add_usage(usage)
@@ -464,11 +473,17 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             prompt_tokens=prompt_tokens,
         )
 
+        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
+            thought, content = parse_r1_content(content)
+        else:
+            thought = None
+
         result = CreateResult(
             finish_reason=finish_reason,
             content=content,
             usage=usage,
             cached=False,
+            thought=thought,
         )
 
         self.add_usage(usage)

@@ -3,6 +3,7 @@
 
 using System.Diagnostics;
 using System.Reflection;
+
 using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Core;
@@ -42,19 +43,17 @@ public class HandlerInvoker
                 return null;
             };
         }
-        else if (
-            methodInfo.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>)
-            )
+        else if (methodInfo.ReturnType.GetGenericTypeDefinition() == typeof(ValueTask<>))
         {
+            MethodInfo typeEraseAwait = typeof(HandlerInvoker)
+                    .GetMethod(nameof(TypeEraseAwait), BindingFlags.NonPublic | BindingFlags.Static)!
+                    .MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments()[0]);
+
             getResultAsync = async
             (object? message, MessageContext messageContext) =>
             {
                 object valueTask = invocation(message, messageContext)!;
-
-                object? typelessValueTask = typeof(HandlerInvoker)
-                    .GetMethod(nameof(TypeEraseAwait), BindingFlags.NonPublic | BindingFlags.Static)!
-                    .MakeGenericMethod(methodInfo.ReturnType.GetGenericArguments()[0])
-                    .Invoke(null, new object[] { valueTask });
+                object? typelessValueTask = typeEraseAwait.Invoke(null, new object[] { valueTask });
 
                 Debug.Assert(typelessValueTask is ValueTask<object?>);
 

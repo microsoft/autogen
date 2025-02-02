@@ -50,6 +50,7 @@ from autogen_core.models import (
 )
 from autogen_core.tools import BaseTool
 from pydantic import BaseModel, Field
+import yaml
 
 
 @dataclass
@@ -332,8 +333,8 @@ if __name__ == "__main__":
     # if os.path.exists("state.json"):
     #     os.remove("state.json")
 
-    with open("model_config.json") as f:
-        model_config = json.load(f)
+    with open("model_config.yml") as f:
+        model_config = yaml.safe_load(f)
 
     def get_user_input(question_for_user: str):
         print("--------------------------QUESTION_FOR_USER--------------------------")

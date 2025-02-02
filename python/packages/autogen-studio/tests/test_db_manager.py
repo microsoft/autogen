@@ -5,16 +5,11 @@ from sqlmodel import Session, text, select
 from typing import Generator
 
 from autogenstudio.database import DatabaseManager
-from autogenstudio.datamodel.types import (
-    ToolConfig,
-    OpenAIModelConfig,
-    RoundRobinTeamConfig,
-    StopMessageTerminationConfig,
-    AssistantAgentConfig,
-    ModelTypes, AgentTypes, TeamTypes, ComponentTypes,
-    TerminationTypes,  ToolTypes
-)
-from autogenstudio.datamodel.db import Model, Tool, Agent, Team, LinkTypes
+from autogen_agentchat.agents import AssistantAgent
+from autogen_agentchat.teams import RoundRobinGroupChat
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_agentchat.conditions import TextMentionTermination
+from autogenstudio.datamodel.db import Team
 
 
 @pytest.fixture
@@ -42,69 +37,21 @@ def test_user() -> str:
 
 
 @pytest.fixture
-def sample_model(test_user: str) -> Model:
-    """Create a sample model with proper config"""
-    return Model(
-        user_id=test_user,
-        config=OpenAIModelConfig(
-            model="gpt-4",
-            model_type=ModelTypes.OPENAI,
-            component_type=ComponentTypes.MODEL,
-            version="1.0.0"
-        ).model_dump()
-    )
-
-
-@pytest.fixture
-def sample_tool(test_user: str) -> Tool:
-    """Create a sample tool with proper config"""
-    return Tool(
-        user_id=test_user,
-        config=ToolConfig(
-            name="test_tool",
-            description="A test tool",
-            content="async def test_func(x: str) -> str:\n    return f'Test {x}'",
-            tool_type=ToolTypes.PYTHON_FUNCTION,
-            component_type=ComponentTypes.TOOL,
-            version="1.0.0"
-        ).model_dump()
-    )
-
-
-@pytest.fixture
-def sample_agent(test_user: str, sample_model: Model, sample_tool: Tool) -> Agent:
-    """Create a sample agent with proper config and relationships"""
-    return Agent(
-        user_id=test_user,
-        config=AssistantAgentConfig(
-            name="test_agent",
-            agent_type=AgentTypes.ASSISTANT,
-            model_client=OpenAIModelConfig.model_validate(sample_model.config),
-            tools=[ToolConfig.model_validate(sample_tool.config)],
-            component_type=ComponentTypes.AGENT,
-            version="1.0.0"
-        ).model_dump()
-    )
-
-
-@pytest.fixture
-def sample_team(test_user: str, sample_agent: Agent) -> Team:
+def sample_team(test_user: str) -> Team:
     """Create a sample team with proper config"""
+    agent = AssistantAgent(
+        name="weather_agent",
+        model_client=OpenAIChatCompletionClient(
+            model="gpt-4",
+        ), 
+    )
+
+    agent_team = RoundRobinGroupChat([agent], termination_condition=TextMentionTermination("TERMINATE"))
+    team_component = agent_team.dump_component()
+
     return Team(
         user_id=test_user,
-        config=RoundRobinTeamConfig(
-            name="test_team",
-            participants=[AssistantAgentConfig.model_validate(
-                sample_agent.config)],
-            termination_condition=StopMessageTerminationConfig(
-                termination_type=TerminationTypes.STOP_MESSAGE,
-                component_type=ComponentTypes.TERMINATION,
-                version="1.0.0"
-            ).model_dump(),
-            team_type=TeamTypes.ROUND_ROBIN,
-            component_type=ComponentTypes.TEAM,
-            version="1.0.0"
-        ).model_dump()
+        component=team_component.model_dump(),
     )
 
 
@@ -117,112 +64,51 @@ class TestDatabaseOperations:
             result = session.exec(select(1)).first()
             assert result == 1
 
-    def test_basic_entity_creation(self, test_db: DatabaseManager, sample_model: Model,
-                                   sample_tool: Tool, sample_agent: Agent, sample_team: Team):
+    def test_basic_entity_creation(self, test_db: DatabaseManager, sample_team: Team):
         """Test creating all entity types with proper configs"""
+        # Use upsert instead of raw session
+        response = test_db.upsert(sample_team)
+        assert response.status is True
+        
         with Session(test_db.engine) as session:
-            # Add all entities
-            session.add(sample_model)
-            session.add(sample_tool)
-            session.add(sample_agent)
-            session.add(sample_team)
-            session.commit()
+            saved_team = session.get(Team, sample_team.id)
+            assert saved_team is not None
 
-            # Store IDs
-            model_id = sample_model.id
-            tool_id = sample_tool.id
-            agent_id = sample_agent.id
-            team_id = sample_team.id
-
-        # Verify all entities were created with new session
-        with Session(test_db.engine) as session:
-            assert session.get(Model, model_id) is not None
-            assert session.get(Tool, tool_id) is not None
-            assert session.get(Agent, agent_id) is not None
-            assert session.get(Team, team_id) is not None
-
-    def test_multiple_links(self, test_db: DatabaseManager, sample_agent: Agent):
-        """Test linking multiple models to an agent"""
-        with Session(test_db.engine) as session:
-            # Create two models with updated configs
-            model1 = Model(
-                user_id="test_user",
-                config=OpenAIModelConfig(
-                    model="gpt-4",
-                    model_type=ModelTypes.OPENAI,
-                    component_type=ComponentTypes.MODEL,
-                    version="1.0.0"
-                ).model_dump()
-            )
-            model2 = Model(
-                user_id="test_user",
-                config=OpenAIModelConfig(
-                    model="gpt-3.5",
-                    model_type=ModelTypes.OPENAI,
-                    component_type=ComponentTypes.MODEL,
-                    version="1.0.0"
-                ).model_dump()
-            )
-
-            # Add and commit all entities
-            session.add(model1)
-            session.add(model2)
-            session.add(sample_agent)
-            session.commit()
-
-            model1_id = model1.id
-            model2_id = model2.id
-            agent_id = sample_agent.id
-
-        # Create links using IDs
-        test_db.link(LinkTypes.AGENT_MODEL, agent_id, model1_id)
-        test_db.link(LinkTypes.AGENT_MODEL, agent_id, model2_id)
-
-        # Verify links
-        linked_models = test_db.get_linked_entities(
-            LinkTypes.AGENT_MODEL, agent_id)
-        assert len(linked_models.data) == 2
-
-        # Verify model names
-        model_names = [model.config["model"] for model in linked_models.data]
-        assert "gpt-4" in model_names
-        assert "gpt-3.5" in model_names
-
-    def test_upsert_operations(self, test_db: DatabaseManager, sample_model: Model):
+    def test_upsert_operations(self, test_db: DatabaseManager, sample_team: Team):
         """Test upsert for both create and update scenarios"""
         # Test Create
-        response = test_db.upsert(sample_model)
+        response = test_db.upsert(sample_team)
         assert response.status is True
         assert "Created Successfully" in response.message
 
         # Test Update
-        sample_model.config["model"] = "gpt-4-turbo"
-        response = test_db.upsert(sample_model)
+        team_id = sample_team.id
+        sample_team.version = "0.0.2"
+        response = test_db.upsert(sample_team)
         assert response.status is True
-        assert "Updated Successfully" in response.message
 
         # Verify Update
-        result = test_db.get(Model, {"id": sample_model.id})
+        result = test_db.get(Team, {"id": team_id})
         assert result.status is True
-        assert result.data[0].config["model"] == "gpt-4-turbo"
+        assert result.data[0].version == "0.0.2"
 
-    def test_delete_operations(self, test_db: DatabaseManager, sample_model: Model):
+    def test_delete_operations(self, test_db: DatabaseManager, sample_team: Team):
         """Test delete with various filters"""
         # First insert the model
-        test_db.upsert(sample_model)
-
+        response = test_db.upsert(sample_team)
+        assert response.status is True  # Verify insert worked
+        
+        # Get the ID that was actually saved
+        team_id = sample_team.id
+        
         # Test deletion by id
-        response = test_db.delete(Model, {"id": sample_model.id})
+        response = test_db.delete(Team, {"id": team_id})
         assert response.status is True
         assert "Deleted Successfully" in response.message
 
         # Verify deletion
-        result = test_db.get(Model, {"id": sample_model.id})
+        result = test_db.get(Team, {"id": team_id})
         assert len(result.data) == 0
-
-        # Test deletion with non-existent id
-        response = test_db.delete(Model, {"id": 999999})
-        assert "Row not found" in response.message
 
     def test_initialize_database_scenarios(self):
         """Test different initialize_database parameters"""

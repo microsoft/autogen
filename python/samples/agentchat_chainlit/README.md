@@ -1,108 +1,64 @@
 # Building a Multi-Agent Application with AutoGen and Chainlit
 
-In this sample, we will build a simple chat interface that interacts with a `RoundRobinGroupChat` team built using the [AutoGen AgentChat](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/index.html) api.
+In this sample, we will demonstrate how to build simple chat interface that
+interacts with an [AgentChat](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/index.html)
+agent or a team, using [Chainlit](https://github.com/Chainlit/chainlit),
+and support streaming messages.
 
 ![AgentChat](docs/chainlit_autogen.png).
 
-## High-Level Description
+## Installation
 
-The `app.py` script sets up a Chainlit chat interface that communicates with the AutoGen team. When a chat starts, it
-
-- Initializes an AgentChat team.
-
-```python
-
-async def get_weather(city: str) -> str:
-    return f"The weather in {city} is 73 degrees and Sunny."
-
-assistant_agent = AssistantAgent(
-    name="assistant_agent",
-    tools=[get_weather],
-    model_client=OpenAIChatCompletionClient(
-        model="gpt-4o-2024-08-06"))
-
-
-termination = TextMentionTermination("TERMINATE") | MaxMessageTermination(10)
-team = RoundRobinGroupChat(
-    participants=[assistant_agent], termination_condition=termination)
-
-```
-
-- As users interact with the chat, their queries are sent to the team which responds.
-- As agents respond/act, their responses are streamed back to the chat interface.
-
-## Quickstart
-
-To get started, ensure you have setup an API Key. We will be using the OpenAI API for this example.
-
-1. Ensure you have an OPENAPI API key. Set this key in your environment variables as `OPENAI_API_KEY`.
-
-2. Install the required Python packages by running:
+To run this sample, you will need to install the following packages:
 
 ```shell
-pip install -r requirements.txt
+pip install -U chainlit autogen-agentchat autogen-ext[openai] pyyaml
 ```
 
-3. Run the `app.py` script to start the Chainlit server.
+To use other model providers, you will need to install a different extra
+for the `autogen-ext` package.
+See the [Models documentation](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/models.html) for more information.
+
+
+## Model Configuration
+
+Create a configuration file named `model_config.yaml` to configure the model
+you want to use. Use `model_config_template.yaml` as a template.
+
+## Running the Agent Sample
+
+The first sample demonstrate how to interact with a single AssistantAgent
+from the chat interface.
 
 ```shell
-chainlit run app.py -h
+chainlit run app_agent.py -h
 ```
 
-4. Interact with the Agent Team Chainlit interface. The chat interface will be available at `http://localhost:8000` by default.
+You can use one of the starters. For example, ask "What the weather in Seattle?".
 
-### Function Definitions
+The agent will respond by first using the tools provided and then reflecting
+on the result of the tool execution.
 
-- `start_chat`: Initializes the chat session
-- `run_team`: Sends the user's query to the team streams the agent responses back to the chat interface.
-- `chat`: Receives messages from the user and passes them to the `run_team` function.
+## Running the Team Sample
 
+The second sample demonstrate how to interact with a team of agents from the
+chat interface.
 
-## Adding a UserProxyAgent
-
-We can add a `UserProxyAgent` to the team so that the user can interact with the team directly with the input box in the chat interface. This requires defining a function for input that uses the Chainlit input box instead of the terminal.
-
-```python
-from typing import Optional
-from autogen_core import CancellationToken
-from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
-from autogen_agentchat.conditions import TextMentionTermination, MaxMessageTermination
-from autogen_agentchat.teams import RoundRobinGroupChat
-from autogen_ext.models.openai import OpenAIChatCompletionClient
-
-async def chainlit_input_func(prompt: str, cancellation_token: Optional[CancellationToken] = None) -> str:
-    try:
-        response = await cl.AskUserMessage(
-            content=prompt,
-            author="System",
-        ).send()
-        return response["output"]
-
-    except Exception as e:
-        raise RuntimeError(f"Failed to get user input: {str(e)}") from e
-
-user_proxy_agent = UserProxyAgent(
-    name="user_proxy_agent",
-    input_func=chainlit_input_func,
-)
-assistant_agent = AssistantAgent(
-    name="assistant_agent",
-    model_client=OpenAIChatCompletionClient(
-        model="gpt-4o-2024-08-06"))
-
-termination = TextMentionTermination("TERMINATE") | MaxMessageTermination(10)
-
-team = RoundRobinGroupChat(
-    participants=[user_proxy_agent, assistant_agent],
-    termination_condition=termination)
+```shell
+chainlit run app_team.py -h
 ```
+You can use one of the starters. For example, ask "Write a poem about winter.".
 
+The team is a RoundRobinGroupChat, so each agent will respond in turn.
+There are two agents in the team: one is instructed to be generally helpful
+and the other one is instructed to be a critic and provide feedback. 
+The two agents will respond in round-robin fashion until
+the 'APPROVE' is mentioned by the critic agent.
 
+## Next Steps
 
-## Next Steps (Extra Credit)
+There are a few ways you can extend this example:
 
-In this example, we created a basic AutoGen team with a single agent in a RoundRobinGroupChat team. There are a few ways you can extend this example:
-
-- Add more [agents](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/agents.html) to the team.
-- Explore custom agents that sent multimodal messages
-- Explore more [team](https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/teams.html) types beyond the `RoundRobinGroupChat`.
+- Try other [agents](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/agents.html).
+- Try other [team](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/teams.html) types beyond the `RoundRobinGroupChat`.
+- Explore custom agents that sent multimodal messages.

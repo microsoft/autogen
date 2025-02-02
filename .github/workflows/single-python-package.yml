@@ -12,7 +12,6 @@ on:
           - autogen-core
           - autogen-ext
           - agbench
-          - autogen-magentic-one
           - autogen-studio
           - magentic-one-cli
       ref:

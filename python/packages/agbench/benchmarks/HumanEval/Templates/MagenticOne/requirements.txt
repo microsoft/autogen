@@ -1,4 +1,0 @@
-/autogen_python/packages/autogen-core
-/autogen_python/packages/autogen-magentic-one
-azure-identity
-tiktoken
