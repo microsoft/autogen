@@ -1,74 +1,76 @@
 import json
 import logging  # added import
-from typing import Any, AsyncGenerator, Dict, List, Literal, Optional, Sequence, Union
+from typing import Any, AsyncGenerator, Dict, List, Optional, Sequence, cast
 
 from autogen_core import CancellationToken
-from autogen_core.models import AssistantMessage, ChatCompletionClient, CreateResult, SystemMessage, UserMessage
-from autogen_core.tools import Tool
-from llama_cpp import Llama
-from pydantic import BaseModel
-
-
-class ComponentModel(BaseModel):
-    provider: str
-    component_type: Optional[Literal["model", "agent", "tool", "termination", "token_provider"]] = None
-    version: Optional[int] = None
-    component_version: Optional[int] = None
-    description: Optional[str] = None
-    config: Dict[str, Any]
+from autogen_core.models import (
+    AssistantMessage,
+    ChatCompletionClient,
+    CreateResult,
+    FunctionExecutionResultMessage,
+    ModelInfo,
+    RequestUsage,
+    SystemMessage,
+    UserMessage,
+)
+from autogen_core.tools import Tool, ToolSchema
+from llama_cpp import (
+    ChatCompletionRequestAssistantMessage,
+    ChatCompletionRequestFunctionMessage,
+    ChatCompletionRequestSystemMessage,
+    ChatCompletionRequestToolMessage,
+    ChatCompletionRequestUserMessage,
+    CreateChatCompletionResponse,
+    Llama,
+)
 
 
 class LlamaCppChatCompletionClient(ChatCompletionClient):
     def __init__(
         self,
-        repo_id: str,
         filename: str,
-        n_gpu_layers: int = -1,
-        seed: int = 1337,
-        n_ctx: int = 1000,
         verbose: bool = True,
+        **kwargs: Any,
     ):
         """
         Initialize the LlamaCpp client.
         """
         self.logger = logging.getLogger(__name__)  # initialize logger
         self.logger.setLevel(logging.DEBUG if verbose else logging.INFO)  # set level based on verbosity
-        self.llm = Llama.from_pretrained(
-            repo_id=repo_id,
-            filename=filename,
-            n_gpu_layers=n_gpu_layers,
-            seed=seed,
-            n_ctx=n_ctx,
-            verbose=verbose,
-        )
+        self.llm = Llama(model_path=filename, **kwargs)
         self._total_usage = {"prompt_tokens": 0, "completion_tokens": 0}
 
-    async def create(self, messages: List[Any], tools: List[Any] = None, **kwargs) -> CreateResult:
-        """
-        Generate a response using the model, incorporating tool metadata.
-
-        :param messages: A list of message objects to process.
-        :param tools: A list of tool objects to register dynamically.
-        :param kwargs: Additional arguments for the model.
-        :return: A CreateResult object containing the model's response.
-        """
+    async def create(
+        self,
+        messages: Sequence[SystemMessage | UserMessage | AssistantMessage | FunctionExecutionResultMessage],
+        tools: Optional[Sequence[Tool | ToolSchema]] = None,
+        **kwargs: Any,
+    ) -> CreateResult:
         tools = tools or []
 
         # Convert LLMMessage objects to dictionaries with 'role' and 'content'
-        converted_messages = []
+        # converted_messages: List[Dict[str, str | Image | list[str | Image] | list[FunctionCall]]] = []
+        converted_messages: list[
+            ChatCompletionRequestSystemMessage
+            | ChatCompletionRequestUserMessage
+            | ChatCompletionRequestAssistantMessage
+            | ChatCompletionRequestUserMessage
+            | ChatCompletionRequestToolMessage
+            | ChatCompletionRequestFunctionMessage
+        ] = []
         for msg in messages:
             if isinstance(msg, SystemMessage):
                 converted_messages.append({"role": "system", "content": msg.content})
-            elif isinstance(msg, UserMessage):
+            elif isinstance(msg, UserMessage) and isinstance(msg.content, str):
                 converted_messages.append({"role": "user", "content": msg.content})
-            elif isinstance(msg, AssistantMessage):
+            elif isinstance(msg, AssistantMessage) and isinstance(msg.content, str):
                 converted_messages.append({"role": "assistant", "content": msg.content})
             else:
                 raise ValueError(f"Unsupported message type: {type(msg)}")
 
         # Add tool descriptions to the system message
         tool_descriptions = "\n".join(
-            [f"Tool: {i+1}. {tool.name} - {tool.description}" for i, tool in enumerate(tools)]
+            [f"Tool: {i+1}. {tool.name} - {tool.description}" for i, tool in enumerate(tools) if isinstance(tool, Tool)]
         )
 
         few_shot_example = """
@@ -91,7 +93,9 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         # print(f"DEBUG: Converted messages: {converted_messages}")
 
         # Generate the model response
-        response = self.llm.create_chat_completion(messages=converted_messages, stream=False)
+        response = cast(
+            CreateChatCompletionResponse, self.llm.create_chat_completion(messages=converted_messages, stream=False)
+        )
         self._total_usage["prompt_tokens"] += response.get("usage", {}).get("prompt_tokens", 0)
         self._total_usage["completion_tokens"] += response.get("usage", {}).get("completion_tokens", 0)
 
@@ -100,17 +104,29 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         # print(f"DEBUG: Model response: {response_text}")
 
         # Detect tool usage in the response
-        tool_call = await self._detect_and_execute_tool(response_text, tools)
+        if not response_text:
+            self.logger.debug("DEBUG: No response text found. Returning empty response.")
+            return CreateResult(
+                content="", usage=RequestUsage(prompt_tokens=0, completion_tokens=0), finish_reason="stop", cached=False
+            )
+
+        tool_call = await self._detect_and_execute_tool(
+            response_text, [tool for tool in tools if isinstance(tool, Tool)]
+        )
         if not tool_call:
             self.logger.debug("DEBUG: No tool was invoked. Returning raw model response.")
         else:
             self.logger.debug(f"DEBUG: Tool executed successfully: {tool_call}")
 
         # Create a CreateResult object
+        finish_reason = response["choices"][0].get("finish_reason")
+        if finish_reason not in ("stop", "length", "function_calls", "content_filter", "unknown"):
+            finish_reason = "unknown"
+        usage = cast(RequestUsage, response.get("usage", {}))
         create_result = CreateResult(
             content=tool_call if tool_call else response_text,
-            usage=response.get("usage", {}),
-            finish_reason=response["choices"][0].get("finish_reason", "unknown"),
+            usage=usage,
+            finish_reason=finish_reason,  # type: ignore
             cached=False,
         )
         return create_result
@@ -137,7 +153,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
                 # Ensure arguments match the tool's args_type
                 try:
                     args_model = tool.args_type()
-                    if "request" in args_model.__fields__:  # Handle nested arguments
+                    if "request" in args_model.model_fields:  # Handle nested arguments
                         func_args = {"request": func_args}
                     args_instance = args_model(**func_args)
                 except Exception as e:
@@ -145,13 +161,14 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
 
                 # Execute the tool
                 try:
-                    result = await tool.run(args=args_instance, cancellation_token=CancellationToken())
-                    if isinstance(result, dict):
-                        return json.dumps(result)
-                    elif hasattr(result, "model_dump"):  # If it's a Pydantic model
-                        return json.dumps(result.model_dump())
-                    else:
-                        return str(result)
+                    if callable(getattr(tool, "run", None)):
+                        result = await cast(Any, tool).run(args=args_instance, cancellation_token=CancellationToken())
+                        if isinstance(result, dict):
+                            return json.dumps(result)
+                        elif callable(getattr(result, "model_dump", None)):  # If it's a Pydantic model
+                            return json.dumps(result.model_dump())
+                        else:
+                            return str(result)
                 except Exception as e:
                     return f"Error executing tool '{tool.name}': {e}"
 
@@ -169,72 +186,108 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
             args_end = response_text.find("}")
             if args_start != -1 and args_end != -1:
                 args_str = response_text[args_start : args_end + 1]
-                return json.loads(args_str)
+                args = json.loads(args_str)
+                if isinstance(args, dict):
+                    return cast(Dict[str, Any], args)
+                else:
+                    return {}
         except json.JSONDecodeError as e:
             self.logger.debug(f"DEBUG: Failed to parse arguments: {e}")
         return {}
 
-    async def create_stream(self, messages: List[Any], tools: List[Any] = None, **kwargs) -> AsyncGenerator[str, None]:
-        """
-        Generate a streaming response using the model.
-
-        :param messages: A list of messages to process.
-        :param tools: A list of tool objects to register dynamically.
-        :param kwargs: Additional arguments for the model.
-        :return: An asynchronous generator yielding the response stream.
-        """
+    async def create_stream(
+        self,
+        messages: Sequence[SystemMessage | UserMessage | AssistantMessage | FunctionExecutionResultMessage],
+        tools: Optional[Sequence[Tool | ToolSchema]] = None,
+        **kwargs: Any,
+    ) -> AsyncGenerator[str, None]:
         tools = tools or []
 
         # Convert LLMMessage objects to dictionaries with 'role' and 'content'
-        converted_messages = []
+        converted_messages: list[
+            ChatCompletionRequestSystemMessage
+            | ChatCompletionRequestUserMessage
+            | ChatCompletionRequestAssistantMessage
+            | ChatCompletionRequestUserMessage
+            | ChatCompletionRequestToolMessage
+            | ChatCompletionRequestFunctionMessage
+        ] = []
         for msg in messages:
             if isinstance(msg, SystemMessage):
                 converted_messages.append({"role": "system", "content": msg.content})
-            elif isinstance(msg, UserMessage):
+            elif isinstance(msg, UserMessage) and isinstance(msg.content, str):
                 converted_messages.append({"role": "user", "content": msg.content})
-            elif isinstance(msg, AssistantMessage):
+            elif isinstance(msg, AssistantMessage) and isinstance(msg.content, str):
                 converted_messages.append({"role": "assistant", "content": msg.content})
             else:
                 raise ValueError(f"Unsupported message type: {type(msg)}")
 
         # Add tool descriptions to the system message
-        tool_descriptions = "\n".join([f"Tool: {tool.name} - {tool.description}" for tool in tools])
-        if tool_descriptions:
-            converted_messages.insert(
-                0, {"role": "system", "content": f"The following tools are available:\n{tool_descriptions}"}
-            )
+        tool_descriptions = "\n".join(
+            [f"Tool: {i+1}. {tool.name} - {tool.description}" for i, tool in enumerate(tools) if isinstance(tool, Tool)]
+        )
 
+        few_shot_example = """
+        Example tool usage:
+        User: Validate this request: {"patient_name": "John Doe", "patient_id": "12345", "procedure": "MRI Knee"}
+        Assistant: Calling tool 'validate_request' with arguments: {"patient_name": "John Doe", "patient_id": "12345", "procedure": "MRI Knee"}
+        """
+
+        system_message = (
+            "You are an assistant with access to tools. "
+            "If a user query matches a tool, explicitly invoke it with JSON arguments. "
+            "Here are the tools available:\n"
+            f"{tool_descriptions}\n"
+            f"{few_shot_example}"
+        )
+        converted_messages.insert(0, {"role": "system", "content": system_message})
         # Convert messages into a plain string prompt
-        prompt = "\n".join(f"{msg['role']}: {msg['content']}" for msg in converted_messages)
+        prompt = "\n".join(f"{msg['role']}: {msg.get('content', '')}" for msg in converted_messages)
         # Call the model with streaming enabled
         response_generator = self.llm(prompt=prompt, stream=True)
 
         for token in response_generator:
-            yield token["choices"][0]["text"]
+            if isinstance(token, dict):
+                yield token["choices"][0]["text"]
+            else:
+                yield token
 
     # Implement abstract methods
-    def actual_usage(self) -> Dict[str, int]:
-        return self._total_usage
+    def actual_usage(self) -> RequestUsage:
+        return RequestUsage(
+            prompt_tokens=self._total_usage.get("prompt_tokens", 0),
+            completion_tokens=self._total_usage.get("completion_tokens", 0),
+        )
 
     @property
-    def capabilities(self) -> Dict[str, bool]:
-        return {"chat": True, "stream": True}
-
-    def count_tokens(self, messages: Sequence[Dict[str, Any]], **kwargs) -> int:
-        return sum(len(msg["content"].split()) for msg in messages)
+    def capabilities(self) -> ModelInfo:
+        return self.model_info
+    def count_tokens(
+        self,
+        messages: Sequence[SystemMessage | UserMessage | AssistantMessage | FunctionExecutionResultMessage],
+        **kwargs: Any,
+    ) -> int:
+        total = 0
+        for msg in messages:
+            # Use the Llama model's tokenizer to encode the content
+            tokens = self.llm.tokenize(str(msg.content).encode("utf-8"))
+            total += len(tokens)
+        return total
 
     @property
-    def model_info(self) -> Dict[str, Any]:
-        return {
-            "name": "llama-cpp",
-            "capabilities": {"chat": True, "stream": True},
-            "context_window": self.llm.n_ctx,
-            "function_calling": True,
-        }
+    def model_info(self) -> ModelInfo:
+        return ModelInfo(vision=False, json_output=False, family="llama-cpp", function_calling=True)
 
-    def remaining_tokens(self, messages: Sequence[Dict[str, Any]], **kwargs) -> int:
+    def remaining_tokens(
+        self,
+        messages: Sequence[SystemMessage | UserMessage | AssistantMessage | FunctionExecutionResultMessage],
+        **kwargs: Any,
+    ) -> int:
         used_tokens = self.count_tokens(messages)
-        return max(self.llm.n_ctx - used_tokens, 0)
+        return max(self.llm.n_ctx() - used_tokens, 0)
 
-    def total_usage(self) -> Dict[str, int]:
-        return self._total_usage
+    def total_usage(self) -> RequestUsage:
+        return RequestUsage(
+            prompt_tokens=self._total_usage.get("prompt_tokens", 0),
+            completion_tokens=self._total_usage.get("completion_tokens", 0),
+        )
