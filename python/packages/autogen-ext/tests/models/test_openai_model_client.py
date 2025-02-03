@@ -958,7 +958,7 @@ async def test_gemini() -> None:
             "function_calling": True,
             "json_output": True,
             "vision": True,
-            "family": ModelFamily.UNKNOWN,
+            "family": ModelFamily.GEMINI_1_5_FLASH,
         },
     )
     await _test_model_client_basic_completion(model_client)
