@@ -726,7 +726,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     cancellation_token.link_future(chunk_future)
                 chunk = await chunk_future
 
-                # Empty chunks has been observed when the endpoint is under heavy load. 
+                # Empty chunks has been observed when the endpoint is under heavy load.
                 #  https://github.com/microsoft/autogen/issues/4213
                 if len(chunk.choices) == 0:
                     empty_chunk_count += 1
