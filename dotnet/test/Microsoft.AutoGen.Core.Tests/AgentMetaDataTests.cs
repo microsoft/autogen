@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Microsoft.AutoGen.Core.Tests;
 
+[Trait("Category", "UnitV2")]
 public class AgentMetadataTests()
 {
     [Fact]

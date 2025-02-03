@@ -264,8 +264,6 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             TOOL_SLEEP,
             TOOL_HOVER,
         ]
-        # Number of lines of text to extract from the page in the absence of OCR
-        self.n_lines_page_text = 50
         self.did_lazy_init = False  # flag to check if we have initialized the browser
 
     async def _lazy_init(
@@ -743,7 +741,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         ocr_text = (
             await self._get_ocr_text(new_screenshot, cancellation_token=cancellation_token)
             if self.use_ocr is True
-            else await self._playwright_controller.get_webpage_text(self._page, n_lines=self.n_lines_page_text)
+            else await self._playwright_controller.get_visible_text(self._page)
         )
 
         # Return the complete observation
@@ -752,7 +750,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         if self.use_ocr:
             message_content += f"Automatic OCR of the page screenshot has detected the following text:\n\n{ocr_text}"
         else:
-            message_content += f"The first {self.n_lines_page_text} lines of the page text is:\n\n{ocr_text}"
+            message_content += f"The following text is visible in the viewport:\n\n{ocr_text}"
 
         return [
             message_content,

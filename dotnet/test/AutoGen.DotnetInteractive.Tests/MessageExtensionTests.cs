@@ -8,6 +8,7 @@ using Xunit;
 
 namespace AutoGen.DotnetInteractive.Tests;
 
+[Trait("Category", "UnitV1")]
 public class MessageExtensionTests
 {
     [Fact]
