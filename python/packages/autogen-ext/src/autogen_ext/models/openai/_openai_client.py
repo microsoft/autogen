@@ -635,6 +635,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
+        max_consecutive_empty_chunk_tolerance: int = 0,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         """
         Creates an AsyncGenerator that will yield a  stream of chat completions based on the provided messages and tools.
@@ -645,6 +646,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             json_output (Optional[bool], optional): If True, the output will be in JSON format. Defaults to None.
             extra_create_args (Mapping[str, Any], optional): Additional arguments for the creation process. Default to `{}`.
             cancellation_token (Optional[CancellationToken], optional): A token to cancel the operation. Defaults to None.
+            max_consecutive_empty_chunk_tolerance (int): [Deprecated] The maximum number of consecutive empty chunks to tolerate before raising a ValueError. This seems to only be needed to set when using `AzureOpenAIChatCompletionClient`. Defaults to 0. This parameter is deprecated, empty chunks will be skipped.
 
         Yields:
             AsyncGenerator[Union[str, CreateResult], None]: A generator yielding the completion results as they are produced.
@@ -715,6 +717,13 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         full_tool_calls: Dict[int, FunctionCall] = {}
         completion_tokens = 0
         logprobs: Optional[List[ChatCompletionTokenLogprob]] = None
+
+        if max_consecutive_empty_chunk_tolerance != 0:
+            warnings.warn(
+                "The 'max_consecutive_empty_chunk_tolerance' parameter is deprecated and will be removed in the future releases. All of empty chunks will be skipped with a warning.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
         empty_chunk_warning_has_been_issued: bool = False
         empty_chunk_warning_threshold: int = 10
         empty_chunk_count = 0
