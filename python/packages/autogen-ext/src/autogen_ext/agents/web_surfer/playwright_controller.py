@@ -527,6 +527,25 @@ class PlaywrightController:
         except Exception:
             return ""
 
+    async def get_visible_text(self, page: Page) -> str:
+        """
+        Retrieve the text content of the browser viewport (approximately).
+
+        Args:
+            page (Page): The Playwright page object.
+
+        Returns:
+            str: The text content of the page.
+        """
+        assert page is not None
+        try:
+            await page.evaluate(self._page_script)
+        except Exception:
+            pass
+        result = await page.evaluate("MultimodalWebSurfer.getVisibleText();")
+        assert isinstance(result, str)
+        return result
+
     async def get_page_markdown(self, page: Page) -> str:
         """
         Retrieve the markdown content of the web page.
