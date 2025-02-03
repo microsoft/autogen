@@ -14,9 +14,8 @@ public interface IHandle<in T>
     /// </summary>
     /// <param name="item">The item to be handled.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    ValueTask HandleAsync(T item, MessageContext messageContext);
+    ValueTask HandleAsync(T item, MessageContext messageContext, CancellationToken? cancellationToken = default);
 }
-
 public interface IHandle<in InT, OutT>
 {
     /// <summary>
@@ -24,5 +23,5 @@ public interface IHandle<in InT, OutT>
     /// </summary>
     /// <param name="item">The item to be handled.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    ValueTask<OutT> HandleAsync(InT item, MessageContext messageContext);
+    ValueTask<OutT> HandleAsync(InT item, MessageContext messageContext, CancellationToken? cancellationToken = default);
 }

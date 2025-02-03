@@ -10,7 +10,6 @@
 
   <ItemGroup>
 		<ProjectReference Include="..\Contracts\Microsoft.AutoGen.Contracts.csproj" />
-		<ProjectReference Include="..\Contracts\Microsoft.AutoGen.Protobuf.csproj" />
 		<ProjectReference Include="..\Core\Microsoft.AutoGen.Core.csproj" />
 		<ProjectReference Include="..\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj" />
   </ItemGroup>

@@ -19,7 +19,7 @@ public class HelloAgent(
         IHandle<Shutdown>
 {
     // This will capture the message sent in Program.cs
-    public async ValueTask HandleAsync(NewMessageReceived item, MessageContext messageContext)
+    public async ValueTask HandleAsync(NewMessageReceived item, MessageContext messageContext, CancellationToken? cancellationToken = default)
     {
         Console.Out.WriteLine(item.Message); // Print message to console
         ConversationClosed goodbye = new ConversationClosed
@@ -28,20 +28,19 @@ public class HelloAgent(
             UserMessage = "Goodbye"
         };
         // This will publish the new message type which will be handled by the ConversationClosed handler
-        await this.PublishMessageAsync(goodbye, new TopicId("HelloTopic"));
+        await this.PublishMessageAsync(goodbye, new TopicId("HelloTopic"), null, cancellationToken ?? default);
     }
-    public async ValueTask HandleAsync(ConversationClosed item, MessageContext messageContext)
+    public async ValueTask HandleAsync(ConversationClosed item, MessageContext messageContext, CancellationToken? cancellationToken = default)
     {
         var goodbye = $"{item.UserId} said {item.UserMessage}"; // Print goodbye message to console
         Console.Out.WriteLine(goodbye);
         if (Environment.GetEnvironmentVariable("STAY_ALIVE_ON_GOODBYE") != "true")
         {
             // Publish message that will be handled by shutdown handler
-            await this.PublishMessageAsync(new Shutdown(), new TopicId("HelloTopic"));
+            await this.PublishMessageAsync(new Shutdown(), new TopicId("HelloTopic"), null, cancellationToken ?? default);
         }
     }
-
-    public async ValueTask HandleAsync(Shutdown item, MessageContext messageContext)
+    public async ValueTask HandleAsync(Shutdown item, MessageContext messageContext, CancellationToken? cancellationToken = default)
     {
         Console.WriteLine("Shutting down...");
         hostApplicationLifetime.StopApplication(); // Shuts down application
