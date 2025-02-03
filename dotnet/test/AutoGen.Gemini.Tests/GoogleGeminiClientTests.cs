@@ -5,10 +5,12 @@ using AutoGen.Tests;
 using FluentAssertions;
 using Google.Cloud.AIPlatform.V1;
 using Google.Protobuf;
+using Xunit;
 using static Google.Cloud.AIPlatform.V1.Candidate.Types;
 
 namespace AutoGen.Gemini.Tests;
 
+[Trait("Category", "UnitV1")]
 public class GoogleGeminiClientTests
 {
     [ApiKeyFact("GOOGLE_GEMINI_API_KEY")]

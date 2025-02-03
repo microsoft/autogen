@@ -7,7 +7,7 @@ namespace Microsoft.AutoGen.Integration.Tests;
 public class InMemoryRuntimeIntegrationTests(ITestOutputHelper testOutput)
 {
 
-    [Theory, Trait("type", "integration")]
+    [Theory, Trait("Category", "Integration")]
     [MemberData(nameof(AppHostAssemblies))]
     public async Task HelloAgentsE2EInMemory(string appHostAssemblyPath)
     {
