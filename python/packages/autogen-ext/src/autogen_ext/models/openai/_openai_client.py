@@ -72,6 +72,7 @@ from openai.types.shared_params import FunctionDefinition, FunctionParameters
 from pydantic import BaseModel
 from typing_extensions import Self, Unpack
 
+from .._utils.parse_r1_content import parse_r1_content
 from . import _model_info
 from .config import (
     AzureOpenAIClientConfiguration,
@@ -571,14 +572,24 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     stacklevel=2,
                 )
             # NOTE: If OAI response type changes, this will need to be updated
-            content = [
-                FunctionCall(
-                    id=x.id,
-                    arguments=x.function.arguments,
-                    name=normalize_name(x.function.name),
+            content = []
+            for tool_call in choice.message.tool_calls:
+                if not isinstance(tool_call.function.arguments, str):
+                    warnings.warn(
+                        f"Tool call function arguments field is not a string: {tool_call.function.arguments}."
+                        "This is unexpected and may due to the API used not returning the correct type. "
+                        "Attempting to convert it to string.",
+                        stacklevel=2,
+                    )
+                    if isinstance(tool_call.function.arguments, dict):
+                        tool_call.function.arguments = json.dumps(tool_call.function.arguments)
+                content.append(
+                    FunctionCall(
+                        id=tool_call.id,
+                        arguments=tool_call.function.arguments,
+                        name=normalize_name(tool_call.function.name),
+                    )
                 )
-                for x in choice.message.tool_calls
-            ]
             finish_reason = "tool_calls"
         else:
             finish_reason = choice.finish_reason
@@ -595,12 +606,19 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 )
                 for x in choice.logprobs.content
             ]
+
+        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
+            thought, content = parse_r1_content(content)
+        else:
+            thought = None
+
         response = CreateResult(
             finish_reason=normalize_stop_reason(finish_reason),
             content=content,
             usage=usage,
             cached=False,
             logprobs=logprobs,
+            thought=thought,
         )
 
         self._total_usage = _add_usage(self._total_usage, usage)
@@ -628,7 +646,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             json_output (Optional[bool], optional): If True, the output will be in JSON format. Defaults to None.
             extra_create_args (Mapping[str, Any], optional): Additional arguments for the creation process. Default to `{}`.
             cancellation_token (Optional[CancellationToken], optional): A token to cancel the operation. Defaults to None.
-            max_consecutive_empty_chunk_tolerance (int): The maximum number of consecutive empty chunks to tolerate before raising a ValueError. This seems to only be needed to set when using `AzureOpenAIChatCompletionClient`. Defaults to 0.
+            max_consecutive_empty_chunk_tolerance (int): [Deprecated] The maximum number of consecutive empty chunks to tolerate before raising a ValueError. This seems to only be needed to set when using `AzureOpenAIChatCompletionClient`. Defaults to 0. This parameter is deprecated, empty chunks will be skipped.
 
         Yields:
             AsyncGenerator[Union[str, CreateResult], None]: A generator yielding the completion results as they are produced.
@@ -699,6 +717,15 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         full_tool_calls: Dict[int, FunctionCall] = {}
         completion_tokens = 0
         logprobs: Optional[List[ChatCompletionTokenLogprob]] = None
+
+        if max_consecutive_empty_chunk_tolerance != 0:
+            warnings.warn(
+                "The 'max_consecutive_empty_chunk_tolerance' parameter is deprecated and will be removed in the future releases. All of empty chunks will be skipped with a warning.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+        empty_chunk_warning_has_been_issued: bool = False
+        empty_chunk_warning_threshold: int = 10
         empty_chunk_count = 0
 
         while True:
@@ -708,16 +735,16 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     cancellation_token.link_future(chunk_future)
                 chunk = await chunk_future
 
-                # This is to address a bug in AzureOpenAIChatCompletionClient. OpenAIChatCompletionClient works fine.
+                # Empty chunks has been observed when the endpoint is under heavy load.
                 #  https://github.com/microsoft/autogen/issues/4213
                 if len(chunk.choices) == 0:
                     empty_chunk_count += 1
-                    if max_consecutive_empty_chunk_tolerance == 0:
-                        raise ValueError(
-                            "Consecutive empty chunks found. Change max_empty_consecutive_chunk_tolerance to increase empty chunk tolerance"
+                    if not empty_chunk_warning_has_been_issued and empty_chunk_count >= empty_chunk_warning_threshold:
+                        empty_chunk_warning_has_been_issued = True
+                        warnings.warn(
+                            f"Received more than {empty_chunk_warning_threshold} consecutive empty chunks. Empty chunks are being ignored.",
+                            stacklevel=2,
                         )
-                    elif empty_chunk_count >= max_consecutive_empty_chunk_tolerance:
-                        raise ValueError("Exceeded the threshold of receiving consecutive empty chunks")
                     continue
                 else:
                     empty_chunk_count = 0
@@ -808,12 +835,18 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             completion_tokens=completion_tokens,
         )
 
+        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
+            thought, content = parse_r1_content(content)
+        else:
+            thought = None
+
         result = CreateResult(
             finish_reason=normalize_stop_reason(stop_reason),
             content=content,
             usage=usage,
             cached=False,
             logprobs=logprobs,
+            thought=thought,
         )
 
         self._total_usage = _add_usage(self._total_usage, usage)
@@ -958,6 +991,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         temperature (optional, float):
         top_p (optional, float):
         user (optional, str):
+        default_headers (optional, dict[str, str]):  Custom headers; useful for authentication or other custom requirements.
 
 
     To use this client, you must install the `openai` extension:
@@ -982,20 +1016,23 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         print(result)
 
 
-    To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model capabilities:
+    To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model info.
+    For example, to use Ollama, you can use the following code snippet:
 
     .. code-block:: python
 
         from autogen_ext.models.openai import OpenAIChatCompletionClient
+        from autogen_core.models import ModelFamily
 
         custom_model_client = OpenAIChatCompletionClient(
-            model="custom-model-name",
-            base_url="https://custom-model.com/reset/of/the/path",
+            model="deepseek-r1:1.5b",
+            base_url="http://localhost:11434/v1",
             api_key="placeholder",
-            model_capabilities={
-                "vision": True,
-                "function_calling": True,
-                "json_output": True,
+            model_info={
+                "vision": False,
+                "function_calling": False,
+                "json_output": False,
+                "family": ModelFamily.R1,
             },
         )
 
@@ -1089,6 +1126,8 @@ class AzureOpenAIChatCompletionClient(
         temperature (optional, float):
         top_p (optional, float):
         user (optional, str):
+        default_headers (optional, dict[str, str]):  Custom headers; useful for authentication or other custom requirements.
+
 
 
     To use this client, you must install the `azure` and `openai` extensions:

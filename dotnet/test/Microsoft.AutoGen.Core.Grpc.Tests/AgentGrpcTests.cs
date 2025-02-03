@@ -14,6 +14,7 @@ using static Microsoft.AutoGen.Core.Grpc.Tests.AgentGrpcTests;
 
 namespace Microsoft.AutoGen.Core.Grpc.Tests;
 
+[Trait("Category", "UnitV2")]
 public class AgentGrpcTests
 {
     /// <summary>

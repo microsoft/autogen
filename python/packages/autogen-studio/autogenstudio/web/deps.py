@@ -5,7 +5,7 @@ from typing import Optional
 
 from fastapi import Depends, HTTPException, status
 
-from ..database import ConfigurationManager, DatabaseManager
+from ..database import DatabaseManager
 from ..teammanager import TeamManager
 from .config import settings
 from .managers.connection import WebSocketManager
@@ -94,9 +94,7 @@ async def init_managers(database_uri: str, config_dir: str, app_root: str) -> No
         _db_manager.initialize_database(auto_upgrade=settings.UPGRADE_DATABASE)
 
         # init default team config
-
-        _team_config_manager = ConfigurationManager(db_manager=_db_manager)
-        await _team_config_manager.import_directory(config_dir, settings.DEFAULT_USER_ID, check_exists=True)
+        await _db_manager.import_teams_from_directory(config_dir, settings.DEFAULT_USER_ID, check_exists=True)
 
         # Initialize connection manager
         _websocket_manager = WebSocketManager(db_manager=_db_manager)

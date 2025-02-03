@@ -19,13 +19,13 @@ import {
 import type { Gallery } from "./types";
 import { useGalleryStore } from "./store";
 import { MonacoEditor } from "../monaco";
-import { ComponentConfigTypes } from "../../types/datamodel";
 import { getRelativeTimeString, TruncatableText } from "../atoms";
+import { Component, ComponentConfig } from "../../types/datamodel";
 
 const ComponentGrid: React.FC<{
   title: string;
   icon: React.ReactNode;
-  items: ComponentConfigTypes[];
+  items: Component<ComponentConfig>[];
 }> = ({ title, icon, items }) => {
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -58,16 +58,17 @@ const ComponentGrid: React.FC<{
             key={idx}
             className="bg-secondary rounded p-3 hover:bg-tertiary transition-colors"
           >
-            <div className="text-sm font-medium truncate">
-              {item.component_type}
+            <div className="text-xs break-all text-secondary my-1 mb-2">
+              {item.provider}
             </div>
+            <div className="text-sm font-medium truncate">{item.label}</div>
             {item.description && (
-              <p className="text-xs text-primary mt-1 ">
+              <div className="text-xs text-primary mt-1 ">
                 <TruncatableText
                   content={item.description}
                   textThreshold={150}
                 />
-              </p>
+              </div>
             )}
           </div>
         ))}
