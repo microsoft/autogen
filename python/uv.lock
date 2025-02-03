@@ -3570,12 +3570,14 @@ source = { editable = "packages/magentic-one-cli" }
 dependencies = [
     { name = "autogen-agentchat" },
     { name = "autogen-ext", extra = ["magentic-one", "openai", "rich"] },
+    { name = "pyyaml" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "autogen-agentchat", editable = "packages/autogen-agentchat" },
     { name = "autogen-ext", extras = ["openai", "magentic-one", "rich"], editable = "packages/autogen-ext" },
+    { name = "pyyaml", specifier = ">=5.1" },
 ]
 
 [package.metadata.requires-dev]
