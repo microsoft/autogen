@@ -15,6 +15,7 @@ using Xunit;
 
 namespace AutoGen.OpenAI.Tests;
 
+[Trait("Category", "UnitV1")]
 public class RolePlayToolCallOrchestratorTests
 {
     [Fact]
