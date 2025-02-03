@@ -18,7 +18,6 @@ class ModelFamily:
 
     This namespace class holds constants for the model families that AutoGen understands. Other families definitely exist and can be represented by a string, however, AutoGen will treat them as unknown."""
 
-    O3 = "o3"
     GPT_4O = "gpt-4o"
     O1 = "o1"
     O3 = "o3"
