@@ -1,28 +1,30 @@
 import argparse
 import asyncio
-import warnings
-import yaml
 import os
-from typing import Optional, Any, Dict
+import sys
+import warnings
+from typing import Any, Dict, Optional
 
+import yaml
 from autogen_agentchat.ui import Console, UserInputManager
 from autogen_core import CancellationToken
+from autogen_core.models import ChatCompletionClient
 from autogen_ext.teams.magentic_one import MagenticOne
 from autogen_ext.ui import RichConsole
-from autogen_core.models import ChatCompletionClient
 
 # Suppress warnings about the requests.Session() not being closed
 warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
-DEFAULT_CONFIG_FILE="config.yaml"
-DEFAULT_CONFIG_CONTENTS="""# config.yaml
+DEFAULT_CONFIG_FILE = "config.yaml"
+DEFAULT_CONFIG_CONTENTS = """# config.yaml
 #
 
-client: 
+client:
   provider: autogen_ext.models.openai.OpenAIChatCompletionClient
   config:
     model: gpt-4o
 """
+
 
 async def cancellable_input(prompt: str, cancellation_token: Optional[CancellationToken]) -> str:
     task: asyncio.Task[str] = asyncio.create_task(asyncio.to_thread(input, prompt))
@@ -52,13 +54,13 @@ def main() -> None:
     python magentic_one_cli.py --config config.yaml "example task"
 
     Use --sample-config to print a sample configuration file.
-    
+
     Example:
-    python magentic_one_cli.py --sample-config 
-    
-    NOTE: 
+    python magentic_one_cli.py --sample-config
+
+    NOTE:
     If --config is not specified, the configuration is loaded from the
-    file DEFAULT_CONFIG_FILE. If that file does not exist, load from 
+    file DEFAULT_CONFIG_FILE. If that file does not exist, load from
     DEFAULT_CONFIG_CONTENTS.
     """
     parser = argparse.ArgumentParser(
@@ -67,7 +69,7 @@ def main() -> None:
             "For more information, refer to the following paper: https://arxiv.org/abs/2411.04468"
         )
     )
-    parser.add_argument("task", type=str, nargs='?', help="The task to be executed by MagenticOne.")
+    parser.add_argument("task", type=str, nargs="?", help="The task to be executed by MagenticOne.")
     parser.add_argument("--no-hil", action="store_true", help="Disable human-in-the-loop mode.")
     parser.add_argument(
         "--rich",
@@ -78,18 +80,14 @@ def main() -> None:
         "--config",
         type=str,
         nargs=1,
-        help="The model configuration file to use. Leave empty to print a sample configuration."
+        help="The model configuration file to use. Leave empty to print a sample configuration.",
     )
-    parser.add_argument(
-        "--sample-config",
-        action="store_true",
-        help="Print a sample configuration to console."
-    )
- 
+    parser.add_argument("--sample-config", action="store_true", help="Print a sample configuration to console.")
+
     args = parser.parse_args()
 
     if args.sample_config:
-        print(DEFAULT_CONFIG_CONTENTS)
+        sys.stdout.write(DEFAULT_CONFIG_CONTENTS + "\n")
         return
 
     # We're not printing a sample, so we need a task
@@ -109,7 +107,7 @@ def main() -> None:
     else:
         with open(args.config[0], "r") as f:
             config = yaml.safe_load(f)
-        
+
     client = ChatCompletionClient.load_component(config["client"])
 
     # Run the task
