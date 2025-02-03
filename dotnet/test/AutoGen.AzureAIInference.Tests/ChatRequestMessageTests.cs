@@ -14,6 +14,7 @@ using Xunit;
 
 namespace AutoGen.AzureAIInference.Tests;
 
+[Trait("Category", "UnitV1")]
 public class ChatRequestMessageTests
 {
     [Fact]

@@ -102,8 +102,10 @@ jobs:
       run: |
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
-    - name: Unit Test
-      run: dotnet test --no-build -bl --configuration Release --filter type=!integration
+    - name: Unit Test V1
+      run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV1"
+    - name: Unit Test V2
+      run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV2"
 
   integration-test:
     strategy:
@@ -155,7 +157,7 @@ jobs:
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: Integration Test
-      run: dotnet --version && dotnet test --no-build -bl --configuration Release --filter type=integration
+      run: dotnet --version && dotnet test --no-build -bl --configuration Release --filter "Category=Integration"
     - name: Restore the global.json
       run: rm global.json && git checkout -- global.json
 

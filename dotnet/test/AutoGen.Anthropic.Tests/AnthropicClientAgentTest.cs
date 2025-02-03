@@ -7,9 +7,11 @@ using AutoGen.Anthropic.Utils;
 using AutoGen.Core;
 using AutoGen.Tests;
 using FluentAssertions;
+using Xunit;
 
 namespace AutoGen.Anthropic.Tests;
 
+[Trait("Category", "UnitV1")]
 public class AnthropicClientAgentTest
 {
     [ApiKeyFact("ANTHROPIC_API_KEY")]

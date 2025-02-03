@@ -12,9 +12,11 @@ using Azure.AI.OpenAI;
 using FluentAssertions;
 using OpenAI;
 using OpenAI.Chat;
+using Xunit;
 
 namespace AutoGen.OpenAI.Tests;
 
+[Trait("Category", "UnitV1")]
 public partial class OpenAIChatAgentTest
 {
     /// <summary>
