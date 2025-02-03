@@ -5,10 +5,12 @@ using System;
 using System.IO;
 using System.Threading.Tasks;
 using AutoGen.Basic.Sample;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace AutoGen.Tests;
 
+[Trait("Category", "UnitV1")]
 public class BasicSampleTest
 {
     private readonly ITestOutputHelper _output;

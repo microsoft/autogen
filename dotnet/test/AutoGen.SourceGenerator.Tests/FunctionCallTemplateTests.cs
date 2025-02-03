@@ -9,6 +9,7 @@ using Xunit;
 
 namespace AutoGen.SourceGenerator.Tests;
 
+[Trait("Category", "UnitV1")]
 public class FunctionCallTemplateTests
 {
     [Fact]

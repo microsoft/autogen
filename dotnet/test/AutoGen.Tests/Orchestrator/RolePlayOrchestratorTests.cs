@@ -26,6 +26,7 @@ using Xunit;
 
 namespace AutoGen.Tests;
 
+[Trait("Category", "UnitV1")]
 public class RolePlayOrchestratorTests
 {
     [Fact]
