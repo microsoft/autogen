@@ -15,6 +15,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
+    "pyyaml>=5.1",
     "autogen-agentchat>=0.4.4,<0.5",
     "autogen-ext[openai,magentic-one,rich]>=0.4.4,<0.5",
 ]
@@ -23,8 +24,9 @@ dependencies = [
 m1 = "magentic_one_cli._m1:main"
 
 [dependency-groups]
-dev = []
-
+dev = [
+    "types-PyYAML",
+]
 
 [tool.ruff]
 extend = "../../pyproject.toml"
