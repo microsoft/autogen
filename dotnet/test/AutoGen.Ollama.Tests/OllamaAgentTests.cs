@@ -6,9 +6,11 @@ using AutoGen.Core;
 using AutoGen.Ollama.Extension;
 using AutoGen.Tests;
 using FluentAssertions;
+using Xunit;
 
 namespace AutoGen.Ollama.Tests;
 
+[Trait("Category", "UnitV1")]
 public class OllamaAgentTests
 {
     [ApiKeyFact("OLLAMA_HOST", "OLLAMA_MODEL_NAME")]

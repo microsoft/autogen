@@ -13,6 +13,7 @@ using Xunit;
 
 namespace AutoGen.SemanticKernel.Tests;
 
+[Trait("Category", "UnitV1")]
 public class TestPlugin
 {
     public bool IsOn { get; set; }

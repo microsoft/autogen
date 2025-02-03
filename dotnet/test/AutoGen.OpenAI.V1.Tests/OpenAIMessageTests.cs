@@ -17,6 +17,7 @@ using Xunit;
 
 namespace AutoGen.OpenAI.V1.Tests;
 
+[Trait("Category", "UnitV1")]
 public class OpenAIMessageTests
 {
     private readonly JsonSerializerOptions jsonSerializerOptions = new JsonSerializerOptions
