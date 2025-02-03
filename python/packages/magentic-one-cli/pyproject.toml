@@ -16,6 +16,7 @@ classifiers = [
 ]
 dependencies = [
     "pyyaml>=5.1",
+    "types-PyYAML",
     "autogen-agentchat>=0.4.4,<0.5",
     "autogen-ext[openai,magentic-one,rich]>=0.4.4,<0.5",
 ]
