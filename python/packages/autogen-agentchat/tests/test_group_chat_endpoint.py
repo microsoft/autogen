@@ -9,7 +9,7 @@ from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
 @pytest.mark.asyncio
-async def test_selector_group_chat_gemini():
+async def test_selector_group_chat_gemini() -> None:
     try:
         api_key = os.environ["GEMINI_API_KEY"]
     except KeyError:

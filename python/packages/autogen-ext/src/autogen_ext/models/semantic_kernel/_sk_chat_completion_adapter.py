@@ -145,8 +145,8 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                 )
 
                 model_client = SKChatCompletionAdapter(
-                    sk_client, 
-                    kernel=Kernel(memory=NullMemory()), 
+                    sk_client,
+                    kernel=Kernel(memory=NullMemory()),
                     prompt_settings=settings,
                     model_info={
                         "family": "gemini-1.5-flash",
