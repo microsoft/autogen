@@ -182,7 +182,7 @@ Match roles in the role set to each expert in expert set.
     {agent_details}
 
     Hint:
-    # Only respond with the name of the agent that is most suited to execute the function and nothing else.
+    # Only respond with the name of the agent that is most suited to execute the function and nothing else.if there is no agent that is most suited to execute the function, respond with exactly "None"
     """
 
     UPDATED_AGENT_SYSTEM_MESSAGE = """
@@ -730,7 +730,7 @@ Match roles in the role set to each expert in expert set.
 
             if list_of_functions:
                 for func in list_of_functions:
-                    resp = (
+                    perferred_agent_name = (
                         self.builder_model.create(
                             messages=[
                                 {
@@ -747,28 +747,30 @@ Match roles in the role set to each expert in expert set.
                         .choices[0]
                         .message.content
                     )
-
-                    autogen.agentchat.register_function(
-                        func["function"],
-                        caller=self.agent_procs_assign[resp][0],
-                        executor=agent_list[0],
-                        name=func["name"],
-                        description=func["description"],
-                    )
-
-                    agents_current_system_message = [
-                        agent["system_message"] for agent in agent_configs if agent["name"] == resp
-                    ][0]
-
-                    self.agent_procs_assign[resp][0].update_system_message(
-                        self.UPDATED_AGENT_SYSTEM_MESSAGE.format(
-                            agent_system_message=agents_current_system_message,
-                            function_name=func["name"],
-                            function_description=func["description"],
+                    if perferred_agent_name in self.agent_procs_assign.keys():
+                        autogen.agentchat.register_function(
+                            func["function"],
+                            caller=self.agent_procs_assign[perferred_agent_name][0],
+                            executor=agent_list[0],
+                            name=func["name"],
+                            description=func["description"],
                         )
-                    )
 
-                    print(f"Function {func['name']} is registered to agent {resp}.")
+                        agents_current_system_message = [
+                            agent["system_message"] for agent in agent_configs if agent["name"] == perferred_agent_name
+                        ][0]
+
+                        self.agent_procs_assign[perferred_agent_name][0].update_system_message(
+                            self.UPDATED_AGENT_SYSTEM_MESSAGE.format(
+                                agent_system_message=agents_current_system_message,
+                                function_name=func["name"],
+                                function_description=func["description"],
+                            )
+                        )
+
+                        print(f"Function {func['name']} is registered to agent {perferred_agent_name}.")
+                    else:
+                        logger.debug(f"Function {func['name']} is not registered to any agent.")
 
         return agent_list, self.cached_configs.copy()
 
