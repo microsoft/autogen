@@ -1,11 +1,11 @@
 import random
 import time
-from typing import Any, Dict, List, Tuple
+from typing import Any, Dict, List, Sequence, Tuple
 
 from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.messages import TextMessage
+from autogen_agentchat.base import TaskResult
+from autogen_agentchat.messages import AgentEvent, ChatMessage, TextMessage
 from autogen_agentchat.teams import MagenticOneGroupChat
-from autogen_agentchat.ui._console import Console
 from autogen_core.models import (
     ChatCompletionClient,
     LLMMessage,
@@ -14,7 +14,6 @@ from autogen_core.models import (
 )
 
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
-from autogen_ext.agents.web_surfer._utils import message_content_to_str
 
 from .agentic_memory_controller import AgenticMemoryController
 from .page_logger import PageLogger
@@ -168,14 +167,14 @@ In responding to every user message, you follow the same multi-step process give
         )
 
         # Get the agent's response to the task.
-        task_result = await simple_agent.run(task=TextMessage(content=task, source="User"))
-        messages = task_result.messages
-        message = messages[-1]
+        task_result: TaskResult = await simple_agent.run(task=TextMessage(content=task, source="User"))
+        messages: Sequence[AgentEvent | ChatMessage] = task_result.messages
+        message: AgentEvent | ChatMessage = messages[-1]
         response_str = message.content
 
         # Log the model call
-        self.logger.log_model_call(
-            summary="Ask the model to complete the task", input_messages=input_messages, response=task_result
+        self.logger.log_model_task(
+            summary="Ask the model to complete the task", input_messages=input_messages, task_result=task_result
         )
         self.logger.info("\n-----  RESPONSE  -----\n\n{}\n".format(response_str))
 
@@ -212,10 +211,22 @@ In responding to every user message, you follow the same multi-step process give
             max_turns=20,
         )
 
-        # Get the team's text response to the task.
-        stream = team.run_stream(task=task)
-        task_result = await Console(stream)
-        response_str = "\n".join([message_content_to_str(message.content) for message in task_result.messages])
+        # Get the team's response to the task.
+        task_result: TaskResult = await team.run(task=task)
+
+        assert isinstance(task_result, TaskResult)
+        messages = task_result.messages
+
+        response_str_list: List[str] = []
+        for message in messages:
+            content = message.content
+            if isinstance(content, str):
+                content_str = content
+            else:
+                content_str = "Not a string."
+            response_str_list.append(content_str)
+        response_str = "\n".join(response_str_list)
+
         self.logger.info("\n-----  RESPONSE  -----\n\n{}\n".format(response_str))
 
         # MagenticOne's response is the chat history, which we use here as the work history.

@@ -2,19 +2,21 @@ import inspect
 import json
 import os
 import shutil
-from typing import Dict, List, Union, Optional
+from typing import Any, Dict, List, Optional, Sequence, Union
 
-from autogen_core import FunctionCall, Image
+from autogen_agentchat.base import TaskResult
+from autogen_agentchat.messages import AgentEvent, ChatMessage
+from autogen_core import Image
 from autogen_core.models import (
     AssistantMessage,
-    FunctionExecutionResult,
+    CreateResult,
     FunctionExecutionResultMessage,
     LLMMessage,
+    RequestUsage,
     SystemMessage,
     UserMessage,
-    CreateResult,
 )
-from autogen_agentchat.base import TaskResult
+
 from ._utils import MessageContent
 
 
@@ -45,6 +47,25 @@ def html_closing() -> str:
     return """</body></html>"""
 
 
+def decorate_text(text: str, color: str, weight: str = "bold", demarcate: bool = False) -> str:
+    """
+    Returns a string of text with HTML styling for weight and color.
+    """
+    if demarcate:
+        text = f"<<<<<  {text}  >>>>>"
+    return f'<span style="color: {color}; font-weight: {weight};">{text}</span>'
+
+
+def link_to_image(image_path: str, description: str) -> str:
+    """
+    Returns an HTML string defining a thumbnail link to an image.
+    """
+    # To avoid a bug in heml rendering aht displays underscores to the left of thumbnails,
+    # define the following string on a single line.
+    link = f"""<a href="{image_path}"><img src="{image_path}" alt="{description}" style="width: 300px; height: auto;"></a>"""
+    return link
+
+
 class PageLogger:
     """
     Logs text and images to a set of HTML pages, one per function/method, linked to each other in a call tree.
@@ -55,20 +76,22 @@ class PageLogger:
             - path: The path to the directory where the log files will be saved.
 
     Methods:
-        debug: Adds text to the current page if debugging level <= DEBUG.
-        info: Adds text to the current page if debugging level <= INFO.
-        warning: Adds text to the current page if debugging level <= WARNING.
-        error: Adds text to the current page if debugging level <= ERROR.
-        critical: Adds text to the current page if debugging level <= CRITICAL.
-        log_message_content: Adds a page containing the message's content, including any images, if debugging level <= INFO.
-        log_model_call: Adds a page containing all messages to or from a model, including any images, if debugging level <= INFO.
+        debug: Adds DEBUG text to the current page if debugging level <= DEBUG.
+        info: Adds INFO text to the current page if debugging level <= INFO.
+        warning: Adds WARNING text to the current page if debugging level <= WARNING.
+        error: Adds ERROR text to the current page if debugging level <= ERROR.
+        critical: Adds CRITICAL text to the current page if debugging level <= CRITICAL.
+        log_message_content: Adds a page containing the message's content, including any images.
+        log_model_call: Logs messages sent to a model and the CreateResult response to a new page.
+        log_model_task: Logs messages sent to a model and the TaskResult response to a new page.
         log_link_to_local_file: Returns a link to a local file in the log.
+        add_link_to_image: Inserts a thumbnail link to an image to the page.
         flush: Writes the current state of the log to disk.
-        enter_function: Adds a new page corresponding to the current function call, if debugging level <= INFO.
-        leave_function: Finishes the page corresponding to the current function, if debugging level <= INFO
+        enter_function: Adds a new page corresponding to the current function call.
+        leave_function: Finishes the page corresponding to the current function call.
     """
 
-    def __init__(self, settings: Dict) -> None:
+    def __init__(self, settings: Dict[str, Any]) -> None:
         self.levels = {
             "DEBUG": 10,
             "INFO": 20,
@@ -82,7 +105,7 @@ class PageLogger:
             return
         self.log_dir = os.path.expanduser(settings["path"])
         self.page_stack = PageStack()
-        self.pages = []
+        self.pages: List[Page] = []
         self.last_page_id = 0
         self.name = "0  Call Tree"
         self._create_run_dir()
@@ -120,14 +143,14 @@ class PageLogger:
 
     def _log_text(self, text: str) -> None:
         """
-        Adds text to the current page, depending on the current logging level.
+        Adds text to the current page.
         """
         page = self.page_stack.top()
         page.add_lines(text, flush=True)
 
     def debug(self, line: str) -> None:
         """
-        Adds text to the current page if debugging level <= DEBUG.
+        Adds DEBUG text to the current page if debugging level <= DEBUG.
         """
         if self.level <= self.levels["DEBUG"]:
             self._log_text(line)
@@ -162,7 +185,7 @@ class PageLogger:
 
     def _message_source(self, message: LLMMessage) -> str:
         """
-        Returns a string indicating the source of a message.
+        Returns a decorated string indicating the source of a message.
         """
         source = "UNKNOWN"
         color = "black"
@@ -178,29 +201,15 @@ class PageLogger:
         elif isinstance(message, FunctionExecutionResultMessage):
             source = "FUNCTION"
             color = "red"
-        return self._decorate_text(source, color, demarcate=True)
+        return decorate_text(source, color, demarcate=True)
 
-    def _decorate_text(self, text: str, color: str, weight: str = "bold", demarcate: bool = False) -> str:
+    def _format_message_content(self, message_content: MessageContent) -> str:
         """
-        Returns a string of text with HTML styling for weight and color.
-        """
-        if demarcate:
-            text = f"<<<<<  {text}  >>>>>"
-        return f'<span style="color: {color}; font-weight: {weight};">{text}</span>'
-
-    def _format_message_content(
-        self, page: "Page", message: LLMMessage | None = None, message_content: MessageContent | None = None
-    ) -> str:
-        """
-        Formats the message content for logging. Either message or message_content must not be None.
+        Formats the message content for logging.
         """
         # Start by converting the message content to a list of strings.
-        content = None
-        content_list = []
-        if message_content is not None:
-            content = message_content
-        if message is not None:
-            content = message.content
+        content_list: List[Union[MessageContent, None]] = []
+        content = message_content
         if isinstance(content, str):
             content_list.append(content)
         elif isinstance(content, list):
@@ -213,7 +222,7 @@ class PageLogger:
                     image_path = os.path.join(self.log_dir, image_filename)
                     item.image.save(image_path)
                     # Add a link to the image.
-                    content_list.append(page.link_to_image(image_filename, "message_image"))
+                    content_list.append(link_to_image(image_filename, "message_image"))
                 elif isinstance(item, Dict):
                     # Add a dictionary to the log.
                     json_str = json.dumps(item, indent=4)
@@ -237,33 +246,66 @@ class PageLogger:
             return None
         page = self._add_page(summary=summary, show_in_call_tree=False)
         self.page_stack.write_stack_to_page(page)
-        page.add_lines(self._format_message_content(page, message_content=message_content))
+        page.add_lines(self._format_message_content(message_content=message_content))
         page.flush()
 
-    def log_model_call(self, summary: str, input_messages: List[LLMMessage], response: Union[CreateResult, TaskResult]) -> Optional["Page"]:
+    def _log_model_messages(
+        self, summary: str, input_messages: List[LLMMessage], response_str: str, usage: RequestUsage | None
+    ) -> Optional["Page"]:
         """
-        Adds a page containing all messages to or from a model, including any images.
+        Adds a page containing the messages to a model (including any input images) and its response.
         """
-        if self.level > self.levels["INFO"]:
-            return None
         page = self._add_page(summary=summary, show_in_call_tree=False)
         self.page_stack.write_stack_to_page(page)
 
-        if isinstance(response, TaskResult):
-            usage = response.messages[-1].models_usage
-            message = response.messages[-1]
-        else:
-            usage = response.usage
-            message = response
-
-        page.add_lines("{} prompt tokens".format(usage.prompt_tokens))
-        page.add_lines("{} completion tokens".format(usage.completion_tokens))
+        if usage is not None:
+            page.add_lines("{} prompt tokens".format(usage.prompt_tokens))
+            page.add_lines("{} completion tokens".format(usage.completion_tokens))
         for m in input_messages:
             page.add_lines("\n" + self._message_source(m))
-            page.add_lines(self._format_message_content(page, message=m))
-        page.add_lines("\n" + self._decorate_text("ASSISTANT RESPONSE", "green", demarcate=True))
-        page.add_lines(self._format_message_content(page, message=message))
+            page.add_lines(self._format_message_content(message_content=m.content))
+        page.add_lines("\n" + decorate_text("ASSISTANT RESPONSE", "green", demarcate=True))
+        page.add_lines("\n" + response_str + "\n")
         page.flush()
+        return page
+
+    def log_model_call(
+        self, summary: str, input_messages: List[LLMMessage], response: CreateResult
+    ) -> Optional["Page"]:
+        """
+        Logs messages sent to a model and the TaskResult response to a new page.
+        """
+        if self.level > self.levels["INFO"]:
+            return None
+
+        response_str = response.content
+        if not isinstance(response_str, str):
+            response_str = "??"
+
+        page = self._log_model_messages(summary, input_messages, response_str, response.usage)
+        return page
+
+    def log_model_task(
+        self, summary: str, input_messages: List[LLMMessage], task_result: TaskResult
+    ) -> Optional["Page"]:
+        """
+        Logs messages sent to a model and the TaskResult response to a new page.
+        """
+        if self.level > self.levels["INFO"]:
+            return None
+
+        messages: Sequence[AgentEvent | ChatMessage] = task_result.messages
+        message = messages[-1]
+        response_str = message.content
+        if not isinstance(response_str, str):
+            response_str = "??"
+
+        if hasattr(message, "models_usage"):
+            usage: RequestUsage | None = message.models_usage
+        else:
+            usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
+
+        page = self._log_model_messages(summary, input_messages, response_str, usage)
         return page
 
     def log_link_to_local_file(self, file_path: str) -> str:
@@ -273,6 +315,19 @@ class PageLogger:
         file_name = os.path.basename(file_path)
         link = f'<a href="{file_name}">{file_name}</a>'
         return link
+
+    def add_link_to_image(self, description: str, source_image_path: str) -> None:
+        """
+        Inserts a thumbnail link to an image to the page.
+        """
+        # Remove every character from the string 'description' that is not alphanumeric or a space.
+        description = "".join(e for e in description if e.isalnum() or e.isspace())
+        target_image_filename = str(self._get_next_page_id()) + " - " + description
+        # Copy the image to the log directory.
+        local_image_path = os.path.join(self.log_dir, target_image_filename)
+        shutil.copyfile(source_image_path, local_image_path)
+        self._log_text("\n" + description)
+        self._log_text(link_to_image(target_image_filename, description))
 
     def flush(self, finished: bool = False) -> None:
         """
@@ -298,27 +353,31 @@ class PageLogger:
         """
         if self.level > self.levels["INFO"]:
             return None
-        frame = inspect.currentframe().f_back  # Get the calling frame
 
-        # Check if it's a method by looking for 'self' or 'cls' in f_locals
-        if "self" in frame.f_locals:
-            class_name = type(frame.f_locals["self"]).__name__
-        elif "cls" in frame.f_locals:
-            class_name = frame.f_locals["cls"].__name__
-        else:
-            class_name = None  # Not part of a class
+        page = None
+        frame_type = inspect.currentframe()
+        if frame_type is not None:
+            frame = frame_type.f_back  # Get the calling frame
+            if frame is not None:
+                # Check if it's a method by looking for 'self' or 'cls' in f_locals
+                if "self" in frame.f_locals:
+                    class_name = type(frame.f_locals["self"]).__name__
+                elif "cls" in frame.f_locals:
+                    class_name = frame.f_locals["cls"].__name__
+                else:
+                    class_name = None  # Not part of a class
 
-        if class_name is None:  # Not part of a class
-            caller_name = frame.f_code.co_name
-        else:
-            caller_name = class_name + "." + frame.f_code.co_name
+                if class_name is None:  # Not part of a class
+                    caller_name = frame.f_code.co_name
+                else:
+                    caller_name = class_name + "." + frame.f_code.co_name
 
-        # Create a new page for this function.
-        page = self._add_page(summary=caller_name, show_in_call_tree=True, finished=False)
-        self.page_stack.push(page)
-        self.page_stack.write_stack_to_page(page)
+                # Create a new page for this function.
+                page = self._add_page(summary=caller_name, show_in_call_tree=True, finished=False)
+                self.page_stack.push(page)
+                self.page_stack.write_stack_to_page(page)
 
-        page.add_lines("\nENTER {}".format(caller_name), flush=True)
+                page.add_lines("\nENTER {}".format(caller_name), flush=True)
         return page
 
     def leave_function(self) -> None:
@@ -336,6 +395,18 @@ class PageLogger:
 class Page:
     """
     Represents a single HTML page in the logger output.
+
+    Args:
+        page_logger: The PageLogger object that created this page.
+        index: The index of the page.
+        summary: A brief summary of the page's contents for display.
+        indent_level: The level of indentation in the call tree.
+        show_in_call_tree: Whether to display the page in the call tree.
+        finished: Whether the page is complete.
+
+    Methods:
+        add_lines: Adds one or more lines to the page.
+        flush: Writes the HTML
     """
 
     def __init__(
@@ -357,17 +428,17 @@ class Page:
         self.show_in_call_tree = show_in_call_tree
         self.finished = finished
         self.file_title = self.index_str + "  " + self.summary
-        self.indentation_text = "|&emsp;"*self.indent_level
+        self.indentation_text = "|&emsp;" * self.indent_level
         self.full_link = f'<a href="{self.index_str}.html">{self.file_title}</a>'
         self.line_text = self.indentation_text + self.full_link
-        self.lines = []
+        self.lines: List[str] = []
         self.flush()
 
     def add_lines(self, lines: str, flush: bool = False) -> None:
         """
         Adds one or more lines to the page.
         """
-        lines_to_add = []
+        lines_to_add: List[str] = []
         if "\n" in lines:
             lines_to_add = lines.split("\n")
         else:
@@ -375,28 +446,6 @@ class Page:
         self.lines.extend(lines_to_add)
         if flush:
             self.flush()
-
-    def link_to_image(self, image_path: str, description: str) -> str:
-        """
-        Returns an HTML string defining a thumbnail link to an image.
-        """
-        # To avoid a bug in heml rendering aht displays underscores to the left of thumbnails,
-        # define the following string on a single line.
-        link = f"""<a href="{image_path}"><img src="{image_path}" alt="{description}" style="width: 300px; height: auto;"></a>"""
-        return link
-
-    def add_link_to_image(self, description: str, source_image_path: str) -> None:
-        """
-        Inserts a thumbnail link to an image to the page.
-        """
-        # Remove every character from the string 'description' that is not alphanumeric or a space.
-        description = "".join(e for e in description if e.isalnum() or e.isspace())
-        target_image_filename = str(self.page_logger._get_next_page_id()) + " - " + description
-        # Copy the image to the log directory.
-        local_image_path = os.path.join(self.page_logger.log_dir, target_image_filename)
-        shutil.copyfile(source_image_path, local_image_path)
-        self.add_lines("\n" + description)
-        self.add_lines(self.link_to_image(target_image_filename, description), flush=True)
 
     def flush(self) -> None:
         """
@@ -418,10 +467,16 @@ class Page:
 class PageStack:
     """
     A call stack containing a list of currently active function pages in the order they called each other.
+
+    Methods:
+        push: Adds a page to the top of the stack.
+        pop: Removes and returns the top page from the stack.
+        top: Returns the top page from the stack without removing it.
+        write_stack_to_page: Logs a properly indented string displaying the current call stack
     """
 
     def __init__(self):
-        self.stack = []
+        self.stack: List[Page] = []
 
     def push(self, page: Page) -> None:
         """Adds a page to the top of the stack."""
