@@ -3,8 +3,8 @@
 
 using System.Threading.Channels;
 using Grpc.Core;
-using Microsoft.Extensions.Logging;
 using Microsoft.AutoGen.Protobuf;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Core.Grpc;
 

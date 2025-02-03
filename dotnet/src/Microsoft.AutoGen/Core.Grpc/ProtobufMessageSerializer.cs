@@ -9,7 +9,7 @@ namespace Microsoft.AutoGen.Core.Grpc;
 /// <summary>
 /// Interface for serializing and deserializing agent messages.
 /// </summary>
-public class ProtobufMessageSerializer : IProtoMessageSerializer
+public class ProtobufMessageSerializer : IProtobufMessageSerializer
 {
     private System.Type _concreteType;
 

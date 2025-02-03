@@ -57,5 +57,4 @@ public static class ProtobufConversionExtensions
             Key = agentId.Key
         };
     }
-
 }

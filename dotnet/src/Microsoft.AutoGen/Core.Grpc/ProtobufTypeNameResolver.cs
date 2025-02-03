@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// ProtoTypeNameResolver.cs
+// ProtobufTypeNameResolver.cs
 
 using Google.Protobuf;
 
 namespace Microsoft.AutoGen.Core.Grpc;
 
-public class ProtoTypeNameResolver : ITypeNameResolver
+public class ProtobufTypeNameResolver : ITypeNameResolver
 {
     public string ResolveTypeName(object input)
     {

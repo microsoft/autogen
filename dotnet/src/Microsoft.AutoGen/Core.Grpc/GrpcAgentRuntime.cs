@@ -2,12 +2,11 @@
 // GrpcAgentRuntime.cs
 
 using System.Collections.Concurrent;
-using Google.Protobuf;
 using Grpc.Core;
 using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Protobuf;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.Core.Grpc;
 
@@ -80,7 +79,7 @@ internal sealed class AgentsContainer(IAgentRuntime hostingRuntime)
     public IEnumerable<IHostableAgent> LiveAgents => this.agentInstances.Values;
 }
 
-public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSink<Message>, IDisposable
+public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSink<Message>, IDisposable
 {
     public GrpcAgentRuntime(AgentRpc.AgentRpcClient client,
                             IHostApplicationLifetime hostApplicationLifetime,
@@ -123,7 +122,7 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
         }
     }
 
-    public IProtoSerializationRegistry SerializationRegistry { get; } = new ProtoSerializationRegistry();
+    public IProtoSerializationRegistry SerializationRegistry { get; } = new ProtobufSerializationRegistry();
 
     public void Dispose()
     {
@@ -155,7 +154,7 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
 
         // Convert payload back to object
         var payload = request.Payload;
-        var message = PayloadToObject(payload);
+        var message = payload.ToObject(SerializationRegistry);
 
         var messageContext = new MessageContext(request.RequestId, cancellationToken)
         {
@@ -171,7 +170,7 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
             var response = new RpcResponse
             {
                 RequestId = request.RequestId,
-                Payload = ObjectToPayload(result)
+                Payload = result.ToPayload(SerializationRegistry)
             };
 
             var responseMessage = new Message
@@ -201,7 +200,7 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
         if (_pendingRequests.TryRemove(request.RequestId, out var resultSink))
         {
             var payload = request.Payload;
-            var message = PayloadToObject(payload);
+            var message = payload.ToObject(SerializationRegistry);
             resultSink.SetResult(message);
         }
     }
@@ -224,12 +223,12 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
         var topic = new TopicId(evt.Type, evt.Source);
         var sender = new Contracts.AgentId
         {
-            Type = evt.Attributes["agagentsendertype"].CeString,
-            Key = evt.Attributes["agagentsenderkey"].CeString
+            Type = evt.Attributes[Constants.AGENT_SENDER_TYPE_ATTR].CeString,
+            Key = evt.Attributes[Constants.AGENT_SENDER_KEY_ATTR].CeString
         };
 
         var messageId = evt.Id;
-        var typeName = evt.Attributes["dataschema"].CeString;
+        var typeName = evt.Attributes[Constants.DATA_SCHEMA_ATTR].CeString;
         var serializer = SerializationRegistry.GetSerializer(typeName) ?? throw new Exception();
         var message = serializer.Deserialize(evt.ProtoData);
 
@@ -255,36 +254,6 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
         return this._messageRouter.StopAsync();
     }
 
-    private Payload ObjectToPayload(object message) {
-        if (!SerializationRegistry.Exists(message.GetType()))
-        {
-            SerializationRegistry.RegisterSerializer(message.GetType());
-        }
-        var rpcMessage = (SerializationRegistry.GetSerializer(message.GetType()) ?? throw new Exception()).Serialize(message);
-
-        var typeName = SerializationRegistry.TypeNameResolver.ResolveTypeName(message);
-        const string PAYLOAD_DATA_CONTENT_TYPE = "application/x-protobuf";
-
-        // Protobuf any to byte array
-        Payload payload = new()
-        {
-            DataType = typeName,
-            DataContentType = PAYLOAD_DATA_CONTENT_TYPE,
-            Data = rpcMessage.ToByteString()
-        };
-
-        return payload;
-    }
-
-    private object PayloadToObject(Payload payload) {
-        var typeName = payload.DataType;
-        var data = payload.Data;
-        var type = SerializationRegistry.TypeNameResolver.ResolveTypeName(typeName);
-        var serializer = SerializationRegistry.GetSerializer(type) ?? throw new Exception();
-        var any = Google.Protobuf.WellKnownTypes.Any.Parser.ParseFrom(data);
-        return serializer.Deserialize(any);
-    }
-
     public async ValueTask<object?> SendMessageAsync(object message, Contracts.AgentId recepient, Contracts.AgentId? sender = null, string? messageId = null, CancellationToken cancellationToken = default)
     {
         if (!SerializationRegistry.Exists(message.GetType()))
@@ -292,11 +261,11 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
             SerializationRegistry.RegisterSerializer(message.GetType());
         }
 
-        var payload = ObjectToPayload(message);
+        var payload = message.ToPayload(SerializationRegistry);
         var request = new RpcRequest
         {
             RequestId = Guid.NewGuid().ToString(),
-            Source = (sender ?? new Contracts.AgentId() ).ToProtobuf(),
+            Source = (sender ?? new Contracts.AgentId()).ToProtobuf(),
             Target = recepient.ToProtobuf(),
             Payload = payload,
         };
@@ -314,35 +283,6 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
         return await resultSink.Future;
     }
 
-    private CloudEvent CreateCloudEvent(Google.Protobuf.WellKnownTypes.Any payload, TopicId topic, string dataType, Contracts.AgentId sender, string messageId)
-    {
-        const string PAYLOAD_DATA_CONTENT_TYPE = "application/x-protobuf";
-        return new CloudEvent
-        {
-            ProtoData = payload,
-            Type = topic.Type,
-            Source = topic.Source,
-            Id = messageId,
-            Attributes = {
-                {
-                    "datacontenttype", new CloudEvent.Types.CloudEventAttributeValue { CeString = PAYLOAD_DATA_CONTENT_TYPE }
-                },
-                {
-                    "dataschema", new CloudEvent.Types.CloudEventAttributeValue { CeString = dataType }
-                },
-                {
-                    "agagentsendertype", new CloudEvent.Types.CloudEventAttributeValue { CeString = sender.Type }
-                },
-                {
-                    "agagentsenderkey", new CloudEvent.Types.CloudEventAttributeValue { CeString = sender.Key }
-                },
-                {
-                    "agmsgkind", new CloudEvent.Types.CloudEventAttributeValue { CeString = "publish" }
-                }
-            }
-        };
-    }
-
     public async ValueTask PublishMessageAsync(object message, TopicId topic, Contracts.AgentId? sender = null, string? messageId = null, CancellationToken cancellationToken = default)
     {
         if (!SerializationRegistry.Exists(message.GetType()))
@@ -352,7 +292,7 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
         var protoAny = (SerializationRegistry.GetSerializer(message.GetType()) ?? throw new Exception()).Serialize(message);
         var typeName = SerializationRegistry.TypeNameResolver.ResolveTypeName(message);
 
-        var cloudEvent = CreateCloudEvent(protoAny, topic, typeName, sender ?? new Contracts.AgentId(), messageId ?? Guid.NewGuid().ToString());
+        var cloudEvent = CloudEventExtensions.CreateCloudEvent(protoAny, topic, typeName, sender ?? new Contracts.AgentId(), messageId ?? Guid.NewGuid().ToString());
 
         Message msg = new()
         {
@@ -382,38 +322,24 @@ public sealed class GrpcAgentRuntime: IHostedService, IAgentRuntime, IMessageSin
         return agent.Metadata;
     }
 
-    public ValueTask AddSubscriptionAsync(ISubscriptionDefinition subscription)
+    public async ValueTask AddSubscriptionAsync(ISubscriptionDefinition subscription)
     {
         this._agentsContainer.AddSubscription(subscription);
 
-        // Because we have an extensible definition of ISubscriptionDefinition, we cannot project it to the Gateway.
-        // What this means is that we will have a much chattier interface between the Gateway and the Runtime.
-
-        //await this._client.AddSubscriptionAsync(new AddSubscriptionRequest
-        //{
-        //    Subscription = new Subscription
-        //    {
-        //        Id = subscription.Id,
-        //        TopicType = subscription.TopicType,
-        //        AgentType = subscription.AgentType.Name
-        //    }
-        //}, this.CallOptions);
-
-        return ValueTask.CompletedTask;
+        var _ = await this._client.AddSubscriptionAsync(new AddSubscriptionRequest
+        {
+            Subscription = subscription.ToProtobuf()
+        }, this.CallOptions);
     }
 
-    public ValueTask RemoveSubscriptionAsync(string subscriptionId)
+    public async ValueTask RemoveSubscriptionAsync(string subscriptionId)
     {
         this._agentsContainer.RemoveSubscriptionAsync(subscriptionId);
 
-        // See above (AddSubscriptionAsync) for why this is commented out.
-
-        //await this._client.RemoveSubscriptionAsync(new RemoveSubscriptionRequest
-        //{
-        //    Id = subscriptionId
-        //}, this.CallOptions);
-
-        return ValueTask.CompletedTask;
+        await this._client.RemoveSubscriptionAsync(new RemoveSubscriptionRequest
+        {
+            Id = subscriptionId
+        }, this.CallOptions);
     }
 
     public ValueTask<AgentType> RegisterAgentFactoryAsync(AgentType type, Func<Contracts.AgentId, IAgentRuntime, ValueTask<IHostableAgent>> factoryFunc)
