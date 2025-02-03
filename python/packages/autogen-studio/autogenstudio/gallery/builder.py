@@ -6,20 +6,20 @@ from autogen_agentchat.conditions import MaxMessageTermination, TextMentionTermi
 from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
 from autogen_core import ComponentModel
 from autogen_core.models import ModelInfo
-from autogen_core.tools import FunctionTool
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 from autogenstudio.datamodel import Gallery, GalleryComponents, GalleryItems, GalleryMetadata
+from . import tools as tools
 
 
 class GalleryBuilder:
     """Enhanced builder class for creating AutoGen component galleries with custom labels."""
 
-    def __init__(self, id: str, name: str):
+    def __init__(self, id: str, name: str, url: Optional[str] = None):
         self.id = id
         self.name = name
-        self.url: Optional[str] = None
+        self.url: Optional[str] =  url
         self.teams: List[ComponentModel] = []
         self.agents: List[ComponentModel] = []
         self.models: List[ComponentModel] = []
@@ -128,13 +128,16 @@ class GalleryBuilder:
 
 def create_default_gallery() -> Gallery:
     """Create a default gallery with all components including calculator and web surfer teams."""
-    builder = GalleryBuilder(id="gallery_default", name="Default Component Gallery")
+
+    url = "https://raw.githubusercontent.com/microsoft/autogen/refs/heads/main/python/packages/autogen-studio/autogenstudio/gallery/default.json"
+    builder = GalleryBuilder(id="gallery_default", name="Default Component Gallery", url=url)
 
     # Set metadata
     builder.set_metadata(
         description="A default gallery containing basic components for human-in-loop conversations",
         tags=["human-in-loop", "assistant", "web agents"],
         category="conversation",
+        
     )
 
     # Create base model client
@@ -153,38 +156,17 @@ def create_default_gallery() -> Gallery:
         description="Example on how to use the OpenAIChatCopletionClient with local models (Ollama, vllm etc).",
     )
 
-    def calculator(a: float, b: float, operator: str) -> str:
-        try:
-            if operator == "+":
-                return str(a + b)
-            elif operator == "-":
-                return str(a - b)
-            elif operator == "*":
-                return str(a * b)
-            elif operator == "/":
-                if b == 0:
-                    return "Error: Division by zero"
-                return str(a / b)
-            else:
-                return "Error: Invalid operator. Please use +, -, *, or /"
-        except Exception as e:
-            return f"Error: {str(e)}"
-
-    # Create calculator tool
-    calculator_tool = FunctionTool(
-        name="calculator",
-        description="A simple calculator that performs basic arithmetic operations",
-        func=calculator,
-        global_imports=[],
-    )
-    builder.add_tool(calculator_tool.dump_component())
+    
+    builder.add_tool(tools.calculator_tool.dump_component(),
+                label="Calculator Tool",
+                description="A tool that performs basic arithmetic operations (addition, subtraction, multiplication, division).")
 
     # Create calculator assistant agent
     calc_assistant = AssistantAgent(
         name="assistant_agent",
         system_message="You are a helpful assistant. Solve tasks carefully. When done, say TERMINATE.",
         model_client=base_model,
-        tools=[calculator_tool],
+        tools=[tools.calculator_tool],
     )
     builder.add_agent(
         calc_assistant.dump_component(), description="An agent that provides assistance with ability to use tools."
@@ -258,6 +240,26 @@ Read the above conversation. Then select the next role from {participants} to pl
         label="Web Agent Team (Operator)",
         description="A group chat team that have participants takes turn to publish a message\n    to all, using a ChatCompletion model to select the next speaker after each message.",
     )
+
+    builder.add_tool(tools.generate_image_tool.dump_component(),
+                label="Image Generation Tool",
+                description="A tool that generates images based on a text description using OpenAI's DALL-E model. Note: Requires OpenAI API key to function.") 
+
+    builder.add_tool(tools.generate_pdf_tool.dump_component(),
+                label="PDF Generation Tool",
+                description="A tool that generates a PDF file from a list of images.Requires the PyFPDF and pillow library to function.")
+
+    builder.add_tool(tools.fetch_webpage_tool.dump_component(),
+                label="Webpage Generation Tool",
+                description="A tool that generates a webpage from a list of images. Requires beautifulsoup4 html2text library to function.")
+
+    builder.add_tool(tools.bing_search_tool.dump_component(),
+                label="Bing Search Tool",
+                description="A tool that performs Bing searches using the Bing Web Search API. Requires the requests library, BING_SEARCH_KEY env variable to function.") 
+
+    builder.add_tool(tools.google_search_tool.dump_component(),
+                label="Google Search Tool",
+                description="A tool that performs Google searches using the Google Custom Search API. Requires the requests library, [GOOGLE_API_KEY, GOOGLE_CSE_ID] to be set,  env variable to function.")
 
     return builder.build()
 
