@@ -3571,6 +3571,10 @@ dependencies = [
     { name = "autogen-agentchat" },
     { name = "autogen-ext", extra = ["magentic-one", "openai", "rich"] },
     { name = "pyyaml" },
+]
+
+[package.dev-dependencies]
+dev = [
     { name = "types-pyyaml" },
 ]
 
@@ -3579,11 +3583,10 @@ requires-dist = [
     { name = "autogen-agentchat", editable = "packages/autogen-agentchat" },
     { name = "autogen-ext", extras = ["openai", "magentic-one", "rich"], editable = "packages/autogen-ext" },
     { name = "pyyaml", specifier = ">=5.1" },
-    { name = "types-pyyaml" },
 ]
 
 [package.metadata.requires-dev]
-dev = []
+dev = [{ name = "types-pyyaml" }]
 
 [[package]]
 name = "mako"
