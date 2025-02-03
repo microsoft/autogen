@@ -17,7 +17,7 @@ internal static class RpcExtensions
         }
         var rpcMessage = (serializationRegistry.GetSerializer(message.GetType()) ?? throw new Exception()).Serialize(message);
 
-        var typeName = serializationRegistry.TypeNameResolver.ResolveTypeName(message);
+        var typeName = serializationRegistry.TypeNameResolver.ResolveTypeName(message.GetType());
         const string PAYLOAD_DATA_CONTENT_TYPE = "application/x-protobuf";
 
         // Protobuf any to byte array
@@ -35,8 +35,7 @@ internal static class RpcExtensions
     {
         var typeName = payload.DataType;
         var data = payload.Data;
-        var type = serializationRegistry.TypeNameResolver.ResolveTypeName(typeName);
-        var serializer = serializationRegistry.GetSerializer(type) ?? throw new Exception();
+        var serializer = serializationRegistry.GetSerializer(typeName) ?? throw new Exception();
         var any = Google.Protobuf.WellKnownTypes.Any.Parser.ParseFrom(data);
         return serializer.Deserialize(any);
     }

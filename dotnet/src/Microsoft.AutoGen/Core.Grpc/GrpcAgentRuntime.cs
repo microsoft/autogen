@@ -15,7 +15,7 @@ internal sealed class AgentsContainer(IAgentRuntime hostingRuntime)
     private readonly IAgentRuntime hostingRuntime = hostingRuntime;
 
     private Dictionary<Contracts.AgentId, IHostableAgent> agentInstances = new();
-    private Dictionary<string, ISubscriptionDefinition> subscriptions = new();
+    public Dictionary<string, ISubscriptionDefinition> Subscriptions = new();
     private Dictionary<AgentType, Func<Contracts.AgentId, IAgentRuntime, ValueTask<IHostableAgent>>> agentFactories = new();
 
     public async ValueTask<IHostableAgent> EnsureAgentAsync(Contracts.AgentId agentId)
@@ -57,22 +57,22 @@ internal sealed class AgentsContainer(IAgentRuntime hostingRuntime)
 
     public void AddSubscription(ISubscriptionDefinition subscription)
     {
-        if (this.subscriptions.ContainsKey(subscription.Id))
+        if (this.Subscriptions.ContainsKey(subscription.Id))
         {
             throw new Exception($"Subscription with id {subscription.Id} already exists.");
         }
 
-        this.subscriptions.Add(subscription.Id, subscription);
+        this.Subscriptions.Add(subscription.Id, subscription);
     }
 
     public bool RemoveSubscriptionAsync(string subscriptionId)
     {
-        if (!this.subscriptions.ContainsKey(subscriptionId))
+        if (!this.Subscriptions.ContainsKey(subscriptionId))
         {
             throw new Exception($"Subscription with id {subscriptionId} does not exist.");
         }
 
-        return this.subscriptions.Remove(subscriptionId);
+        return this.Subscriptions.Remove(subscriptionId);
     }
 
     public HashSet<AgentType> RegisteredAgentTypes => this.agentFactories.Keys.ToHashSet();
@@ -90,7 +90,7 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         this._logger = logger;
         this._shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
 
-        this._messageRouter = new GrpcMessageRouter(client, this, logger, this._shutdownCts.Token);
+        this._messageRouter = new GrpcMessageRouter(client, this, _clientId, logger, this._shutdownCts.Token);
         this._agentsContainer = new AgentsContainer(this);
 
         this.ServiceProvider = serviceProvider;
@@ -109,14 +109,14 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
 
     public IServiceProvider ServiceProvider { get; }
 
-    private string _clientId = Guid.NewGuid().ToString();
+    private Guid _clientId = Guid.NewGuid();
     private CallOptions CallOptions
     {
         get
         {
             var metadata = new Metadata
             {
-                { "client-id", this._clientId }
+                { "client-id", this._clientId.ToString() }
             };
             return new CallOptions(headers: metadata);
         }
@@ -221,11 +221,15 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         }
 
         var topic = new TopicId(evt.Type, evt.Source);
-        var sender = new Contracts.AgentId
+        Contracts.AgentId? sender = null;
+        if (evt.Attributes.TryGetValue(Constants.AGENT_SENDER_TYPE_ATTR, out var typeValue) && evt.Attributes.TryGetValue(Constants.AGENT_SENDER_KEY_ATTR, out var keyValue))
         {
-            Type = evt.Attributes[Constants.AGENT_SENDER_TYPE_ATTR].CeString,
-            Key = evt.Attributes[Constants.AGENT_SENDER_KEY_ATTR].CeString
-        };
+            sender = new Contracts.AgentId
+            {
+                Type = typeValue.CeString,
+                Key = keyValue.CeString
+            };
+        }
 
         var messageId = evt.Id;
         var typeName = evt.Attributes[Constants.DATA_SCHEMA_ATTR].CeString;
@@ -238,8 +242,17 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
             Topic = topic,
             IsRpc = false
         };
-        var agent = await this._agentsContainer.EnsureAgentAsync(sender);
-        await agent.OnMessageAsync(message, messageContext);
+
+        // Iterate over subscriptions values to find receiving agents
+        foreach (var subscription in this._agentsContainer.Subscriptions.Values)
+        {
+            if (subscription.Matches(topic))
+            {
+                var recipient = subscription.MapToAgent(topic);
+                var agent = await this._agentsContainer.EnsureAgentAsync(recipient);
+                await agent.OnMessageAsync(message, messageContext);
+            }
+        }
     }
 
     public ValueTask StartAsync(CancellationToken cancellationToken)
@@ -290,9 +303,9 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
             SerializationRegistry.RegisterSerializer(message.GetType());
         }
         var protoAny = (SerializationRegistry.GetSerializer(message.GetType()) ?? throw new Exception()).Serialize(message);
-        var typeName = SerializationRegistry.TypeNameResolver.ResolveTypeName(message);
+        var typeName = SerializationRegistry.TypeNameResolver.ResolveTypeName(message.GetType());
 
-        var cloudEvent = CloudEventExtensions.CreateCloudEvent(protoAny, topic, typeName, sender ?? new Contracts.AgentId(), messageId ?? Guid.NewGuid().ToString());
+        var cloudEvent = CloudEventExtensions.CreateCloudEvent(protoAny, topic, typeName, sender, messageId ?? Guid.NewGuid().ToString());
 
         Message msg = new()
         {
@@ -342,8 +355,17 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         }, this.CallOptions);
     }
 
-    public ValueTask<AgentType> RegisterAgentFactoryAsync(AgentType type, Func<Contracts.AgentId, IAgentRuntime, ValueTask<IHostableAgent>> factoryFunc)
-        => ValueTask.FromResult(this._agentsContainer.RegisterAgentFactory(type, factoryFunc));
+    public async ValueTask<AgentType> RegisterAgentFactoryAsync(AgentType type, Func<Contracts.AgentId, IAgentRuntime, ValueTask<IHostableAgent>> factoryFunc)
+    {
+        this._agentsContainer.RegisterAgentFactory(type, factoryFunc);
+
+        await this._client.RegisterAgentAsync(new RegisterAgentTypeRequest
+        {
+            Type = type,
+        }, this.CallOptions);
+
+        return type;
+    }
 
     public ValueTask<AgentProxy> TryGetAgentProxyAsync(Contracts.AgentId agentId)
     {

@@ -7,10 +7,12 @@ namespace Microsoft.AutoGen.Core.Grpc;
 
 public class ProtobufTypeNameResolver : ITypeNameResolver
 {
-    public string ResolveTypeName(object input)
+    public string ResolveTypeName(Type input)
     {
-        if (input is IMessage protoMessage)
+        if (typeof(IMessage).IsAssignableFrom(input))
         {
+            // TODO: Consider changing this to avoid instantiation...
+            var protoMessage = (IMessage?)Activator.CreateInstance(input) ?? throw new InvalidOperationException($"Failed to create instance of {input.FullName}");
             return protoMessage.Descriptor.FullName;
         }
         else

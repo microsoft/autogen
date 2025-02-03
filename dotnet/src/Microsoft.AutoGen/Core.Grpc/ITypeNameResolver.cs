@@ -5,5 +5,5 @@ namespace Microsoft.AutoGen.Core.Grpc;
 
 public interface ITypeNameResolver
 {
-    string ResolveTypeName(object input);
+    string ResolveTypeName(Type input);
 }

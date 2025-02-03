@@ -18,15 +18,18 @@ internal sealed class AutoRestartChannel : IDisposable
 {
     private readonly object _channelLock = new();
     private readonly AgentRpc.AgentRpcClient _client;
+    private readonly Guid _clientId;
     private readonly ILogger<GrpcAgentRuntime> _logger;
     private readonly CancellationTokenSource _shutdownCts;
     private AsyncDuplexStreamingCall<Message, Message>? _channel;
 
     public AutoRestartChannel(AgentRpc.AgentRpcClient client,
+                              Guid clientId,
                               ILogger<GrpcAgentRuntime> logger,
                               CancellationToken shutdownCancellation = default)
     {
         _client = client;
+        _clientId = clientId;
         _logger = logger;
         _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellation);
     }
@@ -73,8 +76,12 @@ internal sealed class AutoRestartChannel : IDisposable
             {
                 if (_channel is null || _channel == ownedChannel)
                 {
+                    var metadata = new Metadata
+                    {
+                        { "client-id", _clientId.ToString() }
+                    };
                     _channel?.Dispose();
-                    _channel = _client.OpenChannel(cancellationToken: _shutdownCts.Token);
+                    _channel = _client.OpenChannel(cancellationToken: _shutdownCts.Token, headers: metadata);
                 }
             }
         }
@@ -91,6 +98,7 @@ internal sealed class AutoRestartChannel : IDisposable
 
 internal sealed class GrpcMessageRouter(AgentRpc.AgentRpcClient client,
                                     IMessageSink<Message> incomingMessageSink,
+                                    Guid clientId,
                                     ILogger<GrpcAgentRuntime> logger,
                                     CancellationToken shutdownCancellation = default) : IDisposable
 {
@@ -111,7 +119,7 @@ internal sealed class GrpcMessageRouter(AgentRpc.AgentRpcClient client,
         // TODO: Enable a way to configure the channel options
         = Channel.CreateBounded<(Message, TaskCompletionSource)>(DefaultChannelOptions);
 
-    private readonly AutoRestartChannel _incomingMessageChannel = new AutoRestartChannel(client, logger, shutdownCancellation);
+    private readonly AutoRestartChannel _incomingMessageChannel = new AutoRestartChannel(client, clientId, logger, shutdownCancellation);
 
     private Task? _readTask;
     private Task? _writeTask;

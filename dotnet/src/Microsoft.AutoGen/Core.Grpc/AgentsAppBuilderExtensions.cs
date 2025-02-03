@@ -14,7 +14,7 @@ namespace Microsoft.AutoGen.Core.Grpc;
 
 public static class AgentsAppBuilderExtensions
 {
-    private const string _defaultAgentServiceAddress = "https://localhost:53071";
+    private const string _defaultAgentServiceAddress = "http://localhost:53071";
 
     // TODO: How do we ensure AddGrpcAgentWorker and UseInProcessRuntime are mutually exclusive?
     public static AgentsAppBuilder AddGrpcAgentWorker(this AgentsAppBuilder builder, string? agentServiceAddress = null)
