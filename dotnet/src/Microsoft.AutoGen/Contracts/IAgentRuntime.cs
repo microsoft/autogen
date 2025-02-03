@@ -53,8 +53,7 @@ public interface IAgentRuntime : ISaveState<IAgentRuntime>
     /// <param name="key">An optional key to specify variations of the agent. Defaults to "default".</param>
     /// <param name="lazy">If <c>true</c>, the agent is fetched lazily.</param>
     /// <returns>A task representing the asynchronous operation, returning the agent's ID.</returns>
-    public ValueTask<AgentId> GetAgentAsync(AgentType agentType, string key = "default", bool lazy = true/*, CancellationToken? = default*/)
-        => this.GetAgentAsync(new AgentId(agentType, key), lazy);
+    public ValueTask<AgentId> GetAgentAsync(AgentType agentType, string key = "default", bool lazy = true/*, CancellationToken? = default*/);
 
     /// <summary>
     /// Retrieves an agent by its string representation.
@@ -63,8 +62,7 @@ public interface IAgentRuntime : ISaveState<IAgentRuntime>
     /// <param name="key">An optional key to specify variations of the agent. Defaults to "default".</param>
     /// <param name="lazy">If <c>true</c>, the agent is fetched lazily.</param>
     /// <returns>A task representing the asynchronous operation, returning the agent's ID.</returns>
-    public ValueTask<AgentId> GetAgentAsync(string agent, string key = "default", bool lazy = true/*, CancellationToken? = default*/)
-        => this.GetAgentAsync(new AgentId(agent, key), lazy);
+    public ValueTask<AgentId> GetAgentAsync(string agent, string key = "default", bool lazy = true/*, CancellationToken? = default*/);
 
     /// <summary>
     /// Saves the state of an agent.

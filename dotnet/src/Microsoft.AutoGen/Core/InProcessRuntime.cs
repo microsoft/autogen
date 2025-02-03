@@ -140,6 +140,12 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
         return agentId;
     }
 
+    public ValueTask<AgentId> GetAgentAsync(AgentType agentType, string key = "default", bool lazy = true)
+        => this.GetAgentAsync(new AgentId(agentType, key), lazy);
+
+    public ValueTask<AgentId> GetAgentAsync(string agent, string key = "default", bool lazy = true)
+        => this.GetAgentAsync(new AgentId(agent, key), lazy);
+
     public async ValueTask<AgentMetadata> GetAgentMetadataAsync(AgentId agentId)
     {
         IHostableAgent agent = await this.EnsureAgentAsync(agentId);

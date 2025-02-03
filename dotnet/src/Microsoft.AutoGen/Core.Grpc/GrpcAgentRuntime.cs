@@ -317,6 +317,12 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
 
     public ValueTask<Contracts.AgentId> GetAgentAsync(Contracts.AgentId agentId, bool lazy = true) => this._agentsContainer.GetAgentAsync(agentId, lazy);
 
+    public ValueTask<Contracts.AgentId> GetAgentAsync(AgentType agentType, string key = "default", bool lazy = true)
+        => this.GetAgentAsync(new Contracts.AgentId(agentType, key), lazy);
+
+    public ValueTask<Contracts.AgentId> GetAgentAsync(string agent, string key = "default", bool lazy = true)
+        => this.GetAgentAsync(new Contracts.AgentId(agent, key), lazy);
+
     public async ValueTask<IDictionary<string, object>> SaveAgentStateAsync(Contracts.AgentId agentId)
     {
         IHostableAgent agent = await this._agentsContainer.EnsureAgentAsync(agentId);
