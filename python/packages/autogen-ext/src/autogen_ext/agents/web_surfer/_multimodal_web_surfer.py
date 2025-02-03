@@ -775,12 +775,10 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         else:
             message_content += f"The following text is visible in the viewport:\n\n{ocr_text}"
 
-        return message_content
-
-#        return [
-#            message_content,
-#            AGImage.from_pil(PIL.Image.open(io.BytesIO(new_screenshot))),
-#        ]
+        return [
+            message_content,
+            AGImage.from_pil(PIL.Image.open(io.BytesIO(new_screenshot))),
+        ]
 
     def _target_name(self, target: str, rects: Dict[str, InteractiveRegion]) -> str | None:
         try:

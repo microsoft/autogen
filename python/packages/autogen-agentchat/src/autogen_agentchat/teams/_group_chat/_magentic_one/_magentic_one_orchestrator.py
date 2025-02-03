@@ -146,7 +146,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         planning_conversation.append(
             UserMessage(content=self._get_task_ledger_facts_prompt(self._task), source=self._name)
         )
-        response = await self._model_client.create(planning_conversation, cancellation_token=ctx.cancellation_token)
+        response = await self._model_client.create(self._make_compatible_context(planning_conversation), cancellation_token=ctx.cancellation_token)
 
         assert isinstance(response.content, str)
         self._facts = response.content
@@ -157,7 +157,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         planning_conversation.append(
             UserMessage(content=self._get_task_ledger_plan_prompt(self._team_description), source=self._name)
         )
-        response = await self._model_client.create(planning_conversation, cancellation_token=ctx.cancellation_token)
+        response = await self._model_client.create(self._make_compatible_context(planning_conversation), cancellation_token=ctx.cancellation_token)
 
         assert isinstance(response.content, str)
         self._plan = response.content
@@ -281,7 +281,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         assert self._max_json_retries > 0
         key_error: bool = False
         for _ in range(self._max_json_retries):
-            response = await self._model_client.create(context, json_output=True)
+            response = await self._model_client.create(self._make_compatible_context(context), json_output=True)
             ledger_str = response.content
             try:
                 assert isinstance(ledger_str, str)
@@ -397,7 +397,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         update_facts_prompt = self._get_task_ledger_facts_update_prompt(self._task, self._facts)
         context.append(UserMessage(content=update_facts_prompt, source=self._name))
 
-        response = await self._model_client.create(context, cancellation_token=cancellation_token)
+        response = await self._model_client.create(self._make_compatible_context(context), cancellation_token=cancellation_token)
 
         assert isinstance(response.content, str)
         self._facts = response.content
@@ -407,7 +407,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         update_plan_prompt = self._get_task_ledger_plan_update_prompt(self._team_description)
         context.append(UserMessage(content=update_plan_prompt, source=self._name))
 
-        response = await self._model_client.create(context, cancellation_token=cancellation_token)
+        response = await self._model_client.create(selg._make_compatible_context(context), cancellation_token=cancellation_token)
 
         assert isinstance(response.content, str)
         self._plan = response.content
@@ -420,7 +420,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         final_answer_prompt = self._get_final_answer_prompt(self._task)
         context.append(UserMessage(content=final_answer_prompt, source=self._name))
 
-        response = await self._model_client.create(context, cancellation_token=cancellation_token)
+        response = await self._model_client.create(self._make_compatible_context(context), cancellation_token=cancellation_token)
         assert isinstance(response.content, str)
         message = TextMessage(content=response.content, source=self._name)
 
@@ -476,3 +476,17 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 else:
                     result.append("<image>")
         return "\n".join(result)
+
+    def _make_compatible_context(self, context: List[LLMMessage]):
+        """Ensure context are compatible with the underlying model."""
+        if self._model_client.model_info["vision"]:
+            return context
+        else:
+            new_context: List[LLMMessage] = []
+            for message in context:
+                if isinstance(message, UserMessage):
+                    # Only user messages can conain images
+                    new_context.append(UserMessage(content=self._content_to_str(message.content), source=message.source))
+                else:
+                    new_context.append(message)
+            return new_context
