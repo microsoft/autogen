@@ -137,6 +137,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
 }
 
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
+    "o3-mini-2025-01-31": 200000,
     "o1-2024-12-17": 200000,
     "o1-preview-2024-09-12": 128000,
     "o1-mini-2024-09-12": 128000,
