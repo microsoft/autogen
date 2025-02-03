@@ -192,6 +192,13 @@ class UnknownPayload:
 
 
 def _type_name(cls: type[Any] | Any) -> str:
+    # If cls is a protobuf, then we need to determine the descriptor
+    if isinstance(cls, type):
+        if issubclass(cls, Message):
+            return cls.DESCRIPTOR.full_name
+    elif isinstance(cls, Message):
+        return cls.DESCRIPTOR.full_name
+
     if isinstance(cls, type):
         return cls.__name__
     else:
