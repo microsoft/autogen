@@ -7,7 +7,7 @@
 ###############################
 # Open AI model configuration #
 ###############################
-model_config:
+model_config: &client
   provider: autogen_ext.models.openai.OpenAIChatCompletionClient
   config:
     model: gpt-4o
@@ -16,7 +16,7 @@ model_config:
 ##############################
 # Ollama model configuration #
 ##############################
-#model_config:
+#model_config: &client
 #    provider: autogen_ext.models.openai.OpenAIChatCompletionClient
 #    config:
 #      model: deepseek-r1:7b
@@ -27,3 +27,12 @@ model_config:
 #        json_output: false
 #        vision: false
 #        family: r1
+#
+
+#######################
+# Used by MagenticOne #
+#######################
+orchestrator_client: *client
+coder_client: *client
+web_surfer_client: *client
+file_surfer_client: *client  

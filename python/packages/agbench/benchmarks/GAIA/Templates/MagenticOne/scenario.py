@@ -19,7 +19,11 @@ async def main() -> None:
     # Load model configuration and create the model client.
     with open("config.yaml", "r") as f:
         config = yaml.safe_load(f)
-    model_client = ChatCompletionClient.load_component(config["model_config"])
+
+    orchestrator_client = ChatCompletionClient.load_component(config["orchestrator_client"])
+    coder_client = ChatCompletionClient.load_component(config["coder_client"])
+    web_surfer_client = ChatCompletionClient.load_component(config["web_surfer_client"])
+    file_surfer_client = ChatCompletionClient.load_component(config["file_surfer_client"])
     
     # Read the prompt
     prompt = ""
@@ -30,19 +34,19 @@ async def main() -> None:
     # Set up the team
     coder = MagenticOneCoderAgent(
         "Assistant",
-        model_client = model_client,
+        model_client = coder_client,
     )
 
     executor = CodeExecutorAgent("ComputerTerminal", code_executor=LocalCommandLineCodeExecutor())
 
     file_surfer = FileSurfer(
         name="FileSurfer",
-        model_client = model_client,
+        model_client = file_surfer_client,
     )
                 
     web_surfer = MultimodalWebSurfer(
         name="WebSurfer",
-        model_client = model_client,
+        model_client = web_surfer_client,
         downloads_folder=os.getcwd(),
         debug_dir="logs",
         to_save_screenshots=True,
@@ -50,7 +54,7 @@ async def main() -> None:
 
     team = MagenticOneGroupChat(
         [coder, executor, file_surfer, web_surfer],
-        model_client=model_client,
+        model_client=orchestrator_client,
         max_turns=20,
         final_answer_prompt= f""",
 We have completed the following task:
