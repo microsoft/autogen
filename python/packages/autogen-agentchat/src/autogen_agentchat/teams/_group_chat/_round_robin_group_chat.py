@@ -1,6 +1,6 @@
 from typing import Any, Callable, List, Mapping
 
-from autogen_core import Component, ComponentModel
+from autogen_core import Component, ComponentModel, ExceptionHandlingPolicy
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -22,6 +22,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
         max_turns: int | None = None,
+        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ) -> None:
         super().__init__(
             group_topic_type,
@@ -30,6 +31,7 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
             participant_descriptions,
             termination_condition,
             max_turns,
+            exception_handling_policy,
         )
         self._next_speaker_index = 0
 
@@ -153,12 +155,14 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
         participants: List[ChatAgent],
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
+        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ) -> None:
         super().__init__(
             participants,
             group_chat_manager_class=RoundRobinGroupChatManager,
             termination_condition=termination_condition,
             max_turns=max_turns,
+            exception_handling_policy=exception_handling_policy,
         )
 
     def _create_group_chat_manager_factory(
@@ -169,6 +173,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
+        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ) -> Callable[[], RoundRobinGroupChatManager]:
         def _factory() -> RoundRobinGroupChatManager:
             return RoundRobinGroupChatManager(
@@ -178,6 +183,7 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
                 participant_descriptions,
                 termination_condition,
                 max_turns,
+                exception_handling_policy=exception_handling_policy,
             )
 
         return _factory

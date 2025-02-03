@@ -35,6 +35,7 @@ from ._agent_metadata import AgentMetadata
 from ._agent_runtime import AgentRuntime
 from ._agent_type import AgentType
 from ._cancellation_token import CancellationToken
+from ._exception_handling_policy import ExceptionHandlingPolicy
 from ._intervention import DropMessage, InterventionHandler
 from ._message_context import MessageContext
 from ._message_handler_context import MessageHandlerContext
@@ -248,6 +249,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         *,
         intervention_handlers: List[InterventionHandler] | None = None,
         tracer_provider: TracerProvider | None = None,
+        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ) -> None:
         self._tracer_helper = TraceHelper(tracer_provider, MessageRuntimeTracingConfig("SingleThreadedAgentRuntime"))
         self._message_queue: Queue[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope] = Queue()
@@ -261,6 +263,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         self._subscription_manager = SubscriptionManager()
         self._run_context: RunContext | None = None
         self._serialization_registry = SerializationRegistry()
+        self._exception_handling_policy = exception_handling_policy
 
     @property
     def unprocessed_messages_count(
@@ -515,15 +518,19 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                                             exception=e,
                                         )
                                     )
-                                    raise
+                                    raise e
 
                     future = _on_message(agent, message_context)
                     responses.append(future)
 
                 await asyncio.gather(*responses)
-            except BaseException:
-                # Ignore exceptions raised during publishing. We've already logged them above.
-                pass
+            except BaseException as e:
+                if self._exception_handling_policy is ExceptionHandlingPolicy.RAISE:
+                    # Re-raise the exception if the policy is RAISE
+                    raise e
+                else:
+                    # Ignore exceptions raised during publishing. We've already logged them above.
+                    pass
             finally:
                 self._message_queue.task_done()
             # TODO if responses are given for a publish
@@ -637,9 +644,21 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                                 return
 
                         message_envelope.message = temp_message
+
+                def handle_process_exception(task: Task[Any]) -> None:
+                    """Handle exceptions raised during message processing.
+
+                    Args:
+                        task: The task that has finished and has potentially raised an exception.
+                    """
+
+                    task.result()
+
+                    self._background_tasks.discard(task)
+
                 task = asyncio.create_task(self._process_publish(message_envelope))
                 self._background_tasks.add(task)
-                task.add_done_callback(self._background_tasks.discard)
+                task.add_done_callback(handle_process_exception)
             case ResponseMessageEnvelope(message=message, sender=sender, recipient=recipient, future=future):
                 if self._intervention_handlers is not None:
                     for handler in self._intervention_handlers:
