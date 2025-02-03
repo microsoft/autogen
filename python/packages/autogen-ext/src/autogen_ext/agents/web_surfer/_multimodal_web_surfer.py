@@ -40,7 +40,14 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from ._events import WebSurferEvent
-from ._prompts import WEB_SURFER_OCR_PROMPT, WEB_SURFER_QA_PROMPT, WEB_SURFER_QA_SYSTEM_MESSAGE, WEB_SURFER_TOOL_PROMPT
+from ._prompts import (
+    WEB_SURFER_OCR_PROMPT,
+    WEB_SURFER_QA_PROMPT,
+    WEB_SURFER_QA_SYSTEM_MESSAGE,
+    WEB_SURFER_TOOL_PROMPT_MM,
+    WEB_SURFER_TOOL_PROMPT_TEXT,
+)
+
 from ._set_of_mark import add_set_of_mark
 from ._tool_definitions import (
     TOOL_CLICK,
@@ -215,8 +222,9 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             raise ValueError(
                 "The model does not support function calling. MultimodalWebSurfer requires a model that supports function calling."
             )
-        if model_client.model_info["vision"] is False:
-            raise ValueError("The model is not multimodal. MultimodalWebSurfer requires a multimodal model.")
+#        if model_client.model_info["vision"] is False:
+#            raise ValueError("The model is not multimodal. MultimodalWebSurfer requires a multimodal model.")
+
         self._model_client = model_client
         self.headless = headless
         self.browser_channel = browser_channel
@@ -512,22 +520,37 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
 
         tool_names = "\n".join([t["name"] for t in tools])
 
-        text_prompt = WEB_SURFER_TOOL_PROMPT.format(
-            url=self._page.url,
-            visible_targets=visible_targets,
-            other_targets_str=other_targets_str,
-            focused_hint=focused_hint,
-            tool_names=tool_names,
-        ).strip()
+        if self._model_client.model_info["vision"]:
+            text_prompt = WEB_SURFER_TOOL_PROMPT_MM.format(
+                url=self._page.url,
+                visible_targets=visible_targets,
+                other_targets_str=other_targets_str,
+                focused_hint=focused_hint,
+                tool_names=tool_names,
+            ).strip()
 
-        # Scale the screenshot for the MLM, and close the original
-        scaled_screenshot = som_screenshot.resize((self.MLM_WIDTH, self.MLM_HEIGHT))
-        som_screenshot.close()
-        if self.to_save_screenshots:
-            scaled_screenshot.save(os.path.join(self.debug_dir, "screenshot_scaled.png"))  # type: ignore
+            # Scale the screenshot for the MLM, and close the original
+            scaled_screenshot = som_screenshot.resize((self.MLM_WIDTH, self.MLM_HEIGHT))
+            som_screenshot.close()
+            if self.to_save_screenshots:
+                scaled_screenshot.save(os.path.join(self.debug_dir, "screenshot_scaled.png"))  # type: ignore
 
-        # Add the multimodal message and make the request
-        history.append(UserMessage(content=[text_prompt, AGImage.from_pil(scaled_screenshot)], source=self.name))
+            # Add the message
+            history.append(UserMessage(content=[text_prompt, AGImage.from_pil(scaled_screenshot)], source=self.name))
+        else:
+            visible_text = await self._playwright_controller.get_visible_text(self._page)
+
+            text_prompt = WEB_SURFER_TOOL_PROMPT_TEXT.format(
+                url=self._page.url,
+                visible_targets=visible_targets,
+                other_targets_str=other_targets_str,
+                focused_hint=focused_hint,
+                tool_names=tool_names,
+                visible_text=visible_text.strip(),
+            ).strip()
+            
+            # Add the message
+            history.append(UserMessage(content=text_prompt, source=self.name))
 
         response = await self._model_client.create(
             history, tools=tools, extra_create_args={"tool_choice": "auto"}, cancellation_token=cancellation_token
@@ -752,10 +775,12 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         else:
             message_content += f"The following text is visible in the viewport:\n\n{ocr_text}"
 
-        return [
-            message_content,
-            AGImage.from_pil(PIL.Image.open(io.BytesIO(new_screenshot))),
-        ]
+        return message_content
+
+#        return [
+#            message_content,
+#            AGImage.from_pil(PIL.Image.open(io.BytesIO(new_screenshot))),
+#        ]
 
     def _target_name(self, target: str, rects: Dict[str, InteractiveRegion]) -> str | None:
         try:
