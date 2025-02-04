@@ -1,5 +1,26 @@
-WEB_SURFER_TOOL_PROMPT = """
+WEB_SURFER_TOOL_PROMPT_MM = """
 Consider the following screenshot of a web browser, which is open to the page '{url}'. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
+
+{visible_targets}{other_targets_str}{focused_hint}
+
+You are to respond to the most recent request by selecting an appropriate tool from the following set, or by answering the question directly if possible without tools:
+
+{tool_names}
+
+When deciding between tools, consider if the request can be best addressed by:
+    - the contents of the current viewport (in which case actions like clicking links, clicking buttons, inputting text might be most appropriate, or hovering over element)
+    - contents found elsewhere on the full webpage (in which case actions like scrolling, summarization, or full-page Q&A might be most appropriate)
+    - on some other website entirely (in which case actions like performing a new web search might be the best option)
+"""
+
+WEB_SURFER_TOOL_PROMPT_TEXT = """
+Your web browser is open to the page '{url}'. The following text is visible in the viewport:
+
+```
+{visible_text}
+```
+
+You have also identified the following interactive components:
 
 {visible_targets}{other_targets_str}{focused_hint}
 
