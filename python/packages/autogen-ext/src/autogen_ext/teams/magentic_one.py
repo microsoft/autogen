@@ -142,7 +142,7 @@ class MagenticOne(MagenticOneGroupChat):
 
     def _validate_client_capabilities(self, client: ChatCompletionClient) -> None:
         capabilities = client.model_info
-        required_capabilities = ["vision", "function_calling", "json_output"]
+        required_capabilities = ["function_calling", "json_output"]
 
         if not all(capabilities.get(cap) for cap in required_capabilities):
             warnings.warn(
