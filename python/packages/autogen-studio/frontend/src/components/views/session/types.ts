@@ -1,10 +1,11 @@
-import type { Session } from "../../types/datamodel";
+import type { Session, Team } from "../../types/datamodel";
 
 export interface SessionEditorProps {
   session?: Session;
   onSave: (session: Partial<Session>) => Promise<void>;
   onCancel: () => void;
   isOpen: boolean;
+  teams: Team[];
 }
 
 export interface SessionListProps {

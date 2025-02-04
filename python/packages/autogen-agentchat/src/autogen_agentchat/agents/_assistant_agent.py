@@ -64,7 +64,7 @@ class AssistantAgentConfig(BaseModel):
     model_context: ComponentModel | None = None
     description: str
     system_message: str | None = None
-    model_client_stream: bool
+    model_client_stream: bool = False
     reflect_on_tool_use: bool
     tool_call_summary_format: str
 
