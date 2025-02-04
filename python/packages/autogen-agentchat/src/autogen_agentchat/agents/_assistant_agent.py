@@ -42,7 +42,6 @@ from ..messages import (
     HandoffMessage,
     MemoryQueryEvent,
     ModelClientStreamingChunkEvent,
-    MultiModalMessage,
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
@@ -376,8 +375,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         # Add messages to the model context.
         for msg in messages:
-            if isinstance(msg, MultiModalMessage) and self._model_client.model_info["vision"] is False:
-                raise ValueError("The model does not support vision.")
             if isinstance(msg, HandoffMessage):
                 # Add handoff context to the model context.
                 for context_msg in msg.context:
