@@ -6,10 +6,12 @@ using AutoGen.Core;
 using AutoGen.Mistral.Extension;
 using AutoGen.Tests;
 using FluentAssertions;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace AutoGen.Mistral.Tests;
 
+[Trait("Category", "UnitV1")]
 public partial class MistralClientAgentTests
 {
     private ITestOutputHelper _output;
