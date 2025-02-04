@@ -1062,7 +1062,9 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             raise ValueError("model is required for OpenAIChatCompletionClient")
 
         model_capabilities: Optional[ModelCapabilities] = None  # type: ignore
+        self._raw_config: Dict[str, Any] = dict(kwargs).copy()
         copied_args = dict(kwargs).copy()
+
         if "model_capabilities" in kwargs:
             model_capabilities = kwargs["model_capabilities"]
             del copied_args["model_capabilities"]
@@ -1074,7 +1076,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
 
         client = _openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
-        self._raw_config: Dict[str, Any] = copied_args
+
         super().__init__(
             client=client, create_args=create_args, model_capabilities=model_capabilities, model_info=model_info
         )
