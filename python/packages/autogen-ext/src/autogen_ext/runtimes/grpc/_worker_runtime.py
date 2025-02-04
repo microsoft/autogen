@@ -790,7 +790,15 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         await self._subscription_manager.add_subscription(subscription)
 
     async def remove_subscription(self, id: str) -> None:
-        raise NotImplementedError("Subscriptions cannot be removed while using distributed runtime currently.")
+        if self._host_connection is None:
+            raise RuntimeError("Host connection is not set.")
+
+        message = agent_worker_pb2.RemoveSubscriptionRequest(id=id)
+        _response: agent_worker_pb2.RemoveSubscriptionResponse = await self._host_connection.stub.RemoveSubscription(
+            message, metadata=self._host_connection.metadata
+        )
+
+        await self._subscription_manager.remove_subscription(id)
 
     async def get(
         self, id_or_type: AgentId | AgentType | str, /, key: str = "default", *, lazy: bool = True
