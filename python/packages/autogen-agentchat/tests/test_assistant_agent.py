@@ -541,11 +541,13 @@ async def test_invalid_model_capabilities() -> None:
                 FunctionTool(_echo_function, description="Echo"),
             ],
         )
+        await agent.run(task=TextMessage(source="user", content="Test"))
 
     with pytest.raises(ValueError):
         agent = AssistantAgent(name="assistant", model_client=model_client, handoffs=["agent2"])
+        await agent.run(task=TextMessage(source="user", content="Test"))
 
-    #with pytest.raises(ValueError):
+    # with pytest.raises(ValueError):
     #    agent = AssistantAgent(name="assistant", model_client=model_client)
     #    # Generate a random base64 image.
     #    img_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
