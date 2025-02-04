@@ -52,9 +52,7 @@ async def mcp_server_tools(
                 )
 
                 # The agent can now use any of the filesystem tools
-                await agent.run(
-                    task="Create a file called test.txt with some content", cancellation_token=CancellationToken()
-                )
+                await agent.run(task="Create a file called test.txt with some content", cancellation_token=CancellationToken())
 
 
             if __name__ == "__main__":
@@ -69,17 +67,13 @@ async def mcp_server_tools(
 
             async def main() -> None:
                 # Setup server params for remote service
-                server_params = SseServerParams(
-                    url="https://api.example.com/mcp", headers={"Authorization": "Bearer token"}
-                )
+                server_params = SseServerParams(url="https://api.example.com/mcp", headers={"Authorization": "Bearer token"})
 
                 # Get all available tools
                 tools = await mcp_server_tools(server_params)
 
                 # Create an agent with all tools
-                agent = AssistantAgent(
-                    name="tool_user", model_client=OpenAIChatCompletionClient(model="gpt-4"), tools=tools
-                )
+                agent = AssistantAgent(name="tool_user", model_client=OpenAIChatCompletionClient(model="gpt-4"), tools=tools)
 
     For more examples and detailed usage, see the samples directory in the package repository.
     """

@@ -2,15 +2,14 @@ from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from autogen_core import CancellationToken
-from json_schema_to_pydantic import create_model
-from mcp import ClientSession, Tool
-
 from autogen_ext.tools.mcp import (
     SseMcpToolAdapter,
     SseServerParams,
     StdioMcpToolAdapter,
     StdioServerParams,
 )
+from json_schema_to_pydantic import create_model
+from mcp import ClientSession, Tool
 
 
 @pytest.fixture
@@ -115,7 +114,7 @@ async def test_mcp_tool_execution(
     mock_context = AsyncMock()
     mock_context.__aenter__.return_value = mock_session
     monkeypatch.setattr(
-        "autogen_ext_mcp.tools._base.create_mcp_server_session",
+        "autogen_ext.tools.mcp._base.create_mcp_server_session",
         lambda *args, **kwargs: mock_context,  # type: ignore
     )
 
@@ -143,7 +142,7 @@ async def test_adapter_from_server_params(
     mock_context = AsyncMock()
     mock_context.__aenter__.return_value = mock_session
     monkeypatch.setattr(
-        "autogen_ext_mcp.tools._base.create_mcp_server_session",
+        "autogen_ext.tools.mcp._base.create_mcp_server_session",
         lambda *args, **kwargs: mock_context,  # type: ignore
     )
 
@@ -216,7 +215,7 @@ async def test_sse_tool_execution(
     mock_sse_session.call_tool.return_value = MagicMock(isError=False, content={"result": "test_output"})
 
     monkeypatch.setattr(
-        "autogen_ext_mcp.tools._base.create_mcp_server_session",
+        "autogen_ext.tools.mcp._base.create_mcp_server_session",
         lambda *args, **kwargs: mock_context,  # type: ignore
     )
 
@@ -242,7 +241,7 @@ async def test_sse_adapter_from_server_params(
     mock_context = AsyncMock()
     mock_context.__aenter__.return_value = mock_sse_session
     monkeypatch.setattr(
-        "autogen_ext_mcp.tools._base.create_mcp_server_session",
+        "autogen_ext.tools.mcp._base.create_mcp_server_session",
         lambda *args, **kwargs: mock_context,  # type: ignore
     )
 

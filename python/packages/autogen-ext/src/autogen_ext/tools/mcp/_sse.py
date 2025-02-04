@@ -1,8 +1,7 @@
-from typing import Self
-
 from autogen_core import Component
 from mcp import Tool
 from pydantic import BaseModel
+from typing_extensions import Self
 
 from ._base import McpToolAdapter
 from ._config import SseServerParams
@@ -67,9 +66,7 @@ class SseMcpToolAdapter(
 
                 # Let the agent translate some text
                 await Console(
-                    agent.run_stream(
-                        task="Translate 'Hello, how are you?' to Spanish", cancellation_token=CancellationToken()
-                    )
+                    agent.run_stream(task="Translate 'Hello, how are you?' to Spanish", cancellation_token=CancellationToken())
                 )
 
 
@@ -79,7 +76,7 @@ class SseMcpToolAdapter(
     """
 
     component_config_schema = SseMcpToolAdapterConfig
-    component_provider_override = "autogen-ext.tools.mcp.SseMcpToolAdapter"
+    component_provider_override = "autogen_ext.tools.mcp.SseMcpToolAdapter"
 
     def __init__(self, server_params: SseServerParams, tool: Tool) -> None:
         super().__init__(server_params=server_params, tool=tool)
