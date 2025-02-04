@@ -34,6 +34,7 @@
     <PackageVersion Include="Azure.ResourceManager.ContainerInstance" Version="1.2.1" />
     <PackageVersion Include="Azure.Storage.Files.Shares" Version="12.21.0" />
     <PackageVersion Include="CloudNative.CloudEvents.SystemTextJson" Version="2.7.1" />
+    <PackageVersion Include="coverlet.collector" Version="6.0.2" />
     <PackageVersion Include="FluentAssertions" Version="6.12.2" />
     <PackageVersion Include="GitHubActionsTestLogger" Version="2.4.1">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -55,7 +56,6 @@
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.8.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="4.8.0" />
-    <PackageVersion Include="Microsoft.CodeCoverage" Version="17.12.0" />
     <PackageVersion Include="Microsoft.DotNet.Interactive" Version="$(MicrosoftDotNetInteractive)" />
     <PackageVersion Include="Microsoft.DotNet.Interactive.Jupyter" Version="$(MicrosoftDotNetInteractive)" />
     <PackageVersion Include="Microsoft.DotNet.Interactive.PackageManagement" Version="$(MicrosoftDotNetInteractive)" />
