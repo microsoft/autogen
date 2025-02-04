@@ -16,6 +16,7 @@
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
     <PackageReference Include="MartinCostello.Logging.XUnit" />
+    <PackageReference Include="Microsoft.CodeCoverage" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
   </ItemGroup>
 

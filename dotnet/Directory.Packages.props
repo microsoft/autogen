@@ -56,6 +56,7 @@
     <PackageVersion Include="Microsoft.Bcl.AsyncInterfaces" Version="9.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="4.8.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Common" Version="4.8.0" />
+    <PackageVersion Include="Microsoft.CodeCoverage" Version="17.12.0" />
     <PackageVersion Include="Microsoft.DotNet.Interactive" Version="$(MicrosoftDotNetInteractive)" />
     <PackageVersion Include="Microsoft.DotNet.Interactive.Jupyter" Version="$(MicrosoftDotNetInteractive)" />
     <PackageVersion Include="Microsoft.DotNet.Interactive.PackageManagement" Version="$(MicrosoftDotNetInteractive)" />
