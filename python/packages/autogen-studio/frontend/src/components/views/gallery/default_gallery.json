@@ -1,7 +1,6 @@
 {
   "id": "gallery_default",
   "name": "Default Component Gallery",
-  "url": "https://raw.githubusercontent.com/microsoft/autogen/refs/heads/main/python/packages/autogen-studio/autogenstudio/gallery/default.json",
   "metadata": {
     "author": "AutoGen Team",
     "created_at": "2025-02-01T17:12:38.179093",

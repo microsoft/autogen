@@ -10,6 +10,7 @@ from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 from autogenstudio.datamodel import Gallery, GalleryComponents, GalleryItems, GalleryMetadata
+
 from . import tools as tools
 
 
@@ -19,7 +20,7 @@ class GalleryBuilder:
     def __init__(self, id: str, name: str, url: Optional[str] = None):
         self.id = id
         self.name = name
-        self.url: Optional[str] =  url
+        self.url: Optional[str] = url
         self.teams: List[ComponentModel] = []
         self.agents: List[ComponentModel] = []
         self.models: List[ComponentModel] = []
@@ -129,15 +130,14 @@ class GalleryBuilder:
 def create_default_gallery() -> Gallery:
     """Create a default gallery with all components including calculator and web surfer teams."""
 
-    url = "https://raw.githubusercontent.com/microsoft/autogen/refs/heads/main/python/packages/autogen-studio/autogenstudio/gallery/default.json"
-    builder = GalleryBuilder(id="gallery_default", name="Default Component Gallery", url=url)
+    # url = "https://raw.githubusercontent.com/microsoft/autogen/refs/heads/main/python/packages/autogen-studio/autogenstudio/gallery/default.json"
+    builder = GalleryBuilder(id="gallery_default", name="Default Component Gallery")
 
     # Set metadata
     builder.set_metadata(
         description="A default gallery containing basic components for human-in-loop conversations",
         tags=["human-in-loop", "assistant", "web agents"],
         category="conversation",
-        
     )
 
     # Create base model client
@@ -156,10 +156,11 @@ def create_default_gallery() -> Gallery:
         description="Example on how to use the OpenAIChatCopletionClient with local models (Ollama, vllm etc).",
     )
 
-    
-    builder.add_tool(tools.calculator_tool.dump_component(),
-                label="Calculator Tool",
-                description="A tool that performs basic arithmetic operations (addition, subtraction, multiplication, division).")
+    builder.add_tool(
+        tools.calculator_tool.dump_component(),
+        label="Calculator Tool",
+        description="A tool that performs basic arithmetic operations (addition, subtraction, multiplication, division).",
+    )
 
     # Create calculator assistant agent
     calc_assistant = AssistantAgent(
@@ -241,25 +242,35 @@ Read the above conversation. Then select the next role from {participants} to pl
         description="A group chat team that have participants takes turn to publish a message\n    to all, using a ChatCompletion model to select the next speaker after each message.",
     )
 
-    builder.add_tool(tools.generate_image_tool.dump_component(),
-                label="Image Generation Tool",
-                description="A tool that generates images based on a text description using OpenAI's DALL-E model. Note: Requires OpenAI API key to function.") 
+    builder.add_tool(
+        tools.generate_image_tool.dump_component(),
+        label="Image Generation Tool",
+        description="A tool that generates images based on a text description using OpenAI's DALL-E model. Note: Requires OpenAI API key to function.",
+    )
 
-    builder.add_tool(tools.generate_pdf_tool.dump_component(),
-                label="PDF Generation Tool",
-                description="A tool that generates a PDF file from a list of images.Requires the PyFPDF and pillow library to function.")
+    builder.add_tool(
+        tools.generate_pdf_tool.dump_component(),
+        label="PDF Generation Tool",
+        description="A tool that generates a PDF file from a list of images.Requires the PyFPDF and pillow library to function.",
+    )
 
-    builder.add_tool(tools.fetch_webpage_tool.dump_component(),
-                label="Webpage Generation Tool",
-                description="A tool that generates a webpage from a list of images. Requires beautifulsoup4 html2text library to function.")
+    builder.add_tool(
+        tools.fetch_webpage_tool.dump_component(),
+        label="Webpage Generation Tool",
+        description="A tool that generates a webpage from a list of images. Requires beautifulsoup4 html2text library to function.",
+    )
 
-    builder.add_tool(tools.bing_search_tool.dump_component(),
-                label="Bing Search Tool",
-                description="A tool that performs Bing searches using the Bing Web Search API. Requires the requests library, BING_SEARCH_KEY env variable to function.") 
+    builder.add_tool(
+        tools.bing_search_tool.dump_component(),
+        label="Bing Search Tool",
+        description="A tool that performs Bing searches using the Bing Web Search API. Requires the requests library, BING_SEARCH_KEY env variable to function.",
+    )
 
-    builder.add_tool(tools.google_search_tool.dump_component(),
-                label="Google Search Tool",
-                description="A tool that performs Google searches using the Google Custom Search API. Requires the requests library, [GOOGLE_API_KEY, GOOGLE_CSE_ID] to be set,  env variable to function.")
+    builder.add_tool(
+        tools.google_search_tool.dump_component(),
+        label="Google Search Tool",
+        description="A tool that performs Google searches using the Google Custom Search API. Requires the requests library, [GOOGLE_API_KEY, GOOGLE_CSE_ID] to be set,  env variable to function.",
+    )
 
     return builder.build()
 

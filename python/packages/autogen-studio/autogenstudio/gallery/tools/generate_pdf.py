@@ -1,24 +1,22 @@
-from typing import List, Dict, Optional
-from pathlib import Path
-import uuid
-import requests
-from fpdf import FPDF
-from PIL import Image, ImageDraw, ImageOps
-from io import BytesIO
 import unicodedata
+import uuid
+from io import BytesIO
+from pathlib import Path
+from typing import Dict, List, Optional
+
+import requests
 from autogen_core.code_executor import ImportFromModule
 from autogen_core.tools import FunctionTool
- 
+from fpdf import FPDF
+from PIL import Image, ImageDraw, ImageOps
 
 
 async def generate_pdf(
-    sections: List[Dict[str, Optional[str]]], 
-    output_file: str = "report.pdf",
-    report_title: str = "PDF Report"
+    sections: List[Dict[str, Optional[str]]], output_file: str = "report.pdf", report_title: str = "PDF Report"
 ) -> str:
     """
     Generate a PDF report with formatted sections including text and images.
-    
+
     Args:
         sections: List of dictionaries containing section details with keys:
             - title: Section title
@@ -27,13 +25,14 @@ async def generate_pdf(
             - image: Optional image URL or file path
         output_file: Name of output PDF file
         report_title: Title shown at top of report
-    
+
     Returns:
         str: Path to the generated PDF file
     """
+
     def normalize_text(text: str) -> str:
         """Normalize Unicode text to ASCII."""
-        return unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('ascii')
+        return unicodedata.normalize("NFKD", text).encode("ascii", "ignore").decode("ascii")
 
     def get_image(image_url_or_path):
         """Fetch image from URL or local path."""
@@ -42,12 +41,12 @@ async def generate_pdf(
             if response.status_code == 200:
                 return BytesIO(response.content)
         elif Path(image_url_or_path).is_file():
-            return open(image_url_or_path, 'rb')
+            return open(image_url_or_path, "rb")
         return None
 
     def add_rounded_corners(img, radius=6):
         """Add rounded corners to an image."""
-        mask = Image.new('L', img.size, 0)
+        mask = Image.new("L", img.size, 0)
         draw = ImageDraw.Draw(mask)
         draw.rounded_rectangle([(0, 0), img.size], radius, fill=255)
         img = ImageOps.fit(img, mask.size, centering=(0.5, 0.5))
@@ -56,17 +55,18 @@ async def generate_pdf(
 
     class PDF(FPDF):
         """Custom PDF class with header and content formatting."""
+
         def header(self):
             self.set_font("Arial", "B", 12)
             normalized_title = normalize_text(report_title)
             self.cell(0, 10, normalized_title, 0, 1, "C")
-            
-        def chapter_title(self, txt): 
+
+        def chapter_title(self, txt):
             self.set_font("Arial", "B", 12)
             normalized_txt = normalize_text(txt)
             self.cell(0, 10, normalized_txt, 0, 1, "L")
             self.ln(2)
-        
+
         def chapter_body(self, body):
             self.set_font("Arial", "", 12)
             normalized_body = normalize_text(body)
@@ -99,7 +99,7 @@ async def generate_pdf(
 
         if content:
             pdf.chapter_body(content)
-        
+
         if image:
             img_data = get_image(image)
             if img_data:
@@ -111,7 +111,6 @@ async def generate_pdf(
     return output_file
 
 
-
 # Create the PDF generation tool
 generate_pdf_tool = FunctionTool(
     func=generate_pdf,
@@ -121,9 +120,9 @@ generate_pdf_tool = FunctionTool(
         "requests",
         "unicodedata",
         ImportFromModule("typing", ("List", "Dict", "Optional")),
-        ImportFromModule("pathlib", ("Path",)),  
+        ImportFromModule("pathlib", ("Path",)),
         ImportFromModule("fpdf", ("FPDF",)),
         ImportFromModule("PIL", ("Image", "ImageDraw", "ImageOps")),
-        ImportFromModule("io", ("BytesIO",)), 
-    ]
+        ImportFromModule("io", ("BytesIO",)),
+    ],
 )
