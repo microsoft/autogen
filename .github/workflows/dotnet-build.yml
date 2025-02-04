@@ -105,7 +105,17 @@ jobs:
     - name: Unit Test V1
       run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV1"
     - name: Unit Test V2
-      run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV2"
+      run: dotnet test --no-build --configuration Release --filter "Category=UnitV2" --collect:"Code Coverage" --results-directory coverage
+    - name: Generate Coverage Report
+      run: |
+        dotnet tool install --global reportgenerator
+        reportgenerator -reports:coverage/**/*.coverage -targetdir:coverage-report -reporttypes:Html
+    - name: Upload Coverage Report
+      uses: actions/upload-artifact@v4
+      with:
+        name: CodeCoverageReport
+        path: coverage-report/
+    
 
   integration-test:
     strategy:
