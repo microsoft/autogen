@@ -9,9 +9,11 @@ using AutoGen.Tests;
 using Azure.AI.OpenAI;
 using FluentAssertions;
 using Microsoft.SemanticKernel;
+using Xunit;
 
 namespace AutoGen.SemanticKernel.Tests;
 
+[Trait("Category", "UnitV1")]
 public class KernelFunctionMiddlewareTests
 {
     [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]

@@ -13,6 +13,7 @@ using Xunit;
 
 namespace AutoGen.Anthropic.Tests;
 
+[Trait("Category", "UnitV1")]
 public class AnthropicClientTests
 {
     [ApiKeyFact("ANTHROPIC_API_KEY")]

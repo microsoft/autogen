@@ -10,6 +10,7 @@ using Xunit;
 
 namespace AutoGen.Gemini.Tests;
 
+[Trait("Category", "UnitV1")]
 public class FunctionContractExtensionTests
 {
     private readonly Functions functions = new Functions();
