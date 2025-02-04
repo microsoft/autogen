@@ -44,16 +44,16 @@ public class AgentGrpcTests
     [Fact]
     public async Task AgentShouldReceiveMessagesWhenSubscribedTest()
     {
-        var runtime = new InProcessRuntime();
-        await runtime.StartAsync();
+        var fixture = new GrpcAgentRuntimeFixture();
+        var runtime = (GrpcAgentRuntime)await fixture.Start();
 
         Logger<BaseAgent> logger = new(new LoggerFactory());
         SubscribedAgent agent = null!;
 
-        await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) =>
+        await runtime.RegisterAgentFactoryAsync("MyAgent", async (id, runtime) =>
         {
             agent = new SubscribedAgent(id, runtime, logger);
-            return ValueTask.FromResult(agent);
+            return await ValueTask.FromResult(agent);
         });
 
         // Ensure the agent is actually created
@@ -68,8 +68,6 @@ public class AgentGrpcTests
 
         await runtime.PublishMessageAsync(new Core.Tests.TextMessage { Source = topicType, Content = "test" }, new TopicId(topicType)).ConfigureAwait(true);
 
-        await runtime.RunUntilIdleAsync();
-
         agent.ReceivedMessages.Any().Should().BeTrue("Agent should receive messages when subscribed.");
     }
 
@@ -77,11 +75,11 @@ public class AgentGrpcTests
     public async Task SendMessageAsyncShouldReturnResponseTest()
     {
         // Arrange
-        var runtime = new InProcessRuntime();
-        await runtime.StartAsync();
+        var fixture = new GrpcAgentRuntimeFixture();
+        var runtime = (GrpcAgentRuntime)await fixture.Start();
 
         Logger<BaseAgent> logger = new(new LoggerFactory());
-        await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) => ValueTask.FromResult(new TestAgent(id, runtime, logger)));
+        await runtime.RegisterAgentFactoryAsync("MyAgent", async (id, runtime) => await ValueTask.FromResult(new TestAgent(id, runtime, logger)));
         await runtime.RegisterImplicitAgentSubscriptionsAsync<TestAgent>("MyAgent");
 
         var agentId = new AgentId("MyAgent", "TestAgent");
@@ -113,13 +111,13 @@ public class AgentGrpcTests
     [Fact]
     public async Task SubscribeAsyncRemoveSubscriptionAsyncAndGetSubscriptionsTest()
     {
-        var runtime = new InProcessRuntime();
-        await runtime.StartAsync();
+        var fixture = new GrpcAgentRuntimeFixture();
+        var runtime = (GrpcAgentRuntime)await fixture.Start();
         ReceiverAgent? agent = null;
-        await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) =>
+        await runtime.RegisterAgentFactoryAsync("MyAgent", async (id, runtime) =>
         {
             agent = new ReceiverAgent(id, runtime);
-            return ValueTask.FromResult(agent);
+            return await ValueTask.FromResult(agent);
         });
 
         Assert.Null(agent);
@@ -152,8 +150,9 @@ public class AgentGrpcTests
     [Fact]
     public async Task AgentShouldSaveStateCorrectlyTest()
     {
-        var runtime = new InProcessRuntime();
-        await runtime.StartAsync();
+
+        var fixture = new GrpcAgentRuntimeFixture();
+        var runtime = (GrpcAgentRuntime)await fixture.Start();
 
         Logger<BaseAgent> logger = new(new LoggerFactory());
         TestAgent agent = new TestAgent(new AgentId("TestType", "TestKey"), runtime, logger);
