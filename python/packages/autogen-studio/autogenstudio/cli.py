@@ -20,7 +20,7 @@ def get_env_file_path():
     app_dir = os.path.join(os.path.expanduser("~"), ".autogenstudio")
     if not os.path.exists(app_dir):
         os.makedirs(app_dir, exist_ok=True)
-    return os.path.join(app_dir, "temp.env")
+    return os.path.join(app_dir, "temp_env_vars.env")
 
 
 @app.command()
