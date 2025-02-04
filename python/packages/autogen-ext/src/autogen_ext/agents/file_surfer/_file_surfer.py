@@ -9,6 +9,7 @@ from autogen_agentchat.messages import (
     MultiModalMessage,
     TextMessage,
 )
+from autogen_agentchat.utils import remove_images
 from autogen_core import CancellationToken, FunctionCall
 from autogen_core.models import (
     AssistantMessage,
@@ -126,7 +127,7 @@ class FileSurfer(BaseChatAgent):
         )
 
         create_result = await self._model_client.create(
-            messages=history + [context_message, task_message],
+            messages=self._get_compatible_context(history + [context_message, task_message]),
             tools=[
                 TOOL_OPEN_PATH,
                 TOOL_PAGE_DOWN,
@@ -172,3 +173,10 @@ class FileSurfer(BaseChatAgent):
 
         final_response = "TERMINATE"
         return False, final_response
+
+    def _get_compatible_context(self, messages: List[LLMMessage]) -> List[LLMMessage]:
+        """Ensure that the messages are compatible with the underlying client, by removing images if needed."""
+        if self._model_client.model_info["vision"]:
+            return messages
+        else:
+            return remove_images(messages)
