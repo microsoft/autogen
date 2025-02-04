@@ -3,7 +3,7 @@ import re
 from typing import Any, Callable, Dict, List, Mapping, Sequence
 
 from autogen_core import Component, ComponentModel
-from autogen_core.models import ChatCompletionClient, SystemMessage
+from autogen_core.models import ChatCompletionClient, SystemMessage, UserMessage
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -135,7 +135,11 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             select_speaker_prompt = self._selector_prompt.format(
                 roles=roles, participants=str(participants), history=history
             )
-            select_speaker_messages = [SystemMessage(content=select_speaker_prompt)]
+            select_speaker_messages: List[SystemMessage | UserMessage]
+            if self._model_client.model_info["family"].startswith("gemini"):
+                select_speaker_messages = [UserMessage(content=select_speaker_prompt, source="selector")]
+            else:
+                select_speaker_messages = [SystemMessage(content=select_speaker_prompt)]
             response = await self._model_client.create(messages=select_speaker_messages)
             assert isinstance(response.content, str)
             mentions = self._mentioned_agents(response.content, self._participant_topic_types)

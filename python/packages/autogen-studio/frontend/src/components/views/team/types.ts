@@ -57,14 +57,6 @@ export const defaultTeamConfig: Component<TeamConfig> = {
             },
           ],
           handoffs: [],
-          model_context: {
-            provider:
-              "autogen_core.model_context.UnboundedChatCompletionContext",
-            component_type: "chat_completion_context",
-            version: 1,
-            component_version: 1,
-            config: {},
-          },
           description:
             "An agent that provides assistance with ability to use tools.",
           system_message:
