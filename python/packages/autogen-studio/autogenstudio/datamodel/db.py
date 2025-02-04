@@ -42,7 +42,7 @@ class Message(SQLModel, table=True):
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
     version: Optional[str] = "0.0.1"
-    # config: Union[MessageConfig, dict] = Field(default_factory=MessageConfig, sa_column=Column(JSON))
+    config: Union[MessageConfig, dict] = Field(default_factory=MessageConfig, sa_column=Column(JSON))
     session_id: Optional[int] = Field(
         default=None, sa_column=Column(Integer, ForeignKey("session.id", ondelete="CASCADE"))
     )
