@@ -22,6 +22,7 @@ def get_env_file_path():
         os.makedirs(app_dir, exist_ok=True)
     return os.path.join(app_dir, "temp.env")
 
+
 @app.command()
 def ui(
     host: str = "127.0.0.1",
@@ -45,7 +46,6 @@ def ui(
         appdir (str, optional): Path to the AutoGen Studio app directory. Defaults to None.
         database-uri (str, optional): Database URI to connect to. Defaults to None.
     """
-   
 
     # Write configuration
     env_vars = {
@@ -60,8 +60,7 @@ def ui(
     if upgrade_database:
         env_vars["AUTOGENSTUDIO_UPGRADE_DATABASE"] = "1"
 
-    
-     # Create temporary env file to share configuration with uvicorn workers
+    # Create temporary env file to share configuration with uvicorn workers
     env_file_path = get_env_file_path()
     with open(env_file_path, "w") as temp_env:
         for key, value in env_vars.items():
@@ -74,7 +73,7 @@ def ui(
         workers=workers,
         reload=reload,
         reload_excludes=["**/alembic/*", "**/alembic.ini", "**/versions/*"] if reload else None,
-        env_file= env_file_path,
+        env_file=env_file_path,
     )
 
 
