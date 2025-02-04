@@ -6,6 +6,7 @@ from typing import List, Optional, Union
 from uuid import UUID, uuid4
 
 from autogen_core import ComponentModel
+from pydantic import ConfigDict
 from sqlalchemy import ForeignKey, Integer
 from sqlmodel import JSON, Column, DateTime, Field, SQLModel, func
 
@@ -101,5 +102,4 @@ class Run(SQLModel, table=True):
     version: Optional[str] = "0.0.1"
     messages: Union[List[Message], List[dict]] = Field(default_factory=list, sa_column=Column(JSON))
 
-    class Config:
-        json_encoders = {UUID: str, datetime: lambda v: v.isoformat()}
+    model_config = ConfigDict(json_encoders={UUID: str, datetime: lambda v: v.isoformat()})

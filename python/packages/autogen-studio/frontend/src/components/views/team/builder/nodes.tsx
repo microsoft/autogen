@@ -324,7 +324,7 @@ export const TeamNode = memo<NodeProps<CustomNode>>((props) => {
             </div>
           )}
           <DroppableZone
-            id={`${props.id}-termination-zone`}
+            id={`${props.id}@@@termination-zone`}
             accepts={["termination"]}
           >
             <div className="text-secondary text-xs my-1 text-center">
