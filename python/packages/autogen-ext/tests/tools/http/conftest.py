@@ -82,7 +82,7 @@ def test_config() -> ComponentModel:
     )
 
 
-@pytest_asyncio.fixture  # type: ignore
+@pytest_asyncio.fixture(scope="function")  # type: ignore
 async def test_server() -> AsyncGenerator[None, None]:
     # Start the test server
     config = uvicorn.Config(app, host="127.0.0.1", port=8000, log_level="error")

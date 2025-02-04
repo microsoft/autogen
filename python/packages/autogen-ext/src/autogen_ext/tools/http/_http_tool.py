@@ -74,6 +74,15 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
         return_type (Literal["text", "json"], optional): The type of response to return from the tool.
             Defaults to "text".
 
+    .. note::
+        This tool requires the :code:`http-tool` extra for the :code:`autogen-ext` package.
+
+        To install:
+
+        .. code-block:: bash
+
+            pip install -U "autogen-agentchat" "autogen-ext[http-tool]"
+
     Example:
         Simple use case::
 
@@ -94,7 +103,7 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
               "required": ["value"],
           }
 
-          # Create an HTTP tool for the weather API
+          # Create an HTTP tool for the httpbin API
           base64_tool = HttpTool(
               name="base64_decode",
               description="base64 decode a value",

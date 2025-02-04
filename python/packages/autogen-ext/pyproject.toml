@@ -106,7 +106,7 @@ semantic-kernel-dapr = [
     "semantic-kernel[dapr]>=1.17.1",
 ]
 
-http = [
+http-tool = [
     "httpx>=0.27.0",
     "json-schema-to-pydantic>=0.2.0"
 ]
