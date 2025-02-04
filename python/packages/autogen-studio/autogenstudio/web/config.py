@@ -1,4 +1,5 @@
 # api/config.py
+
 from pydantic_settings import BaseSettings
 
 
@@ -11,8 +12,7 @@ class Settings(BaseSettings):
     DEFAULT_USER_ID: str = "guestuser@gmail.com"
     UPGRADE_DATABASE: bool = False
 
-    class Config:
-        env_prefix = "AUTOGENSTUDIO_"
+    model_config = {"env_prefix": "AUTOGENSTUDIO_"}
 
 
 settings = Settings()
