@@ -49,6 +49,7 @@ from ..messages import (
     ToolCallSummaryMessage,
 )
 from ..state import AssistantAgentState
+from ..utils import remove_images
 from ._base_chat_agent import BaseChatAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -398,7 +399,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     yield memory_query_event_msg
 
         # Generate an inference result based on the current model context.
-        llm_messages = self._system_messages + await self._model_context.get_messages()
+        llm_messages = self._get_compatible_context(self._system_messages + await self._model_context.get_messages())
         model_result: CreateResult | None = None
         if self._model_client_stream:
             # Stream the model client.
@@ -494,7 +495,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         if self._reflect_on_tool_use:
             # Generate another inference result based on the tool call and result.
-            llm_messages = self._system_messages + await self._model_context.get_messages()
+            llm_messages = self._get_compatible_context(
+                self._system_messages + await self._model_context.get_messages()
+            )
             reflection_model_result: CreateResult | None = None
             if self._model_client_stream:
                 # Stream the model client.
@@ -574,6 +577,13 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         assistant_agent_state = AssistantAgentState.model_validate(state)
         # Load the model context state.
         await self._model_context.load_state(assistant_agent_state.llm_context)
+
+    def _get_compatible_context(self, messages: List[LLMMessage]) -> Sequence[LLMMessage]:
+        """Ensure that the messages are compatible with the underlying client, by removing images if needed."""
+        if self._model_client.model_info["vision"]:
+            return messages
+        else:
+            return remove_images(messages)
 
     def _to_config(self) -> AssistantAgentConfig:
         """Convert the assistant agent to a declarative config."""
