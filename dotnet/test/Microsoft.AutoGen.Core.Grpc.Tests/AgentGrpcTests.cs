@@ -69,6 +69,7 @@ public class AgentGrpcTests
         await runtime.PublishMessageAsync(new Core.Tests.TextMessage { Source = topicType, Content = "test" }, new TopicId(topicType)).ConfigureAwait(true);
 
         agent.ReceivedMessages.Any().Should().BeTrue("Agent should receive messages when subscribed.");
+        fixture.Dispose();
     }
 
     [Fact]
@@ -93,6 +94,7 @@ public class AgentGrpcTests
         {
             Assert.Equal("Request", responseString);
         }
+        fixture.Dispose();
     }
 
     public class ReceiverAgent(AgentId id,
@@ -145,6 +147,7 @@ public class AgentGrpcTests
         await Task.Delay(100);
 
         Assert.True(agent.ReceivedItems.Count == 1);
+        fixture.Dispose();
     }
 
     [Fact]
@@ -167,5 +170,6 @@ public class AgentGrpcTests
         // Add a sample value and verify it updates correctly
         state["testKey"] = "testValue";
         state.Should().ContainKey("testKey").WhoseValue.Should().Be("testValue");
+        fixture.Dispose();
     }
 }
