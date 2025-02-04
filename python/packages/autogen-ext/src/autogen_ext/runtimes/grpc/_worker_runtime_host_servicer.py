@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import logging
 from abc import ABC, abstractmethod
 from asyncio import Future, Task
@@ -12,6 +13,7 @@ from autogen_core._runtime_impl_helpers import SubscriptionManager
 
 from ._constants import GRPC_IMPORT_ERROR_STR
 from ._utils import subscription_from_proto
+from .event_store.redis import RedisEventStore
 
 try:
     import grpc
@@ -40,6 +42,15 @@ async def get_client_id_or_abort(context: grpc.aio.ServicerContext[Any, Any]) ->
 
     return client_id  # type: ignore
 
+def get_send_queue(client_id):
+    redis_url = os.getenv("REDIS_URL")
+    if redis_url:
+        import redis
+        return RedisEventStore(
+            redis_instance=redis.from_url(redis_url),
+            client_id=client_id
+        )
+    return asyncio.Queue()
 
 SendT = TypeVar("SendT")
 ReceiveT = TypeVar("ReceiveT")
@@ -49,7 +60,7 @@ class ChannelConnection(ABC, Generic[SendT, ReceiveT]):
     def __init__(self, request_iterator: AsyncIterator[ReceiveT], client_id: str) -> None:
         self._request_iterator = request_iterator
         self._client_id = client_id
-        self._send_queue: asyncio.Queue[SendT] = asyncio.Queue()
+        self._send_queue: asyncio.Queue[agent_worker_pb2.Message] = get_send_queue(client_id)
         self._receiving_task = asyncio.create_task(self._receive_messages(client_id, request_iterator))
 
     async def _receive_messages(self, client_id: ClientConnectionId, request_iterator: AsyncIterator[ReceiveT]) -> None:
