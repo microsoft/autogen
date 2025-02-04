@@ -9,7 +9,8 @@ from autogen_agentchat.messages import (
     MultiModalMessage,
     TextMessage,
 )
-from autogen_core import CancellationToken, FunctionCall, Image
+from autogen_agentchat.utils import remove_images
+from autogen_core import CancellationToken, FunctionCall
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -126,7 +127,7 @@ class FileSurfer(BaseChatAgent):
         )
 
         create_result = await self._model_client.create(
-            messages=self._make_compatible_context(history + [context_message, task_message]),
+            messages=self._get_compatible_context(history + [context_message, task_message]),
             tools=[
                 TOOL_OPEN_PATH,
                 TOOL_PAGE_DOWN,
@@ -173,31 +174,9 @@ class FileSurfer(BaseChatAgent):
         final_response = "TERMINATE"
         return False, final_response
 
-
-    def _content_to_str(self, content: str | List[str | Image]) -> str:
-        """Convert the content to a string."""
-        if isinstance(content, str):
-            return content
-        else:
-            result: List[str] = []
-            for c in content:
-                if isinstance(c, str):
-                    result.append(c)
-                else:
-                    result.append("<image>")
-        return "\n".join(result)
-
-
-    def _make_compatible_context(self, context: List[LLMMessage]):
-        """Ensure context are compatible with the underlying model."""
+    def _get_compatible_context(self, messages: List[LLMMessage]) -> List[LLMMessage]:
+        """Ensure that the messages are compatible with the underlying client, by removing images if needed."""
         if self._model_client.model_info["vision"]:
-            return context
+            return messages
         else:
-            new_context: List[LLMMessage] = []
-            for message in context:
-                if isinstance(message, UserMessage):
-                    # Only user messages can conain images
-                    new_context.append(UserMessage(content=self._content_to_str(message.content), source=message.source))
-                else:
-                    new_context.append(message)
-            return new_context
+            return remove_images(messages)

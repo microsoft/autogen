@@ -16,7 +16,7 @@ When deciding between tools, consider if the request can be best addressed by:
 WEB_SURFER_TOOL_PROMPT_TEXT = """
 Your web browser is open to the page '{url}'. The following text is visible in the viewport:
 
-```    
+```
 {visible_text}
 ```
 

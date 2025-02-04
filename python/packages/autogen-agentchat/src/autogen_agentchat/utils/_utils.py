@@ -1,11 +1,17 @@
-from typing import List
+from typing import List, Union
 
-from autogen_core import Image
-from autogen_core.models import LLMMessage, UserMessage
+from autogen_core import FunctionCall, Image
+from autogen_core.models import FunctionExecutionResult, LLMMessage, UserMessage
+
+# Type aliases for convenience
+_UserContent = Union[str, List[Union[str, Image]]]
+_AssistantContent = Union[str, List[FunctionCall]]
+_FunctionExecutionContent = List[FunctionExecutionResult]
+_SystemContent = str
 
 
-def _image_content_to_str(content: str | List[str | Image]) -> str:
-    """Convert the content of an LLMMessageto a string."""
+def content_to_str(content: _UserContent | _AssistantContent | _FunctionExecutionContent | _SystemContent) -> str:
+    """Convert the content of an LLMMessage to a string."""
     if isinstance(content, str):
         return content
     else:
@@ -16,7 +22,7 @@ def _image_content_to_str(content: str | List[str | Image]) -> str:
             elif isinstance(c, Image):
                 result.append("<image>")
             else:
-                raise AssertionError("Received unexpected content type.")
+                result.append(str(c))
 
     return "\n".join(result)
 
@@ -26,7 +32,7 @@ def remove_images(messages: List[LLMMessage]) -> List[LLMMessage]:
     str_messages: List[LLMMessage] = []
     for message in messages:
         if isinstance(message, UserMessage) and isinstance(message.content, list):
-            str_messages.append(UserMessage(content=_image_content_to_str(message.content), source=message.source))
+            str_messages.append(UserMessage(content=content_to_str(message.content), source=message.source))
         else:
             str_messages.append(message)
     return str_messages
