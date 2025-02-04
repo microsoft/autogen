@@ -9,8 +9,9 @@ import {
   InfoIcon,
   RefreshCcw,
 } from "lucide-react";
-import type { Session } from "../../types/datamodel";
+import type { Session, Team } from "../../types/datamodel";
 import { getRelativeTimeString } from "../atoms";
+import NewSessionControls from "./newsession";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -21,6 +22,8 @@ interface SidebarProps {
   onEditSession: (session?: Session) => void;
   onDeleteSession: (sessionId: number) => void;
   isLoading?: boolean;
+  onStartSession: (teamId: number, teamName: string) => void;
+  teams: Team[];
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -32,6 +35,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onEditSession,
   onDeleteSession,
   isLoading = false,
+  onStartSession,
+  teams,
 }) => {
   if (!isOpen) {
     return (
@@ -85,17 +90,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="my-4 flex text-sm  ">
-        <div className=" mr-2 w-full">
-          <Tooltip title="Create new session">
-            <Button
-              type="primary"
-              className="w-full"
-              icon={<Plus className="w-4 h-4" />}
-              onClick={() => onEditSession()}
-            >
-              New Session
-            </Button>
-          </Tooltip>
+        <div className=" mr-2 w-full pr-2">
+          {isOpen && (
+            <NewSessionControls
+              teams={teams}
+              isLoading={isLoading}
+              onStartSession={onStartSession}
+            />
+          )}
         </div>
       </div>
 
@@ -128,22 +130,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
             </div>
             <div
               className={`group ml-1 flex items-center justify-between rounded-l p-2 py-1 text-sm cursor-pointer hover:bg-tertiary ${
-                currentSession?.id === s.id
-                  ? "  border-accent bg-secondary"
-                  : ""
+                currentSession?.id === s.id ? "border-accent bg-secondary" : ""
               }`}
               onClick={() => onSelectSession(s)}
             >
-              <span className="truncate text-sm flex-1">{s.name}</span>
-              <span className="ml-2 truncate text-xs text-secondary flex-1">
-                {getRelativeTimeString(s.updated_at || "")}
-              </span>
-              <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex flex-col min-w-0 flex-1 mr-2">
+                <div className="truncate text-sm">{s.name}</div>
+                <span className="truncate text-xs text-secondary">
+                  {getRelativeTimeString(s.updated_at || "")}
+                </span>
+              </div>
+              <div className="py-3 flex gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
                 <Tooltip title="Edit session">
                   <Button
                     type="text"
                     size="small"
-                    className="p-0 min-w-[24px] h-6"
+                    className="p-1 min-w-[24px] h-6"
                     icon={<Edit className="w-4 h-4" />}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -155,9 +157,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   <Button
                     type="text"
                     size="small"
-                    className="p-0 min-w-[24px] h-6"
+                    className="p-1 min-w-[24px] h-6"
                     danger
-                    icon={<Trash2 className="w-4 h-4  text-red-500" />}
+                    icon={<Trash2 className="w-4 h-4 text-red-500" />}
                     onClick={(e) => {
                       e.stopPropagation();
                       if (s.id) onDeleteSession(s.id);
