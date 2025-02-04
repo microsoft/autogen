@@ -5,7 +5,6 @@ PageLogger:
 
 client:
   model: gpt-4o-2024-08-06
-  # api_key: sk-  # Supply your API key here. Or specify it in the environment variable OPENAI_API_KEY.
   temperature: 0.8
   max_completion_tokens: 4096
   presence_penalty: 0.0

@@ -22,6 +22,9 @@ Install AutoGen and its extension package as follows:
 
 `pip install "autogen-ext[agentic-memory]"`
 
+Assign your OpenAI key to the environment variable OPENAI_API_KEY,
+or else modify `utils/client.py` as appropriate for the model you choose.
+
 
 ## Running the Samples
 

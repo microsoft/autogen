@@ -1,32 +1,30 @@
 import asyncio
 import sys
-from typing import Dict
-import yaml
+from typing import Any, Dict
 
 from autogen_core.models import (
     ChatCompletionClient,
 )
-
 from autogen_ext.agentic_memory import Apprentice, Grader, PageLogger
 
-from utils.client import create_oai_client
+from utils import create_oai_client, load_yaml_file
 
 
-async def eval_teachability(apprentice: Apprentice, client: ChatCompletionClient, logger: PageLogger, settings: Dict) -> str:
+async def eval_teachability(
+    apprentice: Apprentice, client: ChatCompletionClient, logger: PageLogger, settings: Dict[str, Any]
+) -> str:
     """
     Evalutes the ability to learn quickly from user teachings, hints, and advice.
     """
     logger.enter_function()
 
     # Load the specified data.
-    with open(settings["task_file"], "r") as file:
-        # The task being tested.
-        task = yaml.load(file, Loader=yaml.FullLoader)
-        task_description = task["task_description"]
-        expected_answer = task["expected_answer"]
-    with open(settings["advice_file"], "r") as file:
-        # Advice for solving such tasks.
-        advice = yaml.load(file, Loader=yaml.FullLoader)["advice"]
+    task_dict = load_yaml_file(settings["task_file"])
+    task_description = task_dict["task_description"]
+    expected_answer = task_dict["expected_answer"]
+
+    advice_dict = load_yaml_file(settings["advice_file"])
+    advice = advice_dict["advice"]
 
     # First test without memory.
     apprentice.reset_memory()
@@ -68,27 +66,23 @@ async def eval_teachability(apprentice: Apprentice, client: ChatCompletionClient
     return "\neval_teachability\n" + results_str_1 + "\n" + results_str_2
 
 
-async def run_example(settings_filepath) -> None:
+async def run_example(settings_filepath: str) -> None:
     """
     Runs the code example with the necessary components.
     """
-    with open(settings_filepath, "r") as file:
-        # Create the necessary components.
-        settings = yaml.load(file, Loader=yaml.FullLoader)
-        logger = PageLogger(settings["PageLogger"])
-        client = create_oai_client(settings["client"], logger)
-        apprentice = Apprentice(settings["Apprentice"], client, logger)
+    settings = load_yaml_file(settings_filepath)
 
-        # Call the example function.
-        results = await eval_teachability(apprentice, client, logger, settings["test"])
+    # Create the necessary components.
+    logger = PageLogger(settings["PageLogger"])
+    client = create_oai_client(settings["client"])
+    apprentice = Apprentice(settings["Apprentice"], client, logger)
 
-        if hasattr(client, "finalize"):
-            # If this is a client wrapper, it needs to be finalized.
-            client.finalize()
+    # Call the example function.
+    results = await eval_teachability(apprentice, client, logger, settings["test"])
 
-        # Finish up.
-        logger.flush(finished=True)
-        print(results)
+    # Finish up.
+    logger.flush(finished=True)
+    print(results)
 
 
 if __name__ == "__main__":

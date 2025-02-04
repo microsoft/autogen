@@ -1,18 +1,18 @@
 import asyncio
 import sys
-from typing import Dict
-import yaml
+from typing import Any, Dict
 
 from autogen_core.models import (
     ChatCompletionClient,
 )
 from autogen_ext.agentic_memory import Apprentice, Grader, PageLogger
 
-from utils.client import create_oai_client
+from utils import create_oai_client, load_yaml_file
 
 
-async def eval_self_teaching(apprentice: Apprentice, client: ChatCompletionClient,
-                             logger: PageLogger, settings: Dict) -> str:
+async def eval_self_teaching(
+    apprentice: Apprentice, client: ChatCompletionClient, logger: PageLogger, settings: Dict[str, Any]
+) -> str:
     """
     Evaluates the ability of an agent to learn quickly from its own trial and error.
     """
@@ -23,16 +23,14 @@ async def eval_self_teaching(apprentice: Apprentice, client: ChatCompletionClien
     grader = Grader(client, logger)
 
     # Load the specified data.
-    with open(settings["task_file_1"], "r") as file:
-        # Train and test on this task.
-        task_1 = yaml.load(file, Loader=yaml.FullLoader)
-        task_description_1 = task_1["task_description"]
-        expected_answer_1 = task_1["expected_answer"]
-    with open(settings["task_file_2"], "r") as file:
-        # Test generalization on this different, similar task.
-        task_2 = yaml.load(file, Loader=yaml.FullLoader)
-        task_description_2 = task_2["task_description"]
-        expected_answer_2 = task_2["expected_answer"]
+    task_dict_1 = load_yaml_file(settings["task_file_1"])
+    task_description_1 = task_dict_1["task_description"]
+    expected_answer_1 = task_dict_1["expected_answer"]
+
+    # Test generalization on this different, similar task.
+    task_dict_2 = load_yaml_file(settings["task_file_2"])
+    task_description_2 = task_dict_2["task_description"]
+    expected_answer_2 = task_dict_2["expected_answer"]
 
     # Start the test with empty memory.
     apprentice.reset_memory()
@@ -40,7 +38,7 @@ async def eval_self_teaching(apprentice: Apprentice, client: ChatCompletionClien
     total_num_successes_1 = 0
     total_num_successes_2 = 0
     total_num_trials = 0
-    for i in range(num_loops):
+    for _ in range(num_loops):
         # Train on the first task.
         await apprentice.train_on_task(task=task_description_1, expected_answer=expected_answer_1)
 
@@ -85,27 +83,23 @@ async def eval_self_teaching(apprentice: Apprentice, client: ChatCompletionClien
     return "\neval_self_teaching\n" + results_str_1 + "\n" + results_str_2
 
 
-async def run_example(settings_filepath) -> None:
+async def run_example(settings_filepath: str) -> None:
     """
     Runs the code example with the necessary components.
     """
-    with open(settings_filepath, "r") as file:
-        # Create the necessary components.
-        settings = yaml.load(file, Loader=yaml.FullLoader)
-        logger = PageLogger(settings["PageLogger"])
-        client = create_oai_client(settings["client"], logger)
-        apprentice = Apprentice(settings["Apprentice"], client, logger)
+    settings = load_yaml_file(settings_filepath)
 
-        # Call the example function.
-        results = await eval_self_teaching(apprentice, client, logger, settings["test"])
+    # Create the necessary components.
+    logger = PageLogger(settings["PageLogger"])
+    client = create_oai_client(settings["client"])
+    apprentice = Apprentice(settings["Apprentice"], client, logger)
 
-        if hasattr(client, "finalize"):
-            # If this is a client wrapper, it needs to be finalized.
-            client.finalize()
+    # Call the example function.
+    results = await eval_self_teaching(apprentice, client, logger, settings["test"])
 
-        # Finish up.
-        logger.flush(finished=True)
-        print(results)
+    # Finish up.
+    logger.flush(finished=True)
+    print(results)
 
 
 if __name__ == "__main__":
