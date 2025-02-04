@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// GrpcWorkerConnection.cs
+// TestGrpcWorkerConnection.cs
 
 using System.Threading.Channels;
 using Grpc.Core;
@@ -7,7 +7,7 @@ using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.Core.Grpc.Tests;
 
-internal sealed class GrpcWorkerConnection : IAsyncDisposable
+internal sealed class TestGrpcWorkerConnection : IAsyncDisposable
 {
     private static long s_nextConnectionId;
     private Task _readTask = Task.CompletedTask;
@@ -21,7 +21,7 @@ internal sealed class GrpcWorkerConnection : IAsyncDisposable
     public IServerStreamWriter<Message> ResponseStream { get; }
     public ServerCallContext ServerCallContext { get; }
     private readonly Channel<Message> _outboundMessages;
-    public GrpcWorkerConnection(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
+    public TestGrpcWorkerConnection(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {
         RequestStream = requestStream;
         ResponseStream = responseStream;
@@ -77,8 +77,22 @@ internal sealed class GrpcWorkerConnection : IAsyncDisposable
         {
             await foreach (var message in RequestStream.ReadAllAsync(_shutdownCancellationToken.Token))
             {
-                // Fire and forget
                 //_gateway.OnReceivedMessageAsync(this, message, _shutdownCancellationToken.Token).Ignore();
+                switch (message.MessageCase)
+                {
+                    case Message.MessageOneofCase.Request:
+                        await SendMessage(new Message { Request = message.Request }).ConfigureAwait(false);
+                        break;
+                    case Message.MessageOneofCase.Response:
+                        await SendMessage(new Message { Response = message.Response }).ConfigureAwait(false);
+                        break;
+                    case Message.MessageOneofCase.CloudEvent:
+                        await SendMessage(new Message { CloudEvent = message.CloudEvent }).ConfigureAwait(false);
+                        break;
+                    default:
+                        // if it wasn't recognized return bad request
+                        throw new RpcException(new Status(StatusCode.InvalidArgument, $"Unknown message type for message '{message}'"));
+                };
             }
         }
         catch (OperationCanceledException)

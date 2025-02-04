@@ -35,7 +35,7 @@ public class AgentGrpcTests
 
         var topicType = "TestTopic";
 
-        await runtime.PublishMessageAsync(new Core.Tests.TextMessage { Source = topicType, Content = "test" }, new TopicId(topicType)).ConfigureAwait(true);
+        await runtime.PublishMessageAsync(new Contracts.TextMessage { Source = topicType, TextMessage_ = "test" }, new TopicId(topicType)).ConfigureAwait(true);
 
         agent.ReceivedMessages.Any().Should().BeFalse("Agent should not receive messages when not subscribed.");
         fixture.Dispose();
@@ -66,7 +66,7 @@ public class AgentGrpcTests
 
         var topicType = "TestTopic";
 
-        await runtime.PublishMessageAsync(new Core.Tests.TextMessage { Source = topicType, Content = "test" }, new TopicId(topicType)).ConfigureAwait(true);
+        await runtime.PublishMessageAsync(new Contracts.TextMessage { Source = topicType, TextMessage_ = "test" }, new TopicId(topicType)).ConfigureAwait(true);
 
         agent.ReceivedMessages.Any().Should().BeTrue("Agent should receive messages when subscribed.");
         fixture.Dispose();
