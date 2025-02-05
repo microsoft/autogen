@@ -2,14 +2,14 @@
 
 This directory contains code samples that illustrate the following forms of memory-based fast learning:
 * Agent learning from user advice and corrections
-* Agent learning from user demonstrations    
+* Agent learning from user demonstrations
 * Agent learning from its own experience
 
 Each sample is contained in a separate python script, using data and settings stored in yaml files.
 Note that since agent behavior is non-deterministic, results will vary between runs.
 
-To watch operations live in a browser and see how agentic memory works, 
-open the HTML page at the location specified at the top of the settings file, 
+To watch operations live in a browser and see how agentic memory works,
+open the HTML page at the location specified at the top of the settings file,
 such as: `~/pagelogs/teachability/0  Call Tree.html`
 
 The settings files specify a _thin agent_ by default, which is just the model client plus a canned system prompt.
@@ -56,7 +56,7 @@ By using memory, the agent's success rate is usually higher on the second set of
 ### Agent Learning from Its Own Experience
 
 This sample asks the agent to perform a reasoning task on which it usually fails.
-Then the agent (running in the background) iterates through a learning loop in an effort to find a solution, 
+Then the agent (running in the background) iterates through a learning loop in an effort to find a solution,
 which it then stores as an insight in memory.
 Finally the agent is tested again to see if it can retrieve and apply the insight to the original task,
 as well as to a similar but different task to test generalization.
