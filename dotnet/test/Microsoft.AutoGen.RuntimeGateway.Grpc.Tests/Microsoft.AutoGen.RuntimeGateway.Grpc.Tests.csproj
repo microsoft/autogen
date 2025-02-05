@@ -14,7 +14,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Microsoft.AutoGen\Core\Microsoft.AutoGen.Core.csproj" />
-    <ProjectReference Include="..\..\src\Microsoft.AutoGen\Runtime.Grpc\Microsoft.AutoGen.RuntimeGateway.Grpc.csproj" />
+    <ProjectReference Include="..\..\src\Microsoft.AutoGen\RuntimeGateway.Grpc\Microsoft.AutoGen.RuntimeGateway.Grpc.csproj" />
     <ProjectReference Include="..\Microsoft.AutoGen.Tests.Shared\Microsoft.AutoGen.Tests.Shared.csproj" />
   </ItemGroup>
 
