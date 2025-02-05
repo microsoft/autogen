@@ -50,10 +50,16 @@ const PresetItem: React.FC<PresetItemProps> = ({
     });
 
   const style = {
-    transform: CSS.Transform.toString(transform),
-    opacity: isDragging ? 0.5 : undefined,
+    // transform: CSS.Transform.toString(transform),
+    // opacity: isDragging ? 0.5 : undefined,
   };
 
+  // const style = {
+  //   transform: CSS.Transform.toString(transform),
+  //   opacity: isDragging ? 0.5 : undefined,
+  //   width: isDragging ? '268px' : undefined,  // 300px Sider width - padding
+  //   position: isDragging ? 'relative' : undefined,
+  // };
   return (
     <div
       ref={setNodeRef}

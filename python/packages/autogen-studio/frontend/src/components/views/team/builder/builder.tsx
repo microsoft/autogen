@@ -7,6 +7,8 @@ import {
   PointerSensor,
   DragEndEvent,
   DragOverEvent,
+  DragOverlay, // Add this
+  DragStartEvent, // Add this
 } from "@dnd-kit/core";
 import {
   ReactFlow,
@@ -34,6 +36,12 @@ import { NodeEditor } from "./node-editor/node-editor";
 import debounce from "lodash.debounce";
 
 const { Sider, Content } = Layout;
+interface DragItemData {
+  type: ComponentTypes;
+  config: any;
+  label: string;
+  icon: React.ReactNode;
+}
 
 interface TeamBuilderProps {
   team: Team;
@@ -56,6 +64,9 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
   // const [isDirty, setIsDirty] = useState(false);
   const editorRef = useRef(null);
   const [messageApi, contextHolder] = message.useMessage();
+  const [activeDragItem, setActiveDragItem] = useState<DragItemData | null>(
+    null
+  );
 
   const {
     undo,
@@ -262,10 +273,17 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
 
     // Pass both new node data AND target node id
     addNode(position, draggedItem.config, nodeId);
+    setActiveDragItem(null);
   };
 
   const onDragStart = (item: DragItem) => {
     // We can add any drag start logic here if needed
+  };
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    if (active.data.current) {
+      setActiveDragItem(active.data.current as DragItemData);
+    }
   };
   return (
     <div>
@@ -344,6 +362,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
         sensors={sensors}
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
+        onDragStart={handleDragStart}
       >
         <Layout className=" relative bg-primary  h-[calc(100vh-239px)] rounded">
           {!isJsonMode && <ComponentLibrary />}
@@ -423,6 +442,21 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
             onClose={() => setSelectedNode(null)}
           />
         </Layout>
+        <DragOverlay
+          dropAnimation={{
+            duration: 250,
+            easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
+          }}
+        >
+          {activeDragItem ? (
+            <div className="p-2 text-primary border border-secondary rounded bg-background shadow-md">
+              <div className="flex items-center gap-2">
+                {activeDragItem.icon}
+                <span className="text-sm">{activeDragItem.label}</span>
+              </div>
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
     </div>
   );
