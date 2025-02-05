@@ -57,6 +57,7 @@ class Prompter:
         # Prepare the input message list
         if system_message_content is None:
             system_message_content = self.default_system_message_content
+        system_message: LLMMessage
         if self.client.model_info["family"] == "o1":
             # No system message allowed, so pass it as the first user message.
             system_message = UserMessage(content=system_message_content, source="User")
@@ -96,7 +97,7 @@ class Prompter:
         # Return the response as a string for now
         return response_string
 
-    def _clear_history(self):
+    def _clear_history(self) -> None:
         """
         Empties the message list containing the chat history.
         """
@@ -104,7 +105,7 @@ class Prompter:
 
     async def learn_from_failure(
         self, task_description: str, memory_section: str, final_response: str, expected_answer: str, work_history: str
-    ):
+    ) -> str:
         """
         Tries to create an insight to help avoid the given failure in the future.
         """

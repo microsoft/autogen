@@ -148,12 +148,13 @@ In responding to every user message, you follow the same multi-step process give
             random_str = "({})\n\n".format(self.rand.randint(0, 1000000))
             system_message_content = random_str + system_message_content
 
+        system_message: LLMMessage
         if self.client.model_info["family"] == "o1":
             # No system message allowed, so pass it as the first user message.
-            system_message: LLMMessage = UserMessage(content=system_message_content, source="User")
+            system_message = UserMessage(content=system_message_content, source="User")
         else:
             # System message allowed.
-            system_message: LLMMessage = SystemMessage(content=system_message_content)
+            system_message = SystemMessage(content=system_message_content)
 
         user_message: LLMMessage = UserMessage(content=task, source="User")
         system_message_list: List[LLMMessage] = [system_message]

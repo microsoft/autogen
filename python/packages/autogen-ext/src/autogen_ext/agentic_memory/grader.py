@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING, List, Tuple, Union
 
+from autogen_core import Image
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -89,6 +90,7 @@ class Grader:
         # Prepare the input message list
         if system_message_content is None:
             system_message_content = "You are a helpful assistant."
+        system_message: LLMMessage
         if self.client.model_info["family"] == "o1":
             # No system message allowed, so pass it as the first user message.
             system_message = UserMessage(content=system_message_content, source="User")
@@ -134,27 +136,29 @@ class Grader:
         sys_message = """You are a helpful and thoughtful assistant."""
 
         # Ask the model to extract the answer from the response.
-        user_message: UserContent = [
-            """Your job is to extract a possible answer to the following question from the given text.
+        user_message: List[Union[str, Image]] = []
+        user_message.append("""Your job is to extract a possible answer to the following question from the given text.
 - First review the following task.
 - Then review the text that follows, which may an answer, plus reasoning that led to the answer.
 - Do not attempt to actually solve the task yourself.
 - Don't try to judge whether the reasoning steps were correct.
 - Simply respond by summarizing the answer described in the text, omitting any other parts of the text.
-- If no answer is present can be extracted from the text, simply reply "None"."""
-        ]
+- If no answer is present can be extracted from the text, simply reply "None".""")
         user_message.append("\n# Task description")
         user_message.append(task_description)
         user_message.append("\n# Text that may contain an answer")
         user_message.append(response_to_be_graded)
+        user_message_arg: UserContent = user_message
         self._clear_history()
         extracted_answer = await self.call_model(
-            summary="Ask the model to extract the answer", system_message_content=sys_message, user_content=user_message
+            summary="Ask the model to extract the answer",
+            system_message_content=sys_message,
+            user_content=user_message_arg,
         )
         self.logger.info("Extracted answer: " + extracted_answer)
 
         # Ask the model to check the answer for correctness.
-        user_message: UserContent = [
+        user_message = [
             """Your job is to decide whether a given answer to a task is correct or not.
 - You will be given the task description and the correct, gold-standard answer, along with the answer to be graded.
 - In general, an answer is correct if it is equivalent to the correct answer.

@@ -2,7 +2,7 @@ import inspect
 import json
 import os
 import shutil
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, List, Optional, Sequence
 
 from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import AgentEvent, ChatMessage
@@ -208,7 +208,7 @@ class PageLogger:
         Formats the message content for logging.
         """
         # Start by converting the message content to a list of strings.
-        content_list: List[Union[MessageContent, None]] = []
+        content_list: List[str] = []
         content = message_content
         if isinstance(content, str):
             content_list.append(content)
@@ -475,7 +475,7 @@ class PageStack:
         write_stack_to_page: Logs a properly indented string displaying the current call stack
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         self.stack: List[Page] = []
 
     def push(self, page: Page) -> None:

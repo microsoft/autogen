@@ -53,7 +53,7 @@ class AgenticMemoryBank:
         self.string_map = StringSimilarityMap(reset=reset, path_to_db_dir=path_to_db_dir, logger=self.logger)
 
         # Load or create the associated insight dict on disk.
-        self.uid_insight_dict = {}
+        self.uid_insight_dict: Dict[str, Insight] = {}
         self.last_insight_id = 0
         if (not reset) and os.path.exists(self.path_to_dict):
             self.logger.info("\nLOADING INSIGHTS FROM DISK  {}".format(self.path_to_dict))
@@ -80,7 +80,7 @@ class AgenticMemoryBank:
         """
         Forces immediate deletion of the insights, in memory and on disk.
         """
-        self.uid_insight_dict: Dict[str, Insight] = {}
+        self.uid_insight_dict = {}
         self.save_insights()
 
     def save_insights(self) -> None:
