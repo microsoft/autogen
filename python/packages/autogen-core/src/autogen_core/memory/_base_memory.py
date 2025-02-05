@@ -50,7 +50,7 @@ class UpdateContextResult(BaseModel):
     memories: MemoryQueryResult
 
 
-class Memory(ABC, ComponentBase):
+class Memory(ABC, ComponentBase[BaseModel]):
     """Protocol defining the interface for memory implementations.
 
     A memory is the storage for data that can be used to enrich or modify the model context.
