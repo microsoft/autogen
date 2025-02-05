@@ -54,7 +54,6 @@ public sealed class GrpcGatewayService(GrpcGateway gateway) : AgentRpc.AgentRpcB
     }
     public override async Task<RegisterAgentTypeResponse> RegisterAgent(RegisterAgentTypeRequest request, ServerCallContext context)
     {
-        request.RequestId = context.Peer;
         return await Gateway.RegisterAgentTypeAsync(request).ConfigureAwait(true);
     }
 }

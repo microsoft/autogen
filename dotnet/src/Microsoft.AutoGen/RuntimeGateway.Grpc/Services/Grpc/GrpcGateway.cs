@@ -21,7 +21,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly IGateway _reference;
     // The agents supported by each worker process.
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
-    public readonly ConcurrentDictionary<string, IConnection> _workers = new();
+    public readonly ConcurrentDictionary<string, GrpcWorkerConnection> _workers = new();
     internal readonly ConcurrentDictionary<string, GrpcWorkerConnection> _workersByConnection = new();
     private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
     private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
@@ -77,29 +77,25 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         var agentState = _clusterClient.GetGrain<IAgentGrain>($"{agentId.Type}:{agentId.Key}");
         return await agentState.ReadStateAsync();
     }
-    public async ValueTask<RegisterAgentTypeResponse> RegisterAgentTypeAsync(RegisterAgentTypeRequest request, CancellationToken cancellationToken = default)
+    public async ValueTask<RegisterAgentTypeResponse> RegisterAgentTypeAsync(RegisterAgentTypeRequest request, ServerCallContext context, CancellationToken cancellationToken = default)
     {
         try
         {
-            var connection = _workersByConnection[request.RequestId];
+            var clientId = context.RequestHeaders.Get("client-id")?.Value ??
+                throw new RpcException(new Status(StatusCode.InvalidArgument, "Grpc Client ID is required."));
+            if (!_workers.TryGetValue(clientId, out var connection))
+            {
+                throw new RpcException(new Status(StatusCode.InvalidArgument, $"Grpc Worker Connection not found for ClientId {clientId}."));
+            }
             connection.AddSupportedType(request.Type);
             _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
 
             await _gatewayRegistry.RegisterAgentTypeAsync(request, _reference).ConfigureAwait(true);
-            return new RegisterAgentTypeResponse
-            {
-                Success = true,
-                RequestId = request.RequestId
-            };
+            return new RegisterAgentTypeResponse {};
         }
         catch (Exception ex)
         {
-            return new RegisterAgentTypeResponse
-            {
-                Success = false,
-                RequestId = request.RequestId,
-                Error = ex.Message
-            };
+            throw new RpcException(new Status(StatusCode.Internal, ex.Message));
         }
     }
     public async ValueTask<AddSubscriptionResponse> SubscribeAsync(AddSubscriptionRequest request, CancellationToken cancellationToken = default)
@@ -107,20 +103,11 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         try
         {
             await _gatewayRegistry.SubscribeAsync(request).ConfigureAwait(true);
-            return new AddSubscriptionResponse
-            {
-                Success = true,
-                RequestId = request.RequestId
-            };
+            return new AddSubscriptionResponse { };
         }
         catch (Exception ex)
         {
-            return new AddSubscriptionResponse
-            {
-                Success = false,
-                RequestId = request.RequestId,
-                Error = ex.Message
-            };
+            throw new RpcException(new Status(StatusCode.Internal, ex.Message));
         }
     }
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -153,7 +140,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Client ID is required."));
         var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
         _workers.GetOrAdd(clientId, workerProcess);
-        _workersByConnection.GetOrAdd(context.Peer, workerProcess);
         await workerProcess.Connect().ConfigureAwait(false);
     }
     internal async Task SendMessageAsync(GrpcWorkerConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
@@ -174,12 +160,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             case Message.MessageOneofCase.CloudEvent:
                 await DispatchEventAsync(message.CloudEvent, cancellationToken);
                 break;
-            case Message.MessageOneofCase.RegisterAgentTypeRequest:
-                await RegisterAgentTypeAsync(connection, message.RegisterAgentTypeRequest);
-                break;
-            case Message.MessageOneofCase.AddSubscriptionRequest:
-                await AddSubscriptionAsync(connection, message.AddSubscriptionRequest);
-                break;
             default:
                 // if it wasn't recognized return bad request
                 await RespondBadRequestAsync(connection, $"Unknown message type for message '{message}'.");
@@ -195,23 +175,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
         // Complete the request.
         completion.SetResult(response);
-    }
-    private async ValueTask RegisterAgentTypeAsync(GrpcWorkerConnection connection, RegisterAgentTypeRequest msg)
-    {
-        connection.AddSupportedType(msg.Type);
-        _supportedAgentTypes.GetOrAdd(msg.Type, _ => []).Add(connection);
-
-        await _gatewayRegistry.RegisterAgentTypeAsync(msg, _reference).ConfigureAwait(true);
-        Message response = new()
-        {
-            RegisterAgentTypeResponse = new()
-            {
-                RequestId = msg.RequestId,
-                Error = "",
-                Success = true
-            }
-        };
-        await connection.ResponseStream.WriteAsync(response).ConfigureAwait(false);
     }
     private async ValueTask DispatchEventAsync(CloudEvent evt, CancellationToken cancellationToken = default)
     {
@@ -278,7 +241,9 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     }
     internal void OnRemoveWorkerProcess(GrpcWorkerConnection workerProcess)
     {
-        _workers.TryRemove(workerProcess, out _);
+        var clientId = workerProcess.ServerCallContext.RequestHeaders.Get("client-id")?.Value ??
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Grpc Client ID is required."));
+        _workers.TryRemove(clientId, out _);
         var types = workerProcess.GetSupportedTypes();
         foreach (var type in types)
         {
@@ -350,15 +315,11 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         foreach (var (_, connection) in _supportedAgentTypes)
         {
 
-            tasks.Add(this.SendMessageAsync((IConnection)connection[0], evt, default));
+            tasks.Add(this.SendMessageAsync((GrpcWorkerConnection)connection[0], evt, default));
         }
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
-    Task IGateway.SendMessageAsync(IConnection connection, CloudEvent cloudEvent)
-    {
-        return this.SendMessageAsync(connection, cloudEvent, default);
-    }
-    public async Task SendMessageAsync(IConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
+    public async Task SendMessageAsync(GrpcWorkerConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
         var queue = (GrpcWorkerConnection)connection;
         await queue.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);
@@ -369,19 +330,11 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         try
         {
             await _gatewayRegistry.UnsubscribeAsync(request).ConfigureAwait(true);
-            return new RemoveSubscriptionResponse
-
-            {
-                Success = true,
-            };
+            return new RemoveSubscriptionResponse { };
         }
         catch (Exception ex)
         {
-            return new RemoveSubscriptionResponse
-            {
-                Success = false,
-                Error = ex.Message
-            };
+            throw new RpcException(new Status(StatusCode.Internal, ex.Message));
         }
     }
     public ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request, CancellationToken cancellationToken = default)
@@ -400,13 +353,13 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         return StoreAsync(value, default);
     }
-    ValueTask<AgentState> IGateway.ReadAsync(AgentId agentId)
+    ValueTask<AgentState> IGateway.ReadAsync(Protobuf.AgentId agentId)
     {
         return ReadAsync(agentId, default);
     }
-    ValueTask<RegisterAgentTypeResponse> IGateway.RegisterAgentTypeAsync(RegisterAgentTypeRequest request)
+    ValueTask<RegisterAgentTypeResponse> IGateway.RegisterAgentTypeAsync(RegisterAgentTypeRequest request, ServerCallContext context)
     {
-        return RegisterAgentTypeAsync(request, default);
+        return RegisterAgentTypeAsync(request, context, default);
     }
     ValueTask<AddSubscriptionResponse> IGateway.SubscribeAsync(AddSubscriptionRequest request)
     {
