@@ -144,10 +144,6 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         {
             throw new InvalidOperationException("Target is null.");
         }
-        if (request.Source is null)
-        {
-            throw new InvalidOperationException("Source is null.");
-        }
 
         var agentId = request.Target;
         var agent = await this._agentsContainer.EnsureAgentAsync(agentId.FromProtobuf());
@@ -158,7 +154,7 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
 
         var messageContext = new MessageContext(request.RequestId, cancellationToken)
         {
-            Sender = request.Source.FromProtobuf(),
+            Sender = request.Source?.FromProtobuf() ?? null,
             Topic = null,
             IsRpc = true
         };
@@ -278,7 +274,7 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         var request = new RpcRequest
         {
             RequestId = Guid.NewGuid().ToString(),
-            Source = (sender ?? new Contracts.AgentId()).ToProtobuf(),
+            Source = sender?.ToProtobuf() ?? null,
             Target = recepient.ToProtobuf(),
             Payload = payload,
         };
