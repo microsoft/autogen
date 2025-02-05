@@ -104,7 +104,7 @@ jobs:
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: Unit Test V1
       run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV1"
-    - run: dotnet dev-certs https --trust
+    - run: sudo dotnet dev-certs https --trust --no-password
     - name: Unit Test V2
       run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV2"
 
@@ -157,7 +157,7 @@ jobs:
       run: |
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
-    - run: dotnet dev-certs https --trust
+    - run: sudo dotnet dev-certs https --trust --no-password
     - name: Integration Test
       run: dotnet --version && dotnet test --no-build -bl --configuration Release --filter "Category=Integration"
     - name: Restore the global.json
@@ -233,7 +233,7 @@ jobs:
       run: |
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
-    - run: dotnet dev-certs https --trust
+    - run: sudo dotnet dev-certs https --trust --no-password
     - name: OpenAI Test
       run: dotnet test --no-build -bl --configuration Release --filter type!=integration
       env:
