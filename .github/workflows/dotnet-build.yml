@@ -90,7 +90,7 @@ jobs:
       with:
         dotnet-version: '8.0.x'
     - name: Install dev certs
-      run:  dotnet --version && dotnet dev-certs https --trust
+      run:  dotnet --version && sudo dotnet dev-certs https --trust
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
