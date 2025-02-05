@@ -3,6 +3,7 @@ import json
 import logging
 from typing import Any, AsyncGenerator, List
 
+from autogen_core._component_config import ComponentModel
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import AssistantAgent
@@ -795,9 +796,10 @@ async def test_assistant_agent_declarative(monkeypatch: pytest.MonkeyPatch) -> N
         "test_agent",
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),
         model_context=model_context,
+        memory=[ListMemory(name="test_memory")],
     )
 
-    agent_config = agent.dump_component()
+    agent_config: ComponentModel = agent.dump_component()
     assert agent_config.provider == "autogen_agentchat.agents.AssistantAgent"
 
     agent2 = AssistantAgent.load_component(agent_config)

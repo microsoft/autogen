@@ -11,8 +11,8 @@ from ._base_memory import Memory, MemoryContent, MemoryQueryResult, UpdateContex
 
 
 class ListMemoryConfig(BaseModel):
-    """Configuration for ListMemory component.
-    """
+    """Configuration for ListMemory component."""
+
     name: str | None = None
     """Optional identifier for this memory instance."""
     memory_contents: List[MemoryContent] = []
