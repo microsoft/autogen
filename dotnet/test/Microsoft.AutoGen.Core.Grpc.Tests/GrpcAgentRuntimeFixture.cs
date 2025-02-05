@@ -29,7 +29,7 @@ public sealed class GrpcAgentRuntimeFixture : IDisposable
 
         // Update environment variables so each test runs independently
         Environment.SetEnvironmentVariable("ASPNETCORE_HTTPS_PORTS", port.ToString());
-        Environment.SetEnvironmentVariable("AGENT_HOST", $"http://localhost:{port}");
+        Environment.SetEnvironmentVariable("AGENT_HOST", $"https://localhost:{port}");
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
         Server = ServerBuilder().Result;
         await Server.StartAsync().ConfigureAwait(true);
