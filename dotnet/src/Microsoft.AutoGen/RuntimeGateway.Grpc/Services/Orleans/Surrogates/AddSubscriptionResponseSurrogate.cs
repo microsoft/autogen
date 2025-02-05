@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AddSubscriptionResponseSurrogate.cs
 
+using Microsoft.AutoGen.Protobuf;
+
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Orleans.Surrogates;
 
 [GenerateSerializer]
@@ -20,20 +22,10 @@ public sealed class AddSubscriptionResponseSurrogateConverter :
 {
     public AddSubscriptionResponse ConvertFromSurrogate(
         in AddSubscriptionResponseSurrogate surrogate) =>
-        new AddSubscriptionResponse
-        {
-            RequestId = surrogate.RequestId,
-            Success = surrogate.Success,
-            Error = surrogate.Error
-        };
+        new AddSubscriptionResponse { };
 
     public AddSubscriptionResponseSurrogate ConvertToSurrogate(
         in AddSubscriptionResponse value) =>
-        new AddSubscriptionResponseSurrogate
-        {
-            RequestId = value.RequestId,
-            Success = value.Success,
-            Error = value.Error
-        };
+        new AddSubscriptionResponseSurrogate { };
 }
 

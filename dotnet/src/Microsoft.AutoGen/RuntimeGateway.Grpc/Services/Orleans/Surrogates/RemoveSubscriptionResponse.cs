@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // RemoveSubscriptionResponse.cs
+using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Orleans.Surrogates;
 
@@ -20,18 +21,10 @@ public sealed class SubscriptionResponseSurrogateConverter :
 {
     public RemoveSubscriptionResponse ConvertFromSurrogate(
         in RemoveSubscriptionResponseSurrogate surrogate) =>
-        new RemoveSubscriptionResponse
-        {
-            Success = surrogate.Success,
-            Error = surrogate.Error
-        };
+        new RemoveSubscriptionResponse { };
 
     public RemoveSubscriptionResponseSurrogate ConvertToSurrogate(
         in RemoveSubscriptionResponse value) =>
-        new RemoveSubscriptionResponseSurrogate
-        {
-            Success = value.Success,
-            Error = value.Error
-        };
+        new RemoveSubscriptionResponseSurrogate { };
 }
 

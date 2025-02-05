@@ -2,7 +2,7 @@
 // IRegistry.cs
 using Microsoft.AutoGen.Protobuf;
 using Microsoft.AutoGen.Contracts;
-namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 
 public interface IRegistry
 {

@@ -4,6 +4,7 @@
 using FluentAssertions;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
+using Microsoft.AutoGen.Protobuf;
 using Microsoft.AutoGen.RuntimeGateway.Grpc.Tests.Helpers.Grpc;
 using Microsoft.AutoGen.RuntimeGateway.Grpc.Tests.Helpers.Orleans;
 using Microsoft.Extensions.Logging;

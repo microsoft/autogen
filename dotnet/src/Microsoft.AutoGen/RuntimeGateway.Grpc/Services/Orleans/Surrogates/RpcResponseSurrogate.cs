@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // RpcResponseSurrogate.cs
+using Microsoft.AutoGen.Protobuf;
 
 using Google.Protobuf.Collections;
 

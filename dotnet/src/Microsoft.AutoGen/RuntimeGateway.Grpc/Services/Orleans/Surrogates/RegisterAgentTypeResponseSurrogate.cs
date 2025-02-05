@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // RegisterAgentTypeResponseSurrogate.cs
 
+using Microsoft.AutoGen.Protobuf;
+
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Orleans.Surrogates;
 
 [GenerateSerializer]
@@ -20,20 +22,10 @@ public sealed class RegisterAgentTypeResponseSurrogateConverter :
 {
     public RegisterAgentTypeResponse ConvertFromSurrogate(
         in RegisterAgentTypeResponseSurrogate surrogate) =>
-        new RegisterAgentTypeResponse
-        {
-            RequestId = surrogate.RequestId,
-            Success = surrogate.Success,
-            Error = surrogate.Error
-        };
+        new RegisterAgentTypeResponse { };
 
     public RegisterAgentTypeResponseSurrogate ConvertToSurrogate(
         in RegisterAgentTypeResponse value) =>
-        new RegisterAgentTypeResponseSurrogate
-        {
-            RequestId = value.RequestId,
-            Success = value.Success,
-            Error = value.Error
-        };
+        new RegisterAgentTypeResponseSurrogate { };
 }
 

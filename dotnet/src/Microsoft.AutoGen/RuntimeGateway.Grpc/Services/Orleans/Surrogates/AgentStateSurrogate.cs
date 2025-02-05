@@ -2,7 +2,7 @@
 // AgentStateSurrogate.cs
 
 using Google.Protobuf;
-using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Orleans.Surrogates;
 
@@ -16,7 +16,7 @@ public struct AgentStateSurrogate
     [Id(2)]
     public ByteString BinaryData;
     [Id(3)]
-    public AgentId AgentId;
+    public Protobuf.AgentId AgentId;
     [Id(4)]
     public string Etag;
     [Id(5)]

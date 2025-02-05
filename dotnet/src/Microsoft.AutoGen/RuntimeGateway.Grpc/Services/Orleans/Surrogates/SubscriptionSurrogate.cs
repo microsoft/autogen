@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // SubscriptionSurrogate.cs
-
-using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Orleans.Surrogates;
 

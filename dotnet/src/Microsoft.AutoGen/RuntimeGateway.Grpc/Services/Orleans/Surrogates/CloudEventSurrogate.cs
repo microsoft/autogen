@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // CloudEventSurrogate.cs
-
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
+using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Orleans.Surrogates;
 

@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentStateGrain.cs
-
+using Microsoft.AutoGen.Protobuf;
 using Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
@@ -14,7 +14,7 @@ internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore
         // if the Etag is null, its a new state
         // if the passed etag is null or empty, we should not check the current state's Etag - caller doesnt care
         // if both etags are set, they should match or it means that the state has changed since the last read. 
-        if ((string.IsNullOrEmpty(state.Etag)) || (string.IsNullOrEmpty(eTag)) || (string.Equals(state.Etag, eTag, StringComparison.Ordinal)))
+        if (string.IsNullOrEmpty(state.Etag) || string.IsNullOrEmpty(eTag) || string.Equals(state.Etag, eTag, StringComparison.Ordinal))
         {
             state.State = newState;
             await state.WriteStateAsync().ConfigureAwait(false);
