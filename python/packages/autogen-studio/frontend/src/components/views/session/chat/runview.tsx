@@ -10,6 +10,9 @@ import {
   ChevronDown,
   ChevronUp,
   Bot,
+  PanelRightClose,
+  PanelLeftOpen,
+  PanelRightOpen,
 } from "lucide-react";
 import { Run, Message, TeamConfig, Component } from "../../../types/datamodel";
 import AgentFlow from "./agentflow/agentflow";
@@ -40,6 +43,7 @@ const RunView: React.FC<RunViewProps> = ({
   const [isExpanded, setIsExpanded] = useState(true);
   const threadContainerRef = useRef<HTMLDivElement | null>(null);
   const isActive = run.status === "active" || run.status === "awaiting_input";
+  const [isFlowVisible, setIsFlowVisible] = useState(true);
 
   // Replace existing scroll effect with this simpler one
   useEffect(() => {
@@ -56,7 +60,7 @@ const RunView: React.FC<RunViewProps> = ({
   const calculateThreadTokens = (messages: Message[]) => {
     // console.log("messages", messages);
     return messages.reduce((total, msg) => {
-      if (!msg.config.models_usage) return total;
+      if (!msg.config?.models_usage) return total;
       return (
         total +
         (msg.config.models_usage.prompt_tokens || 0) +
@@ -120,6 +124,12 @@ const RunView: React.FC<RunViewProps> = ({
 
   const lastResultMessage = run.team_result?.task_result.messages.slice(-1)[0];
   const lastMessage = run.messages.slice(-1)[0];
+
+  console.log("lastResultMessage", lastResultMessage);
+  console.log(
+    "lastMessage",
+    run.messages[run.messages.length - 1]?.config?.content
+  );
 
   return (
     <div className="space-y-6  mr-2 ">
@@ -198,14 +208,18 @@ const RunView: React.FC<RunViewProps> = ({
                 </div>
 
                 {lastMessage ? (
-                  <TruncatableText
-                    key={"_" + run.id}
-                    textThreshold={700}
-                    content={
-                      run.messages[run.messages.length - 1]?.config?.content +
-                      ""
-                    }
-                    className="break-all"
+                  // <TruncatableText
+                  //   key={"_" + run.id}
+                  //   textThreshold={700}
+                  //   content={
+                  //     run.messages[run.messages.length - 1]?.config?.content +
+                  //     ""
+                  //   }
+                  //   className="break-all"
+                  // />
+                  <RenderMessage
+                    message={run.messages[run.messages.length - 1]?.config}
+                    isLast={true}
                   />
                 ) : (
                   <>
@@ -260,7 +274,19 @@ const RunView: React.FC<RunViewProps> = ({
                 </div>
 
                 {isExpanded && (
-                  <div className="flex flex-row gap-4">
+                  <div className="flex relative flex-row gap-4">
+                    {!isFlowVisible && (
+                      <div className="z-50 absolute right-2 top-2 bg-tertiary rounded p-2 hover:opacity-100 opacity-80">
+                        <Tooltip title="Show message flow graph">
+                          <button
+                            onClick={() => setIsFlowVisible(true)}
+                            className=" p-1 rounded-md bg-tertiary  hover:bg-secondary  transition-colors"
+                          >
+                            <PanelRightOpen strokeWidth={1.5} size={22} />
+                          </button>
+                        </Tooltip>
+                      </div>
+                    )}
                     {/* Messages Thread */}
                     <div
                       ref={threadContainerRef}
@@ -300,11 +326,23 @@ const RunView: React.FC<RunViewProps> = ({
                     </div>
 
                     {/* Agent Flow Visualization */}
-                    <div className="bg-tertiary flex-1 rounded mt-2">
-                      {teamConfig && (
-                        <AgentFlow teamConfig={teamConfig} run={run} />
-                      )}
-                    </div>
+                    {isFlowVisible && (
+                      <div className="bg-tertiary flex-1 rounded mt-2 relative">
+                        <div className="z-50 absolute left-2 top-2 p-2 hover:opacity-100 opacity-80">
+                          <Tooltip title="Hide message flow">
+                            <button
+                              onClick={() => setIsFlowVisible(false)}
+                              className=" p-1 rounded-md bg-tertiary hover:bg-secondary transition-colors"
+                            >
+                              <PanelRightClose strokeWidth={1.5} size={22} />
+                            </button>
+                          </Tooltip>
+                        </div>
+                        {teamConfig && (
+                          <AgentFlow teamConfig={teamConfig} run={run} />
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

@@ -24,6 +24,7 @@ import PIL.Image
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage, TextMessage
+from autogen_agentchat.utils import content_to_str, remove_images
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, ComponentModel, FunctionCall
 from autogen_core import Image as AGImage
 from autogen_core.models import (
@@ -40,7 +41,13 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from ._events import WebSurferEvent
-from ._prompts import WEB_SURFER_OCR_PROMPT, WEB_SURFER_QA_PROMPT, WEB_SURFER_QA_SYSTEM_MESSAGE, WEB_SURFER_TOOL_PROMPT
+from ._prompts import (
+    WEB_SURFER_OCR_PROMPT,
+    WEB_SURFER_QA_PROMPT,
+    WEB_SURFER_QA_SYSTEM_MESSAGE,
+    WEB_SURFER_TOOL_PROMPT_MM,
+    WEB_SURFER_TOOL_PROMPT_TEXT,
+)
 from ._set_of_mark import add_set_of_mark
 from ._tool_definitions import (
     TOOL_CLICK,
@@ -56,7 +63,6 @@ from ._tool_definitions import (
     TOOL_WEB_SEARCH,
 )
 from ._types import InteractiveRegion, UserContent
-from ._utils import message_content_to_str
 from .playwright_controller import PlaywrightController
 
 
@@ -215,8 +221,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             raise ValueError(
                 "The model does not support function calling. MultimodalWebSurfer requires a model that supports function calling."
             )
-        if model_client.model_info["vision"] is False:
-            raise ValueError("The model is not multimodal. MultimodalWebSurfer requires a multimodal model.")
+
         self._model_client = model_client
         self.headless = headless
         self.browser_channel = browser_channel
@@ -404,7 +409,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         self.model_usage: List[RequestUsage] = []
         try:
             content = await self._generate_reply(cancellation_token=cancellation_token)
-            self._chat_history.append(AssistantMessage(content=message_content_to_str(content), source=self.name))
+            self._chat_history.append(AssistantMessage(content=content_to_str(content), source=self.name))
             final_usage = RequestUsage(
                 prompt_tokens=sum([u.prompt_tokens for u in self.model_usage]),
                 completion_tokens=sum([u.completion_tokens for u in self.model_usage]),
@@ -434,22 +439,8 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
 
         assert self._page is not None
 
-        # Clone the messages to give context, removing old screenshots
-        history: List[LLMMessage] = []
-        for m in self._chat_history:
-            assert isinstance(m, UserMessage | AssistantMessage | SystemMessage)
-            assert isinstance(m.content, str | list)
-
-            if isinstance(m.content, str):
-                history.append(m)
-            else:
-                content = message_content_to_str(m.content)
-                if isinstance(m, UserMessage):
-                    history.append(UserMessage(content=content, source=m.source))
-                elif isinstance(m, AssistantMessage):
-                    history.append(AssistantMessage(content=content, source=m.source))
-                elif isinstance(m, SystemMessage):
-                    history.append(SystemMessage(content=content))
+        # Clone the messages, removing old screenshots
+        history: List[LLMMessage] = remove_images(self._chat_history)
 
         # Ask the page for interactive elements, then prepare the state-of-mark screenshot
         rects = await self._playwright_controller.get_interactive_rects(self._page)
@@ -512,22 +503,37 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
 
         tool_names = "\n".join([t["name"] for t in tools])
 
-        text_prompt = WEB_SURFER_TOOL_PROMPT.format(
-            url=self._page.url,
-            visible_targets=visible_targets,
-            other_targets_str=other_targets_str,
-            focused_hint=focused_hint,
-            tool_names=tool_names,
-        ).strip()
+        if self._model_client.model_info["vision"]:
+            text_prompt = WEB_SURFER_TOOL_PROMPT_MM.format(
+                url=self._page.url,
+                visible_targets=visible_targets,
+                other_targets_str=other_targets_str,
+                focused_hint=focused_hint,
+                tool_names=tool_names,
+            ).strip()
 
-        # Scale the screenshot for the MLM, and close the original
-        scaled_screenshot = som_screenshot.resize((self.MLM_WIDTH, self.MLM_HEIGHT))
-        som_screenshot.close()
-        if self.to_save_screenshots:
-            scaled_screenshot.save(os.path.join(self.debug_dir, "screenshot_scaled.png"))  # type: ignore
+            # Scale the screenshot for the MLM, and close the original
+            scaled_screenshot = som_screenshot.resize((self.MLM_WIDTH, self.MLM_HEIGHT))
+            som_screenshot.close()
+            if self.to_save_screenshots:
+                scaled_screenshot.save(os.path.join(self.debug_dir, "screenshot_scaled.png"))  # type: ignore
 
-        # Add the multimodal message and make the request
-        history.append(UserMessage(content=[text_prompt, AGImage.from_pil(scaled_screenshot)], source=self.name))
+            # Add the message
+            history.append(UserMessage(content=[text_prompt, AGImage.from_pil(scaled_screenshot)], source=self.name))
+        else:
+            visible_text = await self._playwright_controller.get_visible_text(self._page)
+
+            text_prompt = WEB_SURFER_TOOL_PROMPT_TEXT.format(
+                url=self._page.url,
+                visible_targets=visible_targets,
+                other_targets_str=other_targets_str,
+                focused_hint=focused_hint,
+                tool_names=tool_names,
+                visible_text=visible_text.strip(),
+            ).strip()
+
+            # Add the message
+            history.append(UserMessage(content=text_prompt, source=self.name))
 
         response = await self._model_client.create(
             history, tools=tools, extra_create_args={"tool_choice": "auto"}, cancellation_token=cancellation_token

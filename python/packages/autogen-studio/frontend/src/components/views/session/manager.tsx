@@ -1,14 +1,17 @@
 import React, { useCallback, useEffect, useState, useContext } from "react";
-import { message } from "antd";
+import { Button, message } from "antd";
 import { useConfigStore } from "../../../hooks/store";
 import { appContext } from "../../../hooks/provider";
 import { sessionAPI } from "./api";
 import { SessionEditor } from "./editor";
-import type { Session } from "../../types/datamodel";
+import type { Session, Team } from "../../types/datamodel";
 import ChatView from "./chat/chat";
 import { Sidebar } from "./sidebar";
+import { teamAPI } from "../team/api";
+import { useGalleryStore } from "../gallery/store";
 
 export const SessionManager: React.FC = () => {
+  const [teams, setTeams] = useState<Team[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [editingSession, setEditingSession] = useState<Session | undefined>();
@@ -23,6 +26,8 @@ export const SessionManager: React.FC = () => {
 
   const { user } = useContext(appContext);
   const { session, setSession, sessions, setSessions } = useConfigStore();
+
+  const defaultGallery = useGalleryStore((state) => state.getDefaultGallery());
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -121,6 +126,30 @@ export const SessionManager: React.FC = () => {
     }
   };
 
+  const handleQuickStart = async (teamId: number, teamName: string) => {
+    if (!user?.email) return;
+    console.log("Quick start session", teamId, teamName);
+    try {
+      const defaultName = `${teamName.substring(
+        0,
+        20
+      )} - ${new Date().toLocaleString()} Session`;
+      const created = await sessionAPI.createSession(
+        {
+          name: defaultName,
+          team_id: teamId,
+        },
+        user.email
+      );
+
+      setSessions([created, ...sessions]);
+      setSession(created);
+      messageApi.success("Session created!");
+    } catch (error) {
+      messageApi.error("Error creating session");
+    }
+  };
+
   const handleSelectSession = async (selectedSession: Session) => {
     if (!user?.email || !selectedSession.id) return;
 
@@ -158,6 +187,39 @@ export const SessionManager: React.FC = () => {
     fetchSessions();
   }, [fetchSessions]);
 
+  // Add teams fetching
+  const fetchTeams = useCallback(async () => {
+    if (!user?.email) return;
+
+    try {
+      setIsLoading(true);
+      const teamsData = await teamAPI.listTeams(user.email);
+      if (teamsData.length > 0) {
+        setTeams(teamsData);
+      } else {
+        const sampleTeam = defaultGallery.items.teams[0];
+        // If no teams, create a default team
+        const defaultTeam = await teamAPI.createTeam(
+          {
+            component: sampleTeam,
+          },
+          user.email
+        );
+        setTeams([defaultTeam]);
+      }
+    } catch (error) {
+      console.error("Error fetching teams:", error);
+      messageApi.error("Error loading teams");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.email, messageApi]);
+
+  // Fetch teams on mount
+  useEffect(() => {
+    fetchTeams();
+  }, [fetchTeams]);
+
   return (
     <div className="relative flex h-full w-full">
       {contextHolder}
@@ -168,6 +230,8 @@ export const SessionManager: React.FC = () => {
       >
         <Sidebar
           isOpen={isSidebarOpen}
+          teams={teams}
+          onStartSession={handleQuickStart}
           sessions={sessions}
           currentSession={session}
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
@@ -198,6 +262,7 @@ export const SessionManager: React.FC = () => {
       </div>
 
       <SessionEditor
+        teams={teams}
         session={editingSession}
         isOpen={isEditorOpen}
         onSave={handleSaveSession}
