@@ -3,7 +3,6 @@ import json
 import logging
 from typing import Any, AsyncGenerator, List
 
-from autogen_core._component_config import ComponentModel
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import AssistantAgent
@@ -19,7 +18,7 @@ from autogen_agentchat.messages import (
     ToolCallRequestEvent,
     ToolCallSummaryMessage,
 )
-from autogen_core import FunctionCall, Image
+from autogen_core import ComponentModel, FunctionCall, Image
 from autogen_core.memory import ListMemory, Memory, MemoryContent, MemoryMimeType, MemoryQueryResult
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import (
@@ -755,7 +754,12 @@ async def test_run_with_memory(monkeypatch: pytest.MonkeyPatch) -> None:
         "test_agent", model_client=OpenAIChatCompletionClient(model=model, api_key=""), memory=[memory2]
     )
 
-    result = await agent.run(task="test task")
+    # Test dump and load component with memory
+    agent_config: ComponentModel = agent.dump_component()
+    assert agent_config.provider == "autogen_agentchat.agents.AssistantAgent"
+    agent2 = AssistantAgent.load_component(agent_config)
+
+    result = await agent2.run(task="test task")
     assert len(result.messages) > 0
     memory_event = next((msg for msg in result.messages if isinstance(msg, MemoryQueryEvent)), None)
     assert memory_event is not None

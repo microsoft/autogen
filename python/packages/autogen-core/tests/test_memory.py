@@ -1,8 +1,7 @@
 from typing import Any
 
 import pytest
-from autogen_core import CancellationToken
-from autogen_core._component_config import ComponentModel
+from autogen_core import CancellationToken, ComponentModel
 from autogen_core.memory import (
     ListMemory,
     Memory,
