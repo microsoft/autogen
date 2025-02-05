@@ -283,13 +283,13 @@ const AgentFlow: React.FC<AgentFlowProps> = ({ teamConfig, run }) => {
       // Add first message node if it exists
       if (messages.length > 0) {
         const firstAgentConfig = teamConfig.config.participants.find(
-          (p) => p.config.name === messages[0].source
+          (p) => p.config.name === messages[0]?.source
         );
         nodeMap.set(
-          messages[0].source,
+          messages[0]?.source,
           createNode(
-            messages[0].source,
-            messages[0].source === "user" ? "user" : "agent",
+            messages[0]?.source,
+            messages[0]?.source === "user" ? "user" : "agent",
             firstAgentConfig,
             false,
             run
@@ -301,28 +301,28 @@ const AgentFlow: React.FC<AgentFlowProps> = ({ teamConfig, run }) => {
       for (let i = 0; i < messages.length - 1; i++) {
         const currentMsg = messages[i];
         const nextMsg = messages[i + 1];
-        const transitionKey = `${currentMsg.source}->${nextMsg.source}`;
+        const transitionKey = `${currentMsg?.source}->${nextMsg?.source}`;
 
         if (!transitionCounts.has(transitionKey)) {
           transitionCounts.set(transitionKey, {
-            source: currentMsg.source,
-            target: nextMsg.source,
+            source: currentMsg?.source,
+            target: nextMsg?.source,
             count: 1,
             totalTokens:
-              (currentMsg.models_usage?.prompt_tokens || 0) +
-              (currentMsg.models_usage?.completion_tokens || 0),
+              (currentMsg?.models_usage?.prompt_tokens || 0) +
+              (currentMsg?.models_usage?.completion_tokens || 0),
             messages: [currentMsg],
           });
         } else {
           const transition = transitionCounts.get(transitionKey)!;
           transition.count++;
           transition.totalTokens +=
-            (currentMsg.models_usage?.prompt_tokens || 0) +
-            (currentMsg.models_usage?.completion_tokens || 0);
+            (currentMsg?.models_usage?.prompt_tokens || 0) +
+            (currentMsg?.models_usage?.completion_tokens || 0);
           transition.messages.push(currentMsg);
         }
 
-        if (!nodeMap.has(nextMsg.source)) {
+        if (!nodeMap.has(nextMsg?.source)) {
           const agentConfig = teamConfig.config.participants.find(
             (p) => p.config.name === nextMsg.source
           );
@@ -460,8 +460,8 @@ const AgentFlow: React.FC<AgentFlowProps> = ({ teamConfig, run }) => {
           }[run.status];
 
           newEdges.push({
-            id: `${lastMessage.source}-end`,
-            source: lastMessage.source,
+            id: `${lastMessage?.source}-end`,
+            source: lastMessage?.source,
             target: "end",
             type: "custom",
             data: {

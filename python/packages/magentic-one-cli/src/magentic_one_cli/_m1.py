@@ -105,7 +105,7 @@ def main() -> None:
         else:
             config = yaml.safe_load(DEFAULT_CONFIG_CONTENTS)
     else:
-        with open(args.config[0], "r") as f:
+        with open(args.config if isinstance(args.config, str) else args.config[0], "r") as f:
             config = yaml.safe_load(f)
 
     client = ChatCompletionClient.load_component(config["client"])
@@ -120,7 +120,7 @@ def main() -> None:
         else:
             await Console(m1.run_stream(task=task), output_stats=False, user_input_manager=input_manager)
 
-    task = args.task[0]
+    task = args.task if isinstance(args.task, str) else args.task[0]
     asyncio.run(run_task(task, not args.no_hil, args.rich))
 
 

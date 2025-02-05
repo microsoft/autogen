@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useState, useContext } from "react";
-import { Button, message, Modal } from "antd";
+import { message, Modal } from "antd";
 import { ChevronRight } from "lucide-react";
 import { appContext } from "../../../hooks/provider";
 import { teamAPI } from "./api";
 import { TeamSidebar } from "./sidebar";
 import type { Team } from "../../types/datamodel";
-import { defaultTeam } from "./types";
 import { TeamBuilder } from "./builder/builder";
 
 export const TeamManager: React.FC = () => {

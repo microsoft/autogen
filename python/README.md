@@ -50,11 +50,23 @@ To create a pull request (PR), ensure the following checks are met. You can run 
 - Pyright: `poe pyright`
 - Build docs: `poe --directory ./packages/autogen-core/ docs-build`
 - Auto rebuild+serve docs: `poe --directory ./packages/autogen-core/ docs-serve`
+- Check samples in `python/samples`: `poe samples-code-check`
 Alternatively, you can run all the checks with:
 - `poe check`
 
 > [!NOTE]
 > These need to be run in the virtual environment.
+
+### Syncing Dependencies
+
+When you pull new changes, you may need to update the dependencies.
+To do so, first make sure you are in the virtual environment, and then in the `python` directory, run:
+
+```sh
+uv sync --all-extras
+```
+
+This will update the dependencies in the virtual environment.
 
 ### Creating a New Package
 
