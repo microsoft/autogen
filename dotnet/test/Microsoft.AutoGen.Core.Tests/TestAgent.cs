@@ -99,6 +99,6 @@ public class SubscribedSelfPublishAgent(AgentId id,
         return ValueTask.CompletedTask;
     }
 
-    private TextMessage _text = new TextMessage();
+    private TextMessage _text = new TextMessage { Source = "DefaultTopic", Content = "DefaultContent" };
     public TextMessage Text => _text;
 }
