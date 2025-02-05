@@ -3,7 +3,7 @@
 
 using Google.Protobuf.Collections;
 
-namespace Microsoft.AutoGen.Runtime.Grpc.Orleans.Surrogates;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Orleans.Surrogates;
 
 [GenerateSerializer]
 public struct RegisterAgentTypeRequestSurrogate

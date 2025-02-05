@@ -2,7 +2,7 @@
 // IAgentGrain.cs
 using Microsoft.AutoGen.Protobuf;
 
-namespace Microsoft.AutoGen.Runtime.Grpc.Abstractions;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 
 internal interface IAgentGrain : IGrainWithStringKey
 {

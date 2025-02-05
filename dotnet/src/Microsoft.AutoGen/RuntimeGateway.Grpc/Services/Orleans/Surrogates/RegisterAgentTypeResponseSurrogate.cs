@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // RegisterAgentTypeResponseSurrogate.cs
 
-namespace Microsoft.AutoGen.Runtime.Grpc.Orleans.Surrogates;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Orleans.Surrogates;
 
 [GenerateSerializer]
 public struct RegisterAgentTypeResponseSurrogate

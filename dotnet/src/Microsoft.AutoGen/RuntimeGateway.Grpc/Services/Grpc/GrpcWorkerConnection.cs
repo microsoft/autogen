@@ -4,7 +4,7 @@ using System.Threading.Channels;
 using Grpc.Core;
 using Microsoft.AutoGen.Protobuf;
 
-namespace Microsoft.AutoGen.Runtime.Grpc;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
 
 public sealed class GrpcWorkerConnection : IAsyncDisposable
 {

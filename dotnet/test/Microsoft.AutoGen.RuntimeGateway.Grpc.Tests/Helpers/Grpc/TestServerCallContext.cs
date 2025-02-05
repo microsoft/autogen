@@ -15,7 +15,7 @@
 
 using Grpc.Core;
 
-namespace Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Grpc;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Tests.Helpers.Grpc;
 
 public class TestServerCallContext : ServerCallContext
 {

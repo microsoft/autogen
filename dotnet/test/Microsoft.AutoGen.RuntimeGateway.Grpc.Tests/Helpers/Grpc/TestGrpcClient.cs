@@ -3,7 +3,7 @@
 
 using Microsoft.AutoGen.Contracts;
 
-namespace Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Grpc;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Tests.Helpers.Grpc;
 internal sealed class TestGrpcClient : IDisposable
 {
     public TestAsyncStreamReader<Message> RequestStream { get; }

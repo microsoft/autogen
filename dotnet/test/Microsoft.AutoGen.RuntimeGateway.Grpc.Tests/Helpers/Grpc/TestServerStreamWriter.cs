@@ -16,7 +16,7 @@
 using System.Threading.Channels;
 using Grpc.Core;
 
-namespace Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Grpc;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Tests.Helpers.Grpc;
 
 public class TestServerStreamWriter<T> : IDisposable, IServerStreamWriter<T> where T : class
 {

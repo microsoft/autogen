@@ -1,10 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // GrpcGatewayService.cs
 using Grpc.Core;
-using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Protobuf;
 
-namespace Microsoft.AutoGen.Runtime.Grpc;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
 
 // gRPC service which handles communication between the agent worker and the cluster.
 public sealed class GrpcGatewayService(GrpcGateway gateway) : AgentRpc.AgentRpcBase

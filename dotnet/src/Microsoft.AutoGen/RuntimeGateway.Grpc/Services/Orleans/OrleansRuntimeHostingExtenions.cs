@@ -9,7 +9,7 @@ using Microsoft.Extensions.Hosting;
 using Orleans.Configuration;
 using Orleans.Serialization;
 
-namespace Microsoft.AutoGen.Runtime.Grpc;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
 
 public static class OrleansRuntimeHostingExtenions
 {

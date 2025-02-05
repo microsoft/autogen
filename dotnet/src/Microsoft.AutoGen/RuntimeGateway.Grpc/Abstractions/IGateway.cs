@@ -3,7 +3,7 @@
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Protobuf;
 
-namespace Microsoft.AutoGen.Runtime.Grpc.Abstractions;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 
 public interface IGateway : IGrainObserver
 {

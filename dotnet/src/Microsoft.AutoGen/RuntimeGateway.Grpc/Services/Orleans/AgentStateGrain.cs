@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentStateGrain.cs
 
-using Microsoft.AutoGen.Runtime.Grpc.Abstractions;
+using Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 
-namespace Microsoft.AutoGen.Runtime.Grpc;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
 
 internal sealed class AgentStateGrain([PersistentState("state", "AgentStateStore")] IPersistentState<AgentState> state) : Grain, IAgentState, IAgentGrain
 {

@@ -4,7 +4,7 @@
 using Orleans.Serialization;
 using Orleans.TestingHost;
 
-namespace Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Orleans;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Tests.Helpers.Orleans;
 
 public class SiloBuilderConfigurator : ISiloConfigurator
 {

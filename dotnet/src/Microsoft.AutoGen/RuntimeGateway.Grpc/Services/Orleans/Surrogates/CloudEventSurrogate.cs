@@ -4,7 +4,7 @@
 using Google.Protobuf;
 using Google.Protobuf.WellKnownTypes;
 
-namespace Microsoft.AutoGen.Runtime.Grpc.Orleans.Surrogates;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Orleans.Surrogates;
 
 // TODO: Add the rest of the properties
 [GenerateSerializer]

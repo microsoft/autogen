@@ -5,11 +5,11 @@ using System.Collections.Concurrent;
 using Grpc.Core;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Protobuf;
-using Microsoft.AutoGen.Runtime.Grpc.Abstractions;
+using Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Runtime.Grpc;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
 
 public sealed class GrpcGateway : BackgroundService, IGateway
 {
@@ -21,7 +21,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly IGateway _reference;
     // The agents supported by each worker process.
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
-    public readonly ConcurrentDictionary<IConnection, IConnection> _workers = new();
+    public readonly ConcurrentDictionary<string, IConnection> _workers = new();
     internal readonly ConcurrentDictionary<string, GrpcWorkerConnection> _workersByConnection = new();
     private readonly ConcurrentDictionary<string, Subscription> _subscriptionsByAgentType = new();
     private readonly ConcurrentDictionary<string, List<string>> _subscriptionsByTopic = new();
@@ -72,7 +72,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         var agentState = _clusterClient.GetGrain<IAgentGrain>($"{value.AgentId.Type}:{value.AgentId.Key}");
         await agentState.WriteStateAsync(value, value.ETag);
     }
-    public async ValueTask<AgentState> ReadAsync(Contracts.AgentId agentId, CancellationToken cancellationToken = default)
+    public async ValueTask<AgentState> ReadAsync(Protobuf.AgentId agentId, CancellationToken cancellationToken = default)
     {
         var agentState = _clusterClient.GetGrain<IAgentGrain>($"{agentId.Type}:{agentId.Key}");
         return await agentState.ReadStateAsync();
@@ -149,8 +149,10 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     internal async Task ConnectToWorkerProcess(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {
         _logger.LogInformation("Received new connection from {Peer}.", context.Peer);
+        var clientId = (context.RequestHeaders.Get("client-id")?.Value) ??
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Client ID is required."));
         var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
-        _workers.GetOrAdd(workerProcess, workerProcess);
+        _workers.GetOrAdd(clientId, workerProcess);
         _workersByConnection.GetOrAdd(context.Peer, workerProcess);
         await workerProcess.Connect().ConfigureAwait(false);
     }

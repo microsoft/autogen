@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // RegistryGrain.cs
 using Microsoft.AutoGen.Contracts;
-using Microsoft.AutoGen.Runtime.Grpc.Abstractions;
+using Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 
-namespace Microsoft.AutoGen.Runtime.Grpc;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
 internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStore")] IPersistentState<AgentsRegistryState> state) : Grain, IRegistryGrain
 {
     private readonly Dictionary<IGateway, WorkerState> _workerStates = new();

@@ -4,13 +4,13 @@
 using FluentAssertions;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
-using Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Grpc;
-using Microsoft.AutoGen.Runtime.Grpc.Tests.Helpers.Orleans;
+using Microsoft.AutoGen.RuntimeGateway.Grpc.Tests.Helpers.Grpc;
+using Microsoft.AutoGen.RuntimeGateway.Grpc.Tests.Helpers.Orleans;
 using Microsoft.Extensions.Logging;
 using Moq;
 using NewMessageReceived = Tests.Events.NewMessageReceived;
 
-namespace Microsoft.AutoGen.Runtime.Grpc.Tests;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Tests;
 [Collection(ClusterCollection.Name)]
 [Trait("Category", "UnitV2")]
 public class GrpcGatewayServiceTests

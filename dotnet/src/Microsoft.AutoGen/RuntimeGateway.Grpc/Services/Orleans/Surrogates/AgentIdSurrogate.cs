@@ -5,7 +5,7 @@
 // AgentIdSurrogate.cs
 using Microsoft.AutoGen.Contracts;
 
-namespace Microsoft.AutoGen.Runtime.Grpc.Orleans.Surrogates;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Orleans.Surrogates;
 
 [GenerateSerializer]
 public struct AgentIdSurrogate

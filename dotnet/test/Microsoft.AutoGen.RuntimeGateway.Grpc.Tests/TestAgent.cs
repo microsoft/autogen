@@ -7,7 +7,7 @@ using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
-namespace Microsoft.AutoGen.Runtime.Grpc.Tests;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Tests;
 
 [TopicSubscription("gh-gh-gh")]
 public class PBAgent([FromKeyedServices("AgentsMetadata")] AgentsMetadata eventTypes, ILogger<Agent>? logger = null)
