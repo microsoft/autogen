@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentTests.cs
+using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Logging;
@@ -182,8 +183,26 @@ public class AgentTests()
         var savedState = await agent.SaveStateAsync();
 
         // Ensure the state contains receivedMessages
-        savedState.Should().ContainKey("receivedMessages");
-        savedState["receivedMessages"].Should().BeOfType<Dictionary<string, object>>();
+        savedState.Should().ContainKey("TestTopic");
+
+        // Ensure the value is a valid JsonElement
+        savedState["TestTopic"].ValueKind.Should().Be(JsonValueKind.String, "Expected 'TestTopic' to be a string");
+
+        // Verify JSON serialization
+        string json = JsonSerializer.Serialize(savedState);
+        json.Should().NotBeNullOrEmpty("Serialized state should not be empty");
+
+        // Deserialize and ensure correctness
+        var deserializedState = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json)
+            ?? throw new Exception("Deserialized state is unexpectedly null");
+
+        deserializedState.Should().ContainKey("TestTopic");
+        deserializedState["TestTopic"].ValueKind.Should().Be(JsonValueKind.String, "Expected 'TestTopic' to be a string");
+
+        // Get the string value safely
+        string testValue = deserializedState["TestTopic"].GetString()
+            ?? throw new Exception("Value should not be null");
+        testValue.Should().Be("test");
 
         // Create a new instance of the agent to simulate a restart
         var newAgent = new SubscribedSaveLoadAgent(agent.Id, runtime, logger);
@@ -192,6 +211,7 @@ public class AgentTests()
         await newAgent.LoadStateAsync(savedState);
 
         // Verify that the loaded state contains the received message
-        newAgent.ReceivedMessages.Should().ContainKey(topicType).WhoseValue.Should().Be("test");
+        newAgent.ReceivedMessages.Should().ContainKey(topicType);
+        ((JsonElement)newAgent.ReceivedMessages[topicType]).GetString().Should().Be("test");
     }
 }
