@@ -89,8 +89,6 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
-    - name: Install dev certs
-      run:  dotnet --version && sudo dotnet dev-certs https --trust
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
@@ -108,6 +106,43 @@ jobs:
       run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV1"
     - name: Unit Test V2
       run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV2"
+
+  grpc-unit-tests:
+    name: Dotnet Grpc unit tests
+    needs: paths-filter
+    if: needs.paths-filter.outputs.hasChanges == 'true'
+    defaults:
+      run:
+        working-directory: dotnet
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest ]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        lfs: true
+    - name: Setup .NET 8.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    - name: Install dev certs
+      run:  dotnet --version && dotnet dev-certs https --trust
+    - name: Restore dependencies
+      run: |
+        # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
+        dotnet restore -bl
+    - name: Format check
+      run: |
+        echo "Format check"
+        echo "If you see any error in this step, please run 'dotnet format' locally to format the code."
+        dotnet format --verify-no-changes -v diag --no-restore
+    - name: Build
+      run: dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
+    - name: GRPC tests
+      run: dotnet test --no-build -bl --configuration Release --filter "Category=GRPC"
 
   integration-test:
     strategy:

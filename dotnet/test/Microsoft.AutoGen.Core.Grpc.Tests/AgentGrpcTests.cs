@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Microsoft.AutoGen.Core.Grpc.Tests;
 
-[Trait("Category", "UnitV2")]
+[Trait("Category", "GRPC")]
 public class AgentGrpcTests
 {
     [Fact]
