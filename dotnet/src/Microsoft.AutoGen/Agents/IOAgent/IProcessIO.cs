@@ -13,11 +13,11 @@ public interface IProcessIO
     /// </summary>
     /// <param name="message"></param>
     /// <returns>Task</returns>
-    static Task ProcessOutputAsync(string message){ return Task.CompletedTask; }
+    static Task ProcessOutputAsync(string message) { return Task.CompletedTask; }
     /// <summary>
     /// Implement this method in your agent to process the output
     /// </summary>
     /// <param name="message"></param>
     /// <returns>Task</returns>
     static Task<string> ProcessInputAsync(string message) { return Task.FromResult(message); }
-} 
+}

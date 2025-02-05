@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IHandleFileIO.cs
 
-using Microsoft.AutoGen.Contracts;
 using Google.Protobuf;
+using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Agents;

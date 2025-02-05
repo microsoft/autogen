@@ -19,6 +19,6 @@
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup>
-      <Protobuf Include="..\..\..\..\protos\agent_events.proto" GrpcServices="Client;Server" Link="Protos\agent_events.proto" />
+      <Protobuf Include="protos\agent_events.proto" GrpcServices="Client;Server" Link="Protos\agent_events.proto" />
   </ItemGroup>
 </Project>

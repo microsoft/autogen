@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package agents;
 
-option csharp_namespace = "Microsoft.AutoGen.Contracts";
+option csharp_namespace = "Microsoft.AutoGen.Agents";
 message TextMessage {
     string textMessage = 1;
     string source = 2;

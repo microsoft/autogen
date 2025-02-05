@@ -21,7 +21,7 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>, IProcessIO
     /// <param name="token"></param>
     /// <returns>ValueTask</returns>
     ValueTask PublishMessageAsync<T>(T message, TopicId topic, string? messageId, CancellationToken token = default) where T : IMessage;
-    
+
     /// <summary>
     /// Receives events of type Output and writes them to the console
     /// then runs the ProcessOutputAsync method which you should implement in your agent
@@ -42,7 +42,7 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>, IProcessIO
         };
         await PublishMessageAsync(evt, new TopicId("OutputWritten"), null, token: cancellationToken ?? CancellationToken.None).ConfigureAwait(false);
     }
-    
+
     /// <summary>
     /// Receives events of type Input and reads from the console, then runs the ProcessInputAsync method
     /// which you should implement in your agent
