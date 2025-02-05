@@ -164,7 +164,7 @@ $functions"""
         self._functions_module = functions_module
         self._functions = functions
         self._extra_volumes = extra_volumes
-        self._hosts = extra_hosts
+        self._extra_hosts = extra_hosts
         self._init_command = init_command
 
         # Setup could take some time so we intentionally wait for the first code block to do it.
