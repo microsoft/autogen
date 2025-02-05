@@ -8,6 +8,7 @@ using Xunit.Abstractions;
 namespace AutoGen.DotnetInteractive.Tests;
 
 [Collection("Sequential")]
+[Trait("Category", "UnitV1")]
 public class DotnetInteractiveServiceTest : IDisposable
 {
     private ITestOutputHelper _output;

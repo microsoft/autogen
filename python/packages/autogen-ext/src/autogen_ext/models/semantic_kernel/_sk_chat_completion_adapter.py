@@ -144,7 +144,17 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                     temperature=0.2,
                 )
 
-                model_client = SKChatCompletionAdapter(sk_client, kernel=Kernel(memory=NullMemory()), prompt_settings=settings)
+                model_client = SKChatCompletionAdapter(
+                    sk_client,
+                    kernel=Kernel(memory=NullMemory()),
+                    prompt_settings=settings,
+                    model_info={
+                        "family": "gemini-1.5-flash",
+                        "function_calling": True,
+                        "json_output": True,
+                        "vision": False,
+                    },
+                )
 
                 # Call the model directly.
                 model_result = await model_client.create(

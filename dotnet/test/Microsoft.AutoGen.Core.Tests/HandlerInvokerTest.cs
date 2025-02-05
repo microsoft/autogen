@@ -7,6 +7,7 @@ using Xunit;
 
 namespace Microsoft.AutoGen.Core.Tests;
 
+[Trait("Category", "UnitV2")]
 public class HandlerInvokerTest()
 {
     public List<(string, MessageContext)> PublishlikeInvocations = new List<(string, MessageContext)>();

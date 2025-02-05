@@ -21,7 +21,15 @@ from autogen_agentchat.messages import (
 from autogen_core import FunctionCall, Image
 from autogen_core.memory import ListMemory, Memory, MemoryContent, MemoryMimeType, MemoryQueryResult
 from autogen_core.model_context import BufferedChatCompletionContext
-from autogen_core.models import CreateResult, FunctionExecutionResult, LLMMessage, RequestUsage
+from autogen_core.models import (
+    AssistantMessage,
+    CreateResult,
+    FunctionExecutionResult,
+    LLMMessage,
+    RequestUsage,
+    SystemMessage,
+    UserMessage,
+)
 from autogen_core.models._model_client import ModelFamily
 from autogen_core.tools import FunctionTool
 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -541,15 +549,44 @@ async def test_invalid_model_capabilities() -> None:
                 FunctionTool(_echo_function, description="Echo"),
             ],
         )
+        await agent.run(task=TextMessage(source="user", content="Test"))
 
     with pytest.raises(ValueError):
         agent = AssistantAgent(name="assistant", model_client=model_client, handoffs=["agent2"])
+        await agent.run(task=TextMessage(source="user", content="Test"))
 
-    with pytest.raises(ValueError):
-        agent = AssistantAgent(name="assistant", model_client=model_client)
-        # Generate a random base64 image.
-        img_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
-        await agent.run(task=MultiModalMessage(source="user", content=["Test", Image.from_base64(img_base64)]))
+
+@pytest.mark.asyncio
+async def test_remove_images(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = "random-model"
+    model_client_1 = OpenAIChatCompletionClient(
+        model=model,
+        api_key="",
+        model_info={"vision": False, "function_calling": False, "json_output": False, "family": ModelFamily.UNKNOWN},
+    )
+    model_client_2 = OpenAIChatCompletionClient(
+        model=model,
+        api_key="",
+        model_info={"vision": True, "function_calling": False, "json_output": False, "family": ModelFamily.UNKNOWN},
+    )
+
+    img_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
+    messages: List[LLMMessage] = [
+        SystemMessage(content="System.1"),
+        UserMessage(content=["User.1", Image.from_base64(img_base64)], source="user.1"),
+        AssistantMessage(content="Assistant.1", source="assistant.1"),
+        UserMessage(content="User.2", source="assistant.2"),
+    ]
+
+    agent_1 = AssistantAgent(name="assistant_1", model_client=model_client_1)
+    result = agent_1._get_compatible_context(messages)  # type: ignore
+    assert len(result) == 4
+    assert isinstance(result[1].content, str)
+
+    agent_2 = AssistantAgent(name="assistant_2", model_client=model_client_2)
+    result = agent_2._get_compatible_context(messages)  # type: ignore
+    assert len(result) == 4
+    assert isinstance(result[1].content, list)
 
 
 @pytest.mark.asyncio

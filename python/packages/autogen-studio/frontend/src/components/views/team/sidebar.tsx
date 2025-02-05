@@ -102,7 +102,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
 
       <div className="my-4 flex text-sm  ">
         <div className=" mr-2 w-full">
-          <Tooltip title="Create new session">
+          <Tooltip title="Create a new team">
             <Button
               type="primary"
               className="w-full"
