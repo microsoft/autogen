@@ -4,6 +4,7 @@
 using System.Collections.Concurrent;
 using Grpc.Core;
 using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Protobuf;
 using Microsoft.AutoGen.Runtime.Grpc.Abstractions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -71,7 +72,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         var agentState = _clusterClient.GetGrain<IAgentGrain>($"{value.AgentId.Type}:{value.AgentId.Key}");
         await agentState.WriteStateAsync(value, value.ETag);
     }
-    public async ValueTask<AgentState> ReadAsync(AgentId agentId, CancellationToken cancellationToken = default)
+    public async ValueTask<AgentState> ReadAsync(Contracts.AgentId agentId, CancellationToken cancellationToken = default)
     {
         var agentState = _clusterClient.GetGrain<IAgentGrain>($"{agentId.Type}:{agentId.Key}");
         return await agentState.ReadStateAsync();

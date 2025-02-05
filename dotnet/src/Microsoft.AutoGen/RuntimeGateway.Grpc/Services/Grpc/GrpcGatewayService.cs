@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // GrpcGatewayService.cs
-
 using Grpc.Core;
 using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
 
@@ -26,7 +26,7 @@ public sealed class GrpcGatewayService(GrpcGateway gateway) : AgentRpc.AgentRpcB
             throw;
         }
     }
-    public override async Task<GetStateResponse> GetState(AgentId request, ServerCallContext context)
+    public override async Task<GetStateResponse> GetState(Protobuf.AgentId request, ServerCallContext context)
     {
         var state = await Gateway.ReadAsync(request);
         return new GetStateResponse { AgentState = state };

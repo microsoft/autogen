@@ -1,12 +1,12 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // GrpcWorkerConnection.cs
-
 using System.Threading.Channels;
 using Grpc.Core;
+using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.Runtime.Grpc;
 
-internal sealed class GrpcWorkerConnection : IAsyncDisposable, IConnection
+public sealed class GrpcWorkerConnection : IAsyncDisposable
 {
     private static long s_nextConnectionId;
     private Task _readTask = Task.CompletedTask;
