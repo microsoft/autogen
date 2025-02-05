@@ -1,13 +1,14 @@
 import redis
+from .store import EventStore
 
-class RedisEventStore():
+class RedisEventStore(EventStore):
     def __init__(self, redis_instance: redis.Redis, client_id):
         self.client_id = client_id
         self.store = redis_instance
 
-    def push(self, message):
+    async def put(self, message):
         self.store.rpush(self.client_id, message)
-    
-    def pop(self):
-        return self.store.lpop(self.client_id)
+
+    async def get(self):
+        return self.store.blpop(self.client_id)
 

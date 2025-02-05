@@ -14,6 +14,7 @@ from autogen_core._runtime_impl_helpers import SubscriptionManager
 from ._constants import GRPC_IMPORT_ERROR_STR
 from ._utils import subscription_from_proto
 from .event_store.redis import RedisEventStore
+from .event_store.memory import MemoryEventStore
 
 try:
     import grpc
@@ -50,7 +51,7 @@ def get_send_queue(client_id):
             redis_instance=redis.from_url(redis_url),
             client_id=client_id
         )
-    return asyncio.Queue()
+    return MemoryEventStore(client_id=client_id)
 
 SendT = TypeVar("SendT")
 ReceiveT = TypeVar("ReceiveT")
