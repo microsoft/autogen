@@ -1,5 +1,5 @@
 import React, { useState, memo } from "react";
-import { User, Bot, Maximize2, Minimize2 } from "lucide-react";
+import { User, Bot, Maximize2, Minimize2, DraftingCompass } from "lucide-react";
 import {
   AgentMessageConfig,
   FunctionCall,
@@ -45,8 +45,15 @@ const RenderMultiModal: React.FC<{ content: (string | ImageContent)[] }> = ({
 const RenderToolCall: React.FC<{ content: FunctionCall[] }> = ({ content }) => (
   <div className="space-y-2">
     {content.map((call) => (
-      <div key={call.id} className="border border-secondary rounded p-2">
-        <div className="font-medium">Function: {call.name}</div>
+      <div
+        key={call.id}
+        className="relative pl-3 border border-secondary rounded p-2"
+      >
+        <div className="absolute top-0 -left-0.5 w-1 bg-secondary h-full rounded"></div>
+        <div className="font-medium">
+          <DraftingCompass className="w-4 h-4 text-accent inline-block mr-1.5 -mt-0.5" />{" "}
+          Calling {call.name} tool with arguments
+        </div>
         <TruncatableText
           content={JSON.stringify(JSON.parse(call.arguments), null, 2)}
           isJson={true}
@@ -62,8 +69,15 @@ const RenderToolResult: React.FC<{ content: FunctionExecutionResult[] }> = ({
 }) => (
   <div className="space-y-2">
     {content.map((result) => (
-      <div key={result.call_id} className="rounded p-2">
-        <div className="font-medium">Result ID: {result.call_id}</div>
+      <div
+        key={result.call_id}
+        className="rounded p-2 pl-3 relative border border-secondary"
+      >
+        <div className="absolute top-0 -left-0.5 w-1 bg-secondary h-full rounded"></div>
+        <div className="font-medium">
+          <DraftingCompass className="w-4 text-accent h-4 inline-block mr-1.5 -mt-0.5" />{" "}
+          Tool Result
+        </div>
         <TruncatableText
           content={result.content}
           className="text-sm mt-1 bg-secondary p-2 border border-secondary rounded scroll overflow-x-scroll"
