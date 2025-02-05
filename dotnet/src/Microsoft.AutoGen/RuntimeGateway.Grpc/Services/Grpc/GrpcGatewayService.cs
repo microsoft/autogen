@@ -5,11 +5,20 @@ using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
 
-// gRPC service which handles communication between the agent worker and the cluster.
+/// <summary>
+/// Represents the gRPC service which handles communication between the agent worker and the cluster.
+/// </summary>
 public sealed class GrpcGatewayService(GrpcGateway gateway) : AgentRpc.AgentRpcBase
 {
     private readonly GrpcGateway Gateway = (GrpcGateway)gateway;
 
+    /// <summary>
+    /// Method run on first connect from a worker process.
+    /// </summary>
+    /// <param name="requestStream">The request stream.</param>
+    /// <param name="responseStream">The response stream.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
     public override async Task OpenChannel(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {
         try
@@ -25,35 +34,115 @@ public sealed class GrpcGatewayService(GrpcGateway gateway) : AgentRpc.AgentRpcB
             throw;
         }
     }
+
+    /// <summary>
+    /// Gets the state of an agent.
+    /// </summary>
+    /// <param name="request">The agent ID request.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the get state response.</returns>
     public override async Task<GetStateResponse> GetState(Protobuf.AgentId request, ServerCallContext context)
     {
-        var state = await Gateway.ReadAsync(request);
-        return new GetStateResponse { AgentState = state };
+        try
+        {
+            var state = await Gateway.ReadAsync(request).ConfigureAwait(true);
+            return new GetStateResponse { AgentState = state };
+        }
+        catch (Exception e)
+        {
+            throw new RpcException(new Status(StatusCode.Internal, e.Message));
+        }
     }
+
+    /// <summary>
+    /// Saves the state of an agent.
+    /// </summary>
+    /// <param name="request">The agent state request.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the save state response.</returns>
     public override async Task<SaveStateResponse> SaveState(AgentState request, ServerCallContext context)
     {
-        await Gateway.StoreAsync(request);
-        return new SaveStateResponse
+        try
         {
-            Success = true // TODO: Implement error handling
-        };
+            await Gateway.StoreAsync(request).ConfigureAwait(true);
+            return new SaveStateResponse();
+        }
+        catch (Exception e)
+        {
+            throw new RpcException(new Status(StatusCode.Internal, e.Message));
+        }
     }
+
+    /// <summary>
+    /// Adds a subscription.
+    /// </summary>
+    /// <param name="request">The add subscription request.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the add subscription response.</returns>
     public override async Task<AddSubscriptionResponse> AddSubscription(AddSubscriptionRequest request, ServerCallContext context)
     {
-        request.RequestId = context.Peer;
-        return await Gateway.SubscribeAsync(request).ConfigureAwait(true);
+        try
+        {
+            return await Gateway.SubscribeAsync(request).ConfigureAwait(true);
+        }
+        catch (Exception e)
+        {
+            throw new RpcException(new Status(StatusCode.Internal, e.Message));
+        }
     }
+
+    /// <summary>
+    /// Removes a subscription.
+    /// </summary>
+    /// <param name="request">The remove subscription request.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the remove subscription response.</returns>
     public override async Task<RemoveSubscriptionResponse> RemoveSubscription(RemoveSubscriptionRequest request, ServerCallContext context)
     {
-        return await Gateway.UnsubscribeAsync(request).ConfigureAwait(true);
+        try
+        {
+            return await Gateway.UnsubscribeAsync(request).ConfigureAwait(true);
+        }
+        catch (Exception e)
+        {
+            throw new RpcException(new Status(StatusCode.Internal, e.Message));
+        }
     }
+
+    /// <summary>
+    /// Gets the subscriptions.
+    /// </summary>
+    /// <param name="request">The get subscriptions request.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the get subscriptions response.</returns>
     public override async Task<GetSubscriptionsResponse> GetSubscriptions(GetSubscriptionsRequest request, ServerCallContext context)
     {
-        var subscriptions = await Gateway.GetSubscriptionsAsync(request);
-        return new GetSubscriptionsResponse { Subscriptions = { subscriptions } };
+        try
+        {
+            var subscriptions = await Gateway.GetSubscriptionsAsync(request);
+            return new GetSubscriptionsResponse { Subscriptions = { subscriptions } };
+        }
+        catch (Exception e)
+        {
+            throw new RpcException(new Status(StatusCode.Internal, e.Message));
+        }
     }
+
+    /// <summary>
+    /// Registers an agent type (factory)
+    /// </summary>
+    /// <param name="request">The register agent type request.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A task that represents the asynchronous operation. The task result contains the register agent type response.</returns>
     public override async Task<RegisterAgentTypeResponse> RegisterAgent(RegisterAgentTypeRequest request, ServerCallContext context)
     {
-        return await Gateway.RegisterAgentTypeAsync(request).ConfigureAwait(true);
+        try
+        {
+            return await Gateway.RegisterAgentTypeAsync(request, context).ConfigureAwait(true);
+        }
+        catch (Exception e)
+        {
+            throw new RpcException(new Status(StatusCode.Internal, e.Message));
+        }
     }
 }

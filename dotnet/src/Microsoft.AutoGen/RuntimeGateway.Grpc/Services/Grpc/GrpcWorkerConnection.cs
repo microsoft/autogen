@@ -2,12 +2,11 @@
 // GrpcWorkerConnection.cs
 using System.Threading.Channels;
 using Grpc.Core;
-using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
 
-public sealed class GrpcWorkerConnection : IAsyncDisposable, IConnection
+public sealed class GrpcWorkerConnection : IAsyncDisposable
 {
     private static long s_nextConnectionId;
     private Task _readTask = Task.CompletedTask;
@@ -103,9 +102,9 @@ public sealed class GrpcWorkerConnection : IAsyncDisposable, IConnection
         await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
         try
         {
-            await foreach (var message in _outboundMessages.Reader.ReadAllAsync(_shutdownCancellationToken.Token))
+            await foreach (var message in _outboundMessages.Reader.ReadAllAsync(_shutdownCancellationToken.Token).ConfigureAwait(false))
             {
-                await ResponseStream.WriteAsync(message);
+                await ResponseStream.WriteAsync(message).ConfigureAwait(false);
             }
         }
         catch (OperationCanceledException)
