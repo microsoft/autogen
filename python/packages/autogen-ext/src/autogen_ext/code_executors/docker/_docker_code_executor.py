@@ -364,8 +364,9 @@ $functions"""
             # Let the docker exception escape if this fails.
             await asyncio.to_thread(client.images.pull, self._image)
 
+        # Prepare the command (if needed)
         shell_command = "/bin/sh"
-        command = f"-c '{self._init_command};exec {shell_command}'" if self._init_command else None
+        command = ["-c", f"{(self._init_command)};exec {shell_command}"] if self._init_command else None
 
         self._container = await asyncio.to_thread(
             client.containers.create,
