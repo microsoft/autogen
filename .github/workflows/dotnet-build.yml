@@ -89,6 +89,8 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
+    - name: Install dev certs
+      run:  dotnet --version && dotnet dev-certs https --trust
     - name: Restore dependencies
       run: |
         # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
@@ -104,7 +106,6 @@ jobs:
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: Unit Test V1
       run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV1"
-    - run: sudo dotnet dev-certs https --trust --no-password
     - name: Unit Test V2
       run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV2"
 
@@ -157,7 +158,6 @@ jobs:
       run: |
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
-    - run: sudo dotnet dev-certs https --trust --no-password
     - name: Integration Test
       run: dotnet --version && dotnet test --no-build -bl --configuration Release --filter "Category=Integration"
     - name: Restore the global.json
@@ -226,6 +226,8 @@ jobs:
       with:
         dotnet-version: '8.0.x'
         global-json-file: dotnet/global.json
+    - name: Install dev certs
+      run:  dotnet --version && dotnet dev-certs https --trust
     - name: Restore dependencies
       run: |
         dotnet restore -bl
@@ -233,7 +235,6 @@ jobs:
       run: |
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
-    - run: sudo dotnet dev-certs https --trust --no-password
     - name: OpenAI Test
       run: dotnet test --no-build -bl --configuration Release --filter type!=integration
       env:
