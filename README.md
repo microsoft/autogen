@@ -12,7 +12,7 @@
 </div>
 
 <div align="center" style="background-color: rgba(255, 235, 59, 0.5); padding: 10px; border-radius: 5px; margin: 20px 0;">
-  <strong>Important:</strong> This is the official project. We are not affiliated with any forks/startups. See our <a href="https://x.com/pyautogen/status/1857264760951296210">statement</a>.
+  <strong>Important:</strong> This is the official project. We are not affiliated with any fork or startup. See our <a href="https://x.com/pyautogen/status/1857264760951296210">statement</a>.
 </div>
 
 # AutoGen
