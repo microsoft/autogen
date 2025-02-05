@@ -11,6 +11,10 @@
 
 </div>
 
+<div align="center">
+  <strong>Important:</strong> This is the only official project. We are not affiliated with any forks/startups. See our <a href="https://x.com/pyautogen/status/1857264760951296210">statement</a>.
+</div>
+
 # AutoGen
 
 **AutoGen** is a framework for creating multi-agent AI applications that can act autonomously or work alongside humans.
