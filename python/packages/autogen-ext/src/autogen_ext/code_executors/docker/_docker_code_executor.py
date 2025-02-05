@@ -12,7 +12,7 @@ from collections.abc import Sequence
 from hashlib import sha256
 from pathlib import Path
 from types import TracebackType
-from typing import Any, Callable, ClassVar, List, Optional, ParamSpec, Type, Union
+from typing import Any, Callable, ClassVar, List, Optional, ParamSpec, Type, Union, Dict
 
 from autogen_core import CancellationToken
 from autogen_core.code_executor import (
@@ -88,6 +88,9 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             the Python process exits with atext. Defaults to True.
         functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
         functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
+        extra_volumes (Dict[str, Dict[str, str]], optional): A dictionary of extra volumes (beyond the work_dir) to mount to the container. Defaults to {}.
+        extra_hosts (Dict[str, str], optional): A dictionary of host mappings to add to the container. Defaults to {}.
+        init_command (str, optional): A shell command to run before each shell operation execution. Defaults to ":" (which does nothing).
     """
 
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
@@ -126,6 +129,9 @@ $functions"""
             ]
         ] = [],
         functions_module: str = "functions",
+        extra_volumes: Dict[str, Dict[str, str]] = {},
+        extra_hosts: Dict[str, str] = {},
+        init_command: str = ":",
     ):
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
@@ -157,6 +163,10 @@ $functions"""
 
         self._functions_module = functions_module
         self._functions = functions
+        self._extra_volumes = extra_volumes
+        self._hosts = extra_hosts
+        self._init_command = init_command
+
         # Setup could take some time so we intentionally wait for the first code block to do it.
         if len(functions) > 0:
             self._setup_functions_complete = False
@@ -359,11 +369,13 @@ $functions"""
             self._image,
             name=self.container_name,
             entrypoint="/bin/sh",
+            command=f"-c '{self._init_command}; exec /bin/sh'",
             tty=True,
             detach=True,
             auto_remove=self._auto_remove,
-            volumes={str(self._bind_dir.resolve()): {"bind": "/workspace", "mode": "rw"}},
+            volumes={str(self._bind_dir.resolve()): {"bind": "/workspace", "mode": "rw"}, **self._extra_volumes},
             working_dir="/workspace",
+            extra_hosts=self._extra_hosts,
         )
         await asyncio.to_thread(self._container.start)
 
