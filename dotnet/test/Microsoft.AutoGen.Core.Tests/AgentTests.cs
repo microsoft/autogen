@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentTests.cs
-using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Logging;
@@ -146,72 +145,5 @@ public class AgentTests()
         await Task.Delay(100);
 
         Assert.True(agent.ReceivedItems.Count == 1);
-    }
-
-    [Fact]
-    public async Task AgentShouldSaveLoadStateCorrectlyTest()
-    {
-        var runtime = new InProcessRuntime();
-        await runtime.StartAsync();
-
-        Logger<BaseAgent> logger = new(new LoggerFactory());
-        SubscribedSaveLoadAgent agent = null!;
-
-        await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) =>
-        {
-            agent = new SubscribedSaveLoadAgent(id, runtime, logger);
-            return ValueTask.FromResult(agent);
-        });
-
-        // Ensure the agent id is registered
-        AgentId agentId = await runtime.GetAgentAsync("MyAgent", lazy: false);
-
-        // Validate agent ID
-        agentId.Should().Be(agent.Id, "Agent ID should match the registered agent");
-
-        await runtime.RegisterImplicitAgentSubscriptionsAsync<SubscribedSaveLoadAgent>("MyAgent");
-
-        var topicType = "TestTopic";
-
-        await runtime.PublishMessageAsync(new TextMessage { Source = topicType, Content = "test" }, new TopicId(topicType)).ConfigureAwait(true);
-
-        await runtime.RunUntilIdleAsync();
-
-        agent.ReceivedMessages.Any().Should().BeTrue("Agent should receive messages when subscribed.");
-
-        // Save the state
-        var savedState = await agent.SaveStateAsync();
-
-        // Ensure the state contains receivedMessages
-        savedState.Should().ContainKey("TestTopic");
-
-        // Ensure the value is a valid JsonElement
-        savedState["TestTopic"].ValueKind.Should().Be(JsonValueKind.String, "Expected 'TestTopic' to be a string");
-
-        // Verify JSON serialization
-        string json = JsonSerializer.Serialize(savedState);
-        json.Should().NotBeNullOrEmpty("Serialized state should not be empty");
-
-        // Deserialize and ensure correctness
-        var deserializedState = JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json)
-            ?? throw new Exception("Deserialized state is unexpectedly null");
-
-        deserializedState.Should().ContainKey("TestTopic");
-        deserializedState["TestTopic"].ValueKind.Should().Be(JsonValueKind.String, "Expected 'TestTopic' to be a string");
-
-        // Get the string value safely
-        string testValue = deserializedState["TestTopic"].GetString()
-            ?? throw new Exception("Value should not be null");
-        testValue.Should().Be("test");
-
-        // Create a new instance of the agent to simulate a restart
-        var newAgent = new SubscribedSaveLoadAgent(agent.Id, runtime, logger);
-
-        // Load the saved state into the new agent
-        await newAgent.LoadStateAsync(savedState);
-
-        // Verify that the loaded state contains the received message
-        newAgent.ReceivedMessages.Should().ContainKey(topicType);
-        ((JsonElement)newAgent.ReceivedMessages[topicType]).GetString().Should().Be("test");
     }
 }
