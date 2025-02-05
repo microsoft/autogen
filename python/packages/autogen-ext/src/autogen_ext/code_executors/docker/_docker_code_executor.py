@@ -165,7 +165,7 @@ $functions"""
         self._functions = functions
         self._extra_volumes = extra_volumes if extra_volumes is not None else {}
         self._extra_hosts = extra_hosts if extra_hosts is not None else {}
-        self._init_command = init_command 
+        self._init_command = init_command
 
         # Setup could take some time so we intentionally wait for the first code block to do it.
         if len(functions) > 0:
@@ -364,7 +364,7 @@ $functions"""
             # Let the docker exception escape if this fails.
             await asyncio.to_thread(client.images.pull, self._image)
 
-        shell_command ="/bin/sh"
+        shell_command = "/bin/sh"
         command = f"-c '{self._init_command};exec {shell_command}'" if self._init_command else None
 
         self._container = await asyncio.to_thread(
