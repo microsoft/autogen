@@ -24,7 +24,7 @@ class BaseMessage(BaseModel, ABC):
     """The model client usage incurred when producing this message."""
 
     metadata: Dict[str, str] | None = None
-    """ Additional metadata About the message."""
+    """ Additional metadata about the message."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
