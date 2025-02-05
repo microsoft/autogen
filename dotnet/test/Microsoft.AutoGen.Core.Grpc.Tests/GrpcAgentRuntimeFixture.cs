@@ -2,7 +2,7 @@
 // GrpcAgentRuntimeFixture.cs
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AutoGen.Contracts;
-using Microsoft.AutoGen.Core.Tests;
+// using Microsoft.AutoGen.Core.Tests;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -44,7 +44,7 @@ public sealed class GrpcAgentRuntimeFixture : IDisposable
     {
         var appBuilder = new AgentsAppBuilder();
         appBuilder.AddGrpcAgentWorker();
-        appBuilder.AddAgent<TestAgent>("TestAgent");
+        appBuilder.AddAgent<TestProtobufAgent>("TestAgent");
         return await appBuilder.BuildAsync();
     }
     private static async Task<WebApplication> ServerBuilder()

@@ -5,7 +5,7 @@ using Microsoft.AutoGen.Protobuf;
 namespace Microsoft.AutoGen.Core.Grpc.Tests;
 
 /// <summary>
-/// This fixture is largely just a loopback as we are testing the client side logic of the GrpcAgentRuntime in isolation from the rest of the system. 
+/// This fixture is largely just a loopback as we are testing the client side logic of the GrpcAgentRuntime in isolation from the rest of the system.
 /// </summary>
 public sealed class GrpcAgentServiceFixture() : AgentRpc.AgentRpcBase
 {
@@ -25,7 +25,7 @@ public sealed class GrpcAgentServiceFixture() : AgentRpc.AgentRpcBase
             throw;
         }
     }
-    public override async Task<GetStateResponse> GetState(Protobuf.AgentId request, ServerCallContext context) => new GetStateResponse { AgentState = new AgentState { AgentId = request } };
+    public override async Task<GetStateResponse> GetState(AgentId request, ServerCallContext context) => new GetStateResponse { AgentState = new AgentState { AgentId = request } };
     public override async Task<SaveStateResponse> SaveState(AgentState request, ServerCallContext context) => new SaveStateResponse { };
     public override async Task<AddSubscriptionResponse> AddSubscription(AddSubscriptionRequest request, ServerCallContext context) => new AddSubscriptionResponse { };
     public override async Task<RemoveSubscriptionResponse> RemoveSubscription(RemoveSubscriptionRequest request, ServerCallContext context) => new RemoveSubscriptionResponse { };
