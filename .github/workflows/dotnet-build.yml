@@ -94,23 +94,20 @@ jobs:
       run: |
         # Install reportgenerator
         dotnet tool install -g dotnet-reportgenerator-globaltool || dotnet tool update -g dotnet-reportgenerator-globaltool
-
         # Ensure output directory exists
-        mkdir -p dotnet/coverage-report
-
+        mkdir -p ${{ github.workspace }}/dotnet/coverage-report
         # Merge all coverage reports and generate HTML
         reportgenerator \
-          -reports:**/TestResults/**/coverage.cobertura.xml \
-          -targetdir:dotnet/coverage-report \
+          -reports:${{ github.workspace }}/dotnet/**/TestResults/**/coverage.cobertura.xml \
+          -targetdir:${{ github.workspace }}/dotnet/coverage-report \
           -reporttypes:Html
-
-        ls -R dotnet/coverage-report
+        ls -R ${{ github.workspace }}/dotnet/coverage-report
     - name: Upload Merged Coverage Report
       if: matrix.os == 'ubuntu-latest'
       uses: actions/upload-artifact@v4
       with:
         name: CodeCoverageReport
-        path: ${{ github.workspace }}/dotnet/coverage-report
+        path: ${{ github.workspace }}/dotnet/coverage-report/
         retention-days: 7
     - name: Add Coverage Report Link to Summary
       if: matrix.os == 'ubuntu-latest'
