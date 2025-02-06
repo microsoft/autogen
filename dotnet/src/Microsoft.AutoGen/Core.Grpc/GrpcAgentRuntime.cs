@@ -406,7 +406,7 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         foreach (var agent in this._agentsContainer.LiveAgents)
         {
             var agentState = await agent.SaveStateAsync();
-            state[agent.Id.ToString()] = JsonSerializer.SerializeToElement(agentState); // Ensure JSON serialization
+            state[agent.Id.ToString()] = JsonSerializer.SerializeToElement(agentState);
         }
         return state;
     }
