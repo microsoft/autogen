@@ -91,7 +91,7 @@ jobs:
       run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV1|Category=UnitV2|Category=GRPC" --collect:"XPlat Code Coverage"
     - name: Generate & Merge Coverage Report
       if: matrix.os == 'ubuntu-latest'
-      run: | 
+      run: |
         # Install reportgenerator
         dotnet tool install -g dotnet-reportgenerator-globaltool || dotnet tool update -g dotnet-reportgenerator-globaltool
         # Ensure output directory exists
