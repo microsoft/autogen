@@ -84,6 +84,13 @@ jobs:
       run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV1"
     - name: Unit Test V2 (With Coverage)
       run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV2" --collect:"XPlat Code Coverage"
+    - name: Upload Unit Test Coverage
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: UnitTestCoverage
+        path: "**/TestResults/**/coverage.cobertura.xml"
+        retention-days: 1
 
   grpc-unit-tests:
     name: Dotnet GRPC Unit Tests
@@ -114,6 +121,13 @@ jobs:
       run: dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: GRPC Tests (With Coverage)
       run: dotnet test --no-build -bl --configuration Release --filter "Category=GRPC" --collect:"XPlat Code Coverage"
+    - name: Upload GRPC Test Coverage
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: GrpcTestCoverage
+        path: "**/TestResults/**/coverage.cobertura.xml"
+        retention-days: 1
 
   merge-coverage:
     name: Merge Coverage Reports
@@ -134,14 +148,25 @@ jobs:
     - name: Install Report Generator
       run: |
         dotnet tool install -g dotnet-reportgenerator-globaltool || dotnet tool update -g dotnet-reportgenerator-globaltool
+    - name: Download Unit Test Coverage
+      uses: actions/download-artifact@v4
+      with:
+        name: UnitTestCoverage
+        path: coverage-data
+    - name: Download GRPC Test Coverage
+      uses: actions/download-artifact@v4
+      with:
+        name: GrpcTestCoverage
+        path: coverage-data
     - name: Merge Coverage Reports
       run: |
+        mkdir -p dotnet/coverage-report  # Ensure output directory exists
         reportgenerator \
-          -reports:**/TestResults/**/coverage.cobertura.xml \
-          -targetdir:coverage-report \
+          -reports:coverage-data/**/*.cobertura.xml \
+          -targetdir:dotnet/coverage-report \
           -reporttypes:Html
         
-        ls -R coverage-report
+        ls -R dotnet/coverage-report
     - name: Upload Merged Coverage Report
       uses: actions/upload-artifact@v4
       with:
