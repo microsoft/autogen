@@ -1,6 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // RegistryGrain.cs
-using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Protobuf;
 using Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
@@ -96,16 +96,6 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
     }
     public async ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest registration, IGateway gateway)
     {
-        if (!_supportedAgentTypes.TryGetValue(registration.Type, out var supportedAgentTypes))
-        {
-            supportedAgentTypes = _supportedAgentTypes[registration.Type] = [];
-        }
-
-        if (!supportedAgentTypes.Contains(gateway))
-        {
-            supportedAgentTypes.Add(gateway);
-        }
-
         var workerState = GetOrAddWorker(gateway);
         workerState.SupportedTypes.Add(registration.Type);
 
@@ -159,8 +149,6 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
         workerState.LastSeen = DateTimeOffset.UtcNow;
         return workerState;
     }
-
-    public ValueTask<IGateway?> GetCompatibleWorkerAsync(string type) => new(GetCompatibleWorkerCore(type));
 
     private IGateway? GetCompatibleWorkerCore(string type)
     {
@@ -265,17 +253,17 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
         }
         return new(subscriptions);
     }
-    public ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest request, IAgentRuntime worker)
+
+    public ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest request, string clientId, Contracts.IAgentRuntime worker)
     {
-        var (_, _) = (request, worker);
-        var e = "RegisterAgentTypeAsync(RegisterAgentTypeRequest request, IAgentRuntime worker) is not implemented when using the Grpc runtime.";
-        throw new NotImplementedException(e);
+        throw new NotImplementedException();
     }
-    public ValueTask UnregisterAgentTypeAsync(string type, IAgentRuntime worker)
+
+    public ValueTask UnregisterAgentTypeAsync(string type, Contracts.IAgentRuntime worker)
     {
-        var e = "UnregisterAgentTypeAsync(string type, IAgentRuntime worker) is not implemented when using the Grpc runtime.";
-        throw new NotImplementedException(e);
+        throw new NotImplementedException();
     }
+
     private sealed class WorkerState
     {
         public HashSet<string> SupportedTypes { get; set; } = [];

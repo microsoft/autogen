@@ -1,7 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IRegistry.cs
 using Microsoft.AutoGen.Protobuf;
-using Microsoft.AutoGen.Contracts;
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 
 public interface IRegistry
@@ -11,19 +10,19 @@ public interface IRegistry
     /// Registers a new agent type with the specified worker.
     /// </summary>
     /// <param name="request">The request containing agent type details.</param>
-    /// <param name="worker">The worker to register the agent type with.</param>
+    /// <param name="connection">The connection the client conneted on</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <remarks>removing CancellationToken from here as it is not compatible with Orleans Serialization</remarks>
-    ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest request, IAgentRuntime worker);
+    ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest request, string clientId, GrpcWorkerConnection connection);
 
     /// <summary>
     /// Unregisters an agent type from the specified worker.
     /// </summary>
     /// <param name="type">The type of the agent to unregister.</param>
-    /// <param name="worker">The worker to unregister the agent type from.</param>
+    /// <param name="connection">The connection the client conneted on</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <remarks>removing CancellationToken from here as it is not compatible with Orleans Serialization</remarks>
-    ValueTask UnregisterAgentTypeAsync(string type, IAgentRuntime worker);
+    ValueTask UnregisterAgentTypeAsync(string type, GrpcWorkerConnection connection);
 
     /// <summary>
     /// Gets a list of agents subscribed to and handling the specified topic and event type.

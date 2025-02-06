@@ -21,7 +21,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly IClusterClient _clusterClient;
     private readonly IRegistryGrain _gatewayRegistry;
     private readonly IGateway _reference;
-    private readonly ISubscriptionsGrain _subscriptions;
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
     public readonly ConcurrentDictionary<string, GrpcWorkerConnection> _workers = new();
     internal readonly ConcurrentDictionary<string, GrpcWorkerConnection> _workersByConnection = new();
@@ -39,7 +38,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         _clusterClient = clusterClient;
         _reference = clusterClient.CreateObjectReference<IGateway>(this);
         _gatewayRegistry = clusterClient.GetGrain<IRegistryGrain>(0);
-        _subscriptions = clusterClient.GetGrain<ISubscriptionsGrain>(0);
     }
 
     /// <summary>
@@ -147,7 +145,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             connection.AddSupportedType(request.Type);
             _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
 
-            await _gatewayRegistry.RegisterAgentTypeAsync(request, _reference).ConfigureAwait(true);
+            await _gatewayRegistry.RegisterAgentTypeAsync(request, clientId, _reference).ConfigureAwait(true);
             return new RegisterAgentTypeResponse {};
         }
         catch (Exception ex)
