@@ -66,6 +66,8 @@ from ._tool_definitions import (
 from ._types import InteractiveRegion, UserContent
 from .playwright_controller import PlaywrightController
 
+DEFAULT_CONTEXT_SIZE = 128000
+
 
 class MultimodalWebSurferConfig(BaseModel):
     name: str
@@ -865,13 +867,16 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         buffer = ""
         # for line in re.split(r"([\r\n]+)", page_markdown):
         for line in page_markdown.splitlines():
-            trial_message = UserMessage( content=prompt + buffer + line, source=self.name,)
+            trial_message = UserMessage(
+                content=prompt + buffer + line,
+                source=self.name,
+            )
 
             try:
                 remaining = self._model_client.remaining_tokens(messages + [trial_message])
             except KeyError:
-                # Default to 128k if the model isn't found
-                remaining = 128000 - self._model_client.count_tokens(messages + [trial_message])
+                # Use the default if the model isn't found
+                remaining = DEFAULT_CONTEXT_SIZE - self._model_client.count_tokens(messages + [trial_message])
 
             if self._model_client.model_info["vision"] and remaining <= 0:
                 break
@@ -900,7 +905,12 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             )
         else:
             # Text only
-            messages.append(UserMessage( content=prompt + buffer, source=self.name,))
+            messages.append(
+                UserMessage(
+                    content=prompt + buffer,
+                    source=self.name,
+                )
+            )
 
         # Generate the response
         response = await self._model_client.create(messages, cancellation_token=cancellation_token)
