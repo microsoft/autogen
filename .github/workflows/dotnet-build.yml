@@ -82,13 +82,13 @@ jobs:
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: Non-GRPC Tests (macos)
       if: matrix.os == 'macos-latest'
-      run: dotnet test --no-build -bl --configuration Release --filter "Category!=GRPC"
+      run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV1|Category=UnitV2"
     - name: Install Dev Certs for GRPC
       if: matrix.os == 'ubuntu-latest'
       run: dotnet dev-certs https --trust
     - name: All Unit Tests With Coverage (ubuntu)
       if: matrix.os == 'ubuntu-latest'
-      run: dotnet test --no-build -bl --configuration Release --collect:"XPlat Code Coverage"
+      run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV1|Category=UnitV2|Category=GRPC" --collect:"XPlat Code Coverage"
     - name: Generate & Merge Coverage Report
       if: matrix.os == 'ubuntu-latest'
       run: |
