@@ -53,9 +53,9 @@ from ._tool_definitions import (
     TOOL_CLICK,
     TOOL_HISTORY_BACK,
     TOOL_HOVER,
-    TOOL_PAGE_DOWN,
-    TOOL_PAGE_UP,
     TOOL_READ_PAGE_AND_ANSWER,
+    TOOL_SCROLL_DOWN,
+    TOOL_SCROLL_UP,
     TOOL_SLEEP,
     TOOL_SUMMARIZE_PAGE,
     TOOL_TYPE,
@@ -466,11 +466,11 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
 
         # We can scroll up
         if viewport["pageTop"] > 5:
-            tools.append(TOOL_PAGE_UP)
+            tools.append(TOOL_SCROLL_UP)
 
         # Can scroll down
         if (viewport["pageTop"] + viewport["height"] + 5) < viewport["scrollHeight"]:
-            tools.append(TOOL_PAGE_DOWN)
+            tools.append(TOOL_SCROLL_DOWN)
 
         # Focus hint
         focused = await self._playwright_controller.get_focused_rect_id(self._page)
@@ -479,6 +479,8 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             name = self._target_name(focused, rects)
             if name:
                 name = f"(and name '{name}') "
+            else:
+                name = ""
 
             role = "control"
             try:
@@ -613,10 +615,10 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
                 self._last_download = None
             if reset_prior_metadata and self._prior_metadata_hash is not None:
                 self._prior_metadata_hash = None
-        elif name == "page_up":
+        elif name == "scroll_up":
             action_description = "I scrolled up one page in the browser."
             await self._playwright_controller.page_up(self._page)
-        elif name == "page_down":
+        elif name == "scroll_down":
             action_description = "I scrolled down one page in the browser."
             await self._playwright_controller.page_down(self._page)
 
