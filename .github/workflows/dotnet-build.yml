@@ -47,7 +47,7 @@ jobs:
         run: echo "workflows has changes"
         if: steps.filter.outputs.workflows == 'true'
   build:
-    name: Dotnet Build & Test (With Coverage)
+    name: Dotnet Build & Test
     needs: paths-filter
     if: needs.paths-filter.outputs.hasChanges == 'true'
     defaults:
@@ -110,7 +110,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: CodeCoverageReport
-        path: dotnet/coverage-report
+        path: ${{ github.workspace }}/dotnet/coverage-report
         retention-days: 7
     - name: Add Coverage Report Link to Summary
       if: matrix.os == 'ubuntu-latest'
