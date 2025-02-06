@@ -101,7 +101,7 @@ jobs:
         reportgenerator \
           -reports:${{ github.workspace }}/dotnet/**/TestResults/**/coverage.cobertura.xml \
           -targetdir:${{ github.workspace }}/dotnet/coverage-report \
-          -reporttypes:Cobertura,Html
+          -reporttypes:Cobertura;Html
         ls -R ${{ github.workspace }}/dotnet/coverage-report
     - name: Upload Merged Coverage Report
       if: matrix.os == 'ubuntu-latest'
