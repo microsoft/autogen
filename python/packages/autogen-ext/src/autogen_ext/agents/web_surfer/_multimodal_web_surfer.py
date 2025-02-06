@@ -65,6 +65,8 @@ from ._tool_definitions import (
 from ._types import InteractiveRegion, UserContent
 from .playwright_controller import PlaywrightController
 
+DEFAULT_CONTEXT_SIZE = 128000
+
 
 class MultimodalWebSurferConfig(BaseModel):
     name: str
@@ -174,9 +176,9 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
 
     DEFAULT_DESCRIPTION = """
     A helpful assistant with access to a web browser.
-    Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, etc., filling in form fields, etc.).
+    Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, filling in form fields, etc.).
     It can also summarize the entire page, or answer questions based on the content of the page.
-    It can also be asked to sleep and wait for pages to load, in cases where the pages seem to be taking a while to load.
+    It can also be asked to sleep and wait for pages to load, in cases where the page seems not yet fully loaded.
     """
     DEFAULT_START_PAGE = "https://www.bing.com/"
 
@@ -855,19 +857,24 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         buffer = ""
         # for line in re.split(r"([\r\n]+)", page_markdown):
         for line in page_markdown.splitlines():
-            message = UserMessage(
-                # content=[
+            trial_message = UserMessage(
                 content=prompt + buffer + line,
-                #    ag_image,
-                # ],
                 source=self.name,
             )
 
-            remaining = self._model_client.remaining_tokens(messages + [message])
-            if remaining > self.SCREENSHOT_TOKENS:
-                buffer += line
-            else:
+            try:
+                remaining = self._model_client.remaining_tokens(messages + [trial_message])
+            except KeyError:
+                # Use the default if the model isn't found
+                remaining = DEFAULT_CONTEXT_SIZE - self._model_client.count_tokens(messages + [trial_message])
+
+            if self._model_client.model_info["vision"] and remaining <= 0:
                 break
+
+            if self._model_client.model_info["vision"] and remaining <= self.SCREENSHOT_TOKENS:
+                break
+
+            buffer += line
 
         # Nothing to do
         buffer = buffer.strip()
@@ -875,15 +882,25 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             return "Nothing to summarize."
 
         # Append the message
-        messages.append(
-            UserMessage(
-                content=[
-                    prompt + buffer,
-                    ag_image,
-                ],
-                source=self.name,
+        if self._model_client.model_info["vision"]:
+            # Multimodal
+            messages.append(
+                UserMessage(
+                    content=[
+                        prompt + buffer,
+                        ag_image,
+                    ],
+                    source=self.name,
+                )
             )
-        )
+        else:
+            # Text only
+            messages.append(
+                UserMessage(
+                    content=prompt + buffer,
+                    source=self.name,
+                )
+            )
 
         # Generate the response
         response = await self._model_client.create(messages, cancellation_token=cancellation_token)
