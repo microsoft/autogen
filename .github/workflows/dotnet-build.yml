@@ -105,7 +105,30 @@ jobs:
     - name: Unit Test V1
       run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV1"
     - name: Unit Test V2
-      run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV2"
+      run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV2" --collect:"XPlat Code Coverage"
+    
+    # New step: Merge coverage reports and generate HTML report (Only on Ubuntu)
+    - name: Generate Coverage Report
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        # Install reportgenerator if not installed
+        dotnet tool install -g dotnet-reportgenerator-globaltool || dotnet tool update -g dotnet-reportgenerator-globaltool
+        
+        # Merge all coverage reports
+        reportgenerator \
+          -reports:**/TestResults/**/coverage.cobertura.xml \
+          -targetdir:coverage-report \
+          -reporttypes:Html
+        
+        # Display report structure
+        ls -R coverage-report
+    - name: Upload Coverage Report
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: CodeCoverageReport
+        path: dotnet/coverage-report
+        retention-days: 7
 
   integration-test:
     strategy:
