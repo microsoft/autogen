@@ -53,9 +53,9 @@ from ._tool_definitions import (
     TOOL_CLICK,
     TOOL_HISTORY_BACK,
     TOOL_HOVER,
-    TOOL_PAGE_DOWN,
-    TOOL_PAGE_UP,
     TOOL_READ_PAGE_AND_ANSWER,
+    TOOL_SCROLL_DOWN,
+    TOOL_SCROLL_UP,
     TOOL_SLEEP,
     TOOL_SUMMARIZE_PAGE,
     TOOL_TYPE,
@@ -64,6 +64,8 @@ from ._tool_definitions import (
 )
 from ._types import InteractiveRegion, UserContent
 from .playwright_controller import PlaywrightController
+
+DEFAULT_CONTEXT_SIZE = 128000
 
 
 class MultimodalWebSurferConfig(BaseModel):
@@ -174,9 +176,9 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
 
     DEFAULT_DESCRIPTION = """
     A helpful assistant with access to a web browser.
-    Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, etc., filling in form fields, etc.).
+    Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, filling in form fields, etc.).
     It can also summarize the entire page, or answer questions based on the content of the page.
-    It can also be asked to sleep and wait for pages to load, in cases where the pages seem to be taking a while to load.
+    It can also be asked to sleep and wait for pages to load, in cases where the page seems not yet fully loaded.
     """
     DEFAULT_START_PAGE = "https://www.bing.com/"
 
@@ -464,11 +466,11 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
 
         # We can scroll up
         if viewport["pageTop"] > 5:
-            tools.append(TOOL_PAGE_UP)
+            tools.append(TOOL_SCROLL_UP)
 
         # Can scroll down
         if (viewport["pageTop"] + viewport["height"] + 5) < viewport["scrollHeight"]:
-            tools.append(TOOL_PAGE_DOWN)
+            tools.append(TOOL_SCROLL_DOWN)
 
         # Focus hint
         focused = await self._playwright_controller.get_focused_rect_id(self._page)
@@ -477,6 +479,8 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             name = self._target_name(focused, rects)
             if name:
                 name = f"(and name '{name}') "
+            else:
+                name = ""
 
             role = "control"
             try:
@@ -611,10 +615,10 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
                 self._last_download = None
             if reset_prior_metadata and self._prior_metadata_hash is not None:
                 self._prior_metadata_hash = None
-        elif name == "page_up":
+        elif name == "scroll_up":
             action_description = "I scrolled up one page in the browser."
             await self._playwright_controller.page_up(self._page)
-        elif name == "page_down":
+        elif name == "scroll_down":
             action_description = "I scrolled down one page in the browser."
             await self._playwright_controller.page_down(self._page)
 
@@ -855,19 +859,24 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         buffer = ""
         # for line in re.split(r"([\r\n]+)", page_markdown):
         for line in page_markdown.splitlines():
-            message = UserMessage(
-                # content=[
+            trial_message = UserMessage(
                 content=prompt + buffer + line,
-                #    ag_image,
-                # ],
                 source=self.name,
             )
 
-            remaining = self._model_client.remaining_tokens(messages + [message])
-            if remaining > self.SCREENSHOT_TOKENS:
-                buffer += line
-            else:
+            try:
+                remaining = self._model_client.remaining_tokens(messages + [trial_message])
+            except KeyError:
+                # Use the default if the model isn't found
+                remaining = DEFAULT_CONTEXT_SIZE - self._model_client.count_tokens(messages + [trial_message])
+
+            if self._model_client.model_info["vision"] and remaining <= 0:
                 break
+
+            if self._model_client.model_info["vision"] and remaining <= self.SCREENSHOT_TOKENS:
+                break
+
+            buffer += line
 
         # Nothing to do
         buffer = buffer.strip()
@@ -875,15 +884,25 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             return "Nothing to summarize."
 
         # Append the message
-        messages.append(
-            UserMessage(
-                content=[
-                    prompt + buffer,
-                    ag_image,
-                ],
-                source=self.name,
+        if self._model_client.model_info["vision"]:
+            # Multimodal
+            messages.append(
+                UserMessage(
+                    content=[
+                        prompt + buffer,
+                        ag_image,
+                    ],
+                    source=self.name,
+                )
             )
-        )
+        else:
+            # Text only
+            messages.append(
+                UserMessage(
+                    content=prompt + buffer,
+                    source=self.name,
+                )
+            )
 
         # Generate the response
         response = await self._model_client.create(messages, cancellation_token=cancellation_token)

@@ -72,3 +72,33 @@ public class SubscribedAgent : TestAgent
     {
     }
 }
+
+/// <summary>
+/// The test agent showing an agent that subscribes to itself.
+/// </summary>
+[TypeSubscription("TestTopic")]
+public class SubscribedSelfPublishAgent(AgentId id,
+        IAgentRuntime runtime,
+        Logger<BaseAgent>? logger = null) : BaseAgent(id, runtime, "Test Agent", logger),
+        IHandle<string>,
+        IHandle<TextMessage>
+{
+    public async ValueTask HandleAsync(string item, MessageContext messageContext)
+    {
+        TextMessage strToText = new TextMessage
+        {
+            Source = "TestTopic",
+            Content = item
+        };
+        // This will publish the new message type which will be handled by the TextMessage handler
+        await this.PublishMessageAsync(strToText, new TopicId("TestTopic"));
+    }
+    public ValueTask HandleAsync(TextMessage item, MessageContext messageContext)
+    {
+        _text = item;
+        return ValueTask.CompletedTask;
+    }
+
+    private TextMessage _text = new TextMessage { Source = "DefaultTopic", Content = "DefaultContent" };
+    public TextMessage Text => _text;
+}
