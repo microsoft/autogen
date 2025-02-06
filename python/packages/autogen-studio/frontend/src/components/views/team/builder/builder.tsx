@@ -1,5 +1,11 @@
 //team/builder/builder.tsx
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
   DndContext,
   useSensor,
@@ -21,10 +27,10 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Button, Layout, message, Modal, Switch, Tooltip } from "antd";
-import { Cable, Code2, Download, Save } from "lucide-react";
+import { Cable, Code2, Download, PlayCircle, Save } from "lucide-react";
 import { useTeamBuilderStore } from "./store";
 import { ComponentLibrary } from "./library";
-import { ComponentTypes, Team } from "../../../types/datamodel";
+import { ComponentTypes, Team, Session } from "../../../types/datamodel";
 import { CustomNode, CustomEdge, DragItem } from "./types";
 import { edgeTypes, nodeTypes } from "./nodes";
 
@@ -34,6 +40,9 @@ import TeamBuilderToolbar from "./toolbar";
 import { MonacoEditor } from "../../monaco";
 import { NodeEditor } from "./node-editor/node-editor";
 import debounce from "lodash.debounce";
+import { appContext } from "../../../../hooks/provider";
+import { sessionAPI } from "../../session/api";
+import TestDrawer from "./testdrawer";
 
 const { Sider, Content } = Layout;
 interface DragItemData {
@@ -67,6 +76,8 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
   const [activeDragItem, setActiveDragItem] = useState<DragItemData | null>(
     null
   );
+
+  const [testDrawerVisible, setTestDrawerVisible] = useState(false);
 
   const {
     undo,
@@ -276,6 +287,11 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
     setActiveDragItem(null);
   };
 
+  const handleTestDrawerClose = () => {
+    console.log("TestDrawer closed");
+    setTestDrawerVisible(false);
+  };
+
   const onDragStart = (item: DragItem) => {
     // We can add any drag start logic here if needed
   };
@@ -322,6 +338,18 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
           </span>
         </div>
         <div>
+          <Tooltip title="Test Team">
+            <Button
+              type="primary"
+              icon={<PlayCircle size={18} />}
+              className="p-1.5 mr-2 px-2.5 hover:bg-primary/10 rounded-md text-primary/75 hover:text-primary"
+              onClick={() => {
+                setTestDrawerVisible(true);
+              }}
+            >
+              Test Team
+            </Button>
+          </Tooltip>
           <Tooltip title="Download Team">
             <Button
               type="text"
@@ -449,7 +477,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
           }}
         >
           {activeDragItem ? (
-            <div className="p-2 text-primary border border-secondary rounded bg-background shadow-md">
+            <div className="p-2 text-primary h-full     rounded    ">
               <div className="flex items-center gap-2">
                 {activeDragItem.icon}
                 <span className="text-sm">{activeDragItem.label}</span>
@@ -458,6 +486,14 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
           ) : null}
         </DragOverlay>
       </DndContext>
+
+      {testDrawerVisible && (
+        <TestDrawer
+          isVisble={testDrawerVisible}
+          team={team}
+          onClose={() => handleTestDrawerClose()}
+        />
+      )}
     </div>
   );
 };
