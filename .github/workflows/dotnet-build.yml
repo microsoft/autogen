@@ -46,7 +46,7 @@ jobs:
       - name: workflows has changes
         run: echo "workflows has changes"
         if: steps.filter.outputs.workflows == 'true'
-  build-and-test:
+  build:
     name: Dotnet Build & Test (With Coverage)
     needs: paths-filter
     if: needs.paths-filter.outputs.hasChanges == 'true'
