@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 from typing import Any, Dict, List, Mapping
 
 from autogen_core import AgentId, CancellationToken, DefaultTopicId, MessageContext, event, rpc
@@ -80,14 +81,12 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         self._plan = ""
         self._n_rounds = 0
         self._n_stalls = 0
-        self._team_description = "\n".join(
-            [
-                f"{topic_type}: {description}".strip()
-                for topic_type, description in zip(
-                    self._participant_topic_types, self._participant_descriptions, strict=True
-                )
-            ]
-        )
+
+        # Produce a team description. Each agent sould appear on a single line.
+        self._team_description = ""
+        for topic_type, description in zip(self._participant_topic_types, self._participant_descriptions, strict=True):
+            self._team_description += re.sub(r"\s+", " ", f"{topic_type}: {description}").strip() + "\n"
+        self._team_description = self._team_description.strip()
 
     def _get_task_ledger_facts_prompt(self, task: str) -> str:
         return ORCHESTRATOR_TASK_LEDGER_FACTS_PROMPT.format(task=task)

@@ -1,12 +1,25 @@
 from typing import Any, List
 
+from pydantic import BaseModel
+from typing_extensions import Self
+
 from .._cancellation_token import CancellationToken
+from .._component_config import Component
 from ..model_context import ChatCompletionContext
 from ..models import SystemMessage
 from ._base_memory import Memory, MemoryContent, MemoryQueryResult, UpdateContextResult
 
 
-class ListMemory(Memory):
+class ListMemoryConfig(BaseModel):
+    """Configuration for ListMemory component."""
+
+    name: str | None = None
+    """Optional identifier for this memory instance."""
+    memory_contents: List[MemoryContent] = []
+    """List of memory contents stored in this memory instance."""
+
+
+class ListMemory(Memory, Component[ListMemoryConfig]):
     """Simple chronological list-based memory implementation.
 
     This memory implementation stores contents in a list and retrieves them in
@@ -53,9 +66,13 @@ class ListMemory(Memory):
 
     """
 
-    def __init__(self, name: str | None = None) -> None:
+    component_type = "memory"
+    component_provider_override = "autogen_core.memory.ListMemory"
+    component_config_schema = ListMemoryConfig
+
+    def __init__(self, name: str | None = None, memory_contents: List[MemoryContent] | None = None) -> None:
         self._name = name or "default_list_memory"
-        self._contents: List[MemoryContent] = []
+        self._contents: List[MemoryContent] = memory_contents if memory_contents is not None else []
 
     @property
     def name(self) -> str:
@@ -146,3 +163,10 @@ class ListMemory(Memory):
     async def close(self) -> None:
         """Cleanup resources if needed."""
         pass
+
+    @classmethod
+    def _from_config(cls, config: ListMemoryConfig) -> Self:
+        return cls(name=config.name, memory_contents=config.memory_contents)
+
+    def _to_config(self) -> ListMemoryConfig:
+        return ListMemoryConfig(name=self.name, memory_contents=self._contents)
