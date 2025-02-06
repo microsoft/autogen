@@ -17,7 +17,7 @@ from autogen_core.models import (
     UserMessage,
 )
 
-from ._utils import MessageContent
+from ._utils import MessageContent, hash_directory
 
 
 def html_opening(file_title: str, finished: bool = False) -> str:
@@ -110,6 +110,17 @@ class PageLogger:
         self.name = "0  Call Tree"
         self._create_run_dir()
         self.flush()
+
+    def __del__(self) -> None:
+        # Writes a hash of the log directory to a file for change detection.
+        hash_str, num_files, num_subdirs = hash_directory(self.log_dir)
+        filename = "00 hash-{}.txt".format(hash_str[-5:])
+        hash_path = os.path.join(self.log_dir, filename)
+        with open(hash_path, "w") as f:
+            f.write(hash_str)
+            f.write("\n")
+            f.write("{} files\n".format(num_files))
+            f.write("{} subdirectories\n".format(num_subdirs))
 
     def _get_next_page_id(self) -> int:
         """Returns the next page id and increments the counter."""

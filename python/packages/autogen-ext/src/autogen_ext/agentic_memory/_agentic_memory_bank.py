@@ -34,7 +34,7 @@ class AgenticMemoryBank:
         - contains_insights: Returns True if the memory bank contains any insights.
         - add_insight: Adds an insight to the memory bank, given topics related to the insight, and optionally the task.
         - add_task_with_solution: Adds a task-insight pair to the memory bank, to be retrieved together later.
-        - get_relevant_insights: Returns any insights from the memory bank that appear sufficiently relevant to the given
+        - get_relevant_insights: Returns any insights from the memory bank that appear sufficiently relevant to the given task topics.
     """
 
     def __init__(self, settings: Dict[str, Any], reset: bool, logger: PageLogger) -> None:

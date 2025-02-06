@@ -1,4 +1,6 @@
-from typing import List, Union
+import hashlib
+import os
+from typing import List, Tuple, Union
 
 from autogen_core import FunctionCall, Image
 from autogen_core.models import FunctionExecutionResult
@@ -64,3 +66,31 @@ def single_image_from_user_content(user_content: UserContent) -> Union[Image, No
     else:
         raise AssertionError("Unexpected response type.")
     return image_to_return
+
+
+def hash_directory(directory: str, hash_algo: str = "sha256") -> Tuple[str, int, int]:
+    """Computes a hash representing the state of a directory, including its structure and file contents."""
+    hash_func = hashlib.new(hash_algo)
+
+    # Also count the number of files and sub-directories
+    num_files = 0
+    num_subdirs = 0
+
+    for root, dirs, files in sorted(os.walk(directory)):  # Ensure order for consistent hashing
+        num_files += len(files)
+        num_subdirs += len(dirs)
+        for dir_name in sorted(dirs):
+            hash_func.update(dir_name.encode())  # Hash directory names
+
+        for file_name in sorted(files):
+            file_path = os.path.join(root, file_name)
+            hash_func.update(file_name.encode())  # Hash file names
+
+            try:
+                with open(file_path, "rb") as f:
+                    while chunk := f.read(4096):  # Read in chunks
+                        hash_func.update(chunk)
+            except Exception:
+                pass
+
+    return hash_func.hexdigest(), num_files, num_subdirs
