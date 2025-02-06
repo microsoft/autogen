@@ -16,6 +16,13 @@ warnings.filterwarnings("ignore", message="websockets.legacy is deprecated*")
 warnings.filterwarnings("ignore", message="websockets.server.WebSocketServerProtocol is deprecated*")
 
 
+def get_env_file_path():
+    app_dir = os.path.join(os.path.expanduser("~"), ".autogenstudio")
+    if not os.path.exists(app_dir):
+        os.makedirs(app_dir, exist_ok=True)
+    return os.path.join(app_dir, "temp_env_vars.env")
+
+
 @app.command()
 def ui(
     host: str = "127.0.0.1",
@@ -39,8 +46,6 @@ def ui(
         appdir (str, optional): Path to the AutoGen Studio app directory. Defaults to None.
         database-uri (str, optional): Database URI to connect to. Defaults to None.
     """
-    # Create temporary env file to share configuration with uvicorn workers
-    temp_env = tempfile.NamedTemporaryFile(mode="w", suffix=".env", delete=True)
 
     # Write configuration
     env_vars = {
@@ -55,9 +60,11 @@ def ui(
     if upgrade_database:
         env_vars["AUTOGENSTUDIO_UPGRADE_DATABASE"] = "1"
 
-    for key, value in env_vars.items():
-        temp_env.write(f"{key}={value}\n")
-    temp_env.flush()
+    # Create temporary env file to share configuration with uvicorn workers
+    env_file_path = get_env_file_path()
+    with open(env_file_path, "w") as temp_env:
+        for key, value in env_vars.items():
+            temp_env.write(f"{key}={value}\n")
 
     uvicorn.run(
         "autogenstudio.web.app:app",
@@ -66,7 +73,7 @@ def ui(
         workers=workers,
         reload=reload,
         reload_excludes=["**/alembic/*", "**/alembic.ini", "**/versions/*"] if reload else None,
-        env_file=temp_env.name,
+        env_file=env_file_path,
     )
 
 
