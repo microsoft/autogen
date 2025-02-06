@@ -65,6 +65,7 @@ from ._tool_definitions import (
 from ._types import InteractiveRegion, UserContent
 from .playwright_controller import PlaywrightController
 
+DEFAULT_CONTEXT_SIZE = 128000
 
 class MultimodalWebSurferConfig(BaseModel):
     name: str
@@ -863,8 +864,8 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             try:
                 remaining = self._model_client.remaining_tokens(messages + [trial_message])
             except KeyError:
-                # Default to 128k if the model isn't found
-                remaining = 128000 - self._model_client.count_tokens(messages + [trial_message])
+                # Use the default if the model isn't found
+                remaining = DEFAULT_CONTEXT_SIZE - self._model_client.count_tokens(messages + [trial_message])
 
             if self._model_client.model_info["vision"] and remaining <= 0:
                 break
