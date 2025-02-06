@@ -122,7 +122,7 @@ class PlaywrightController:
             pass
         return visualviewport_from_dict(await page.evaluate("MultimodalWebSurfer.getVisualViewport();"))
 
-    async def get_focused_rect_id(self, page: Page) -> str:
+    async def get_focused_rect_id(self, page: Page) -> str | None:
         """
         Retrieve the ID of the currently focused element.
 
@@ -130,7 +130,7 @@ class PlaywrightController:
             page (Page): The Playwright page object.
 
         Returns:
-            str: The ID of the focused element.
+            str: The ID of the focused element or None if no control has focus.
         """
         assert page is not None
         try:
@@ -138,7 +138,7 @@ class PlaywrightController:
         except Exception:
             pass
         result = await page.evaluate("MultimodalWebSurfer.getFocusedElementId();")
-        return str(result)
+        return None if result is None else str(result)
 
     async def get_page_metadata(self, page: Page) -> Dict[str, Any]:
         """
