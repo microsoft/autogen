@@ -67,6 +67,7 @@ from .playwright_controller import PlaywrightController
 
 DEFAULT_CONTEXT_SIZE = 128000
 
+
 class MultimodalWebSurferConfig(BaseModel):
     name: str
     model_client: ComponentModel
