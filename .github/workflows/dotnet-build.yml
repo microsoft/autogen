@@ -46,6 +46,7 @@ jobs:
       - name: workflows has changes
         run: echo "workflows has changes"
         if: steps.filter.outputs.workflows == 'true'
+
   build:
     name: Dotnet Build & Test
     needs: paths-filter
@@ -96,11 +97,11 @@ jobs:
         dotnet tool install -g dotnet-reportgenerator-globaltool || dotnet tool update -g dotnet-reportgenerator-globaltool
         # Ensure output directory exists
         mkdir -p ${{ github.workspace }}/dotnet/coverage-report
-        # Merge all coverage reports and generate HTML
+        # Merge all coverage reports and generate HTML + XML
         reportgenerator \
           -reports:${{ github.workspace }}/dotnet/**/TestResults/**/coverage.cobertura.xml \
           -targetdir:${{ github.workspace }}/dotnet/coverage-report \
-          -reporttypes:Html
+          -reporttypes:Cobertura,Html
         ls -R ${{ github.workspace }}/dotnet/coverage-report
     - name: Upload Merged Coverage Report
       if: matrix.os == 'ubuntu-latest'
@@ -109,12 +110,16 @@ jobs:
         name: CodeCoverageReport
         path: ${{ github.workspace }}/dotnet/coverage-report/
         retention-days: 7
-    - name: Add Coverage Report Link to Summary
+    - name: Upload Coverage to Codecov
       if: matrix.os == 'ubuntu-latest'
-      run: |
-        echo "### Code Coverage Report" >> $GITHUB_STEP_SUMMARY
-        echo "[View Merged Coverage Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)" >> $GITHUB_STEP_SUMMARY
-      
+      uses: codecov/codecov-action@v5
+      with:
+        files: ${{ github.workspace }}/dotnet/coverage-report/*.xml
+        flags: unittests
+        name: dotnet-codecov
+        fail_ci_if_error: true
+        token: ${{ secrets.CODECOV_TOKEN }}
+
   integration-test:
     strategy:
       fail-fast: true
