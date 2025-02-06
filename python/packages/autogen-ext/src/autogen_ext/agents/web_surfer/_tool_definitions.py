@@ -87,11 +87,11 @@ TOOL_HISTORY_BACK: ToolSchema = _load_tool(
     }
 )
 
-TOOL_PAGE_UP: ToolSchema = _load_tool(
+TOOL_SCROLL_UP: ToolSchema = _load_tool(
     {
         "type": "function",
         "function": {
-            "name": "page_up",
+            "name": "scroll_up",
             "description": "Scrolls the entire browser viewport one page UP towards the beginning.",
             "parameters": {
                 "type": "object",
@@ -107,11 +107,11 @@ TOOL_PAGE_UP: ToolSchema = _load_tool(
     }
 )
 
-TOOL_PAGE_DOWN: ToolSchema = _load_tool(
+TOOL_SCROLL_DOWN: ToolSchema = _load_tool(
     {
         "type": "function",
         "function": {
-            "name": "page_down",
+            "name": "scroll_down",
             "description": "Scrolls the entire browser viewport one page DOWN towards the end.",
             "parameters": {
                 "type": "object",

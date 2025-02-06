@@ -62,6 +62,7 @@ class AssistantAgentConfig(BaseModel):
     tools: List[ComponentModel] | None
     handoffs: List[HandoffBase | str] | None = None
     model_context: ComponentModel | None = None
+    memory: List[ComponentModel] | None = None
     description: str
     system_message: str | None = None
     model_client_stream: bool = False
@@ -591,6 +592,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             tools=[tool.dump_component() for tool in self._tools],
             handoffs=list(self._handoffs.values()),
             model_context=self._model_context.dump_component(),
+            memory=[memory.dump_component() for memory in self._memory] if self._memory else None,
             description=self.description,
             system_message=self._system_messages[0].content
             if self._system_messages and isinstance(self._system_messages[0].content, str)
@@ -609,6 +611,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             tools=[BaseTool.load_component(tool) for tool in config.tools] if config.tools else None,
             handoffs=config.handoffs,
             model_context=None,
+            memory=[Memory.load_component(memory) for memory in config.memory] if config.memory else None,
             description=config.description,
             system_message=config.system_message,
             model_client_stream=config.model_client_stream,
