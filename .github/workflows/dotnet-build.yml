@@ -80,16 +80,15 @@ jobs:
       run: |
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
-    - name: Unit Test V1
-      run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV1"
-    - name: Unit Test V2 (With Coverage)
-      run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV2" --collect:"XPlat Code Coverage"
+    - name: Non-GRPC Tests (macos)
+      if: matrix.os == 'macos-latest'
+      run: dotnet test --no-build -bl --configuration Release --filter "Category!=GRPC"
     - name: Install Dev Certs for GRPC
       if: matrix.os == 'ubuntu-latest'
       run: dotnet dev-certs https --trust
-    - name: GRPC Tests (With Coverage)
+    - name: All Unit Tests With Coverage (ubuntu)
       if: matrix.os == 'ubuntu-latest'
-      run: dotnet test --no-build -bl --configuration Release --filter "Category=GRPC" --collect:"XPlat Code Coverage"
+      run: dotnet test --no-build -bl --configuration Release --collect:"XPlat Code Coverage"
     - name: Generate & Merge Coverage Report
       if: matrix.os == 'ubuntu-latest'
       run: |
