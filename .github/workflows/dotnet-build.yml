@@ -46,9 +46,8 @@ jobs:
       - name: workflows has changes
         run: echo "workflows has changes"
         if: steps.filter.outputs.workflows == 'true'
-
-  build:
-    name: Dotnet Build
+  build-and-test:
+    name: Dotnet Build & Test (With Coverage)
     needs: paths-filter
     if: needs.paths-filter.outputs.hasChanges == 'true'
     defaults:
@@ -84,100 +83,41 @@ jobs:
       run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV1"
     - name: Unit Test V2 (With Coverage)
       run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV2" --collect:"XPlat Code Coverage"
-    - name: Upload Unit Test Coverage
+    - name: Install Dev Certs for GRPC
       if: matrix.os == 'ubuntu-latest'
-      uses: actions/upload-artifact@v4
-      with:
-        name: UnitTestCoverage
-        path: "**/TestResults/**/coverage.cobertura.xml"
-        retention-days: 1
-
-  grpc-unit-tests:
-    name: Dotnet GRPC Unit Tests
-    needs: paths-filter
-    if: needs.paths-filter.outputs.hasChanges == 'true'
-    defaults:
-      run:
-        working-directory: dotnet
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ ubuntu-latest ]
-    runs-on: ${{ matrix.os }}
-    timeout-minutes: 30
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        lfs: true
-    - name: Setup .NET 8.0
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
-    - name: Install dev certs
       run: dotnet dev-certs https --trust
-    - name: Restore dependencies
-      run: dotnet restore -bl
-    - name: Build
-      run: dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: GRPC Tests (With Coverage)
-      run: dotnet test --no-build -bl --configuration Release --filter "Category=GRPC" --collect:"XPlat Code Coverage"
-    - name: Upload GRPC Test Coverage
       if: matrix.os == 'ubuntu-latest'
-      uses: actions/upload-artifact@v4
-      with:
-        name: GrpcTestCoverage
-        path: "**/TestResults/**/coverage.cobertura.xml"
-        retention-days: 1
-
-  merge-coverage:
-    name: Merge Coverage Reports
-    needs: [build, grpc-unit-tests]
-    if: always()
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: dotnet
-    steps:
-    - uses: actions/checkout@v4
-      with:
-        lfs: true
-    - name: Setup .NET 8.0
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: '8.0.x'
-    - name: Install Report Generator
+      run: dotnet test --no-build -bl --configuration Release --filter "Category=GRPC" --collect:"XPlat Code Coverage"
+    - name: Generate & Merge Coverage Report
+      if: matrix.os == 'ubuntu-latest'
       run: |
+        # Install reportgenerator
         dotnet tool install -g dotnet-reportgenerator-globaltool || dotnet tool update -g dotnet-reportgenerator-globaltool
-    - name: Download Unit Test Coverage
-      uses: actions/download-artifact@v4
-      with:
-        name: UnitTestCoverage
-        path: coverage-data
-    - name: Download GRPC Test Coverage
-      uses: actions/download-artifact@v4
-      with:
-        name: GrpcTestCoverage
-        path: coverage-data
-    - name: Merge Coverage Reports
-      run: |
-        mkdir -p dotnet/coverage-report  # Ensure output directory exists
+
+        # Ensure output directory exists
+        mkdir -p dotnet/coverage-report
+
+        # Merge all coverage reports and generate HTML
         reportgenerator \
-          -reports:coverage-data/**/*.cobertura.xml \
+          -reports:**/TestResults/**/coverage.cobertura.xml \
           -targetdir:dotnet/coverage-report \
           -reporttypes:Html
-        
+
         ls -R dotnet/coverage-report
     - name: Upload Merged Coverage Report
+      if: matrix.os == 'ubuntu-latest'
       uses: actions/upload-artifact@v4
       with:
         name: CodeCoverageReport
         path: dotnet/coverage-report
         retention-days: 7
     - name: Add Coverage Report Link to Summary
+      if: matrix.os == 'ubuntu-latest'
       run: |
         echo "### Code Coverage Report" >> $GITHUB_STEP_SUMMARY
         echo "[View Merged Coverage Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)" >> $GITHUB_STEP_SUMMARY
-
+      
   integration-test:
     strategy:
       fail-fast: true
