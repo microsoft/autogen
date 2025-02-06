@@ -129,6 +129,12 @@ jobs:
         name: CodeCoverageReport
         path: dotnet/coverage-report
         retention-days: 7
+    - name: Add Coverage Report Link to Summary
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        echo "### Code Coverage Report" >> $GITHUB_STEP_SUMMARY
+        echo "[View Coverage Report](https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}/artifacts)" >> $GITHUB_STEP_SUMMARY
+  
 
   grpc-unit-tests:
     name: Dotnet Grpc unit tests
