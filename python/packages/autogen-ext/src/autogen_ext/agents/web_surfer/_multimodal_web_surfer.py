@@ -779,7 +779,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
 
         # Return the complete observation
         state_description = "The " + await self._get_state_description()
-        message_content = f"{action_description}\n\n" + state_description + page_metadata
+        message_content = f"{action_description}\n\n" + state_description + page_metadata + "\nHere is a screenshot of the page."
 
         return [
             re.sub(r"(\n\s*){3,}", "\n\n", message_content),  # Removing blank lines
