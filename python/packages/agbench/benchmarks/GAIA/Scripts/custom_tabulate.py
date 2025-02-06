@@ -84,8 +84,6 @@ def gaia_question_scorer(
         except ValueError:
             return False
 
-    print(f"{ground_truth}")
-
     # if gt is a number
     if is_float(ground_truth):
         normalized_answer = normalize_number_str(model_answer)
