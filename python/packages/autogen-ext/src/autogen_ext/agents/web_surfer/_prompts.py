@@ -10,11 +10,11 @@ You are to respond to my next request by selecting an appropriate tool from the 
 {tool_names}
 
 When deciding between tools, consider if the request can be best addressed by:
-    - the contents of the CURRENT VIEWPORT (in which case actions like clicking links, clicking buttons, inputting text might be most appropriate, or hovering over element)
+    - the contents of the CURRENT VIEWPORT (in which case actions like clicking links, clicking buttons, inputting text, or hovering over an element, might be more appropriate)
     - contents found elsewhere on the CURRENT WEBPAGE [{title}]({url}), in which case actions like scrolling, summarization, or full-page Q&A might be most appropriate
     - on ANOTHER WEBSITE entirely (in which case actions like performing a new web search might be the best option)
 
-My request follows. What function will you call?:
+My request follows:
 """
 
 WEB_SURFER_TOOL_PROMPT_TEXT = """
@@ -29,11 +29,11 @@ You are to respond to my next request by selecting an appropriate tool from the 
 {tool_names}
 
 When deciding between tools, consider if the request can be best addressed by:
-    - the contents of the CURRENT VIEWPORT (in which case actions like clicking links, clicking buttons, inputting text might be most appropriate, or hovering over element)
+    - the contents of the CURRENT VIEWPORT (in which case actions like clicking links, clicking buttons, inputting text, or hovering over an element, might be more appropriate)
     - contents found elsewhere on the CURRENT WEBPAGE [{title}]({url}), in which case actions like scrolling, summarization, or full-page Q&A might be most appropriate
     - on ANOTHER WEBSITE entirely (in which case actions like performing a new web search might be the best option)
 
-My request follows. What function will you call?:
+My request follows:
 """
 
 WEB_SURFER_OCR_PROMPT = """
