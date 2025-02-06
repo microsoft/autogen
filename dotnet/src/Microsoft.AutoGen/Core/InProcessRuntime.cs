@@ -13,7 +13,7 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
 {
     public bool DeliverToSelf { get; set; } //= false;
 
-    Dictionary<AgentId, IHostableAgent> agentInstances = new();
+    internal Dictionary<AgentId, IHostableAgent> agentInstances = new();
     Dictionary<string, ISubscriptionDefinition> subscriptions = new();
     Dictionary<AgentType, Func<AgentId, IAgentRuntime, ValueTask<IHostableAgent>>> agentFactories = new();
 

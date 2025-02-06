@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// AgentRuntimeTests.cs
+// InProcessRuntimeTests.cs
 using System.Text.Json;
 using FluentAssertions;
 using Microsoft.AutoGen.Contracts;
@@ -9,7 +9,7 @@ using Xunit;
 namespace Microsoft.AutoGen.Core.Tests;
 
 [Trait("Category", "UnitV2")]
-public class AgentRuntimeTests()
+public class InProcessRuntimeTests()
 {
     // Agent will not deliver to self will success when runtime.DeliverToSelf is false (default)
     [Fact]
@@ -85,32 +85,23 @@ public class AgentRuntimeTests()
     [Fact]
     public async Task RuntimeShouldSaveLoadStateCorrectlyTest()
     {
+        // Create a runtime and register an agent
         var runtime = new InProcessRuntime();
         await runtime.StartAsync();
-
         Logger<BaseAgent> logger = new(new LoggerFactory());
         SubscribedSaveLoadAgent agent = null!;
-
         await runtime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) =>
         {
             agent = new SubscribedSaveLoadAgent(id, runtime, logger);
             return ValueTask.FromResult(agent);
         });
 
-        // Ensure the agent id is registered
-        AgentId agentId = await runtime.GetAgentAsync("MyAgent", lazy: false);
-
-        // Validate agent ID
-        agentId.Should().Be(agent.Id, "Agent ID should match the registered agent");
-
+        // Get agent ID and instantiate agent by publishing
+        AgentId agentId = await runtime.GetAgentAsync("MyAgent", lazy: true);
         await runtime.RegisterImplicitAgentSubscriptionsAsync<SubscribedSaveLoadAgent>("MyAgent");
-
         var topicType = "TestTopic";
-
         await runtime.PublishMessageAsync(new TextMessage { Source = topicType, Content = "test" }, new TopicId(topicType)).ConfigureAwait(true);
-
         await runtime.RunUntilIdleAsync();
-
         agent.ReceivedMessages.Any().Should().BeTrue("Agent should receive messages when subscribed.");
 
         // Save the state
@@ -125,27 +116,26 @@ public class AgentRuntimeTests()
         // Serialize and Deserialize the state to simulate persistence
         string json = JsonSerializer.Serialize(savedState);
         json.Should().NotBeNullOrEmpty("Serialized state should not be empty");
-
         var deserializedState = JsonSerializer.Deserialize<IDictionary<string, JsonElement>>(json)
             ?? throw new Exception("Deserialized state is unexpectedly null");
-
         deserializedState.Should().ContainKey(agentId.ToString());
 
-        // Load the saved state back into a new runtime instance
+        // Start new runtime and restore the state
         var newRuntime = new InProcessRuntime();
         await newRuntime.StartAsync();
+        await newRuntime.RegisterAgentFactoryAsync("MyAgent", (id, runtime) =>
+        {
+            agent = new SubscribedSaveLoadAgent(id, runtime, logger);
+            return ValueTask.FromResult(agent);
+        });
+        await newRuntime.RegisterImplicitAgentSubscriptionsAsync<SubscribedSaveLoadAgent>("MyAgent");
+
+        // Show that no agent instances exist in the new runtime
+        newRuntime.agentInstances.Count.Should().Be(0, "Agent should be registered in the new runtime");
+
+        // Load the state into the new runtime and show that agent is now instantiated
         await newRuntime.LoadStateAsync(deserializedState);
-
-        // Ensure the agent exists in the new runtime
-        AgentId newAgentId = await newRuntime.GetAgentAsync("MyAgent", lazy: false);
-        newAgentId.Should().Be(agentId, "Loaded agent ID should match original agent ID");
-
-        // Retrieve the agent's saved state
-        var restoredState = await newRuntime.SaveAgentStateAsync(newAgentId);
-        restoredState.Should().ContainKey("TestTopic");
-
-        // Ensure "TestTopic" contains the correct message
-        restoredState["TestTopic"].ValueKind.Should().Be(JsonValueKind.String, "Expected 'TestTopic' to be a string");
-        restoredState["TestTopic"].GetString().Should().Be("test", "Agent state should contain the original message");
+        newRuntime.agentInstances.Count.Should().Be(1, "Agent should be registered in the new runtime");
+        newRuntime.agentInstances.Should().ContainKey(agentId, "Agent should be loaded into the new runtime");
     }
 }

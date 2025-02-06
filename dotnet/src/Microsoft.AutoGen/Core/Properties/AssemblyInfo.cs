@@ -1,0 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// AssemblyInfo.cs
+
+using System.Runtime.CompilerServices;
+
+[assembly: InternalsVisibleTo("Microsoft.AutoGen.Core.Tests, PublicKey=0024000004800000940000000602000000240000525341310004000001000100f1d038d0b85ae392ad72011df91e9343b0b5df1bb8080aa21b9424362d696919e0e9ac3a8bca24e283e10f7a569c6f443e1d4e3ebc84377c87ca5caa562e80f9932bf5ea91b7862b538e13b8ba91c7565cf0e8dfeccfea9c805ae3bda044170ecc7fc6f147aeeac422dd96aeb9eb1f5a5882aa650efe2958f2f8107d2038f2ab")]
