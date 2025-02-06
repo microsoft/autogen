@@ -39,15 +39,10 @@ class AgentRpcStub(object):
                 request_serializer=agent__worker__pb2.Message.SerializeToString,
                 response_deserializer=agent__worker__pb2.Message.FromString,
                 _registered_method=True)
-        self.GetState = channel.unary_unary(
-                '/agents.AgentRpc/GetState',
-                request_serializer=agent__worker__pb2.AgentId.SerializeToString,
-                response_deserializer=agent__worker__pb2.GetStateResponse.FromString,
-                _registered_method=True)
-        self.SaveState = channel.unary_unary(
-                '/agents.AgentRpc/SaveState',
-                request_serializer=agent__worker__pb2.AgentState.SerializeToString,
-                response_deserializer=agent__worker__pb2.SaveStateResponse.FromString,
+        self.OpenControlChannel = channel.stream_stream(
+                '/agents.AgentRpc/OpenControlChannel',
+                request_serializer=agent__worker__pb2.ControlMessage.SerializeToString,
+                response_deserializer=agent__worker__pb2.ControlMessage.FromString,
                 _registered_method=True)
         self.RegisterAgent = channel.unary_unary(
                 '/agents.AgentRpc/RegisterAgent',
@@ -80,13 +75,7 @@ class AgentRpcServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
-    def GetState(self, request, context):
-        """Missing associated documentation comment in .proto file."""
-        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-        context.set_details('Method not implemented!')
-        raise NotImplementedError('Method not implemented!')
-
-    def SaveState(self, request, context):
+    def OpenControlChannel(self, request_iterator, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -124,15 +113,10 @@ def add_AgentRpcServicer_to_server(servicer, server):
                     request_deserializer=agent__worker__pb2.Message.FromString,
                     response_serializer=agent__worker__pb2.Message.SerializeToString,
             ),
-            'GetState': grpc.unary_unary_rpc_method_handler(
-                    servicer.GetState,
-                    request_deserializer=agent__worker__pb2.AgentId.FromString,
-                    response_serializer=agent__worker__pb2.GetStateResponse.SerializeToString,
-            ),
-            'SaveState': grpc.unary_unary_rpc_method_handler(
-                    servicer.SaveState,
-                    request_deserializer=agent__worker__pb2.AgentState.FromString,
-                    response_serializer=agent__worker__pb2.SaveStateResponse.SerializeToString,
+            'OpenControlChannel': grpc.stream_stream_rpc_method_handler(
+                    servicer.OpenControlChannel,
+                    request_deserializer=agent__worker__pb2.ControlMessage.FromString,
+                    response_serializer=agent__worker__pb2.ControlMessage.SerializeToString,
             ),
             'RegisterAgent': grpc.unary_unary_rpc_method_handler(
                     servicer.RegisterAgent,
@@ -193,7 +177,7 @@ class AgentRpc(object):
             _registered_method=True)
 
     @staticmethod
-    def GetState(request,
+    def OpenControlChannel(request_iterator,
             target,
             options=(),
             channel_credentials=None,
@@ -203,39 +187,12 @@ class AgentRpc(object):
             wait_for_ready=None,
             timeout=None,
             metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
+        return grpc.experimental.stream_stream(
+            request_iterator,
             target,
-            '/agents.AgentRpc/GetState',
-            agent__worker__pb2.AgentId.SerializeToString,
-            agent__worker__pb2.GetStateResponse.FromString,
-            options,
-            channel_credentials,
-            insecure,
-            call_credentials,
-            compression,
-            wait_for_ready,
-            timeout,
-            metadata,
-            _registered_method=True)
-
-    @staticmethod
-    def SaveState(request,
-            target,
-            options=(),
-            channel_credentials=None,
-            call_credentials=None,
-            insecure=False,
-            compression=None,
-            wait_for_ready=None,
-            timeout=None,
-            metadata=None):
-        return grpc.experimental.unary_unary(
-            request,
-            target,
-            '/agents.AgentRpc/SaveState',
-            agent__worker__pb2.AgentState.SerializeToString,
-            agent__worker__pb2.SaveStateResponse.FromString,
+            '/agents.AgentRpc/OpenControlChannel',
+            agent__worker__pb2.ControlMessage.SerializeToString,
+            agent__worker__pb2.ControlMessage.FromString,
             options,
             channel_credentials,
             insecure,
