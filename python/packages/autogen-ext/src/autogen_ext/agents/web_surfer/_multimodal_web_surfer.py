@@ -563,10 +563,10 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         history.append(prompt_message)
         history.append(user_request)
 
-        print(f"""================={len(history)}=================""")
-        for h in history:
-            print(h.content)
-            print("===========")
+        #print(f"""================={len(history)}=================""")
+        #for h in history:
+        #    print(h.content)
+        #    print("===========")
 
         # Make the request
         response = await self._model_client.create(
