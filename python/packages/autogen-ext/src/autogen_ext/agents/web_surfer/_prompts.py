@@ -8,7 +8,7 @@ You are to respond to the most recent request by selecting an appropriate tool f
 {tool_names}
 
 When deciding between tools, consider if the request can be best addressed by:
-    - the contents of the current viewport (in which case actions like clicking links, clicking buttons, inputting text might be most appropriate, or hovering over element)
+    - the contents of the current viewport (in which case actions like clicking links, clicking buttons, inputting text, or hovering over an element might be most appropriate)
     - contents found elsewhere on the full webpage (in which case actions like scrolling, summarization, or full-page Q&A might be most appropriate)
     - on some other website entirely (in which case actions like performing a new web search might be the best option)
 """
@@ -29,7 +29,7 @@ You are to respond to the most recent request by selecting an appropriate tool f
 {tool_names}
 
 When deciding between tools, consider if the request can be best addressed by:
-    - the contents of the current viewport (in which case actions like clicking links, clicking buttons, inputting text might be most appropriate, or hovering over element)
+    - the contents of the current viewport (in which case actions like clicking links, clicking buttons, inputting text, or hovering over an element might be most appropriate)
     - contents found elsewhere on the full webpage (in which case actions like scrolling, summarization, or full-page Q&A might be most appropriate)
     - on some other website entirely (in which case actions like performing a new web search might be the best option)
 """
