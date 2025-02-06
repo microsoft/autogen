@@ -18,7 +18,7 @@ from autogen_agentchat.messages import (
     ToolCallRequestEvent,
     ToolCallSummaryMessage,
 )
-from autogen_core import FunctionCall, Image
+from autogen_core import ComponentModel, FunctionCall, Image
 from autogen_core.memory import ListMemory, Memory, MemoryContent, MemoryMimeType, MemoryQueryResult
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import (
@@ -754,7 +754,12 @@ async def test_run_with_memory(monkeypatch: pytest.MonkeyPatch) -> None:
         "test_agent", model_client=OpenAIChatCompletionClient(model=model, api_key=""), memory=[memory2]
     )
 
-    result = await agent.run(task="test task")
+    # Test dump and load component with memory
+    agent_config: ComponentModel = agent.dump_component()
+    assert agent_config.provider == "autogen_agentchat.agents.AssistantAgent"
+    agent2 = AssistantAgent.load_component(agent_config)
+
+    result = await agent2.run(task="test task")
     assert len(result.messages) > 0
     memory_event = next((msg for msg in result.messages if isinstance(msg, MemoryQueryEvent)), None)
     assert memory_event is not None
@@ -795,9 +800,10 @@ async def test_assistant_agent_declarative(monkeypatch: pytest.MonkeyPatch) -> N
         "test_agent",
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),
         model_context=model_context,
+        memory=[ListMemory(name="test_memory")],
     )
 
-    agent_config = agent.dump_component()
+    agent_config: ComponentModel = agent.dump_component()
     assert agent_config.provider == "autogen_agentchat.agents.AssistantAgent"
 
     agent2 = AssistantAgent.load_component(agent_config)
