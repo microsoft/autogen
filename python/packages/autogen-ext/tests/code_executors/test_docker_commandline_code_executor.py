@@ -195,13 +195,17 @@ async def test_docker_commandline_code_executor_extra_args() -> None:
             assert init_command_file_path.exists()
 
             # Verify extra_hosts
-            ns_lookup_code_blocks = [CodeBlock(code="import socket; print(socket.gethostbyname('example.com'))", language="python")]
+            ns_lookup_code_blocks = [
+                CodeBlock(code="import socket; print(socket.gethostbyname('example.com'))", language="python")
+            ]
             ns_lookup_result = await executor.execute_code_blocks(ns_lookup_code_blocks, cancellation_token)
             assert ns_lookup_result.exit_code == 0
             assert "127.0.0.1" in ns_lookup_result.output
 
             # Verify the file is accessible in the volume mounted in extra_volumes
-            code_blocks = [CodeBlock(code=f"with open('{container_file_path}') as f: print(f.read())", language="python")]
+            code_blocks = [
+                CodeBlock(code=f"with open('{container_file_path}') as f: print(f.read())", language="python")
+            ]
             code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
             assert code_result.exit_code == 0
             assert "This is a test file." in code_result.output
