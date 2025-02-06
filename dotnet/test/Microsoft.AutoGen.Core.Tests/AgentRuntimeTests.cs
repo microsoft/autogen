@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentRuntimeTests.cs
-using FluentAssertions;
 using System.Text.Json;
+using FluentAssertions;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Logging;
 using Xunit;

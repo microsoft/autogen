@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // TestAgent.cs
 
+using System.Text.Json;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Logging;
-using System.Text.Json;
 
 namespace Microsoft.AutoGen.Core.Tests;
 
@@ -96,7 +96,7 @@ public class SubscribedSaveLoadAgent : TestAgent
     public override ValueTask LoadStateAsync(IDictionary<string, JsonElement> state)
     {
         _receivedMessages.Clear();
-        
+
         foreach (var kvp in state)
         {
             _receivedMessages[kvp.Key] = kvp.Value.Deserialize<object>() ?? throw new Exception($"Failed to deserialize key: {kvp.Key}");
