@@ -16,5 +16,5 @@ public interface IGateway : IGrainObserver
     ValueTask<AddSubscriptionResponse> SubscribeAsync(AddSubscriptionRequest request);
     ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(RemoveSubscriptionRequest request);
     ValueTask<List<Subscription>> GetSubscriptionsAsync(GetSubscriptionsRequest request);
-    Task WriteResponseAsync(GrpcWorkerConnection connection, CloudEvent cloudEvent);
+    Task WriteResponseAsync(IConnection connection, CloudEvent cloudEvent);
 }

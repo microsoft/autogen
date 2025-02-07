@@ -17,12 +17,21 @@ public sealed class AgentsMetadata
     /// <param name="typeRegistry">The type registry containing protobuf type information.</param>
     /// <param name="types">A dictionary mapping event names to their corresponding types.</param>
     /// <param name="eventsMap">A dictionary mapping types to a set of event names associated with those types.</param>
-    public AgentsMetadata(TypeRegistry typeRegistry, Dictionary<string, Type> types, Dictionary<Type, HashSet<string>> eventsMap, Dictionary<Type, HashSet<string>> topicsMap)
+    /// <param name="topicsMap">A dictionary mapping types to a set of topics associated with those types.</param>
+    /// <param name="topicsPrefixMap">A dictionary mapping types to a set of topics associated with those types.</param>
+    /// </summary>
+    public AgentsMetadata(
+        TypeRegistry typeRegistry, 
+        Dictionary<string, Type> types, 
+        Dictionary<Type, HashSet<string>> eventsMap, 
+        Dictionary<Type, HashSet<string>> topicsMap, 
+        Dictionary<Type, HashSet<string>> topicsPrefixMap)
     {
         TypeRegistry = typeRegistry;
         _types = new(types);
         _eventsMap = new(eventsMap);
         _topicsMap = new(topicsMap);
+        _topicsPrefixMap = new(topicsPrefixMap);        
     }
 
     /// <summary>
@@ -34,6 +43,7 @@ public sealed class AgentsMetadata
 
     private ConcurrentDictionary<Type, HashSet<string>> _eventsMap;
     private ConcurrentDictionary<Type, HashSet<string>> _topicsMap;
+    private ConcurrentDictionary<Type, HashSet<string>> _topicsPrefixMap;
 
     /// <summary>
     /// Checks if a given type handles a specific event name.
@@ -76,6 +86,15 @@ public sealed class AgentsMetadata
     public HashSet<string>? GetTopicsForAgent(Type agent)
     {
         if (_topicsMap.TryGetValue(agent, out var topics))
+        {
+            return topics;
+        }
+        return null;
+    }
+
+    public HashSet<string>? GetTopicsPrefixForAgent(Type type)
+    {
+        if (_topicsPrefixMap.TryGetValue(type, out var topics))
         {
             return topics;
         }

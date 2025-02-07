@@ -7,7 +7,6 @@ internal sealed class TestGrpcClient : IDisposable
     public TestAsyncStreamReader<Message> RequestStream { get; }
     public TestServerStreamWriter<Message> ResponseStream { get; }
     public TestServerCallContext CallContext { get; }
-
     private CancellationTokenSource CallContextCancellation = new();
     public TestGrpcClient()
     {
@@ -33,3 +32,4 @@ internal sealed class TestGrpcClient : IDisposable
         ResponseStream.Dispose();
     }
 }
+

@@ -68,6 +68,7 @@ public class TestServerCallContext : ServerCallContext
 
     public static TestServerCallContext Create(Metadata? requestHeaders = null, CancellationToken cancellationToken = default)
     {
+        requestHeaders ??= new Metadata() { { "client-id", Guid.NewGuid().ToString() } };
         return new TestServerCallContext(requestHeaders ?? new Metadata(), cancellationToken);
     }
 }

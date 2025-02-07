@@ -3,8 +3,8 @@
 
 using FluentAssertions;
 using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 using Microsoft.AutoGen.Protobuf;
-using Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 using Microsoft.AutoGen.RuntimeGateway.Grpc.Tests.Helpers.Grpc;
 using Microsoft.AutoGen.RuntimeGateway.Grpc.Tests.Helpers.Orleans;
 using Microsoft.Extensions.Logging;
@@ -50,7 +50,13 @@ public class GrpcGatewayServiceTests
 
         //var inputEvent = new NewMessageReceived { Message = $"Start-{client.CallContext.Peer}" }.ToCloudEvent("gh-gh-gh", "gh-gh-gh");
         var newMessage = new NewMessageReceived { Message = $"Start-{client.CallContext.Peer}" };
-        var inputEvent = CloudEventExtensions.CreateCloudEvent(Google.Protobuf.WellKnownTypes.Any.Pack(newMessage), new TopicId("gh-gh-gh"), "Tests.Events.NewMessageReceived", null, Guid.NewGuid().ToString());
+        var eventType = GetFullName(typeof(NewMessageReceived));
+        var inputEvent = CloudEventExtensions.CreateCloudEvent(
+            Google.Protobuf.WellKnownTypes.Any.Pack(newMessage),
+            new TopicId(eventType, "gh-gh-gh"),
+            eventType,
+            null,
+            Guid.NewGuid().ToString());
 
         client.AddMessage(new Message { CloudEvent = inputEvent });
         var newMessageReceived = await client.ReadNext();
@@ -62,7 +68,14 @@ public class GrpcGatewayServiceTests
         // Simulate an agent, by publishing a new message in the request stream
         //var helloEvent = new Hello { Message = $"Hello test-{client.CallContext.Peer}" }.ToCloudEvent("gh-gh-gh", "gh-gh-gh");
         var hello = new Hello { Message = $"Hello test-{client.CallContext.Peer}" };
-        var helloEvent = CloudEventExtensions.CreateCloudEvent(Google.Protobuf.WellKnownTypes.Any.Pack(hello), new TopicId("gh-gh-gh"), "Tests.Events.Hello", null, Guid.NewGuid().ToString());
+        var eventTypeHello = GetFullName(typeof(Hello));
+        var helloEvent = CloudEventExtensions.CreateCloudEvent(
+            Google.Protobuf.WellKnownTypes.Any.Pack(message: hello),
+            new TopicId(eventTypeHello, "gh-gh-gh"),
+            eventTypeHello,
+            null,
+            Guid.NewGuid().ToString()
+        );
         client.AddMessage(new Message { CloudEvent = helloEvent });
         var helloMessageReceived = await client.ReadNext();
         helloMessageReceived!.CloudEvent.Type.Should().Be(GetFullName(typeof(Hello)));
@@ -117,6 +130,7 @@ public class GrpcGatewayServiceTests
         var eventTypes = Abstractions.ReflectionHelper.GetAgentsMetadata(assembly);
         var events = eventTypes.GetEventsForAgent(type)?.ToList();
         var topics = eventTypes.GetTopicsForAgent(type)?.ToList();
+        var topicsPrefix = eventTypes.GetTopicsPrefixForAgent(type)?.ToList();
         if (events is not null && topics is not null) { events.AddRange(topics); }
         var client = new TestGrpcClient();
 
@@ -140,7 +154,7 @@ public class GrpcGatewayServiceTests
                 await service.AddSubscription(subscriptionRequest, client.CallContext);
             }
         }
-        var topicTypes = type.GetCustomAttributes(typeof(TopicSubscriptionAttribute), true).Cast<TopicSubscriptionAttribute>().Select(t => t.Topic).ToList();
+        var topicTypes = type.GetCustomAttributes(typeof(TypeSubscriptionAttribute), true).Cast<TypeSubscriptionAttribute>().Select(t => t.Topic).ToList();
         if (topicTypes != null)
         {
             foreach (var topicType in topicTypes)
@@ -153,7 +167,28 @@ public class GrpcGatewayServiceTests
                         TypeSubscription = new Protobuf.TypeSubscription
                         {
                             AgentType = type.Name,
-                            TopicType = type.Name
+                            TopicType = topicType
+                        }
+                    }
+
+                };
+                await service.AddSubscription(subscriptionRequest, client.CallContext);
+            }
+        }
+        var topicPrefixTypes = type.GetCustomAttributes(typeof(TypePrefixSubscriptionAttribute), true).Cast<TypePrefixSubscriptionAttribute>().Select(t => t.Topic).ToList();
+        if (topicPrefixTypes != null)
+        {
+            foreach (var topicType in topicPrefixTypes)
+            {
+                var subscriptionRequest = new AddSubscriptionRequest
+                {
+                    Subscription = new Subscription
+                    {
+                        Id = Guid.NewGuid().ToString(),
+                        TypePrefixSubscription = new Protobuf.TypePrefixSubscription
+                        {
+                            AgentType = type.Name,
+                            TopicTypePrefix = topicType
                         }
                     }
 

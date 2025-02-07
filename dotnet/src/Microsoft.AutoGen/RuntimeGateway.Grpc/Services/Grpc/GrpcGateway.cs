@@ -480,8 +480,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     /// <param name="connection">The worker connection.</param>
     /// <param name="cloudEvent">The cloud event.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public async Task WriteResponseAsync(GrpcWorkerConnection connection, CloudEvent cloudEvent)
+    public async Task WriteResponseAsync(IConnection connection, CloudEvent cloudEvent)
     {
-        await WriteResponseAsync(connection, cloudEvent, default).ConfigureAwait(false);
+        await WriteResponseAsync((GrpcWorkerConnection)connection, cloudEvent, default).ConfigureAwait(false);
     }
 }

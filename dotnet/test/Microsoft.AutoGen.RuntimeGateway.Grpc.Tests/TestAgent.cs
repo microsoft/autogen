@@ -19,7 +19,8 @@ public class PBAgent(Contracts.AgentId id, IAgentRuntime runtime, ILogger<BaseAg
         var key = messageContext.MessageId ?? Guid.NewGuid().ToString();
         ReceivedMessages.AddOrUpdate(key, item.Message, (k, v) => item.Message);
         var hello = new Hello { Message = item.Message };
-        await PublishMessageAsync(hello, new TopicId("gh-gh-gh"));
+        var typeFullName = typeof(Hello).FullName ?? throw new InvalidOperationException("Type full name is null");
+        await PublishMessageAsync(hello, new TopicId(typeFullName), "gh-gh-gh");
     }
     public async ValueTask HandleAsync(GoodBye item, MessageContext context)
     {
@@ -37,7 +38,8 @@ public class GMAgent(Contracts.AgentId id, IAgentRuntime runtime, ILogger<BaseAg
     {
         var key = messageContext.MessageId ?? Guid.NewGuid().ToString();
         ReceivedMessages.AddOrUpdate(key, item.Message, (k, v) => item.Message);
-        await PublishMessageAsync(new GoodBye { Message = "" }, new TopicId("gh-gh-gh"));
+        var typeFullName = typeof(GoodBye).FullName ?? throw new InvalidOperationException("Type full name is null");
+        await PublishMessageAsync(new GoodBye { Message = "" }, new TopicId(typeFullName, "gh-gh-gh"));
     }
     public static ConcurrentDictionary<string, object> ReceivedMessages { get; private set; } = new();
 }

@@ -54,7 +54,7 @@ public sealed class ReflectionHelper
                                .Where(type => IsSubclassOfGeneric(type, typeof(BaseAgent)) && !type.IsAbstract)
                                .Select(t => (t, t.GetCustomAttributes<TypePrefixSubscriptionAttribute>().Select(a => a.Topic).ToHashSet()))
                                .ToDictionary(item => item.t, item => item.Item2);
-        return new AgentsMetadata(typeRegistry, types, eventsMap, topicsMap);
+        return new AgentsMetadata(typeRegistry, types, eventsMap, topicsMap, topicsPrefixMap);
     }
 
     /// <summary>
