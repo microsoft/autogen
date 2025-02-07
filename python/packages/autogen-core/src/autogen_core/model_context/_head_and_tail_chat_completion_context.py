@@ -1,11 +1,21 @@
 from typing import List
 
+from pydantic import BaseModel
+from typing_extensions import Self
+
+from .._component_config import Component
 from .._types import FunctionCall
 from ..models import AssistantMessage, FunctionExecutionResultMessage, LLMMessage, UserMessage
 from ._chat_completion_context import ChatCompletionContext
 
 
-class HeadAndTailChatCompletionContext(ChatCompletionContext):
+class HeadAndTailChatCompletionContextConfig(BaseModel):
+    head_size: int
+    tail_size: int
+    initial_messages: List[LLMMessage] | None = None
+
+
+class HeadAndTailChatCompletionContext(ChatCompletionContext, Component[HeadAndTailChatCompletionContextConfig]):
     """A chat completion context that keeps a view of the first n and last m messages,
     where n is the head size and m is the tail size. The head and tail sizes
     are set at initialization.
@@ -15,6 +25,9 @@ class HeadAndTailChatCompletionContext(ChatCompletionContext):
         tail_size (int): The size of the tail.
         initial_messages (List[LLMMessage] | None): The initial messages.
     """
+
+    component_config_schema = HeadAndTailChatCompletionContextConfig
+    component_provider_override = "autogen_core.model_context.HeadAndTailChatCompletionContext"
 
     def __init__(self, head_size: int, tail_size: int, initial_messages: List[LLMMessage] | None = None) -> None:
         super().__init__(initial_messages)
@@ -52,3 +65,12 @@ class HeadAndTailChatCompletionContext(ChatCompletionContext):
 
         placeholder_messages = [UserMessage(content=f"Skipped {num_skipped} messages.", source="System")]
         return head_messages + placeholder_messages + tail_messages
+
+    def _to_config(self) -> HeadAndTailChatCompletionContextConfig:
+        return HeadAndTailChatCompletionContextConfig(
+            head_size=self._head_size, tail_size=self._tail_size, initial_messages=self._messages
+        )
+
+    @classmethod
+    def _from_config(cls, config: HeadAndTailChatCompletionContextConfig) -> Self:
+        return cls(head_size=config.head_size, tail_size=config.tail_size, initial_messages=config.initial_messages)

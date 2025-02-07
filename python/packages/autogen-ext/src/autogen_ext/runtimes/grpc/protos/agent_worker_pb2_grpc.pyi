@@ -4,7 +4,7 @@ isort:skip_file
 """
 
 import abc
-import agent_worker_pb2
+from . import agent_worker_pb2
 import collections.abc
 import grpc
 import grpc.aio
@@ -24,14 +24,29 @@ class AgentRpcStub:
         agent_worker_pb2.Message,
     ]
 
-    GetState: grpc.UnaryUnaryMultiCallable[
-        agent_worker_pb2.AgentId,
-        agent_worker_pb2.GetStateResponse,
+    OpenControlChannel: grpc.StreamStreamMultiCallable[
+        agent_worker_pb2.ControlMessage,
+        agent_worker_pb2.ControlMessage,
     ]
 
-    SaveState: grpc.UnaryUnaryMultiCallable[
-        agent_worker_pb2.AgentState,
-        agent_worker_pb2.SaveStateResponse,
+    RegisterAgent: grpc.UnaryUnaryMultiCallable[
+        agent_worker_pb2.RegisterAgentTypeRequest,
+        agent_worker_pb2.RegisterAgentTypeResponse,
+    ]
+
+    AddSubscription: grpc.UnaryUnaryMultiCallable[
+        agent_worker_pb2.AddSubscriptionRequest,
+        agent_worker_pb2.AddSubscriptionResponse,
+    ]
+
+    RemoveSubscription: grpc.UnaryUnaryMultiCallable[
+        agent_worker_pb2.RemoveSubscriptionRequest,
+        agent_worker_pb2.RemoveSubscriptionResponse,
+    ]
+
+    GetSubscriptions: grpc.UnaryUnaryMultiCallable[
+        agent_worker_pb2.GetSubscriptionsRequest,
+        agent_worker_pb2.GetSubscriptionsResponse,
     ]
 
 class AgentRpcAsyncStub:
@@ -40,14 +55,29 @@ class AgentRpcAsyncStub:
         agent_worker_pb2.Message,
     ]
 
-    GetState: grpc.aio.UnaryUnaryMultiCallable[
-        agent_worker_pb2.AgentId,
-        agent_worker_pb2.GetStateResponse,
+    OpenControlChannel: grpc.aio.StreamStreamMultiCallable[
+        agent_worker_pb2.ControlMessage,
+        agent_worker_pb2.ControlMessage,
     ]
 
-    SaveState: grpc.aio.UnaryUnaryMultiCallable[
-        agent_worker_pb2.AgentState,
-        agent_worker_pb2.SaveStateResponse,
+    RegisterAgent: grpc.aio.UnaryUnaryMultiCallable[
+        agent_worker_pb2.RegisterAgentTypeRequest,
+        agent_worker_pb2.RegisterAgentTypeResponse,
+    ]
+
+    AddSubscription: grpc.aio.UnaryUnaryMultiCallable[
+        agent_worker_pb2.AddSubscriptionRequest,
+        agent_worker_pb2.AddSubscriptionResponse,
+    ]
+
+    RemoveSubscription: grpc.aio.UnaryUnaryMultiCallable[
+        agent_worker_pb2.RemoveSubscriptionRequest,
+        agent_worker_pb2.RemoveSubscriptionResponse,
+    ]
+
+    GetSubscriptions: grpc.aio.UnaryUnaryMultiCallable[
+        agent_worker_pb2.GetSubscriptionsRequest,
+        agent_worker_pb2.GetSubscriptionsResponse,
     ]
 
 class AgentRpcServicer(metaclass=abc.ABCMeta):
@@ -59,17 +89,38 @@ class AgentRpcServicer(metaclass=abc.ABCMeta):
     ) -> typing.Union[collections.abc.Iterator[agent_worker_pb2.Message], collections.abc.AsyncIterator[agent_worker_pb2.Message]]: ...
 
     @abc.abstractmethod
-    def GetState(
+    def OpenControlChannel(
         self,
-        request: agent_worker_pb2.AgentId,
+        request_iterator: _MaybeAsyncIterator[agent_worker_pb2.ControlMessage],
         context: _ServicerContext,
-    ) -> typing.Union[agent_worker_pb2.GetStateResponse, collections.abc.Awaitable[agent_worker_pb2.GetStateResponse]]: ...
+    ) -> typing.Union[collections.abc.Iterator[agent_worker_pb2.ControlMessage], collections.abc.AsyncIterator[agent_worker_pb2.ControlMessage]]: ...
 
     @abc.abstractmethod
-    def SaveState(
+    def RegisterAgent(
         self,
-        request: agent_worker_pb2.AgentState,
+        request: agent_worker_pb2.RegisterAgentTypeRequest,
         context: _ServicerContext,
-    ) -> typing.Union[agent_worker_pb2.SaveStateResponse, collections.abc.Awaitable[agent_worker_pb2.SaveStateResponse]]: ...
+    ) -> typing.Union[agent_worker_pb2.RegisterAgentTypeResponse, collections.abc.Awaitable[agent_worker_pb2.RegisterAgentTypeResponse]]: ...
+
+    @abc.abstractmethod
+    def AddSubscription(
+        self,
+        request: agent_worker_pb2.AddSubscriptionRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[agent_worker_pb2.AddSubscriptionResponse, collections.abc.Awaitable[agent_worker_pb2.AddSubscriptionResponse]]: ...
+
+    @abc.abstractmethod
+    def RemoveSubscription(
+        self,
+        request: agent_worker_pb2.RemoveSubscriptionRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[agent_worker_pb2.RemoveSubscriptionResponse, collections.abc.Awaitable[agent_worker_pb2.RemoveSubscriptionResponse]]: ...
+
+    @abc.abstractmethod
+    def GetSubscriptions(
+        self,
+        request: agent_worker_pb2.GetSubscriptionsRequest,
+        context: _ServicerContext,
+    ) -> typing.Union[agent_worker_pb2.GetSubscriptionsResponse, collections.abc.Awaitable[agent_worker_pb2.GetSubscriptionsResponse]]: ...
 
 def add_AgentRpcServicer_to_server(servicer: AgentRpcServicer, server: typing.Union[grpc.Server, grpc.aio.Server]) -> None: ...

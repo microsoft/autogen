@@ -8,17 +8,15 @@ using Microsoft.Extensions.AI;
 namespace Hello;
 [TopicSubscription("agents")]
 public class HelloAIAgent(
-    IAgentWorker worker,
-    [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
+    [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry,
     IHostApplicationLifetime hostApplicationLifetime,
     IChatClient client) : HelloAgent(
-        worker,
         typeRegistry,
         hostApplicationLifetime),
         IHandle<NewMessageReceived>
 {
     // This Handle supercedes the one in the base class
-    public new async Task Handle(NewMessageReceived item)
+    public new async Task Handle(NewMessageReceived item, CancellationToken cancellationToken = default)
     {
         var prompt = "Please write a limerick greeting someone with the name " + item.Message;
         var response = await client.CompleteAsync(prompt);

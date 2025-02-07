@@ -1,0 +1,48 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "magentic-one-cli"
+version = "0.2.3"
+license = {file = "LICENSE-CODE"}
+description = "Magentic-One is a generalist multi-agent system, built on `AutoGen-AgentChat`, for solving complex web and file-based tasks. This package installs the `m1` command-line utility to quickly get started with Magentic-One."
+readme = "README.md"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dependencies = [
+    "pyyaml>=5.1",
+    "autogen-agentchat>=0.4.4,<0.5",
+    "autogen-ext[openai,magentic-one,rich]>=0.4.4,<0.5",
+]
+
+[project.scripts]
+m1 = "magentic_one_cli._m1:main"
+
+[dependency-groups]
+dev = [
+    "types-PyYAML",
+]
+
+[tool.ruff]
+extend = "../../pyproject.toml"
+include = ["src/**", "tests/*.py"]
+
+[tool.pyright]
+extends = "../../pyproject.toml"
+include = ["src"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+testpaths = ["tests"]
+
+[tool.poe]
+include = "../../shared_tasks.toml"
+
+[tool.poe.tasks]
+mypy = "mypy --config-file $POE_ROOT/../../pyproject.toml src"
+test = "true"

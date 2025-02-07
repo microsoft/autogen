@@ -1,4 +1,5 @@
 import inspect
+from functools import partial
 from typing import Annotated, List
 
 import pytest
@@ -109,6 +110,67 @@ def test_func_tool_schema_generation_only_default_arg() -> None:
     assert "required" not in schema["parameters"]
 
 
+def test_func_tool_with_partial_positional_arguments_schema_generation() -> None:
+    """Test correct schema generation for a partial function with positional arguments."""
+
+    def get_weather(country: str, city: str) -> str:
+        return f"The temperature in {city}, {country} is 75°"
+
+    partial_function = partial(get_weather, "Germany")
+    tool = FunctionTool(partial_function, description="Partial function tool.")
+    schema = tool.schema
+
+    assert schema["name"] == "get_weather"
+    assert "description" in schema
+    assert schema["description"] == "Partial function tool."
+    assert "parameters" in schema
+    assert schema["parameters"]["type"] == "object"
+    assert schema["parameters"]["properties"].keys() == {"city"}
+    assert schema["parameters"]["properties"]["city"]["type"] == "string"
+    assert schema["parameters"]["properties"]["city"]["description"] == "city"
+    assert "required" in schema["parameters"]
+    assert schema["parameters"]["required"] == ["city"]
+    assert "country" not in schema["parameters"]["properties"]  # check country not in schema params
+    assert len(schema["parameters"]["properties"]) == 1
+
+
+def test_func_call_tool_with_kwargs_schema_generation() -> None:
+    """Test correct schema generation for a partial function with kwargs."""
+
+    def get_weather(country: str, city: str) -> str:
+        return f"The temperature in {city}, {country} is 75°"
+
+    partial_function = partial(get_weather, country="Germany")
+    tool = FunctionTool(partial_function, description="Partial function tool.")
+    schema = tool.schema
+
+    assert schema["name"] == "get_weather"
+    assert "description" in schema
+    assert schema["description"] == "Partial function tool."
+    assert "parameters" in schema
+    assert schema["parameters"]["type"] == "object"
+    assert schema["parameters"]["properties"].keys() == {"country", "city"}
+    assert schema["parameters"]["properties"]["city"]["type"] == "string"
+    assert schema["parameters"]["properties"]["country"]["type"] == "string"
+    assert "required" in schema["parameters"]
+    assert schema["parameters"]["required"] == ["city"]  # only city is required
+    assert len(schema["parameters"]["properties"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_run_func_call_tool_with_kwargs_and_args() -> None:
+    """Test run partial function with kwargs and args."""
+
+    def get_weather(country: str, city: str, unit: str = "Celsius") -> str:
+        return f"The temperature in {city}, {country} is 75° {unit}"
+
+    partial_function = partial(get_weather, "Germany", unit="Fahrenheit")
+    tool = FunctionTool(partial_function, description="Partial function tool.")
+    result = await tool.run_json({"city": "Berlin"}, CancellationToken())
+    assert isinstance(result, str)
+    assert result == "The temperature in Berlin, Germany is 75° Fahrenheit"
+
+
 @pytest.mark.asyncio
 async def test_tool_run() -> None:
     tool = MyTool()
@@ -162,6 +224,48 @@ def test_get_typed_signature_string() -> None:
     assert isinstance(sig, inspect.Signature)
     assert len(sig.parameters) == 0
     assert sig.return_annotation is str
+
+
+def test_get_typed_signature_params() -> None:
+    def my_function(arg: str) -> None:
+        return None
+
+    sig = get_typed_signature(my_function)
+    assert isinstance(sig, inspect.Signature)
+    assert sig.return_annotation is type(None)
+    assert len(sig.parameters) == 1
+    assert sig.parameters["arg"].annotation is str
+
+
+def test_get_typed_signature_two_params() -> None:
+    def my_function(arg: str, arg2: int) -> None:
+        return None
+
+    sig = get_typed_signature(my_function)
+    assert isinstance(sig, inspect.Signature)
+    assert len(sig.parameters) == 2
+    assert sig.parameters["arg"].annotation is str
+    assert sig.parameters["arg2"].annotation is int
+
+
+def test_get_typed_signature_param_str() -> None:
+    def my_function(arg: "str") -> None:
+        return None
+
+    sig = get_typed_signature(my_function)
+    assert isinstance(sig, inspect.Signature)
+    assert len(sig.parameters) == 1
+    assert sig.parameters["arg"].annotation is str
+
+
+def test_get_typed_signature_param_annotated() -> None:
+    def my_function(arg: Annotated[str, "An arg"]) -> None:
+        return None
+
+    sig = get_typed_signature(my_function)
+    assert isinstance(sig, inspect.Signature)
+    assert len(sig.parameters) == 1
+    assert sig.parameters["arg"].annotation == Annotated[str, "An arg"]
 
 
 def test_func_tool() -> None:
@@ -227,7 +331,7 @@ def test_func_tool_return_none() -> None:
     assert tool.name == "my_function"
     assert tool.description == "Function tool."
     assert issubclass(tool.args_type(), BaseModel)
-    assert tool.return_type() is None
+    assert tool.return_type() is type(None)
     assert tool.state_type() is None
 
 

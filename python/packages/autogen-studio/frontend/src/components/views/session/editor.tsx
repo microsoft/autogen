@@ -18,33 +18,12 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
   onSave,
   onCancel,
   isOpen,
+  teams,
 }) => {
   const [form] = Form.useForm();
-  const [teams, setTeams] = useState<Team[]>([]);
   const [loading, setLoading] = useState(false);
   const { user } = useContext(appContext);
   const [messageApi, contextHolder] = message.useMessage();
-
-  // Fetch teams when modal opens
-  useEffect(() => {
-    const fetchTeams = async () => {
-      if (isOpen) {
-        try {
-          setLoading(true);
-          const userId = user?.email || "";
-          const teamsData = await teamAPI.listTeams(userId);
-          setTeams(teamsData);
-        } catch (error) {
-          messageApi.error("Error loading teams");
-          console.error("Error loading teams:", error);
-        } finally {
-          setLoading(false);
-        }
-      }
-    };
-
-    fetchTeams();
-  }, [isOpen, user?.email]);
 
   // Set form values when modal opens or session changes
   useEffect(() => {
@@ -132,7 +111,7 @@ export const SessionEditor: React.FC<SessionEditorProps> = ({
               }
               options={teams.map((team) => ({
                 value: team.id,
-                label: `${team.config.name} (${team.config.team_type})`,
+                label: `${team.component.label} (${team.component.component_type})`,
               }))}
               notFoundContent={loading ? <Spin size="small" /> : null}
             />

@@ -12,8 +12,8 @@ on:
           - autogen-core
           - autogen-ext
           - agbench
-          - autogen-magentic-one
           - autogen-studio
+          - magentic-one-cli
       ref:
         description: 'Tag to deploy'
         required: true
@@ -32,9 +32,10 @@ jobs:
           ref: ${{ github.event.inputs.ref }}
       # Require ref to be a tag
       - run: git show-ref --verify refs/tags/${{ github.event.inputs.ref }}
-      - uses: astral-sh/setup-uv@v3
+      - uses: astral-sh/setup-uv@v5
         with:
           enable-cache: true
+          version: "0.5.18"
       - run: uv build --package ${{ github.event.inputs.package }} --out-dir dist/
         working-directory: python
       - name: Publish package to PyPI

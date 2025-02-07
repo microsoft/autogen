@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import warnings
 from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union
 
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken
@@ -8,7 +9,9 @@ from autogen_core.models import (
     ChatCompletionClient,
     CreateResult,
     LLMMessage,
-    ModelCapabilities,
+    ModelCapabilities,  # type: ignore
+    ModelFamily,
+    ModelInfo,
     RequestUsage,
 )
 from autogen_core.tools import Tool, ToolSchema
@@ -37,8 +40,8 @@ class ReplayChatCompletionClient(ChatCompletionClient):
 
         .. code-block:: python
 
-            from autogen_ext.models.replay import ReplayChatCompletionClient
             from autogen_core.models import UserMessage
+            from autogen_ext.models.replay import ReplayChatCompletionClient
 
 
             async def example():
@@ -57,8 +60,8 @@ class ReplayChatCompletionClient(ChatCompletionClient):
         .. code-block:: python
 
             import asyncio
-            from autogen_ext.models.replay import ReplayChatCompletionClient
             from autogen_core.models import UserMessage
+            from autogen_ext.models.replay import ReplayChatCompletionClient
 
 
             async def example():
@@ -83,8 +86,8 @@ class ReplayChatCompletionClient(ChatCompletionClient):
         .. code-block:: python
 
             import asyncio
-            from autogen_ext.models.replay import ReplayChatCompletionClient
             from autogen_core.models import UserMessage
+            from autogen_ext.models.replay import ReplayChatCompletionClient
 
 
             async def example():
@@ -119,15 +122,19 @@ class ReplayChatCompletionClient(ChatCompletionClient):
     ):
         self.chat_completions = list(chat_completions)
         self.provided_message_count = len(self.chat_completions)
-        self._model_capabilities = ModelCapabilities(vision=False, function_calling=False, json_output=False)
+        self._model_info = ModelInfo(
+            vision=False, function_calling=False, json_output=False, family=ModelFamily.UNKNOWN
+        )
         self._total_available_tokens = 10000
         self._cur_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._current_index = 0
+        self._cached_bool_value = True
 
     async def create(
         self,
         messages: Sequence[LLMMessage],
+        *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
@@ -142,7 +149,9 @@ class ReplayChatCompletionClient(ChatCompletionClient):
         if isinstance(response, str):
             _, output_token_count = self._tokenize(response)
             self._cur_usage = RequestUsage(prompt_tokens=prompt_token_count, completion_tokens=output_token_count)
-            response = CreateResult(finish_reason="stop", content=response, usage=self._cur_usage, cached=True)
+            response = CreateResult(
+                finish_reason="stop", content=response, usage=self._cur_usage, cached=self._cached_bool_value
+            )
         else:
             self._cur_usage = RequestUsage(
                 prompt_tokens=prompt_token_count, completion_tokens=response.usage.completion_tokens
@@ -155,6 +164,7 @@ class ReplayChatCompletionClient(ChatCompletionClient):
     async def create_stream(
         self,
         messages: Sequence[LLMMessage],
+        *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
@@ -175,6 +185,9 @@ class ReplayChatCompletionClient(ChatCompletionClient):
                     yield token + " "
                 else:
                     yield token
+            yield CreateResult(
+                finish_reason="stop", content=response, usage=self._cur_usage, cached=self._cached_bool_value
+            )
             self._update_total_usage()
         else:
             self._cur_usage = RequestUsage(
@@ -191,14 +204,17 @@ class ReplayChatCompletionClient(ChatCompletionClient):
     def total_usage(self) -> RequestUsage:
         return self._total_usage
 
-    def count_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+    def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         _, token_count = self._tokenize(messages)
         return token_count
 
-    def remaining_tokens(self, messages: Sequence[LLMMessage], tools: Sequence[Tool | ToolSchema] = []) -> int:
+    def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         return max(
             0, self._total_available_tokens - self._total_usage.prompt_tokens - self._total_usage.completion_tokens
         )
+
+    def set_cached_bool_value(self, value: bool) -> None:
+        self._cached_bool_value = value
 
     def _tokenize(self, messages: Union[str, LLMMessage, Sequence[LLMMessage]]) -> tuple[list[str], int]:
         total_tokens = 0
@@ -213,7 +229,7 @@ class ReplayChatCompletionClient(ChatCompletionClient):
                 total_tokens += len(tokens)
                 all_tokens.extend(tokens)
             else:
-                logger.warning("Token count has been done only on string content", RuntimeWarning)
+                logger.warning("Token count has been done only on string content")
         elif isinstance(messages, Sequence):
             for message in messages:
                 if isinstance(message.content, str):  # type: ignore [reportAttributeAccessIssue, union-attr]
@@ -221,7 +237,7 @@ class ReplayChatCompletionClient(ChatCompletionClient):
                     total_tokens += len(tokens)
                     all_tokens.extend(tokens)
                 else:
-                    logger.warning("Token count has been done only on string content", RuntimeWarning)
+                    logger.warning("Token count has been done only on string content")
         return all_tokens, total_tokens
 
     def _update_total_usage(self) -> None:
@@ -229,9 +245,14 @@ class ReplayChatCompletionClient(ChatCompletionClient):
         self._total_usage.prompt_tokens += self._cur_usage.prompt_tokens
 
     @property
-    def capabilities(self) -> ModelCapabilities:
+    def capabilities(self) -> ModelCapabilities:  # type: ignore
         """Return mock capabilities."""
-        return self._model_capabilities
+        warnings.warn("capabilities is deprecated, use model_info instead", DeprecationWarning, stacklevel=2)
+        return self._model_info
+
+    @property
+    def model_info(self) -> ModelInfo:
+        return self._model_info
 
     def reset(self) -> None:
         """Reset the client state and usage to its initial state."""

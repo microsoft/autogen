@@ -1,7 +1,9 @@
 from typing import Any, AsyncGenerator, List, Mapping, Sequence
 
-from autogen_core import CancellationToken
+from autogen_core import CancellationToken, Component, ComponentModel
 from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
+from pydantic import BaseModel
+from typing_extensions import Self
 
 from autogen_agentchat.base import Response
 from autogen_agentchat.state import SocietyOfMindAgentState
@@ -9,16 +11,26 @@ from autogen_agentchat.state import SocietyOfMindAgentState
 from ..base import TaskResult, Team
 from ..messages import (
     AgentEvent,
+    BaseChatMessage,
     ChatMessage,
-    HandoffMessage,
-    MultiModalMessage,
-    StopMessage,
+    ModelClientStreamingChunkEvent,
     TextMessage,
 )
 from ._base_chat_agent import BaseChatAgent
 
 
-class SocietyOfMindAgent(BaseChatAgent):
+class SocietyOfMindAgentConfig(BaseModel):
+    """The declarative configuration for a SocietyOfMindAgent."""
+
+    name: str
+    team: ComponentModel
+    model_client: ComponentModel
+    description: str
+    instruction: str
+    response_prompt: str
+
+
+class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
     """An agent that uses an inner team of agents to generate responses.
 
     Each time the agent's :meth:`on_messages` or :meth:`on_messages_stream`
@@ -76,6 +88,9 @@ class SocietyOfMindAgent(BaseChatAgent):
         asyncio.run(main())
     """
 
+    component_config_schema = SocietyOfMindAgentConfig
+    component_provider_override = "autogen_agentchat.agents.SocietyOfMindAgent"
+
     DEFAULT_INSTRUCTION = "Earlier you were asked to fulfill a request. You and your team worked diligently to address that request. Here is a transcript of that conversation:"
     """str: The default instruction to use when generating a response using the
     inner team's messages. The instruction will be prepended to the inner team's
@@ -105,8 +120,8 @@ class SocietyOfMindAgent(BaseChatAgent):
         self._response_prompt = response_prompt
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        return [TextMessage]
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+        return (TextMessage,)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         # Call the stream method and collect the messages.
@@ -136,6 +151,9 @@ class SocietyOfMindAgent(BaseChatAgent):
                     # Skip the task messages.
                     continue
                 yield inner_msg
+                if isinstance(inner_msg, ModelClientStreamingChunkEvent):
+                    # Skip the model client streaming chunk events.
+                    continue
                 inner_messages.append(inner_msg)
         assert result is not None
 
@@ -150,7 +168,7 @@ class SocietyOfMindAgent(BaseChatAgent):
                 [
                     UserMessage(content=message.content, source=message.source)
                     for message in inner_messages
-                    if isinstance(message, TextMessage | MultiModalMessage | StopMessage | HandoffMessage)
+                    if isinstance(message, BaseChatMessage)
                 ]
             )
             llm_messages.append(SystemMessage(content=self._response_prompt))
@@ -175,3 +193,26 @@ class SocietyOfMindAgent(BaseChatAgent):
     async def load_state(self, state: Mapping[str, Any]) -> None:
         society_of_mind_state = SocietyOfMindAgentState.model_validate(state)
         await self._team.load_state(society_of_mind_state.inner_team_state)
+
+    def _to_config(self) -> SocietyOfMindAgentConfig:
+        return SocietyOfMindAgentConfig(
+            name=self.name,
+            team=self._team.dump_component(),
+            model_client=self._model_client.dump_component(),
+            description=self.description,
+            instruction=self._instruction,
+            response_prompt=self._response_prompt,
+        )
+
+    @classmethod
+    def _from_config(cls, config: SocietyOfMindAgentConfig) -> Self:
+        model_client = ChatCompletionClient.load_component(config.model_client)
+        team = Team.load_component(config.team)
+        return cls(
+            name=config.name,
+            team=team,
+            model_client=model_client,
+            description=config.description,
+            instruction=config.instruction,
+            response_prompt=config.response_prompt,
+        )

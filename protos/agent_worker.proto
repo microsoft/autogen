@@ -2,15 +2,11 @@ syntax = "proto3";
 
 package agents;
 
-option csharp_namespace = "Microsoft.AutoGen.Contracts";
+option csharp_namespace = "Microsoft.AutoGen.Protobuf";
 
 import "cloudevent.proto";
 import "google/protobuf/any.proto";
 
-message TopicId {
-  string type = 1;
-  string source = 2;
-}
 
 message AgentId {
     string type = 1;
@@ -39,23 +35,11 @@ message RpcResponse {
     map<string, string> metadata = 4;
 }
 
-message Event {
-    string topic_type = 1;
-    string topic_source = 2;
-    optional AgentId source = 3;
-    Payload payload = 4;
-    map<string, string> metadata = 5;
-}
-
 message RegisterAgentTypeRequest {
-    string request_id = 1;
-    string type = 2;
+    string type = 1;
 }
 
 message RegisterAgentTypeResponse {
-    string request_id = 1;
-    bool success = 2;
-    optional string error = 3;
 }
 
 message TypeSubscription {
@@ -69,48 +53,30 @@ message TypePrefixSubscription {
 }
 
 message Subscription {
+    string id = 1;
     oneof subscription {
-        TypeSubscription typeSubscription = 1;
-        TypePrefixSubscription typePrefixSubscription = 2;
+        TypeSubscription typeSubscription = 2;
+        TypePrefixSubscription typePrefixSubscription = 3;
     }
 }
 
 message AddSubscriptionRequest {
-    string request_id = 1;
-    Subscription subscription = 2;
+    Subscription subscription = 1;
 }
 
 message AddSubscriptionResponse {
-    string request_id = 1;
-    bool success = 2;
-    optional string error = 3;
 }
 
-service AgentRpc {
-    rpc OpenChannel (stream Message) returns (stream Message);
-    rpc GetState(AgentId) returns (GetStateResponse);
-    rpc SaveState(AgentState) returns (SaveStateResponse);
+message RemoveSubscriptionRequest {
+    string id = 1;
 }
 
-message AgentState {
-  AgentId agent_id = 1;
-  string eTag = 2;
-  oneof  data {
-    bytes binary_data = 3;
-    string text_data = 4;
-    google.protobuf.Any proto_data = 5;
-  }
+message RemoveSubscriptionResponse {
 }
 
-message GetStateResponse {
-	AgentState agent_state = 1;
-	bool success = 2;
-    optional string error = 3;
-}
-
-message SaveStateResponse {
-	bool success = 1;
-    optional string error = 2;
+message GetSubscriptionsRequest {}
+message GetSubscriptionsResponse {
+    repeated Subscription subscriptions = 1;
 }
 
 message Message {
@@ -118,10 +84,51 @@ message Message {
         RpcRequest request = 1;
         RpcResponse response = 2;
         io.cloudevents.v1.CloudEvent cloudEvent = 3;
-        RegisterAgentTypeRequest registerAgentTypeRequest = 4;
-        RegisterAgentTypeResponse registerAgentTypeResponse = 5;
-        AddSubscriptionRequest addSubscriptionRequest = 6;
-        AddSubscriptionResponse addSubscriptionResponse = 7;
     }
 }
 
+message SaveStateRequest {
+    AgentId agentId = 1;
+}
+
+message SaveStateResponse {
+    string state = 1;
+    optional string error = 2;
+}
+
+message LoadStateRequest {
+    AgentId agentId = 1;
+    string state = 2;
+}
+message LoadStateResponse {
+    optional string error = 1;
+}
+
+message ControlMessage {
+    // A response message should have the same id as the request message
+    string rpc_id = 1;
+    // This is either:
+    // agentid=AGENT_ID
+    // clientid=CLIENT_ID
+    string destination = 2;
+    // This is either:
+    // agentid=AGENT_ID
+    // clientid=CLIENT_ID
+    // Empty string means the message is a response
+    optional string respond_to = 3;
+    // One of:
+    //     SaveStateRequest saveStateRequest = 2;
+    //     SaveStateResponse saveStateResponse = 3;
+    //     LoadStateRequest loadStateRequest = 4;
+    //     LoadStateResponse loadStateResponse = 5;
+    google.protobuf.Any rpcMessage = 4;
+}
+
+service AgentRpc {
+    rpc OpenChannel (stream Message) returns (stream Message);
+    rpc OpenControlChannel (stream ControlMessage) returns (stream ControlMessage);
+    rpc RegisterAgent(RegisterAgentTypeRequest) returns (RegisterAgentTypeResponse);
+    rpc AddSubscription(AddSubscriptionRequest) returns (AddSubscriptionResponse);
+    rpc RemoveSubscription(RemoveSubscriptionRequest) returns (RemoveSubscriptionResponse);
+    rpc GetSubscriptions(GetSubscriptionsRequest) returns (GetSubscriptionsResponse);
+}

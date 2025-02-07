@@ -2,13 +2,14 @@
 # Credit to original authors
 
 import inspect
+import typing
+from functools import partial
 from logging import getLogger
 from typing import (
     Annotated,
     Any,
     Callable,
     Dict,
-    ForwardRef,
     List,
     Optional,
     Set,
@@ -21,31 +22,13 @@ from typing import (
     get_origin,
 )
 
-from pydantic import BaseModel, Field, create_model  # type: ignore
+from pydantic import BaseModel, Field, TypeAdapter, create_model  # type: ignore
 from pydantic_core import PydanticUndefined
 from typing_extensions import Literal
-
-from ._pydantic_compat import evaluate_forwardref, model_dump, type2schema
 
 logger = getLogger(__name__)
 
 T = TypeVar("T")
-
-
-def get_typed_annotation(annotation: Any, globalns: Dict[str, Any]) -> Any:
-    """Get the type annotation of a parameter.
-
-    Args:
-        annotation: The annotation of the parameter
-        globalns: The global namespace of the function
-
-    Returns:
-        The type annotation of the parameter
-    """
-    if isinstance(annotation, str):
-        annotation = ForwardRef(annotation)
-        annotation = evaluate_forwardref(annotation, globalns, globalns)
-    return annotation
 
 
 def get_typed_signature(call: Callable[..., Any]) -> inspect.Signature:
@@ -59,16 +42,18 @@ def get_typed_signature(call: Callable[..., Any]) -> inspect.Signature:
     """
     signature = inspect.signature(call)
     globalns = getattr(call, "__globals__", {})
+    func_call = call.func if isinstance(call, partial) else call
+    type_hints = typing.get_type_hints(func_call, globalns, include_extras=True)
     typed_params = [
         inspect.Parameter(
             name=param.name,
             kind=param.kind,
             default=param.default,
-            annotation=get_typed_annotation(param.annotation, globalns),
+            annotation=type_hints[param.name],
         )
         for param in signature.parameters.values()
     ]
-    return_annotation = get_typed_annotation(signature.return_annotation, globalns)
+    return_annotation = type_hints.get("return", inspect.Signature.empty)
     typed_signature = inspect.Signature(typed_params, return_annotation=return_annotation)
     return typed_signature
 
@@ -89,7 +74,8 @@ def get_typed_return_annotation(call: Callable[..., Any]) -> Any:
         return None
 
     globalns = getattr(call, "__globals__", {})
-    return get_typed_annotation(annotation, globalns)
+    type_hints = typing.get_type_hints(call, globalns, include_extras=True)
+    return type_hints.get("return", inspect.Signature.empty)
 
 
 def get_param_annotations(
@@ -155,7 +141,7 @@ def get_parameter_json_schema(k: str, v: Any, default_values: Dict[str, Any]) ->
         A Pydanitc model for the parameter
     """
 
-    schema = type2schema(v)
+    schema = TypeAdapter(v).json_schema()
     if k in default_values:
         dv = default_values[k]
         schema["default"] = dv
@@ -307,7 +293,7 @@ def get_function_schema(f: Callable[..., Any], *, name: Optional[str] = None, de
         )
     )
 
-    return model_dump(function)
+    return function.model_dump()
 
 
 def normalize_annotated_type(type_hint: Type[Any]) -> Type[Any]:
@@ -320,18 +306,18 @@ def normalize_annotated_type(type_hint: Type[Any]) -> Type[Any]:
 
 def args_base_model_from_signature(name: str, sig: inspect.Signature) -> Type[BaseModel]:
     fields: Dict[str, tuple[Type[Any], Any]] = {}
-    for name, param in sig.parameters.items():
+    for param_name, param in sig.parameters.items():
         # This is handled externally
-        if name == "cancellation_token":
+        if param_name == "cancellation_token":
             continue
 
         if param.annotation is inspect.Parameter.empty:
             raise ValueError("No annotation")
 
         type = normalize_annotated_type(param.annotation)
-        description = type2description(name, param.annotation)
+        description = type2description(param_name, param.annotation)
         default_value = param.default if param.default is not inspect.Parameter.empty else PydanticUndefined
 
-        fields[name] = (type, Field(default=default_value, description=description))
+        fields[param_name] = (type, Field(default=default_value, description=description))
 
     return cast(BaseModel, create_model(name, **fields))  # type: ignore

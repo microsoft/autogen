@@ -109,5 +109,5 @@ Add two numbers.
 ```
 
 For more examples, please check out the following project
-- [AutoGen.BasicSamples](../samples/AutoGen.BasicSamples/)
+- [AutoGen.Basic.Sample](../samples/AgentChat/Autogen.Basic.Sample/)
 - [AutoGen.SourceGenerator.Tests](../../test/AutoGen.SourceGenerator.Tests/)

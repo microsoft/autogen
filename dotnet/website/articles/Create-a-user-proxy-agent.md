@@ -10,7 +10,7 @@
 
 ### Create a `UserProxyAgent` with `HumanInputMode` set to `ALWAYS`
 
-[!code-csharp[](../../samples/AutoGen.BasicSamples/CodeSnippet/UserProxyAgentCodeSnippet.cs?name=code_snippet_1)]
+[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/CodeSnippet/UserProxyAgentCodeSnippet.cs?name=code_snippet_1)]
 
 When running the code, the user proxy agent will ask user for input and use the input as response.
 ![code output](../images/articles/CreateUserProxyAgent/image-1.png)

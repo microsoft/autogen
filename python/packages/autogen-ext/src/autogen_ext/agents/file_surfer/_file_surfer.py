@@ -9,6 +9,7 @@ from autogen_agentchat.messages import (
     MultiModalMessage,
     TextMessage,
 )
+from autogen_agentchat.utils import remove_images
 from autogen_core import CancellationToken, FunctionCall
 from autogen_core.models import (
     AssistantMessage,
@@ -31,7 +32,20 @@ from ._tool_definitions import (
 
 
 class FileSurfer(BaseChatAgent):
-    """An agent, used by MagenticOne, that acts as a local file previewer. FileSurfer can open and read a variety of common file types, and can navigate the local file hierarchy."""
+    """An agent, used by MagenticOne, that acts as a local file previewer. FileSurfer can open and read a variety of common file types, and can navigate the local file hierarchy.
+
+    Installation:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[file-surfer]"
+
+    Args:
+        name (str): The agent's name
+        model_client (ChatCompletionClient): The model to use (must be tool-use enabled)
+        description (str): The agent's description used by the team. Defaults to DEFAULT_DESCRIPTION
+
+    """
 
     DEFAULT_DESCRIPTION = "An agent that can handle local files."
 
@@ -49,22 +63,14 @@ class FileSurfer(BaseChatAgent):
         model_client: ChatCompletionClient,
         description: str = DEFAULT_DESCRIPTION,
     ) -> None:
-        """
-        Initialize the FileSurfer.
-
-        Args:
-            name (str): The agent's name
-            model_client (ChatCompletionClient): The model to use (must be tool-use enabled)
-            description (str): The agent's description used by the team. Defaults to DEFAULT_DESCRIPTION
-        """
         super().__init__(name, description)
         self._model_client = model_client
         self._chat_history: List[LLMMessage] = []
         self._browser = MarkdownFileBrowser(viewport_size=1024 * 5)
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
-        return [TextMessage]
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+        return (TextMessage,)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         for chat_message in messages:
@@ -121,7 +127,7 @@ class FileSurfer(BaseChatAgent):
         )
 
         create_result = await self._model_client.create(
-            messages=history + [context_message, task_message],
+            messages=self._get_compatible_context(history + [context_message, task_message]),
             tools=[
                 TOOL_OPEN_PATH,
                 TOOL_PAGE_DOWN,
@@ -167,3 +173,10 @@ class FileSurfer(BaseChatAgent):
 
         final_response = "TERMINATE"
         return False, final_response
+
+    def _get_compatible_context(self, messages: List[LLMMessage]) -> List[LLMMessage]:
+        """Ensure that the messages are compatible with the underlying client, by removing images if needed."""
+        if self._model_client.model_info["vision"]:
+            return messages
+        else:
+            return remove_images(messages)

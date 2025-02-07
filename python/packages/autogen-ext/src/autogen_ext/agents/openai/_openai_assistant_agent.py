@@ -3,7 +3,6 @@ import json
 import logging
 import os
 from typing import (
-    TYPE_CHECKING,
     Any,
     AsyncGenerator,
     Awaitable,
@@ -12,6 +11,7 @@ from typing import (
     Iterable,
     List,
     Literal,
+    Mapping,
     Optional,
     Sequence,
     Set,
@@ -19,6 +19,7 @@ from typing import (
     cast,
 )
 
+import aiofiles
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
@@ -33,50 +34,32 @@ from autogen_agentchat.messages import (
     ToolCallRequestEvent,
 )
 from autogen_core import CancellationToken, FunctionCall
+from autogen_core.models._model_client import ChatCompletionClient
 from autogen_core.models._types import FunctionExecutionResult
 from autogen_core.tools import FunctionTool, Tool
+from pydantic import BaseModel, Field
 
-_has_openai_dependencies: bool = True
-try:
-    import aiofiles
-
-    from openai import NOT_GIVEN
-    from openai.resources.beta.threads import AsyncMessages, AsyncRuns, AsyncThreads
-    from openai.types.beta.code_interpreter_tool_param import CodeInterpreterToolParam
-    from openai.types.beta.file_search_tool_param import FileSearchToolParam
-    from openai.types.beta.function_tool_param import FunctionToolParam
-    from openai.types.shared_params.function_definition import FunctionDefinition
-except ImportError:
-    _has_openai_dependencies = False
-
-if TYPE_CHECKING:
-    import aiofiles
-
-    from openai import NOT_GIVEN, AsyncClient, NotGiven
-    from openai.pagination import AsyncCursorPage
-    from openai.resources.beta.threads import AsyncMessages, AsyncRuns, AsyncThreads
-    from openai.types import FileObject
-    from openai.types.beta import thread_update_params
-    from openai.types.beta.assistant import Assistant
-    from openai.types.beta.assistant_response_format_option_param import AssistantResponseFormatOptionParam
-    from openai.types.beta.assistant_tool_param import AssistantToolParam
-    from openai.types.beta.code_interpreter_tool_param import CodeInterpreterToolParam
-    from openai.types.beta.file_search_tool_param import FileSearchToolParam
-    from openai.types.beta.function_tool_param import FunctionToolParam
-    from openai.types.beta.thread import Thread, ToolResources, ToolResourcesCodeInterpreter
-    from openai.types.beta.threads import Message, MessageDeleted, Run
-    from openai.types.beta.vector_store import VectorStore
-    from openai.types.shared_params.function_definition import FunctionDefinition
+from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI, NotGiven
+from openai.pagination import AsyncCursorPage
+from openai.resources.beta.threads import AsyncMessages, AsyncRuns, AsyncThreads
+from openai.types import FileObject
+from openai.types.beta import thread_update_params
+from openai.types.beta.assistant import Assistant
+from openai.types.beta.assistant_response_format_option_param import AssistantResponseFormatOptionParam
+from openai.types.beta.assistant_tool_param import AssistantToolParam
+from openai.types.beta.code_interpreter_tool_param import CodeInterpreterToolParam
+from openai.types.beta.file_search_tool_param import FileSearchToolParam
+from openai.types.beta.function_tool_param import FunctionToolParam
+from openai.types.beta.thread import Thread, ToolResources, ToolResourcesCodeInterpreter
+from openai.types.beta.threads import Message, MessageDeleted, Run
+from openai.types.beta.vector_store import VectorStore
+from openai.types.shared_params.function_definition import FunctionDefinition
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 def _convert_tool_to_function_param(tool: Tool) -> "FunctionToolParam":
     """Convert an autogen Tool to an OpenAI Assistant function tool parameter."""
-    if not _has_openai_dependencies:
-        raise RuntimeError(
-            "Missing dependecies for OpenAIAssistantAgent. Please ensure the autogen-ext package was installed with the 'openai' extra."
-        )
 
     schema = tool.schema
     parameters: Dict[str, object] = {}
@@ -96,10 +79,27 @@ def _convert_tool_to_function_param(tool: Tool) -> "FunctionToolParam":
     return FunctionToolParam(type="function", function=function_def)
 
 
-class OpenAIAssistantAgent(BaseChatAgent):
-    """An agent implementation that uses the OpenAI Assistant API to generate responses.
+class OpenAIAssistantAgentState(BaseModel):
+    type: str = Field(default="OpenAIAssistantAgentState")
+    assistant_id: Optional[str] = None
+    thread_id: Optional[str] = None
+    initial_message_ids: List[str] = Field(default_factory=list)
+    vector_store_id: Optional[str] = None
+    uploaded_file_ids: List[str] = Field(default_factory=list)
 
-    This agent leverages the OpenAI Assistant API to create AI assistants with capabilities like:
+
+class OpenAIAssistantAgent(BaseChatAgent):
+    """An agent implementation that uses the Assistant API to generate responses.
+
+    Installation:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[openai]"
+        # pip install "autogen-ext[openai,azure]"  # For Azure OpenAI Assistant
+
+
+    This agent leverages the Assistant API to create AI assistants with capabilities like:
 
     * Code interpretation and execution
     * File handling and search
@@ -121,10 +121,15 @@ class OpenAIAssistantAgent(BaseChatAgent):
     * Vector store integration for efficient file search
     * Automatic file parsing and embedding
 
-    Example:
+    You can use an existing thread or assistant by providing the `thread_id` or `assistant_id` parameters.
+
+    Examples:
+
+        Use the assistant to analyze data in a CSV file:
+
         .. code-block:: python
 
-            from openai import AsyncClient
+            from openai import AsyncOpenAI
             from autogen_core import CancellationToken
             import asyncio
             from autogen_ext.agents.openai import OpenAIAssistantAgent
@@ -135,7 +140,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 cancellation_token = CancellationToken()
 
                 # Create an OpenAI client
-                client = AsyncClient(api_key="your-api-key", base_url="your-base-url")
+                client = AsyncOpenAI(api_key="your-api-key", base_url="your-base-url")
 
                 # Create an assistant with code interpreter
                 assistant = OpenAIAssistantAgent(
@@ -151,9 +156,11 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 await assistant.on_upload_for_code_interpreter("data.csv", cancellation_token)
 
                 # Get response from the assistant
-                _response = await assistant.on_messages(
+                response = await assistant.on_messages(
                     [TextMessage(source="user", content="Analyze the data in data.csv")], cancellation_token
                 )
+
+                print(response)
 
                 # Clean up resources
                 await assistant.delete_uploaded_files(cancellation_token)
@@ -162,14 +169,60 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
             asyncio.run(example())
 
+        Use Azure OpenAI Assistant with AAD authentication:
+
+        .. code-block:: python
+
+            from openai import AsyncAzureOpenAI
+            import asyncio
+            from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+            from autogen_core import CancellationToken
+            from autogen_ext.agents.openai import OpenAIAssistantAgent
+            from autogen_agentchat.messages import TextMessage
+
+
+            async def example():
+                cancellation_token = CancellationToken()
+
+                # Create an Azure OpenAI client
+                token_provider = get_bearer_token_provider(DefaultAzureCredential())
+                client = AsyncAzureOpenAI(
+                    azure_deployment="YOUR_AZURE_DEPLOYMENT",
+                    api_version="YOUR_API_VERSION",
+                    azure_endpoint="YOUR_AZURE_ENDPOINT",
+                    azure_ad_token_provider=token_provider,
+                )
+
+                # Create an assistant with code interpreter
+                assistant = OpenAIAssistantAgent(
+                    name="Python Helper",
+                    description="Helps with Python programming",
+                    client=client,
+                    model="gpt-4o",
+                    instructions="You are a helpful Python programming assistant.",
+                    tools=["code_interpreter"],
+                )
+
+                # Get response from the assistant
+                response = await assistant.on_messages([TextMessage(source="user", content="Hello.")], cancellation_token)
+
+                print(response)
+
+                # Clean up resources
+                await assistant.delete_assistant(cancellation_token)
+
+
+            asyncio.run(example())
+
     Args:
         name (str): Name of the assistant
         description (str): Description of the assistant's purpose
-        client (AsyncClient): OpenAI API client instance
+        client (AsyncOpenAI | AsyncAzureOpenAI): OpenAI client or Azure OpenAI client instance
         model (str): Model to use (e.g. "gpt-4")
         instructions (str): System instructions for the assistant
         tools (Optional[Iterable[Union[Literal["code_interpreter", "file_search"], Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]]]]): Tools the assistant can use
         assistant_id (Optional[str]): ID of existing assistant to use
+        thread_id (Optional[str]): ID of existing thread to use
         metadata (Optional[object]): Additional metadata for the assistant
         response_format (Optional[AssistantResponseFormatOptionParam]): Response format settings
         temperature (Optional[float]): Temperature for response generation
@@ -181,7 +234,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         self,
         name: str,
         description: str,
-        client: "AsyncClient",
+        client: AsyncOpenAI | AsyncAzureOpenAI,
         model: str,
         instructions: str,
         tools: Optional[
@@ -200,9 +253,9 @@ class OpenAIAssistantAgent(BaseChatAgent):
         tool_resources: Optional["ToolResources"] = None,
         top_p: Optional[float] = None,
     ) -> None:
-        if not _has_openai_dependencies:
-            raise RuntimeError(
-                "Missing dependecies for OpenAIAssistantAgent. Please ensure the autogen-ext package was installed with the 'openai' extra."
+        if isinstance(client, ChatCompletionClient):
+            raise ValueError(
+                "Incorrect client passed to OpenAIAssistantAgent. Please use an OpenAI AsyncClient instance instead of an AutoGen ChatCompletionClient instance."
             )
 
         super().__init__(name, description)
@@ -298,9 +351,9 @@ class OpenAIAssistantAgent(BaseChatAgent):
         self._initial_message_ids = initial_message_ids
 
     @property
-    def produced_message_types(self) -> List[type[ChatMessage]]:
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
         """The types of messages that the assistant agent produces."""
-        return [TextMessage]
+        return (TextMessage,)
 
     @property
     def threads(self) -> AsyncThreads:
@@ -503,6 +556,8 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
     async def _upload_files(self, file_paths: str | Iterable[str], cancellation_token: CancellationToken) -> List[str]:
         """Upload files and return their IDs."""
+        await self._ensure_initialized()
+
         if isinstance(file_paths, str):
             file_paths = [file_paths]
 
@@ -524,6 +579,8 @@ class OpenAIAssistantAgent(BaseChatAgent):
         self, file_paths: str | Iterable[str], cancellation_token: CancellationToken
     ) -> None:
         """Handle file uploads for the code interpreter."""
+        await self._ensure_initialized()
+
         file_ids = await self._upload_files(file_paths, cancellation_token)
 
         # Update thread with the new files
@@ -589,6 +646,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
     async def delete_uploaded_files(self, cancellation_token: CancellationToken) -> None:
         """Delete all files that were uploaded by this agent instance."""
+        await self._ensure_initialized()
         for file_id in self._uploaded_file_ids:
             try:
                 await cancellation_token.link_future(asyncio.ensure_future(self._client.files.delete(file_id=file_id)))
@@ -598,6 +656,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
     async def delete_assistant(self, cancellation_token: CancellationToken) -> None:
         """Delete the assistant if it was created by this instance."""
+        await self._ensure_initialized()
         if self._assistant is not None and not self._assistant_id:
             try:
                 await cancellation_token.link_future(
@@ -609,6 +668,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
     async def delete_vector_store(self, cancellation_token: CancellationToken) -> None:
         """Delete the vector store if it was created by this instance."""
+        await self._ensure_initialized()
         if self._vector_store_id is not None:
             try:
                 await cancellation_token.link_future(
@@ -617,3 +677,21 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 self._vector_store_id = None
             except Exception as e:
                 event_logger.error(f"Failed to delete vector store: {str(e)}")
+
+    async def save_state(self) -> Mapping[str, Any]:
+        state = OpenAIAssistantAgentState(
+            assistant_id=self._assistant.id if self._assistant else self._assistant_id,
+            thread_id=self._thread.id if self._thread else self._init_thread_id,
+            initial_message_ids=list(self._initial_message_ids),
+            vector_store_id=self._vector_store_id,
+            uploaded_file_ids=self._uploaded_file_ids,
+        )
+        return state.model_dump()
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        agent_state = OpenAIAssistantAgentState.model_validate(state)
+        self._assistant_id = agent_state.assistant_id
+        self._init_thread_id = agent_state.thread_id
+        self._initial_message_ids = set(agent_state.initial_message_ids)
+        self._vector_store_id = agent_state.vector_store_id
+        self._uploaded_file_ids = agent_state.uploaded_file_ids
