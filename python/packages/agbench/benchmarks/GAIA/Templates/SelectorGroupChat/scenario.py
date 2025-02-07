@@ -122,7 +122,7 @@ If you are asked for a comma separated list, apply the above rules depending on 
 
 
 class LLMTermination(TerminationCondition):
-    """Terminate the conversation if an LLM determines the ask is complete.
+    """Terminate the conversation if an LLM determines the task is complete.
 
     Args:
         prompt: The prompt to evaluate in the llm
