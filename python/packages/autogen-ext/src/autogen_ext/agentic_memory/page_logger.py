@@ -71,9 +71,9 @@ class PageLogger:
     Logs text and images to a set of HTML pages, one per function/method, linked to each other in a call tree.
 
     Args:
-        settings: A dictionary containing the following keys:
+        - config: An optional dict that can be used to override the following values:
             - level: The logging level, one of DEBUG, INFO, WARNING, ERROR, CRITICAL, or NONE.
-            - path: The path to the directory where the log files will be saved.
+            - path: The path to the directory where the log files will be written.
 
     Methods:
         debug: Adds DEBUG text to the current page if debugging level <= DEBUG.
@@ -91,7 +91,7 @@ class PageLogger:
         leave_function: Finishes the page corresponding to the current function call.
     """
 
-    def __init__(self, settings: Dict[str, Any]) -> None:
+    def __init__(self, config: Dict[str, Any] | None = None) -> None:
         self.levels = {
             "DEBUG": 10,
             "INFO": 20,
@@ -100,10 +100,25 @@ class PageLogger:
             "CRITICAL": 50,
             "NONE": 100,
         }
-        self.level = self.levels[settings["level"]]
+
+        # Assign default values that can be overridden by config.
+        self.level = self.levels["NONE"]  # Default to no logging at all.
+        self.log_dir = os.path.expanduser("~/pagelogs/temp")
+
+        if config is not None:
+            # Apply any overrides from the config.
+            for key in config:
+                if key == "level":
+                    self.level = self.levels[config[key]]
+                elif key == "path":
+                    self.log_dir = os.path.expanduser(config[key])
+                else:
+                    raise ValueError(f"Unknown key in PageLogger config: {key}")
+
+        # If the log level is set to NONE or higher, don't log anything.
         if self.level >= self.levels["NONE"]:
             return
-        self.log_dir = os.path.expanduser(settings["path"])
+
         self.page_stack = PageStack()
         self.pages: List[Page] = []
         self.last_page_id = 0

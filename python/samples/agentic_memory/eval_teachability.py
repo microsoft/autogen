@@ -75,7 +75,7 @@ async def run_example(settings_filepath: str) -> None:
     # Create the necessary components.
     logger = PageLogger(settings["PageLogger"])
     client = create_oai_client(settings["client"])
-    apprentice = Apprentice(settings["Apprentice"], client, logger)
+    apprentice = Apprentice(client, settings["Apprentice"], logger)
 
     # Call the example function.
     results = await eval_teachability(apprentice, client, logger, settings["test"])

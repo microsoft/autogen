@@ -21,7 +21,7 @@ class Prompter:
 
     Args:
         client: The client to call the model.
-        logger: The logger to log the model calls.
+        logger: An optional logger. If None, no logging will be performed.
 
     Methods:
         call_model: Calls the model client with the given input and returns the response.
@@ -33,9 +33,12 @@ class Prompter:
         extract_advice: Returns advice from the given text, or None if not found.
     """
 
-    def __init__(self, client: ChatCompletionClient, logger: PageLogger):
-        self.client = client
+    def __init__(self, client: ChatCompletionClient, logger: PageLogger | None = None) -> None:
+        if logger is None:
+            logger = PageLogger()  # Nothing will be logged by this object.
         self.logger = logger
+
+        self.client = client
         self.default_system_message_content = "You are a helpful assistant."
         self.time_spent_in_model_calls = 0.0
         self.num_model_calls = 0

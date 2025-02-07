@@ -24,9 +24,13 @@ class AgenticMemoryBank:
     Stores task-completion insights in a vector DB for later retrieval.
 
     Args:
-        - settings: Settings for the memory bank.
         - reset: True to clear the DB before starting.
-        - logger: The PageLogger object to use for logging.
+        - config: An optional dict that can be used to override the following values:
+            - path: The path to the directory where the memory bank files are stored.
+            - relevance_conversion_threshold: The threshold used to normalize relevance.
+            - n_results: The maximum number of most relevant results to return for any given topic.
+            - distance_threshold: The maximum topic-insight distance for an insight to be retrieved.
+        - logger: An optional logger. If None, no logging will be performed.
 
     Methods:
         - reset: Forces immediate deletion of all contents, in memory and on disk.
@@ -37,15 +41,36 @@ class AgenticMemoryBank:
         - get_relevant_insights: Returns any insights from the memory bank that appear sufficiently relevant to the given task topics.
     """
 
-    def __init__(self, settings: Dict[str, Any], reset: bool, logger: PageLogger) -> None:
-        self.settings = settings
+    def __init__(
+        self,
+        reset: bool,
+        config: Dict[str, Any] | None = None,
+        logger: PageLogger | None = None,
+    ) -> None:
+        if logger is None:
+            logger = PageLogger()  # Nothing will be logged by this object.
         self.logger = logger
         self.logger.enter_function()
 
-        memory_dir_path = os.path.expanduser(self.settings["path"])
-        self.relevance_conversion_threshold = self.settings["relevance_conversion_threshold"]
-        self.n_results = self.settings["n_results"]
-        self.distance_threshold = self.settings["distance_threshold"]
+        # Assign default values that can be overridden by config.
+        memory_dir_path = os.path.expanduser("~/agentic_memory/temp")
+        self.relevance_conversion_threshold = 1.7
+        self.n_results = 25
+        self.distance_threshold = 100
+
+        if config is not None:
+            # Apply any overrides from the config.
+            for key in config:
+                if key == "path":
+                    memory_dir_path = os.path.expanduser(config[key])
+                elif key == "relevance_conversion_threshold":
+                    self.relevance_conversion_threshold = config[key]
+                elif key == "n_results":
+                    self.n_results = config[key]
+                elif key == "distance_threshold":
+                    self.distance_threshold = config[key]
+                else:
+                    self.logger.error('Unexpected item in config: ["{}"] = {}'.format(key, config[key]))
 
         path_to_db_dir = os.path.join(memory_dir_path, "string_map")
         self.path_to_dict = os.path.join(memory_dir_path, "uid_insight_dict.pkl")

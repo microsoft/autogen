@@ -37,7 +37,6 @@ async def eval_learning_from_demonstration(
         num_trials=num_trials,
         use_memory=True,
         client=client,
-        logger=logger,
     )
     success_rate = round((num_successes / num_trials) * 100)
     results_str_1 = "Success rate before demonstration:  {}%".format(success_rate)
@@ -56,7 +55,6 @@ async def eval_learning_from_demonstration(
         num_trials=num_trials,
         use_memory=True,
         client=client,
-        logger=logger,
     )
     success_rate = round((num_successes / num_trials) * 100)
     results_str_2 = "Success rate after demonstration:  {}%".format(success_rate)
@@ -75,7 +73,7 @@ async def run_example(settings_filepath: str) -> None:
     # Create the necessary components.
     logger = PageLogger(settings["PageLogger"])
     client = create_oai_client(settings["client"])
-    apprentice = Apprentice(settings["Apprentice"], client, logger)
+    apprentice = Apprentice(client, settings["Apprentice"], logger)
 
     # Call the example function.
     results = await eval_learning_from_demonstration(apprentice, client, logger, settings["test"])

@@ -15,11 +15,14 @@ class AgenticMemoryController:
     Manages memory-based learning, testing, and the flow of information to and from the memory bank.
 
     Args:
-        settings: Settings for the memory controller.
         reset: True to clear the memory bank before starting.
         client: The client to call the model.
         task_assignment_callback: The callback to assign a task to the agent.
-        logger: The logger to log the model calls.
+        - config: An optional dict that can be used to override the following values:
+            - max_train_trials: The maximum number of trials to attempt when training on a task.
+            - max_test_trials: The maximum number of trials to attempt when testing on a task.
+            - AgenticMemoryBank: A config dict passed to AgenticMemoryBank.
+        logger: An optional logger. If None, a default logger will be created.
 
     Methods:
         reset_memory: Resets the memory bank.
@@ -34,19 +37,38 @@ class AgenticMemoryController:
 
     def __init__(
         self,
-        settings: Dict[str, Any],
         reset: bool,
         client: ChatCompletionClient,
         task_assignment_callback: Callable[[str], Awaitable[Tuple[str, str]]],
-        logger: PageLogger,
+        config: Dict[str, Any] | None = None,
+        logger: PageLogger | None = None,
     ) -> None:
+        if logger is None:
+            logger = PageLogger({"level": "INFO"})
         self.logger = logger
         self.logger.enter_function()
-        self.settings = settings
+
+        # Assign default values that can be overridden by config.
+        self.max_train_trials = 10
+        self.max_test_trials = 3
+        agentic_memory_bank_config = None
+
+        if config is not None:
+            # Apply any overrides from the config.
+            for key in config:
+                if key == "max_train_trials":
+                    self.max_train_trials = config[key]
+                elif key == "max_test_trials":
+                    self.max_test_trials = config[key]
+                elif key == "AgenticMemoryBank":
+                    agentic_memory_bank_config = config[key]
+                else:
+                    self.logger.error('Unexpected item in config: ["{}"] = {}'.format(key, config[key]))
+
         self.client = client
         self.task_assignment_callback = task_assignment_callback
         self.prompter = Prompter(client, logger)
-        self.memory_bank = AgenticMemoryBank(self.settings["AgenticMemoryBank"], reset=reset, logger=logger)
+        self.memory_bank = AgenticMemoryBank(reset=reset, config=agentic_memory_bank_config, logger=logger)
         self.grader = Grader(client, logger)
         self.logger.leave_function()
 
@@ -62,9 +84,7 @@ class AgenticMemoryController:
         """
         self.logger.enter_function()
         self.logger.info("Iterate on the task, possibly discovering a useful new insight.\n")
-        _, insight = await self._iterate_on_task(
-            task, expected_answer, self.settings["max_train_trials"], self.settings["max_test_trials"]
-        )
+        _, insight = await self._iterate_on_task(task, expected_answer)
         if insight is None:
             self.logger.info("No useful insight was discovered.\n")
         else:
@@ -219,7 +239,7 @@ class AgenticMemoryController:
         return memory_section
 
     async def _test_for_failure(
-        self, task: str, task_plus_insights: str, expected_answer: str, num_trials: int
+        self, task: str, task_plus_insights: str, expected_answer: str
     ) -> Tuple[bool, str, str]:
         """
         Attempts to solve the given task multiple times to find a failure case to learn from.
@@ -231,7 +251,7 @@ class AgenticMemoryController:
         failure_found = False
         response, work_history = "", ""
 
-        for trial in range(num_trials):
+        for trial in range(self.max_test_trials):
             self.logger.info("\n-----  TRIAL {}  -----\n".format(trial + 1))
 
             # Attempt to solve the task.
@@ -252,9 +272,7 @@ class AgenticMemoryController:
         self.logger.leave_function()
         return failure_found, response, work_history
 
-    async def _iterate_on_task(
-        self, task: str, expected_answer: str, max_train_trials: int, max_test_trials: int
-    ) -> Tuple[str, None | str]:
+    async def _iterate_on_task(self, task: str, expected_answer: str) -> Tuple[str, None | str]:
         """
         Repeatedly assigns a task to the agent, and tries to learn from failures by creating useful insights as memories.
         """
@@ -270,7 +288,7 @@ class AgenticMemoryController:
         successful_insight = None
 
         # Loop until success (or timeout) while learning from failures.
-        for trial in range(1, max_train_trials + 1):
+        for trial in range(1, self.max_train_trials + 1):
             self.logger.info("\n-----  TRAIN TRIAL {}  -----\n".format(trial))
             task_plus_insights = task
 
@@ -284,7 +302,7 @@ class AgenticMemoryController:
 
             # Can we find a failure case to learn from?
             failure_found, response, work_history = await self._test_for_failure(
-                task, task_plus_insights, expected_answer, max_test_trials
+                task, task_plus_insights, expected_answer
             )
             if not failure_found:
                 # No. Time to exit the loop.
@@ -299,7 +317,7 @@ class AgenticMemoryController:
                 break
 
             # Will we try again?
-            if trial == max_train_trials:
+            if trial == self.max_train_trials:
                 # No. We're out of training trials.
                 self.logger.info("\nNo more trials will be attempted.\n")
                 break

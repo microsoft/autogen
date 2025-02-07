@@ -26,9 +26,12 @@ class Apprentice:
     and call the Agentic Memory Controller using this class as an example.
 
     Args:
-        settings: The settings for the apprentice.
         client: The client to call the model.
-        logger: The logger to log the model calls.
+        - config: An optional dict that can be used to override the following values:
+            - name_of_agent_or_team: The name of the target agent or team for assigning tasks to.
+            - disable_prefix_caching: True to disable prefix caching by prepending random ints to the first message.
+            - AgenticMemoryController: A config dict passed to AgenticMemoryController.
+        logger: An optional logger. If None, a default logger will be created.
 
     Methods:
         reset_memory: Resets the memory bank.
@@ -38,22 +41,44 @@ class Apprentice:
         train_on_task: Repeatedly assigns a task to the completion agent, and tries to learn from failures by creating useful insights as memories.
     """
 
-    def __init__(self, settings: Dict[str, Any], client: ChatCompletionClient, logger: PageLogger) -> None:
-        self.client = client
+    def __init__(
+        self,
+        client: ChatCompletionClient,
+        config: Dict[str, Any] | None = None,
+        logger: PageLogger | None = None,
+    ) -> None:
+        if logger is None:
+            logger = PageLogger({"level": "INFO"})
         self.logger = logger
-        self.name_of_agent_or_team = settings["name_of_agent_or_team"]
-        self.disable_prefix_caching = settings["disable_prefix_caching"]
 
+        # Assign default values that can be overridden by config.
+        self.name_of_agent_or_team = "SimpleAgent"
+        self.disable_prefix_caching = False
+        agentic_memory_controller_config = None
+
+        if config is not None:
+            # Apply any overrides from the config.
+            for key in config:
+                if key == "name_of_agent_or_team":
+                    self.name_of_agent_or_team = config[key]
+                elif key == "disable_prefix_caching":
+                    self.disable_prefix_caching = config[key]
+                elif key == "AgenticMemoryController":
+                    agentic_memory_controller_config = config[key]
+                else:
+                    self.logger.error('Unexpected item in config: ["{}"] = {}'.format(key, config[key]))
+
+        self.client = client
         if self.disable_prefix_caching:
             self.rand = random.Random()
             self.rand.seed(int(time.time() * 1000))
 
         # Create the AgenticMemoryController, which creates the AgenticMemoryBank.
         self.memory_controller = AgenticMemoryController(
-            settings=settings["AgenticMemoryController"],
             reset=True,
             client=self.client,
             task_assignment_callback=self.assign_task_to_agent_or_team,
+            config=agentic_memory_controller_config,
             logger=self.logger,
         )
 

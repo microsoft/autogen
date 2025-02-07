@@ -25,7 +25,7 @@ class Grader:
 
     Args:
         client: The client to call the model.
-        logger: The logger to log the model calls.
+        logger: An optional logger. If None, no logging will be performed.
 
     Methods:
         test_apprentice: Tests the apprentice on the given task.
@@ -33,9 +33,11 @@ class Grader:
         is_response_correct: Determines whether the response is equivalent to the task's correct answer.
     """
 
-    def __init__(self, client: ChatCompletionClient, logger: PageLogger):
-        self.client = client
+    def __init__(self, client: ChatCompletionClient, logger: PageLogger | None = None) -> None:
+        if logger is None:
+            logger = PageLogger()  # Nothing will be logged by this object.
         self.logger = logger
+        self.client = client
 
         # Check whether to report results to the client.
         self.report_results = hasattr(self.client, "report_result")
@@ -51,9 +53,8 @@ class Grader:
         num_trials: int,
         use_memory: bool,
         client: ChatCompletionClient,
-        logger: PageLogger,
     ) -> Tuple[int, int]:
-        logger.enter_function()
+        self.logger.enter_function()
 
         self.logger.info("Testing the apprentice on the given task.\n")
 
@@ -74,7 +75,7 @@ class Grader:
                 self.logger.info("Answer is INCORRECT.\n")
 
         self.logger.info("\nSuccess rate:  {}%\n".format(round((num_successes / num_trials) * 100)))
-        logger.leave_function()
+        self.logger.leave_function()
         return num_successes, num_trials
 
     async def call_model(

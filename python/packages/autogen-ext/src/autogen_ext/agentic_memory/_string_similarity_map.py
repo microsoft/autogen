@@ -22,7 +22,7 @@ class StringSimilarityMap:
     Args:
         - reset: True to clear the DB immediately after creation.
         - path_to_db_dir: Path to the directory where the DB is stored.
-        - logger: The PageLogger object to use for logging.
+        - logger: An optional logger. If None, no logging will be performed.
 
     Methods:
         - add_input_output_pair: Adds one input-output string pair to the DB.
@@ -31,7 +31,9 @@ class StringSimilarityMap:
         - save_string_pairs: Saves the string-pair dict to disk.
     """
 
-    def __init__(self, reset: bool, path_to_db_dir: str, logger: PageLogger) -> None:
+    def __init__(self, reset: bool, path_to_db_dir: str, logger: PageLogger | None = None) -> None:
+        if logger is None:
+            logger = PageLogger()  # Nothing will be logged by this object.
         self.logger = logger
         self.path_to_db_dir = path_to_db_dir
 

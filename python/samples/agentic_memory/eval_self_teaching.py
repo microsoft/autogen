@@ -50,7 +50,6 @@ async def eval_self_teaching(
             num_trials=num_final_test_trials,
             use_memory=True,
             client=client,
-            logger=logger,
         )
         logger.info("Task 1 success rate:  {}%".format(round((num_successes / num_trials) * 100)))
         total_num_successes_1 += num_successes
@@ -63,7 +62,6 @@ async def eval_self_teaching(
             num_trials=num_final_test_trials,
             use_memory=True,
             client=client,
-            logger=logger,
         )
         logger.info("Task 2 success rate:  {}%".format(round((num_successes / num_trials) * 100)))
         total_num_successes_2 += num_successes
@@ -92,7 +90,7 @@ async def run_example(settings_filepath: str) -> None:
     # Create the necessary components.
     logger = PageLogger(settings["PageLogger"])
     client = create_oai_client(settings["client"])
-    apprentice = Apprentice(settings["Apprentice"], client, logger)
+    apprentice = Apprentice(client, settings["Apprentice"], logger)
 
     # Call the example function.
     results = await eval_self_teaching(apprentice, client, logger, settings["test"])
