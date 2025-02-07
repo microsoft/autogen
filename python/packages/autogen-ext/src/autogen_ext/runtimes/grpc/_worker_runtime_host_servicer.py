@@ -135,6 +135,13 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
             # Remove the client id from the agent type to client id mapping.
             await self._on_client_disconnect(client_id)
 
+    async def OpenControlChannel(  # type: ignore
+        self,
+        request_iterator: AsyncIterator[agent_worker_pb2.ControlMessage],
+        context: grpc.aio.ServicerContext[agent_worker_pb2.ControlMessage, agent_worker_pb2.ControlMessage],
+    ) -> AsyncIterator[agent_worker_pb2.ControlMessage]:
+        raise NotImplementedError("Method not implemented.")
+
     async def _on_client_disconnect(self, client_id: ClientConnectionId) -> None:
         async with self._agent_type_to_client_id_lock:
             agent_types = [agent_type for agent_type, id_ in self._agent_type_to_client_id.items() if id_ == client_id]
@@ -288,17 +295,3 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
     ) -> agent_worker_pb2.GetSubscriptionsResponse:
         _client_id = await get_client_id_or_abort(context)
         raise NotImplementedError("Method not implemented.")
-
-    async def GetState(  # type: ignore
-        self,
-        request: agent_worker_pb2.AgentId,
-        context: grpc.aio.ServicerContext[agent_worker_pb2.AgentId, agent_worker_pb2.GetStateResponse],
-    ) -> agent_worker_pb2.GetStateResponse:
-        raise NotImplementedError("Method not implemented!")
-
-    async def SaveState(  # type: ignore
-        self,
-        request: agent_worker_pb2.AgentState,
-        context: grpc.aio.ServicerContext[agent_worker_pb2.AgentId, agent_worker_pb2.SaveStateResponse],
-    ) -> agent_worker_pb2.SaveStateResponse:
-        raise NotImplementedError("Method not implemented!")

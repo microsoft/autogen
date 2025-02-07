@@ -313,64 +313,6 @@ class GetSubscriptionsResponse(google.protobuf.message.Message):
 global___GetSubscriptionsResponse = GetSubscriptionsResponse
 
 @typing.final
-class AgentState(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
-
-    AGENT_ID_FIELD_NUMBER: builtins.int
-    ETAG_FIELD_NUMBER: builtins.int
-    BINARY_DATA_FIELD_NUMBER: builtins.int
-    TEXT_DATA_FIELD_NUMBER: builtins.int
-    PROTO_DATA_FIELD_NUMBER: builtins.int
-    eTag: builtins.str
-    binary_data: builtins.bytes
-    text_data: builtins.str
-    @property
-    def agent_id(self) -> global___AgentId: ...
-    @property
-    def proto_data(self) -> google.protobuf.any_pb2.Any: ...
-    def __init__(
-        self,
-        *,
-        agent_id: global___AgentId | None = ...,
-        eTag: builtins.str = ...,
-        binary_data: builtins.bytes = ...,
-        text_data: builtins.str = ...,
-        proto_data: google.protobuf.any_pb2.Any | None = ...,
-    ) -> None: ...
-    def HasField(self, field_name: typing.Literal["agent_id", b"agent_id", "binary_data", b"binary_data", "data", b"data", "proto_data", b"proto_data", "text_data", b"text_data"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["agent_id", b"agent_id", "binary_data", b"binary_data", "data", b"data", "eTag", b"eTag", "proto_data", b"proto_data", "text_data", b"text_data"]) -> None: ...
-    def WhichOneof(self, oneof_group: typing.Literal["data", b"data"]) -> typing.Literal["binary_data", "text_data", "proto_data"] | None: ...
-
-global___AgentState = AgentState
-
-@typing.final
-class GetStateResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
-
-    AGENT_STATE_FIELD_NUMBER: builtins.int
-    @property
-    def agent_state(self) -> global___AgentState: ...
-    def __init__(
-        self,
-        *,
-        agent_state: global___AgentState | None = ...,
-    ) -> None: ...
-    def HasField(self, field_name: typing.Literal["agent_state", b"agent_state"]) -> builtins.bool: ...
-    def ClearField(self, field_name: typing.Literal["agent_state", b"agent_state"]) -> None: ...
-
-global___GetStateResponse = GetStateResponse
-
-@typing.final
-class SaveStateResponse(google.protobuf.message.Message):
-    DESCRIPTOR: google.protobuf.descriptor.Descriptor
-
-    def __init__(
-        self,
-    ) -> None: ...
-
-global___SaveStateResponse = SaveStateResponse
-
-@typing.final
 class Message(google.protobuf.message.Message):
     DESCRIPTOR: google.protobuf.descriptor.Descriptor
 
@@ -395,3 +337,121 @@ class Message(google.protobuf.message.Message):
     def WhichOneof(self, oneof_group: typing.Literal["message", b"message"]) -> typing.Literal["request", "response", "cloudEvent"] | None: ...
 
 global___Message = Message
+
+@typing.final
+class SaveStateRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    AGENTID_FIELD_NUMBER: builtins.int
+    @property
+    def agentId(self) -> global___AgentId: ...
+    def __init__(
+        self,
+        *,
+        agentId: global___AgentId | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["agentId", b"agentId"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["agentId", b"agentId"]) -> None: ...
+
+global___SaveStateRequest = SaveStateRequest
+
+@typing.final
+class SaveStateResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    STATE_FIELD_NUMBER: builtins.int
+    ERROR_FIELD_NUMBER: builtins.int
+    state: builtins.str
+    error: builtins.str
+    def __init__(
+        self,
+        *,
+        state: builtins.str = ...,
+        error: builtins.str | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_error", b"_error", "error", b"error"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_error", b"_error", "error", b"error", "state", b"state"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_error", b"_error"]) -> typing.Literal["error"] | None: ...
+
+global___SaveStateResponse = SaveStateResponse
+
+@typing.final
+class LoadStateRequest(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    AGENTID_FIELD_NUMBER: builtins.int
+    STATE_FIELD_NUMBER: builtins.int
+    state: builtins.str
+    @property
+    def agentId(self) -> global___AgentId: ...
+    def __init__(
+        self,
+        *,
+        agentId: global___AgentId | None = ...,
+        state: builtins.str = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["agentId", b"agentId"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["agentId", b"agentId", "state", b"state"]) -> None: ...
+
+global___LoadStateRequest = LoadStateRequest
+
+@typing.final
+class LoadStateResponse(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    ERROR_FIELD_NUMBER: builtins.int
+    error: builtins.str
+    def __init__(
+        self,
+        *,
+        error: builtins.str | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_error", b"_error", "error", b"error"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_error", b"_error", "error", b"error"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_error", b"_error"]) -> typing.Literal["error"] | None: ...
+
+global___LoadStateResponse = LoadStateResponse
+
+@typing.final
+class ControlMessage(google.protobuf.message.Message):
+    DESCRIPTOR: google.protobuf.descriptor.Descriptor
+
+    RPC_ID_FIELD_NUMBER: builtins.int
+    DESTINATION_FIELD_NUMBER: builtins.int
+    RESPOND_TO_FIELD_NUMBER: builtins.int
+    RPCMESSAGE_FIELD_NUMBER: builtins.int
+    rpc_id: builtins.str
+    """A response message should have the same id as the request message"""
+    destination: builtins.str
+    """This is either:
+    agentid=AGENT_ID
+    clientid=CLIENT_ID
+    """
+    respond_to: builtins.str
+    """This is either:
+    agentid=AGENT_ID
+    clientid=CLIENT_ID
+    Empty string means the message is a response
+    """
+    @property
+    def rpcMessage(self) -> google.protobuf.any_pb2.Any:
+        """One of:
+            SaveStateRequest saveStateRequest = 2;
+            SaveStateResponse saveStateResponse = 3;
+            LoadStateRequest loadStateRequest = 4;
+            LoadStateResponse loadStateResponse = 5;
+        """
+
+    def __init__(
+        self,
+        *,
+        rpc_id: builtins.str = ...,
+        destination: builtins.str = ...,
+        respond_to: builtins.str | None = ...,
+        rpcMessage: google.protobuf.any_pb2.Any | None = ...,
+    ) -> None: ...
+    def HasField(self, field_name: typing.Literal["_respond_to", b"_respond_to", "respond_to", b"respond_to", "rpcMessage", b"rpcMessage"]) -> builtins.bool: ...
+    def ClearField(self, field_name: typing.Literal["_respond_to", b"_respond_to", "destination", b"destination", "respond_to", b"respond_to", "rpcMessage", b"rpcMessage", "rpc_id", b"rpc_id"]) -> None: ...
+    def WhichOneof(self, oneof_group: typing.Literal["_respond_to", b"_respond_to"]) -> typing.Literal["respond_to"] | None: ...
+
+global___ControlMessage = ControlMessage
