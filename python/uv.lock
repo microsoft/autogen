@@ -749,7 +749,7 @@ requires-dist = [
 
 [[package]]
 name = "autogenstudio"
-version = "0.4.0"
+version = "0.4.1"
 source = { editable = "packages/autogen-studio" }
 dependencies = [
     { name = "aiofiles" },
@@ -759,6 +759,7 @@ dependencies = [
     { name = "autogen-ext", extra = ["azure", "magentic-one", "openai"] },
     { name = "azure-identity" },
     { name = "fastapi", extra = ["standard"] },
+    { name = "html2text" },
     { name = "loguru" },
     { name = "numpy" },
     { name = "psycopg" },
@@ -790,6 +791,7 @@ requires-dist = [
     { name = "azure-identity" },
     { name = "fastapi", marker = "extra == 'web'" },
     { name = "fastapi", extras = ["standard"] },
+    { name = "html2text" },
     { name = "loguru" },
     { name = "numpy", specifier = "<2.0.0" },
     { name = "psycopg" },
