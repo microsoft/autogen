@@ -11,6 +11,7 @@ from autogen_ext.agents.file_surfer import FileSurfer
 from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogen_core.code_executor import CodeExecutor
 from autogen_ext.models.openai._openai_client import BaseOpenAIChatCompletionClient
 
 SyncInputFunc = Callable[[str], str]
@@ -126,14 +127,20 @@ class MagenticOne(MagenticOneGroupChat):
         client: ChatCompletionClient,
         hil_mode: bool = False,
         input_func: InputFuncType | None = None,
+        code_executor: bool = None,
     ):
         self.client = client
         self._validate_client_capabilities(client)
 
+        if code_executor is None: 
+            warnings.warn("Instantiating MagenticOne without a code_executor is deprecated. Provide a code_executor to clear this warning (e.g., code_executor=LocalCommandLineCodeExecutor() ).", DeprecationWarning, stacklevel=2)
+            code_executor=LocalCommandLineCodeExecutor()
+
         fs = FileSurfer("FileSurfer", model_client=client)
         ws = MultimodalWebSurfer("WebSurfer", model_client=client)
         coder = MagenticOneCoderAgent("Coder", model_client=client)
-        executor = CodeExecutorAgent("Executor", code_executor=LocalCommandLineCodeExecutor())
+        executor = CodeExecutorAgent("ComputerTerminal", code_executor=code_executor)
+        
         agents: List[ChatAgent] = [fs, ws, coder, executor]
         if hil_mode:
             user_proxy = UserProxyAgent("User", input_func=input_func)
