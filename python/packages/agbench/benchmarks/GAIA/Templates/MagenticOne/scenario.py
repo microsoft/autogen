@@ -1,6 +1,7 @@
 import asyncio
 import os
 import yaml
+import warnings
 from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
 from autogen_agentchat.teams import MagenticOneGroupChat
 from autogen_agentchat.ui import Console
@@ -13,6 +14,8 @@ from autogen_ext.agents.file_surfer import FileSurfer
 from autogen_agentchat.agents import CodeExecutorAgent
 from autogen_agentchat.messages import TextMessage
 
+# Suppress warnings about the requests.Session() not being closed
+warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
 
 async def main() -> None:
 
