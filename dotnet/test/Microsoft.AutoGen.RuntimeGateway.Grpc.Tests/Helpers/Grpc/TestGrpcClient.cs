@@ -26,7 +26,6 @@ internal sealed class TestGrpcClient : IDisposable
     {
         RequestStream.AddMessage(message);
     }
-
     public void Dispose()
     {
         CallContextCancellation.Cancel();

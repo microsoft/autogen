@@ -3,8 +3,8 @@
 
 using FluentAssertions;
 using Microsoft.AutoGen.Contracts;
-using Microsoft.AutoGen.Core;
 using Microsoft.AutoGen.Protobuf;
+using Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 using Microsoft.AutoGen.RuntimeGateway.Grpc.Tests.Helpers.Grpc;
 using Microsoft.AutoGen.RuntimeGateway.Grpc.Tests.Helpers.Orleans;
 using Microsoft.Extensions.Logging;
@@ -45,10 +45,12 @@ public class GrpcGatewayServiceTests
         var service = new GrpcGatewayService(gateway);
         var client = new TestGrpcClient();
         var task = OpenChannel(service: service, client);
-        await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(PBAgent), client.CallContext.Peer), client.CallContext);
-        await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(GMAgent), client.CallContext.Peer), client.CallContext);
+        await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(PBAgent)), client.CallContext);
+        await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(GMAgent)), client.CallContext);
 
-        var inputEvent = new NewMessageReceived { Message = $"Start-{client.CallContext.Peer}" }.ToCloudEvent("gh-gh-gh", "gh-gh-gh");
+        //var inputEvent = new NewMessageReceived { Message = $"Start-{client.CallContext.Peer}" }.ToCloudEvent("gh-gh-gh", "gh-gh-gh");
+        var newMessage = new NewMessageReceived { Message = $"Start-{client.CallContext.Peer}" };
+        var inputEvent = CloudEventExtensions.CreateCloudEvent(Google.Protobuf.WellKnownTypes.Any.Pack(newMessage), new TopicId("gh-gh-gh"), "Tests.Events.NewMessageReceived", null, Guid.NewGuid().ToString());
 
         client.AddMessage(new Message { CloudEvent = inputEvent });
         var newMessageReceived = await client.ReadNext();
@@ -58,7 +60,9 @@ public class GrpcGatewayServiceTests
         secondMessage!.CloudEvent.Type.Should().Be(GetFullName(typeof(NewMessageReceived)));
 
         // Simulate an agent, by publishing a new message in the request stream
-        var helloEvent = new Hello { Message = $"Hello test-{client.CallContext.Peer}" }.ToCloudEvent("gh-gh-gh", "gh-gh-gh");
+        //var helloEvent = new Hello { Message = $"Hello test-{client.CallContext.Peer}" }.ToCloudEvent("gh-gh-gh", "gh-gh-gh");
+        var hello = new Hello { Message = $"Hello test-{client.CallContext.Peer}" };
+        var helloEvent = CloudEventExtensions.CreateCloudEvent(Google.Protobuf.WellKnownTypes.Any.Pack(hello), new TopicId("gh-gh-gh"), "Tests.Events.Hello", null, Guid.NewGuid().ToString());
         client.AddMessage(new Message { CloudEvent = helloEvent });
         var helloMessageReceived = await client.ReadNext();
         helloMessageReceived!.CloudEvent.Type.Should().Be(GetFullName(typeof(Hello)));
@@ -75,22 +79,10 @@ public class GrpcGatewayServiceTests
         var service = new GrpcGatewayService(gateway);
         var client = new TestGrpcClient();
         var task = OpenChannel(service: service, client);
-        var response = await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(PBAgent), client.CallContext.Peer), client.CallContext);
-        response.Success.Should().BeTrue();
+        var response = await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(PBAgent)), client.CallContext);
+        response.GetType().Should().Be(typeof(RegisterAgentTypeResponse));
         client.Dispose();
         await task;
-    }
-
-    [Fact]
-    public async Task Test_RegisterAgent_Should_Fail_For_Wrong_ConnectionId()
-    {
-        var logger = Mock.Of<ILogger<GrpcGateway>>();
-        var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
-        var service = new GrpcGatewayService(gateway);
-        var client = new TestGrpcClient();
-        var response = await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(PBAgent), "faulty_connection_id"), client.CallContext);
-        response.Success.Should().BeFalse();
-        client.Dispose();
     }
 
     [Fact]
@@ -100,7 +92,7 @@ public class GrpcGatewayServiceTests
         var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
         var service = new GrpcGatewayService(gateway);
         var callContext = TestServerCallContext.Create();
-        var response = await service.SaveState(new AgentState { AgentId = new AgentId { Key = "Test", Type = "test" } }, callContext);
+        var response = await service.SaveState(new AgentState { AgentId = new Protobuf.AgentId { Key = "Test", Type = "test" } }, callContext);
         response.Should().NotBeNull();
     }
 
@@ -111,19 +103,18 @@ public class GrpcGatewayServiceTests
         var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
         var service = new GrpcGatewayService(gateway);
         var callContext = TestServerCallContext.Create();
-        var response = await service.GetState(new AgentId { Key = "", Type = "" }, callContext);
+        var response = await service.GetState(new Protobuf.AgentId { Key = "", Type = "" }, callContext);
         response.Should().NotBeNull();
     }
 
-    private async Task<RegisterAgentTypeRequest> CreateRegistrationRequest(GrpcGatewayService service, Type type, string requestId)
+    private async Task<RegisterAgentTypeRequest> CreateRegistrationRequest(GrpcGatewayService service, Type type)
     {
         var registration = new RegisterAgentTypeRequest
         {
             Type = type.Name,
-            RequestId = requestId
         };
         var assembly = type.Assembly;
-        var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
+        var eventTypes = Abstractions.ReflectionHelper.GetAgentsMetadata(assembly);
         var events = eventTypes.GetEventsForAgent(type)?.ToList();
         var topics = eventTypes.GetTopicsForAgent(type)?.ToList();
         if (events is not null && topics is not null) { events.AddRange(topics); }
@@ -133,22 +124,20 @@ public class GrpcGatewayServiceTests
         {
             foreach (var e in events)
             {
-                var subscriptionRequest = new Message
+                var subscriptionRequest = new AddSubscriptionRequest
                 {
-                    AddSubscriptionRequest = new AddSubscriptionRequest
+                    Subscription = new Subscription
                     {
-                        RequestId = Guid.NewGuid().ToString(),
-                        Subscription = new Subscription
+                        Id = Guid.NewGuid().ToString(),
+                        TypeSubscription = new Protobuf.TypeSubscription
                         {
-                            TypeSubscription = new TypeSubscription
-                            {
-                                AgentType = type.Name,
-                                TopicType = type.Name + "." + e
-                            }
+                            AgentType = type.Name,
+                            TopicType = type.Name + "." + e
                         }
                     }
+
                 };
-                await service.AddSubscription(subscriptionRequest.AddSubscriptionRequest, client.CallContext);
+                await service.AddSubscription(subscriptionRequest, client.CallContext);
             }
         }
         var topicTypes = type.GetCustomAttributes(typeof(TopicSubscriptionAttribute), true).Cast<TopicSubscriptionAttribute>().Select(t => t.Topic).ToList();
@@ -156,22 +145,20 @@ public class GrpcGatewayServiceTests
         {
             foreach (var topicType in topicTypes)
             {
-                var subscriptionRequest = new Message
+                var subscriptionRequest = new AddSubscriptionRequest
                 {
-                    AddSubscriptionRequest = new AddSubscriptionRequest
+                    Subscription = new Subscription
                     {
-                        RequestId = Guid.NewGuid().ToString(),
-                        Subscription = new Subscription
+                        Id = Guid.NewGuid().ToString(),
+                        TypeSubscription = new Protobuf.TypeSubscription
                         {
-                            TypeSubscription = new TypeSubscription
-                            {
-                                AgentType = type.Name,
-                                TopicType = topicType
-                            }
+                            AgentType = type.Name,
+                            TopicType = type.Name
                         }
                     }
+
                 };
-                await service.AddSubscription(subscriptionRequest.AddSubscriptionRequest, client.CallContext);
+                await service.AddSubscription(subscriptionRequest, client.CallContext);
             }
         }
         return registration;
@@ -183,6 +170,59 @@ public class GrpcGatewayServiceTests
     }
     private string GetFullName(Type type)
     {
-        return ReflectionHelper.GetMessageDescriptor(type)!.FullName;
+        return Abstractions.ReflectionHelper.GetMessageDescriptor(type)!.FullName;
+    }
+    /// duplicate code here because I could not get InternalsVisibleTo to work
+    internal static class Constants
+    {
+        public const string DATA_CONTENT_TYPE_PROTOBUF_VALUE = "application/x-protobuf";
+        public const string DATA_CONTENT_TYPE_JSON_VALUE = "application/json";
+        public const string DATA_CONTENT_TYPE_TEXT_VALUE = "text/plain";
+
+        public const string DATA_CONTENT_TYPE_ATTR = "datacontenttype";
+        public const string DATA_SCHEMA_ATTR = "dataschema";
+        public const string AGENT_SENDER_TYPE_ATTR = "agagentsendertype";
+        public const string AGENT_SENDER_KEY_ATTR = "agagentsenderkey";
+
+        public const string MESSAGE_KIND_ATTR = "agmsgkind";
+        public const string MESSAGE_KIND_VALUE_PUBLISH = "publish";
+        public const string MESSAGE_KIND_VALUE_RPC_REQUEST = "rpc_request";
+        public const string MESSAGE_KIND_VALUE_RPC_RESPONSE = "rpc_response";
+    }
+    internal static class CloudEventExtensions
+    {
+        // Convert an ISubscrptionDefinition to a Protobuf Subscription
+        internal static CloudEvent CreateCloudEvent(Google.Protobuf.WellKnownTypes.Any payload, TopicId topic, string dataType, Contracts.AgentId? sender, string messageId)
+        {
+            var attributes = new Dictionary<string, CloudEvent.Types.CloudEventAttributeValue>
+            {
+                {
+                    Constants.DATA_CONTENT_TYPE_ATTR, new CloudEvent.Types.CloudEventAttributeValue { CeString = Constants.DATA_CONTENT_TYPE_PROTOBUF_VALUE }
+                },
+                {
+                    Constants.DATA_SCHEMA_ATTR, new CloudEvent.Types.CloudEventAttributeValue { CeString = dataType }
+                },
+                {
+                    Constants.MESSAGE_KIND_ATTR, new CloudEvent.Types.CloudEventAttributeValue { CeString = Constants.MESSAGE_KIND_VALUE_PUBLISH }
+                }
+            };
+
+            if (sender != null)
+            {
+                var senderNonNull = (Contracts.AgentId)sender;
+                attributes.Add(Constants.AGENT_SENDER_TYPE_ATTR, new CloudEvent.Types.CloudEventAttributeValue { CeString = senderNonNull.Type });
+                attributes.Add(Constants.AGENT_SENDER_KEY_ATTR, new CloudEvent.Types.CloudEventAttributeValue { CeString = senderNonNull.Key });
+            }
+
+            return new CloudEvent
+            {
+                ProtoData = payload,
+                Type = topic.Type,
+                Source = topic.Source,
+                Id = messageId,
+                Attributes = { attributes }
+            };
+
+        }
     }
 }
