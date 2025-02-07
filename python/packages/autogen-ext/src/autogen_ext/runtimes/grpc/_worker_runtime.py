@@ -19,6 +19,7 @@ from typing import (
     ClassVar,
     DefaultDict,
     Dict,
+    Generic,
     List,
     Literal,
     Mapping,
@@ -54,7 +55,6 @@ from autogen_core._serialization import (
 from autogen_core._telemetry import MessageRuntimeTracingConfig, TraceHelper, get_telemetry_grpc_metadata
 from google.protobuf import any_pb2
 from opentelemetry.trace import TracerProvider
-from typing_extensions import Self
 
 from autogen_ext.runtimes.grpc._utils import subscription_to_proto
 
@@ -92,36 +92,59 @@ class QueueAsyncIterable(AsyncIterator[Any], AsyncIterable[Any]):
         return self
 
 
-class HostConnection:
-    DEFAULT_GRPC_CONFIG: ClassVar[ChannelArgumentType] = [
-        (
-            "grpc.service_config",
-            json.dumps(
-                {
-                    "methodConfig": [
-                        {
-                            "name": [{}],
-                            "retryPolicy": {
-                                "maxAttempts": 3,
-                                "initialBackoff": "0.01s",
-                                "maxBackoff": "5s",
-                                "backoffMultiplier": 2,
-                                "retryableStatusCodes": ["UNAVAILABLE"],
-                            },
-                        }
-                    ],
-                }
-            ),
-        )
-    ]
+SendT = TypeVar("SendT")
+ReceiveT = TypeVar("ReceiveT")
+class AutoRestartChannel(Generic[SendT, ReceiveT]):
 
-    def __init__(self, channel: grpc.aio.Channel, stub: Any) -> None:  # type: ignore
-        self._channel = channel
-        self._send_queue = asyncio.Queue[agent_worker_pb2.Message]()
-        self._recv_queue = asyncio.Queue[agent_worker_pb2.Message]()
-        self._connection_task: Task[None] | None = None
+    def __init__(self, stub: Any, client_id: str | None= None, handle_message: Callable[[ReceiveT], Awaitable[None]]) -> None:  # type: ignore
+        self._send_queue = asyncio.Queue[SendT]()
+        self._recv_queue = asyncio.Queue[ReceiveT]()
         self._stub: AgentRpcAsyncStub = stub
-        self._client_id = str(uuid.uuid4())
+        if client_id is not None:
+            self._client_id = client_id
+        else:
+            self._client_id = str(uuid.uuid4())
+        self._connection_task: None | Task[None] = None
+        self._handle_message = handle_message
+        self._running = False
+
+    async def start(self) -> None:
+        self._running = True
+        async def _run_task():
+            from grpc.aio import StreamStreamCall
+
+            connection_failures = 0
+            while self._running:
+                try:
+                    # TODO: where do exceptions from reading the iterable go? How do we recover from those?
+                    recv_stream: StreamStreamCall[agent_worker_pb2.Message, agent_worker_pb2.Message] = stub.OpenChannel(  # type: ignore
+                        QueueAsyncIterable(self._send_queue), metadata=[("client-id", self._client_id)]
+                    )
+
+                    while self._running:
+                        logger.info("Waiting for message from host")
+                        message = cast(ReceiveT, await recv_stream.read())  # type: ignore
+                        if message == grpc.aio.EOF:  # type: ignore
+                            logger.info("EOF")
+                            break
+                        logger.info(f"Received a message from host: {message}")
+                        await self._handle_message(message)
+                        logger.info("Put message in receive queue")
+                except Exception as e:
+                    logger.error("Error in connection task", exc_info=e)
+                    connection_failures += 1
+                    await asyncio.sleep(1)
+                    if connection_failures > 3:
+                        logger.error("Too many connection failures, stopping")
+                        break
+
+            self._connection_task = asyncio.create_task(_run_task())
+
+    async def stop(self) -> None:
+        if self._connection_task is None:
+            raise RuntimeError("Connection is not open.")
+        self._running = False
+        await self._connection_task
 
     @property
     def stub(self) -> Any:
@@ -131,63 +154,11 @@ class HostConnection:
     def metadata(self) -> Sequence[Tuple[str, str]]:
         return [("client-id", self._client_id)]
 
-    @classmethod
-    def from_host_address(cls, host_address: str, extra_grpc_config: ChannelArgumentType = DEFAULT_GRPC_CONFIG) -> Self:
-        logger.info("Connecting to %s", host_address)
-        #  Always use DEFAULT_GRPC_CONFIG and override it with provided grpc_config
-        merged_options = [
-            (k, v) for k, v in {**dict(HostConnection.DEFAULT_GRPC_CONFIG), **dict(extra_grpc_config)}.items()
-        ]
-
-        channel = grpc.aio.insecure_channel(
-            host_address,
-            options=merged_options,
-        )
-        stub: AgentRpcAsyncStub = agent_worker_pb2_grpc.AgentRpcStub(channel)  # type: ignore
-        instance = cls(channel, stub)
-        instance._connection_task = asyncio.create_task(
-            instance._connect(stub, instance._send_queue, instance._recv_queue, instance._client_id)
-        )
-        return instance
-
-    async def close(self) -> None:
-        if self._connection_task is None:
-            raise RuntimeError("Connection is not open.")
-        await self._channel.close()
-        await self._connection_task
-
-    @staticmethod
-    async def _connect(
-        stub: Any,  # AgentRpcAsyncStub
-        send_queue: asyncio.Queue[agent_worker_pb2.Message],
-        receive_queue: asyncio.Queue[agent_worker_pb2.Message],
-        client_id: str,
-    ) -> None:
-        from grpc.aio import StreamStreamCall
-
-        # TODO: where do exceptions from reading the iterable go? How do we recover from those?
-        recv_stream: StreamStreamCall[agent_worker_pb2.Message, agent_worker_pb2.Message] = stub.OpenChannel(  # type: ignore
-            QueueAsyncIterable(send_queue), metadata=[("client-id", client_id)]
-        )
-
-        while True:
-            logger.info("Waiting for message from host")
-            message = cast(agent_worker_pb2.Message, await recv_stream.read())  # type: ignore
-            if message == grpc.aio.EOF:  # type: ignore
-                logger.info("EOF")
-                break
-            logger.info(f"Received a message from host: {message}")
-            await receive_queue.put(message)
-            logger.info("Put message in receive queue")
-
-    async def send(self, message: agent_worker_pb2.Message) -> None:
+    async def send(self, message: SendT) -> None:
         logger.info(f"Send message to host: {message}")
         await self._send_queue.put(message)
         logger.info("Put message in send queue")
 
-    async def recv(self) -> agent_worker_pb2.Message:
-        logger.info("Getting message from queue")
-        return await self._recv_queue.get()
 
 
 # TODO: Lots of types need to have protobuf equivalents:
@@ -216,6 +187,28 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
 
     """
 
+    DEFAULT_GRPC_CONFIG: ClassVar[ChannelArgumentType] = [
+        (
+            "grpc.service_config",
+            json.dumps(
+                {
+                    "methodConfig": [
+                        {
+                            "name": [{}],
+                            "retryPolicy": {
+                                "maxAttempts": 3,
+                                "initialBackoff": "0.01s",
+                                "maxBackoff": "5s",
+                                "backoffMultiplier": 2,
+                                "retryableStatusCodes": ["UNAVAILABLE"],
+                            },
+                        }
+                    ],
+                }
+            ),
+        )
+    ]
+
     # TODO: Needs to handle agent close() call
     def __init__(
         self,
@@ -237,28 +230,38 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         self._pending_requests: Dict[str, Future[Any]] = {}
         self._pending_requests_lock = asyncio.Lock()
         self._next_request_id = 0
-        self._host_connection: HostConnection | None = None
         self._background_tasks: Set[Task[Any]] = set()
         self._subscription_manager = SubscriptionManager()
         self._serialization_registry = SerializationRegistry()
-        self._extra_grpc_config = extra_grpc_config or []
 
         if payload_serialization_format not in {JSON_DATA_CONTENT_TYPE, PROTOBUF_DATA_CONTENT_TYPE}:
             raise ValueError(f"Unsupported payload serialization format: {payload_serialization_format}")
 
         self._payload_serialization_format = payload_serialization_format
 
-    def start(self) -> None:
+        logger.info("Connecting to %s", host_address)
+        #  Always use DEFAULT_GRPC_CONFIG and override it with provided grpc_config
+        merged_options = [
+            (k, v) for k, v in {**dict(GrpcWorkerAgentRuntime.DEFAULT_GRPC_CONFIG), **dict(extra_grpc_config or [])}.items()
+        ]
+
+        self._client_id = str(uuid.uuid4())
+
+        channel = grpc.aio.insecure_channel(
+            host_address,
+            options=merged_options,
+        )
+        self._host_connection: AutoRestartChannel[agent_worker_pb2.Message, agent_worker_pb2.Message] = AutoRestartChannel(agent_worker_pb2_grpc.AgentRpcStub(channel), client_id=self._client_id, handle_message=self._handle_message)
+        self._host_control_connection: AutoRestartChannel[agent_worker_pb2.ControlMessage, agent_worker_pb2.ControlMessage] = AutoRestartChannel(agent_worker_pb2_grpc.AgentRpcStub(channel), client_id=self._client_id, handle_message=self._handle_control_message)
+
+    async def start(self) -> None:
         """Start the runtime in a background task."""
         if self._running:
             raise ValueError("Runtime is already running.")
         logger.info(f"Connecting to host: {self._host_address}")
-        self._host_connection = HostConnection.from_host_address(
-            self._host_address, extra_grpc_config=self._extra_grpc_config
-        )
+        await self._host_connection.start()
+        await self._host_control_connection.start()
         logger.info("Connection established")
-        if self._read_task is None:
-            self._read_task = asyncio.create_task(self._run_read_loop())
         self._running = True
 
     def _raise_on_exception(self, task: Task[Any]) -> None:
@@ -266,34 +269,32 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         if exception is not None:
             raise exception
 
-    async def _run_read_loop(self) -> None:
-        logger.info("Starting read loop")
+    async def _handle_control_message(self, message: agent_worker_pb2.ControlMessage) -> None:
         assert self._host_connection is not None
-        # TODO: catch exceptions and reconnect
-        while self._running:
-            try:
-                message = await self._host_connection.recv()
-                oneofcase = agent_worker_pb2.Message.WhichOneof(message, "message")
-                match oneofcase:
-                    case "request":
-                        task = asyncio.create_task(self._process_request(message.request))
-                        self._background_tasks.add(task)
-                        task.add_done_callback(self._raise_on_exception)
-                        task.add_done_callback(self._background_tasks.discard)
-                    case "response":
-                        task = asyncio.create_task(self._process_response(message.response))
-                        self._background_tasks.add(task)
-                        task.add_done_callback(self._raise_on_exception)
-                        task.add_done_callback(self._background_tasks.discard)
-                    case "cloudEvent":
-                        task = asyncio.create_task(self._process_event(message.cloudEvent))
-                        self._background_tasks.add(task)
-                        task.add_done_callback(self._raise_on_exception)
-                        task.add_done_callback(self._background_tasks.discard)
-                    case None:
-                        logger.warning("No message")
-            except Exception as e:
-                logger.error("Error in read loop", exc_info=e)
+
+
+    async def _handle_message(self, message: agent_worker_pb2.Message) -> None:
+        assert self._host_connection is not None
+        oneofcase = agent_worker_pb2.Message.WhichOneof(message, "message")
+        match oneofcase:
+            case "request":
+                task = asyncio.create_task(self._process_request(message.request))
+                self._background_tasks.add(task)
+                task.add_done_callback(self._raise_on_exception)
+                task.add_done_callback(self._background_tasks.discard)
+            case "response":
+                task = asyncio.create_task(self._process_response(message.response))
+                self._background_tasks.add(task)
+                task.add_done_callback(self._raise_on_exception)
+                task.add_done_callback(self._background_tasks.discard)
+            case "cloudEvent":
+                task = asyncio.create_task(self._process_event(message.cloudEvent))
+                self._background_tasks.add(task)
+                task.add_done_callback(self._raise_on_exception)
+                task.add_done_callback(self._background_tasks.discard)
+            case None:
+                logger.warning("No message")
+
 
     async def stop(self) -> None:
         """Stop the runtime immediately."""
@@ -306,11 +307,11 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             if isinstance(task_result, Exception):
                 logger.error("Error in background task", exc_info=task_result)
         # Close the host connection.
-        if self._host_connection is not None:
-            try:
-                await self._host_connection.close()
-            except asyncio.CancelledError:
-                pass
+        try:
+            await self._host_connection.stop()
+            await self._host_control_connection.stop()
+        except asyncio.CancelledError:
+            pass
         # Cancel the read task.
         if self._read_task is not None:
             self._read_task.cancel()
@@ -348,8 +349,8 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         recipient: AgentId | TopicId,
         telemetry_metadata: Mapping[str, str],
     ) -> None:
-        if self._host_connection is None:
-            raise RuntimeError("Host connection is not set.")
+        if self._running:
+            raise ValueError("Runtime must be running")
         with self._trace_helper.trace_block(send_type, recipient, parent=telemetry_metadata):
             await self._host_connection.send(runtime_message)
 
@@ -365,8 +366,6 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         # TODO: use message_id
         if not self._running:
             raise ValueError("Runtime must be running when sending message.")
-        if self._host_connection is None:
-            raise RuntimeError("Host connection is not set.")
         data_type = self._serialization_registry.type_name(message)
         with self._trace_helper.trace_block(
             "create", recipient, parent=None, extraAttributes={"message_type": data_type}
@@ -411,8 +410,6 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
     ) -> None:
         if not self._running:
             raise ValueError("Runtime must be running when publishing message.")
-        if self._host_connection is None:
-            raise RuntimeError("Host connection is not set.")
         if message_id is None:
             message_id = str(uuid.uuid4())
 
@@ -704,8 +701,6 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
 
         if type.type in self._agent_factories:
             raise ValueError(f"Agent with type {type} already exists.")
-        if self._host_connection is None:
-            raise RuntimeError("Host connection is not set.")
 
         async def factory_wrapper() -> T:
             maybe_agent_instance = agent_factory()
@@ -778,9 +773,6 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         return agent_instance
 
     async def add_subscription(self, subscription: Subscription) -> None:
-        if self._host_connection is None:
-            raise RuntimeError("Host connection is not set.")
-
         message = agent_worker_pb2.AddSubscriptionRequest(subscription=subscription_to_proto(subscription))
         _response: agent_worker_pb2.AddSubscriptionResponse = await self._host_connection.stub.AddSubscription(
             message, metadata=self._host_connection.metadata
