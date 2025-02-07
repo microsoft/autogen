@@ -16,7 +16,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
         this.RegisterGrainTimer(static state => state.PurgeInactiveWorkers(), this, TimeSpan.FromSeconds(30), TimeSpan.FromSeconds(30));
         return base.OnActivateAsync(cancellationToken);
     }
-    public ValueTask<List<string>> GetSubscribedAndHandlingAgentsAsync(string topic, string eventType)
+    public ValueTask<List<string>> GetSubscribedAndHandlingAgentsAsync(string topic, string key)
     {
         List<string> agents = [];
         // get all agent types that are subscribed to the topic
@@ -29,11 +29,11 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
             }*/
             agents.AddRange(subscribedAgentTypes.ToList());
         }
-        if (state.State.TopicToAgentTypesMap.TryGetValue(eventType, out var eventHandlingAgents))
+        if (state.State.TopicToAgentTypesMap.TryGetValue(key, out var eventHandlingAgents))
         {
             agents.AddRange(eventHandlingAgents.ToList());
         }
-        if (state.State.TopicToAgentTypesMap.TryGetValue(topic + "." + eventType, out var combo))
+        if (state.State.TopicToAgentTypesMap.TryGetValue(topic + "." + key, out var combo))
         {
             agents.AddRange(combo.ToList());
         }
