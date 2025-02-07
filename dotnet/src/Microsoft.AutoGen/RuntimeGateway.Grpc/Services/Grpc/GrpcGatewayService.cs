@@ -36,44 +36,6 @@ public sealed class GrpcGatewayService(GrpcGateway gateway) : AgentRpc.AgentRpcB
     }
 
     /// <summary>
-    /// Gets the state of an agent.
-    /// </summary>
-    /// <param name="request">The agent ID request.</param>
-    /// <param name="context">The server call context.</param>
-    /// <returns>A task that represents the asynchronous operation. The task result contains the get state response.</returns>
-    public override async Task<GetStateResponse> GetState(Protobuf.AgentId request, ServerCallContext context)
-    {
-        try
-        {
-            var state = await Gateway.ReadAsync(request).ConfigureAwait(true);
-            return new GetStateResponse { AgentState = state };
-        }
-        catch (Exception e)
-        {
-            throw new RpcException(new Status(StatusCode.Internal, e.Message));
-        }
-    }
-
-    /// <summary>
-    /// Saves the state of an agent.
-    /// </summary>
-    /// <param name="request">The agent state request.</param>
-    /// <param name="context">The server call context.</param>
-    /// <returns>A task that represents the asynchronous operation. The task result contains the save state response.</returns>
-    public override async Task<SaveStateResponse> SaveState(AgentState request, ServerCallContext context)
-    {
-        try
-        {
-            await Gateway.StoreAsync(request).ConfigureAwait(true);
-            return new SaveStateResponse();
-        }
-        catch (Exception e)
-        {
-            throw new RpcException(new Status(StatusCode.Internal, e.Message));
-        }
-    }
-
-    /// <summary>
     /// Adds a subscription.
     /// </summary>
     /// <param name="request">The add subscription request.</param>

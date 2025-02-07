@@ -98,28 +98,6 @@ public class GrpcGatewayServiceTests
         await task;
     }
 
-    [Fact]
-    public async Task Test_SaveState()
-    {
-        var logger = Mock.Of<ILogger<GrpcGateway>>();
-        var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
-        var service = new GrpcGatewayService(gateway);
-        var callContext = TestServerCallContext.Create();
-        var response = await service.SaveState(new AgentState { AgentId = new Protobuf.AgentId { Key = "Test", Type = "test" } }, callContext);
-        response.Should().NotBeNull();
-    }
-
-    [Fact]
-    public async Task Test_GetState()
-    {
-        var logger = Mock.Of<ILogger<GrpcGateway>>();
-        var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
-        var service = new GrpcGatewayService(gateway);
-        var callContext = TestServerCallContext.Create();
-        var response = await service.GetState(new Protobuf.AgentId { Key = "", Type = "" }, callContext);
-        response.Should().NotBeNull();
-    }
-
     private async Task<RegisterAgentTypeRequest> CreateRegistrationRequest(GrpcGatewayService service, Type type)
     {
         var registration = new RegisterAgentTypeRequest
