@@ -1,46 +1,43 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // TestAgent.cs
-
-using System.Collections.Concurrent;
-using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Protobuf;
 using Microsoft.AutoGen.Core;
-using Microsoft.Extensions.DependencyInjection;
+using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
+using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Tests;
 
-[TopicSubscription("gh-gh-gh")]
-public class PBAgent([FromKeyedServices("AgentsMetadata")] AgentsMetadata eventTypes, ILogger<Agent>? logger = null)
-    : Agent(eventTypes, logger)
-    , IHandle<NewMessageReceived>
-    , IHandle<GoodBye>
+[TypeSubscription("gh-gh-gh")]
+public class PBAgent(Contracts.AgentId id, IAgentRuntime runtime, ILogger<BaseAgent>? logger = null)
+    : BaseAgent(id, runtime, "Test Agent", logger),
+    IHandle<NewMessageReceived>,
+    IHandle<GoodBye>
 {
-    public async Task Handle(NewMessageReceived item, CancellationToken cancellationToken = default)
+    public async ValueTask HandleAsync(NewMessageReceived item, MessageContext messageContext)
     {
-        ReceivedMessages[AgentId.Key] = item.Message;
+        var key = messageContext.MessageId ?? Guid.NewGuid().ToString();
+        ReceivedMessages.AddOrUpdate(key, item.Message, (k, v) => item.Message);
         var hello = new Hello { Message = item.Message };
-        await PublishMessageAsync(hello);
+        await PublishMessageAsync(hello, new TopicId("gh-gh-gh"));
     }
-    public Task Handle(GoodBye item, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(GoodBye item, MessageContext context)
     {
         _logger.LogInformation($"Received GoodBye message {item.Message}");
-        return Task.CompletedTask;
     }
-
     public static ConcurrentDictionary<string, object> ReceivedMessages { get; private set; } = new();
 }
 
-[TopicSubscription("gh-gh-gh")]
-public class GMAgent([FromKeyedServices("AgentsMetadata")] AgentsMetadata eventTypes, ILogger<Agent>? logger = null)
-    : Agent(eventTypes, logger)
-    , IHandle<Hello>
+[TypeSubscription("gh-gh-gh")]
+public class GMAgent(Contracts.AgentId id, IAgentRuntime runtime, ILogger<BaseAgent>? logger = null)
+    : BaseAgent(id, runtime, "Test Agent", logger),
+    IHandle<Hello>
 {
-    public async Task Handle(Hello item, CancellationToken cancellationToken)
+    public async ValueTask HandleAsync(Hello item, MessageContext messageContext)
     {
-        _logger.LogInformation($"Received Hello message {item.Message}");
-        ReceivedMessages[AgentId.Key] = item.Message;
-        await PublishMessageAsync(new GoodBye { Message = "" });
+        var key = messageContext.MessageId ?? Guid.NewGuid().ToString();
+        ReceivedMessages.AddOrUpdate(key, item.Message, (k, v) => item.Message);
+        await PublishMessageAsync(new GoodBye { Message = "" }, new TopicId("gh-gh-gh"));
     }
-
     public static ConcurrentDictionary<string, object> ReceivedMessages { get; private set; } = new();
 }
