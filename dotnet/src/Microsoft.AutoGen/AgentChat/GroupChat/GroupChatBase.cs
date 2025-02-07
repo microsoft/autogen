@@ -194,7 +194,6 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
 
         try
         {
-            // TODO: Protos
             GroupChatStart taskMessage = new GroupChatStart
             {
                 Messages = [task]
