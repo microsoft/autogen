@@ -15,26 +15,8 @@ Navigate to HumanEval
 cd benchmarks/HumanEval
 ```
 
-Create a file called ENV.json with the following (required) contents (If you're using MagenticOne)
+Update `config.yaml` to point to your model host, as appropriate. The default configuration points to 'gpt-4o'.
 
-```json
-{
-    "CHAT_COMPLETION_KWARGS_JSON": "{\"api_version\": \"2024-02-15-preview\", \"azure_endpoint\": \"YOUR_ENDPOINT/\", \"model_capabilities\": {\"function_calling\": true, \"json_output\": true, \"vision\": true}, \"azure_ad_token_provider\": \"DEFAULT\", \"model\": \"gpt-4o-2024-05-13\"}",
-    "CHAT_COMPLETION_PROVIDER": "azure"
-}
-```
-
-You can also use the openai client by replacing the last two entries in the ENV file by:
-
-- `CHAT_COMPLETION_PROVIDER='openai'`
-- `CHAT_COMPLETION_KWARGS_JSON` with the following JSON structure:
-
-```json
-{
-  "api_key": "REPLACE_WITH_YOUR_API",
-  "model": "gpt-4o-2024-05-13"
-}
-```
 
 Now initialize the tasks.
 
@@ -51,13 +33,13 @@ Once the script completes, you should now see a folder in your current directory
 Now to run a specific subset of HumanEval use:
 
 ```bash
-agbench run Tasks/human_eval_MagenticOne.jsonl
+agbench run Tasks/human_eval_AgentChat.jsonl
 ```
 
 You should see the command line print the raw logs that shows the agents in action To see a summary of the results (e.g., task completion rates), in a new terminal run the following:
 
 ```bash
-agbench tabulate Results/human_eval_MagenticOne
+agbench tabulate Results/human_eval_AgentChat
 ```
 
 
