@@ -9,9 +9,9 @@ import yaml
 from autogen_agentchat.ui import Console, UserInputManager
 from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient
+from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 from autogen_ext.teams.magentic_one import MagenticOne
 from autogen_ext.ui import RichConsole
-from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 
 # Suppress warnings about the requests.Session() not being closed
 warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWarning)
@@ -116,7 +116,12 @@ def main() -> None:
         input_manager = UserInputManager(callback=cancellable_input)
 
         async with DockerCommandLineCodeExecutor(work_dir=os.getcwd()) as code_executor:
-            m1 = MagenticOne(client=client, hil_mode=hil_mode, input_func=input_manager.get_wrapped_callback(), code_executor=code_executor)
+            m1 = MagenticOne(
+                client=client,
+                hil_mode=hil_mode,
+                input_func=input_manager.get_wrapped_callback(),
+                code_executor=code_executor,
+            )
 
             if use_rich_console:
                 await RichConsole(m1.run_stream(task=task), output_stats=False, user_input_manager=input_manager)
