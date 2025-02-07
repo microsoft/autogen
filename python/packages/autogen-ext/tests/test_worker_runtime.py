@@ -32,6 +32,7 @@ from autogen_test_utils import (
 from protos.serialization_test_pb2 import ProtoMessage
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_agent_types_must_be_unique_single_worker() -> None:
     host_address = "localhost:50051"
@@ -54,6 +55,7 @@ async def test_agent_types_must_be_unique_single_worker() -> None:
     await host.stop()
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_agent_types_must_be_unique_multiple_workers() -> None:
     host_address = "localhost:50052"
@@ -79,6 +81,7 @@ async def test_agent_types_must_be_unique_multiple_workers() -> None:
     await host.stop()
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_register_receives_publish() -> None:
     host_address = "localhost:50053"
@@ -124,6 +127,7 @@ async def test_register_receives_publish() -> None:
     await host.stop()
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_register_receives_publish_cascade_single_worker() -> None:
     host_address = "localhost:50054"
@@ -159,6 +163,7 @@ async def test_register_receives_publish_cascade_single_worker() -> None:
     await host.stop()
 
 
+@pytest.mark.grpc
 @pytest.mark.skip(reason="Fix flakiness")
 @pytest.mark.asyncio
 async def test_register_receives_publish_cascade_multiple_workers() -> None:
@@ -204,6 +209,7 @@ async def test_register_receives_publish_cascade_multiple_workers() -> None:
     await host.stop()
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_default_subscription() -> None:
     host_address = "localhost:50056"
@@ -238,6 +244,7 @@ async def test_default_subscription() -> None:
     await host.stop()
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_default_subscription_other_source() -> None:
     host_address = "localhost:50057"
@@ -272,6 +279,7 @@ async def test_default_subscription_other_source() -> None:
     await host.stop()
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_type_subscription() -> None:
     host_address = "localhost:50058"
@@ -309,6 +317,7 @@ async def test_type_subscription() -> None:
     await host.stop()
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_duplicate_subscription() -> None:
     host_address = "localhost:50059"
@@ -340,6 +349,7 @@ async def test_duplicate_subscription() -> None:
         await host.stop()
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_disconnected_agent() -> None:
     host_address = "localhost:50060"
@@ -418,6 +428,7 @@ class ProtoReceivingAgent(RoutedAgent):
         self.received_messages.append(message)
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_proto_payloads() -> None:
     host_address = "localhost:50057"
@@ -461,6 +472,7 @@ async def test_proto_payloads() -> None:
 # TODO add tests for failure to deserialize
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_grpc_max_message_size() -> None:
     default_max_size = 2**22
