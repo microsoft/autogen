@@ -36,9 +36,6 @@ When deciding between tools, consider if the request can be best addressed by:
 My request follows:
 """
 
-WEB_SURFER_OCR_PROMPT = """
-Please transcribe all visible text on this page, including both main content and the labels of UI elements.
-"""
 
 WEB_SURFER_QA_SYSTEM_MESSAGE = """
 You are a helpful assistant that can summarize long documents to answer question.

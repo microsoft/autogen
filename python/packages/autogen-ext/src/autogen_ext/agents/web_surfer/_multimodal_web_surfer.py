@@ -10,18 +10,15 @@ import traceback
 from typing import (
     Any,
     AsyncGenerator,
-    BinaryIO,
     Dict,
     List,
     Optional,
     Sequence,
-    cast,
 )
 from urllib.parse import quote_plus
 
 import aiofiles
 import PIL.Image
-from autogen_core.models import ModelFamily
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage, TextMessage
@@ -32,6 +29,7 @@ from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
+    ModelFamily,
     RequestUsage,
     SystemMessage,
     UserMessage,
@@ -43,7 +41,6 @@ from typing_extensions import Self
 
 from ._events import WebSurferEvent
 from ._prompts import (
-    WEB_SURFER_OCR_PROMPT,
     WEB_SURFER_QA_PROMPT,
     WEB_SURFER_QA_SYSTEM_MESSAGE,
     WEB_SURFER_TOOL_PROMPT_MM,
@@ -449,10 +446,16 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         if len(history):
             user_request = history.pop()
         else:
-            user_request = ""
+            user_request = UserMessage(content="Empty request.", source="user")
 
         # Truncate the history for smaller models
-        if self._model_client.model_info["family"] not in [ ModelFamily.GPT_4O,  ModelFamily.O1,  ModelFamily.O3,  ModelFamily.GPT_4, ModelFamily.GPT_35]: 
+        if self._model_client.model_info["family"] not in [
+            ModelFamily.GPT_4O,
+            ModelFamily.O1,
+            ModelFamily.O3,
+            ModelFamily.GPT_4,
+            ModelFamily.GPT_35,
+        ]:
             history = []
 
         # Ask the page for interactive elements, then prepare the state-of-mark screenshot
@@ -514,7 +517,9 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
                 other_targets = other_targets[0:30]
                 other_targets.append("...")
             other_targets_str = (
-                "Additional valid interaction targets include (but are not limited to):\n" + "\n".join(other_targets) + "\n\n"
+                "Additional valid interaction targets include (but are not limited to):\n"
+                + "\n".join(other_targets)
+                + "\n\n"
             )
         else:
             other_targets_str = ""
@@ -522,7 +527,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         state_description = "Your " + await self._get_state_description()
         tool_names = "\n".join([t["name"] for t in tools])
         page_title = await self._page.title()
-    
+
         prompt_message = None
         if self._model_client.model_info["vision"]:
             text_prompt = WEB_SURFER_TOOL_PROMPT_MM.format(
@@ -542,10 +547,10 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
                 scaled_screenshot.save(os.path.join(self.debug_dir, "screenshot_scaled.png"))  # type: ignore
 
             # Create the message
-            prompt_message = UserMessage(content=[
-                re.sub(r"(\n\s*){3,}", "\n\n", text_prompt),
-                AGImage.from_pil(scaled_screenshot)
-            ], source=self.name)
+            prompt_message = UserMessage(
+                content=[re.sub(r"(\n\s*){3,}", "\n\n", text_prompt), AGImage.from_pil(scaled_screenshot)],
+                source=self.name,
+            )
         else:
             text_prompt = WEB_SURFER_TOOL_PROMPT_TEXT.format(
                 state_description=state_description,
@@ -563,10 +568,14 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         history.append(prompt_message)
         history.append(user_request)
 
-        #print(f"""================={len(history)}=================""")
-        #for h in history:
-        #    print(h.content)
-        #    print("===========")
+        # {history[-2].content if isinstance(history[-2].content, str) else history[-2].content[0]}
+        # print(f"""
+        # ================={len(history)}=================
+        # {history[-2].content}
+        # =====
+        # {history[-1].content}
+        # ===================================================
+        # """)
 
         # Make the request
         response = await self._model_client.create(
@@ -586,7 +595,6 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         else:
             # Not sure what happened here
             raise AssertionError(f"Unknown response format '{message}'")
-
 
     async def _execute_tool(
         self,
@@ -770,15 +778,15 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             )
 
         # Return the complete observation
-        page_title = await self._page.title()
         state_description = "The " + await self._get_state_description()
-        message_content = f"{action_description}\n\n" + state_description + page_metadata
+        message_content = (
+            f"{action_description}\n\n" + state_description + page_metadata + "\nHere is a screenshot of the page."
+        )
 
         return [
-            re.sub(r"(\n\s*){3,}", "\n\n", message_content), # Removing blank lines
+            re.sub(r"(\n\s*){3,}", "\n\n", message_content),  # Removing blank lines
             AGImage.from_pil(PIL.Image.open(io.BytesIO(new_screenshot))),
         ]
-
 
     async def _get_state_description(self) -> str:
         assert self._playwright_controller is not None
@@ -802,7 +810,6 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         message_content = f"web browser is open to the page [{page_title}]({self._page.url}).\nThe viewport shows {percent_visible}% of the webpage, and is positioned {position_text}\n"
         message_content += f"The following text is visible in the viewport:\n\n{visible_text}"
         return message_content
-
 
     def _target_name(self, target: str, rects: Dict[str, InteractiveRegion]) -> str | None:
         try:
@@ -834,7 +841,6 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
                 targets.append(f'{{"id": {r}, "name": "{aria_name}", "role": "{aria_role}", "tools": {actions_str} }}')
 
         return targets
-
 
     async def _summarize_page(
         self,
