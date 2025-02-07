@@ -1,15 +1,20 @@
+import json
+import logging
 import os
+from typing import Awaitable, Callable, Optional
+
 import aiofiles
+import yaml
+from autogen_agentchat.agents import AssistantAgent, UserProxyAgent
+from autogen_agentchat.base import TaskResult
+from autogen_agentchat.messages import TextMessage, UserInputRequestedEvent
+from autogen_agentchat.teams import RoundRobinGroupChat
+from autogen_core import CancellationToken
+from autogen_core.models import ChatCompletionClient
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from autogen_agentchat.messages import TextMessage
-from autogen_agentchat.agents import AssistantAgent
-from autogen_agentchat.teams import RoundRobinGroupChat
-from autogen_agentchat.conditions import TextMentionTermination
-from autogen_agentchat.base import TaskResult
-from autogen_core.models import ChatCompletionClient
-import json
-import yaml
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI()
 
@@ -26,30 +31,31 @@ model_config_path = "model_config.yaml"
 state_path = "team_state.json"
 history_path = "team_history.json"
 
-async def get_team() -> RoundRobinGroupChat:
+
+async def get_team(
+    user_input_func: Callable[[str, Optional[CancellationToken]], Awaitable[str]],
+) -> RoundRobinGroupChat:
     # Get model client from config.
-    with open(model_config_path, "r") as file:
-        model_config = yaml.safe_load(file)
-    model_client = ChatCompletionClient.load_component(model_config) 
+    async with aiofiles.open(model_config_path, "r") as file:
+        model_config = yaml.safe_load(await file.read())
+    model_client = ChatCompletionClient.load_component(model_config)
     # Create the team.
     agent = AssistantAgent(
         name="assistant",
         model_client=model_client,
         system_message="You are a helpful assistant.",
     )
-    critic = AssistantAgent(
-        name="critic",
+    yoda = AssistantAgent(
+        name="yoda",
         model_client=model_client,
-        system_message="You provide feedback. Respond with 'APPROVE' to approve if all feedbacks are addressed.",
+        system_message="Repeat the same message in the tone of Yoda.",
     )
-    # user_proxy = UserProxyAgent(
-    #     name="user_proxy",
-    # )
-    termination_condition = TextMentionTermination("APPROVE")
+    user_proxy = UserProxyAgent(
+        name="user",
+        input_func=user_input_func,  # Use the user input function.
+    )
     team = RoundRobinGroupChat(
-        # [agent, critic, user_proxy],
-        [agent, critic],
-        termination_condition=termination_condition,
+        [agent, yoda, user_proxy],
     )
     # Load state from file.
     if not os.path.exists(state_path):
@@ -73,12 +79,19 @@ async def history():
     try:
         return await get_history()
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
 
 
 @app.websocket("/ws/chat")
 async def chat(websocket: WebSocket):
     await websocket.accept()
+
+    # User input function used by the team.
+    async def _user_input(prompt: str, cancellation_token: CancellationToken | None) -> str:
+        data = await websocket.receive_json()
+        message = TextMessage.model_validate(data)
+        return message.content
+
     try:
         while True:
             # Get user message.
@@ -86,30 +99,33 @@ async def chat(websocket: WebSocket):
             request = TextMessage.model_validate(data)
 
             # Get the team and respond to the message.
-            team = await get_team()
+            team = await get_team(_user_input)
             history = await get_history()
             stream = team.run_stream(task=request)
             async for message in stream:
                 if isinstance(message, TaskResult):
                     continue
-                if message.source != request.source:
-                    await websocket.send_json(message.model_dump())
-                history.append(message.model_dump())
+                await websocket.send_json(message.model_dump())
+                if not isinstance(message, UserInputRequestedEvent):
+                    # Don't save user input events to history.
+                    history.append(message.model_dump())
 
             # Save team state to file.
             async with aiofiles.open(state_path, "w") as file:
                 state = await team.save_state()
                 await file.write(json.dumps(state))
-        
+
             # Save chat history to file.
             async with aiofiles.open(history_path, "w") as file:
                 await file.write(json.dumps(history))
     except WebSocketDisconnect:
-        print("websocket disconnected")
+        logger.info("Client disconnected")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail=str(e)) from e
+
 
 # Example usage
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+    uvicorn.run(app, host="0.0.0.0", port=8002)

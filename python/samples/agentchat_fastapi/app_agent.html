@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AutoGen FastAPI Sample</title>
+    <title>AutoGen FastAPI Sample: Agent</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -19,7 +19,7 @@
         }
 
         #chat-container {
-            width: 80%;
+            width: 90%;
             max-width: 600px;
             background-color: #fff;
             border-radius: 8px;
@@ -28,7 +28,7 @@
         }
 
         #messages {
-            height: 300px;
+            height: 600px;
             overflow-y: auto;
             border-bottom: 1px solid #ddd;
             margin-bottom: 20px;
@@ -96,7 +96,7 @@
             input.value = '';
 
             try {
-                const response = await fetch('http://localhost:8000/chat', {
+                const response = await fetch('http://localhost:8001/chat', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -127,7 +127,7 @@
 
         async function loadHistory() {
             try {
-                const response = await fetch('http://localhost:8000/history');
+                const response = await fetch('http://localhost:8001/history');
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
                 }
