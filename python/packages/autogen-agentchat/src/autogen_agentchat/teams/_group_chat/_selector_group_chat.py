@@ -3,7 +3,7 @@ import re
 from typing import Any, Callable, Dict, List, Mapping, Sequence
 
 from autogen_core import Component, ComponentModel
-from autogen_core.models import ChatCompletionClient, SystemMessage, UserMessage
+from autogen_core.models import ChatCompletionClient, ModelFamily, SystemMessage, UserMessage
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -110,18 +110,17 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                         message += " [Image]"
             else:
                 raise ValueError(f"Unexpected message type in selector: {type(msg)}")
-            history_messages.append(message)
+            history_messages.append(
+                message.rstrip() + "\n\n"
+            )  # Create some consistency for how messages are separated in the transcript
         history = "\n".join(history_messages)
 
         # Construct agent roles, we are using the participant topic type as the agent name.
-        roles = "\n".join(
-            [
-                f"{topic_type}: {description}".strip()
-                for topic_type, description in zip(
-                    self._participant_topic_types, self._participant_descriptions, strict=True
-                )
-            ]
-        )
+        # Each agent sould appear on a single line.
+        roles = ""
+        for topic_type, description in zip(self._participant_topic_types, self._participant_descriptions, strict=True):
+            roles += re.sub(r"\s+", " ", f"{topic_type}: {description}").strip() + "\n"
+        roles = roles.strip()
 
         # Construct agent list to be selected, skip the previous speaker if not allowed.
         if self._previous_speaker is not None and not self._allow_repeated_speaker:
@@ -136,11 +135,20 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                 roles=roles, participants=str(participants), history=history
             )
             select_speaker_messages: List[SystemMessage | UserMessage]
-            if self._model_client.model_info["family"].startswith("gemini"):
-                select_speaker_messages = [UserMessage(content=select_speaker_prompt, source="selector")]
-            else:
+            if self._model_client.model_info["family"] in [
+                ModelFamily.GPT_4,
+                ModelFamily.GPT_4O,
+                ModelFamily.GPT_35,
+                ModelFamily.O1,
+                ModelFamily.O3,
+            ]:
                 select_speaker_messages = [SystemMessage(content=select_speaker_prompt)]
+            else:
+                # Many other models need a UserMessage to respond to
+                select_speaker_messages = [UserMessage(content=select_speaker_prompt, source="selector")]
+
             response = await self._model_client.create(messages=select_speaker_messages)
+
             assert isinstance(response.content, str)
             mentions = self._mentioned_agents(response.content, self._participant_topic_types)
             if len(mentions) != 1:
