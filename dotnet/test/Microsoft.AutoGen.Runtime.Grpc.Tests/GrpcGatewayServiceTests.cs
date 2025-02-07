@@ -12,7 +12,7 @@ using NewMessageReceived = Tests.Events.NewMessageReceived;
 
 namespace Microsoft.AutoGen.Runtime.Grpc.Tests;
 [Collection(ClusterCollection.Name)]
-[Trait("Category", "UnitV2")]
+[Trait("Category", "GRPC")]
 public class GrpcGatewayServiceTests
 {
     private readonly ClusterFixture _fixture;
