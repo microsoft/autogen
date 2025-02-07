@@ -11,23 +11,20 @@ RUN ln -snf /usr/share/zoneinfo/US/Pacific /etc/localtime && echo "US/Pacific" >
 # Upgrade pip
 RUN pip install --upgrade pip
 
-# Pre-load autogen_core dependencies, but not autogen_core itself since we'll often want to install the latest from source
-RUN pip install openai pillow aiohttp typing-extensions pydantic types-aiofiles grpcio protobuf
+# Pre-load autogen to get the dependencies, but then uninstall them (leaving dependencies in place)
+RUN pip install autogen-core autogen-agentchat autogen-ext pyyaml
+RUN pip uninstall --yes autogen-core autogen-agentchat autogen-ext
+
+# Optional markitdown dependencies
+RUN pip install markitdown SpeechRecognition pydub youtube_transcript_api==0.6.0
 
 # Pre-load popular packages as per https://learnpython.com/blog/most-popular-python-packages/
 RUN pip install numpy pandas matplotlib seaborn scikit-learn requests urllib3 nltk pytest
-
-# Pre-load packages needed for mdconvert file utils
-RUN pip install python-docx pdfminer.six python-pptx SpeechRecognition openpyxl pydub mammoth puremagic youtube_transcript_api==0.6.0
 
 # Pre-load Playwright
 RUN pip install playwright
 RUN playwright install --with-deps chromium
 
-# Fix an incompatibility with numpy
-RUN pip uninstall --yes numpy
-RUN pip install "numpy<2.0"
-
 # Webarena (evaluation code)
-RUN pip install beartype aiolimiter
-RUN /usr/bin/echo -e "import nltk\nnltk.download('punkt')" | python
+#RUN pip install beartype aiolimiter
+#RUN /usr/bin/echo -e "import nltk\nnltk.download('punkt')" | python

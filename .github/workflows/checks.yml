@@ -149,6 +149,38 @@ jobs:
           name: coverage-${{ env.PKG_NAME }}
           path: ./python/coverage_${{ env.PKG_NAME }}.xml
 
+  test-grpc:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          version: "0.5.18"
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run uv sync
+        run: |
+          uv sync --locked --all-extras
+        working-directory: ./python
+      - name: Run task
+        run: |
+          source ${{ github.workspace }}/python/.venv/bin/activate
+          poe --directory ./packages/autogen-ext test-grpc
+        working-directory: ./python
+
+      - name: Move coverage file
+        run: |
+          mv ./packages/autogen-ext/coverage.xml coverage_autogen-ext-grpc.xml
+        working-directory: ./python
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-autogen-ext-grpc
+          path: ./python/coverage_autogen-ext-grpc.xml
+
   codecov:
     runs-on: ubuntu-latest
     needs: [test]
@@ -159,6 +191,7 @@ jobs:
             "./packages/autogen-core",
             "./packages/autogen-ext",
             "./packages/autogen-agentchat",
+            "autogen-ext-grpc",
           ]
     steps:
       - uses: actions/checkout@v4
