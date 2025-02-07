@@ -344,18 +344,18 @@ OPENAI_API_KEY: ${OPENAI_API_KEY}
     return env
 
 
-def substitute_env_variables(json_data: Any):
+def substitute_env_variables(json_data: Any) -> None:
     """
     Recursively replaces any instance of "${ENV_VARIABLE}" with os.environ("ENV_VARIABLE") in a structure returned from json.loads()
     """
 
-    def replace_env_var(match):
+    def replace_env_var(match: Any) -> str:
         var_name = match.group(1)
-        return os.environ.get(var_name)
+        return os.environ.get(var_name, "")
 
     pattern = re.compile(r"\$\{(\w+)\}")
 
-    def replace_in_dict(d):
+    def replace_in_dict(d: Dict[Any, Any]) -> None:
         for key, value in d.items():
             if isinstance(value, str):
                 d[key] = pattern.sub(replace_env_var, value)
@@ -364,7 +364,7 @@ def substitute_env_variables(json_data: Any):
             elif isinstance(value, list):
                 replace_in_list(value)
 
-    def replace_in_list(lst):
+    def replace_in_list(lst: List[Any]) -> None:
         for i, item in enumerate(lst):
             if isinstance(item, str):
                 lst[i] = pattern.sub(replace_env_var, item)
