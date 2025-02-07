@@ -30,8 +30,8 @@ class ModelFamily:
     CLAUDE_3_HAIKU = "claude-3-haiku"
     CLAUDE_3_SONNET = "claude-3-sonnet"
     CLAUDE_3_OPUS = "claude-3-opus"
-    CLAUDE_35_HAIKU = "claude-3.5-haiku"
-    CLAUDE_35_SONNET = "claude-3.5-sonnet"
+    CLAUDE_3_5_HAIKU = "claude-3.5-haiku"
+    CLAUDE_3_5_SONNET = "claude-3.5-sonnet"
     UNKNOWN = "unknown"
 
     ANY: TypeAlias = Literal[
