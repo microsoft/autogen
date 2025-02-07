@@ -5,24 +5,6 @@ namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 
 public interface IRegistry
 {
-    //AgentsRegistryState State { get; set; }
-    /// <summary>
-    /// Registers a new agent type with the specified worker.
-    /// </summary>
-    /// <param name="request">The request containing agent type details.</param>
-    /// <param name="connection">The connection the client conneted on</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <remarks>removing CancellationToken from here as it is not compatible with Orleans Serialization</remarks>
-    ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest request, string clientId, GrpcWorkerConnection connection);
-
-    /// <summary>
-    /// Unregisters an agent type from the specified worker.
-    /// </summary>
-    /// <param name="type">The type of the agent to unregister.</param>
-    /// <param name="connection">The connection the client conneted on</param>
-    /// <returns>A task representing the asynchronous operation.</returns>
-    /// <remarks>removing CancellationToken from here as it is not compatible with Orleans Serialization</remarks>
-    ValueTask UnregisterAgentTypeAsync(string type, GrpcWorkerConnection connection);
 
     /// <summary>
     /// Gets a list of agents subscribed to and handling the specified topic and event type.

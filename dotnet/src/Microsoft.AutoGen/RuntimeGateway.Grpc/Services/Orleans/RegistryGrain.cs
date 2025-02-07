@@ -148,7 +148,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
         workerState.LastSeen = DateTimeOffset.UtcNow;
         return workerState;
     }
-
+    public ValueTask<IGateway?> GetCompatibleWorkerAsync(string type) => new(GetCompatibleWorkerCore(type));
     private IGateway? GetCompatibleWorkerCore(string type)
     {
         if (_supportedAgentTypes.TryGetValue(type, out var workers))
