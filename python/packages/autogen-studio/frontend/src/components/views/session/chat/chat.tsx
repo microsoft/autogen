@@ -148,8 +148,6 @@ export default function ChatView({ session }: ChatViewProps) {
     setCurrentRun((current) => {
       if (!current || !session?.id) return null;
 
-      console.log("WebSocket message:", message);
-
       switch (message.type) {
         case "error":
           if (inputTimeoutRef.current) {
@@ -305,7 +303,6 @@ export default function ChatView({ session }: ChatViewProps) {
     }
 
     try {
-      console.log("Sending input response:", response);
       activeSocketRef.current.send(
         JSON.stringify({
           type: "input_response",
