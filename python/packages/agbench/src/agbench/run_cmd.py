@@ -364,7 +364,7 @@ def substitute_env_variables(json_data: Any) -> None:
             elif isinstance(value, list):
                 # Note: with the task mypy complains of a redundant cast
                 # without the cast, pyright complains the type is unknown
-                replace_in_list(cast(List[Any], value)) # type: ignore
+                replace_in_list(cast(List[Any], value))  # type: ignore
 
     def replace_in_list(lst: List[Any]) -> None:
         for i, item in enumerate(lst):
@@ -373,12 +373,12 @@ def substitute_env_variables(json_data: Any) -> None:
             elif isinstance(item, dict):
                 replace_in_dict(cast(Dict[str, Any], item))
             elif isinstance(item, list):
-                replace_in_list(cast(List[Any], item)) # type: ignore
+                replace_in_list(cast(List[Any], item))  # type: ignore
 
     if isinstance(json_data, dict):
         replace_in_dict(cast(Dict[str, Any], json_data))
     elif isinstance(json_data, list):
-        replace_in_list(cast(List[Any], json_data)) # type: ignore
+        replace_in_list(cast(List[Any], json_data))  # type: ignore
 
 
 def run_scenario_natively(work_dir: str, env: Mapping[str, str], timeout: int = TASK_TIMEOUT) -> None:
