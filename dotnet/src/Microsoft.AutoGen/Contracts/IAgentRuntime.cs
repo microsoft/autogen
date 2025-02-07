@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IAgentRuntime.cs
 
-using StateDict = System.Collections.Generic.IDictionary<string, System.Text.Json.JsonElement>;
+using System.Text.Json;
 
 namespace Microsoft.AutoGen.Contracts;
 
@@ -70,7 +70,7 @@ public interface IAgentRuntime : ISaveState<IAgentRuntime>
     /// </summary>
     /// <param name="agentId">The ID of the agent whose state is being saved.</param>
     /// <returns>A task representing the asynchronous operation, returning a dictionary of the saved state.</returns>
-    public ValueTask<StateDict> SaveAgentStateAsync(AgentId agentId/*, CancellationToken? cancellationToken = default*/);
+    public ValueTask<JsonElement> SaveAgentStateAsync(AgentId agentId/*, CancellationToken? cancellationToken = default*/);
 
     /// <summary>
     /// Loads the saved state into an agent.
@@ -78,7 +78,7 @@ public interface IAgentRuntime : ISaveState<IAgentRuntime>
     /// <param name="agentId">The ID of the agent whose state is being restored.</param>
     /// <param name="state">The state dictionary to restore.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public ValueTask LoadAgentStateAsync(AgentId agentId, StateDict state/*, CancellationToken? cancellationToken = default*/);
+    public ValueTask LoadAgentStateAsync(AgentId agentId, JsonElement state/*, CancellationToken? cancellationToken = default*/);
 
     /// <summary>
     /// Retrieves metadata for an agent.
