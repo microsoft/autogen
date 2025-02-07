@@ -17,10 +17,6 @@ public static class AgentWorkerHostingExtensions
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
 
         builder.Services.AddGrpc();
-        builder.Services.AddKeyedSingleton("AgentsMetadata", (sp, key) =>
-        {
-            return Abstractions.ReflectionHelper.GetAgentsMetadata(AppDomain.CurrentDomain.GetAssemblies());
-        });
         builder.Services.AddSingleton<GrpcGateway>();
         builder.Services.AddSingleton<IHostedService>(sp => (IHostedService)sp.GetRequiredService<GrpcGateway>());
 
