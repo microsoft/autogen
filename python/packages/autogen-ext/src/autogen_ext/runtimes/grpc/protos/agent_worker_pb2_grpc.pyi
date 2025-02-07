@@ -24,14 +24,9 @@ class AgentRpcStub:
         agent_worker_pb2.Message,
     ]
 
-    GetState: grpc.UnaryUnaryMultiCallable[
-        agent_worker_pb2.AgentId,
-        agent_worker_pb2.GetStateResponse,
-    ]
-
-    SaveState: grpc.UnaryUnaryMultiCallable[
-        agent_worker_pb2.AgentState,
-        agent_worker_pb2.SaveStateResponse,
+    OpenControlChannel: grpc.StreamStreamMultiCallable[
+        agent_worker_pb2.ControlMessage,
+        agent_worker_pb2.ControlMessage,
     ]
 
     RegisterAgent: grpc.UnaryUnaryMultiCallable[
@@ -60,14 +55,9 @@ class AgentRpcAsyncStub:
         agent_worker_pb2.Message,
     ]
 
-    GetState: grpc.aio.UnaryUnaryMultiCallable[
-        agent_worker_pb2.AgentId,
-        agent_worker_pb2.GetStateResponse,
-    ]
-
-    SaveState: grpc.aio.UnaryUnaryMultiCallable[
-        agent_worker_pb2.AgentState,
-        agent_worker_pb2.SaveStateResponse,
+    OpenControlChannel: grpc.aio.StreamStreamMultiCallable[
+        agent_worker_pb2.ControlMessage,
+        agent_worker_pb2.ControlMessage,
     ]
 
     RegisterAgent: grpc.aio.UnaryUnaryMultiCallable[
@@ -99,18 +89,11 @@ class AgentRpcServicer(metaclass=abc.ABCMeta):
     ) -> typing.Union[collections.abc.Iterator[agent_worker_pb2.Message], collections.abc.AsyncIterator[agent_worker_pb2.Message]]: ...
 
     @abc.abstractmethod
-    def GetState(
+    def OpenControlChannel(
         self,
-        request: agent_worker_pb2.AgentId,
+        request_iterator: _MaybeAsyncIterator[agent_worker_pb2.ControlMessage],
         context: _ServicerContext,
-    ) -> typing.Union[agent_worker_pb2.GetStateResponse, collections.abc.Awaitable[agent_worker_pb2.GetStateResponse]]: ...
-
-    @abc.abstractmethod
-    def SaveState(
-        self,
-        request: agent_worker_pb2.AgentState,
-        context: _ServicerContext,
-    ) -> typing.Union[agent_worker_pb2.SaveStateResponse, collections.abc.Awaitable[agent_worker_pb2.SaveStateResponse]]: ...
+    ) -> typing.Union[collections.abc.Iterator[agent_worker_pb2.ControlMessage], collections.abc.AsyncIterator[agent_worker_pb2.ControlMessage]]: ...
 
     @abc.abstractmethod
     def RegisterAgent(
