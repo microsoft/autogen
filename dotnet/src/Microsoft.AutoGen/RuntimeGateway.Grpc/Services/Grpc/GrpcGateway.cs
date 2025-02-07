@@ -101,31 +101,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     }
 
     /// <summary>
-    /// Stores the agent state asynchronously.
-    /// </summary>
-    /// <param name="value">The agent state.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    public async ValueTask StoreAsync(AgentState value, CancellationToken cancellationToken = default)
-    {
-        _ = value.AgentId ?? throw new ArgumentNullException(nameof(value.AgentId));
-        var agentState = _clusterClient.GetGrain<IAgentGrain>($"{value.AgentId.Type}:{value.AgentId.Key}");
-        await agentState.WriteStateAsync(value, value.ETag);
-    }
-
-    /// <summary>
-    /// Reads the agent state asynchronously.
-    /// </summary>
-    /// <param name="agentId">The agent ID.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task that represents the asynchronous operation. The task result contains the agent state.</returns>
-    public async ValueTask<AgentState> ReadAsync(Protobuf.AgentId agentId, CancellationToken cancellationToken = default)
-    {
-        var agentState = _clusterClient.GetGrain<IAgentGrain>($"{agentId.Type}:{agentId.Key}");
-        return await agentState.ReadStateAsync();
-    }
-
-    /// <summary>
     /// Registers an agent type asynchronously.
     /// </summary>
     /// <param name="request">The register agent type request.</param>
@@ -211,16 +186,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     async ValueTask IGateway.BroadcastEventAsync(CloudEvent evt)
     {
         await BroadcastEventAsync(evt, default).ConfigureAwait(false);
-    }
-
-    ValueTask IGateway.StoreAsync(AgentState value)
-    {
-        return StoreAsync(value, default);
-    }
-
-    ValueTask<AgentState> IGateway.ReadAsync(Protobuf.AgentId agentId)
-    {
-        return ReadAsync(agentId, default);
     }
 
     ValueTask<RegisterAgentTypeResponse> IGateway.RegisterAgentTypeAsync(RegisterAgentTypeRequest request, ServerCallContext context)

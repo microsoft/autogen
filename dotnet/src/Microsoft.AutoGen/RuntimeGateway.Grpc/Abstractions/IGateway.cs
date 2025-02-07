@@ -10,8 +10,6 @@ public interface IGateway : IGrainObserver
 {
     ValueTask<RpcResponse> InvokeRequestAsync(RpcRequest request);
     ValueTask BroadcastEventAsync(CloudEvent evt);
-    ValueTask StoreAsync(AgentState value);
-    ValueTask<AgentState> ReadAsync(Protobuf.AgentId agentId);
     ValueTask<RegisterAgentTypeResponse> RegisterAgentTypeAsync(RegisterAgentTypeRequest request, ServerCallContext context);
     ValueTask<AddSubscriptionResponse> SubscribeAsync(AddSubscriptionRequest request);
     ValueTask<RemoveSubscriptionResponse> UnsubscribeAsync(RemoveSubscriptionRequest request);
