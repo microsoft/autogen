@@ -15,7 +15,7 @@ Navigate to HumanEval
 cd benchmarks/HumanEval
 ```
 
-Update `config.yaml` to point to your model host, as appropriate. The default configuration point to 'gpt-4o'
+Update `config.yaml` to point to your model host, as appropriate. The default configuration points to 'gpt-4o'.
 
 
 Now initialize the tasks.
