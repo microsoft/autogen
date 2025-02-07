@@ -9,6 +9,9 @@ namespace Microsoft.AutoGen.Contracts;
 /// </summary>
 public class MessageContext(string messageId, CancellationToken cancellationToken)
 {
+    public MessageContext(CancellationToken cancellation) : this(Guid.NewGuid().ToString(), cancellation)
+    { }
+
     /// <summary>
     /// Gets or sets the unique identifier for this message.
     /// </summary>

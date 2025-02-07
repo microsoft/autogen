@@ -90,13 +90,13 @@ public struct AgentName
 
     private static readonly Regex AgentNameRegex = new Regex($"^{IdStartClass}{IdContinueClass}*$", RegexOptions.Compiled | RegexOptions.Singleline);
 
-    public string Name { get; }
+    public string Value { get; }
 
     public AgentName(string name)
     {
         AgentName.CheckValid(name);
 
-        this.Name = name;
+        this.Value = name;
     }
 
     public static bool IsValid(string name) => AgentNameRegex.IsMatch(name);
@@ -110,7 +110,7 @@ public struct AgentName
     }
 
     // Implicit cast to string
-    public static implicit operator string(AgentName agentName) => agentName.Name;
+    public static implicit operator string(AgentName agentName) => agentName.Value;
 }
 
 /// <summary>
