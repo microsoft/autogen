@@ -1,5 +1,6 @@
 import json
 import os
+from typing import Any
 
 import aiofiles
 import yaml
@@ -47,7 +48,7 @@ async def get_agent() -> AssistantAgent:
     return agent
 
 
-async def get_history():
+async def get_history() -> list[dict[str, Any]]:
     """Get chat history from file."""
     if not os.path.exists(history_path):
         return []
@@ -56,7 +57,7 @@ async def get_history():
 
 
 @app.get("/history")
-async def history():
+async def history() -> list[dict[str, Any]]:
     try:
         return await get_history()
     except Exception as e:
@@ -64,7 +65,7 @@ async def history():
 
 
 @app.post("/chat", response_model=TextMessage)
-async def chat(request: TextMessage):
+async def chat(request: TextMessage) -> TextMessage:
     try:
         # Get the agent and respond to the message.
         agent = await get_agent()
@@ -76,12 +77,13 @@ async def chat(request: TextMessage):
             await file.write(json.dumps(state))
 
         # Save chat history to file.
-        history = get_history()
+        history = await get_history()
         history.append(request.model_dump())
         history.append(response.chat_message.model_dump())
         async with aiofiles.open(history_path, "w") as file:
             await file.write(json.dumps(history))
 
+        assert isinstance(response.chat_message, TextMessage)
         return response.chat_message
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e

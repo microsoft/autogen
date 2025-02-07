@@ -1,7 +1,7 @@
 import json
 import logging
 import os
-from typing import Awaitable, Callable, Optional
+from typing import Any, Awaitable, Callable, Optional
 
 import aiofiles
 import yaml
@@ -66,7 +66,7 @@ async def get_team(
     return team
 
 
-async def get_history():
+async def get_history() -> list[dict[str, Any]]:
     """Get chat history from file."""
     if not os.path.exists(history_path):
         return []
@@ -74,8 +74,8 @@ async def get_history():
         return json.loads(await file.read())
 
 
-@app.get("/history", response_model=list[TextMessage])
-async def history():
+@app.get("/history")
+async def history() -> list[dict[str, Any]]:
     try:
         return await get_history()
     except Exception as e:
