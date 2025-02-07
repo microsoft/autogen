@@ -93,7 +93,7 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
         {
             AgentChatConfig config = new AgentChatConfig(participant, GroupTopicType, OutputTopicType);
             this.Participants[participant.Name] = config;
-            this.GroupChatOptions.Participants[participant.Name] = (config.ParticipantTopicType, participant.Description);
+            this.GroupChatOptions.Participants[participant.Name] = new GroupParticipant(config.ParticipantTopicType, participant.Description);
         }
 
         this.messageThread = new List<AgentMessage>(); // TODO: Allow injecting this

@@ -5,6 +5,27 @@ using Microsoft.AutoGen.AgentChat.Abstractions;
 
 namespace Microsoft.AutoGen.AgentChat.GroupChat;
 
+public struct GroupParticipant(string topicType, string description)
+{
+    public string TopicType { get; } = topicType;
+    public string Description { get; } = description;
+
+    // Destructuring from a tuple
+    public GroupParticipant((string topicType, string description) tuple) : this(tuple.topicType, tuple.description)
+    {
+    }
+
+    // Destructuring to a tuple
+    public void Deconstruct(out string topicType, out string description)
+    {
+        topicType = this.TopicType;
+        description = this.Description;
+    }
+
+    public static implicit operator GroupParticipant((string topicType, string description) tuple) => new GroupParticipant(tuple);
+    public static implicit operator (string topicType, string description)(GroupParticipant participant) => (participant.TopicType, participant.Description);
+}
+
 public class GroupChatOptions(string groupTopicType, string outputTopicType)
 {
     public string GroupChatTopicType { get; } = groupTopicType;
@@ -13,5 +34,5 @@ public class GroupChatOptions(string groupTopicType, string outputTopicType)
     public ITerminationCondition? TerminationCondition { get; set; }
     public int? MaxTurns { get; set; }
 
-    public Dictionary<string, (string TopicType, string Description)> Participants { get; } = new Dictionary<string, (string, string)>();
+    public Dictionary<string, GroupParticipant> Participants { get; } = new Dictionary<string, GroupParticipant>();
 }

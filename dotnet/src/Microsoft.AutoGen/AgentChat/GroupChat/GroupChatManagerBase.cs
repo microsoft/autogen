@@ -28,7 +28,7 @@ public abstract class GroupChatManagerBase : IGroupChatHandler
     protected string GroupChatTopicType => this.options.GroupChatTopicType;
     protected string OutputTopicType => this.options.OutputTopicType;
 
-    protected Dictionary<string, (string TopicType, string Description)> Participants => this.options.Participants;
+    protected Dictionary<string, GroupParticipant> Participants => this.options.Participants;
 
     protected ITerminationCondition? TerminationCondition => this.options.TerminationCondition;
     protected int? MaxTurns => this.options.MaxTurns;

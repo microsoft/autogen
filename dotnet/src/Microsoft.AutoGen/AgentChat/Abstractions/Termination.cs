@@ -4,7 +4,7 @@
 namespace Microsoft.AutoGen.AgentChat.Abstractions;
 
 /// <summary>
-/// A stateful condition that deterines when a conversation should be terminated.
+/// A stateful condition that determines when a conversation should be terminated.
 ///
 /// A termination condition takes a sequences of <see cref="AgentMessage"/> objects since the last time the
 /// condition was checked, and returns a <see cref="StopMessage"/> if the conversation should be terminated,
@@ -17,7 +17,7 @@ namespace Microsoft.AutoGen.AgentChat.Abstractions;
 public interface ITerminationCondition
 {
     /// <summary>
-    /// Checkes if the termination condition has been reached
+    /// Checks if the termination condition has been reached
     /// </summary>
     bool IsTerminated { get; }
 
@@ -86,19 +86,19 @@ internal sealed class CombinerCondition : ITerminationCondition
     /// <summary>
     /// Create a new <see cref="CombinerCondition"/> with the given conjunction and clauses.
     /// </summary>
-    /// <param name="conjuction">The conjunction to use when combining the clauses.</param>
+    /// <param name="conjunction">The conjunction to use when combining the clauses.</param>
     /// <param name="clauses">The termination conditions to combine.</param>
-    public CombinerCondition(bool conjuction, params IEnumerable<ITerminationCondition> clauses)
+    public CombinerCondition(bool conjunction, params IEnumerable<ITerminationCondition> clauses)
     {
         // Flatten the list of clauses by unwrapping included CombinerConditions if their
-        // conjuctions match (since combiners with associative conjuctions can be hoisted).
+        // conjunctions match (since combiners with associative conjunctions can be hoisted).
         IEnumerable<ITerminationCondition> flattened =
             clauses.SelectMany(c =>
-                    (c is CombinerCondition combiner && combiner.conjunction == conjuction)
+                    (c is CombinerCondition combiner && combiner.conjunction == conjunction)
                     ? (IEnumerable<ITerminationCondition>)combiner.clauses
                     : new[] { c });
 
-        this.conjunction = conjuction;
+        this.conjunction = conjunction;
 
         this.clauses = flattened.ToList();
     }
@@ -106,7 +106,7 @@ internal sealed class CombinerCondition : ITerminationCondition
     /// <inheritdoc cref="ITerminationCondition.IsTerminated" />
     public bool IsTerminated { get; private set; }
 
-    /// <inheritdoc cref="ITerminationCondition.Reset" />"/>
+    /// <inheritdoc cref="ITerminationCondition.Reset" />
     public void Reset()
     {
         this.stopMessages.Clear();
@@ -149,7 +149,7 @@ internal sealed class CombinerCondition : ITerminationCondition
             }
             else if (this.conjunction)
             {
-                // If any clause does not terminate, the conjuction does not terminate
+                // If any clause does not terminate, the conjunction does not terminate
                 raiseTermination = false;
             }
         }
