@@ -136,6 +136,9 @@ exclude = ["src/autogen_ext/runtimes/grpc/protos", "tests/protos"]
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = ["tests"]
+markers = [
+    "grpc",
+]
 
 [tool.poe]
 include = "../../shared_tasks.toml"
@@ -146,6 +149,7 @@ test.sequence = [
     "pytest -n 1 --cov=src --cov-report=term-missing --cov-report=xml",
 ]
 test.default_item_type = "cmd"
+test-grpc = "pytest -n 1 --cov=src --cov-report=term-missing --cov-report=xml --grpc"
 mypy = "mypy --config-file ../../pyproject.toml --exclude src/autogen_ext/runtimes/grpc/protos --exclude tests/protos src tests"
 
 [tool.mypy]

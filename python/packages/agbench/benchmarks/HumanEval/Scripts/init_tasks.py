@@ -93,9 +93,9 @@ def create_jsonl(name, tasks, template):
                 "id": task["task_id"].replace("/", "_"),
                 "template": template,
                 "substitutions": {
-                    "scenario.py": {"__ENTRY_POINT__": task["entry_point"]},
                     "prompt.txt": {"__PROMPT__": task["prompt"]},
-                    "unit_tests.py": {"__TEST__": task["test"]},
+                    "test.txt": {"__TEST__": task["test"]},
+                    "custom_code_executor.py": {"__ENTRY_POINT__": task["entry_point"]},
                 },
             }
 
