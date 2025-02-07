@@ -14,7 +14,7 @@ public interface IGatewayRegistry : IRegistry
     /// </summary>
     /// <param name="agentId">The ID of the agent.</param>
     /// <returns>A tuple containing the worker and a boolean indicating if it's a new placement.</returns>
-    ValueTask<(IGateway? Worker, bool NewPlacement)> GetOrPlaceAgent(Contracts.AgentId agentId);
+    ValueTask<(IGateway? Worker, bool NewPlacement)> GetOrPlaceAgent(AgentId agentId);
 
     /// <summary>
     /// Removes a worker from the registry.
@@ -29,7 +29,7 @@ public interface IGatewayRegistry : IRegistry
     /// <param name="request">The request containing agent type details.</param>
     /// <param name="worker">The worker to register the agent type with.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest request, IGateway worker);
+    ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest request, string clientId, IGateway worker);
 
     /// <summary>
     /// Adds a new worker to the registry.
