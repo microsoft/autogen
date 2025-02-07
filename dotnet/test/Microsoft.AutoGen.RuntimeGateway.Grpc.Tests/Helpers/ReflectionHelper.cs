@@ -6,7 +6,7 @@ using Google.Protobuf.Reflection;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 
-namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Tests;
 public sealed class ReflectionHelper
 {
     public static bool IsSubclassOfGeneric(Type type, Type genericBaseType)

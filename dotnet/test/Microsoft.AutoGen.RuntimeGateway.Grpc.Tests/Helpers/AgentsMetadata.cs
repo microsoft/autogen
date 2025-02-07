@@ -4,7 +4,7 @@
 using System.Collections.Concurrent;
 using Google.Protobuf.Reflection;
 
-namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
+namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Tests;
 
 /// <summary>
 /// Represents a collection of event types and their associated metadata.

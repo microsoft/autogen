@@ -105,7 +105,7 @@ public class GrpcGatewayServiceTests
             Type = type.Name,
         };
         var assembly = type.Assembly;
-        var eventTypes = Abstractions.ReflectionHelper.GetAgentsMetadata(assembly);
+        var eventTypes = ReflectionHelper.GetAgentsMetadata(assembly);
         var events = eventTypes.GetEventsForAgent(type)?.ToList();
         var topics = eventTypes.GetTopicsForAgent(type)?.ToList();
         var topicsPrefix = eventTypes.GetTopicsPrefixForAgent(type)?.ToList();
@@ -183,7 +183,7 @@ public class GrpcGatewayServiceTests
     }
     private string GetFullName(Type type)
     {
-        return Abstractions.ReflectionHelper.GetMessageDescriptor(type)!.FullName;
+        return ReflectionHelper.GetMessageDescriptor(type)!.FullName;
     }
     /// duplicate code here because I could not get InternalsVisibleTo to work
     internal static class Constants
