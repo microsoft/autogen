@@ -7,7 +7,6 @@ using Microsoft.AutoGen.Protobuf;
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 public class AgentsRegistryState
 {
-    public ConcurrentDictionary<string, HashSet<string>> AgentsToEventsMap { get; set; } = new ConcurrentDictionary<string, HashSet<string>>();
     public ConcurrentDictionary<string, HashSet<string>> AgentsToTopicsMap { get; set; } = [];
     public ConcurrentDictionary<string, HashSet<string>> AgentsToTopicsPrefixMap { get; set; } = [];
     public ConcurrentDictionary<string, HashSet<string>> TopicToAgentTypesMap { get; set; } = [];

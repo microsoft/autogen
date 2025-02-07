@@ -183,11 +183,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         return await InvokeRequestAsync(request, default).ConfigureAwait(false);
     }
 
-    async ValueTask IGateway.BroadcastEventAsync(CloudEvent evt)
-    {
-        await BroadcastEventAsync(evt, default).ConfigureAwait(false);
-    }
-
     ValueTask<RegisterAgentTypeResponse> IGateway.RegisterAgentTypeAsync(RegisterAgentTypeRequest request, ServerCallContext context)
     {
         return RegisterAgentTypeAsync(request, context, default);
@@ -412,29 +407,13 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     }
 
     /// <summary>
-    /// Broadcasts an event to all workers.
-    /// </summary>
-    /// <param name="evt">The cloud event.</param>
-    /// <param name="cancellationToken">The cancellation token.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    public async ValueTask BroadcastEventAsync(CloudEvent evt, CancellationToken cancellationToken = default)
-    {
-        var tasks = new List<Task>(_workers.Count);
-        foreach (var (_, connection) in _supportedAgentTypes)
-        {
-            tasks.Add(this.WriteResponseAsync((GrpcWorkerConnection)connection[0], evt, default));
-        }
-        await Task.WhenAll(tasks).ConfigureAwait(false);
-    }
-
-    /// <summary>
     /// Writes a response to a worker connection.
     /// </summary>
     /// <param name="connection">The worker connection.</param>
     /// <param name="cloudEvent">The cloud event.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    public async Task WriteResponseAsync(GrpcWorkerConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
+    private async Task WriteResponseAsync(GrpcWorkerConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
         await connection.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);
     }
