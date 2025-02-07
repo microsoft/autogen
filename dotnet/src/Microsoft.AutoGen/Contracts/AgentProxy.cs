@@ -57,7 +57,7 @@ public class AgentProxy(AgentId agentId, IAgentRuntime runtime)
     /// </summary>
     /// <param name="state">A dictionary representing the state of the agent. Must be JSON serializable.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public ValueTask LoadStateAsync(IDictionary<string, JsonElement> state)
+    public ValueTask LoadStateAsync(JsonElement state)
     {
         return this.runtime.LoadAgentStateAsync(this.Id, state);
     }
@@ -66,7 +66,7 @@ public class AgentProxy(AgentId agentId, IAgentRuntime runtime)
     /// Saves the state of the agent. The result must be JSON serializable.
     /// </summary>
     /// <returns>A task representing the asynchronous operation, returning a dictionary containing the saved state.</returns>
-    public ValueTask<IDictionary<string, JsonElement>> SaveStateAsync()
+    public ValueTask<JsonElement> SaveStateAsync()
     {
         return this.runtime.SaveAgentStateAsync(this.Id);
     }
