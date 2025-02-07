@@ -767,7 +767,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 stop_reason = choice.finish_reason if chunk.usage is None and stop_reason is None else stop_reason
                 maybe_model = chunk.model
                 # First try get content
-                if choice.delta.content is not None:
+                if choice.delta.content:
                     content_deltas.append(choice.delta.content)
                     if len(choice.delta.content) > 0:
                         yield choice.delta.content
