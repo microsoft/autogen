@@ -202,17 +202,19 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
             case None:
                 logger.warning("Received empty message")
 
-    async def _receive_control_message(self, client_id: ClientConnectionId, message: agent_worker_pb2.ControlMessage) -> None:
+    async def _receive_control_message(
+        self, client_id: ClientConnectionId, message: agent_worker_pb2.ControlMessage
+    ) -> None:
         logger.info(f"Received message from client {client_id}: {message}")
         destination = message.destination
         if destination.startswith("agentid="):
-            agent_id = AgentId.from_str(destination[len("agentid="):])
+            agent_id = AgentId.from_str(destination[len("agentid=") :])
             target_client_id = self._agent_type_to_client_id.get(agent_id.type)
             if target_client_id is None:
                 logger.error(f"Agent client id not found for agent type {agent_id.type}.")
                 return
         elif destination.startswith("clientid="):
-            target_client_id = destination[len("clientid="):]
+            target_client_id = destination[len("clientid=") :]
         else:
             logger.error(f"Invalid destination {destination}")
             return
