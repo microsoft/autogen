@@ -486,7 +486,6 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                 # Check for function calls
                 if any(isinstance(item, FunctionCallContent) for item in msg.items):
                     function_calls = self._process_tool_calls(msg)
-                    breakpoint()
                     yield CreateResult(
                         content=function_calls,
                         finish_reason="function_calls",
