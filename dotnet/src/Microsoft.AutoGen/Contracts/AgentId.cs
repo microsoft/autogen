@@ -14,7 +14,7 @@ namespace Microsoft.AutoGen.Contracts;
 /// See the Python equivalent:
 /// <see href="https://microsoft.github.io/autogen/stable/reference/python/autogen_core.html#autogen_core.AgentId">AgentId in AutoGen (Python)</see>.
 /// </remarks>
-[DebuggerDisplay($"AgentId(type=\"{nameof(Type)}\", key=\"{nameof(Key)}\")")]
+[DebuggerDisplay($"AgentId(type=\"{{{nameof(Type)}}}\", key=\"{{{nameof(Key)}}}\")")]
 public struct AgentId
 {
     private static readonly Regex TypeRegex = new(@"^[a-zA-Z_][a-zA-Z0-9_]*$", RegexOptions.Compiled);
