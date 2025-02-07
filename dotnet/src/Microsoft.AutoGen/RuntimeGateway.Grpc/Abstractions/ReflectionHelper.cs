@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ReflectionHelper.cs
-using Microsoft.AutoGen.Core;
-using Microsoft.AutoGen.Contracts;
 using System.Reflection;
 using Google.Protobuf;
 using Google.Protobuf.Reflection;
+using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 public sealed class ReflectionHelper

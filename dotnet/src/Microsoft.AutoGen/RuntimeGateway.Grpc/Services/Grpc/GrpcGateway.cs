@@ -146,7 +146,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
 
             await _gatewayRegistry.RegisterAgentTypeAsync(request, clientId, _reference).ConfigureAwait(true);
-            return new RegisterAgentTypeResponse {};
+            return new RegisterAgentTypeResponse { };
         }
         catch (Exception ex)
         {

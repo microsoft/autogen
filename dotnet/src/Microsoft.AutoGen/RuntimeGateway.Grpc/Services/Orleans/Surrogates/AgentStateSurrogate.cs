@@ -2,7 +2,6 @@
 // AgentStateSurrogate.cs
 
 using Google.Protobuf;
-using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Orleans.Surrogates;
 

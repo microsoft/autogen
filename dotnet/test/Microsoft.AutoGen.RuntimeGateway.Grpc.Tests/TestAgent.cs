@@ -1,10 +1,10 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // TestAgent.cs
-using Microsoft.AutoGen.Protobuf;
-using Microsoft.AutoGen.Core;
 using System.Collections.Concurrent;
-using Microsoft.Extensions.Logging;
 using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
+using Microsoft.AutoGen.Protobuf;
+using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Tests;
 

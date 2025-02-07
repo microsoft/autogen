@@ -21,17 +21,17 @@ public sealed class AgentsMetadata
     /// <param name="topicsPrefixMap">A dictionary mapping types to a set of topics associated with those types.</param>
     /// </summary>
     public AgentsMetadata(
-        TypeRegistry typeRegistry, 
-        Dictionary<string, Type> types, 
-        Dictionary<Type, HashSet<string>> eventsMap, 
-        Dictionary<Type, HashSet<string>> topicsMap, 
+        TypeRegistry typeRegistry,
+        Dictionary<string, Type> types,
+        Dictionary<Type, HashSet<string>> eventsMap,
+        Dictionary<Type, HashSet<string>> topicsMap,
         Dictionary<Type, HashSet<string>> topicsPrefixMap)
     {
         TypeRegistry = typeRegistry;
         _types = new(types);
         _eventsMap = new(eventsMap);
         _topicsMap = new(topicsMap);
-        _topicsPrefixMap = new(topicsPrefixMap);        
+        _topicsPrefixMap = new(topicsPrefixMap);
     }
 
     /// <summary>

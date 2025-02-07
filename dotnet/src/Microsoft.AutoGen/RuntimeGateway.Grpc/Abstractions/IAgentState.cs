@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IAgentState.cs
-using Microsoft.AutoGen.Protobuf;
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 
 /// <summary>

@@ -1,7 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IAgentGrain.cs
-using Microsoft.AutoGen.Protobuf;
-
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 /// <summary>
 /// Interface for managing agent state as an Orleans Grain.
