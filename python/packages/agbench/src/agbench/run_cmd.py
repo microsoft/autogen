@@ -355,28 +355,28 @@ def substitute_env_variables(json_data: Any) -> None:
 
     pattern = re.compile(r"\$\{(\w+)\}")
 
-    def replace_in_dict(d: Dict[Any, Any]) -> None:
+    def replace_in_dict(d: Dict[str, Any]) -> None:
         for key, value in d.items():
             if isinstance(value, str):
                 d[key] = pattern.sub(replace_env_var, value)
             elif isinstance(value, dict):
-                replace_in_dict(value)
+                replace_in_dict(cast(Dict[str, Any], value))
             elif isinstance(value, list):
-                replace_in_list(value)
+                replace_in_list(cast(List[Any], value))
 
     def replace_in_list(lst: List[Any]) -> None:
         for i, item in enumerate(lst):
             if isinstance(item, str):
                 lst[i] = pattern.sub(replace_env_var, item)
             elif isinstance(item, dict):
-                replace_in_dict(item)
+                replace_in_dict(cast(Dict[str, Any], item))
             elif isinstance(item, list):
-                replace_in_list(item)
+                replace_in_list(cast(List[str], item))
 
     if isinstance(json_data, dict):
-        replace_in_dict(json_data)
+        replace_in_dict(cast(Dict[str, Any], json_data))
     elif isinstance(json_data, list):
-        replace_in_list(json_data)
+        replace_in_list(cast(List[Any], json_data))
 
 
 def run_scenario_natively(work_dir: str, env: Mapping[str, str], timeout: int = TASK_TIMEOUT) -> None:
