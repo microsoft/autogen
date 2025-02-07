@@ -7,18 +7,18 @@ from autogen_core.models import (
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
-def create_oai_client(settings: Dict[str, Any]) -> ChatCompletionClient:
+def create_oai_client(config: Dict[str, Any]) -> ChatCompletionClient:
     """
     Creates a chat completion client from OpenAI.
     """
     client = OpenAIChatCompletionClient(
-        model=settings["model"],
-        max_tokens=settings["max_completion_tokens"],
-        max_retries=settings["max_retries"],
-        temperature=settings["temperature"],
-        presence_penalty=settings["presence_penalty"],
-        frequency_penalty=settings["frequency_penalty"],
-        top_p=settings["top_p"],
+        model=config["model"],
+        max_tokens=config["max_completion_tokens"],
+        max_retries=config["max_retries"],
+        temperature=config["temperature"],
+        presence_penalty=config["presence_penalty"],
+        frequency_penalty=config["frequency_penalty"],
+        top_p=config["top_p"],
     )
     return client
 

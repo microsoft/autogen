@@ -128,9 +128,17 @@ class PageLogger:
 
     def __del__(self) -> None:
         # Writes a hash of the log directory to a file for change detection.
+
+        # Do nothing if the app is being forced to exit early.
+        if self.page_stack.size() > 0:
+            return
+
+        # Compute the hash.
         hash_str, num_files, num_subdirs = hash_directory(self.log_dir)
         filename = "00 hash-{}.txt".format(hash_str[-5:])
         hash_path = os.path.join(self.log_dir, filename)
+
+        # Write the hash to a file.
         with open(hash_path, "w") as f:
             f.write(hash_str)
             f.write("\n")
@@ -172,7 +180,8 @@ class PageLogger:
         Adds text to the current page.
         """
         page = self.page_stack.top()
-        page.add_lines(text, flush=True)
+        if page is not None:
+            page.add_lines(text, flush=True)
 
     def debug(self, line: str) -> None:
         """
@@ -413,9 +422,10 @@ class PageLogger:
         if self.level > self.levels["INFO"]:
             return None
         page = self.page_stack.top()
-        page.finished = True
-        page.add_lines("\nLEAVE {}".format(page.summary), flush=True)
-        self.page_stack.pop()
+        if page is not None:
+            page.finished = True
+            page.add_lines("\nLEAVE {}".format(page.summary), flush=True)
+            self.page_stack.pop()
 
 
 class Page:
@@ -498,6 +508,7 @@ class PageStack:
         push: Adds a page to the top of the stack.
         pop: Removes and returns the top page from the stack.
         top: Returns the top page from the stack without removing it.
+        size: Returns the number of pages in the stack.
         write_stack_to_page: Logs a properly indented string displaying the current call stack
     """
 
@@ -512,8 +523,14 @@ class PageStack:
         """Removes and returns the top page from the stack"""
         return self.stack.pop()
 
-    def top(self) -> Page:
+    def size(self) -> int:
+        """Returns the number of pages in the stack."""
+        return len(self.stack)
+
+    def top(self) -> Page | None:
         """Returns the top page from the stack without removing it"""
+        if self.size() == 0:
+            return None
         return self.stack[-1]
 
     def write_stack_to_page(self, page: Page) -> None:

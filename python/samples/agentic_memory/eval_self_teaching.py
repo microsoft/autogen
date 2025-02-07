@@ -11,24 +11,24 @@ from utils import create_oai_client, load_yaml_file
 
 
 async def eval_self_teaching(
-    apprentice: Apprentice, client: ChatCompletionClient, logger: PageLogger, settings: Dict[str, Any]
+    apprentice: Apprentice, client: ChatCompletionClient, logger: PageLogger, config: Dict[str, Any]
 ) -> str:
     """
     Evaluates the ability of an agent to learn quickly from its own trial and error.
     """
     logger.enter_function()
 
-    num_loops = settings["num_loops"]
-    num_final_test_trials = settings["num_final_test_trials"]
+    num_loops = config["num_loops"]
+    num_final_test_trials = config["num_final_test_trials"]
     grader = Grader(client, logger)
 
     # Load the specified data.
-    task_dict_1 = load_yaml_file(settings["task_file_1"])
+    task_dict_1 = load_yaml_file(config["task_file_1"])
     task_description_1 = task_dict_1["task_description"]
     expected_answer_1 = task_dict_1["expected_answer"]
 
     # Test generalization on this different, similar task.
-    task_dict_2 = load_yaml_file(settings["task_file_2"])
+    task_dict_2 = load_yaml_file(config["task_file_2"])
     task_description_2 = task_dict_2["task_description"]
     expected_answer_2 = task_dict_2["expected_answer"]
 
@@ -81,19 +81,19 @@ async def eval_self_teaching(
     return "\neval_self_teaching\n" + results_str_1 + "\n" + results_str_2
 
 
-async def run_example(settings_filepath: str) -> None:
+async def run_example(config_filepath: str) -> None:
     """
     Runs the code example with the necessary components.
     """
-    settings = load_yaml_file(settings_filepath)
+    config = load_yaml_file(config_filepath)
 
     # Create the necessary components.
-    logger = PageLogger(settings["PageLogger"])
-    client = create_oai_client(settings["client"])
-    apprentice = Apprentice(client, settings["Apprentice"], logger)
+    logger = PageLogger(config["PageLogger"])
+    client = create_oai_client(config["client"])
+    apprentice = Apprentice(client, config["Apprentice"], logger)
 
     # Call the example function.
-    results = await eval_self_teaching(apprentice, client, logger, settings["test"])
+    results = await eval_self_teaching(apprentice, client, logger, config["test"])
 
     # Finish up.
     logger.flush(finished=True)
@@ -107,4 +107,4 @@ if __name__ == "__main__":
         print("Usage:  amt.py <path to *.yaml file>")
     else:
         # Run the code example.
-        asyncio.run(run_example(settings_filepath=args[0]))
+        asyncio.run(run_example(config_filepath=args[0]))

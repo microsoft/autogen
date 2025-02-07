@@ -11,7 +11,7 @@ from utils import create_oai_client, load_yaml_file
 
 
 async def eval_teachability(
-    apprentice: Apprentice, client: ChatCompletionClient, logger: PageLogger, settings: Dict[str, Any]
+    apprentice: Apprentice, client: ChatCompletionClient, logger: PageLogger, config: Dict[str, Any]
 ) -> str:
     """
     Evalutes the ability to learn quickly from user teachings, hints, and advice.
@@ -19,11 +19,11 @@ async def eval_teachability(
     logger.enter_function()
 
     # Load the specified data.
-    task_dict = load_yaml_file(settings["task_file"])
+    task_dict = load_yaml_file(config["task_file"])
     task_description = task_dict["task_description"]
     expected_answer = task_dict["expected_answer"]
 
-    advice_dict = load_yaml_file(settings["advice_file"])
+    advice_dict = load_yaml_file(config["advice_file"])
     advice = advice_dict["advice"]
 
     # First test without memory.
@@ -66,19 +66,19 @@ async def eval_teachability(
     return "\neval_teachability\n" + results_str_1 + "\n" + results_str_2
 
 
-async def run_example(settings_filepath: str) -> None:
+async def run_example(config_filepath: str) -> None:
     """
     Runs the code example with the necessary components.
     """
-    settings = load_yaml_file(settings_filepath)
+    config = load_yaml_file(config_filepath)
 
     # Create the necessary components.
-    logger = PageLogger(settings["PageLogger"])
-    client = create_oai_client(settings["client"])
-    apprentice = Apprentice(client, settings["Apprentice"], logger)
+    logger = PageLogger(config["PageLogger"])
+    client = create_oai_client(config["client"])
+    apprentice = Apprentice(client, config["Apprentice"], logger)
 
     # Call the example function.
-    results = await eval_teachability(apprentice, client, logger, settings["test"])
+    results = await eval_teachability(apprentice, client, logger, config["test"])
 
     # Finish up.
     logger.flush(finished=True)
@@ -92,4 +92,4 @@ if __name__ == "__main__":
         print("Usage:  amt.py <path to *.yaml file>")
     else:
         # Run the code example.
-        asyncio.run(run_example(settings_filepath=args[0]))
+        asyncio.run(run_example(config_filepath=args[0]))
