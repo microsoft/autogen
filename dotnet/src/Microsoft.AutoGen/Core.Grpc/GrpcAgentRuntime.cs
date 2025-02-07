@@ -320,13 +320,13 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
     public ValueTask<Contracts.AgentId> GetAgentAsync(string agent, string key = "default", bool lazy = true)
         => this.GetAgentAsync(new Contracts.AgentId(agent, key), lazy);
 
-    public async ValueTask<IDictionary<string, JsonElement>> SaveAgentStateAsync(Contracts.AgentId agentId)
+    public async ValueTask<JsonElement> SaveAgentStateAsync(Contracts.AgentId agentId)
     {
         IHostableAgent agent = await this._agentsContainer.EnsureAgentAsync(agentId);
         return await agent.SaveStateAsync();
     }
 
-    public async ValueTask LoadAgentStateAsync(Contracts.AgentId agentId, IDictionary<string, JsonElement> state)
+    public async ValueTask LoadAgentStateAsync(Contracts.AgentId agentId, JsonElement state)
     {
         IHostableAgent agent = await this._agentsContainer.EnsureAgentAsync(agentId);
         await agent.LoadStateAsync(state);
@@ -376,31 +376,28 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         return ValueTask.FromResult(new AgentProxy(agentId, this));
     }
 
-    public async ValueTask LoadStateAsync(IDictionary<string, JsonElement> state)
+    public async ValueTask LoadStateAsync(JsonElement state)
     {
         HashSet<AgentType> registeredTypes = this._agentsContainer.RegisteredAgentTypes;
 
-        foreach (var agentIdStr in state.Keys)
+        foreach (var agentIdStr in state.EnumerateObject())
         {
-            Contracts.AgentId agentId = Contracts.AgentId.FromStr(agentIdStr);
+            Contracts.AgentId agentId = Contracts.AgentId.FromStr(agentIdStr.Name);
 
-            if (state[agentIdStr].ValueKind != JsonValueKind.Object)
+            if (agentIdStr.Value.ValueKind != JsonValueKind.Object)
             {
                 throw new Exception($"Agent state for {agentId} is not a valid JSON object.");
             }
 
-            var agentState = JsonSerializer.Deserialize<IDictionary<string, JsonElement>>(state[agentIdStr].GetRawText())
-                             ?? throw new Exception($"Failed to deserialize state for {agentId}.");
-
             if (registeredTypes.Contains(agentId.Type))
             {
                 IHostableAgent agent = await this._agentsContainer.EnsureAgentAsync(agentId);
-                await agent.LoadStateAsync(agentState);
+                await agent.LoadStateAsync(agentIdStr.Value);
             }
         }
     }
 
-    public async ValueTask<IDictionary<string, JsonElement>> SaveStateAsync()
+    public async ValueTask<JsonElement> SaveStateAsync()
     {
         Dictionary<string, JsonElement> state = new();
         foreach (var agent in this._agentsContainer.LiveAgents)
@@ -408,7 +405,7 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
             var agentState = await agent.SaveStateAsync();
             state[agent.Id.ToString()] = JsonSerializer.SerializeToElement(agentState);
         }
-        return state;
+        return JsonSerializer.SerializeToElement(state);
     }
 
     public async ValueTask OnMessageAsync(Message message, CancellationToken cancellation = default)
