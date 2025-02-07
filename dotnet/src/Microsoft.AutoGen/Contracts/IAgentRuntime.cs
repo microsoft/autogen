@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IAgentRuntime.cs
 
-using StateDict = System.Collections.Generic.IDictionary<string, object>;
+using StateDict = System.Collections.Generic.IDictionary<string, System.Text.Json.JsonElement>;
 
 namespace Microsoft.AutoGen.Contracts;
 
