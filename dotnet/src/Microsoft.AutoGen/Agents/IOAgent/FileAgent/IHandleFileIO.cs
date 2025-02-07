@@ -32,7 +32,7 @@ public interface IHandleFileIO : IHandle<Input>, IHandle<Output>, IProcessIO
     /// <param name="token"></param>
     /// <returns>ValueTask</returns>
     ValueTask PublishMessageAsync<T>(T message, TopicId topic, string? messageId, CancellationToken token = default) where T : IMessage;
-    async ValueTask IHandle<Input>.HandleAsync(Input item, MessageContext messageContext, CancellationToken? cancellationToken)
+    async ValueTask IHandle<Input>.HandleAsync(Input item, MessageContext messageContext)
     {
 
         // validate that the file exists
@@ -45,22 +45,22 @@ public interface IHandleFileIO : IHandle<Input>, IHandle<Output>, IProcessIO
             {
                 Message = errorMessage
             };
-            await PublishMessageAsync(err, new TopicId("IOError"), null, token: cancellationToken ?? CancellationToken.None).ConfigureAwait(false);
+            await PublishMessageAsync(err, new TopicId("IOError"), null, token: CancellationToken.None).ConfigureAwait(false);
             return;
         }
         string content;
         using (var reader = new StreamReader(item.Message))
         {
-            content = await reader.ReadToEndAsync(cancellationToken ?? CancellationToken.None);
+            content = await reader.ReadToEndAsync(CancellationToken.None);
         }
         await ProcessInputAsync(content);
         var evt = new InputProcessed
         {
             Route = Route
         };
-        await PublishMessageAsync(evt, new TopicId("InputProcessed"), null, token: cancellationToken ?? CancellationToken.None).ConfigureAwait(false);
+        await PublishMessageAsync(evt, new TopicId("InputProcessed"), null, token: CancellationToken.None).ConfigureAwait(false);
     }
-    async ValueTask IHandle<Output>.HandleAsync(Output item, MessageContext messageContext, CancellationToken? cancellationToken)
+    async ValueTask IHandle<Output>.HandleAsync(Output item, MessageContext messageContext)
     {
         using (var writer = new StreamWriter(OutputPath, append: true))
         {
@@ -70,6 +70,6 @@ public interface IHandleFileIO : IHandle<Input>, IHandle<Output>, IProcessIO
         {
             Route = Route
         };
-        await PublishMessageAsync(evt, new TopicId("OutputWritten"), null, token: cancellationToken ?? CancellationToken.None).ConfigureAwait(false);
+        await PublishMessageAsync(evt, new TopicId("OutputWritten"), null, token: CancellationToken.None).ConfigureAwait(false);
     }
 }

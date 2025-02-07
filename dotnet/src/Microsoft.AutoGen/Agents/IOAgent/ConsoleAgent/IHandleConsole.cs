@@ -28,9 +28,8 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>, IProcessIO
     /// </summary>
     /// <param name="item"></param>
     /// <param name="messageContext"></param>
-    /// <param name="cancellationToken"></param>
     /// <returns>ValueTask</returns>
-    async ValueTask IHandle<Output>.HandleAsync(Output item, MessageContext messageContext, CancellationToken? cancellationToken)
+    async ValueTask IHandle<Output>.HandleAsync(Output item, MessageContext messageContext)
     {
         // Assuming item has a property `Message` that we want to write to the console
         Console.WriteLine(item.Message);
@@ -40,7 +39,7 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>, IProcessIO
         {
             Route = "console"
         };
-        await PublishMessageAsync(evt, new TopicId("OutputWritten"), null, token: cancellationToken ?? CancellationToken.None).ConfigureAwait(false);
+        await PublishMessageAsync(evt, new TopicId("OutputWritten"), null, token: CancellationToken.None).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -49,9 +48,8 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>, IProcessIO
     /// </summary>
     /// <param name="item"></param>
     /// <param name="messageContext"></param>
-    /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    async ValueTask IHandle<Input>.HandleAsync(Input item, MessageContext messageContext, CancellationToken? cancellationToken)
+    async ValueTask IHandle<Input>.HandleAsync(Input item, MessageContext messageContext)
     {
         Console.WriteLine("Please enter input:");
         string content = Console.ReadLine() ?? string.Empty;
@@ -62,6 +60,6 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>, IProcessIO
         {
             Route = "console"
         };
-        await PublishMessageAsync(evt, new TopicId("InputProcessed"), null, token: cancellationToken ?? CancellationToken.None).ConfigureAwait(false);
+        await PublishMessageAsync(evt, new TopicId("InputProcessed"), null, token: CancellationToken.None).ConfigureAwait(false);
     }
 }
