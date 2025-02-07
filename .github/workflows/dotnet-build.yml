@@ -96,12 +96,12 @@ jobs:
         dotnet tool install -g dotnet-reportgenerator-globaltool || dotnet tool update -g dotnet-reportgenerator-globaltool
         # Ensure output directory exists
         mkdir -p ${{ github.workspace }}/dotnet/coverage-report
-        # Merge all coverage reports and generate HTML + XML
+        # Merge all coverage reports and filter only `dotnet/src`
         reportgenerator \
           -reports:${{ github.workspace }}/dotnet/**/TestResults/**/coverage.cobertura.xml \
           -targetdir:${{ github.workspace }}/dotnet/coverage-report \
           -reporttypes:"Cobertura;Html" \
-          -classfilters:"+dotnet/src/*"
+          -sourcedirs:${{ github.workspace }}/dotnet/src
     - name: Upload Merged Coverage Report
       if: matrix.os == 'ubuntu-latest'
       uses: actions/upload-artifact@v4
