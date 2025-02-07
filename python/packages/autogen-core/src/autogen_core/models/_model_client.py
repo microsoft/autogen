@@ -27,6 +27,11 @@ class ModelFamily:
     GEMINI_1_5_FLASH = "gemini-1.5-flash"
     GEMINI_1_5_PRO = "gemini-1.5-pro"
     GEMINI_2_0_FLASH = "gemini-2.0-flash"
+    CLAUDE_3_HAIKU = "claude-3-haiku"
+    CLAUDE_3_SONNET = "claude-3-sonnet"
+    CLAUDE_3_OPUS = "claude-3-opus"
+    CLAUDE_3_5_HAIKU = "claude-3.5-haiku"
+    CLAUDE_3_5_SONNET = "claude-3.5-sonnet"
     UNKNOWN = "unknown"
 
     ANY: TypeAlias = Literal[
@@ -39,6 +44,11 @@ class ModelFamily:
         "gemini-1.5-flash",
         "gemini-1.5-pro",
         "gemini-2.0-flash",
+        "claude-3-haiku",
+        "claude-3-sonnet",
+        "claude-3-opus",
+        "claude-3.5-haiku",
+        "claude-3.5-sonnet",
         "unknown",
     ]
 
