@@ -80,6 +80,24 @@
             background-color: #e0e0e0;
             cursor: not-allowed;
         }
+
+        .message.error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .message.system {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
     </style>
 </head>
 
@@ -102,10 +120,25 @@
                 // Re-enable input and send button if UserInputRequestedEvent is received
                 enableInput();
             }
+            else if (message.type === 'error') {
+                // Display error message
+                displayMessage(message.content, 'error');
+                enableInput();
+            }
             else {
-                // Display message
+                // Display regular message
                 displayMessage(message.content, message.source);
             }
+        };
+
+        ws.onerror = function(error) {
+            displayMessage("WebSocket error occurred. Please refresh the page.", 'error');
+            enableInput();
+        };
+
+        ws.onclose = function() {
+            displayMessage("Connection closed. Please refresh the page.", 'system');
+            disableInput();
         };
 
         document.getElementById('message-input').addEventListener('keydown', function (event) {

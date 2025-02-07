@@ -13,6 +13,8 @@ from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient
 from fastapi import FastAPI, HTTPException, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,14 @@ app.add_middleware(
 model_config_path = "model_config.yaml"
 state_path = "team_state.json"
 history_path = "team_history.json"
+
+# Serve static files
+app.mount("/static", StaticFiles(directory="."), name="static")
+
+@app.get("/")
+async def root():
+    """Serve the chat interface HTML file."""
+    return FileResponse("app_team.html")
 
 
 async def get_team(
@@ -98,30 +108,55 @@ async def chat(websocket: WebSocket):
             data = await websocket.receive_json()
             request = TextMessage.model_validate(data)
 
-            # Get the team and respond to the message.
-            team = await get_team(_user_input)
-            history = await get_history()
-            stream = team.run_stream(task=request)
-            async for message in stream:
-                if isinstance(message, TaskResult):
-                    continue
-                await websocket.send_json(message.model_dump())
-                if not isinstance(message, UserInputRequestedEvent):
-                    # Don't save user input events to history.
-                    history.append(message.model_dump())
+            try:
+                # Get the team and respond to the message.
+                team = await get_team(_user_input)
+                history = await get_history()
+                stream = team.run_stream(task=request)
+                async for message in stream:
+                    if isinstance(message, TaskResult):
+                        continue
+                    await websocket.send_json(message.model_dump())
+                    if not isinstance(message, UserInputRequestedEvent):
+                        # Don't save user input events to history.
+                        history.append(message.model_dump())
 
-            # Save team state to file.
-            async with aiofiles.open(state_path, "w") as file:
-                state = await team.save_state()
-                await file.write(json.dumps(state))
+                # Save team state to file.
+                async with aiofiles.open(state_path, "w") as file:
+                    state = await team.save_state()
+                    await file.write(json.dumps(state))
 
-            # Save chat history to file.
-            async with aiofiles.open(history_path, "w") as file:
-                await file.write(json.dumps(history))
+                # Save chat history to file.
+                async with aiofiles.open(history_path, "w") as file:
+                    await file.write(json.dumps(history))
+                    
+            except Exception as e:
+                # Send error message to client
+                error_message = {
+                    "type": "error",
+                    "content": f"Error: {str(e)}",
+                    "source": "system"
+                }
+                await websocket.send_json(error_message)
+                # Re-enable input after error
+                await websocket.send_json({
+                    "type": "UserInputRequestedEvent",
+                    "content": "An error occurred. Please try again.",
+                    "source": "system"
+                })
+                
     except WebSocketDisconnect:
         logger.info("Client disconnected")
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        logger.error(f"Unexpected error: {str(e)}")
+        try:
+            await websocket.send_json({
+                "type": "error",
+                "content": f"Unexpected error: {str(e)}",
+                "source": "system"
+            })
+        except:
+            pass
 
 
 # Example usage

@@ -46,6 +46,30 @@
             text-align: left;
         }
 
+        .message.error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        .message.system {
+            color: #0c5460;
+            background-color: #d1ecf1;
+            border: 1px solid #bee5eb;
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+
+        #input-container input:disabled,
+        #input-container button:disabled {
+            background-color: #e0e0e0;
+            cursor: not-allowed;
+        }
+
         #input-container {
             display: flex;
         }
@@ -86,14 +110,17 @@
 
         async function sendMessage() {
             const input = document.getElementById('message-input');
+            const button = document.querySelector('#input-container button');
             const message = input.value;
             if (!message) return;
 
             // Display user message
             displayMessage(message, 'user');
 
-            // Clear input
+            // Clear input and disable controls
             input.value = '';
+            input.disabled = true;
+            button.disabled = true;
 
             try {
                 const response = await fetch('http://localhost:8001/chat', {
@@ -104,15 +131,25 @@
                     body: JSON.stringify({ content: message, source: 'user' })
                 });
 
-                if (!response.ok) {
-                    throw new Error('Network response was not ok');
-                }
-
                 const data = await response.json();
-                displayMessage(data.content, 'assistant');
+                if (!response.ok) {
+                    // Handle error response
+                    if (data.detail && data.detail.type === 'error') {
+                        displayMessage(data.detail.content, 'error');
+                    } else {
+                        displayMessage('Error: ' + (data.detail || 'Unknown error'), 'error');
+                    }
+                } else {
+                    displayMessage(data.content, 'assistant');
+                }
             } catch (error) {
                 console.error('Error:', error);
-                displayMessage('Error: Could not reach the server.', 'assistant');
+                displayMessage('Error: Could not reach the server.', 'error');
+            } finally {
+                // Re-enable controls
+                input.disabled = false;
+                button.disabled = false;
+                input.focus();
             }
         }
 
@@ -120,7 +157,17 @@
             const messagesContainer = document.getElementById('messages');
             const messageElement = document.createElement('div');
             messageElement.className = `message ${source}`;
-            messageElement.textContent = content;
+
+            const labelElement = document.createElement('span');
+            labelElement.className = 'label';
+            labelElement.textContent = source;
+
+            const contentElement = document.createElement('div');
+            contentElement.className = 'content';
+            contentElement.textContent = content;
+
+            messageElement.appendChild(labelElement);
+            messageElement.appendChild(contentElement);
             messagesContainer.appendChild(messageElement);
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }

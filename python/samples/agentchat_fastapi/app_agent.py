@@ -10,6 +10,8 @@ from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 app = FastAPI()
 
@@ -21,6 +23,14 @@ app.add_middleware(
     allow_methods=["*"],  # Allows all methods
     allow_headers=["*"],  # Allows all headers
 )
+
+# Serve static files
+app.mount("/static", StaticFiles(directory="."), name="static")
+
+@app.get("/")
+async def root():
+    """Serve the chat interface HTML file."""
+    return FileResponse("app_agent.html")
 
 model_config_path = "model_config.yaml"
 state_path = "agent_state.json"
@@ -86,7 +96,12 @@ async def chat(request: TextMessage) -> TextMessage:
         assert isinstance(response.chat_message, TextMessage)
         return response.chat_message
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e)) from e
+        error_message = {
+            "type": "error",
+            "content": f"Error: {str(e)}",
+            "source": "system"
+        }
+        raise HTTPException(status_code=500, detail=error_message) from e
 
 
 # Example usage

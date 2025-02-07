@@ -7,8 +7,8 @@ and [FastAPI](https://fastapi.tiangolo.com/).
 You will be using the following features of AgentChat:
 
 1. Agent:
-    - `AssistantAgent`
-    - `UserProxyAgent` with a custom websocket input function
+   - `AssistantAgent`
+   - `UserProxyAgent` with a custom websocket input function
 2. Team: `RoundRobinGroupChat`
 3. State persistence: `save_state` and `load_state` methods of both agent and team.
 
@@ -33,7 +33,7 @@ To start the FastAPI server for single-agent chat, run:
 python app_agent.py
 ```
 
-Then, open the `app_agent.html` file in your browser to chat with the assistant.
+Visit http://localhost:8001 in your browser to start chatting.
 
 ## Chat with a team of agents
 
@@ -43,8 +43,7 @@ To start the FastAPI server for team chat, run:
 python app_team.py
 ```
 
-Then, open the `app_team.html` file in your browser to chat with the team
-of agents: an assistant and a Yoda.
+Visit http://localhost:8002 in your browser to start chatting.
 
 The team also includes a `UserProxyAgent` agent with a custom websocket input function
 that allows the user to send messages to the team from the browser.
