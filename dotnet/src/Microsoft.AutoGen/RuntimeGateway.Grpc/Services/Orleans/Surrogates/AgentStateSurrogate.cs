@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // AgentStateSurrogate.cs
-using Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 using Google.Protobuf;
+using Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Orleans.Surrogates;
 
