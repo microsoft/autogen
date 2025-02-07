@@ -107,11 +107,11 @@ public class InProcessRuntimeTests()
         // Save the state
         var savedState = await runtime.SaveStateAsync();
 
-        // Ensure saved state contains the agent's state
-        savedState.Should().ContainKey(agentId.ToString());
+        // Ensure calling TryGetPropertyValue with the agent's key returns the agent's state
+        savedState.TryGetProperty(agentId.ToString(), out var agentState).Should().BeTrue("Agent state should be saved");
 
         // Ensure the agent's state is stored as a valid JSON object
-        savedState[agentId.ToString()].ValueKind.Should().Be(JsonValueKind.Object, "Agent state should be stored as a JSON object");
+        agentState.ValueKind.Should().Be(JsonValueKind.Object, "Agent state should be stored as a JSON object");
 
         // Serialize and Deserialize the state to simulate persistence
         string json = JsonSerializer.Serialize(savedState);
@@ -134,7 +134,7 @@ public class InProcessRuntimeTests()
         newRuntime.agentInstances.Count.Should().Be(0, "Agent should be registered in the new runtime");
 
         // Load the state into the new runtime and show that agent is now instantiated
-        await newRuntime.LoadStateAsync(deserializedState);
+        await newRuntime.LoadStateAsync(savedState);
         newRuntime.agentInstances.Count.Should().Be(1, "Agent should be registered in the new runtime");
         newRuntime.agentInstances.Should().ContainKey(agentId, "Agent should be loaded into the new runtime");
     }
