@@ -100,8 +100,8 @@ jobs:
         reportgenerator \
           -reports:${{ github.workspace }}/dotnet/**/TestResults/**/coverage.cobertura.xml \
           -targetdir:${{ github.workspace }}/dotnet/coverage-report \
-          -reporttypes:"Cobertura;Html"
-        ls -R ${{ github.workspace }}/dotnet/coverage-report
+          -reporttypes:"Cobertura;Html" \
+          -classfilters:"+dotnet/src/*"
     - name: Upload Merged Coverage Report
       if: matrix.os == 'ubuntu-latest'
       uses: actions/upload-artifact@v4
