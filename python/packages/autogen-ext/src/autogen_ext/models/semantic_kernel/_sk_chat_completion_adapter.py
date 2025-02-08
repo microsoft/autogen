@@ -439,7 +439,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             existing_call.arguments = new_chunk.arguments
         else:
             # If there's a mismatch (str vs dict), handle as needed
-            warnings.warn("Mismatch in argument types during merge. Existing arguments retained.")
+            warnings.warn("Mismatch in argument types during merge. Existing arguments retained.", stacklevel=2)
 
         # Optionally update name/function_name if newly provided
         if new_chunk.name:
@@ -524,7 +524,9 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                             if not last_function_call_id:
                                 # No call in progress means we can't merge
                                 # You could either skip or raise an error here
-                                warnings.warn("Received function call chunk with no ID and no call in progress.")
+                                warnings.warn(
+                                    "Received function call chunk with no ID and no call in progress.", stacklevel=2
+                                )
                                 continue
 
                             existing_call = function_calls_in_progress[last_function_call_id]
