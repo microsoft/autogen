@@ -179,7 +179,6 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
       }
 
       if (onChange) {
-        console.log("Saving team configuration", component);
         const teamData: Partial<Team> = team
           ? {
               ...team,
@@ -288,7 +287,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
   };
 
   const handleTestDrawerClose = () => {
-    console.log("TestDrawer closed");
+    // console.log("TestDrawer closed");
     setTestDrawerVisible(false);
   };
 

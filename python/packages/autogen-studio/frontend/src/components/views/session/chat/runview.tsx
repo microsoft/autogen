@@ -33,6 +33,23 @@ interface RunViewProps {
   isFirstRun?: boolean;
 }
 
+export const getAgentMessages = (messages: Message[]): Message[] => {
+  return messages.filter((msg) => msg.config.source !== "llm_call_event");
+};
+
+export const getLastMeaningfulMessage = (
+  messages: Message[]
+): Message | undefined => {
+  return messages
+    .filter((msg) => msg.config.source !== "llm_call_event")
+    .slice(-1)[0];
+};
+
+// Type guard for message arrays
+export const isAgentMessage = (message: Message): boolean => {
+  return message.config.source !== "llm_call_event";
+};
+
 const RunView: React.FC<RunViewProps> = ({
   run,
   onInputResponse,
@@ -56,7 +73,7 @@ const RunView: React.FC<RunViewProps> = ({
       }
     }, 450);
   }, [run.messages]); // Only depend on messages changing
-
+  // console.log("run", run);
   const calculateThreadTokens = (messages: Message[]) => {
     // console.log("messages", messages);
     return messages.reduce((total, msg) => {
@@ -123,7 +140,7 @@ const RunView: React.FC<RunViewProps> = ({
   };
 
   const lastResultMessage = run.team_result?.task_result.messages.slice(-1)[0];
-  const lastMessage = run.messages.slice(-1)[0];
+  const lastMessage = getLastMeaningfulMessage(run.messages);
 
   return (
     <div className="space-y-6  mr-2 ">
@@ -202,19 +219,7 @@ const RunView: React.FC<RunViewProps> = ({
                 </div>
 
                 {lastMessage ? (
-                  // <TruncatableText
-                  //   key={"_" + run.id}
-                  //   textThreshold={700}
-                  //   content={
-                  //     run.messages[run.messages.length - 1]?.config?.content +
-                  //     ""
-                  //   }
-                  //   className="break-all"
-                  // />
-                  <RenderMessage
-                    message={run.messages[run.messages.length - 1]?.config}
-                    isLast={true}
-                  />
+                  <RenderMessage message={lastMessage.config} isLast={true} />
                 ) : (
                   <>
                     {lastResultMessage && (
@@ -322,7 +327,7 @@ const RunView: React.FC<RunViewProps> = ({
                     {/* Agent Flow Visualization */}
                     {isFlowVisible && (
                       <div className="bg-tertiary flex-1 rounded mt-2 relative">
-                        <div className="z-50 absolute left-2 top-2 p-2 hover:opacity-100 opacity-80">
+                        <div className="z-10 absolute left-2 top-2 p-2 hover:opacity-100 opacity-80">
                           <Tooltip title="Hide message flow">
                             <button
                               onClick={() => setIsFlowVisible(false)}
@@ -333,7 +338,13 @@ const RunView: React.FC<RunViewProps> = ({
                           </Tooltip>
                         </div>
                         {teamConfig && (
-                          <AgentFlow teamConfig={teamConfig} run={run} />
+                          <AgentFlow
+                            teamConfig={teamConfig}
+                            run={{
+                              ...run,
+                              messages: getAgentMessages(run.messages),
+                            }}
+                          />
                         )}
                       </div>
                     )}
