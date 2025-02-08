@@ -6,12 +6,14 @@ import json
 import pandas as pd
 import sqlite3
 import glob
+import string
+import warnings
 import numpy as np
 
 EXCLUDE_DIR_NAMES = ["__pycache__"]
 
 
-def normalize_answer(a):
+def in_house_normalize_answer(a):
     # Lower case
     # Trim (left and right)
     # standardize comma separated values
@@ -21,6 +23,106 @@ def normalize_answer(a):
     norm_answer = re.sub(r"[\.\!\?]+$", "", re.sub(r"\s+", " ", norm_answer))
     return norm_answer
 
+
+def in_house_question_scorer(
+    model_answer: str,
+    ground_truth: str,
+) -> bool:
+     n_ma = in_house_normalize_answer(model_answer)
+     n_gt = in_house_normalize_answer(ground_truth)
+     return (n_gt != "" and n_gt == n_ma)
+ 
+
+def gaia_question_scorer(
+    model_answer: str,
+    ground_truth: str,
+) -> bool:
+    #FROM: https://huggingface.co/spaces/gaia-benchmark/leaderboard/blob/main/scorer.py
+
+    def normalize_number_str(number_str: str) -> float:
+        # we replace these common units and commas to allow
+        # conversion to float
+        for char in ["$", "%", ","]:
+            number_str = number_str.replace(char, "")
+        try:
+            return float(number_str)
+        except ValueError:
+            print(f"String {number_str} cannot be normalized to number str.")
+            return float("inf")
+
+    def split_string(s: str, char_list: list[str] = [",", ";"],) -> list[str]:
+        pattern = f"[{''.join(char_list)}]"
+        return re.split(pattern, s)
+
+    def normalize_str(input_str, remove_punct=True) -> str:
+        """
+        Normalize a string by:
+        - Removing all white spaces
+        - Optionally removing punctuation (if remove_punct is True)
+        - Converting to lowercase
+        Parameters:
+        - input_str: str, the string to normalize
+        - remove_punct: bool, whether to remove punctuation (default: True)
+        Returns:
+        - str, the normalized string
+        """
+        # Remove all white spaces. Required e.g for seagull vs. sea gull
+        no_spaces = re.sub(r"\s", "", input_str)
+
+        # Remove punctuation, if specified.
+        if remove_punct:
+            translator = str.maketrans("", "", string.punctuation)
+            return no_spaces.lower().translate(translator)
+        else:
+            return no_spaces.lower()
+
+
+    def is_float(element: any) -> bool:
+        try:
+            float(element)
+            return True
+        except ValueError:
+            return False
+
+    # if gt is a number
+    if is_float(ground_truth):
+        normalized_answer = normalize_number_str(model_answer)
+        return normalized_answer == float(ground_truth)
+
+    # if gt is a list
+    elif any(char in ground_truth for char in [",", ";"]):
+        # question with the fish: normalization removes punct
+
+        gt_elems = split_string(ground_truth)
+        ma_elems = split_string(model_answer)
+
+        # check length is the same
+        if len(gt_elems) != len(ma_elems):
+            #warnings.warn(
+            #    "Answer lists have different lengths, returning False.", UserWarning
+            #)
+            return False
+
+        # compare each element as float or str
+        comparisons = []
+        for ma_elem, gt_elem in zip(ma_elems, gt_elems):
+            if is_float(gt_elem):
+                normalized_ma_elem = normalize_number_str(ma_elem)
+                comparisons.append(normalized_ma_elem == float(gt_elem))
+            else:
+                # we do not remove punct since comparisons can include punct
+                comparisons.append(
+                    normalize_str(ma_elem, remove_punct=False)
+                    == normalize_str(gt_elem, remove_punct=False)
+                )
+        return all(comparisons)
+
+    # if gt is a str
+    else:
+        return normalize_str(model_answer) == normalize_str(ground_truth)
+
+
+##############
 
 def scorer(instance_dir):
     # Read the expected answer
@@ -51,147 +153,12 @@ def scorer(instance_dir):
             return None
 
         # Return true if they are equal after normalization
-        n_ex = normalize_answer(expected_answer)
-        n_final = normalize_answer(final_answer)
-        return (
-            (n_ex != "" and n_ex == n_final),
-            n_ex,
-            n_final
-        )
-
-
-def get_number_of_chat_messages(chat_messages_dir):
-    result = 0
-    for file in glob.glob(f"{chat_messages_dir}/*_messages.json"):
-        with open(file, "r") as f:
-            content = json.load(f)
-            for agent, messages in content.items():
-                result += len(messages)
-    return result
+        # return in_house_question_scorer(final_answer, expected_answer)
+        return gaia_question_scorer(final_answer, expected_answer)
 
 
 def main(args):
-    parsed_args, all_results = default_tabulate(args, scorer=scorer)
-    excel_path = parsed_args.excel
-
-    if excel_path:
-        excel_dir = os.path.dirname(excel_path) or "."
-        if not os.path.exists(excel_dir):
-            os.makedirs(excel_dir, exist_ok=True)
-
-        if not excel_path.endswith((".xlsx", ".xls")):
-            excel_path += ".xlsx"
-
-        runlogs = parsed_args.runlogs if parsed_args.runlogs.endswith("/") else parsed_args.runlogs + "/"
-
-        if os.path.isdir(runlogs):
-            task_ids = sorted(
-                [task_id for task_id in os.listdir(runlogs) if task_id not in EXCLUDE_DIR_NAMES],
-                key=lambda s: os.path.getmtime(os.path.join(parsed_args.runlogs, s)),
-            )
-        else:
-            raise ValueError("please input a valid directory to tabulate result")
-
-        trials = sorted(os.listdir(f"{runlogs}{task_ids[0]}"), key=lambda x: int(x)) if len(task_ids) > 0 else []
-        dbnames = [[f"{runlogs}{task_id}/{trial}/telemetry.db" for task_id in task_ids] for trial in trials]
-
-        query = """
-            SELECT cost, session_id, response, start_time, end_time
-            FROM (
-                SELECT invocation_id, cost, session_id, response, start_time, end_time,
-                    ROW_NUMBER() OVER (PARTITION BY invocation_id ORDER BY start_time) as rn
-                FROM chat_completions
-            )
-            WHERE rn = 1;
-        """
-
-        with pd.ExcelWriter(excel_path, engine="openpyxl") as writer:
-            for trial_index, each_trial in enumerate(dbnames):
-                result_df = pd.DataFrame(
-                    columns=[
-                        "id",
-                        "status",
-                        "expected_answer",
-                        "final_answer",
-                        "cost",
-                        "latency",
-                        "num_of_llm_requests",
-                        "num_of_chat_messages",
-                        "prompt_tokens",
-                        "completion_tokens",
-                        "total_tokens",
-                        "model",
-                    ]
-                )
-
-                result_df_type_mapping = {
-                    "id": str,
-                    "status": bool,
-                    "expected_answer": str,
-                    "final_answer": str,
-                    "cost": float,
-                    "latency": float,
-                    "num_of_llm_requests": int,
-                    "num_of_chat_messages": int,
-                    "prompt_tokens": int,
-                    "completion_tokens": int,
-                    "total_tokens": int,
-                }
-
-                for dbname, scorer_results in zip(each_trial, all_results):
-                    task_id = scorer_results[0]
-                    scorer_result = scorer_results[trial_index + 1]
-
-                    status, expected_answer, final_answer = scorer_result if scorer_result else (False,"","")
-
-                    con = sqlite3.connect(dbname)
-
-                    # TODO: if large amount of data, add chunksize
-                    telemetry_df = pd.read_sql_query(query, con)
-
-                    earliest_starttime = pd.to_datetime(telemetry_df["start_time"], format="%Y-%m-%d %H:%M:%S.%f").min()
-                    latest_endtime = pd.to_datetime(telemetry_df["end_time"], format="%Y-%m-%d %H:%M:%S.%f").max()
-
-                    num_of_chat_messages = get_number_of_chat_messages(chat_messages_dir=os.path.dirname(dbname))
-                    result = {
-                        "id": task_id,
-                        "status": status,
-                        "expected_answer": expected_answer,
-                        "final_answer": final_answer,
-                        "cost": telemetry_df["cost"].sum(),
-                        "latency": (latest_endtime - earliest_starttime).total_seconds(),
-                        "num_of_llm_requests": len(telemetry_df),
-                        "num_of_chat_messages": num_of_chat_messages,
-                        "prompt_tokens": telemetry_df["response"]
-                        .apply(
-                            lambda x: json.loads(x)["usage"]["prompt_tokens"]
-                            if "usage" in json.loads(x) and "prompt_tokens" in json.loads(x)["usage"]
-                            else 0
-                        )
-                        .sum(),
-                        "completion_tokens": telemetry_df["response"]
-                        .apply(
-                            lambda x: json.loads(x)["usage"]["completion_tokens"]
-                            if "usage" in json.loads(x) and "completion_tokens" in json.loads(x)["usage"]
-                            else 0
-                        )
-                        .sum(),
-                        "total_tokens": telemetry_df["response"]
-                        .apply(
-                            lambda x: json.loads(x)["usage"]["total_tokens"]
-                            if "usage" in json.loads(x) and "total_tokens" in json.loads(x)["usage"]
-                            else 0
-                        )
-                        .sum(),
-                        "model": telemetry_df["response"]
-                        .apply(lambda x: json.loads(x)["model"] if "model" in json.loads(x) else "")
-                        .unique(),
-                    }
-
-                    result_df = result_df.astype(result_df_type_mapping)
-                    result_df = pd.concat([result_df, pd.DataFrame([result])], ignore_index=True)
-                result_df.to_excel(writer, sheet_name=f"trial_{trial_index}", index=False)
-
+    default_tabulate(args, scorer=scorer)
 
 if __name__ == "__main__" and __package__ is None:
     main(sys.argv)

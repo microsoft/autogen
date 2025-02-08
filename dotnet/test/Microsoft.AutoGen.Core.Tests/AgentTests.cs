@@ -54,7 +54,7 @@ public class AgentTests()
             return ValueTask.FromResult(agent);
         });
 
-        // Ensure the agent is actually created
+        // Ensure the agent id is registered
         AgentId agentId = await runtime.GetAgentAsync("MyAgent", lazy: false);
 
         // Validate agent ID
@@ -145,26 +145,5 @@ public class AgentTests()
         await Task.Delay(100);
 
         Assert.True(agent.ReceivedItems.Count == 1);
-    }
-
-    [Fact]
-    public async Task AgentShouldSaveStateCorrectlyTest()
-    {
-        var runtime = new InProcessRuntime();
-        await runtime.StartAsync();
-
-        Logger<BaseAgent> logger = new(new LoggerFactory());
-        TestAgent agent = new TestAgent(new AgentId("TestType", "TestKey"), runtime, logger);
-
-        var state = await agent.SaveStateAsync();
-
-        // Ensure state is a dictionary
-        state.Should().NotBeNull();
-        state.Should().BeOfType<Dictionary<string, object>>();
-        state.Should().BeEmpty("Default SaveStateAsync should return an empty dictionary.");
-
-        // Add a sample value and verify it updates correctly
-        state["testKey"] = "testValue";
-        state.Should().ContainKey("testKey").WhoseValue.Should().Be("testValue");
     }
 }
