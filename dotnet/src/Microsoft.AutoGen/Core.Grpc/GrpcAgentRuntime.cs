@@ -155,6 +155,7 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
 
         var messageContext = new MessageContext(request.RequestId, cancellationToken)
         {
+
             Sender = request.Source?.FromProtobuf() ?? null,
             Topic = null,
             IsRpc = true
@@ -275,6 +276,7 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         var request = new RpcRequest
         {
             RequestId = Guid.NewGuid().ToString(),
+
             Source = sender?.ToProtobuf() ?? null,
             Target = recepient.ToProtobuf(),
             Payload = payload,

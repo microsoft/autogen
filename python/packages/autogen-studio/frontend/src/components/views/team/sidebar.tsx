@@ -255,7 +255,9 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                           onClick={(e) => {
                             e.stopPropagation();
                             galleryTeam.label =
-                              galleryTeam.label + "_" + new Date().getTime();
+                              galleryTeam.label +
+                              "_" +
+                              (new Date().getTime() + "").substring(0, 5);
                             onCreateTeam({
                               component: galleryTeam,
                             });
