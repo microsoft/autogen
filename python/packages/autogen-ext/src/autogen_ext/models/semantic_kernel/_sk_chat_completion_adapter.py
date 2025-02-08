@@ -465,11 +465,13 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         1) `"kernel"` (optional):
             An instance of :class:`semantic_kernel.Kernel` used to execute the request.
             If not provided either in constructor or extra_create_args, a ValueError is raised.
+
         2) `"prompt_execution_settings"` (optional):
             An instance of a :class:`PromptExecutionSettings` subclass corresponding to the
             underlying Semantic Kernel client (e.g., `AzureChatPromptExecutionSettings`,
             `GoogleAIChatPromptExecutionSettings`). If not provided, the adapter's default
             prompt settings will be used.
+
         Args:
             messages: The list of LLM messages to send.
             tools: The tools that may be invoked during the chat.
