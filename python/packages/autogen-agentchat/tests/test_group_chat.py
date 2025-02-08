@@ -741,6 +741,87 @@ async def test_selector_group_chat_two_speakers_allow_repeated(monkeypatch: pyte
 
 
 @pytest.mark.asyncio
+async def test_selector_group_chat_multiple_speakers_selected(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = "gpt-4o-2024-05-13"
+    chat_completions = [
+        ChatCompletion(
+            id="id2",
+            choices=[
+                Choice(
+                    finish_reason="stop",
+                    index=0,
+                    message=ChatCompletionMessage(content="agent2, agent3", role="assistant"),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        ),
+    ]
+    mock = _MockChatCompletion(chat_completions)
+    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
+
+    agent1 = _StopAgent("agent1", description="echo agent 1", stop_at=1)
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    agent3 = _EchoAgent("agent3", description="echo agent 3")
+    team = SelectorGroupChat(
+        participants=[agent1, agent2, agent3],
+        model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+        max_turns=1,
+    )
+    result = await team.run(task="Write a program that prints 'Hello, world!'")
+    assert len(result.messages) == 2
+    assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
+    assert result.messages[1].source == "agent2"
+
+
+@pytest.mark.asyncio
+async def test_selector_group_chat_non_speaker_selected(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = "gpt-4o-2024-05-13"
+    chat_completions = [
+        ChatCompletion(
+            id="id2",
+            choices=[
+                Choice(finish_reason="stop", index=0, message=ChatCompletionMessage(content="agent5", role="assistant"))
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        ),
+        ChatCompletion(
+            id="id2",
+            choices=[
+                Choice(finish_reason="stop", index=0, message=ChatCompletionMessage(content="agent5", role="assistant"))
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=0, completion_tokens=0, total_tokens=0),
+        ),
+    ]
+    mock = _MockChatCompletion(chat_completions)
+    monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
+
+    agent1 = _StopAgent("agent1", description="echo agent 1", stop_at=1)
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    agent3 = _EchoAgent("agent3", description="echo agent 3")
+    team = SelectorGroupChat(
+        participants=[agent1, agent2, agent3],
+        model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+        max_turns=2,
+    )
+    result = await team.run(task="Write a program that prints 'Hello, world!'")
+    assert len(result.messages) == 3
+    assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
+    assert (
+        result.messages[1].source == "agent1"
+    )  # agent1 is selected as the speaker as agent5 is not in the participants list
+    assert result.messages[2].source == "agent1"  # agent1, the previous speaker, is selected as the speaker again.
+
+
+@pytest.mark.asyncio
 async def test_selector_group_chat_custom_selector(monkeypatch: pytest.MonkeyPatch) -> None:
     model = "gpt-4o-2024-05-13"
     chat_completions = [
