@@ -9,6 +9,7 @@ from .types import (
     Response,
     SocketMessage,
     TeamResult,
+    LLMCallEventMessage
 )
 
 __all__ = [
@@ -22,4 +23,5 @@ __all__ = [
     "TeamResult",
     "Response",
     "SocketMessage",
+    "LLMCallEventMessage",
 ]
