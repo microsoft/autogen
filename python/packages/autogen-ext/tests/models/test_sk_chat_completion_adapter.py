@@ -7,7 +7,13 @@ from autogen_core import CancellationToken
 from autogen_core.models import CreateResult, LLMMessage, ModelFamily, ModelInfo, SystemMessage, UserMessage
 from autogen_core.tools import BaseTool
 from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
-from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta, ChoiceDeltaToolCall, ChoiceDeltaToolCallFunction
+from openai.types.chat.chat_completion_chunk import (
+    ChatCompletionChunk,
+    Choice,
+    ChoiceDelta,
+    ChoiceDeltaToolCall,
+    ChoiceDeltaToolCallFunction,
+)
 from openai.types.completion_usage import CompletionUsage
 from pydantic import BaseModel
 from semantic_kernel.connectors.ai.open_ai.services.azure_chat_completion import AzureChatCompletion
@@ -110,31 +116,26 @@ def sk_client() -> AzureChatCompletion:
                                             ChoiceDeltaToolCall(
                                                 index=0,
                                                 id="call_UwVVI0iGEmcPwmKUigJcuuuF",
-                                                function=ChoiceDeltaToolCallFunction(
-                                                    name="calculator",
-                                                    arguments=""
-                                                ),
-                                                type="function"
+                                                function=ChoiceDeltaToolCallFunction(name="calculator", arguments=""),
+                                                type="function",
                                             )
-                                        ]
+                                        ],
                                     ),
                                     finish_reason=None,
-                                    index=0
+                                    index=0,
                                 )
                             ],
                             created=1736673679,
                             model="gpt-4o-mini",
-                            object="chat.completion.chunk"
+                            object="chat.completion.chunk",
                         ),
                         ai_model_id="gpt-4o-mini",
                         role=AuthorRole.ASSISTANT,
                         items=[
                             FunctionCallContent(
-                                id="call_UwVVI0iGEmcPwmKUigJcuuuF",
-                                function_name="calculator",
-                                arguments=""
+                                id="call_UwVVI0iGEmcPwmKUigJcuuuF", function_name="calculator", arguments=""
                             )
-                        ]
+                        ],
                     )
                 ]
 
@@ -150,29 +151,21 @@ def sk_client() -> AzureChatCompletion:
                                         delta=ChoiceDelta(
                                             tool_calls=[
                                                 ChoiceDeltaToolCall(
-                                                    index=0,
-                                                    function=ChoiceDeltaToolCallFunction(
-                                                        arguments=arg_chunk
-                                                    )
+                                                    index=0, function=ChoiceDeltaToolCallFunction(arguments=arg_chunk)
                                                 )
                                             ]
                                         ),
                                         finish_reason=None,
-                                        index=0
+                                        index=0,
                                     )
                                 ],
                                 created=1736673679,
                                 model="gpt-4o-mini",
-                                object="chat.completion.chunk"
+                                object="chat.completion.chunk",
                             ),
                             ai_model_id="gpt-4o-mini",
                             role=AuthorRole.ASSISTANT,
-                            items=[
-                                FunctionCallContent(
-                                    function_name="calculator",
-                                    arguments=arg_chunk
-                                )
-                            ]
+                            items=[FunctionCallContent(function_name="calculator", arguments=arg_chunk)],
                         )
                     ]
 
@@ -182,22 +175,16 @@ def sk_client() -> AzureChatCompletion:
                         choice_index=0,
                         inner_content=ChatCompletionChunk(
                             id="chatcmpl-123",
-                            choices=[
-                                Choice(
-                                    delta=ChoiceDelta(),
-                                    finish_reason="tool_calls",
-                                    index=0
-                                )
-                            ],
+                            choices=[Choice(delta=ChoiceDelta(), finish_reason="tool_calls", index=0)],
                             created=1736673679,
                             model="gpt-4o-mini",
                             object="chat.completion.chunk",
-                            usage=CompletionUsage(prompt_tokens=53, completion_tokens=13, total_tokens=66)
+                            usage=CompletionUsage(prompt_tokens=53, completion_tokens=13, total_tokens=66),
                         ),
                         ai_model_id="gpt-4o-mini",
                         role=AuthorRole.ASSISTANT,
                         finish_reason=FinishReason.TOOL_CALLS,
-                        metadata={"usage": {"prompt_tokens": 53, "completion_tokens": 13}}
+                        metadata={"usage": {"prompt_tokens": 53, "completion_tokens": 13}},
                     )
                 ]
             else:
