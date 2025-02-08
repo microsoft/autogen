@@ -7,7 +7,7 @@ from autogen_core import CancellationToken
 from autogen_core.models import CreateResult, LLMMessage, ModelFamily, ModelInfo, SystemMessage, UserMessage
 from autogen_core.tools import BaseTool
 from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
-from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta
+from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, Choice, ChoiceDelta, ChoiceDeltaToolCall, ChoiceDeltaToolCallFunction
 from openai.types.completion_usage import CompletionUsage
 from pydantic import BaseModel
 from semantic_kernel.connectors.ai.open_ai.services.azure_chat_completion import AzureChatCompletion
@@ -96,30 +96,108 @@ def sk_client() -> AzureChatCompletion:
             **kwargs: Any,
         ) -> AsyncGenerator[list["StreamingChatMessageContent"], Any]:
             if "What is 2 + 2?" in str(chat_history):
-                # Mock response for calculator tool test - single message with function call
+                # Initial chunk with function call setup
                 yield [
                     StreamingChatMessageContent(
                         choice_index=0,
-                        inner_content=None,
+                        inner_content=ChatCompletionChunk(
+                            id="chatcmpl-123",
+                            choices=[
+                                Choice(
+                                    delta=ChoiceDelta(
+                                        role="assistant",
+                                        tool_calls=[
+                                            ChoiceDeltaToolCall(
+                                                index=0,
+                                                id="call_UwVVI0iGEmcPwmKUigJcuuuF",
+                                                function=ChoiceDeltaToolCallFunction(
+                                                    name="calculator",
+                                                    arguments=""
+                                                ),
+                                                type="function"
+                                            )
+                                        ]
+                                    ),
+                                    finish_reason=None,
+                                    index=0
+                                )
+                            ],
+                            created=1736673679,
+                            model="gpt-4o-mini",
+                            object="chat.completion.chunk"
+                        ),
                         ai_model_id="gpt-4o-mini",
-                        metadata={
-                            "logprobs": None,
-                            "id": "chatcmpl-AooRjGxKtdTke46keWkBQBKg033XW",
-                            "created": 1736673679,
-                            "usage": {"prompt_tokens": 53, "completion_tokens": 13},
-                        },
                         role=AuthorRole.ASSISTANT,
-                        items=[  # type: ignore
+                        items=[
                             FunctionCallContent(
-                                id="call_n8135GXc2kbiaaDdpImsB1VW",
+                                id="call_UwVVI0iGEmcPwmKUigJcuuuF",
                                 function_name="calculator",
-                                plugin_name=None,
-                                arguments='{"a": 2, "b": 2}',
-                                content_type="function_call",  # type: ignore
+                                arguments=""
                             )
-                        ],
+                        ]
+                    )
+                ]
+
+                # Arguments chunks
+                for arg_chunk in ["{", '"a"', ":", " ", "2", ",", " ", '"b"', ":", " ", "2", "}"]:
+                    yield [
+                        StreamingChatMessageContent(
+                            choice_index=0,
+                            inner_content=ChatCompletionChunk(
+                                id="chatcmpl-123",
+                                choices=[
+                                    Choice(
+                                        delta=ChoiceDelta(
+                                            tool_calls=[
+                                                ChoiceDeltaToolCall(
+                                                    index=0,
+                                                    function=ChoiceDeltaToolCallFunction(
+                                                        arguments=arg_chunk
+                                                    )
+                                                )
+                                            ]
+                                        ),
+                                        finish_reason=None,
+                                        index=0
+                                    )
+                                ],
+                                created=1736673679,
+                                model="gpt-4o-mini",
+                                object="chat.completion.chunk"
+                            ),
+                            ai_model_id="gpt-4o-mini",
+                            role=AuthorRole.ASSISTANT,
+                            items=[
+                                FunctionCallContent(
+                                    function_name="calculator",
+                                    arguments=arg_chunk
+                                )
+                            ]
+                        )
+                    ]
+
+                # Final chunk with finish reason
+                yield [
+                    StreamingChatMessageContent(
+                        choice_index=0,
+                        inner_content=ChatCompletionChunk(
+                            id="chatcmpl-123",
+                            choices=[
+                                Choice(
+                                    delta=ChoiceDelta(),
+                                    finish_reason="tool_calls",
+                                    index=0
+                                )
+                            ],
+                            created=1736673679,
+                            model="gpt-4o-mini",
+                            object="chat.completion.chunk",
+                            usage=CompletionUsage(prompt_tokens=53, completion_tokens=13, total_tokens=66)
+                        ),
+                        ai_model_id="gpt-4o-mini",
+                        role=AuthorRole.ASSISTANT,
                         finish_reason=FinishReason.TOOL_CALLS,
-                        function_invoke_attempt=0,
+                        metadata={"usage": {"prompt_tokens": 53, "completion_tokens": 13}}
                     )
                 ]
             else:
