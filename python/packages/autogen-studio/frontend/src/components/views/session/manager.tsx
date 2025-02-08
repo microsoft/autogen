@@ -128,7 +128,6 @@ export const SessionManager: React.FC = () => {
 
   const handleQuickStart = async (teamId: number, teamName: string) => {
     if (!user?.email) return;
-    console.log("Quick start session", teamId, teamName);
     try {
       const defaultName = `${teamName.substring(
         0,

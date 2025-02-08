@@ -103,6 +103,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       <div className="py-2 flex text-sm text-secondary">
         Recents{" "}
+        <span className="text-accent text-xs mx-1 mt-0.5">
+          {" "}
+          ({sessions.length}){" "}
+        </span>{" "}
         {isLoading && (
           <RefreshCcw className="w-4 h-4 inline-block ml-2 animate-spin" />
         )}
@@ -117,7 +121,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       )}
 
-      <div className="overflow-y-auto   h-[calc(100%-150px)]">
+      <div className="overflow-y-auto   scroll   h-[calc(100%-181px)]">
         {sessions.map((s) => (
           <div key={s.id} className="relative">
             <div
