@@ -152,7 +152,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             assert isinstance(response.content, str)
             mentions = self._mentioned_agents(response.content, self._participant_topic_types)
             if len(mentions) != 1:
-                trace_logger.warning(f"Expected exactly one agent to be mentioned, but got {mentions}")
+                trace_logger.warning(f"Expected exactly one agent to be mentioned, but got {mentions}. Using the first one.")
             agent_name = list(mentions.keys())[0]
             if (
                 not self._allow_repeated_speaker
@@ -162,6 +162,15 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                 trace_logger.warning(
                     "Repeated speaker is not allowed, " f"but the selector selected the previous speaker: {agent_name}"
                 )
+            if agent_name not in participants:
+                trace_logger.warning(
+                    f"Selected speaker {agent_name} is not in the list of participants: {participants}. "
+                    "Using the previous speaker if available, otherwise the first participant."
+                )
+                if self._previous_speaker is not None:
+                    agent_name = self._previous_speaker
+                else:
+                    agent_name = participants[0]
         else:
             agent_name = participants[0]
         self._previous_speaker = agent_name
