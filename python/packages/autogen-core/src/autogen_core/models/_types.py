@@ -51,7 +51,7 @@ class FunctionExecutionResult(BaseModel):
 
     content: str
     call_id: str
-    is_error: bool
+    is_error: bool = False
 
 
 class FunctionExecutionResultMessage(BaseModel):
