@@ -83,25 +83,15 @@ public class SubscribedSaveLoadAgent : TestAgent
     {
     }
 
-    public override ValueTask<IDictionary<string, JsonElement>> SaveStateAsync()
+    public override ValueTask<JsonElement> SaveStateAsync()
     {
-        var jsonSafeDictionary = _receivedMessages.ToDictionary(
-            kvp => kvp.Key,
-            kvp => JsonSerializer.SerializeToElement(kvp.Value) // Convert each object to JsonElement
-        );
-
-        return ValueTask.FromResult<IDictionary<string, JsonElement>>(jsonSafeDictionary);
+        var jsonDoc = JsonSerializer.SerializeToElement(_receivedMessages);
+        return ValueTask.FromResult(jsonDoc);
     }
 
-    public override ValueTask LoadStateAsync(IDictionary<string, JsonElement> state)
+    public override ValueTask LoadStateAsync(JsonElement state)
     {
-        _receivedMessages.Clear();
-
-        foreach (var kvp in state)
-        {
-            _receivedMessages[kvp.Key] = kvp.Value.Deserialize<object>() ?? throw new Exception($"Failed to deserialize key: {kvp.Key}");
-        }
-
+        _receivedMessages = JsonSerializer.Deserialize<Dictionary<string, object>>(state) ?? throw new InvalidOperationException("Failed to deserialize state");
         return ValueTask.CompletedTask;
     }
 }

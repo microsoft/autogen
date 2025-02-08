@@ -220,7 +220,7 @@ const Sidebar = ({ link, meta, isMobile }: SidebarProps) => {
                         ],
                       })
                     }
-                    className="group flex gap-x-3 rounded-md p-2 text-sm font-medium text-primary hover:text-accent hover:bg-secondary justify-center"
+                    className="group hidden flex gap-x-3 rounded-md p-2 text-sm font-medium text-primary hover:text-accent hover:bg-secondary justify-center"
                   >
                     <Settings className="h-6 w-6 shrink-0 text-secondary group-hover:text-accent" />
                   </Link>

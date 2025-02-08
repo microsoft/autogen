@@ -125,12 +125,6 @@ const RunView: React.FC<RunViewProps> = ({
   const lastResultMessage = run.team_result?.task_result.messages.slice(-1)[0];
   const lastMessage = run.messages.slice(-1)[0];
 
-  console.log("lastResultMessage", lastResultMessage);
-  console.log(
-    "lastMessage",
-    run.messages[run.messages.length - 1]?.config?.content
-  );
-
   return (
     <div className="space-y-6  mr-2 ">
       {/* Run Header */}

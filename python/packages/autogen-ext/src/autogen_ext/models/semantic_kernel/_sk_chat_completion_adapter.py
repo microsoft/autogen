@@ -313,7 +313,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         for tool in tools:
             if isinstance(tool, BaseTool):
                 # Convert Tool to KernelFunction using KernelFunctionFromTool
-                kernel_function = KernelFunctionFromTool(tool, plugin_name="autogen_tools")  # type: ignore
+                kernel_function = KernelFunctionFromTool(tool)  # type: ignore
                 self._tools_plugin.functions[tool.schema["name"]] = kernel_function
 
     def _process_tool_calls(self, result: ChatMessageContent) -> list[FunctionCall]:

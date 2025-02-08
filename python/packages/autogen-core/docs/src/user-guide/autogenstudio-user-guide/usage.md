@@ -10,7 +10,9 @@ myst:
 AutoGen Studio provides a Team Builder interface where developers can define multiple components and behaviors. Users can create teams, add agents to teams, attach tools and models to agents, and define team termination conditions.
 After defining a team, users can test it in the Playground view to accomplish various tasks through direct interaction.
 
-![AutoGen Studio](https://media.githubusercontent.com/media/microsoft/autogen/refs/heads/main/python/packages/autogen-studio/docs/ags_screen.png)
+> See a video tutorial on AutoGen Studio v0.4 (02/25) - [https://youtu.be/oum6EI7wohM](https://youtu.be/oum6EI7wohM)
+
+[![A Friendly Introduction to AutoGen Studio v0.4](https://img.youtube.com/vi/oum6EI7wohM/maxresdefault.jpg)](https://www.youtube.com/watch?v=oum6EI7wohM)
 
 ## Declarative Specification of Componenents
 
@@ -100,8 +102,6 @@ This example shows a team with a single agent, using the `RoundRobinGroupChat` t
 
 ## Building an Agent Team
 
-<div style="padding:58.13% 0 0 0;position:relative; border-radius:5px; border-bottom:10px"><iframe src="https://player.vimeo.com/video/1043133833?badge=0&amp;autopause=0&amp;player_id=0&amp;app_id=58479" frameborder="0" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media" style="position:absolute;top:0;left:0;width:100%;height:100%;" title="AutoGen Studio v0.4x - Drag and Drop Interface"></iframe></div><script src="https://player.vimeo.com/api/player.js"></script>
-
 <br/>
 
 AutoGen Studio integrates closely with all component abstractions provided by AutoGen AgentChat, including {py:class}`~autogen_agentchat.teams`, {py:class}`~autogen_agentchat.agents`, {py:class}`~autogen_core.models`, {py:class}`~autogen_core.tools`, and termination {py:class}`~autogen_agentchat.conditions`.
@@ -116,6 +116,8 @@ Team Builder Operations:
     - Teams: Add agents and termination conditions
     - Agents: Add models and tools
 - Save team configurations
+
+Note: For each node in the visual builder, you can click on the edit icon (top right) to view and edit the JSON configuration.
 
 ## Gallery - Sharing and Reusing Components
 
