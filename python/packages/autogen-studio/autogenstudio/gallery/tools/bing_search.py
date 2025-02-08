@@ -12,10 +12,10 @@ from bs4 import BeautifulSoup
 
 async def bing_search(
     query: str,
-    num_results: int = 5,
+    num_results: int = 3,
     include_snippets: bool = True,
     include_content: bool = True,
-    content_max_length: Optional[int] = 15000,
+    content_max_length: Optional[int] = 10000,
     language: str = "en",
     country: Optional[str] = None,
     safe_search: str = "moderate",

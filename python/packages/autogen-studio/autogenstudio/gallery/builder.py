@@ -240,7 +240,7 @@ Read the above conversation. Then select the next role from {participants} to pl
     builder.add_team(
         websurfer_team.dump_component(),
         label="Web Agent Team (Operator)",
-        description="A group chat team that have participants takes turn to publish a message\n    to all, using a ChatCompletion model to select the next speaker after each message.",
+        description="A team with 3 agents - a Web Surfer agent that can browse the web, a Verification Assistant that verifies and summarizes information, and a User Proxy that provides human feedback when needed.",
     )
 
     builder.add_tool(
@@ -347,7 +347,7 @@ Read the above conversation. Then select the next role from {participants} to pl
     builder.add_team(
         deep_research_team.dump_component(),
         label="Deep Research Team",
-        description="A team that performs deep research using web searches, verification, and summarization.",
+        description="A team with 3 agents - a Research Assistant that performs web searches and analyzes information, a Verifier that ensures research quality and completeness, and a Summary Agent that provides a detailed markdown summary of the research as a report to the user.",
     )
 
     return builder.build()
