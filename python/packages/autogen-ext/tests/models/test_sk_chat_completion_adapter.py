@@ -72,7 +72,7 @@ def sk_client() -> AzureChatCompletion:
                                 id="call_UwVVI0iGEmcPwmKUigJcuuuF",
                                 function_name="calculator",
                                 plugin_name=None,
-                                arguments="{}",
+                                arguments='{"a": 2, "b": 2}',
                             )
                         ],
                         finish_reason=FinishReason.TOOL_CALLS,
@@ -114,11 +114,11 @@ def sk_client() -> AzureChatCompletion:
                                 id="call_n8135GXc2kbiaaDdpImsB1VW",
                                 function_name="calculator",
                                 plugin_name=None,
-                                arguments="",
+                                arguments='{"a": 2, "b": 2}',
                                 content_type="function_call",  # type: ignore
                             )
                         ],
-                        finish_reason=None,
+                        finish_reason=FinishReason.TOOL_CALLS,
                         function_invoke_attempt=0,
                     )
                 ]
