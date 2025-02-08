@@ -1001,8 +1001,12 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         temperature (optional, float):
         top_p (optional, float):
         user (optional, str):
-        default_headers (optional, dict[str, str]):  Custom headers; useful for authentication or other custom requirements.A
-        add_name_prefixes (optional, bool): Whether to prepend the `source` value to each :class:`~autogen_core.models.UserMessage` content. E.g., "this is content" becomes "Reviewer said: this is content." Defaults to False.
+        default_headers (optional, dict[str, str]):  Custom headers; useful for authentication or other custom requirements.
+        add_name_prefixes (optional, bool): Whether to prepend the `source` value
+            to each :class:`~autogen_core.models.UserMessage` content. E.g.,
+            "this is content" becomes "Reviewer said: this is content."
+            This can be useful for models that do not support the `name` field in
+            message. Defaults to False.
 
 
     To use this client, you must install the `openai` extension:
