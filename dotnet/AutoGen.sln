@@ -136,11 +136,11 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Microsoft.AutoGen", "Micros
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.Agents", "src\Microsoft.AutoGen\Agents\Microsoft.AutoGen.Agents.csproj", "{EF954ED3-87D5-40F1-8557-E7179F43EA0E}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloAgent.AppHost", "test\Microsoft.AutoGen.Integration.Tests.AppHosts\HelloAgent.AppHost\HelloAgent.AppHost.csproj", "{50082F76-917F-42EE-8869-8C72630423A7}"
-
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.AgentChat", "src\Microsoft.AutoGen\AgentChat\Microsoft.AutoGen.AgentChat.csproj", "{7F828599-56E8-4597-8F68-EE26FD631417}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Microsoft.AutoGen.AgentChat.Tests", "test\Microsoft.AutoGen.AgentChat.Tests\Microsoft.AutoGen.AgentChat.Tests.csproj", "{217A4F86-8ADD-4998-90BA-880092A019F5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "HelloAgent.AppHost", "test\Microsoft.AutoGen.Integration.Tests.AppHosts\HelloAgent.AppHost\HelloAgent.AppHost.csproj", "{0C371D65-7EF9-44EA-8128-A105DA82A80E}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -360,10 +360,6 @@ Global
 		{EF954ED3-87D5-40F1-8557-E7179F43EA0E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EF954ED3-87D5-40F1-8557-E7179F43EA0E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EF954ED3-87D5-40F1-8557-E7179F43EA0E}.Release|Any CPU.Build.0 = Release|Any CPU
-		{50082F76-917F-42EE-8869-8C72630423A7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{50082F76-917F-42EE-8869-8C72630423A7}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{50082F76-917F-42EE-8869-8C72630423A7}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{50082F76-917F-42EE-8869-8C72630423A7}.Release|Any CPU.Build.0 = Release|Any CPU
 		{7F828599-56E8-4597-8F68-EE26FD631417}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7F828599-56E8-4597-8F68-EE26FD631417}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{7F828599-56E8-4597-8F68-EE26FD631417}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -372,6 +368,10 @@ Global
 		{217A4F86-8ADD-4998-90BA-880092A019F5}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{217A4F86-8ADD-4998-90BA-880092A019F5}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{217A4F86-8ADD-4998-90BA-880092A019F5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{0C371D65-7EF9-44EA-8128-A105DA82A80E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0C371D65-7EF9-44EA-8128-A105DA82A80E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0C371D65-7EF9-44EA-8128-A105DA82A80E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0C371D65-7EF9-44EA-8128-A105DA82A80E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -434,9 +434,9 @@ Global
 		{B8E77E57-C983-4EEA-9589-906271486D80} = {F42F9C8E-7BD9-4687-9B63-AFFA461AF5C1}
 		{81BA12F2-2D2F-42C1-AF83-FBDAA1A78A45} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{EF954ED3-87D5-40F1-8557-E7179F43EA0E} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
-		{50082F76-917F-42EE-8869-8C72630423A7} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
 		{7F828599-56E8-4597-8F68-EE26FD631417} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 		{217A4F86-8ADD-4998-90BA-880092A019F5} = {F823671B-3ECA-4AE6-86DA-25E920D3FE64}
+		{0C371D65-7EF9-44EA-8128-A105DA82A80E} = {18BF8DD7-0585-48BF-8F97-AD333080CE06}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {93384647-528D-46C8-922C-8DB36A382F0B}
