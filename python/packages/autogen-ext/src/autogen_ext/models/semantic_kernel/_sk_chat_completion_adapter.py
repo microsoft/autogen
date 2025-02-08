@@ -459,7 +459,9 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         """Create a streaming chat completion using the Semantic Kernel client.
+
         The `extra_create_args` dictionary can include two special keys:
+
         1) `"kernel"` (optional):
             An instance of :class:`semantic_kernel.Kernel` used to execute the request.
             If not provided either in constructor or extra_create_args, a ValueError is raised.
