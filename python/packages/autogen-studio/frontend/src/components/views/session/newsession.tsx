@@ -71,14 +71,14 @@ const NewSessionControls = ({
     // Update state first
     setSelectedTeamId(newTeamId);
 
-    // Save to localStorage
-    if (typeof window !== "undefined") {
-      localStorage.setItem("lastUsedTeamId", e.key);
-    }
+    // // Save to localStorage
+    // if (typeof window !== "undefined") {
+    //   localStorage.setItem("lastUsedTeamId", e.key);
+    // }
 
-    // Delay the session start to allow UI to update
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    onStartSession(newTeamId, selectedTeam.component.label || "");
+    // // Delay the session start to allow UI to update
+    // await new Promise((resolve) => setTimeout(resolve, 100));
+    // onStartSession(newTeamId, selectedTeam.component.label || "");
   };
 
   const hasNoTeams = !isLoading && teams.length === 0;

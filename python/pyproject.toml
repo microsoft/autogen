@@ -103,7 +103,7 @@ gen-proto = [
 ]
 
 
-gen-proto-samples = "python -m grpc_tools.protoc --python_out=./samples/core_xlang_hello_python_agent/protos --grpc_python_out=./samples/core_xlang_hello_python_agent/protos --mypy_out=./samples/core_xlang_hello_python_agent/protos --mypy_grpc_out=./samples/core_xlang_hello_python_agent/protos --proto_path ../protos/ agent_events.proto"
+gen-proto-samples = "python -m grpc_tools.protoc --python_out=./samples/core_xlang_hello_python_agent/protos --grpc_python_out=./samples/core_xlang_hello_python_agent/protos --mypy_out=./samples/core_xlang_hello_python_agent/protos --mypy_grpc_out=./samples/core_xlang_hello_python_agent/protos --proto_path ../dotnet/src/Microsoft.AutoGen/Agents/protos/ agent_events.proto"
 
 [[tool.poe.tasks.gen-test-proto.sequence]]
 cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/tests/protos --grpc_python_out=./packages/autogen-core/tests/protos --mypy_out=./packages/autogen-core/tests/protos --mypy_grpc_out=./packages/autogen-core/tests/protos --proto_path ./packages/autogen-core/tests/protos serialization_test.proto"
