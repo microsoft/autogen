@@ -152,14 +152,16 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             assert isinstance(response.content, str)
             mentions = self._mentioned_agents(response.content, self._participant_topic_types)
             if len(mentions) != 1:
-                raise ValueError(f"Expected exactly one agent to be mentioned, but got {mentions}")
+                trace_logger.warning(f"Expected exactly one agent to be mentioned, but got {mentions}")
             agent_name = list(mentions.keys())[0]
             if (
                 not self._allow_repeated_speaker
                 and self._previous_speaker is not None
                 and agent_name == self._previous_speaker
             ):
-                trace_logger.warning(f"Selector selected the previous speaker: {agent_name}")
+                trace_logger.warning(
+                    "Repeated speaker is not allowed, " f"but the selector selected the previous speaker: {agent_name}"
+                )
         else:
             agent_name = participants[0]
         self._previous_speaker = agent_name
@@ -226,8 +228,8 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
         max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to None, meaning no limit.
         selector_prompt (str, optional): The prompt template to use for selecting the next speaker.
             Must contain '{roles}', '{participants}', and '{history}' to be filled in.
-        allow_repeated_speaker (bool, optional): Whether to allow the same speaker to be selected
-            consecutively. Defaults to False.
+        allow_repeated_speaker (bool, optional): Whether to include the previous speaker in the list of candidates to be selected for the next turn.
+            Defaults to False. The model may still select the previous speaker -- a warning will be logged if this happens.
         selector_func (Callable[[Sequence[AgentEvent | ChatMessage]], str | None], optional): A custom selector
             function that takes the conversation history and returns the name of the next speaker.
             If provided, this function will be used to override the model to select the next speaker.
