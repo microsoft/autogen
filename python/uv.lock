@@ -89,6 +89,7 @@ wheels = [
 
 [[package]]
 name = "agbench"
+version = "0.0.1a1"
 source = { editable = "packages/agbench" }
 dependencies = [
     { name = "azure-identity" },
@@ -748,6 +749,7 @@ requires-dist = [
 
 [[package]]
 name = "autogenstudio"
+version = "0.4.1"
 source = { editable = "packages/autogen-studio" }
 dependencies = [
     { name = "aiofiles" },
@@ -757,6 +759,7 @@ dependencies = [
     { name = "autogen-ext", extra = ["azure", "magentic-one", "openai"] },
     { name = "azure-identity" },
     { name = "fastapi", extra = ["standard"] },
+    { name = "html2text" },
     { name = "loguru" },
     { name = "numpy" },
     { name = "psycopg" },
@@ -788,6 +791,7 @@ requires-dist = [
     { name = "azure-identity" },
     { name = "fastapi", marker = "extra == 'web'" },
     { name = "fastapi", extras = ["standard"] },
+    { name = "html2text" },
     { name = "loguru" },
     { name = "numpy", specifier = "<2.0.0" },
     { name = "psycopg" },
@@ -3645,7 +3649,7 @@ version = "0.2.3"
 source = { editable = "packages/magentic-one-cli" }
 dependencies = [
     { name = "autogen-agentchat" },
-    { name = "autogen-ext", extra = ["magentic-one", "openai", "rich"] },
+    { name = "autogen-ext", extra = ["docker", "magentic-one", "openai", "rich"] },
     { name = "pyyaml" },
 ]
 
@@ -3657,7 +3661,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "autogen-agentchat", editable = "packages/autogen-agentchat" },
-    { name = "autogen-ext", extras = ["openai", "magentic-one", "rich"], editable = "packages/autogen-ext" },
+    { name = "autogen-ext", extras = ["docker", "openai", "magentic-one", "rich"], editable = "packages/autogen-ext" },
     { name = "pyyaml", specifier = ">=5.1" },
 ]
 
