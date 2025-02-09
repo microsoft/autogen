@@ -54,6 +54,7 @@ python/autogen_ext.models.replay
 python/autogen_ext.models.azure
 python/autogen_ext.models.semantic_kernel
 python/autogen_ext.tools.langchain
+python/autogen_ext.tools.mcp
 python/autogen_ext.tools.graphrag
 python/autogen_ext.tools.code_execution
 python/autogen_ext.tools.semantic_kernel

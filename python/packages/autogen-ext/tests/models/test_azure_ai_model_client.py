@@ -7,6 +7,7 @@ import pytest
 from autogen_core import CancellationToken, FunctionCall, Image
 from autogen_core.models import CreateResult, ModelFamily, UserMessage
 from autogen_ext.models.azure import AzureAIChatCompletionClient
+from autogen_ext.models.azure.config import GITHUB_MODELS_ENDPOINT
 from azure.ai.inference.aio import (
     ChatCompletionsClient,
 )
@@ -102,6 +103,65 @@ def azure_client(monkeypatch: pytest.MonkeyPatch) -> AzureAIChatCompletionClient
         },
         model="model",
     )
+
+
+@pytest.mark.asyncio
+async def test_azure_ai_chat_completion_client_validation() -> None:
+    with pytest.raises(ValueError, match="endpoint is required"):
+        AzureAIChatCompletionClient(
+            model="model",
+            credential=AzureKeyCredential("api_key"),
+            model_info={
+                "json_output": False,
+                "function_calling": False,
+                "vision": False,
+                "family": "unknown",
+            },
+        )
+
+    with pytest.raises(ValueError, match="credential is required"):
+        AzureAIChatCompletionClient(
+            model="model",
+            endpoint="endpoint",
+            model_info={
+                "json_output": False,
+                "function_calling": False,
+                "vision": False,
+                "family": "unknown",
+            },
+        )
+
+    with pytest.raises(ValueError, match="model is required"):
+        AzureAIChatCompletionClient(
+            endpoint=GITHUB_MODELS_ENDPOINT,
+            credential=AzureKeyCredential("api_key"),
+            model_info={
+                "json_output": False,
+                "function_calling": False,
+                "vision": False,
+                "family": "unknown",
+            },
+        )
+
+    with pytest.raises(ValueError, match="model_info is required"):
+        AzureAIChatCompletionClient(
+            model="model",
+            endpoint="endpoint",
+            credential=AzureKeyCredential("api_key"),
+        )
+
+    with pytest.raises(ValueError, match="family is required"):
+        AzureAIChatCompletionClient(
+            model="model",
+            endpoint="endpoint",
+            credential=AzureKeyCredential("api_key"),
+            model_info={
+                "json_output": False,
+                "function_calling": False,
+                "vision": False,
+                # Missing family.
+            },  # type: ignore
+        )
 
 
 @pytest.mark.asyncio
