@@ -41,7 +41,7 @@ import { MonacoEditor } from "../../monaco";
 import { NodeEditor } from "./node-editor/node-editor";
 import debounce from "lodash.debounce";
 import { appContext } from "../../../../hooks/provider";
-import { sessionAPI } from "../../session/api";
+import { sessionAPI } from "../../playground/api";
 import TestDrawer from "./testdrawer";
 
 const { Sider, Content } = Layout;
@@ -179,7 +179,6 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
       }
 
       if (onChange) {
-        console.log("Saving team configuration", component);
         const teamData: Partial<Team> = team
           ? {
               ...team,
@@ -288,7 +287,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
   };
 
   const handleTestDrawerClose = () => {
-    console.log("TestDrawer closed");
+    // console.log("TestDrawer closed");
     setTestDrawerVisible(false);
   };
 
