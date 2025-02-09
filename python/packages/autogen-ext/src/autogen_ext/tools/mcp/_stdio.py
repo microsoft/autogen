@@ -29,58 +29,7 @@ class StdioMcpToolAdapter(
             including command to run and its arguments
         tool (Tool): The MCP tool to wrap
 
-    Examples:
-        Use the FileSystem MCP server to create tools that allow AutoGen agents to interact
-        with the local filesystem:
-
-        .. code-block:: python
-
-            import asyncio
-            from pathlib import Path
-            from autogen_ext.models.openai import OpenAIChatCompletionClient
-            from autogen_ext.tools.mcp import StdioMcpToolAdapter, StdioServerParams
-            from autogen_agentchat.agents import AssistantAgent
-            from autogen_agentchat.ui import Console
-            from autogen_core import CancellationToken
-
-
-            async def main() -> None:
-                # Get desktop path cross-platform
-                desktop_path = str(Path.home() / "Desktop")
-
-                # Create server params for the FileSystem MCP server
-                server_params = StdioServerParams(
-                    command="npx.cmd",  # Use npx on Windows
-                    args=[
-                        "-y",
-                        "@modelcontextprotocol/server-filesystem",
-                        desktop_path,
-                    ],
-                )
-
-                # Get all available tools from the server
-                tools = await mcp_server_tools(server_params)
-
-                # Create an agent that can use the filesystem tools
-                model_client = OpenAIChatCompletionClient(model="gpt-4")
-                agent = AssistantAgent(
-                    name="file_manager",
-                    model_client=model_client,
-                    tools=tools,
-                )
-
-                # Let the agent create and write to a file
-                await Console(
-                    agent.run_stream(
-                        task="Create a file called 'hello.txt' with the content 'Hello, World!'",
-                        cancellation_token=CancellationToken(),
-                    )
-                )
-
-
-            if __name__ == "__main__":
-                asyncio.run(main())
-
+    See :func:`~autogen_ext.tools.mcp.mcp_server_tools` for examples.
     """
 
     component_config_schema = StdioMcpToolAdapterConfig
