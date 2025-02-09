@@ -29,7 +29,8 @@ from autogen_test_utils import (
     MessageType,
     NoopAgent,
 )
-from protos.serialization_test_pb2 import ProtoMessage
+
+from .protos.serialization_test_pb2 import ProtoMessage
 
 
 @pytest.mark.grpc
