@@ -2,6 +2,7 @@ from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from autogen_agentchat.base import TaskResult
+from autogen_agentchat.messages import BaseChatMessage
 from autogen_core import ComponentModel
 from pydantic import BaseModel
 
@@ -16,6 +17,11 @@ class TeamResult(BaseModel):
     task_result: TaskResult
     usage: str
     duration: float
+
+
+class LLMCallEventMessage(BaseChatMessage):
+    source: str = "llm_call_event"
+    content: str
 
 
 class MessageMeta(BaseModel):
