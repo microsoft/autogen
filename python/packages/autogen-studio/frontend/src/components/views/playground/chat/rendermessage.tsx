@@ -1,5 +1,12 @@
 import React, { useState, memo } from "react";
-import { User, Bot, Maximize2, Minimize2, DraftingCompass } from "lucide-react";
+import {
+  User,
+  Bot,
+  Maximize2,
+  Minimize2,
+  DraftingCompass,
+  Brain,
+} from "lucide-react";
 import {
   AgentMessageConfig,
   FunctionCall,
@@ -7,6 +14,7 @@ import {
   ImageContent,
 } from "../../../types/datamodel";
 import { ClickableImage, TruncatableText } from "../../atoms";
+import LLMLogRenderer from "./logrenderer";
 
 const TEXT_THRESHOLD = 400;
 const JSON_THRESHOLD = 800;
@@ -143,9 +151,14 @@ export const RenderMessage: React.FC<MessageProps> = ({
   if (!message) return null;
   const isUser = messageUtils.isUser(message.source);
   const content = message.content;
+  const isLLMEventMessage = message.source === "llm_call_event";
 
   return (
-    <div className={`relative group ${!isLast ? "mb-2" : ""} ${className}`}>
+    <div
+      className={`relative group ${!isLast ? "mb-2" : ""} ${className} ${
+        isLLMEventMessage ? "border-accent" : ""
+      }`}
+    >
       <div
         className={`
         flex items-start gap-2 p-2 rounded
@@ -160,7 +173,13 @@ export const RenderMessage: React.FC<MessageProps> = ({
           ${isUser ? "text-accent" : "text-primary"}
         `}
         >
-          {isUser ? <User size={14} /> : <Bot size={14} />}
+          {isUser ? (
+            <User size={14} />
+          ) : message.source == "llm_call_event" ? (
+            <Brain size={14} />
+          ) : (
+            <Bot size={14} />
+          )}
         </div>
 
         <div className="flex-1 min-w-0">
@@ -177,6 +196,8 @@ export const RenderMessage: React.FC<MessageProps> = ({
               <RenderMultiModal content={content} />
             ) : messageUtils.isFunctionExecutionResult(content) ? (
               <RenderToolResult content={content} />
+            ) : message.source === "llm_call_event" ? (
+              <LLMLogRenderer content={String(content)} />
             ) : (
               <TruncatableText
                 content={String(content)}

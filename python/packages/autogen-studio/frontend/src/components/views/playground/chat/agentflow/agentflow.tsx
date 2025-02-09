@@ -195,23 +195,6 @@ const createNode = (
     };
   }
 
-  // if (type === "task") {
-  //   return {
-  //     id,
-  //     type: "agentNode",
-  //     position: { x: 0, y: 0 },
-  //     data: {
-  //       type: "task",
-  //       label: "Task",
-  //       description: run?.task.content || "",
-  //       isActive: false,
-  //       status: null,
-  //       reason: null,
-  //       draggable: false,
-  //     },
-  //   };
-  // }
-
   return {
     id,
     type: "agentNode",
@@ -567,7 +550,7 @@ const AgentFlow: React.FC<AgentFlowProps> = ({ teamConfig, run }) => {
       <ReactFlow {...reactFlowProps}>
         {settings.showGrid && <Background />}
         {settings.showMiniMap && <MiniMap />}
-        <div className="absolute top-0 right-0 z-50">
+        <div className="absolute top-0 right-0 z-10">
           <AgentFlowToolbar {...toolbarProps} />
         </div>
       </ReactFlow>
