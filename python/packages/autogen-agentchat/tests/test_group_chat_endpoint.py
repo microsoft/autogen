@@ -4,7 +4,7 @@ import pytest
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import SelectorGroupChat
 from autogen_agentchat.ui import Console
-from autogen_core.models import ChatCompletionClient, ModelFamily
+from autogen_core.models import ChatCompletionClient
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 
