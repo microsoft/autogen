@@ -36,14 +36,7 @@ async def test_selector_group_chat_gemini() -> None:
 
     model_client = OpenAIChatCompletionClient(
         model="gemini-1.5-flash",
-        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
         api_key=api_key,
-        model_info={
-            "vision": True,
-            "function_calling": True,
-            "json_output": True,
-            "family": ModelFamily.GEMINI_1_5_FLASH,
-        },
     )
     await _test_selector_group_chat(model_client)
 
