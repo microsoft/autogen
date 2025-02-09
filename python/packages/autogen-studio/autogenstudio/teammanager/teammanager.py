@@ -1,7 +1,7 @@
+import asyncio
 import json
 import logging
 import time
-import asyncio
 from pathlib import Path
 from typing import AsyncGenerator, Callable, List, Optional, Union
 
@@ -9,9 +9,8 @@ import aiofiles
 import yaml
 from autogen_agentchat.base import TaskResult, Team
 from autogen_agentchat.messages import AgentEvent, ChatMessage
-from autogen_core import CancellationToken, Component, ComponentModel
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, ComponentModel
 from autogen_core.logging import LLMCallEvent
-from autogen_core import EVENT_LOGGER_NAME
 
 from ..datamodel.types import LLMCallEventMessage, TeamResult
 
@@ -20,14 +19,14 @@ logger = logging.getLogger(__name__)
 
 class RunEventLogger(logging.Handler):
     """Event logger that queues LLMCallEvents for streaming"""
+
     def __init__(self):
         super().__init__()
         self.events = asyncio.Queue()
-        
+
     def emit(self, record: logging.LogRecord):
-        LLMCallEvent
-        if isinstance(record.msg, LLMCallEvent): 
-            self.events.put_nowait(LLMCallEventMessage(content=str(record.msg))) 
+        if isinstance(record.msg, LLMCallEvent):
+            self.events.put_nowait(LLMCallEventMessage(content=str(record.msg)))
 
 
 class TeamManager:
@@ -121,12 +120,13 @@ class TeamManager:
         finally:
             # Cleanup - remove our handler
             logger.handlers.remove(llm_event_logger)
-            
+
             # Ensure cleanup happens
             if team and hasattr(team, "_participants"):
                 for agent in team._participants:
                     if hasattr(agent, "close"):
                         await agent.close()
+
     async def run(
         self,
         task: str,

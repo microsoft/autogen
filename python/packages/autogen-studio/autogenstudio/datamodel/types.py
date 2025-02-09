@@ -20,8 +20,9 @@ class TeamResult(BaseModel):
 
 
 class LLMCallEventMessage(BaseChatMessage):
-    source: str = "llm_call_event" 
+    source: str = "llm_call_event"
     content: str
+
 
 class MessageMeta(BaseModel):
     task: Optional[str] = None

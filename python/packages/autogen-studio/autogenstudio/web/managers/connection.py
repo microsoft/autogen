@@ -21,7 +21,7 @@ from autogen_core import Image as AGImage
 from fastapi import WebSocket, WebSocketDisconnect
 
 from ...database import DatabaseManager
-from ...datamodel import Message, MessageConfig, Run, RunStatus, TeamResult, LLMCallEventMessage
+from ...datamodel import LLMCallEventMessage, Message, MessageConfig, Run, RunStatus, TeamResult
 from ...teammanager import TeamManager
 
 logger = logging.getLogger(__name__)
@@ -329,7 +329,15 @@ class WebSocketManager:
                 }
 
             elif isinstance(
-                message, (TextMessage, StopMessage, HandoffMessage, ToolCallRequestEvent, ToolCallExecutionEvent, LLMCallEventMessage)
+                message,
+                (
+                    TextMessage,
+                    StopMessage,
+                    HandoffMessage,
+                    ToolCallRequestEvent,
+                    ToolCallExecutionEvent,
+                    LLMCallEventMessage,
+                ),
             ):
                 return {"type": "message", "data": message.model_dump()}
 
