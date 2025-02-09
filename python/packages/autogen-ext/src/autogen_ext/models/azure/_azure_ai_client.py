@@ -246,6 +246,10 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             raise ValueError("credential is required for AzureAIChatCompletionClient")
         if "model_info" not in config:
             raise ValueError("model_info is required for AzureAIChatCompletionClient")
+        if "family" not in config["model_info"]:
+            raise ValueError(
+                "family is required for model_info in AzureAIChatCompletionClient. See autogen_core.models.ModelFamily for options."
+            )
         if _is_github_model(config["endpoint"]) and "model" not in config:
             raise ValueError("model is required for when using a Github model with AzureAIChatCompletionClient")
         return cast(AzureAIChatCompletionClientConfig, config)
@@ -512,7 +516,8 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
     def __del__(self) -> None:
         # TODO: This is a hack to close the open client
-        try:
-            asyncio.get_running_loop().create_task(self._client.close())
-        except RuntimeError:
-            asyncio.run(self._client.close())
+        if hasattr(self, "_client"):
+            try:
+                asyncio.get_running_loop().create_task(self._client.close())
+            except RuntimeError:
+                asyncio.run(self._client.close())

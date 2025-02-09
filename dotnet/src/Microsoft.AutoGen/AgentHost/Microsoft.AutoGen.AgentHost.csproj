@@ -15,7 +15,7 @@
 	   <PackageReference Include="Microsoft.Extensions.Hosting" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\Runtime.Grpc\Microsoft.AutoGen.Runtime.Grpc.csproj" />
+    <ProjectReference Include="..\RuntimeGateway.Grpc\Microsoft.AutoGen.RuntimeGateway.Grpc.csproj" />
     <ProjectReference Include="..\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj" />
   </ItemGroup>
 </Project>
