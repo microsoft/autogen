@@ -106,7 +106,7 @@ class KernelFunctionFromTool(KernelFunction):
             return_parameter=return_param,
             is_prompt=False,
             is_asynchronous=True,
-            plugin_name=plugin_name or "",
+            plugin_name=plugin_name,
         )
         super().__init__(metadata=metadata)
         self._tool = tool

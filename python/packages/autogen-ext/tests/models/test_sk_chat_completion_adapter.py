@@ -71,7 +71,7 @@ def sk_client() -> AzureChatCompletion:
                             FunctionCallContent(
                                 id="call_UwVVI0iGEmcPwmKUigJcuuuF",
                                 function_name="calculator",
-                                plugin_name="autogen_tools",
+                                plugin_name=None,
                                 arguments="{}",
                             )
                         ],
@@ -113,7 +113,7 @@ def sk_client() -> AzureChatCompletion:
                             FunctionCallContent(
                                 id="call_n8135GXc2kbiaaDdpImsB1VW",
                                 function_name="calculator",
-                                plugin_name="autogen_tools",
+                                plugin_name=None,
                                 arguments="",
                                 content_type="function_call",  # type: ignore
                             )
