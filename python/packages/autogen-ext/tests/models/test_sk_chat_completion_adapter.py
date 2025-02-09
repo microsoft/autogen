@@ -171,7 +171,7 @@ def sk_client() -> AzureChatCompletion:
 
                 # Final chunk with finish reason
                 yield [
-                    StreamingChatMessageContent(
+                    StreamingChatMessageContent(  # type: ignore
                         choice_index=0,
                         inner_content=ChatCompletionChunk(
                             id="chatcmpl-123",
