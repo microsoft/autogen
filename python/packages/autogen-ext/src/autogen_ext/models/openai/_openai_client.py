@@ -3,6 +3,7 @@ import inspect
 import json
 import logging
 import math
+import os
 import re
 import warnings
 from asyncio import Task
@@ -1092,6 +1093,14 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         add_name_prefixes: bool = False
         if "add_name_prefixes" in kwargs:
             add_name_prefixes = kwargs["add_name_prefixes"]
+
+        # Special handling for Gemini model.
+        assert "model" in copied_args and isinstance(copied_args["model"], str)
+        if copied_args["model"].startswith("gemini-"):
+            if "base_url" not in copied_args:
+                copied_args["base_url"] = _model_info.GEMINI_OPENAI_BASE_URL
+            if "api_key" not in copied_args and "GEMINI_API_KEY" in os.environ:
+                copied_args["api_key"] = os.environ["GEMINI_API_KEY"]
 
         client = _openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)

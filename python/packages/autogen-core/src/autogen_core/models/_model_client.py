@@ -55,6 +55,35 @@ class ModelFamily:
     def __new__(cls, *args: Any, **kwargs: Any) -> ModelFamily:
         raise TypeError(f"{cls.__name__} is a namespace class and cannot be instantiated.")
 
+    @staticmethod
+    def is_claude(family: str) -> bool:
+        return family in (
+            ModelFamily.CLAUDE_3_HAIKU,
+            ModelFamily.CLAUDE_3_SONNET,
+            ModelFamily.CLAUDE_3_OPUS,
+            ModelFamily.CLAUDE_3_5_HAIKU,
+            ModelFamily.CLAUDE_3_5_SONNET,
+        )
+
+    @staticmethod
+    def is_gemini(family: str) -> bool:
+        return family in (
+            ModelFamily.GEMINI_1_5_FLASH,
+            ModelFamily.GEMINI_1_5_PRO,
+            ModelFamily.GEMINI_2_0_FLASH,
+        )
+
+    @staticmethod
+    def is_openai(family: str) -> bool:
+        return family in (
+            ModelFamily.GPT_4O,
+            ModelFamily.O1,
+            ModelFamily.O3,
+            ModelFamily.GPT_4,
+            ModelFamily.GPT_35,
+            ModelFamily.R1,
+        )
+
 
 @deprecated("Use the ModelInfo class instead ModelCapabilities.")
 class ModelCapabilities(TypedDict, total=False):
