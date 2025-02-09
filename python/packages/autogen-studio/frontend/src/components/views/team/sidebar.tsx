@@ -13,7 +13,6 @@ import {
 } from "lucide-react";
 import type { Team } from "../../types/datamodel";
 import { getRelativeTimeString } from "../atoms";
-import { defaultTeam } from "./types";
 import { useGalleryStore } from "../gallery/store";
 
 interface TeamSidebarProps {
@@ -41,8 +40,12 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
 }) => {
   const defaultGallery = useGalleryStore((state) => state.getDefaultGallery());
   const createTeam = () => {
-    const newTeam = Object.assign({}, defaultTeam);
-    newTeam.component.label = "new_team_" + new Date().getTime();
+    const newTeam = Object.assign(
+      {},
+      { component: defaultGallery?.items.teams[0] }
+    );
+    newTeam.component.label =
+      "default_team" + new Date().getTime().toString().slice(0, 2);
     onCreateTeam(newTeam);
   };
 
