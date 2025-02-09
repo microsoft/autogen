@@ -91,7 +91,7 @@ export const SettingsManager: React.FC = () => {
               onChange={(checked) =>
                 updatePlaygroundSettings({ showLLMEvents: checked })
               }
-              label={"Show LLM Events" + playground.showLLMEvents}
+              label={"Show LLM Events"}
               description="Display detailed LLM call logs in the message thread"
             />
           </div>
