@@ -57,7 +57,7 @@ async def mcp_server_tools(
                 agent = AssistantAgent(
                     name="file_manager",
                     model_client=OpenAIChatCompletionClient(model="gpt-4"),
-                    tools=tools,  # Assign all tools to the agent
+                    tools=tools,  # type: ignore
                 )
 
                 # The agent can now use any of the filesystem tools
@@ -107,7 +107,7 @@ async def mcp_server_tools(
 
         .. code-block:: python
 
-            from autogen_ext_mcp.tools import SseServerParams, mcp_server_tools
+            from autogen_ext.tools.mcp import SseServerParams, mcp_server_tools
 
 
             async def main() -> None:
@@ -118,7 +118,7 @@ async def mcp_server_tools(
                 tools = await mcp_server_tools(server_params)
 
                 # Create an agent with all tools
-                agent = AssistantAgent(name="tool_user", model_client=OpenAIChatCompletionClient(model="gpt-4"), tools=tools)
+                agent = AssistantAgent(name="tool_user", model_client=OpenAIChatCompletionClient(model="gpt-4"), tools=tools)  # type: ignore
 
     For more examples and detailed usage, see the samples directory in the package repository.
     """
