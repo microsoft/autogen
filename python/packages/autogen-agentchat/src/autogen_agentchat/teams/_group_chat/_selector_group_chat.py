@@ -145,13 +145,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             roles=roles, participants=str(participants), history=history
         )
         select_speaker_messages: List[SystemMessage | UserMessage | AssistantMessage]
-        if self._model_client.model_info["family"] in [
-            ModelFamily.GPT_4,
-            ModelFamily.GPT_4O,
-            ModelFamily.GPT_35,
-            ModelFamily.O1,
-            ModelFamily.O3,
-        ]:
+        if ModelFamily.is_openai(self._model_client.model_info["family"]):
             select_speaker_messages = [SystemMessage(content=select_speaker_prompt)]
         else:
             # Many other models need a UserMessage to respond to

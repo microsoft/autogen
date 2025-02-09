@@ -56,7 +56,7 @@ class ModelFamily:
         raise TypeError(f"{cls.__name__} is a namespace class and cannot be instantiated.")
 
     @staticmethod
-    def is_claude(family: ModelFamily.ANY) -> bool:
+    def is_claude(family: str) -> bool:
         return family in (
             ModelFamily.CLAUDE_3_HAIKU,
             ModelFamily.CLAUDE_3_SONNET,
@@ -66,7 +66,7 @@ class ModelFamily:
         )
 
     @staticmethod
-    def is_gemini(family: ModelFamily.ANY) -> bool:
+    def is_gemini(family: str) -> bool:
         return family in (
             ModelFamily.GEMINI_1_5_FLASH,
             ModelFamily.GEMINI_1_5_PRO,
@@ -74,7 +74,7 @@ class ModelFamily:
         )
 
     @staticmethod
-    def is_openai(family: ModelFamily.ANY) -> bool:
+    def is_openai(family: str) -> bool:
         return family in (
             ModelFamily.GPT_4O,
             ModelFamily.O1,
