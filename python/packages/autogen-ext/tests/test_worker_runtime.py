@@ -423,7 +423,7 @@ class ProtoReceivingAgent(RoutedAgent):
         self.received_messages: list[Any] = []
 
     @event
-    async def on_new_message(self, message: ProtoMessage, ctx: MessageContext) -> None:
+    async def on_new_message(self, message: ProtoMessage, ctx: MessageContext) -> None: # type: ignore
         self.num_calls += 1
         self.received_messages.append(message)
 
