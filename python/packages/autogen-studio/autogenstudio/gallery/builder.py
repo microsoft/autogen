@@ -156,17 +156,19 @@ def create_default_gallery() -> Gallery:
         description="Local Mistral-7B model client for instruction-based generation (Ollama, LMStudio).",
     )
 
-    # create an azure mode 
+    # create an azure mode
     az_model_client = AzureOpenAIChatCompletionClient(
         azure_deployment="{your-azure-deployment}",
         model="gpt-4o-mini",
         api_version="2024-06-01",
-        azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/", 
-        api_key="sk-...", # For key-based authentication.
+        azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
+        api_key="sk-...",  # For key-based authentication.
     )
-    builder.add_model(az_model_client.dump_component(),
-                        label="AzureOpenAI GPT-4o-mini",
-                        description="GPT-4o Mini Azure OpenAI model client.")
+    builder.add_model(
+        az_model_client.dump_component(),
+        label="AzureOpenAI GPT-4o-mini",
+        description="GPT-4o Mini Azure OpenAI model client.",
+    )
 
     builder.add_tool(
         tools.calculator_tool.dump_component(),
