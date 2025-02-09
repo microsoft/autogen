@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import {
   StopCircle,
   MessageSquare,
@@ -6,12 +6,10 @@ import {
   CheckCircle,
   AlertTriangle,
   TriangleAlertIcon,
-  GroupIcon,
   ChevronDown,
   ChevronUp,
   Bot,
   PanelRightClose,
-  PanelLeftOpen,
   PanelRightOpen,
 } from "lucide-react";
 import { Run, Message, TeamConfig, Component } from "../../../types/datamodel";
@@ -19,11 +17,8 @@ import AgentFlow from "./agentflow/agentflow";
 import { RenderMessage } from "./rendermessage";
 import InputRequestView from "./inputrequest";
 import { Tooltip } from "antd";
-import {
-  getRelativeTimeString,
-  LoadingDots,
-  TruncatableText,
-} from "../../atoms";
+import { getRelativeTimeString, LoadingDots } from "../../atoms";
+import { useSettingsStore } from "../../settings/store";
 
 interface RunViewProps {
   run: Run;
@@ -61,6 +56,18 @@ const RunView: React.FC<RunViewProps> = ({
   const threadContainerRef = useRef<HTMLDivElement | null>(null);
   const isActive = run.status === "active" || run.status === "awaiting_input";
   const [isFlowVisible, setIsFlowVisible] = useState(true);
+
+  const showLLMEvents = useSettingsStore(
+    (state) => state.playground.showLLMEvents
+  );
+  console.log("showLLMEvents", showLLMEvents);
+
+  const visibleMessages = useMemo(() => {
+    if (showLLMEvents) {
+      return run.messages;
+    }
+    return run.messages.filter((msg) => msg.config.source !== "llm_call_event");
+  }, [run.messages, showLLMEvents]);
 
   // Replace existing scroll effect with this simpler one
   useEffect(() => {
@@ -140,7 +147,7 @@ const RunView: React.FC<RunViewProps> = ({
   };
 
   const lastResultMessage = run.team_result?.task_result.messages.slice(-1)[0];
-  const lastMessage = getLastMeaningfulMessage(run.messages);
+  const lastMessage = getLastMeaningfulMessage(visibleMessages);
 
   return (
     <div className="space-y-6  mr-2 ">
@@ -233,7 +240,7 @@ const RunView: React.FC<RunViewProps> = ({
 
           {/* Thread Section */}
           <div className="">
-            {run.messages.length > 0 && (
+            {visibleMessages.length > 0 && (
               <div className="mt-2 pl-4 border-secondary rounded-b border-l-2 border-secondary/30">
                 <div className="flex pt-2">
                   <div className="flex-1">
@@ -267,8 +274,8 @@ const RunView: React.FC<RunViewProps> = ({
                   </div>
 
                   <div className="text-sm text-secondary">
-                    {calculateThreadTokens(run.messages)} tokens |{" "}
-                    {run.messages.length} messages
+                    {calculateThreadTokens(visibleMessages)} tokens |{" "}
+                    {visibleMessages.length} messages
                   </div>
                 </div>
 
@@ -295,14 +302,14 @@ const RunView: React.FC<RunViewProps> = ({
                         {" "}
                         <span className="  inline-block h-6"></span>{" "}
                       </div>
-                      {run.messages.map((msg, idx) => (
+                      {visibleMessages.map((msg, idx) => (
                         <div
                           key={"message_id" + idx + run.id}
                           className="  mr-2"
                         >
                           <RenderMessage
                             message={msg.config}
-                            isLast={idx === run.messages.length - 1}
+                            isLast={idx === visibleMessages.length - 1}
                           />
                         </div>
                       ))}
@@ -342,7 +349,7 @@ const RunView: React.FC<RunViewProps> = ({
                             teamConfig={teamConfig}
                             run={{
                               ...run,
-                              messages: getAgentMessages(run.messages),
+                              messages: getAgentMessages(visibleMessages),
                             }}
                           />
                         )}

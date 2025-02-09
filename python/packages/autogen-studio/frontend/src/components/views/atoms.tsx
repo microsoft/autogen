@@ -91,7 +91,7 @@ export const TruncatableText = memo(
       <div className="relative">
         <div
           className={`
-            transition-[max-height,opacity] overflow-auto  duration-500 ease-in-out
+            transition-[max-height,opacity] overflow-auto scroll  duration-500 ease-in-out
             ${
               shouldTruncate && !isExpanded
                 ? "max-h-[300px]"

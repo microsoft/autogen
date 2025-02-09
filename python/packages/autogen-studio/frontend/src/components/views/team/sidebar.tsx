@@ -3,11 +3,9 @@ import { Button, Tooltip } from "antd";
 import {
   Bot,
   Plus,
-  Edit,
   Trash2,
   PanelLeftClose,
   PanelLeftOpen,
-  Calendar,
   Copy,
   GalleryHorizontalEnd,
   InfoIcon,

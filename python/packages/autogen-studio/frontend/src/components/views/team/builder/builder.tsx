@@ -41,7 +41,7 @@ import { MonacoEditor } from "../../monaco";
 import { NodeEditor } from "./node-editor/node-editor";
 import debounce from "lodash.debounce";
 import { appContext } from "../../../../hooks/provider";
-import { sessionAPI } from "../../session/api";
+import { sessionAPI } from "../../playground/api";
 import TestDrawer from "./testdrawer";
 
 const { Sider, Content } = Layout;
