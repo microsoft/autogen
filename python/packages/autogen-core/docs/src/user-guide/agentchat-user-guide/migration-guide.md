@@ -423,7 +423,7 @@ class CustomAgent(BaseChatAgent):
 ```
 
 You can then use the custom agent in the same way as the {py:class}`~autogen_agentchat.agents.AssistantAgent`.
-See [Custom Agent Tutorial](./custom-agents.ipynb)
+See [Custom Agent Tutorial](custom-agents.ipynb)
 for more details.
 
 ## Save and Load Agent State
