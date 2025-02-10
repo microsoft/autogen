@@ -67,7 +67,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
 
     Examples:
 
-        Anthropic models:
+        Anthropic models with function calling:
 
         .. code-block:: bash
 
@@ -79,11 +79,17 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             import os
 
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_core.models import UserMessage
+            from autogen_agentchat.ui import Console
+            from autogen_core.models import ModelFamily, UserMessage
             from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
             from semantic_kernel import Kernel
             from semantic_kernel.connectors.ai.anthropic import AnthropicChatCompletion, AnthropicChatPromptExecutionSettings
             from semantic_kernel.memory.null_memory import NullMemory
+
+
+            async def get_weather(city: str) -> str:
+                \"\"\"Get the weather for a city.\"\"\"
+                return f"The weather in {city} is 75 degrees."
 
 
             async def main() -> None:
@@ -96,24 +102,34 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                     temperature=0.2,
                 )
 
-                model_client = SKChatCompletionAdapter(sk_client, kernel=Kernel(memory=NullMemory()), prompt_settings=settings)
+                model_client = SKChatCompletionAdapter(
+                    sk_client,
+                    kernel=Kernel(memory=NullMemory()),
+                    prompt_settings=settings,
+                    model_info={
+                        "function_calling": True,
+                        "json_output": True,
+                        "vision": True,
+                        "family": ModelFamily.CLAUDE_3_5_SONNET,
+                    },
+                )
 
                 # Call the model directly.
-                model_result = await model_client.create(
-                    messages=[UserMessage(content="What is the capital of France?", source="User")]
-                )
-                print(model_result)
+                response = await model_client.create([UserMessage(content="What is the capital of France?", source="test")])
+                print(response)
 
                 # Create an assistant agent with the model client.
-                assistant = AssistantAgent("assistant", model_client=model_client)
+                assistant = AssistantAgent(
+                    "assistant", model_client=model_client, system_message="You are a helpful assistant.", tools=[get_weather]
+                )
                 # Call the assistant with a task.
-                result = await assistant.run(task="What is the capital of France?")
-                print(result)
+                await Console(assistant.run_stream(task="What is the weather in Paris and London?"))
 
 
             asyncio.run(main())
 
-        Google Gemini models:
+
+        Google Gemini models with function calling:
 
         .. code-block:: bash
 
@@ -125,7 +141,8 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             import os
 
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_core.models import UserMessage
+            from autogen_agentchat.ui import Console
+            from autogen_core.models import UserMessage, ModelFamily
             from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
             from semantic_kernel import Kernel
             from semantic_kernel.connectors.ai.google.google_ai import (
@@ -135,24 +152,31 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             from semantic_kernel.memory.null_memory import NullMemory
 
 
+            def get_weather(city: str) -> str:
+                \"\"\"Get the weather for a city.\"\"\"
+                return f"The weather in {city} is 75 degrees."
+
+
             async def main() -> None:
                 sk_client = GoogleAIChatCompletion(
-                    gemini_model_id="gemini-1.5-flash",
+                    gemini_model_id="gemini-2.0-flash",
                     api_key=os.environ["GEMINI_API_KEY"],
                 )
                 settings = GoogleAIChatPromptExecutionSettings(
                     temperature=0.2,
                 )
 
+                kernel = Kernel(memory=NullMemory())
+
                 model_client = SKChatCompletionAdapter(
                     sk_client,
-                    kernel=Kernel(memory=NullMemory()),
+                    kernel=kernel,
                     prompt_settings=settings,
                     model_info={
-                        "family": "gemini-1.5-flash",
+                        "family": ModelFamily.GEMINI_2_0_FLASH,
                         "function_calling": True,
                         "json_output": True,
-                        "vision": False,
+                        "vision": True,
                     },
                 )
 
@@ -163,13 +187,16 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                 print(model_result)
 
                 # Create an assistant agent with the model client.
-                assistant = AssistantAgent("assistant", model_client=model_client)
+                assistant = AssistantAgent(
+                    "assistant", model_client=model_client, tools=[get_weather], system_message="You are a helpful assistant."
+                )
                 # Call the assistant with a task.
-                result = await assistant.run(task="What is the capital of France?")
-                print(result)
+                stream = assistant.run_stream(task="What is the weather in Paris and London?")
+                await Console(stream)
 
 
             asyncio.run(main())
+
 
         Ollama models:
 
