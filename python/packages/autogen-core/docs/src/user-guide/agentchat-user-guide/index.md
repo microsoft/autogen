@@ -111,7 +111,7 @@ tutorial/state
 :hidden:
 :caption: Advanced
 
-tutorial/custom-agents
+custom-agents
 selector-group-chat
 swarm
 magentic-one
