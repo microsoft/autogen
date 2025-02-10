@@ -142,3 +142,7 @@ The SDK uses the Microsoft.Extensions.Logging framework for logging. Here is an 
   }
 }
 ```
+
+### Defining Message Types in Protocol Buffers
+
+A convenient way to define common event or message types to be used in both python and .NET agents is to define your events. This is covered here: [Using Protocol Buffers to Define Message Types](./protobuf-message-types.md).
