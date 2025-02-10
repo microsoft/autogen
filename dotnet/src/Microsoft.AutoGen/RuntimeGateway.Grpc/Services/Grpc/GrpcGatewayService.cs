@@ -36,6 +36,31 @@ public sealed class GrpcGatewayService(GrpcGateway gateway) : AgentRpc.AgentRpcB
     }
 
     /// <summary>
+    /// Open channel for the Control Channel (defined in the proto file).
+    /// </summary>
+    /// <param name="requestStream">The request stream.</param>
+    /// <param name="responseStream">The response stream.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    /// <remarks>Control channel is used for control messages between the agent worker and the cluster.</remarks>
+    ///       public virtual global::System.Threading.Tasks.Task OpenControlChannel(grpc::IAsyncStreamReader<global::Microsoft.AutoGen.Protobuf.ControlMessage> requestStream, grpc::IServerStreamWriter<global::Microsoft.AutoGen.Protobuf.ControlMessage> responseStream, grpc::ServerCallContext context)
+    public override async Task OpenControlChannel(IAsyncStreamReader<ControlMessage> requestStream, IServerStreamWriter<ControlMessage> responseStream, ServerCallContext context)
+    {
+        try
+        {
+            await Gateway.ConnectToControlChannel(requestStream, responseStream, context).ConfigureAwait(true);
+        }
+        catch
+        {
+            if (context.CancellationToken.IsCancellationRequested)
+            {
+                return;
+            }
+            throw;
+        }
+    }
+
+    /// <summary>
     /// Adds a subscription.
     /// </summary>
     /// <param name="request">The add subscription request.</param>

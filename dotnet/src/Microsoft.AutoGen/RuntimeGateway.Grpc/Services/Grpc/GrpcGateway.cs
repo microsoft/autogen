@@ -220,6 +220,20 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     }
 
     /// <summary>
+    /// Connects to the control channel.
+    /// </summary>
+    /// <param name="requestStream">The request stream.</param>
+    /// <param name="responseStream">The response stream.</param>
+    /// <param name="context">The server call context.</param>
+    /// <returns>A task that represents the asynchronous operation.</returns>
+    internal async Task ConnectToControlChannel(IAsyncStreamReader<ControlMessage> requestStream, IServerStreamWriter<ControlMessage> responseStream, ServerCallContext context)
+    {
+        _logger.LogInformation("Received new control channel connection from {Peer}.", context.Peer);
+        var controlChannel = new GrpcControlChannel(this, requestStream, responseStream, context);
+        await controlChannel.Connect().ConfigureAwait(false);
+    }
+
+    /// <summary>
     /// Handles received messages from a worker connection.
     /// </summary>
     /// <param name="connection">The worker connection.</param>
@@ -240,6 +254,9 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             case Message.MessageOneofCase.CloudEvent:
                 await DispatchEventAsync(message.CloudEvent, cancellationToken);
                 break;
+            case Message.MessageOneofCase.ControlMessage:
+                /// check type of the cntrl message and act accordingly
+                /// for save state we will call into the agent state grain. 
             default:
                 await RespondBadRequestAsync(connection, $"Unknown message type for message '{message}'.");
                 break;
