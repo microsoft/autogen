@@ -599,6 +599,10 @@ graphrag = [
 grpc = [
     { name = "grpcio" },
 ]
+http-tool = [
+    { name = "httpx" },
+    { name = "json-schema-to-pydantic" },
+]
 jupyter-executor = [
     { name = "ipykernel" },
     { name = "nbclient" },
@@ -698,7 +702,9 @@ requires-dist = [
     { name = "ffmpeg-python", marker = "extra == 'video-surfer'" },
     { name = "graphrag", marker = "extra == 'graphrag'", specifier = ">=1.0.1" },
     { name = "grpcio", marker = "extra == 'grpc'", specifier = "~=1.70.0" },
+    { name = "httpx", marker = "extra == 'http-tool'", specifier = ">=0.27.0" },
     { name = "ipykernel", marker = "extra == 'jupyter-executor'", specifier = ">=6.29.5" },
+    { name = "json-schema-to-pydantic", marker = "extra == 'http-tool'", specifier = ">=0.2.0" },
     { name = "json-schema-to-pydantic", marker = "extra == 'mcp'", specifier = ">=0.2.2" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = "~=0.3.3" },
     { name = "markitdown", marker = "extra == 'file-surfer'", specifier = ">=0.0.1a2" },
