@@ -440,7 +440,7 @@ wheels = [
 
 [[package]]
 name = "autogen-agentchat"
-version = "0.4.5"
+version = "0.4.6"
 source = { editable = "packages/autogen-agentchat" }
 dependencies = [
     { name = "autogen-core" },
@@ -451,7 +451,7 @@ requires-dist = [{ name = "autogen-core", editable = "packages/autogen-core" }]
 
 [[package]]
 name = "autogen-core"
-version = "0.4.5"
+version = "0.4.6"
 source = { editable = "packages/autogen-core" }
 dependencies = [
     { name = "jsonref" },
@@ -570,7 +570,7 @@ dev = [
 
 [[package]]
 name = "autogen-ext"
-version = "0.4.5"
+version = "0.4.6"
 source = { editable = "packages/autogen-ext" }
 dependencies = [
     { name = "autogen-core" },
@@ -601,6 +601,10 @@ graphrag = [
 ]
 grpc = [
     { name = "grpcio" },
+]
+http-tool = [
+    { name = "httpx" },
+    { name = "json-schema-to-pydantic" },
 ]
 jupyter-executor = [
     { name = "ipykernel" },
@@ -702,7 +706,9 @@ requires-dist = [
     { name = "google-genai", marker = "extra == 'gemini'", specifier = ">=1.0.0" },
     { name = "graphrag", marker = "extra == 'graphrag'", specifier = ">=1.0.1" },
     { name = "grpcio", marker = "extra == 'grpc'", specifier = "~=1.70.0" },
+    { name = "httpx", marker = "extra == 'http-tool'", specifier = ">=0.27.0" },
     { name = "ipykernel", marker = "extra == 'jupyter-executor'", specifier = ">=6.29.5" },
+    { name = "json-schema-to-pydantic", marker = "extra == 'http-tool'", specifier = ">=0.2.0" },
     { name = "json-schema-to-pydantic", marker = "extra == 'mcp'", specifier = ">=0.2.2" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = "~=0.3.3" },
     { name = "markitdown", marker = "extra == 'file-surfer'", specifier = ">=0.0.1a2" },

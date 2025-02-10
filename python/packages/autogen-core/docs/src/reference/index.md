@@ -46,17 +46,17 @@ python/autogen_ext.agents.web_surfer
 python/autogen_ext.agents.file_surfer
 python/autogen_ext.agents.video_surfer
 python/autogen_ext.agents.video_surfer.tools
-python/autogen_ext.auth.azure
 python/autogen_ext.teams.magentic_one
 python/autogen_ext.models.cache
 python/autogen_ext.models.openai
 python/autogen_ext.models.replay
 python/autogen_ext.models.azure
 python/autogen_ext.models.semantic_kernel
+python/autogen_ext.tools.code_execution
+python/autogen_ext.tools.graphrag
+python/autogen_ext.tools.http
 python/autogen_ext.tools.langchain
 python/autogen_ext.tools.mcp
-python/autogen_ext.tools.graphrag
-python/autogen_ext.tools.code_execution
 python/autogen_ext.tools.semantic_kernel
 python/autogen_ext.code_executors.local
 python/autogen_ext.code_executors.docker
@@ -65,4 +65,5 @@ python/autogen_ext.code_executors.azure
 python/autogen_ext.cache_store.diskcache
 python/autogen_ext.cache_store.redis
 python/autogen_ext.runtimes.grpc
+python/autogen_ext.auth.azure
 ```
