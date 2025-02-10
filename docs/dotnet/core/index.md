@@ -16,8 +16,7 @@ You can quickly get started by looking at the samples in the [samples](https://g
 
 ### Creating an Agent
 
-To create an agent, you can inherity from BaseAgent, and implemet event handlers for the events you care about.
-
+To create an agent, you can inherit from BaseAgent, and implemet event handlers for the events you care about.
 Here is a minimal example demonstrating how to inherit from BaseAgent and implement an event handler:
 
 ```csharp
