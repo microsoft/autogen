@@ -70,6 +70,10 @@ semantic-kernel-core = [
     "semantic-kernel>=1.17.1",
 ]
 
+gemini = [
+    "google-genai>=1.0.0",
+]
+
 semantic-kernel-google = [
     "semantic-kernel[google]>=1.17.1",
 ]
