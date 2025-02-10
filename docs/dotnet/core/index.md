@@ -16,7 +16,7 @@ You can quickly get started by looking at the samples in the [samples](https://g
 
 ### Creating an Agent
 
-To create an agent, you can inherit from BaseAgent, and implemet event handlers for the events you care about.
+To create an agent, you can inherit from BaseAgent, and implement event handlers for the events you care about.
 Here is a minimal example demonstrating how to inherit from BaseAgent and implement an event handler:
 
 ```csharp
@@ -54,9 +54,9 @@ await app.WaitForShutdownAsync();
 
 ## .NET SDK Runtimes
 
-The .NET SDK includes both an InMemory Single Process Runtime and a Remote, Distributed Runtime meant for running your agents in the cloud. The Distributed Runtime supports running agents in python and in .NET, allowing those agents to talk to one another. The distributed runtime uses Microsoft Orleans to provide resilience, persistence, and integration with messaging services such as Azure Event Hubs.  The xlang funcitonality requires that your agent's Messages are serializable as CloudEvents.  The messages are exchanges as CloudEvents over Grpc, and the runtime takes care of ensuring that the messages are delivered to the correct agents. 
+The .NET SDK includes both an InMemory Single Process Runtime and a Remote, Distributed Runtime meant for running your agents in the cloud. The Distributed Runtime supports running agents in python and in .NET, allowing those agents to talk to one another. The distributed runtime uses Microsoft Orleans to provide resilience, persistence, and integration with messaging services such as Azure Event Hubs.  The xlang functionality requires that your agent's Messages are serializable as CloudEvents.  The messages are exchanges as CloudEvents over Grpc, and the runtime takes care of ensuring that the messages are delivered to the correct agents. 
 
-To use the Disributed Runtime, you will need to add the following package to your project:
+To use the Distributed Runtime, you will need to add the following package to your project:
 
 ```bash
 dotnet add package Microsoft.AutoGen.Core.Grpc
