@@ -87,7 +87,7 @@ var autogenBackend = await Microsoft.AutoGen.RuntimeGateway.Grpc.Host.StartAsync
 
 ### Running Multiple Agents and the Runtime in separate processes with .NET Aspire
 
-The [Hello.AppHost project](https://github.com/microsoft/autogen/blob/50d7587a4649504af3bb79ab928b2a3882a1a394/dotnet/samples/Hello/Hello.AppHost/Program.cs#L4)illustrates how to orchestrate a distributed system with multiple agents and the runtime in separate processes using .NET Aspire. It also points to a [python agent that illustrates how to run agents in different languages in the same distributed system](https://github.com/microsoft/autogen/blob/50d7587a4649504af3bb79ab928b2a3882a1a394/python/samples/core_xlang_hello_python_agent/README.md#L1).
+The [Hello.AppHost project](https://github.com/microsoft/autogen/blob/50d7587a4649504af3bb79ab928b2a3882a1a394/dotnet/samples/Hello/Hello.AppHost/Program.cs#L4) illustrates how to orchestrate a distributed system with multiple agents and the runtime in separate processes using .NET Aspire. It also points to a [python agent that illustrates how to run agents in different languages in the same distributed system](https://github.com/microsoft/autogen/blob/50d7587a4649504af3bb79ab928b2a3882a1a394/python/samples/core_xlang_hello_python_agent/README.md#L1).
 
 ```csharp
 // Copyright (c) Microsoft Corporation. All rights reserved.
