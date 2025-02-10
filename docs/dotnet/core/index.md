@@ -16,20 +16,20 @@ You can quickly get started by looking at the samples in the [samples](https://g
 
 ### Creating an Agent
 
-To create an agent, you can inherit from BaseAgent, and implement event handlers for the events you care about.
-Here is a minimal example demonstrating how to inherit from BaseAgent and implement an event handler:
+To create an agent, you can inherit from BaseAgent and implement event handlers for the events you care about. Here is a minimal example demonstrating how to inherit from BaseAgent and implement an event handler:
 
 ```csharp
 public class MyAgent : BaseAgent, IHandle<MyMessage>
 {
-    // ...constructor, fields, etc....
-
+    // ...
     public async ValueTask HandleAsync(MyMessage item, MessageContext context)
     {
-        // ...your logic here...
+        // ...logic here...
     }
 }
 ```
+
+By overriding BaseAgent, you gain access to the runtime and logging utilities, and by implementing IHandle<T>, you can easily define event-handling methods for your custom messages.
 
 ### Running an Agent in an Application
 
