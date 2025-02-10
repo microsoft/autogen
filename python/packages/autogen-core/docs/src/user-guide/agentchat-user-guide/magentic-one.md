@@ -153,7 +153,7 @@ While the default multimodal LLM we use for all agents is GPT-4o, Magentic-One i
       eprint={2411.04468},
       archivePrefix={arXiv},
       primaryClass={cs.AI},
-      url={<https://arxiv.org/abs/2411.04468}>,
+      url={https://arxiv.org/abs/2411.04468},
 }
 
 ```
