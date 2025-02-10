@@ -28,15 +28,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\samples\AgentChat\Hello\Hello.AppHost\Hello.AppHost.csproj" />
-    <ProjectReference Include="..\..\samples\AgentChat\Hello\HelloAgent\HelloAgent.csproj" />
+    <ProjectReference Include="..\..\samples\Hello\Hello.AppHost\Hello.AppHost.csproj" />
+    <ProjectReference Include="..\..\samples\Hello\HelloAgent\HelloAgent.csproj" />
     <ProjectReference Include="..\Microsoft.AutoGen.Integration.Tests.AppHosts\HelloAgent.AppHost\HelloAgent.AppHost.csproj" />
   </ItemGroup>
 
   <!-- Properties, Items, and targets to ensure Python apps are initialized -->
   <PropertyGroup>
     <PythonVirtualEnvironmentName>.venv</PythonVirtualEnvironmentName>
-    <PythonVenvRoot>$(RepoRoot)..\python</PythonVenvRoot>
+    <PythonRoot>$(RepoRoot)..\python</PythonRoot>
 
   </PropertyGroup>
 
@@ -44,10 +44,17 @@
     <PropertyGroup>
       <VenvDir>$(PythonVenvRoot)\$(PythonVirtualEnvironmentName)\</VenvDir>
       <CreateVenv Condition="!Exists('$(VenvDir)')">True</CreateVenv>
+      <Uv>~/.local/bin/uv</Uv>
+      <CheckUvPath Condition="!Exists('$(Uv)')">True</CheckUvPath>
+      <UvPath Condition="'$(CheckUvPath)' == 'True'">uv</UvPath>
+      <UvPath Condition="'$(CheckUvPath)' == 'False'">$(Uv)</UvPath>
     </PropertyGroup>  
     <Message Importance="Normal" Text="Initializing virtual environment for $(PythonVenvRoot)" />
 
-    <Exec Command="uv sync --all-extras" WorkingDirectory="$(PythonVenvRoot)" Condition=" '$(CreateVenv)' == 'True' " />
+    <Exec Command="$(UvPath) sync --all-extras" WorkingDirectory="$(PythonRoot)" Condition=" '$(CreateVenv)' == 'True' " ConsoleToMsBuild="true">
+      <Output TaskParameter="ConsoleOutput" PropertyName="OutputOfExec" />
+    </Exec>
+    <!--Message Importance="Normal" Text="$(OutputOfExec)" />-->
   </Target>
 
 

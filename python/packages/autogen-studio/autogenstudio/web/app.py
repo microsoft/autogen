@@ -15,11 +15,6 @@ from .deps import cleanup_managers, init_managers
 from .initialization import AppInitializer
 from .routes import runs, sessions, teams, ws
 
-# Configure logging
-# logger = logging.getLogger(__name__)
-# logging.basicConfig(level=logging.INFO)
-
-
 # Initialize application
 app_file_path = os.path.dirname(os.path.abspath(__file__))
 initializer = AppInitializer(settings, app_file_path)

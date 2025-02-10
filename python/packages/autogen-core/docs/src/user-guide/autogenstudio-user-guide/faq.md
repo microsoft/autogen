@@ -15,29 +15,67 @@ A: You can specify the directory where files are stored by setting the `--appdir
 
 Yes. AutoGen standardizes on the openai model api format, and you can use any api server that offers an openai compliant endpoint.
 
-AutoGen Studio is based on declaritive specifications which applies to models as well. Agents can include a model_client field which specifies the model endpoint details including `model`, `api_key`, `base_url`, `model type`.
+AutoGen Studio is based on declaritive specifications which applies to models as well. Agents can include a model_client field which specifies the model endpoint details including `model`, `api_key`, `base_url`, `model type`. Note, you can define your [model client](https://microsoft.github.io/autogen/dev/user-guide/core-user-guide/components/model-clients.html) in python and dump it to a json file for use in AutoGen Studio.
 
-An example of the openai model client is shown below:
+In the following sample, we will define an OpenAI, AzureOpenAI and a local model client in python and dump them to a json file.
+
+```python
+from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
+from autogen_core.models import ModelInfo
+
+model_client=OpenAIChatCompletionClient(
+            model="gpt-4o-mini",
+        )
+print(model_client.dump_component().model_dump_json())
+
+az_model_client = AzureOpenAIChatCompletionClient(
+    azure_deployment="{your-azure-deployment}",
+    model="gpt-4o",
+    api_version="2024-06-01",
+    azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
+    api_key="sk-...",
+)
+print(az_model_client.dump_component().model_dump_json())
+
+mistral_vllm_model = OpenAIChatCompletionClient(
+        model="TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
+        base_url="http://localhost:1234/v1",
+        model_info=ModelInfo(vision=False, function_calling=True, json_output=False, family="unknown"),
+    )
+print(mistral_vllm_model.dump_component().model_dump_json())
+```
+
+OpenAI
 
 ```json
 {
-  "model": "gpt-4o-mini",
-  "model_type": "OpenAIChatCompletionClient",
-  "api_key": "your-api-key"
+  "provider": "autogen_ext.models.openai.OpenAIChatCompletionClient",
+  "component_type": "model",
+  "version": 1,
+  "component_version": 1,
+  "description": "Chat completion client for OpenAI hosted models.",
+  "label": "OpenAIChatCompletionClient",
+  "config": { "model": "gpt-4o-mini" }
 }
 ```
 
-An example of the azure openai model client is shown below:
+Azure OpenAI
 
 ```json
 {
-  "model": "gpt-4o-mini",
-  "model_type": "AzureOpenAIChatCompletionClient",
-  "azure_deployment": "gpt-4o-mini",
-  "api_version": "2024-02-15-preview",
-  "azure_endpoint": "https://your-endpoint.openai.azure.com/",
-  "api_key": "your-api-key",
-  "component_type": "model"
+  "provider": "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
+  "component_type": "model",
+  "version": 1,
+  "component_version": 1,
+  "description": "Chat completion client for Azure OpenAI hosted models.",
+  "label": "AzureOpenAIChatCompletionClient",
+  "config": {
+    "model": "gpt-4o",
+    "api_key": "sk-...",
+    "azure_endpoint": "https://{your-custom-endpoint}.openai.azure.com/",
+    "azure_deployment": "{your-azure-deployment}",
+    "api_version": "2024-06-01"
+  }
 }
 ```
 
@@ -45,21 +83,27 @@ Have a local model server like Ollama, vLLM or LMStudio that provide an OpenAI c
 
 ```json
 {
-  "model": "TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
-  "model_type": "OpenAIChatCompletionClient",
-  "base_url": "http://localhost:1234/v1",
-  "api_version": "1.0",
+  "provider": "autogen_ext.models.openai.OpenAIChatCompletionClient",
   "component_type": "model",
-  "model_capabilities": {
-    "vision": false,
-    "function_calling": true,
-    "json_output": false
+  "version": 1,
+  "component_version": 1,
+  "description": "Chat completion client for OpenAI hosted models.",
+  "label": "OpenAIChatCompletionClient",
+  "config": {
+    "model": "TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
+    "model_info": {
+      "vision": false,
+      "function_calling": true,
+      "json_output": false,
+      "family": "unknown"
+    },
+    "base_url": "http://localhost:1234/v1"
   }
 }
 ```
 
 ```{caution}
-It is important that you add the `model_capabilities` field to the model client specification for custom models. This is used by the framework instantiate and use the model correctly. Also, the `AssistantAgent` and many other agents in AgentChat require the model to have the `function_calling` capability.
+It is important that you add the `model_info` field to the model client specification for custom models. This is used by the framework instantiate and use the model correctly. Also, the `AssistantAgent` and many other agents in AgentChat require the model to have the `function_calling` capability.
 ```
 
 ## Q: The server starts but I can't access the UI

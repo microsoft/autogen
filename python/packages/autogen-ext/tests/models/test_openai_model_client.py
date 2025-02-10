@@ -22,7 +22,7 @@ from autogen_core.models._model_client import ModelFamily
 from autogen_core.tools import BaseTool, FunctionTool
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 from autogen_ext.models.openai._model_info import resolve_model
-from autogen_ext.models.openai._openai_client import calculate_vision_tokens, convert_tools
+from autogen_ext.models.openai._openai_client import calculate_vision_tokens, convert_tools, to_oai_type
 from openai.resources.beta.chat.completions import AsyncCompletions as BetaAsyncCompletions
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
@@ -198,6 +198,18 @@ async def test_openai_chat_completion_client() -> None:
 
 
 @pytest.mark.asyncio
+async def test_openai_chat_completion_client_with_gemini_model() -> None:
+    client = OpenAIChatCompletionClient(model="gemini-1.5-flash", api_key="api_key")
+    assert client
+
+
+@pytest.mark.asyncio
+async def test_openai_chat_completion_client_raise_on_unknown_model() -> None:
+    with pytest.raises(ValueError, match="model_info is required"):
+        _ = OpenAIChatCompletionClient(model="unknown", api_key="api_key")
+
+
+@pytest.mark.asyncio
 async def test_custom_model_with_capabilities() -> None:
     with pytest.raises(ValueError, match="model_info is required"):
         client = OpenAIChatCompletionClient(model="dummy_model", base_url="https://api.dummy.com/v0", api_key="api_key")
@@ -337,7 +349,7 @@ async def test_openai_chat_completion_client_count_tokens(monkeypatch: pytest.Mo
             ],
             source="user",
         ),
-        FunctionExecutionResultMessage(content=[FunctionExecutionResult(content="Hello", call_id="1")]),
+        FunctionExecutionResultMessage(content=[FunctionExecutionResult(content="Hello", call_id="1", is_error=False)]),
     ]
 
     def tool1(test: str, test2: str) -> str:
@@ -890,7 +902,7 @@ async def _test_model_client_with_function_calling(model_client: OpenAIChatCompl
     messages.append(AssistantMessage(content=create_result.content, source="assistant"))
     messages.append(
         FunctionExecutionResultMessage(
-            content=[FunctionExecutionResult(content="passed", call_id=create_result.content[0].id)]
+            content=[FunctionExecutionResult(content="passed", call_id=create_result.content[0].id, is_error=False)]
         )
     )
     create_result = await model_client.create(messages=messages)
@@ -920,8 +932,8 @@ async def _test_model_client_with_function_calling(model_client: OpenAIChatCompl
     messages.append(
         FunctionExecutionResultMessage(
             content=[
-                FunctionExecutionResult(content="passed", call_id=create_result.content[0].id),
-                FunctionExecutionResult(content="failed", call_id=create_result.content[1].id),
+                FunctionExecutionResult(content="passed", call_id=create_result.content[0].id, is_error=False),
+                FunctionExecutionResult(content="failed", call_id=create_result.content[1].id, is_error=True),
             ]
         )
     )
@@ -952,14 +964,6 @@ async def test_gemini() -> None:
 
     model_client = OpenAIChatCompletionClient(
         model="gemini-1.5-flash",
-        api_key=api_key,
-        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-        model_info={
-            "function_calling": True,
-            "json_output": True,
-            "vision": True,
-            "family": ModelFamily.GEMINI_1_5_FLASH,
-        },
     )
     await _test_model_client_basic_completion(model_client)
     await _test_model_client_with_function_calling(model_client)
@@ -1048,6 +1052,58 @@ async def test_ollama() -> None:
     assert chunks[-1].usage is not None
     if model_info["family"] == ModelFamily.R1:
         assert chunks[-1].thought is not None
+
+
+@pytest.mark.asyncio
+async def test_add_name_prefixes(monkeypatch: pytest.MonkeyPatch) -> None:
+    sys_message = SystemMessage(content="You are a helpful AI agent, and you answer questions in a friendly way.")
+    assistant_message = AssistantMessage(content="Hello, how can I help you?", source="Assistant")
+    user_text_message = UserMessage(content="Hello, I am from Seattle.", source="Adam")
+    user_mm_message = UserMessage(
+        content=[
+            "Here is a postcard from Seattle:",
+            Image.from_base64(
+                "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4z8AAAAMBAQDJ/pLvAAAAAElFTkSuQmCC"
+            ),
+        ],
+        source="Adam",
+    )
+
+    # Default conversion
+    oai_sys = to_oai_type(sys_message)[0]
+    oai_asst = to_oai_type(assistant_message)[0]
+    oai_text = to_oai_type(user_text_message)[0]
+    oai_mm = to_oai_type(user_mm_message)[0]
+
+    converted_sys = to_oai_type(sys_message, prepend_name=True)[0]
+    converted_asst = to_oai_type(assistant_message, prepend_name=True)[0]
+    converted_text = to_oai_type(user_text_message, prepend_name=True)[0]
+    converted_mm = to_oai_type(user_mm_message, prepend_name=True)[0]
+
+    # Invariants
+    assert "content" in oai_sys
+    assert "content" in oai_asst
+    assert "content" in oai_text
+    assert "content" in oai_mm
+    assert "content" in converted_sys
+    assert "content" in converted_asst
+    assert "content" in converted_text
+    assert "content" in converted_mm
+    assert oai_sys["role"] == converted_sys["role"]
+    assert oai_sys["content"] == converted_sys["content"]
+    assert oai_asst["role"] == converted_asst["role"]
+    assert oai_asst["content"] == converted_asst["content"]
+    assert oai_text["role"] == converted_text["role"]
+    assert oai_mm["role"] == converted_mm["role"]
+    assert isinstance(oai_mm["content"], list)
+    assert isinstance(converted_mm["content"], list)
+    assert len(oai_mm["content"]) == len(converted_mm["content"])
+    assert "text" in converted_mm["content"][0]
+    assert "text" in oai_mm["content"][0]
+
+    # Name prepended
+    assert str(converted_text["content"]) == "Adam said:\n" + str(oai_text["content"])
+    assert str(converted_mm["content"][0]["text"]) == "Adam said:\n" + str(oai_mm["content"][0]["text"])
 
 
 # TODO: add integration tests for Azure OpenAI using AAD token.
