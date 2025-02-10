@@ -349,7 +349,7 @@ async def test_openai_chat_completion_client_count_tokens(monkeypatch: pytest.Mo
             ],
             source="user",
         ),
-        FunctionExecutionResultMessage(content=[FunctionExecutionResult(content="Hello", call_id="1")]),
+        FunctionExecutionResultMessage(content=[FunctionExecutionResult(content="Hello", call_id="1", is_error=False)]),
     ]
 
     def tool1(test: str, test2: str) -> str:
@@ -902,7 +902,7 @@ async def _test_model_client_with_function_calling(model_client: OpenAIChatCompl
     messages.append(AssistantMessage(content=create_result.content, source="assistant"))
     messages.append(
         FunctionExecutionResultMessage(
-            content=[FunctionExecutionResult(content="passed", call_id=create_result.content[0].id)]
+            content=[FunctionExecutionResult(content="passed", call_id=create_result.content[0].id, is_error=False)]
         )
     )
     create_result = await model_client.create(messages=messages)
@@ -932,8 +932,8 @@ async def _test_model_client_with_function_calling(model_client: OpenAIChatCompl
     messages.append(
         FunctionExecutionResultMessage(
             content=[
-                FunctionExecutionResult(content="passed", call_id=create_result.content[0].id),
-                FunctionExecutionResult(content="failed", call_id=create_result.content[1].id),
+                FunctionExecutionResult(content="passed", call_id=create_result.content[0].id, is_error=False),
+                FunctionExecutionResult(content="failed", call_id=create_result.content[1].id, is_error=True),
             ]
         )
     )
