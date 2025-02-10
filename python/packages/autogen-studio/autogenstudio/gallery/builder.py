@@ -8,6 +8,7 @@ from autogen_core import ComponentModel
 from autogen_core.models import ModelInfo
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.models.openai._openai_client import AzureOpenAIChatCompletionClient
 
 from autogenstudio.datamodel import Gallery, GalleryComponents, GalleryItems, GalleryMetadata
 
@@ -142,8 +143,7 @@ def create_default_gallery() -> Gallery:
 
     # Create base model client
     base_model = OpenAIChatCompletionClient(model="gpt-4o-mini")
-    builder.add_model(base_model.dump_component())
-
+    builder.add_model(base_model.dump_component(), label="OpenAI GPT-4o Mini", description="OpenAI GPT-4o-mini")
     # Create Mistral vllm model
     mistral_vllm_model = OpenAIChatCompletionClient(
         model="TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
@@ -152,8 +152,22 @@ def create_default_gallery() -> Gallery:
     )
     builder.add_model(
         mistral_vllm_model.dump_component(),
-        label="Mistral-7B vllm",
-        description="Example on how to use the OpenAIChatCopletionClient with local models (Ollama, vllm etc).",
+        label="Mistral-7B Local",
+        description="Local Mistral-7B model client for instruction-based generation (Ollama, LMStudio).",
+    )
+
+    # create an azure mode
+    az_model_client = AzureOpenAIChatCompletionClient(
+        azure_deployment="{your-azure-deployment}",
+        model="gpt-4o-mini",
+        api_version="2024-06-01",
+        azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
+        api_key="sk-...",  # For key-based authentication.
+    )
+    builder.add_model(
+        az_model_client.dump_component(),
+        label="AzureOpenAI GPT-4o-mini",
+        description="GPT-4o Mini Azure OpenAI model client.",
     )
 
     builder.add_tool(
