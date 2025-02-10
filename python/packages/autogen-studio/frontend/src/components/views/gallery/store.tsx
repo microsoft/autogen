@@ -151,7 +151,7 @@ export const useGalleryStore = create<GalleryStore>()(
       },
     }),
     {
-      name: "gallery-storage-v4",
+      name: "gallery-storage-v6",
     }
   )
 );
