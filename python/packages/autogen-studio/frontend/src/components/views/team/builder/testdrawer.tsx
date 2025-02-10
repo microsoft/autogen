@@ -2,9 +2,9 @@ import React, { useContext, useEffect, useState } from "react";
 
 import { Drawer, Button, message, Checkbox } from "antd";
 import { Team, Session } from "../../../types/datamodel";
-import ChatView from "../../session/chat/chat";
+import ChatView from "../../playground/chat/chat";
 import { appContext } from "../../../../hooks/provider";
-import { sessionAPI } from "../../session/api";
+import { sessionAPI } from "../../playground/api";
 
 interface TestDrawerProps {
   isVisble: boolean;

@@ -95,7 +95,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
         title: "Models",
         type: "model" as ComponentTypes,
         items: defaultGallery.items.components.models.map((model) => ({
-          label: `${model.component_type} - ${model.config.model}`,
+          label: `${model.label || model.config.model}`,
           config: model,
         })),
         icon: <Brain className="w-4 h-4" />,
