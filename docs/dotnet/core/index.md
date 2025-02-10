@@ -54,7 +54,7 @@ await app.WaitForShutdownAsync();
 
 ## .NET SDK Runtimes
 
-The .NET SDK includes both an InMemory Single Process Runtime and a Remote, Distributed Runtime meant for running your agents in the cloud. The Distributed Runtime supports running agents in python and in .NET, allowing those agents to talk to one another. The distributed runtime uses Microsoft Orleans to provide resilience, persistence, and integration with messaging services such as Azure Event Hubs.  The xlang functionality requires that your agent's Messages are serializable as CloudEvents.  The messages are exchanges as CloudEvents over Grpc, and the runtime takes care of ensuring that the messages are delivered to the correct agents. 
+The .NET SDK includes both an InMemory Single Process Runtime and a Remote, Distributed Runtime meant for running your agents in the cloud. The Distributed Runtime supports running agents in python and in .NET, allowing those agents to talk to one another. The distributed runtime uses Microsoft Orleans to provide resilience, persistence, and integration with messaging services such as Azure Event Hubs.  The xlang functionality requires that your agent's Messages are serializable as CloudEvents.  The messages are exchanged as CloudEvents over Grpc, and the runtime takes care of ensuring that the messages are delivered to the correct agents. 
 
 To use the Distributed Runtime, you will need to add the following package to your project:
 
