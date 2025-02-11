@@ -548,18 +548,25 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         self, tool_call: FunctionCall, cancellation_token: CancellationToken
     ) -> FunctionExecutionResult:
         """Execute a tool call and return the result."""
+        error_prefix_string = "Error: "
+        if not self._tools + self._handoff_tools:
+            return FunctionExecutionResult(
+                content=f"{error_prefix_string}No tools are available.", call_id=tool_call.id, is_error=True
+            )
+        tool = next((t for t in self._tools + self._handoff_tools if t.name == tool_call.name), None)
+        if tool is None:
+            return FunctionExecutionResult(
+                content=f"{error_prefix_string}The tool '{tool_call.name}' is not available.",
+                call_id=tool_call.id,
+                is_error=True,
+            )
         try:
-            if not self._tools + self._handoff_tools:
-                raise ValueError("No tools are available.")
-            tool = next((t for t in self._tools + self._handoff_tools if t.name == tool_call.name), None)
-            if tool is None:
-                raise ValueError(f"The tool '{tool_call.name}' is not available.")
             arguments = json.loads(tool_call.arguments)
             result = await tool.run_json(arguments, cancellation_token)
             result_as_str = tool.return_value_as_string(result)
             return FunctionExecutionResult(content=result_as_str, call_id=tool_call.id, is_error=False)
-        except Exception as e:
-            return FunctionExecutionResult(content=f"Error: {e}", call_id=tool_call.id, is_error=True)
+        except tool.returned_errors as e:
+            return FunctionExecutionResult(content=f"{error_prefix_string}{e}", call_id=tool_call.id, is_error=True)
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Reset the assistant agent to its initialization state."""

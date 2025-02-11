@@ -37,6 +37,9 @@ class Tool(Protocol):
     @property
     def schema(self) -> ToolSchema: ...
 
+    @property
+    def returned_errors(self) -> tuple[type[Exception], ...]: ...
+
     def args_type(self) -> Type[BaseModel]: ...
 
     def return_type(self) -> Type[Any]: ...
@@ -66,12 +69,14 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
         return_type: Type[ReturnT],
         name: str,
         description: str,
+        returned_errors: tuple[type[Exception], ...] = (Exception,),
     ) -> None:
         self._args_type = args_type
         # Normalize Annotated to the base type.
         self._return_type = normalize_annotated_type(return_type)
         self._name = name
         self._description = description
+        self._returned_errors = returned_errors
 
     @property
     def schema(self) -> ToolSchema:
@@ -102,6 +107,10 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
     @property
     def description(self) -> str:
         return self._description
+
+    @property
+    def returned_errors(self) -> tuple[type[Exception], ...]:
+        return self._returned_errors
 
     def args_type(self) -> Type[BaseModel]:
         return self._args_type

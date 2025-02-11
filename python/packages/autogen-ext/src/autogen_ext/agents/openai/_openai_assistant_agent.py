@@ -379,16 +379,24 @@ class OpenAIAssistantAgent(BaseChatAgent):
             raise ValueError("Thread not initialized")
         return self._thread.id
 
-    async def _execute_tool_call(self, tool_call: FunctionCall, cancellation_token: CancellationToken) -> str:
+    async def _execute_tool_call(
+        self, tool_call: FunctionCall, cancellation_token: CancellationToken
+    ) -> FunctionExecutionResult:
         """Execute a tool call and return the result."""
         if not self._original_tools:
-            raise ValueError("No tools are available.")
+            return FunctionExecutionResult(content="No tools are available.", call_id=tool_call.id, is_error=True)
         tool = next((t for t in self._original_tools if t.name == tool_call.name), None)
         if tool is None:
-            raise ValueError(f"The tool '{tool_call.name}' is not available.")
-        arguments = json.loads(tool_call.arguments)
-        result = await tool.run_json(arguments, cancellation_token)
-        return tool.return_value_as_string(result)
+            return FunctionExecutionResult(
+                content=f"The tool '{tool_call.name}' is not available.", call_id=tool_call.id, is_error=True
+            )
+        try:
+            arguments = json.loads(tool_call.arguments)
+            result = await tool.run_json(arguments, cancellation_token)
+            result_as_str = tool.return_value_as_string(result)
+            return FunctionExecutionResult(content=result_as_str, call_id=tool_call.id, is_error=False)
+        except tool.returned_errors as e:
+            return FunctionExecutionResult(content=f"Error: {e}", call_id=tool_call.id, is_error=True)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         """Handle incoming messages and return a response."""
@@ -460,15 +468,8 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 # Execute tool calls and get results
                 tool_outputs: List[FunctionExecutionResult] = []
                 for tool_call in tool_calls:
-                    try:
-                        result = await self._execute_tool_call(tool_call, cancellation_token)
-                        is_error = False
-                    except Exception as e:
-                        result = f"Error: {e}"
-                        is_error = True
-                    tool_outputs.append(
-                        FunctionExecutionResult(content=result, call_id=tool_call.id, is_error=is_error)
-                    )
+                    tool_output = await self._execute_tool_call(tool_call, cancellation_token)
+                    tool_outputs.append(tool_output)
 
                 # Add tool result message to inner messages
                 tool_result_msg = ToolCallExecutionEvent(source=self.name, content=tool_outputs)
