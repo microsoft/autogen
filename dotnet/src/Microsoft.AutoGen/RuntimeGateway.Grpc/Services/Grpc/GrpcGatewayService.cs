@@ -35,7 +35,7 @@ public sealed class GrpcGatewayService(GrpcGateway gateway) : AgentRpc.AgentRpcB
         }
     }
 
-    /// <summary>
+    /*/// <summary>
     /// Open channel for the Control Channel (defined in the proto file).
     /// </summary>
     /// <param name="requestStream">The request stream.</param>
@@ -58,7 +58,7 @@ public sealed class GrpcGatewayService(GrpcGateway gateway) : AgentRpc.AgentRpcB
             }
             throw;
         }
-    }
+    }*/
 
     /// <summary>
     /// Adds a subscription.
