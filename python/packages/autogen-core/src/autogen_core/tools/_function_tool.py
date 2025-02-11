@@ -47,6 +47,8 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
             it does and the context in which it should be called.
         name (str, optional): An optional custom name for the tool. Defaults to
             the function's original name if not provided.
+        return_errors (tuple[type[Exception], ...] | type[Exception]): Select the error types that are forwarded to the
+            agent. Error types not selected will raise an error. Defaults to forwarding all errors.
 
     Example:
 
@@ -88,7 +90,7 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
         description: str,
         name: str | None = None,
         global_imports: Sequence[Import] = [],
-        return_errors: tuple[type[Exception], ...] = (Exception,),
+        return_errors: tuple[type[Exception], ...] | type[Exception] = Exception,
     ) -> None:
         self._func = func
         self._global_imports = global_imports
