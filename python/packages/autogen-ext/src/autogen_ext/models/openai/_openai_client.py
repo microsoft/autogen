@@ -3,6 +3,7 @@ import inspect
 import json
 import logging
 import math
+import os
 import re
 import warnings
 from asyncio import Task
@@ -137,11 +138,11 @@ def type_to_role(message: LLMMessage) -> ChatCompletionRole:
         return "tool"
 
 
-def user_message_to_oai(message: UserMessage) -> ChatCompletionUserMessageParam:
+def user_message_to_oai(message: UserMessage, prepend_name: bool = False) -> ChatCompletionUserMessageParam:
     assert_valid_name(message.source)
     if isinstance(message.content, str):
         return ChatCompletionUserMessageParam(
-            content=message.content,
+            content=(f"{message.source} said:\n" if prepend_name else "") + message.content,
             role="user",
             name=message.source,
         )
@@ -149,10 +150,18 @@ def user_message_to_oai(message: UserMessage) -> ChatCompletionUserMessageParam:
         parts: List[ChatCompletionContentPartParam] = []
         for part in message.content:
             if isinstance(part, str):
-                oai_part = ChatCompletionContentPartTextParam(
-                    text=part,
-                    type="text",
-                )
+                if prepend_name:
+                    # Append the name to the first text part
+                    oai_part = ChatCompletionContentPartTextParam(
+                        text=f"{message.source} said:\n" + part,
+                        type="text",
+                    )
+                    prepend_name = False
+                else:
+                    oai_part = ChatCompletionContentPartTextParam(
+                        text=part,
+                        type="text",
+                    )
                 parts.append(oai_part)
             elif isinstance(part, Image):
                 # TODO: support url based images
@@ -211,11 +220,11 @@ def assistant_message_to_oai(
         )
 
 
-def to_oai_type(message: LLMMessage) -> Sequence[ChatCompletionMessageParam]:
+def to_oai_type(message: LLMMessage, prepend_name: bool = False) -> Sequence[ChatCompletionMessageParam]:
     if isinstance(message, SystemMessage):
         return [system_message_to_oai(message)]
     elif isinstance(message, UserMessage):
-        return [user_message_to_oai(message)]
+        return [user_message_to_oai(message, prepend_name)]
     elif isinstance(message, AssistantMessage):
         return [assistant_message_to_oai(message)]
     else:
@@ -356,8 +365,10 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         create_args: Dict[str, Any],
         model_capabilities: Optional[ModelCapabilities] = None,  # type: ignore
         model_info: Optional[ModelInfo] = None,
+        add_name_prefixes: bool = False,
     ):
         self._client = client
+        self._add_name_prefixes = add_name_prefixes
         if model_capabilities is None and model_info is None:
             try:
                 self._model_info = _model_info.get_info(create_args["model"])
@@ -451,7 +462,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output.")
 
-        oai_messages_nested = [to_oai_type(m) for m in messages]
+        oai_messages_nested = [to_oai_type(m, prepend_name=self._add_name_prefixes) for m in messages]
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]
 
         if self.model_info["function_calling"] is False and len(tools) > 0:
@@ -672,7 +683,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
 
-        oai_messages_nested = [to_oai_type(m) for m in messages]
+        oai_messages_nested = [to_oai_type(m, prepend_name=self._add_name_prefixes) for m in messages]
         oai_messages = [item for sublist in oai_messages_nested for item in sublist]
 
         # TODO: allow custom handling.
@@ -767,7 +778,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 stop_reason = choice.finish_reason if chunk.usage is None and stop_reason is None else stop_reason
                 maybe_model = chunk.model
                 # First try get content
-                if choice.delta.content is not None:
+                if choice.delta.content:
                     content_deltas.append(choice.delta.content)
                     if len(choice.delta.content) > 0:
                         yield choice.delta.content
@@ -874,7 +885,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         # Message tokens.
         for message in messages:
             num_tokens += tokens_per_message
-            oai_message = to_oai_type(message)
+            oai_message = to_oai_type(message, prepend_name=self._add_name_prefixes)
             for oai_message_part in oai_message:
                 for key, value in oai_message_part.items():
                     if value is None:
@@ -992,6 +1003,11 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         top_p (optional, float):
         user (optional, str):
         default_headers (optional, dict[str, str]):  Custom headers; useful for authentication or other custom requirements.
+        add_name_prefixes (optional, bool): Whether to prepend the `source` value
+            to each :class:`~autogen_core.models.UserMessage` content. E.g.,
+            "this is content" becomes "Reviewer said: this is content."
+            This can be useful for models that do not support the `name` field in
+            message. Defaults to False.
 
 
     To use this client, you must install the `openai` extension:
@@ -1074,11 +1090,27 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             model_info = kwargs["model_info"]
             del copied_args["model_info"]
 
+        add_name_prefixes: bool = False
+        if "add_name_prefixes" in kwargs:
+            add_name_prefixes = kwargs["add_name_prefixes"]
+
+        # Special handling for Gemini model.
+        assert "model" in copied_args and isinstance(copied_args["model"], str)
+        if copied_args["model"].startswith("gemini-"):
+            if "base_url" not in copied_args:
+                copied_args["base_url"] = _model_info.GEMINI_OPENAI_BASE_URL
+            if "api_key" not in copied_args and "GEMINI_API_KEY" in os.environ:
+                copied_args["api_key"] = os.environ["GEMINI_API_KEY"]
+
         client = _openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
 
         super().__init__(
-            client=client, create_args=create_args, model_capabilities=model_capabilities, model_info=model_info
+            client=client,
+            create_args=create_args,
+            model_capabilities=model_capabilities,
+            model_info=model_info,
+            add_name_prefixes=add_name_prefixes,
         )
 
     def __getstate__(self) -> Dict[str, Any]:
@@ -1215,11 +1247,19 @@ class AzureOpenAIChatCompletionClient(
             model_info = kwargs["model_info"]
             del copied_args["model_info"]
 
+        add_name_prefixes: bool = False
+        if "add_name_prefixes" in kwargs:
+            add_name_prefixes = kwargs["add_name_prefixes"]
+
         client = _azure_openai_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
         self._raw_config: Dict[str, Any] = copied_args
         super().__init__(
-            client=client, create_args=create_args, model_capabilities=model_capabilities, model_info=model_info
+            client=client,
+            create_args=create_args,
+            model_capabilities=model_capabilities,
+            model_info=model_info,
+            add_name_prefixes=add_name_prefixes,
         )
 
     def __getstate__(self) -> Dict[str, Any]:
