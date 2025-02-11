@@ -1,5 +1,5 @@
 import redis
-from .store import EventStore
+from .base import EventStore
 
 class RedisEventStore(EventStore):
     def __init__(self, redis_instance: redis.Redis, client_id):

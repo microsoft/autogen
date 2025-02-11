@@ -1,5 +1,5 @@
 import asyncio
-from .store import EventStore
+from .base import EventStore
 
 class MemoryEventStore(EventStore):
     def __init__(self, client_id, **kwags):
