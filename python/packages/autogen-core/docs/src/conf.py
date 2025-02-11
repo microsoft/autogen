@@ -178,6 +178,7 @@ rediraffe_redirects = {
     "user-guide/core-user-guide/framework/command-line-code-executors.ipynb": "user-guide/core-user-guide/components/command-line-code-executors.ipynb",
     "user-guide/core-user-guide/framework/model-clients.ipynb": "user-guide/core-user-guide/components/model-clients.ipynb",
     "user-guide/core-user-guide/framework/tools.ipynb": "user-guide/core-user-guide/components/tools.ipynb",
+    "user-guide/agentchat-user-guide/tutorial/custom-agents.ipynb": "user-guide/agentchat-user-guide/custom-agents.ipynb",
 }
 
 

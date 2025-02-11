@@ -17,7 +17,7 @@ classifiers = [
 dependencies = [
     "pyyaml>=5.1",
     "autogen-agentchat>=0.4.4,<0.5",
-    "autogen-ext[openai,magentic-one,rich]>=0.4.4,<0.5",
+    "autogen-ext[docker,openai,magentic-one,rich]>=0.4.4,<0.5",
 ]
 
 [project.scripts]

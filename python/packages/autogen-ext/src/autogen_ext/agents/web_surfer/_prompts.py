@@ -1,42 +1,41 @@
 WEB_SURFER_TOOL_PROMPT_MM = """
-Consider the following screenshot of a web browser, which is open to the page '{url}'. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
+{state_description}
+
+Consider the following screenshot of the page. In this screenshot, interactive elements are outlined in bounding boxes of different colors. Each bounding box has a numeric ID label in the same color. Additional information about each visible label is listed below:
 
 {visible_targets}{other_targets_str}{focused_hint}
 
-You are to respond to the most recent request by selecting an appropriate tool from the following set, or by answering the question directly if possible without tools:
+You are to respond to my next request by selecting an appropriate tool from the following set, or by answering the question directly if possible:
 
 {tool_names}
 
 When deciding between tools, consider if the request can be best addressed by:
-    - the contents of the current viewport (in which case actions like clicking links, clicking buttons, inputting text, or hovering over an element might be most appropriate)
-    - contents found elsewhere on the full webpage (in which case actions like scrolling, summarization, or full-page Q&A might be most appropriate)
-    - on some other website entirely (in which case actions like performing a new web search might be the best option)
+    - the contents of the CURRENT VIEWPORT (in which case actions like clicking links, clicking buttons, inputting text, or hovering over an element, might be more appropriate)
+    - contents found elsewhere on the CURRENT WEBPAGE [{title}]({url}), in which case actions like scrolling, summarization, or full-page Q&A might be most appropriate
+    - on ANOTHER WEBSITE entirely (in which case actions like performing a new web search might be the best option)
+
+My request follows:
 """
 
 WEB_SURFER_TOOL_PROMPT_TEXT = """
-Your web browser is open to the page '{url}'. The following text is visible in the viewport:
-
-```
-{visible_text}
-```
+{state_description}
 
 You have also identified the following interactive components:
 
 {visible_targets}{other_targets_str}{focused_hint}
 
-You are to respond to the most recent request by selecting an appropriate tool from the following set, or by answering the question directly if possible without tools:
+You are to respond to my next request by selecting an appropriate tool from the following set, or by answering the question directly if possible:
 
 {tool_names}
 
 When deciding between tools, consider if the request can be best addressed by:
-    - the contents of the current viewport (in which case actions like clicking links, clicking buttons, inputting text, or hovering over an element might be most appropriate)
-    - contents found elsewhere on the full webpage (in which case actions like scrolling, summarization, or full-page Q&A might be most appropriate)
-    - on some other website entirely (in which case actions like performing a new web search might be the best option)
+    - the contents of the CURRENT VIEWPORT (in which case actions like clicking links, clicking buttons, inputting text, or hovering over an element, might be more appropriate)
+    - contents found elsewhere on the CURRENT WEBPAGE [{title}]({url}), in which case actions like scrolling, summarization, or full-page Q&A might be most appropriate
+    - on ANOTHER WEBSITE entirely (in which case actions like performing a new web search might be the best option)
+
+My request follows:
 """
 
-WEB_SURFER_OCR_PROMPT = """
-Please transcribe all visible text on this page, including both main content and the labels of UI elements.
-"""
 
 WEB_SURFER_QA_SYSTEM_MESSAGE = """
 You are a helpful assistant that can summarize long documents to answer question.

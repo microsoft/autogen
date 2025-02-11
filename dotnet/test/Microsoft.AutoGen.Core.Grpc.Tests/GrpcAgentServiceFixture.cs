@@ -25,8 +25,6 @@ public sealed class GrpcAgentServiceFixture() : AgentRpc.AgentRpcBase
             throw;
         }
     }
-    public override async Task<GetStateResponse> GetState(AgentId request, ServerCallContext context) => new GetStateResponse { AgentState = new AgentState { AgentId = request } };
-    public override async Task<SaveStateResponse> SaveState(AgentState request, ServerCallContext context) => new SaveStateResponse { };
     public override async Task<AddSubscriptionResponse> AddSubscription(AddSubscriptionRequest request, ServerCallContext context) => new AddSubscriptionResponse { };
     public override async Task<RemoveSubscriptionResponse> RemoveSubscription(RemoveSubscriptionRequest request, ServerCallContext context) => new RemoveSubscriptionResponse { };
     public override async Task<GetSubscriptionsResponse> GetSubscriptions(GetSubscriptionsRequest request, ServerCallContext context) => new GetSubscriptionsResponse { };

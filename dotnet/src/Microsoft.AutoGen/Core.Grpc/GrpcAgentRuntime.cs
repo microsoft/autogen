@@ -2,6 +2,7 @@
 // GrpcAgentRuntime.cs
 
 using System.Collections.Concurrent;
+using System.Text.Json;
 using Grpc.Core;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Protobuf;
@@ -154,6 +155,7 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
 
         var messageContext = new MessageContext(request.RequestId, cancellationToken)
         {
+
             Sender = request.Source?.FromProtobuf() ?? null,
             Topic = null,
             IsRpc = true
@@ -274,6 +276,7 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         var request = new RpcRequest
         {
             RequestId = Guid.NewGuid().ToString(),
+
             Source = sender?.ToProtobuf() ?? null,
             Target = recepient.ToProtobuf(),
             Payload = payload,
@@ -319,13 +322,13 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
     public ValueTask<Contracts.AgentId> GetAgentAsync(string agent, string key = "default", bool lazy = true)
         => this.GetAgentAsync(new Contracts.AgentId(agent, key), lazy);
 
-    public async ValueTask<IDictionary<string, object>> SaveAgentStateAsync(Contracts.AgentId agentId)
+    public async ValueTask<JsonElement> SaveAgentStateAsync(Contracts.AgentId agentId)
     {
         IHostableAgent agent = await this._agentsContainer.EnsureAgentAsync(agentId);
         return await agent.SaveStateAsync();
     }
 
-    public async ValueTask LoadAgentStateAsync(Contracts.AgentId agentId, IDictionary<string, object> state)
+    public async ValueTask LoadAgentStateAsync(Contracts.AgentId agentId, JsonElement state)
     {
         IHostableAgent agent = await this._agentsContainer.EnsureAgentAsync(agentId);
         await agent.LoadStateAsync(state);
@@ -375,35 +378,36 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         return ValueTask.FromResult(new AgentProxy(agentId, this));
     }
 
-    public async ValueTask<IDictionary<string, object>> SaveStateAsync()
-    {
-        Dictionary<string, object> state = new();
-        foreach (var agent in this._agentsContainer.LiveAgents)
-        {
-            state[agent.Id.ToString()] = await agent.SaveStateAsync();
-        }
-
-        return state;
-    }
-
-    public async ValueTask LoadStateAsync(IDictionary<string, object> state)
+    public async ValueTask LoadStateAsync(JsonElement state)
     {
         HashSet<AgentType> registeredTypes = this._agentsContainer.RegisteredAgentTypes;
 
-        foreach (var agentIdStr in state.Keys)
+        foreach (var agentIdStr in state.EnumerateObject())
         {
-            Contracts.AgentId agentId = Contracts.AgentId.FromStr(agentIdStr);
-            if (state[agentIdStr] is not IDictionary<string, object> agentStateDict)
+            Contracts.AgentId agentId = Contracts.AgentId.FromStr(agentIdStr.Name);
+
+            if (agentIdStr.Value.ValueKind != JsonValueKind.Object)
             {
-                throw new Exception($"Agent state for {agentId} is not a {typeof(IDictionary<string, object>)}: {state[agentIdStr].GetType()}");
+                throw new Exception($"Agent state for {agentId} is not a valid JSON object.");
             }
 
             if (registeredTypes.Contains(agentId.Type))
             {
                 IHostableAgent agent = await this._agentsContainer.EnsureAgentAsync(agentId);
-                await agent.LoadStateAsync(agentStateDict);
+                await agent.LoadStateAsync(agentIdStr.Value);
             }
         }
+    }
+
+    public async ValueTask<JsonElement> SaveStateAsync()
+    {
+        Dictionary<string, JsonElement> state = new();
+        foreach (var agent in this._agentsContainer.LiveAgents)
+        {
+            var agentState = await agent.SaveStateAsync();
+            state[agent.Id.ToString()] = JsonSerializer.SerializeToElement(agentState);
+        }
+        return JsonSerializer.SerializeToElement(state);
     }
 
     public async ValueTask OnMessageAsync(Message message, CancellationToken cancellation = default)
