@@ -8,10 +8,12 @@ namespace Microsoft.AutoGen.Integration.Tests;
 
 public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
 {
-    [Theory, Trait("Category", "Integration")]
-    [MemberData(nameof(AppHostAssemblies))]
-    public async Task AppHostRunsCleanly(string appHostPath)
+    private const string AppHostAssemblyName = "XlangTests.AppHost";
+
+    [Fact]
+    public async Task AppHostRunsCleanly()
     {
+        var appHostPath = GetAssemblyPath(AppHostAssemblyName);
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
 
@@ -22,11 +24,13 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(15));
     }
 
-    [Theory, Trait("Category", "Integration")]
-    [MemberData(nameof(TestEndpoints))]
-    public async Task AppHostLogsHelloAgentE2E(TestEndpoints testEndpoints)
+    [Fact]
+    public async Task AppHostLogsHelloAgentE2E()
     {
-        var appHostName = testEndpoints.AppHost!;
+        var testEndpoints = new TestEndpoints(AppHostAssemblyName, new() {
+            { "backend", ["/"] }
+        });
+        var appHostName = GetAssemblyPath(AppHostAssemblyName);
         var appHostPath = $"{appHostName}.dll";
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
@@ -55,7 +59,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
     public async Task AppHostLogsHelloAgentPythonSendsDotNetReceives()
     {
         //Prepare
-        var appHostPath = $"XlangTests.dll";
+        var appHostPath = GetAssemblyPath(AppHostAssemblyName);
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
         await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
@@ -75,25 +79,29 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         Assert.True(containsExpectedMessage);
 
     }
-    public static TheoryData<string> AppHostAssemblies()
+    private static string GetAssemblyPath(string assemblyName)
     {
-        var appHostAssemblies = GetSamplesAppHostAssemblyPaths();
-        var theoryData = new TheoryData<string, bool>();
-        return new(appHostAssemblies.Select(p => Path.GetRelativePath(AppContext.BaseDirectory, p)));
-    }
+        var parentDir = Directory.GetParent(AppContext.BaseDirectory)?.FullName 
+            ?? AppContext.BaseDirectory;
 
-    public static TheoryData<TestEndpoints> TestEndpoints() =>
-        new([
-            new TestEndpoints("XlangTests.AppHost", new() {
-                { "backend", ["/"] }
-            }),
-        ]);
+        // Search AppContext.BaseDirectory then its parent
+        var searchDirs = new[]
+        {
+            AppContext.BaseDirectory,
+            parentDir
+        };
 
-    private static IEnumerable<string> GetSamplesAppHostAssemblyPaths()
-    {
-        // All the AppHost projects are referenced by this project so we can find them by looking for all their assemblies in the base directory
-        return Directory.GetFiles(AppContext.BaseDirectory, "*Tests.AppHost.dll")
-            .Where(fileName => !fileName.EndsWith("Aspire.Hosting.AppHost.dll", StringComparison.OrdinalIgnoreCase));
+        foreach (var dir in searchDirs)
+        {
+            var foundFile = Directory.GetFiles(dir, $"{assemblyName}.dll", SearchOption.AllDirectories)
+                .FirstOrDefault();
+            if (foundFile is not null)
+            {
+                return foundFile;
+            }
+        }
+
+        throw new FileNotFoundException($"Could not find {assemblyName}.dll in {AppContext.BaseDirectory} or parent directory");
     }
 }
 
