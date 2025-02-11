@@ -50,6 +50,31 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
 
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(15));
     }
+
+    [Fact]
+    public async Task AppHostLogsHelloAgentPythonSendsDotNetReceives()
+    {
+        //Prepare
+        var appHostPath = $"XlangTests.dll";
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
+        await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
+        await app.WaitForResourcesAsync(new[] { KnownResourceStates.Running }).WaitAsync(TimeSpan.FromSeconds(120));
+        
+        //Act
+        //var backendResourceName = "AgentHost";
+        var dotNetResourceName = "HelloAgentTestsDotNET";
+        //var pythonResourceName = "HelloAgentTestsPython";
+        var expectedMessage = "Hello from Python!";
+        var containsExpectedMessage = false;
+        app.EnsureNoErrorsLogged();
+        containsExpectedMessage = await app.WaitForExpectedMessageInResourceLogs(dotNetResourceName, expectedMessage, TimeSpan.FromSeconds(120));
+        await app.StopAsync();
+
+        //Assert
+        Assert.True(containsExpectedMessage);
+
+    }
     public static TheoryData<string> AppHostAssemblies()
     {
         var appHostAssemblies = GetSamplesAppHostAssemblyPaths();
@@ -59,7 +84,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
 
     public static TheoryData<TestEndpoints> TestEndpoints() =>
         new([
-            new TestEndpoints("Hello.AppHost", new() {
+            new TestEndpoints("XlangTests.AppHost", new() {
                 { "backend", ["/"] }
             }),
         ]);
@@ -67,7 +92,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
     private static IEnumerable<string> GetSamplesAppHostAssemblyPaths()
     {
         // All the AppHost projects are referenced by this project so we can find them by looking for all their assemblies in the base directory
-        return Directory.GetFiles(AppContext.BaseDirectory, "*.AppHost.dll")
+        return Directory.GetFiles(AppContext.BaseDirectory, "*Tests.AppHost.dll")
             .Where(fileName => !fileName.EndsWith("Aspire.Hosting.AppHost.dll", StringComparison.OrdinalIgnoreCase));
     }
 }

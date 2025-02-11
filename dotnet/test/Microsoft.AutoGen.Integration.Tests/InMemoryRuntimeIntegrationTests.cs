@@ -37,7 +37,7 @@ public class InMemoryRuntimeIntegrationTests(ITestOutputHelper testOutput)
     private static IEnumerable<string> GetSamplesAppHostAssemblyPaths()
     {
         // All the AppHost projects are referenced by this project so we can find them by looking for all their assemblies in the base directory
-        return Directory.GetFiles(AppContext.BaseDirectory, "HelloAgent.AppHost.dll")
+        return Directory.GetFiles(AppContext.BaseDirectory, "InMemoryTests.AppHost.dll")
             .Where(fileName => !fileName.EndsWith("Aspire.Hosting.AppHost.dll", StringComparison.OrdinalIgnoreCase));
     }
 }
