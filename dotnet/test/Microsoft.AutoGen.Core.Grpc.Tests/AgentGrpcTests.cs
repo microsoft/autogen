@@ -10,13 +10,13 @@ using Xunit;
 namespace Microsoft.AutoGen.Core.Grpc.Tests;
 
 [Trait("Category", "GRPC")]
-public class AgentGrpcTests
+public class AgentGrpcTests : TestBase
 {
     [Fact]
     public async Task AgentShouldNotReceiveMessagesWhenNotSubscribedTest()
     {
         var fixture = new GrpcAgentRuntimeFixture();
-        var runtime = (GrpcAgentRuntime)await fixture.Start();
+        var runtime = (GrpcAgentRuntime)await fixture.StartAsync();
 
         Logger<BaseAgent> logger = new(new LoggerFactory());
         TestProtobufAgent agent = null!;
@@ -45,7 +45,7 @@ public class AgentGrpcTests
     public async Task AgentShouldReceiveMessagesWhenSubscribedTest()
     {
         var fixture = new GrpcAgentRuntimeFixture();
-        var runtime = (GrpcAgentRuntime)await fixture.Start();
+        var runtime = (GrpcAgentRuntime)await fixture.StartAsync();
 
         Logger<BaseAgent> logger = new(new LoggerFactory());
         SubscribedProtobufAgent agent = null!;
@@ -80,7 +80,7 @@ public class AgentGrpcTests
     {
         // Arrange
         var fixture = new GrpcAgentRuntimeFixture();
-        var runtime = (GrpcAgentRuntime)await fixture.Start();
+        var runtime = (GrpcAgentRuntime)await fixture.StartAsync();
 
         Logger<BaseAgent> logger = new(new LoggerFactory());
         await runtime.RegisterAgentFactoryAsync("MyAgent", async (id, runtime) => await ValueTask.FromResult(new TestProtobufAgent(id, runtime, logger)));
@@ -114,7 +114,7 @@ public class AgentGrpcTests
     public async Task SubscribeAsyncRemoveSubscriptionAsyncAndGetSubscriptionsTest()
     {
         var fixture = new GrpcAgentRuntimeFixture();
-        var runtime = (GrpcAgentRuntime)await fixture.Start();
+        var runtime = (GrpcAgentRuntime)await fixture.StartAsync();
         ReceiverAgent? agent = null;
         await runtime.RegisterAgentFactoryAsync("MyAgent", async (id, runtime) =>
         {

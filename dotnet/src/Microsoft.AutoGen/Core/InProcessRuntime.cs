@@ -153,13 +153,13 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
         return agent.Metadata;
     }
 
-    public async ValueTask LoadAgentStateAsync(AgentId agentId, IDictionary<string, JsonElement> state)
+    public async ValueTask LoadAgentStateAsync(AgentId agentId, JsonElement state)
     {
         IHostableAgent agent = await this.EnsureAgentAsync(agentId);
         await agent.LoadStateAsync(state);
     }
 
-    public async ValueTask<IDictionary<string, JsonElement>> SaveAgentStateAsync(AgentId agentId)
+    public async ValueTask<JsonElement> SaveAgentStateAsync(AgentId agentId)
     {
         IHostableAgent agent = await this.EnsureAgentAsync(agentId);
         return await agent.SaveStateAsync();
@@ -188,38 +188,34 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
         return ValueTask.CompletedTask;
     }
 
-    public async ValueTask LoadStateAsync(IDictionary<string, JsonElement> state)
+    public async ValueTask LoadStateAsync(JsonElement state)
     {
-        foreach (var agentIdStr in state.Keys)
+        foreach (var agentIdStr in state.EnumerateObject())
         {
-            AgentId agentId = AgentId.FromStr(agentIdStr);
+            AgentId agentId = AgentId.FromStr(agentIdStr.Name);
 
-            if (state[agentIdStr].ValueKind != JsonValueKind.Object)
+            if (agentIdStr.Value.ValueKind != JsonValueKind.Object)
             {
                 throw new Exception($"Agent state for {agentId} is not a valid JSON object.");
             }
 
-            // Deserialize before using
-            var agentState = JsonSerializer.Deserialize<IDictionary<string, JsonElement>>(state[agentIdStr].GetRawText())
-                 ?? throw new Exception($"Failed to deserialize state for {agentId}.");
-
             if (this.agentFactories.ContainsKey(agentId.Type))
             {
                 IHostableAgent agent = await this.EnsureAgentAsync(agentId);
-                await agent.LoadStateAsync(agentState);
+                await agent.LoadStateAsync(agentIdStr.Value);
             }
         }
     }
 
-    public async ValueTask<IDictionary<string, JsonElement>> SaveStateAsync()
+    public async ValueTask<JsonElement> SaveStateAsync()
     {
         Dictionary<string, JsonElement> state = new();
         foreach (var agentId in this.agentInstances.Keys)
         {
             var agentState = await this.agentInstances[agentId].SaveStateAsync();
-            state[agentId.ToString()] = JsonSerializer.SerializeToElement(agentState);
+            state[agentId.ToString()] = agentState;
         }
-        return state;
+        return JsonSerializer.SerializeToElement(state);
     }
 
     public ValueTask<AgentType> RegisterAgentFactoryAsync<TAgent>(AgentType type, Func<AgentId, IAgentRuntime, ValueTask<TAgent>> factoryFunc) where TAgent : IHostableAgent

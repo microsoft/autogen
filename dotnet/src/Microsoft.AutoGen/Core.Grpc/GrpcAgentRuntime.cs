@@ -155,6 +155,7 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
 
         var messageContext = new MessageContext(request.RequestId, cancellationToken)
         {
+
             Sender = request.Source?.FromProtobuf() ?? null,
             Topic = null,
             IsRpc = true
@@ -252,12 +253,33 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         }
     }
 
-    public ValueTask StartAsync(CancellationToken cancellationToken)
+    public async ValueTask StartAsync(CancellationToken cancellationToken)
     {
-        return this._messageRouter.StartAsync(cancellationToken);
+        await this._messageRouter.StartAsync(cancellationToken);
+        if (this._agentsContainer.RegisteredAgentTypes.Count > 0)
+        {
+            foreach (var type in this._agentsContainer.RegisteredAgentTypes)
+            {
+                await this._client.RegisterAgentAsync(new RegisterAgentTypeRequest
+                {
+                    Type = type
+                }, this.CallOptions);
+            }
+        }
+
+        if (this._agentsContainer.Subscriptions.Count > 0)
+        {
+            foreach (var subscription in this._agentsContainer.Subscriptions.Values)
+            {
+                await this._client.AddSubscriptionAsync(new AddSubscriptionRequest
+                {
+                    Subscription = subscription.ToProtobuf()
+                }, this.CallOptions);
+            }
+        }
     }
 
-    Task IHostedService.StartAsync(CancellationToken cancellationToken) => this._messageRouter.StartAsync(cancellationToken).AsTask();
+    Task IHostedService.StartAsync(CancellationToken cancellationToken) => this.StartAsync(cancellationToken).AsTask();
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
@@ -275,6 +297,7 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         var request = new RpcRequest
         {
             RequestId = Guid.NewGuid().ToString(),
+
             Source = sender?.ToProtobuf() ?? null,
             Target = recepient.ToProtobuf(),
             Payload = payload,
@@ -320,13 +343,13 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
     public ValueTask<Contracts.AgentId> GetAgentAsync(string agent, string key = "default", bool lazy = true)
         => this.GetAgentAsync(new Contracts.AgentId(agent, key), lazy);
 
-    public async ValueTask<IDictionary<string, JsonElement>> SaveAgentStateAsync(Contracts.AgentId agentId)
+    public async ValueTask<JsonElement> SaveAgentStateAsync(Contracts.AgentId agentId)
     {
         IHostableAgent agent = await this._agentsContainer.EnsureAgentAsync(agentId);
         return await agent.SaveStateAsync();
     }
 
-    public async ValueTask LoadAgentStateAsync(Contracts.AgentId agentId, IDictionary<string, JsonElement> state)
+    public async ValueTask LoadAgentStateAsync(Contracts.AgentId agentId, JsonElement state)
     {
         IHostableAgent agent = await this._agentsContainer.EnsureAgentAsync(agentId);
         await agent.LoadStateAsync(state);
@@ -342,30 +365,39 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
     {
         this._agentsContainer.AddSubscription(subscription);
 
-        var _ = await this._client.AddSubscriptionAsync(new AddSubscriptionRequest
+        if (this._messageRouter.IsChannelOpen)
         {
-            Subscription = subscription.ToProtobuf()
-        }, this.CallOptions);
+            var _ = await this._client.AddSubscriptionAsync(new AddSubscriptionRequest
+            {
+                Subscription = subscription.ToProtobuf()
+            }, this.CallOptions);
+        }
     }
 
     public async ValueTask RemoveSubscriptionAsync(string subscriptionId)
     {
         this._agentsContainer.RemoveSubscriptionAsync(subscriptionId);
 
-        await this._client.RemoveSubscriptionAsync(new RemoveSubscriptionRequest
+        if (this._messageRouter.IsChannelOpen)
         {
-            Id = subscriptionId
-        }, this.CallOptions);
+            await this._client.RemoveSubscriptionAsync(new RemoveSubscriptionRequest
+            {
+                Id = subscriptionId
+            }, this.CallOptions);
+        }
     }
 
     public async ValueTask<AgentType> RegisterAgentFactoryAsync(AgentType type, Func<Contracts.AgentId, IAgentRuntime, ValueTask<IHostableAgent>> factoryFunc)
     {
         this._agentsContainer.RegisterAgentFactory(type, factoryFunc);
 
-        await this._client.RegisterAgentAsync(new RegisterAgentTypeRequest
+        if (this._messageRouter.IsChannelOpen)
         {
-            Type = type,
-        }, this.CallOptions);
+            await this._client.RegisterAgentAsync(new RegisterAgentTypeRequest
+            {
+                Type = type,
+            }, this.CallOptions);
+        }
 
         return type;
     }
@@ -376,31 +408,28 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         return ValueTask.FromResult(new AgentProxy(agentId, this));
     }
 
-    public async ValueTask LoadStateAsync(IDictionary<string, JsonElement> state)
+    public async ValueTask LoadStateAsync(JsonElement state)
     {
         HashSet<AgentType> registeredTypes = this._agentsContainer.RegisteredAgentTypes;
 
-        foreach (var agentIdStr in state.Keys)
+        foreach (var agentIdStr in state.EnumerateObject())
         {
-            Contracts.AgentId agentId = Contracts.AgentId.FromStr(agentIdStr);
+            Contracts.AgentId agentId = Contracts.AgentId.FromStr(agentIdStr.Name);
 
-            if (state[agentIdStr].ValueKind != JsonValueKind.Object)
+            if (agentIdStr.Value.ValueKind != JsonValueKind.Object)
             {
                 throw new Exception($"Agent state for {agentId} is not a valid JSON object.");
             }
 
-            var agentState = JsonSerializer.Deserialize<IDictionary<string, JsonElement>>(state[agentIdStr].GetRawText())
-                             ?? throw new Exception($"Failed to deserialize state for {agentId}.");
-
             if (registeredTypes.Contains(agentId.Type))
             {
                 IHostableAgent agent = await this._agentsContainer.EnsureAgentAsync(agentId);
-                await agent.LoadStateAsync(agentState);
+                await agent.LoadStateAsync(agentIdStr.Value);
             }
         }
     }
 
-    public async ValueTask<IDictionary<string, JsonElement>> SaveStateAsync()
+    public async ValueTask<JsonElement> SaveStateAsync()
     {
         Dictionary<string, JsonElement> state = new();
         foreach (var agent in this._agentsContainer.LiveAgents)
@@ -408,7 +437,7 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
             var agentState = await agent.SaveStateAsync();
             state[agent.Id.ToString()] = JsonSerializer.SerializeToElement(agentState);
         }
-        return state;
+        return JsonSerializer.SerializeToElement(state);
     }
 
     public async ValueTask OnMessageAsync(Message message, CancellationToken cancellation = default)

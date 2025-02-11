@@ -93,11 +93,11 @@ public abstract class BaseAgent : IAgent, IHostableAgent
         return null;
     }
 
-    public virtual ValueTask<IDictionary<string, JsonElement>> SaveStateAsync()
+    public virtual ValueTask<JsonElement> SaveStateAsync()
     {
-        return ValueTask.FromResult<IDictionary<string, JsonElement>>(new Dictionary<string, JsonElement>());
+        return ValueTask.FromResult(JsonDocument.Parse("{}").RootElement);
     }
-    public virtual ValueTask LoadStateAsync(IDictionary<string, JsonElement> state)
+    public virtual ValueTask LoadStateAsync(JsonElement state)
     {
         return ValueTask.CompletedTask;
     }

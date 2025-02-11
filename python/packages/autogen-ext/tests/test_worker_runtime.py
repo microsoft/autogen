@@ -8,6 +8,7 @@ from autogen_core import (
     PROTOBUF_DATA_CONTENT_TYPE,
     AgentId,
     AgentType,
+    DefaultSubscription,
     DefaultTopicId,
     MessageContext,
     RoutedAgent,
@@ -29,9 +30,11 @@ from autogen_test_utils import (
     MessageType,
     NoopAgent,
 )
-from protos.serialization_test_pb2 import ProtoMessage
+
+from .protos.serialization_test_pb2 import ProtoMessage
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_agent_types_must_be_unique_single_worker() -> None:
     host_address = "localhost:50051"
@@ -54,6 +57,7 @@ async def test_agent_types_must_be_unique_single_worker() -> None:
     await host.stop()
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_agent_types_must_be_unique_multiple_workers() -> None:
     host_address = "localhost:50052"
@@ -79,6 +83,7 @@ async def test_agent_types_must_be_unique_multiple_workers() -> None:
     await host.stop()
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_register_receives_publish() -> None:
     host_address = "localhost:50053"
@@ -124,6 +129,48 @@ async def test_register_receives_publish() -> None:
     await host.stop()
 
 
+@pytest.mark.grpc
+@pytest.mark.asyncio
+async def test_register_doesnt_receive_after_removing_subscription() -> None:
+    host_address = "localhost:50053"
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
+    host.start()
+
+    worker1 = GrpcWorkerAgentRuntime(host_address=host_address)
+    worker1.start()
+    worker1.add_message_serializer(try_get_known_serializers_for_type(MessageType))
+    await worker1.register_factory(
+        type=AgentType("name1"), agent_factory=lambda: LoopbackAgent(), expected_class=LoopbackAgent
+    )
+    sub = DefaultSubscription(agent_type="name1")
+    await worker1.add_subscription(sub)
+
+    agent_1_instance = await worker1.try_get_underlying_agent_instance(AgentId("name1", "default"), LoopbackAgent)
+    # Publish message from worker1
+    await worker1.publish_message(MessageType(), topic_id=DefaultTopicId())
+
+    # Let the agent run for a bit.
+    await agent_1_instance.event.wait()
+    agent_1_instance.event.clear()
+
+    # Agents in default topic source should have received the message.
+    assert agent_1_instance.num_calls == 1
+
+    await worker1.remove_subscription(sub.id)
+
+    # Publish message from worker1
+    await worker1.publish_message(MessageType(), topic_id=DefaultTopicId())
+
+    # Let the agent run for a bit.
+    await asyncio.sleep(2)
+
+    # Agent should not have received the message.
+    assert agent_1_instance.num_calls == 1
+
+    await worker1.stop()
+    await host.stop()
+
+
 @pytest.mark.asyncio
 async def test_register_receives_publish_cascade_single_worker() -> None:
     host_address = "localhost:50054"
@@ -159,6 +206,7 @@ async def test_register_receives_publish_cascade_single_worker() -> None:
     await host.stop()
 
 
+@pytest.mark.grpc
 @pytest.mark.skip(reason="Fix flakiness")
 @pytest.mark.asyncio
 async def test_register_receives_publish_cascade_multiple_workers() -> None:
@@ -204,6 +252,7 @@ async def test_register_receives_publish_cascade_multiple_workers() -> None:
     await host.stop()
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_default_subscription() -> None:
     host_address = "localhost:50056"
@@ -238,6 +287,7 @@ async def test_default_subscription() -> None:
     await host.stop()
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_default_subscription_other_source() -> None:
     host_address = "localhost:50057"
@@ -272,6 +322,7 @@ async def test_default_subscription_other_source() -> None:
     await host.stop()
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_type_subscription() -> None:
     host_address = "localhost:50058"
@@ -309,6 +360,7 @@ async def test_type_subscription() -> None:
     await host.stop()
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_duplicate_subscription() -> None:
     host_address = "localhost:50059"
@@ -340,6 +392,7 @@ async def test_duplicate_subscription() -> None:
         await host.stop()
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_disconnected_agent() -> None:
     host_address = "localhost:50060"
@@ -413,11 +466,12 @@ class ProtoReceivingAgent(RoutedAgent):
         self.received_messages: list[Any] = []
 
     @event
-    async def on_new_message(self, message: ProtoMessage, ctx: MessageContext) -> None:
+    async def on_new_message(self, message: ProtoMessage, ctx: MessageContext) -> None:  # type: ignore
         self.num_calls += 1
         self.received_messages.append(message)
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_proto_payloads() -> None:
     host_address = "localhost:50057"
@@ -461,6 +515,7 @@ async def test_proto_payloads() -> None:
 # TODO add tests for failure to deserialize
 
 
+@pytest.mark.grpc
 @pytest.mark.asyncio
 async def test_grpc_max_message_size() -> None:
     default_max_size = 2**22
