@@ -1,4 +1,5 @@
 import json
+import warnings
 from typing import Any, Literal, Mapping, Optional, Sequence
 
 from autogen_core import FunctionCall
@@ -18,7 +19,6 @@ from semantic_kernel.connectors.ai.prompt_execution_settings import PromptExecut
 from semantic_kernel.contents.chat_history import ChatHistory
 from semantic_kernel.contents.chat_message_content import ChatMessageContent
 from semantic_kernel.contents.function_call_content import FunctionCallContent
-from semantic_kernel.contents.streaming_chat_message_content import StreamingChatMessageContent
 from semantic_kernel.functions.kernel_plugin import KernelPlugin
 from semantic_kernel.kernel import Kernel
 from typing_extensions import AsyncGenerator, Union
@@ -67,7 +67,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
 
     Examples:
 
-        Anthropic models:
+        Anthropic models with function calling:
 
         .. code-block:: bash
 
@@ -79,11 +79,17 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             import os
 
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_core.models import UserMessage
+            from autogen_agentchat.ui import Console
+            from autogen_core.models import ModelFamily, UserMessage
             from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
             from semantic_kernel import Kernel
             from semantic_kernel.connectors.ai.anthropic import AnthropicChatCompletion, AnthropicChatPromptExecutionSettings
             from semantic_kernel.memory.null_memory import NullMemory
+
+
+            async def get_weather(city: str) -> str:
+                \"\"\"Get the weather for a city.\"\"\"
+                return f"The weather in {city} is 75 degrees."
 
 
             async def main() -> None:
@@ -96,24 +102,34 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                     temperature=0.2,
                 )
 
-                model_client = SKChatCompletionAdapter(sk_client, kernel=Kernel(memory=NullMemory()), prompt_settings=settings)
+                model_client = SKChatCompletionAdapter(
+                    sk_client,
+                    kernel=Kernel(memory=NullMemory()),
+                    prompt_settings=settings,
+                    model_info={
+                        "function_calling": True,
+                        "json_output": True,
+                        "vision": True,
+                        "family": ModelFamily.CLAUDE_3_5_SONNET,
+                    },
+                )
 
                 # Call the model directly.
-                model_result = await model_client.create(
-                    messages=[UserMessage(content="What is the capital of France?", source="User")]
-                )
-                print(model_result)
+                response = await model_client.create([UserMessage(content="What is the capital of France?", source="test")])
+                print(response)
 
                 # Create an assistant agent with the model client.
-                assistant = AssistantAgent("assistant", model_client=model_client)
+                assistant = AssistantAgent(
+                    "assistant", model_client=model_client, system_message="You are a helpful assistant.", tools=[get_weather]
+                )
                 # Call the assistant with a task.
-                result = await assistant.run(task="What is the capital of France?")
-                print(result)
+                await Console(assistant.run_stream(task="What is the weather in Paris and London?"))
 
 
             asyncio.run(main())
 
-        Google Gemini models:
+
+        Google Gemini models with function calling:
 
         .. code-block:: bash
 
@@ -125,7 +141,8 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             import os
 
             from autogen_agentchat.agents import AssistantAgent
-            from autogen_core.models import UserMessage
+            from autogen_agentchat.ui import Console
+            from autogen_core.models import UserMessage, ModelFamily
             from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
             from semantic_kernel import Kernel
             from semantic_kernel.connectors.ai.google.google_ai import (
@@ -135,16 +152,33 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             from semantic_kernel.memory.null_memory import NullMemory
 
 
+            def get_weather(city: str) -> str:
+                \"\"\"Get the weather for a city.\"\"\"
+                return f"The weather in {city} is 75 degrees."
+
+
             async def main() -> None:
                 sk_client = GoogleAIChatCompletion(
-                    gemini_model_id="gemini-1.5-flash",
+                    gemini_model_id="gemini-2.0-flash",
                     api_key=os.environ["GEMINI_API_KEY"],
                 )
                 settings = GoogleAIChatPromptExecutionSettings(
                     temperature=0.2,
                 )
 
-                model_client = SKChatCompletionAdapter(sk_client, kernel=Kernel(memory=NullMemory()), prompt_settings=settings)
+                kernel = Kernel(memory=NullMemory())
+
+                model_client = SKChatCompletionAdapter(
+                    sk_client,
+                    kernel=kernel,
+                    prompt_settings=settings,
+                    model_info={
+                        "family": ModelFamily.GEMINI_2_0_FLASH,
+                        "function_calling": True,
+                        "json_output": True,
+                        "vision": True,
+                    },
+                )
 
                 # Call the model directly.
                 model_result = await model_client.create(
@@ -153,13 +187,16 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                 print(model_result)
 
                 # Create an assistant agent with the model client.
-                assistant = AssistantAgent("assistant", model_client=model_client)
+                assistant = AssistantAgent(
+                    "assistant", model_client=model_client, tools=[get_weather], system_message="You are a helpful assistant."
+                )
                 # Call the assistant with a task.
-                result = await assistant.run(task="What is the capital of France?")
-                print(result)
+                stream = assistant.run_stream(task="What is the weather in Paris and London?")
+                await Console(stream)
 
 
             asyncio.run(main())
+
 
         Ollama models:
 
@@ -303,7 +340,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         for tool in tools:
             if isinstance(tool, BaseTool):
                 # Convert Tool to KernelFunction using KernelFunctionFromTool
-                kernel_function = KernelFunctionFromTool(tool, plugin_name="autogen_tools")  # type: ignore
+                kernel_function = KernelFunctionFromTool(tool)  # type: ignore
                 self._tools_plugin.functions[tool.schema["name"]] = kernel_function
 
     def _process_tool_calls(self, result: ChatMessageContent) -> list[FunctionCall]:
@@ -417,6 +454,28 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             thought=thought,
         )
 
+    @staticmethod
+    def _merge_function_call_content(existing_call: FunctionCallContent, new_chunk: FunctionCallContent) -> None:
+        """Helper to merge partial argument chunks from new_chunk into existing_call."""
+        if isinstance(existing_call.arguments, str) and isinstance(new_chunk.arguments, str):
+            existing_call.arguments += new_chunk.arguments
+        elif isinstance(existing_call.arguments, dict) and isinstance(new_chunk.arguments, dict):
+            existing_call.arguments.update(new_chunk.arguments)
+        elif not existing_call.arguments or existing_call.arguments in ("{}", ""):
+            # If existing had no arguments yet, just take the new one
+            existing_call.arguments = new_chunk.arguments
+        else:
+            # If there's a mismatch (str vs dict), handle as needed
+            warnings.warn("Mismatch in argument types during merge. Existing arguments retained.", stacklevel=2)
+
+        # Optionally update name/function_name if newly provided
+        if new_chunk.name:
+            existing_call.name = new_chunk.name
+        if new_chunk.plugin_name:
+            existing_call.plugin_name = new_chunk.plugin_name
+        if new_chunk.function_name:
+            existing_call.function_name = new_chunk.function_name
+
     async def create_stream(
         self,
         messages: Sequence[LLMMessage],
@@ -450,6 +509,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         Yields:
             Union[str, CreateResult]: Either a string chunk of the response or a CreateResult containing function calls.
         """
+
         kernel = self._get_kernel(extra_create_args)
         chat_history = self._convert_to_chat_history(messages)
         user_settings = self._get_prompt_settings(extra_create_args)
@@ -458,54 +518,105 @@ class SKChatCompletionAdapter(ChatCompletionClient):
 
         prompt_tokens = 0
         completion_tokens = 0
-        accumulated_content = ""
+        accumulated_text = ""
+
+        # Keep track of in-progress function calls. Keyed by ID
+        # because partial chunks for the same function call might arrive separately.
+        function_calls_in_progress: dict[str, FunctionCallContent] = {}
+
+        # Track the ID of the last function call we saw so we can continue
+        # accumulating chunk arguments for that call if new items have id=None
+        last_function_call_id: Optional[str] = None
 
         async for streaming_messages in self._sk_client.get_streaming_chat_message_contents(
             chat_history, settings=settings, kernel=kernel
         ):
             for msg in streaming_messages:
-                if not isinstance(msg, StreamingChatMessageContent):
-                    continue
-
                 # Track token usage
                 if msg.metadata and "usage" in msg.metadata:
                     usage = msg.metadata["usage"]
                     prompt_tokens = getattr(usage, "prompt_tokens", 0)
                     completion_tokens = getattr(usage, "completion_tokens", 0)
 
-                # Check for function calls
-                if any(isinstance(item, FunctionCallContent) for item in msg.items):
-                    function_calls = self._process_tool_calls(msg)
+                # Process function call deltas
+                for item in msg.items:
+                    if isinstance(item, FunctionCallContent):
+                        # If the chunk has a valid ID, we start or continue that ID explicitly
+                        if item.id:
+                            last_function_call_id = item.id
+                            if last_function_call_id not in function_calls_in_progress:
+                                function_calls_in_progress[last_function_call_id] = item
+                            else:
+                                # Merge partial arguments into existing call
+                                existing_call = function_calls_in_progress[last_function_call_id]
+                                self._merge_function_call_content(existing_call, item)
+                        else:
+                            # item.id is None, so we assume it belongs to the last known ID
+                            if not last_function_call_id:
+                                # No call in progress means we can't merge
+                                # You could either skip or raise an error here
+                                warnings.warn(
+                                    "Received function call chunk with no ID and no call in progress.", stacklevel=2
+                                )
+                                continue
+
+                            existing_call = function_calls_in_progress[last_function_call_id]
+                            # Merge partial chunk
+                            self._merge_function_call_content(existing_call, item)
+
+                # Check if the model signaled tool_calls finished
+                if msg.finish_reason == "tool_calls" and function_calls_in_progress:
+                    calls_to_yield: list[FunctionCall] = []
+                    for _, call_content in function_calls_in_progress.items():
+                        plugin_name = call_content.plugin_name or ""
+                        function_name = call_content.function_name
+                        if plugin_name:
+                            full_name = f"{plugin_name}-{function_name}"
+                        else:
+                            full_name = function_name
+
+                        if isinstance(call_content.arguments, dict):
+                            arguments = json.dumps(call_content.arguments)
+                        else:
+                            assert isinstance(call_content.arguments, str)
+                            arguments = call_content.arguments or "{}"
+
+                        calls_to_yield.append(
+                            FunctionCall(
+                                id=call_content.id or "unknown_id",
+                                name=full_name,
+                                arguments=arguments,
+                            )
+                        )
+                    # Yield all function calls in progress
                     yield CreateResult(
-                        content=function_calls,
+                        content=calls_to_yield,
                         finish_reason="function_calls",
                         usage=RequestUsage(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
                         cached=False,
                     )
                     return
 
-                # Handle text content
+                # Handle any plain text in the message
                 if msg.content:
-                    accumulated_content += msg.content
+                    accumulated_text += msg.content
                     yield msg.content
 
-        # Final yield if there was text content
-        if accumulated_content:
-            self._total_prompt_tokens += prompt_tokens
-            self._total_completion_tokens += completion_tokens
+        # If we exit the loop without tool calls finishing, yield whatever text was accumulated
+        self._total_prompt_tokens += prompt_tokens
+        self._total_completion_tokens += completion_tokens
 
-            if isinstance(accumulated_content, str) and self._model_info["family"] == ModelFamily.R1:
-                thought, accumulated_content = parse_r1_content(accumulated_content)
-            else:
-                thought = None
+        thought = None
+        if isinstance(accumulated_text, str) and self._model_info["family"] == ModelFamily.R1:
+            thought, accumulated_text = parse_r1_content(accumulated_text)
 
-            yield CreateResult(
-                content=accumulated_content,
-                finish_reason="stop",
-                usage=RequestUsage(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
-                cached=False,
-                thought=thought,
-            )
+        yield CreateResult(
+            content=accumulated_text,
+            finish_reason="stop",
+            usage=RequestUsage(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
+            cached=False,
+            thought=thought,
+        )
 
     def actual_usage(self) -> RequestUsage:
         return RequestUsage(prompt_tokens=self._total_prompt_tokens, completion_tokens=self._total_completion_tokens)

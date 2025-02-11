@@ -24,12 +24,65 @@ class ModelFamily:
     GPT_4 = "gpt-4"
     GPT_35 = "gpt-35"
     R1 = "r1"
+    GEMINI_1_5_FLASH = "gemini-1.5-flash"
+    GEMINI_1_5_PRO = "gemini-1.5-pro"
+    GEMINI_2_0_FLASH = "gemini-2.0-flash"
+    CLAUDE_3_HAIKU = "claude-3-haiku"
+    CLAUDE_3_SONNET = "claude-3-sonnet"
+    CLAUDE_3_OPUS = "claude-3-opus"
+    CLAUDE_3_5_HAIKU = "claude-3.5-haiku"
+    CLAUDE_3_5_SONNET = "claude-3.5-sonnet"
     UNKNOWN = "unknown"
 
-    ANY: TypeAlias = Literal["gpt-4o", "o1", "o3", "gpt-4", "gpt-35", "r1", "unknown"]
+    ANY: TypeAlias = Literal[
+        "gpt-4o",
+        "o1",
+        "o3",
+        "gpt-4",
+        "gpt-35",
+        "r1",
+        "gemini-1.5-flash",
+        "gemini-1.5-pro",
+        "gemini-2.0-flash",
+        "claude-3-haiku",
+        "claude-3-sonnet",
+        "claude-3-opus",
+        "claude-3.5-haiku",
+        "claude-3.5-sonnet",
+        "unknown",
+    ]
 
     def __new__(cls, *args: Any, **kwargs: Any) -> ModelFamily:
         raise TypeError(f"{cls.__name__} is a namespace class and cannot be instantiated.")
+
+    @staticmethod
+    def is_claude(family: str) -> bool:
+        return family in (
+            ModelFamily.CLAUDE_3_HAIKU,
+            ModelFamily.CLAUDE_3_SONNET,
+            ModelFamily.CLAUDE_3_OPUS,
+            ModelFamily.CLAUDE_3_5_HAIKU,
+            ModelFamily.CLAUDE_3_5_SONNET,
+        )
+
+    @staticmethod
+    def is_gemini(family: str) -> bool:
+        return family in (
+            ModelFamily.GEMINI_1_5_FLASH,
+            ModelFamily.GEMINI_1_5_PRO,
+            ModelFamily.GEMINI_2_0_FLASH,
+        )
+
+    @staticmethod
+    def is_openai(family: str) -> bool:
+        return family in (
+            ModelFamily.GPT_4O,
+            ModelFamily.O1,
+            ModelFamily.O3,
+            ModelFamily.GPT_4,
+            ModelFamily.GPT_35,
+            ModelFamily.R1,
+        )
 
 
 @deprecated("Use the ModelInfo class instead ModelCapabilities.")

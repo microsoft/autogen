@@ -1,4 +1,6 @@
 import os
+import tempfile
+import warnings
 from typing import Optional
 
 import typer
@@ -8,6 +10,17 @@ from typing_extensions import Annotated
 from .version import VERSION
 
 app = typer.Typer()
+
+# Ignore deprecation warnings from websockets
+warnings.filterwarnings("ignore", message="websockets.legacy is deprecated*")
+warnings.filterwarnings("ignore", message="websockets.server.WebSocketServerProtocol is deprecated*")
+
+
+def get_env_file_path():
+    app_dir = os.path.join(os.path.expanduser("~"), ".autogenstudio")
+    if not os.path.exists(app_dir):
+        os.makedirs(app_dir, exist_ok=True)
+    return os.path.join(app_dir, "temp_env_vars.env")
 
 
 @app.command()
@@ -34,13 +47,24 @@ def ui(
         database-uri (str, optional): Database URI to connect to. Defaults to None.
     """
 
-    os.environ["AUTOGENSTUDIO_API_DOCS"] = str(docs)
+    # Write configuration
+    env_vars = {
+        "AUTOGENSTUDIO_HOST": host,
+        "AUTOGENSTUDIO_PORT": port,
+        "AUTOGENSTUDIO_API_DOCS": str(docs),
+    }
     if appdir:
-        os.environ["AUTOGENSTUDIO_APPDIR"] = appdir
+        env_vars["AUTOGENSTUDIO_APPDIR"] = appdir
     if database_uri:
-        os.environ["AUTOGENSTUDIO_DATABASE_URI"] = database_uri
+        env_vars["AUTOGENSTUDIO_DATABASE_URI"] = database_uri
     if upgrade_database:
-        os.environ["AUTOGENSTUDIO_UPGRADE_DATABASE"] = "1"
+        env_vars["AUTOGENSTUDIO_UPGRADE_DATABASE"] = "1"
+
+    # Create temporary env file to share configuration with uvicorn workers
+    env_file_path = get_env_file_path()
+    with open(env_file_path, "w") as temp_env:
+        for key, value in env_vars.items():
+            temp_env.write(f"{key}={value}\n")
 
     uvicorn.run(
         "autogenstudio.web.app:app",
@@ -49,6 +73,7 @@ def ui(
         workers=workers,
         reload=reload,
         reload_excludes=["**/alembic/*", "**/alembic.ini", "**/versions/*"] if reload else None,
+        env_file=env_file_path,
     )
 
 

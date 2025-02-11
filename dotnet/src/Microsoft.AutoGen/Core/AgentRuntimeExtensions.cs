@@ -62,7 +62,7 @@ public static class AgentRuntimeExtensions
             var classSubscriptions = runtimeType.GetCustomAttributes<TypeSubscriptionAttribute>().Select(t => t.Bind(agentType));
             subscriptions.AddRange(classSubscriptions);
 
-            var prefixSubscriptions = runtimeType.GetCustomAttributes<TopicPrefixSubscriptionAttribute>().Select(t => t.Bind(agentType));
+            var prefixSubscriptions = runtimeType.GetCustomAttributes<TypePrefixSubscriptionAttribute>().Select(t => t.Bind(agentType));
             subscriptions.AddRange(prefixSubscriptions);
         }
 

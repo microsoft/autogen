@@ -18,10 +18,18 @@ from autogen_agentchat.messages import (
     ToolCallRequestEvent,
     ToolCallSummaryMessage,
 )
-from autogen_core import FunctionCall, Image
+from autogen_core import ComponentModel, FunctionCall, Image
 from autogen_core.memory import ListMemory, Memory, MemoryContent, MemoryMimeType, MemoryQueryResult
 from autogen_core.model_context import BufferedChatCompletionContext
-from autogen_core.models import CreateResult, FunctionExecutionResult, LLMMessage, RequestUsage
+from autogen_core.models import (
+    AssistantMessage,
+    CreateResult,
+    FunctionExecutionResult,
+    LLMMessage,
+    RequestUsage,
+    SystemMessage,
+    UserMessage,
+)
 from autogen_core.models._model_client import ModelFamily
 from autogen_core.tools import FunctionTool
 from autogen_ext.models.openai import OpenAIChatCompletionClient
@@ -386,9 +394,9 @@ async def test_run_with_parallel_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.messages[1].models_usage.prompt_tokens == 10
     assert isinstance(result.messages[2], ToolCallExecutionEvent)
     expected_content = [
-        FunctionExecutionResult(call_id="1", content="pass"),
-        FunctionExecutionResult(call_id="2", content="pass"),
-        FunctionExecutionResult(call_id="3", content="task3"),
+        FunctionExecutionResult(call_id="1", content="pass", is_error=False),
+        FunctionExecutionResult(call_id="2", content="pass", is_error=False),
+        FunctionExecutionResult(call_id="3", content="task3", is_error=False),
     ]
     for expected in expected_content:
         assert expected in result.messages[2].content
@@ -541,15 +549,44 @@ async def test_invalid_model_capabilities() -> None:
                 FunctionTool(_echo_function, description="Echo"),
             ],
         )
+        await agent.run(task=TextMessage(source="user", content="Test"))
 
     with pytest.raises(ValueError):
         agent = AssistantAgent(name="assistant", model_client=model_client, handoffs=["agent2"])
+        await agent.run(task=TextMessage(source="user", content="Test"))
 
-    with pytest.raises(ValueError):
-        agent = AssistantAgent(name="assistant", model_client=model_client)
-        # Generate a random base64 image.
-        img_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
-        await agent.run(task=MultiModalMessage(source="user", content=["Test", Image.from_base64(img_base64)]))
+
+@pytest.mark.asyncio
+async def test_remove_images(monkeypatch: pytest.MonkeyPatch) -> None:
+    model = "random-model"
+    model_client_1 = OpenAIChatCompletionClient(
+        model=model,
+        api_key="",
+        model_info={"vision": False, "function_calling": False, "json_output": False, "family": ModelFamily.UNKNOWN},
+    )
+    model_client_2 = OpenAIChatCompletionClient(
+        model=model,
+        api_key="",
+        model_info={"vision": True, "function_calling": False, "json_output": False, "family": ModelFamily.UNKNOWN},
+    )
+
+    img_base64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAIAAACQd1PeAAAADElEQVR4nGP4//8/AAX+Av4N70a4AAAAAElFTkSuQmCC"
+    messages: List[LLMMessage] = [
+        SystemMessage(content="System.1"),
+        UserMessage(content=["User.1", Image.from_base64(img_base64)], source="user.1"),
+        AssistantMessage(content="Assistant.1", source="assistant.1"),
+        UserMessage(content="User.2", source="assistant.2"),
+    ]
+
+    agent_1 = AssistantAgent(name="assistant_1", model_client=model_client_1)
+    result = agent_1._get_compatible_context(messages)  # type: ignore
+    assert len(result) == 4
+    assert isinstance(result[1].content, str)
+
+    agent_2 = AssistantAgent(name="assistant_2", model_client=model_client_2)
+    result = agent_2._get_compatible_context(messages)  # type: ignore
+    assert len(result) == 4
+    assert isinstance(result[1].content, list)
 
 
 @pytest.mark.asyncio
@@ -717,7 +754,12 @@ async def test_run_with_memory(monkeypatch: pytest.MonkeyPatch) -> None:
         "test_agent", model_client=OpenAIChatCompletionClient(model=model, api_key=""), memory=[memory2]
     )
 
-    result = await agent.run(task="test task")
+    # Test dump and load component with memory
+    agent_config: ComponentModel = agent.dump_component()
+    assert agent_config.provider == "autogen_agentchat.agents.AssistantAgent"
+    agent2 = AssistantAgent.load_component(agent_config)
+
+    result = await agent2.run(task="test task")
     assert len(result.messages) > 0
     memory_event = next((msg for msg in result.messages if isinstance(msg, MemoryQueryEvent)), None)
     assert memory_event is not None
@@ -758,9 +800,10 @@ async def test_assistant_agent_declarative(monkeypatch: pytest.MonkeyPatch) -> N
         "test_agent",
         model_client=OpenAIChatCompletionClient(model=model, api_key=""),
         model_context=model_context,
+        memory=[ListMemory(name="test_memory")],
     )
 
-    agent_config = agent.dump_component()
+    agent_config: ComponentModel = agent.dump_component()
     assert agent_config.provider == "autogen_agentchat.agents.AssistantAgent"
 
     agent2 = AssistantAgent.load_component(agent_config)
@@ -834,8 +877,8 @@ async def test_model_client_stream_with_tool_calls() -> None:
                 FunctionCall(id="3", name="_echo_function", arguments=r'{"input": "task"}'),
             ]
             assert message.messages[2].content == [
-                FunctionExecutionResult(call_id="1", content="pass"),
-                FunctionExecutionResult(call_id="3", content="task"),
+                FunctionExecutionResult(call_id="1", content="pass", is_error=False),
+                FunctionExecutionResult(call_id="3", content="task", is_error=False),
             ]
         elif isinstance(message, ModelClientStreamingChunkEvent):
             chunks.append(message.content)

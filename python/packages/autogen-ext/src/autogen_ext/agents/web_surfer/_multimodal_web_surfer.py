@@ -10,12 +10,10 @@ import traceback
 from typing import (
     Any,
     AsyncGenerator,
-    BinaryIO,
     Dict,
     List,
     Optional,
     Sequence,
-    cast,
 )
 from urllib.parse import quote_plus
 
@@ -24,12 +22,14 @@ import PIL.Image
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage, TextMessage
+from autogen_agentchat.utils import content_to_str, remove_images
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, ComponentModel, FunctionCall
 from autogen_core import Image as AGImage
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     LLMMessage,
+    ModelFamily,
     RequestUsage,
     SystemMessage,
     UserMessage,
@@ -40,15 +40,20 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from ._events import WebSurferEvent
-from ._prompts import WEB_SURFER_OCR_PROMPT, WEB_SURFER_QA_PROMPT, WEB_SURFER_QA_SYSTEM_MESSAGE, WEB_SURFER_TOOL_PROMPT
+from ._prompts import (
+    WEB_SURFER_QA_PROMPT,
+    WEB_SURFER_QA_SYSTEM_MESSAGE,
+    WEB_SURFER_TOOL_PROMPT_MM,
+    WEB_SURFER_TOOL_PROMPT_TEXT,
+)
 from ._set_of_mark import add_set_of_mark
 from ._tool_definitions import (
     TOOL_CLICK,
     TOOL_HISTORY_BACK,
     TOOL_HOVER,
-    TOOL_PAGE_DOWN,
-    TOOL_PAGE_UP,
     TOOL_READ_PAGE_AND_ANSWER,
+    TOOL_SCROLL_DOWN,
+    TOOL_SCROLL_UP,
     TOOL_SLEEP,
     TOOL_SUMMARIZE_PAGE,
     TOOL_TYPE,
@@ -56,8 +61,9 @@ from ._tool_definitions import (
     TOOL_WEB_SEARCH,
 )
 from ._types import InteractiveRegion, UserContent
-from ._utils import message_content_to_str
 from .playwright_controller import PlaywrightController
+
+DEFAULT_CONTEXT_SIZE = 128000
 
 
 class MultimodalWebSurferConfig(BaseModel):
@@ -168,9 +174,9 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
 
     DEFAULT_DESCRIPTION = """
     A helpful assistant with access to a web browser.
-    Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, etc., filling in form fields, etc.).
+    Ask them to perform web searches, open pages, and interact with content (e.g., clicking links, scrolling the viewport, filling in form fields, etc.).
     It can also summarize the entire page, or answer questions based on the content of the page.
-    It can also be asked to sleep and wait for pages to load, in cases where the pages seem to be taking a while to load.
+    It can also be asked to sleep and wait for pages to load, in cases where the page seems not yet fully loaded.
     """
     DEFAULT_START_PAGE = "https://www.bing.com/"
 
@@ -215,8 +221,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             raise ValueError(
                 "The model does not support function calling. MultimodalWebSurfer requires a model that supports function calling."
             )
-        if model_client.model_info["vision"] is False:
-            raise ValueError("The model is not multimodal. MultimodalWebSurfer requires a multimodal model.")
+
         self._model_client = model_client
         self.headless = headless
         self.browser_channel = browser_channel
@@ -264,8 +269,6 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             TOOL_SLEEP,
             TOOL_HOVER,
         ]
-        # Number of lines of text to extract from the page in the absence of OCR
-        self.n_lines_page_text = 50
         self.did_lazy_init = False  # flag to check if we have initialized the browser
 
     async def _lazy_init(
@@ -406,7 +409,7 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         self.model_usage: List[RequestUsage] = []
         try:
             content = await self._generate_reply(cancellation_token=cancellation_token)
-            self._chat_history.append(AssistantMessage(content=message_content_to_str(content), source=self.name))
+            self._chat_history.append(AssistantMessage(content=content_to_str(content), source=self.name))
             final_usage = RequestUsage(
                 prompt_tokens=sum([u.prompt_tokens for u in self.model_usage]),
                 completion_tokens=sum([u.completion_tokens for u in self.model_usage]),
@@ -436,22 +439,24 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
 
         assert self._page is not None
 
-        # Clone the messages to give context, removing old screenshots
-        history: List[LLMMessage] = []
-        for m in self._chat_history:
-            assert isinstance(m, UserMessage | AssistantMessage | SystemMessage)
-            assert isinstance(m.content, str | list)
+        # Clone the messages, removing old screenshots
+        history: List[LLMMessage] = remove_images(self._chat_history)
 
-            if isinstance(m.content, str):
-                history.append(m)
-            else:
-                content = message_content_to_str(m.content)
-                if isinstance(m, UserMessage):
-                    history.append(UserMessage(content=content, source=m.source))
-                elif isinstance(m, AssistantMessage):
-                    history.append(AssistantMessage(content=content, source=m.source))
-                elif isinstance(m, SystemMessage):
-                    history.append(SystemMessage(content=content))
+        # Split the history, removing the last message
+        if len(history):
+            user_request = history.pop()
+        else:
+            user_request = UserMessage(content="Empty request.", source="user")
+
+        # Truncate the history for smaller models
+        if self._model_client.model_info["family"] not in [
+            ModelFamily.GPT_4O,
+            ModelFamily.O1,
+            ModelFamily.O3,
+            ModelFamily.GPT_4,
+            ModelFamily.GPT_35,
+        ]:
+            history = []
 
         # Ask the page for interactive elements, then prepare the state-of-mark screenshot
         rects = await self._playwright_controller.get_interactive_rects(self._page)
@@ -475,11 +480,11 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
 
         # We can scroll up
         if viewport["pageTop"] > 5:
-            tools.append(TOOL_PAGE_UP)
+            tools.append(TOOL_SCROLL_UP)
 
         # Can scroll down
         if (viewport["pageTop"] + viewport["height"] + 5) < viewport["scrollHeight"]:
-            tools.append(TOOL_PAGE_DOWN)
+            tools.append(TOOL_SCROLL_DOWN)
 
         # Focus hint
         focused = await self._playwright_controller.get_focused_rect_id(self._page)
@@ -488,6 +493,8 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             name = self._target_name(focused, rects)
             if name:
                 name = f"(and name '{name}') "
+            else:
+                name = ""
 
             role = "control"
             try:
@@ -506,34 +513,75 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         other_targets.extend(self._format_target_list(rects_below, rects))
 
         if len(other_targets) > 0:
+            if len(other_targets) > 30:
+                other_targets = other_targets[0:30]
+                other_targets.append("...")
             other_targets_str = (
-                "Additional valid interaction targets (not shown) include:\n" + "\n".join(other_targets) + "\n\n"
+                "Additional valid interaction targets include (but are not limited to):\n"
+                + "\n".join(other_targets)
+                + "\n\n"
             )
         else:
             other_targets_str = ""
 
+        state_description = "Your " + await self._get_state_description()
         tool_names = "\n".join([t["name"] for t in tools])
+        page_title = await self._page.title()
 
-        text_prompt = WEB_SURFER_TOOL_PROMPT.format(
-            url=self._page.url,
-            visible_targets=visible_targets,
-            other_targets_str=other_targets_str,
-            focused_hint=focused_hint,
-            tool_names=tool_names,
-        ).strip()
+        prompt_message = None
+        if self._model_client.model_info["vision"]:
+            text_prompt = WEB_SURFER_TOOL_PROMPT_MM.format(
+                state_description=state_description,
+                visible_targets=visible_targets,
+                other_targets_str=other_targets_str,
+                focused_hint=focused_hint,
+                tool_names=tool_names,
+                title=page_title,
+                url=self._page.url,
+            ).strip()
 
-        # Scale the screenshot for the MLM, and close the original
-        scaled_screenshot = som_screenshot.resize((self.MLM_WIDTH, self.MLM_HEIGHT))
-        som_screenshot.close()
-        if self.to_save_screenshots:
-            scaled_screenshot.save(os.path.join(self.debug_dir, "screenshot_scaled.png"))  # type: ignore
+            # Scale the screenshot for the MLM, and close the original
+            scaled_screenshot = som_screenshot.resize((self.MLM_WIDTH, self.MLM_HEIGHT))
+            som_screenshot.close()
+            if self.to_save_screenshots:
+                scaled_screenshot.save(os.path.join(self.debug_dir, "screenshot_scaled.png"))  # type: ignore
 
-        # Add the multimodal message and make the request
-        history.append(UserMessage(content=[text_prompt, AGImage.from_pil(scaled_screenshot)], source=self.name))
+            # Create the message
+            prompt_message = UserMessage(
+                content=[re.sub(r"(\n\s*){3,}", "\n\n", text_prompt), AGImage.from_pil(scaled_screenshot)],
+                source=self.name,
+            )
+        else:
+            text_prompt = WEB_SURFER_TOOL_PROMPT_TEXT.format(
+                state_description=state_description,
+                visible_targets=visible_targets,
+                other_targets_str=other_targets_str,
+                focused_hint=focused_hint,
+                tool_names=tool_names,
+                title=page_title,
+                url=self._page.url,
+            ).strip()
 
+            # Create the message
+            prompt_message = UserMessage(content=re.sub(r"(\n\s*){3,}", "\n\n", text_prompt), source=self.name)
+
+        history.append(prompt_message)
+        history.append(user_request)
+
+        # {history[-2].content if isinstance(history[-2].content, str) else history[-2].content[0]}
+        # print(f"""
+        # ================={len(history)}=================
+        # {history[-2].content}
+        # =====
+        # {history[-1].content}
+        # ===================================================
+        # """)
+
+        # Make the request
         response = await self._model_client.create(
             history, tools=tools, extra_create_args={"tool_choice": "auto"}, cancellation_token=cancellation_token
         )  # , "parallel_tool_calls": False})
+
         self.model_usage.append(response.usage)
         message = response.content
         self._last_download = None
@@ -607,10 +655,10 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
                 self._last_download = None
             if reset_prior_metadata and self._prior_metadata_hash is not None:
                 self._prior_metadata_hash = None
-        elif name == "page_up":
+        elif name == "scroll_up":
             action_description = "I scrolled up one page in the browser."
             await self._playwright_controller.page_up(self._page)
-        elif name == "page_down":
+        elif name == "scroll_down":
             action_description = "I scrolled down one page in the browser."
             await self._playwright_controller.page_down(self._page)
 
@@ -708,22 +756,11 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         metadata_hash = hashlib.md5(page_metadata.encode("utf-8")).hexdigest()
         if metadata_hash != self._prior_metadata_hash:
             page_metadata = (
-                "\nThe following metadata was extracted from the webpage:\n\n" + page_metadata.strip() + "\n"
+                "\n\nThe following metadata was extracted from the webpage:\n\n" + page_metadata.strip() + "\n"
             )
         else:
             page_metadata = ""
         self._prior_metadata_hash = metadata_hash
-
-        # Describe the viewport of the new page in words
-        viewport = await self._playwright_controller.get_visual_viewport(self._page)
-        percent_visible = int(viewport["height"] * 100 / viewport["scrollHeight"])
-        percent_scrolled = int(viewport["pageTop"] * 100 / viewport["scrollHeight"])
-        if percent_scrolled < 1:  # Allow some rounding error
-            position_text = "at the top of the page"
-        elif percent_scrolled + percent_visible >= 99:  # Allow some rounding error
-            position_text = "at the bottom of the page"
-        else:
-            position_text = str(percent_scrolled) + "% down from the top of the page"
 
         new_screenshot = await self._page.screenshot()
         if self.to_save_screenshots:
@@ -740,24 +777,39 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
                 )
             )
 
-        ocr_text = (
-            await self._get_ocr_text(new_screenshot, cancellation_token=cancellation_token)
-            if self.use_ocr is True
-            else await self._playwright_controller.get_webpage_text(self._page, n_lines=self.n_lines_page_text)
+        # Return the complete observation
+        state_description = "The " + await self._get_state_description()
+        message_content = (
+            f"{action_description}\n\n" + state_description + page_metadata + "\nHere is a screenshot of the page."
         )
+
+        return [
+            re.sub(r"(\n\s*){3,}", "\n\n", message_content),  # Removing blank lines
+            AGImage.from_pil(PIL.Image.open(io.BytesIO(new_screenshot))),
+        ]
+
+    async def _get_state_description(self) -> str:
+        assert self._playwright_controller is not None
+        assert self._page is not None
+
+        # Describe the viewport of the new page in words
+        viewport = await self._playwright_controller.get_visual_viewport(self._page)
+        percent_visible = int(viewport["height"] * 100 / viewport["scrollHeight"])
+        percent_scrolled = int(viewport["pageTop"] * 100 / viewport["scrollHeight"])
+        if percent_scrolled < 1:  # Allow some rounding error
+            position_text = "at the top of the page"
+        elif percent_scrolled + percent_visible >= 99:  # Allow some rounding error
+            position_text = "at the bottom of the page"
+        else:
+            position_text = str(percent_scrolled) + "% down from the top of the page"
+
+        visible_text = await self._playwright_controller.get_visible_text(self._page)
 
         # Return the complete observation
         page_title = await self._page.title()
-        message_content = f"{action_description}\n\n Here is a screenshot of the webpage: [{page_title}]({self._page.url}).\n The viewport shows {percent_visible}% of the webpage, and is positioned {position_text} {page_metadata}\n"
-        if self.use_ocr:
-            message_content += f"Automatic OCR of the page screenshot has detected the following text:\n\n{ocr_text}"
-        else:
-            message_content += f"The first {self.n_lines_page_text} lines of the page text is:\n\n{ocr_text}"
-
-        return [
-            message_content,
-            AGImage.from_pil(PIL.Image.open(io.BytesIO(new_screenshot))),
-        ]
+        message_content = f"web browser is open to the page [{page_title}]({self._page.url}).\nThe viewport shows {percent_visible}% of the webpage, and is positioned {position_text}\n"
+        message_content += f"The following text is visible in the viewport:\n\n{visible_text}"
+        return message_content
 
     def _target_name(self, target: str, rects: Dict[str, InteractiveRegion]) -> str | None:
         try:
@@ -790,38 +842,6 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
 
         return targets
 
-    async def _get_ocr_text(
-        self, image: bytes | io.BufferedIOBase | PIL.Image.Image, cancellation_token: Optional[CancellationToken] = None
-    ) -> str:
-        scaled_screenshot = None
-        if isinstance(image, PIL.Image.Image):
-            scaled_screenshot = image.resize((self.MLM_WIDTH, self.MLM_HEIGHT))
-        else:
-            pil_image = None
-            if not isinstance(image, io.BufferedIOBase):
-                pil_image = PIL.Image.open(io.BytesIO(image))
-            else:
-                pil_image = PIL.Image.open(cast(BinaryIO, image))
-            scaled_screenshot = pil_image.resize((self.MLM_WIDTH, self.MLM_HEIGHT))
-            pil_image.close()
-
-        # Add the multimodal message and make the request
-        messages: List[LLMMessage] = []
-        messages.append(
-            UserMessage(
-                content=[
-                    WEB_SURFER_OCR_PROMPT,
-                    AGImage.from_pil(scaled_screenshot),
-                ],
-                source=self.name,
-            )
-        )
-        response = await self._model_client.create(messages, cancellation_token=cancellation_token)
-        self.model_usage.append(response.usage)
-        scaled_screenshot.close()
-        assert isinstance(response.content, str)
-        return response.content
-
     async def _summarize_page(
         self,
         question: str | None = None,
@@ -851,19 +871,24 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         buffer = ""
         # for line in re.split(r"([\r\n]+)", page_markdown):
         for line in page_markdown.splitlines():
-            message = UserMessage(
-                # content=[
+            trial_message = UserMessage(
                 content=prompt + buffer + line,
-                #    ag_image,
-                # ],
                 source=self.name,
             )
 
-            remaining = self._model_client.remaining_tokens(messages + [message])
-            if remaining > self.SCREENSHOT_TOKENS:
-                buffer += line
-            else:
+            try:
+                remaining = self._model_client.remaining_tokens(messages + [trial_message])
+            except KeyError:
+                # Use the default if the model isn't found
+                remaining = DEFAULT_CONTEXT_SIZE - self._model_client.count_tokens(messages + [trial_message])
+
+            if self._model_client.model_info["vision"] and remaining <= 0:
                 break
+
+            if self._model_client.model_info["vision"] and remaining <= self.SCREENSHOT_TOKENS:
+                break
+
+            buffer += line
 
         # Nothing to do
         buffer = buffer.strip()
@@ -871,15 +896,25 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
             return "Nothing to summarize."
 
         # Append the message
-        messages.append(
-            UserMessage(
-                content=[
-                    prompt + buffer,
-                    ag_image,
-                ],
-                source=self.name,
+        if self._model_client.model_info["vision"]:
+            # Multimodal
+            messages.append(
+                UserMessage(
+                    content=[
+                        prompt + buffer,
+                        ag_image,
+                    ],
+                    source=self.name,
+                )
             )
-        )
+        else:
+            # Text only
+            messages.append(
+                UserMessage(
+                    content=prompt + buffer,
+                    source=self.name,
+                )
+            )
 
         # Generate the response
         response = await self._model_client.create(messages, cancellation_token=cancellation_token)

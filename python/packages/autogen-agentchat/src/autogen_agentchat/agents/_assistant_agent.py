@@ -42,13 +42,13 @@ from ..messages import (
     HandoffMessage,
     MemoryQueryEvent,
     ModelClientStreamingChunkEvent,
-    MultiModalMessage,
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
     ToolCallSummaryMessage,
 )
 from ..state import AssistantAgentState
+from ..utils import remove_images
 from ._base_chat_agent import BaseChatAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -62,9 +62,10 @@ class AssistantAgentConfig(BaseModel):
     tools: List[ComponentModel] | None
     handoffs: List[HandoffBase | str] | None = None
     model_context: ComponentModel | None = None
+    memory: List[ComponentModel] | None = None
     description: str
     system_message: str | None = None
-    model_client_stream: bool
+    model_client_stream: bool = False
     reflect_on_tool_use: bool
     tool_call_summary_format: str
 
@@ -375,8 +376,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         # Add messages to the model context.
         for msg in messages:
-            if isinstance(msg, MultiModalMessage) and self._model_client.model_info["vision"] is False:
-                raise ValueError("The model does not support vision.")
             if isinstance(msg, HandoffMessage):
                 # Add handoff context to the model context.
                 for context_msg in msg.context:
@@ -398,7 +397,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     yield memory_query_event_msg
 
         # Generate an inference result based on the current model context.
-        llm_messages = self._system_messages + await self._model_context.get_messages()
+        llm_messages = self._get_compatible_context(self._system_messages + await self._model_context.get_messages())
         model_result: CreateResult | None = None
         if self._model_client_stream:
             # Stream the model client.
@@ -494,7 +493,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         if self._reflect_on_tool_use:
             # Generate another inference result based on the tool call and result.
-            llm_messages = self._system_messages + await self._model_context.get_messages()
+            llm_messages = self._get_compatible_context(
+                self._system_messages + await self._model_context.get_messages()
+            )
             reflection_model_result: CreateResult | None = None
             if self._model_client_stream:
                 # Stream the model client.
@@ -556,9 +557,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             arguments = json.loads(tool_call.arguments)
             result = await tool.run_json(arguments, cancellation_token)
             result_as_str = tool.return_value_as_string(result)
-            return FunctionExecutionResult(content=result_as_str, call_id=tool_call.id)
+            return FunctionExecutionResult(content=result_as_str, call_id=tool_call.id, is_error=False)
         except Exception as e:
-            return FunctionExecutionResult(content=f"Error: {e}", call_id=tool_call.id)
+            return FunctionExecutionResult(content=f"Error: {e}", call_id=tool_call.id, is_error=True)
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Reset the assistant agent to its initialization state."""
@@ -575,6 +576,13 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         # Load the model context state.
         await self._model_context.load_state(assistant_agent_state.llm_context)
 
+    def _get_compatible_context(self, messages: List[LLMMessage]) -> Sequence[LLMMessage]:
+        """Ensure that the messages are compatible with the underlying client, by removing images if needed."""
+        if self._model_client.model_info["vision"]:
+            return messages
+        else:
+            return remove_images(messages)
+
     def _to_config(self) -> AssistantAgentConfig:
         """Convert the assistant agent to a declarative config."""
 
@@ -584,6 +592,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             tools=[tool.dump_component() for tool in self._tools],
             handoffs=list(self._handoffs.values()),
             model_context=self._model_context.dump_component(),
+            memory=[memory.dump_component() for memory in self._memory] if self._memory else None,
             description=self.description,
             system_message=self._system_messages[0].content
             if self._system_messages and isinstance(self._system_messages[0].content, str)
@@ -602,6 +611,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             tools=[BaseTool.load_component(tool) for tool in config.tools] if config.tools else None,
             handoffs=config.handoffs,
             model_context=None,
+            memory=[Memory.load_component(memory) for memory in config.memory] if config.memory else None,
             description=config.description,
             system_message=config.system_message,
             model_client_stream=config.model_client_stream,

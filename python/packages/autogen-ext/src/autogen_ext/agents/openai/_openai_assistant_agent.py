@@ -11,6 +11,7 @@ from typing import (
     Iterable,
     List,
     Literal,
+    Mapping,
     Optional,
     Sequence,
     Set,
@@ -36,6 +37,7 @@ from autogen_core import CancellationToken, FunctionCall
 from autogen_core.models._model_client import ChatCompletionClient
 from autogen_core.models._types import FunctionExecutionResult
 from autogen_core.tools import FunctionTool, Tool
+from pydantic import BaseModel, Field
 
 from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI, NotGiven
 from openai.pagination import AsyncCursorPage
@@ -75,6 +77,15 @@ def _convert_tool_to_function_param(tool: Tool) -> "FunctionToolParam":
         parameters=parameters,
     )
     return FunctionToolParam(type="function", function=function_def)
+
+
+class OpenAIAssistantAgentState(BaseModel):
+    type: str = Field(default="OpenAIAssistantAgentState")
+    assistant_id: Optional[str] = None
+    thread_id: Optional[str] = None
+    initial_message_ids: List[str] = Field(default_factory=list)
+    vector_store_id: Optional[str] = None
+    uploaded_file_ids: List[str] = Field(default_factory=list)
 
 
 class OpenAIAssistantAgent(BaseChatAgent):
@@ -370,17 +381,14 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
     async def _execute_tool_call(self, tool_call: FunctionCall, cancellation_token: CancellationToken) -> str:
         """Execute a tool call and return the result."""
-        try:
-            if not self._original_tools:
-                raise ValueError("No tools are available.")
-            tool = next((t for t in self._original_tools if t.name == tool_call.name), None)
-            if tool is None:
-                raise ValueError(f"The tool '{tool_call.name}' is not available.")
-            arguments = json.loads(tool_call.arguments)
-            result = await tool.run_json(arguments, cancellation_token)
-            return tool.return_value_as_string(result)
-        except Exception as e:
-            return f"Error: {e}"
+        if not self._original_tools:
+            raise ValueError("No tools are available.")
+        tool = next((t for t in self._original_tools if t.name == tool_call.name), None)
+        if tool is None:
+            raise ValueError(f"The tool '{tool_call.name}' is not available.")
+        arguments = json.loads(tool_call.arguments)
+        result = await tool.run_json(arguments, cancellation_token)
+        return tool.return_value_as_string(result)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         """Handle incoming messages and return a response."""
@@ -452,8 +460,15 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 # Execute tool calls and get results
                 tool_outputs: List[FunctionExecutionResult] = []
                 for tool_call in tool_calls:
-                    result = await self._execute_tool_call(tool_call, cancellation_token)
-                    tool_outputs.append(FunctionExecutionResult(content=result, call_id=tool_call.id))
+                    try:
+                        result = await self._execute_tool_call(tool_call, cancellation_token)
+                        is_error = False
+                    except Exception as e:
+                        result = f"Error: {e}"
+                        is_error = True
+                    tool_outputs.append(
+                        FunctionExecutionResult(content=result, call_id=tool_call.id, is_error=is_error)
+                    )
 
                 # Add tool result message to inner messages
                 tool_result_msg = ToolCallExecutionEvent(source=self.name, content=tool_outputs)
@@ -666,3 +681,21 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 self._vector_store_id = None
             except Exception as e:
                 event_logger.error(f"Failed to delete vector store: {str(e)}")
+
+    async def save_state(self) -> Mapping[str, Any]:
+        state = OpenAIAssistantAgentState(
+            assistant_id=self._assistant.id if self._assistant else self._assistant_id,
+            thread_id=self._thread.id if self._thread else self._init_thread_id,
+            initial_message_ids=list(self._initial_message_ids),
+            vector_store_id=self._vector_store_id,
+            uploaded_file_ids=self._uploaded_file_ids,
+        )
+        return state.model_dump()
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        agent_state = OpenAIAssistantAgentState.model_validate(state)
+        self._assistant_id = agent_state.assistant_id
+        self._init_thread_id = agent_state.thread_id
+        self._initial_message_ids = set(agent_state.initial_message_ids)
+        self._vector_store_id = agent_state.vector_store_id
+        self._uploaded_file_ids = agent_state.uploaded_file_ids
