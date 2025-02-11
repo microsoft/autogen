@@ -60,9 +60,9 @@ class MagenticOne(MagenticOneGroupChat):
     - WebSurfer: An LLM-based agent proficient in commanding and managing the state of a Chromium-based web browser. It performs actions on the browser and reports on the new state of the web page.
     - FileSurfer: An LLM-based agent that commands a markdown-based file preview application to read local files of most types. It can also perform common navigation tasks such as listing the contents of directories and navigating a folder structure.
     - Coder: An LLM-based agent specialized in writing code, analyzing information collected from other agents, or creating new artifacts.
-    - ComputerTerminal: Provides the team with access to a console shell where the Coder’s programs can be executed, and where new programming libraries can be installed.
+    - ComputerTerminal: Provides the team with access to a console shell where the Coder's programs can be executed, and where new programming libraries can be installed.
 
-    Together, Magentic-One’s agents provide the Orchestrator with the tools and capabilities needed to solve a broad variety of open-ended problems, as well as the ability to autonomously adapt to, and act in, dynamic and ever-changing web and file-system environments.
+    Together, Magentic-One's agents provide the Orchestrator with the tools and capabilities needed to solve a broad variety of open-ended problems, as well as the ability to autonomously adapt to, and act in, dynamic and ever-changing web and file-system environments.
 
     Examples:
 

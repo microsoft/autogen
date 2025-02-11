@@ -144,13 +144,13 @@ public static class AgentExtension
 
             chatHistory.Add(msg);
         }
-
+        var intermediateChatHistory = new List<IMessage>();
         await foreach (var msg in agent.SendAsync(receiver, chatHistory, maxRound, ct))
         {
-            chatHistory.Add(msg);
+            intermediateChatHistory.Add(msg);
         }
 
-        return chatHistory;
+        return chatHistory.Concat(intermediateChatHistory);
     }
 
     [Obsolete("use GroupChatExtension.SendAsync")]
