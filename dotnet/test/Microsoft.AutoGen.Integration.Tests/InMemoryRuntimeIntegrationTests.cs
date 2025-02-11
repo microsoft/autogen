@@ -10,11 +10,9 @@ public class InMemoryRuntimeIntegrationTests(ITestOutputHelper testOutput)
     public async Task HelloAgentsE2EInMemory()
     {
         // Locate InMemoryTests.AppHost.dll in the test output folder
-        var foundFile = Directory.GetFiles(AppContext.BaseDirectory, "InMemoryTests.AppHost.dll", SearchOption.AllDirectories)
+        var appHostAssemblyPath = Directory.GetFiles(AppContext.BaseDirectory, "InMemoryTests.AppHost.dll", SearchOption.AllDirectories)
             .FirstOrDefault()
             ?? throw new FileNotFoundException("Could not find InMemoryTests.AppHost.dll in the test output folder");
-
-        var appHostAssemblyPath = foundFile;
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostAssemblyPath, testOutput);
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
 
