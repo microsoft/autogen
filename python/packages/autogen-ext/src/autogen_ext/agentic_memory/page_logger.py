@@ -20,7 +20,7 @@ from autogen_core.models import (
 from ._utils import MessageContent, hash_directory
 
 
-def html_opening(file_title: str, finished: bool = False) -> str:
+def _html_opening(file_title: str, finished: bool = False) -> str:
     """
     Returns the opening text of a simple HTML file.
     """
@@ -40,30 +40,11 @@ def html_opening(file_title: str, finished: bool = False) -> str:
     return st
 
 
-def html_closing() -> str:
+def _html_closing() -> str:
     """
     Return the closing text of a simple HTML file.
     """
     return """</body></html>"""
-
-
-def decorate_text(text: str, color: str, weight: str = "bold", demarcate: bool = False) -> str:
-    """
-    Returns a string of text with HTML styling for weight and color.
-    """
-    if demarcate:
-        text = f"<<<<<  {text}  >>>>>"
-    return f'<span style="color: {color}; font-weight: {weight};">{text}</span>'
-
-
-def link_to_image(image_path: str, description: str) -> str:
-    """
-    Returns an HTML string defining a thumbnail link to an image.
-    """
-    # To avoid a bug in heml rendering aht displays underscores to the left of thumbnails,
-    # define the following string on a single line.
-    link = f"""<a href="{image_path}"><img src="{image_path}" alt="{description}" style="width: 300px; height: auto;"></a>"""
-    return link
 
 
 class PageLogger:
@@ -144,6 +125,25 @@ class PageLogger:
             f.write("\n")
             f.write("{} files\n".format(num_files))
             f.write("{} subdirectories\n".format(num_subdirs))
+
+    @staticmethod
+    def _decorate_text(text: str, color: str, weight: str = "bold", demarcate: bool = False) -> str:
+        """
+        Returns a string of text with HTML styling for weight and color.
+        """
+        if demarcate:
+            text = f"<<<<<  {text}  >>>>>"
+        return f'<span style="color: {color}; font-weight: {weight};">{text}</span>'
+
+    @staticmethod
+    def _link_to_image(image_path: str, description: str) -> str:
+        """
+        Returns an HTML string defining a thumbnail link to an image.
+        """
+        # To avoid a bug in heml rendering aht displays underscores to the left of thumbnails,
+        # define the following string on a single line.
+        link = f"""<a href="{image_path}"><img src="{image_path}" alt="{description}" style="width: 300px; height: auto;"></a>"""
+        return link
 
     def _get_next_page_id(self) -> int:
         """Returns the next page id and increments the counter."""
@@ -236,7 +236,7 @@ class PageLogger:
         elif isinstance(message, FunctionExecutionResultMessage):
             source = "FUNCTION"
             color = "red"
-        return decorate_text(source, color, demarcate=True)
+        return self._decorate_text(source, color, demarcate=True)
 
     def _format_message_content(self, message_content: MessageContent) -> str:
         """
@@ -257,7 +257,7 @@ class PageLogger:
                     image_path = os.path.join(self.log_dir, image_filename)
                     item.image.save(image_path)
                     # Add a link to the image.
-                    content_list.append(link_to_image(image_filename, "message_image"))
+                    content_list.append(self._link_to_image(image_filename, "message_image"))
                 elif isinstance(item, Dict):
                     # Add a dictionary to the log.
                     json_str = json.dumps(item, indent=4)
@@ -299,7 +299,7 @@ class PageLogger:
         for m in input_messages:
             page.add_lines("\n" + self._message_source(m))
             page.add_lines(self._format_message_content(message_content=m.content))
-        page.add_lines("\n" + decorate_text("ASSISTANT RESPONSE", "green", demarcate=True))
+        page.add_lines("\n" + self._decorate_text("ASSISTANT RESPONSE", "green", demarcate=True))
         page.add_lines("\n" + response_str + "\n")
         page.flush()
         return page
@@ -362,7 +362,7 @@ class PageLogger:
         local_image_path = os.path.join(self.log_dir, target_image_filename)
         shutil.copyfile(source_image_path, local_image_path)
         self._log_text("\n" + description)
-        self._log_text(link_to_image(target_image_filename, description))
+        self._log_text(self._link_to_image(target_image_filename, description))
 
     def flush(self, finished: bool = False) -> None:
         """
@@ -373,14 +373,14 @@ class PageLogger:
         # Create a call tree of the log.
         call_tree_path = os.path.join(self.log_dir, self.name + ".html")
         with open(call_tree_path, "w") as f:
-            f.write(html_opening("0 Call Tree", finished=finished))
+            f.write(_html_opening("0 Call Tree", finished=finished))
             f.write(f"<h3>{self.name}</h3>")
             f.write("\n")
             for page in self.pages:
                 if page.show_in_call_tree:
                     f.write(page.line_text + "\n")
             f.write("\n")
-            f.write(html_closing())
+            f.write(_html_closing())
 
     def enter_function(self) -> Optional["Page"]:
         """
@@ -489,14 +489,14 @@ class Page:
         """
         page_path = os.path.join(self.page_logger.log_dir, self.index_str + ".html")
         with open(page_path, "w") as f:
-            f.write(html_opening(self.file_title, finished=self.finished))
+            f.write(_html_opening(self.file_title, finished=self.finished))
             f.write(f"<h3>{self.file_title}</h3>\n")
             for line in self.lines:
                 try:
                     f.write(f"{line}\n")
                 except UnicodeEncodeError:
                     f.write("UnicodeEncodeError in this line.\n")
-            f.write(html_closing())
+            f.write(_html_closing())
             f.flush()
 
 

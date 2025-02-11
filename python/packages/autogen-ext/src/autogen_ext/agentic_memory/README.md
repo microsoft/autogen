@@ -41,7 +41,7 @@ We’ve successfully tested agentic memory with a simple AssistantAgent and Mage
 
 ## Memory Creation and Storage
 
-Each stored memory is an insight (in text form) crafted to help the agent accomplish future tasks that are similar
+Each stored memory (called a _memo_) is an insight (in text form) crafted to help the agent accomplish future tasks that are similar
 to some task encountered in the past. If the user provides advice for solving a given task,
 the advice is extracted and stored as an insight. If the user demonstrates how to perform a task,
 the task and demonstration are stored together as an insight that could be applied to similar but different tasks.
@@ -63,7 +63,7 @@ When the agent is given a task, the following steps are performed by the memory 
 1. The task is rephrased into a generalized form.
 2. A set of free-form, multi-word query topics are generated from the generalized task.
 3. A potentially large number of previously stored topics, those most similar to each query topic, are retrieved from the vector DB along with the insights they map to.
-4. These candidate insights are filtered by the aggregate similarity of their stored topics to the query topics.
+4. These candidate memos are filtered by the aggregate similarity of their stored topics to the query topics.
 5. In the final filtering stage, an LLM is prompted to return only those insights that seem potentially useful in solving the task at hand.
 
 Retrieved insights that pass the filtering steps are listed under a heading like

@@ -48,7 +48,7 @@ class Apprentice:
         logger: PageLogger | None = None,
     ) -> None:
         if logger is None:
-            logger = PageLogger({"level": "INFO"})
+            logger = PageLogger({"level": "DEBUG"})
         self.logger = logger
 
         # Assign default values that can be overridden by config.

@@ -8,20 +8,18 @@ from .page_logger import PageLogger
 
 
 @dataclass
-class Insight:
+class Memo:
     """
-    Represents a task-completion insight, which is a string that may help solve a task.
+    Represents an atomic unit of memory that can be stored in a memory bank and later retrieved.
     """
 
-    id: str
-    insight_str: str
-    task_str: str | None
-    topics: List[str]
+    task: str | None  # The task description, if any.
+    insight: str  # A hint, solution, plan, or any other text that may help solve a similar task.
 
 
 class AgenticMemoryBank:
     """
-    Stores task-completion insights in a vector DB for later retrieval.
+    Stores task-completion insights as memories in a vector DB for later retrieval.
 
     Args:
         - reset: True to clear the DB before starting.
@@ -29,16 +27,16 @@ class AgenticMemoryBank:
             - path: The path to the directory where the memory bank files are stored.
             - relevance_conversion_threshold: The threshold used to normalize relevance.
             - n_results: The maximum number of most relevant results to return for any given topic.
-            - distance_threshold: The maximum topic-insight distance for an insight to be retrieved.
+            - distance_threshold: The maximum string-pair distance for a memo to be retrieved.
         - logger: An optional logger. If None, no logging will be performed.
 
     Methods:
         - reset: Forces immediate deletion of all contents, in memory and on disk.
-        - save_insights: Saves the current insight structures (possibly empty) to disk.
-        - contains_insights: Returns True if the memory bank contains any insights.
-        - add_insight: Adds an insight to the memory bank, given topics related to the insight, and optionally the task.
+        - save_memos: Saves the current memo structures (possibly empty) to disk.
+        - contains_memos: Returns True if the memory bank contains any memos.
+        - add_memo: Adds a memo to the memory bank, given topics related to the insight, and optionally the task.
         - add_task_with_solution: Adds a task-insight pair to the memory bank, to be retrieved together later.
-        - get_relevant_insights: Returns any insights from the memory bank that appear sufficiently relevant to the given task topics.
+        - get_relevant_memos: Returns any memos from the memory bank that appear sufficiently relevant to the input topics.
     """
 
     def __init__(
@@ -73,24 +71,24 @@ class AgenticMemoryBank:
                     self.logger.error('Unexpected item in config: ["{}"] = {}'.format(key, config[key]))
 
         path_to_db_dir = os.path.join(memory_dir_path, "string_map")
-        self.path_to_dict = os.path.join(memory_dir_path, "uid_insight_dict.pkl")
+        self.path_to_dict = os.path.join(memory_dir_path, "uid_memo_dict.pkl")
 
         self.string_map = StringSimilarityMap(reset=reset, path_to_db_dir=path_to_db_dir, logger=self.logger)
 
-        # Load or create the associated insight dict on disk.
-        self.uid_insight_dict: Dict[str, Insight] = {}
-        self.last_insight_id = 0
+        # Load or create the associated memo dict on disk.
+        self.uid_memo_dict: Dict[str, Memo] = {}
+        self.last_memo_id = 0
         if (not reset) and os.path.exists(self.path_to_dict):
-            self.logger.info("\nLOADING INSIGHTS FROM DISK  {}".format(self.path_to_dict))
+            self.logger.info("\nLOADING MEMOS FROM DISK  {}".format(self.path_to_dict))
             self.logger.info("    Location = {}".format(self.path_to_dict))
             with open(self.path_to_dict, "rb") as f:
-                self.uid_insight_dict = pickle.load(f)
-                self.last_insight_id = len(self.uid_insight_dict)
-                self.logger.info("\n{} INSIGHTS LOADED".format(len(self.uid_insight_dict)))
+                self.uid_memo_dict = pickle.load(f)
+                self.last_memo_id = len(self.uid_memo_dict)
+                self.logger.info("\n{} MEMOS LOADED".format(len(self.uid_memo_dict)))
 
         # Clear the DB if requested.
         if reset:
-            self._reset_insights()
+            self._reset_memos()
 
         self.logger.leave_function()
 
@@ -99,83 +97,102 @@ class AgenticMemoryBank:
         Forces immediate deletion of all contents, in memory and on disk.
         """
         self.string_map.reset_db()
-        self._reset_insights()
+        self._reset_memos()
 
-    def _reset_insights(self) -> None:
+    def _reset_memos(self) -> None:
         """
-        Forces immediate deletion of the insights, in memory and on disk.
+        Forces immediate deletion of the memos, in memory and on disk.
         """
-        self.uid_insight_dict = {}
-        self.save_insights()
+        self.uid_memo_dict = {}
+        self.save_memos()
 
-    def save_insights(self) -> None:
+    def save_memos(self) -> None:
         """
-        Saves the current insight structures (possibly empty) to disk.
+        Saves the current memo structures (possibly empty) to disk.
         """
         self.string_map.save_string_pairs()
         with open(self.path_to_dict, "wb") as file:
-            pickle.dump(self.uid_insight_dict, file)
+            pickle.dump(self.uid_memo_dict, file)
 
-    def contains_insights(self) -> bool:
+    def contains_memos(self) -> bool:
         """
-        Returns True if the memory bank contains any insights.
+        Returns True if the memory bank contains any memo.
         """
-        return len(self.uid_insight_dict) > 0
+        return len(self.uid_memo_dict) > 0
 
-    def _map_topics_to_insight(self, topics: List[str], insight_id: str, insight: Insight) -> None:
+    def _map_topics_to_memo(self, topics: List[str], memo_id: str, memo: Memo) -> None:
         """
-        Adds a mapping in the vec DB from each topic to the insight.
+        Adds a mapping in the vec DB from each topic to the memo.
         """
         self.logger.enter_function()
-        self.logger.info("\nINSIGHT\n{}".format(insight.insight_str))
+        self.logger.info("\nINSIGHT\n{}".format(memo.insight))
         for topic in topics:
             self.logger.info("\n TOPIC = {}".format(topic))
-            self.string_map.add_input_output_pair(topic, insight_id)
-        self.uid_insight_dict[insight_id] = insight
+            self.string_map.add_input_output_pair(topic, memo_id)
+        self.uid_memo_dict[memo_id] = memo
         self.logger.leave_function()
 
-    def add_insight(self, insight_str: str, topics: List[str], task_str: Optional[str] = None) -> None:
+    def add_memo(self, insight_str: str, topics: List[str], task_str: Optional[str] = None) -> None:
         """
         Adds an insight to the memory bank, given topics related to the insight, and optionally the task.
         """
-        self.last_insight_id += 1
-        id_str = str(self.last_insight_id)
-        insight = Insight(id=id_str, insight_str=insight_str, task_str=task_str, topics=topics)
-        self._map_topics_to_insight(topics, id_str, insight)
+        self.logger.enter_function()
+        self.last_memo_id += 1
+        id_str = str(self.last_memo_id)
+        insight = Memo(insight=insight_str, task=task_str)
+        self._map_topics_to_memo(topics, id_str, insight)
+        self.logger.leave_function()
 
     def add_task_with_solution(self, task: str, solution: str, topics: List[str]) -> None:
         """
         Adds a task-solution pair to the memory bank, to be retrieved together later as a combined insight.
         This is useful when the insight is a demonstration of how to solve a given type of task.
         """
-        self.last_insight_id += 1
-        id_str = str(self.last_insight_id)
+        self.logger.enter_function()
+        self.last_memo_id += 1
+        id_str = str(self.last_memo_id)
         # Prepend the insight to the task description for context.
         insight_str = "Example task:\n\n{}\n\nExample solution:\n\n{}".format(task, solution)
-        insight = Insight(id=id_str, insight_str=insight_str, task_str=task, topics=topics)
-        self._map_topics_to_insight(topics, id_str, insight)
+        memo = Memo(insight=insight_str, task=task)
+        self._map_topics_to_memo(topics, id_str, memo)
+        self.logger.leave_function()
 
-    def get_relevant_insights(self, task_topics: List[str]) -> Dict[str, float]:
+    def get_relevant_memos(self, topics: List[str]) -> List[Memo]:
         """
-        Returns any insights from the memory bank that appear sufficiently relevant to the given task topics.
+        Returns any memos from the memory bank that appear sufficiently relevant to the input topics.
         """
-        # Process the matching topics to build a dict of insight-relevance pairs.
-        matches: List[Tuple[str, str, float]] = []  # Each match is a tuple: (topic, insight, distance)
-        insight_relevance_dict: Dict[str, float] = {}
-        for topic in task_topics:
+        self.logger.enter_function()
+
+        # Retrieve all topic matches, and gather them into a single list.
+        matches: List[Tuple[str, str, float]] = []  # Each match is a tuple: (topic, memo_id, distance)
+        for topic in topics:
             matches.extend(self.string_map.get_related_string_pairs(topic, self.n_results, self.distance_threshold))
+
+        # Build a dict of memo-relevance pairs from the matches.
+        memo_relevance_dict: Dict[str, float] = {}
         for match in matches:
             relevance = self.relevance_conversion_threshold - match[2]
-            insight_id = match[1]
-            insight_str = self.uid_insight_dict[insight_id].insight_str
-            if insight_str in insight_relevance_dict:
-                insight_relevance_dict[insight_str] += relevance
+            memo_id = match[1]
+            if memo_id in memo_relevance_dict:
+                memo_relevance_dict[memo_id] += relevance
             else:
-                insight_relevance_dict[insight_str] = relevance
+                memo_relevance_dict[memo_id] = relevance
 
-        # Filter out insights with overall relevance below zero.
-        for insight in list(insight_relevance_dict.keys()):
-            if insight_relevance_dict[insight] < 0:
-                del insight_relevance_dict[insight]
+        # Log the details of all the retrieved memos.
+        self.logger.info("\n{} POTENTIALLY RELEVANT MEMOS".format(len(memo_relevance_dict)))
+        for memo_id, relevance in memo_relevance_dict.items():
+            memo = self.uid_memo_dict[memo_id]
+            details = ""
+            if memo.task is not None:
+                details += "\n  TASK: {}\n".format(memo.task)
+            details += "\n  INSIGHT: {}\n\n  RELEVANCE: {:.3f}\n".format(memo.insight, relevance)
+            self.logger.info(details)
 
-        return insight_relevance_dict
+        # Compose the list of sufficiently relevant memos to return.
+        memo_list: List[Memo] = []
+        for memo_id in memo_relevance_dict:
+            if memo_relevance_dict[memo_id] >= 0:
+                memo_list.append(self.uid_memo_dict[memo_id])
+
+        self.logger.leave_function()
+        return memo_list

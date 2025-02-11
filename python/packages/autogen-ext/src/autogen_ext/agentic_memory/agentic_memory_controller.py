@@ -4,7 +4,7 @@ from autogen_core.models import (
     ChatCompletionClient,
 )
 
-from ._agentic_memory_bank import AgenticMemoryBank
+from ._agentic_memory_bank import AgenticMemoryBank, Memo
 from ._prompter import Prompter
 from .grader import Grader
 from .page_logger import PageLogger
@@ -28,9 +28,9 @@ class AgenticMemoryController:
         reset_memory: Resets the memory bank.
         train_on_task: Repeatedly assigns a task to the agent, and tries to learn from failures by creating useful insights as memories.
         test_on_task: Assigns a task to the agent, along with any relevant insights retrieved from memory.
-        add_insight_to_memory: Adds one insight to the memory bank, using the task (if provided) as context.
+        add_memo: Adds one insight to the memory bank, using the task (if provided) as context.
         add_task_solution_pair_to_memory: Adds a task-solution pair to the memory bank, to be retrieved together later as a combined insight.
-        retrieve_relevant_insights: Retrieve any insights from the DB that seem relevant to the task.
+        retrieve_relevant_memos: Retrieves any memos from memory that seem relevant to the task.
         assign_task: Assigns a task to the agent, along with any relevant insights/memories.
         handle_user_message: Handles a user message, extracting any advice and assigning a task to the agent.
     """
@@ -39,12 +39,12 @@ class AgenticMemoryController:
         self,
         reset: bool,
         client: ChatCompletionClient,
-        task_assignment_callback: Callable[[str], Awaitable[Tuple[str, str]]],
+        task_assignment_callback: Callable[[str], Awaitable[Tuple[str, str]]] | None,
         config: Dict[str, Any] | None = None,
         logger: PageLogger | None = None,
     ) -> None:
         if logger is None:
-            logger = PageLogger({"level": "INFO"})
+            logger = PageLogger({"level": "DEBUG"})
         self.logger = logger
         self.logger.enter_function()
 
@@ -89,7 +89,7 @@ class AgenticMemoryController:
             self.logger.info("No useful insight was discovered.\n")
         else:
             self.logger.info("A new insight was created:\n{}".format(insight))
-            await self.add_insight_to_memory(insight, task)
+            await self.add_memo(insight, task)
         self.logger.leave_function()
 
     async def test_on_task(self, task: str, expected_answer: str, num_trials: int = 1) -> Tuple[str, int, int]:
@@ -97,6 +97,7 @@ class AgenticMemoryController:
         Assigns a task to the agent, along with any relevant insights retrieved from memory.
         """
         self.logger.enter_function()
+        assert self.task_assignment_callback is not None
         response = ""
         num_successes = 0
 
@@ -105,7 +106,8 @@ class AgenticMemoryController:
             task_plus_insights = task
 
             # Try to retrieve any relevant memories from the DB.
-            filtered_insights = await self.retrieve_relevant_insights(task)
+            filtered_memos = await self.retrieve_relevant_memos(task)
+            filtered_insights = [memo.insight for memo in filtered_memos]
             if len(filtered_insights) > 0:
                 self.logger.info("Relevant insights were retrieved from memory.\n")
                 memory_section = self._format_memory_section(filtered_insights)
@@ -132,7 +134,7 @@ class AgenticMemoryController:
         self.logger.leave_function()
         return response, num_successes, num_trials
 
-    async def add_insight_to_memory(self, insight: str, task: None | str = None) -> None:
+    async def add_memo(self, insight: str, task: None | str = None) -> None:
         """
         Adds one insight to the memory bank, using the task (if provided) as context.
         """
@@ -160,7 +162,7 @@ class AgenticMemoryController:
         self.logger.info("")
 
         # Add the insight to the memory bank.
-        self.memory_bank.add_insight(insight, topics, generalized_task)
+        self.memory_bank.add_memo(insight, topics, task)
         self.logger.leave_function()
 
     async def add_task_solution_pair_to_memory(self, task: str, solution: str) -> None:
@@ -186,13 +188,13 @@ class AgenticMemoryController:
         self.memory_bank.add_task_with_solution(task=task, solution=solution, topics=topics)
         self.logger.leave_function()
 
-    async def retrieve_relevant_insights(self, task: str) -> List[str]:
+    async def retrieve_relevant_memos(self, task: str) -> List[Memo]:
         """
-        Retrieve any insights from the DB that seem relevant to the task.
+        Retrieves any memos from memory that seem relevant to the task.
         """
         self.logger.enter_function()
 
-        if self.memory_bank.contains_insights():
+        if self.memory_bank.contains_memos():
             self.logger.info("\nCURRENT TASK:")
             self.logger.info(task)
 
@@ -203,29 +205,26 @@ class AgenticMemoryController:
             self.logger.info("\n".join(task_topics))
             self.logger.info("")
 
-            # Retrieve relevant insights from the memory bank.
-            relevant_insights_and_relevances = self.memory_bank.get_relevant_insights(task_topics=task_topics)
-            relevant_insights: List[str] = []
-            self.logger.info("\n{} POTENTIALLY RELEVANT INSIGHTS".format(len(relevant_insights_and_relevances)))
-            for insight, relevance in relevant_insights_and_relevances.items():
-                self.logger.info("\n  INSIGHT: {}\n  RELEVANCE: {:.3f}".format(insight, relevance))
-                relevant_insights.append(insight)
+            # Retrieve relevant memos from the memory bank.
+            memo_list = self.memory_bank.get_relevant_memos(topics=task_topics)
 
-            # Apply a final validation stage to keep only the insights that the LLM concludes are relevant.
-            validated_insights: List[str] = []
-            for insight in relevant_insights:
-                if await self.prompter.validate_insight(insight, task):
-                    validated_insights.append(insight)
+            # Apply a final validation stage to keep only the memos that the LLM concludes are sufficiently relevant.
+            validated_memos: List[Memo] = []
+            for memo in memo_list:
+                if await self.prompter.validate_insight(memo.insight, task):
+                    validated_memos.append(memo)
 
-            self.logger.info("\n{} VALIDATED INSIGHTS".format(len(validated_insights)))
-            for insight in validated_insights:
-                self.logger.info("\n  INSIGHT: {}".format(insight))
+            self.logger.info("\n{} VALIDATED MEMOS".format(len(validated_memos)))
+            for memo in validated_memos:
+                if memo.task is not None:
+                    self.logger.info("\n  TASK: {}".format(memo.task))
+                self.logger.info("\n  INSIGHT: {}".format(memo.insight))
         else:
-            self.logger.info("\nNO INSIGHTS WERE FOUND IN MEMORY")
-            validated_insights = []
+            self.logger.info("\nNO SUFFICIENTLY RELEVANT MEMOS WERE FOUND IN MEMORY")
+            validated_memos = []
 
         self.logger.leave_function()
-        return validated_insights
+        return validated_memos
 
     def _format_memory_section(self, memories: List[str]) -> str:
         """
@@ -248,6 +247,7 @@ class AgenticMemoryController:
         self.logger.info("\nTask description, including any insights:  {}".format(task_plus_insights))
         self.logger.info("\nExpected answer:  {}\n".format(expected_answer))
 
+        assert self.task_assignment_callback is not None
         failure_found = False
         response, work_history = "", ""
 
@@ -281,7 +281,8 @@ class AgenticMemoryController:
         self.logger.info("\nExpected answer:  {}\n".format(expected_answer))
 
         final_response = ""
-        old_insights = await self.retrieve_relevant_insights(task)
+        old_memos = await self.retrieve_relevant_memos(task)
+        old_insights = [memo.insight for memo in old_memos]
         new_insights: List[str] = []
         last_insight = None
         insight = None
@@ -342,9 +343,12 @@ class AgenticMemoryController:
         """
         self.logger.enter_function()
 
+        assert self.task_assignment_callback is not None
+
         if use_memory:
             # Try to retrieve any relevant memories from the DB.
-            filtered_insights = await self.retrieve_relevant_insights(task)
+            filtered_memos = await self.retrieve_relevant_memos(task)
+            filtered_insights = [memo.insight for memo in filtered_memos]
             if len(filtered_insights) > 0:
                 self.logger.info("Relevant insights were retrieved from memory.\n")
                 memory_section = self._format_memory_section(filtered_insights)
@@ -370,7 +374,7 @@ class AgenticMemoryController:
         self.logger.info("Advice:  {}".format(advice))
 
         if advice is not None:
-            await self.add_insight_to_memory(insight=advice)
+            await self.add_memo(insight=advice)
 
         response = await self.assign_task(text, use_memory=(advice is None), should_await=should_await)
 
