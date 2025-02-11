@@ -88,9 +88,13 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             the Python process exits with atext. Defaults to True.
         functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
         functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
-        extra_volumes (Optional[Dict[str, Dict[str, str]]], optional): A dictionary of extra volumes (beyond the work_dir) to mount to the container. Defaults to None.
+        extra_volumes (Optional[Dict[str, Dict[str, str]]], optional): A dictionary of extra volumes (beyond the work_dir) to mount to the container;
+            key is host source path and value 'bind' is the container path. See  Defaults to None.
+            Example: extra_volumes = {'/home/user1/': {'bind': '/mnt/vol2', 'mode': 'rw'}, '/var/www': {'bind': '/mnt/vol1', 'mode': 'ro'}}
         extra_hosts (Optional[Dict[str, str]], optional): A dictionary of host mappings to add to the container. (See Docker docs on extra_hosts) Defaults to None.
+            Example: extra_hosts = {"kubernetes.docker.internal": "host-gateway"}
         init_command (Optional[str], optional): A shell command to run before each shell operation execution. Defaults to None.
+            Example: init_command="kubectl config use-context docker-hub"
     """
 
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
