@@ -25,6 +25,14 @@ class SseMcpToolAdapter(
     with AutoGen agents. Common use cases include integrating with remote MCP services,
     cloud-based tools, and web APIs that implement the Model Context Protocol (MCP).
 
+    .. note::
+
+        To use this class, you need to install `mcp` extra for the `autogen-ext` package.
+
+        .. code-block:: bash
+
+            pip install -U "autogen-ext[mcp]"
+
     Args:
         server_params (SseServerParameters): Parameters for the MCP server connection,
             including URL, headers, and timeouts
