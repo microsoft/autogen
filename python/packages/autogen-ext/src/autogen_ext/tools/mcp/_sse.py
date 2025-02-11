@@ -24,7 +24,7 @@ class SseMcpToolAdapter(
     This adapter enables using MCP-compatible tools that communicate over HTTP with SSE
     with AutoGen agents. Common use cases include integrating with remote MCP services,
     cloud-based tools, and web APIs that implement the Model Context Protocol (MCP).
-    
+
     .. note::
 
         To use this class, you need to install `mcp` extra for the `autogen-ext` package.

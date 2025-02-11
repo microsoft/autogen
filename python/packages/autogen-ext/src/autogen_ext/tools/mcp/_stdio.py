@@ -23,7 +23,7 @@ class StdioMcpToolAdapter(
     This adapter enables using MCP-compatible tools that communicate over standard input/output
     with AutoGen agents. Common use cases include wrapping command-line tools and local services
     that implement the Model Context Protocol (MCP).
-    
+
     .. note::
 
         To use this class, you need to install `mcp` extra for the `autogen-ext` package.
