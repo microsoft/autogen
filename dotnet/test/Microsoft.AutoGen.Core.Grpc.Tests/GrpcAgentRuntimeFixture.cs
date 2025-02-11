@@ -7,23 +7,29 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
 namespace Microsoft.AutoGen.Core.Grpc.Tests;
+
 /// <summary>
 /// Fixture for setting up the gRPC agent runtime for testing.
 /// </summary>
 public sealed class GrpcAgentRuntimeFixture : IDisposable
 {
     /// the gRPC agent runtime.
-    public AgentsApp? Client { get; private set; }
+    public AgentsApp? AgentsApp { get; private set; }
+
     /// mock server for testing.
-    public WebApplication? Server { get; private set; }
+    public WebApplication? GatewayServer { get; private set; }
+
+    public GrpcAgentServiceCollector GrpcRequestCollector { get; }
 
     public GrpcAgentRuntimeFixture()
     {
+        GrpcRequestCollector = new GrpcAgentServiceCollector();
     }
+
     /// <summary>
     /// Start - gets a new port and starts fresh instances
     /// </summary>
-    public async Task<IAgentRuntime> Start(bool initialize = true)
+    public async Task<IAgentRuntime> Start(bool startRuntime = true, bool registerDefaultAgent = true)
     {
         int port = GetAvailablePort(); // Get a new port per test run
 
@@ -31,30 +37,47 @@ public sealed class GrpcAgentRuntimeFixture : IDisposable
         Environment.SetEnvironmentVariable("ASPNETCORE_HTTPS_PORTS", port.ToString());
         Environment.SetEnvironmentVariable("AGENT_HOST", $"https://localhost:{port}");
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
-        Server = ServerBuilder().Result;
-        await Server.StartAsync().ConfigureAwait(true);
-        Client = ClientBuilder().Result;
-        await Client.StartAsync().ConfigureAwait(true);
 
-        var worker = Client.Services.GetRequiredService<IAgentRuntime>();
+        this.GatewayServer = await this.InitializeGateway();
+        this.AgentsApp = await this.InitializeRuntime(startRuntime, registerDefaultAgent);
+        var runtime = AgentsApp.Services.GetRequiredService<IAgentRuntime>();
 
-        return (worker);
+        return runtime;
     }
-    private static async Task<AgentsApp> ClientBuilder()
+
+    private async Task<AgentsApp> InitializeRuntime(bool callStartAsync, bool registerDefaultAgent)
     {
         var appBuilder = new AgentsAppBuilder();
         appBuilder.AddGrpcAgentWorker();
-        appBuilder.AddAgent<TestProtobufAgent>("TestAgent");
-        return await appBuilder.BuildAsync();
+
+        if (registerDefaultAgent)
+        {
+            appBuilder.AddAgent<TestProtobufAgent>("TestAgent");
+        }
+
+        AgentsApp result = await appBuilder.BuildAsync();
+
+        if (callStartAsync)
+        {
+            await result.StartAsync().ConfigureAwait(true);
+        }
+
+        return result;
     }
-    private static async Task<WebApplication> ServerBuilder()
+
+    private async Task<WebApplication> InitializeGateway()
     {
         var builder = WebApplication.CreateBuilder();
         builder.Services.AddGrpc();
-        var app = builder.Build();
+        builder.Services.AddSingleton(this.GrpcRequestCollector);
+
+        WebApplication app = builder.Build();
         app.MapGrpcService<GrpcAgentServiceFixture>();
+
+        await app.StartAsync().ConfigureAwait(true);
         return app;
     }
+
     private static int GetAvailablePort()
     {
         using var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
@@ -63,13 +86,14 @@ public sealed class GrpcAgentRuntimeFixture : IDisposable
         listener.Stop();
         return port;
     }
+
     /// <summary>
     /// Stop - stops the agent and ensures cleanup
     /// </summary>
     public void Stop()
     {
-        (Client as IHost)?.StopAsync(TimeSpan.FromSeconds(30)).GetAwaiter().GetResult();
-        Server?.StopAsync().GetAwaiter().GetResult();
+        (AgentsApp as IHost)?.StopAsync(TimeSpan.FromSeconds(30)).GetAwaiter().GetResult();
+        GatewayServer?.StopAsync().GetAwaiter().GetResult();
     }
 
     /// <summary>
