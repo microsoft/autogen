@@ -22,7 +22,15 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly IRegistryGrain _gatewayRegistry;
     private readonly IGateway _reference;
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
+    /// <summary>
+    /// a map of the clientids form the grpc connection headers to the worker connections that service that id
+    /// for the Message Channel
+    /// </summary>
     public readonly ConcurrentDictionary<string, GrpcWorkerConnection> _workers = new();
+    /// <summary>
+    /// a map of the clientids form the grpc connection headers to the worker connections for the Control Channel
+    /// </summary>
+    public readonly ConcurrentDictionary<string, GrpcWorkerConnection> _controlWorkers = new();
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
     private readonly ConcurrentDictionary<(GrpcWorkerConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
 
@@ -219,19 +227,22 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         await workerProcess.Connect().ConfigureAwait(false);
     }
 
-    /*/// <summary>
+    // <summary>
     /// Connects to the control channel.
     /// </summary>
     /// <param name="requestStream">The request stream.</param>
     /// <param name="responseStream">The response stream.</param>
     /// <param name="context">The server call context.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    internal async Task ConnectToControlChannel(IAsyncStreamReader<ControlMessage> requestStream, IServerStreamWriter<ControlMessage> responseStream, ServerCallContext context)
+    internal async Task ConnectToControlChannel(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
     {
         _logger.LogInformation("Received new control channel connection from {Peer}.", context.Peer);
-        //var controlChannel = new GrpcControlChannel(this, requestStream, responseStream, context);
-        //await controlChannel.Connect().ConfigureAwait(false);
-    }*/
+        var clientId = (context.RequestHeaders.Get("client-id")?.Value) ??
+            throw new RpcException(new Status(StatusCode.InvalidArgument, "Client ID is required."));
+        var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
+        _controlWorkers.GetOrAdd(clientId, workerProcess);
+        await workerProcess.Connect().ConfigureAwait(false);
+    }
 
     /// <summary>
     /// Handles received messages from a worker connection.
@@ -372,6 +383,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         var clientId = workerProcess.ServerCallContext.RequestHeaders.Get("client-id")?.Value ??
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Grpc Client ID is required."));
         _workers.TryRemove(clientId, out _);
+        _controlWorkers.TryRemove(clientId, out _);
         var types = workerProcess.GetSupportedTypes();
         foreach (var type in types)
         {
