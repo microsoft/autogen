@@ -13,6 +13,8 @@ namespace Microsoft.AutoGen.Core.Grpc.Tests;
 /// </summary>
 public sealed class GrpcAgentRuntimeFixture : IDisposable
 {
+    private FreePortManager.PortTicket? portTicket;
+
     /// the gRPC agent runtime.
     public AgentsApp? AgentsApp { get; private set; }
 
@@ -29,13 +31,13 @@ public sealed class GrpcAgentRuntimeFixture : IDisposable
     /// <summary>
     /// Start - gets a new port and starts fresh instances
     /// </summary>
-    public async Task<IAgentRuntime> Start(bool startRuntime = true, bool registerDefaultAgent = true)
+    public async Task<IAgentRuntime> StartAsync(bool startRuntime = true, bool registerDefaultAgent = true)
     {
-        int port = GetAvailablePort(); // Get a new port per test run
+        this.portTicket = GrpcAgentRuntimeFixture.PortManager.GetAvailablePort(); // Get a new port per test run
 
         // Update environment variables so each test runs independently
-        Environment.SetEnvironmentVariable("ASPNETCORE_HTTPS_PORTS", port.ToString());
-        Environment.SetEnvironmentVariable("AGENT_HOST", $"https://localhost:{port}");
+        Environment.SetEnvironmentVariable("ASPNETCORE_HTTPS_PORTS", portTicket);
+        Environment.SetEnvironmentVariable("AGENT_HOST", $"https://localhost:{portTicket}");
         Environment.SetEnvironmentVariable("ASPNETCORE_ENVIRONMENT", "Development");
 
         this.GatewayServer = await this.InitializeGateway();
@@ -78,14 +80,7 @@ public sealed class GrpcAgentRuntimeFixture : IDisposable
         return app;
     }
 
-    private static int GetAvailablePort()
-    {
-        using var listener = new System.Net.Sockets.TcpListener(System.Net.IPAddress.Loopback, 0);
-        listener.Start();
-        int port = ((System.Net.IPEndPoint)listener.LocalEndpoint).Port;
-        listener.Stop();
-        return port;
-    }
+    private static readonly FreePortManager PortManager = new();
 
     /// <summary>
     /// Stop - stops the agent and ensures cleanup
@@ -94,6 +89,7 @@ public sealed class GrpcAgentRuntimeFixture : IDisposable
     {
         (AgentsApp as IHost)?.StopAsync(TimeSpan.FromSeconds(30)).GetAwaiter().GetResult();
         GatewayServer?.StopAsync().GetAwaiter().GetResult();
+        portTicket?.Dispose();
     }
 
     /// <summary>

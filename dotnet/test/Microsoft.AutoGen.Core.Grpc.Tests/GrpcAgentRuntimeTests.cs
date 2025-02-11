@@ -9,13 +9,13 @@ using Xunit;
 namespace Microsoft.AutoGen.Core.Grpc.Tests;
 
 [Trait("Category", "GRPC")]
-public class GrpcAgentRuntimeTests
+public class GrpcAgentRuntimeTests : TestBase
 {
     [Fact]
     public async Task GatewayShouldNotReceiveRegistrationsUntilRuntimeStart()
     {
         var fixture = new GrpcAgentRuntimeFixture();
-        var runtime = (GrpcAgentRuntime)await fixture.Start(startRuntime: false, registerDefaultAgent: false);
+        var runtime = (GrpcAgentRuntime)await fixture.StartAsync(startRuntime: false, registerDefaultAgent: false);
 
         Logger<BaseAgent> logger = new(new LoggerFactory());
 
