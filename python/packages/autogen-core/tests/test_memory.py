@@ -1,7 +1,7 @@
 from typing import Any
 
 import pytest
-from autogen_core import CancellationToken
+from autogen_core import CancellationToken, ComponentModel
 from autogen_core.memory import (
     ListMemory,
     Memory,
@@ -21,6 +21,34 @@ def test_memory_protocol_attributes() -> None:
     assert hasattr(Memory, "add")
     assert hasattr(Memory, "clear")
     assert hasattr(Memory, "close")
+
+
+def test_memory_component_load_config_from_base_model() -> None:
+    """Test that Memory component can be loaded from a BaseModel."""
+    config = ComponentModel(
+        provider="autogen_core.memory.ListMemory",
+        config={
+            "name": "test_memory",
+            "memory_contents": [MemoryContent(content="test", mime_type=MemoryMimeType.TEXT)],
+        },
+    )
+    memory = Memory.load_component(config)
+    assert isinstance(memory, ListMemory)
+    assert memory.name == "test_memory"
+    assert len(memory.content) == 1
+
+
+def test_memory_component_dump_config_to_base_model() -> None:
+    """Test that Memory component can be dumped to a BaseModel."""
+    memory = ListMemory(
+        name="test_memory", memory_contents=[MemoryContent(content="test", mime_type=MemoryMimeType.TEXT)]
+    )
+    config = memory.dump_component()
+    assert isinstance(config, ComponentModel)
+    assert config.provider == "autogen_core.memory.ListMemory"
+    assert config.component_type == "memory"
+    assert config.config["name"] == "test_memory"
+    assert len(config.config["memory_contents"]) == 1
 
 
 def test_memory_abc_implementation() -> None:

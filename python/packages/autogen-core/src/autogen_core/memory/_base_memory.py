@@ -5,6 +5,7 @@ from typing import Any, Dict, List, Union
 from pydantic import BaseModel, ConfigDict
 
 from .._cancellation_token import CancellationToken
+from .._component_config import ComponentBase
 from .._image import Image
 from ..model_context import ChatCompletionContext
 
@@ -49,7 +50,7 @@ class UpdateContextResult(BaseModel):
     memories: MemoryQueryResult
 
 
-class Memory(ABC):
+class Memory(ABC, ComponentBase[BaseModel]):
     """Protocol defining the interface for memory implementations.
 
     A memory is the storage for data that can be used to enrich or modify the model context.
@@ -63,6 +64,8 @@ class Memory(ABC):
 
     See :class:`~autogen_core.memory.ListMemory` for an example implementation.
     """
+
+    component_type = "memory"
 
     @abstractmethod
     async def update_context(
