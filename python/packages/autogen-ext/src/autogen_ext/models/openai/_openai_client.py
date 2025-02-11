@@ -567,7 +567,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         # Detect whether it is a function call or not.
         # We don't rely on choice.finish_reason as it is not always accurate, depending on the API used.
         content: Union[str, List[FunctionCall]]
-        thought: str |  None = None
+        thought: str | None = None
         if choice.message.function_call is not None:
             raise ValueError("function_call is deprecated and is not supported by this model client.")
         elif choice.message.tool_calls is not None and len(choice.message.tool_calls) > 0:
