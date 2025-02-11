@@ -164,3 +164,48 @@ async def test_docker_commandline_code_executor_start_stop_context_manager() -> 
     with tempfile.TemporaryDirectory() as temp_dir:
         async with DockerCommandLineCodeExecutor(work_dir=temp_dir) as _exec:
             pass
+
+
+@pytest.mark.asyncio
+async def test_docker_commandline_code_executor_extra_args() -> None:
+    if not docker_tests_enabled():
+        pytest.skip("Docker tests are disabled")
+
+    with tempfile.TemporaryDirectory() as temp_dir:
+        # Create a file in temp_dir to mount
+        host_file_path = Path(temp_dir) / "host_file.txt"
+        host_file_path.write_text("This is a test file.")
+
+        container_file_path = "/container/host_file.txt"
+
+        extra_volumes = {str(host_file_path): {"bind": container_file_path, "mode": "rw"}}
+        init_command = "echo 'Initialization command executed' > /workspace/init_command.txt"
+        extra_hosts = {"example.com": "127.0.0.1"}
+
+        async with DockerCommandLineCodeExecutor(
+            work_dir=temp_dir,
+            extra_volumes=extra_volumes,
+            init_command=init_command,
+            extra_hosts=extra_hosts,
+        ) as executor:
+            cancellation_token = CancellationToken()
+
+            # Verify init_command was executed
+            init_command_file_path = Path(temp_dir) / "init_command.txt"
+            assert init_command_file_path.exists()
+
+            # Verify extra_hosts
+            ns_lookup_code_blocks = [
+                CodeBlock(code="import socket; print(socket.gethostbyname('example.com'))", language="python")
+            ]
+            ns_lookup_result = await executor.execute_code_blocks(ns_lookup_code_blocks, cancellation_token)
+            assert ns_lookup_result.exit_code == 0
+            assert "127.0.0.1" in ns_lookup_result.output
+
+            # Verify the file is accessible in the volume mounted in extra_volumes
+            code_blocks = [
+                CodeBlock(code=f"with open('{container_file_path}') as f: print(f.read())", language="python")
+            ]
+            code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
+            assert code_result.exit_code == 0
+            assert "This is a test file." in code_result.output
