@@ -33,29 +33,35 @@ We provide a detailed guide on how to migrate your existing codebase from `v0.2`
 
 See each feature below for detailed information on how to migrate.
 
-- [Model Client](#model-client)
-- [Model Client for OpenAI-Compatible APIs](#model-client-for-openai-compatible-apis)
-- [Model Client Cache](#model-client-cache)
-- [Assistant Agent](#assistant-agent)
-- [Multi-Modal Agent](#multi-modal-agent)
-- [User Proxy](#user-proxy)
-- [Conversable Agent and Register Reply](#conversable-agent-and-register-reply)
-- [Save and Load Agent State](#save-and-load-agent-state)
-- [Two-Agent Chat](#two-agent-chat)
-- [Tool Use](#tool-use)
-- [Chat Result](#chat-result)
-- [Conversion between v0.2 and v0.4 Messages](#conversion-between-v02-and-v04-messages)
-- [Group Chat](#group-chat)
-- [Group Chat with Resume](#group-chat-with-resume)
-- [Save and Load Group Chat State](#save-and-load-group-chat-state)
-- [Group Chat with Tool Use](#group-chat-with-tool-use)
-- [Group Chat with Custom Selector (Stateflow)](#group-chat-with-custom-selector-stateflow)
-- [Nested Chat](#nested-chat)
-- [Sequential Chat](#sequential-chat)
-- [GPTAssistantAgent](#gptassistantagent)
-- [Long-Context Handling](#long-context-handling)
-- [Observability and Control](#observability-and-control)
-- [Code Executors](#code-executors)
+- [Migration Guide for v0.2 to v0.4](#migration-guide-for-v02-to-v04)
+  - [What is `v0.4`?](#what-is-v04)
+  - [New to AutoGen?](#new-to-autogen)
+  - [What's in this guide?](#whats-in-this-guide)
+  - [Model Client](#model-client)
+    - [Use component config](#use-component-config)
+    - [Use model client class directly](#use-model-client-class-directly)
+  - [Model Client for OpenAI-Compatible APIs](#model-client-for-openai-compatible-apis)
+  - [Model Client Cache](#model-client-cache)
+  - [Assistant Agent](#assistant-agent)
+  - [Multi-Modal Agent](#multi-modal-agent)
+  - [User Proxy](#user-proxy)
+  - [Conversable Agent and Register Reply](#conversable-agent-and-register-reply)
+  - [Save and Load Agent State](#save-and-load-agent-state)
+  - [Two-Agent Chat](#two-agent-chat)
+  - [Tool Use](#tool-use)
+  - [Chat Result](#chat-result)
+  - [Conversion between v0.2 and v0.4 Messages](#conversion-between-v02-and-v04-messages)
+  - [Group Chat](#group-chat)
+  - [Group Chat with Resume](#group-chat-with-resume)
+  - [Save and Load Group Chat State](#save-and-load-group-chat-state)
+  - [Group Chat with Tool Use](#group-chat-with-tool-use)
+  - [Group Chat with Custom Selector (Stateflow)](#group-chat-with-custom-selector-stateflow)
+  - [Nested Chat](#nested-chat)
+  - [Sequential Chat](#sequential-chat)
+  - [GPTAssistantAgent](#gptassistantagent)
+  - [Long Context Handling](#long-context-handling)
+  - [Observability and Control](#observability-and-control)
+  - [Code Executors](#code-executors)
 
 The following features currently in `v0.2`
 will be provided in the future releases of `v0.4.*` versions:
@@ -417,7 +423,7 @@ class CustomAgent(BaseChatAgent):
 ```
 
 You can then use the custom agent in the same way as the {py:class}`~autogen_agentchat.agents.AssistantAgent`.
-See [Custom Agent Tutorial](./tutorial/custom-agents.ipynb)
+See [Custom Agent Tutorial](custom-agents.ipynb)
 for more details.
 
 ## Save and Load Agent State
