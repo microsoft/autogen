@@ -208,6 +208,7 @@ def assistant_message_to_oai(
     assert_valid_name(message.source)
     if isinstance(message.content, list):
         return ChatCompletionAssistantMessageParam(
+            content=message.thought,
             tool_calls=[func_call_to_oai(x) for x in message.content],
             role="assistant",
             name=message.source,
@@ -566,6 +567,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         # Detect whether it is a function call or not.
         # We don't rely on choice.finish_reason as it is not always accurate, depending on the API used.
         content: Union[str, List[FunctionCall]]
+        thought: str |  None = None
         if choice.message.function_call is not None:
             raise ValueError("function_call is deprecated and is not supported by this model client.")
         elif choice.message.tool_calls is not None and len(choice.message.tool_calls) > 0:
@@ -577,11 +579,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     stacklevel=2,
                 )
             if choice.message.content is not None and choice.message.content != "":
-                warnings.warn(
-                    "Both tool_calls and content are present in the message. "
-                    "This is unexpected. content will be ignored, tool_calls will be used.",
-                    stacklevel=2,
-                )
+                # Put the content in the thought field.
+                thought = choice.message.content
             # NOTE: If OAI response type changes, this will need to be updated
             content = []
             for tool_call in choice.message.tool_calls:
@@ -620,8 +619,6 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
             thought, content = parse_r1_content(content)
-        else:
-            thought = None
 
         response = CreateResult(
             finish_reason=normalize_stop_reason(finish_reason),
@@ -834,11 +831,6 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 completion_tokens = 0
         else:
             completion_tokens = 0
-            # TODO: fix assumption that dict values were added in order and actually order by int index
-            # for tool_call in full_tool_calls.values():
-            #     # value = json.dumps(tool_call)
-            #     # completion_tokens += count_token(value, model=model)
-            #     completion_tokens += 0
             content = list(full_tool_calls.values())
 
         usage = RequestUsage(

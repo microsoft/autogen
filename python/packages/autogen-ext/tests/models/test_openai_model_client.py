@@ -734,7 +734,7 @@ async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
             object="chat.completion",
             usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
         ),
-        # Warning completion when content is not None.
+        # Thought field is populated when content is not None.
         ChatCompletion(
             id="id4",
             choices=[
@@ -850,13 +850,11 @@ async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
         assert create_result.content == [FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function")]
         assert create_result.finish_reason == "function_calls"
 
-    # Warning completion when content is not None.
-    with pytest.warns(UserWarning, match="Both tool_calls and content are present in the message"):
-        create_result = await model_client.create(
-            messages=[UserMessage(content="Hello", source="user")], tools=[pass_tool]
-        )
-        assert create_result.content == [FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function")]
-        assert create_result.finish_reason == "function_calls"
+    # Thought field is populated when content is not None.
+    create_result = await model_client.create(messages=[UserMessage(content="Hello", source="user")], tools=[pass_tool])
+    assert create_result.content == [FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function")]
+    assert create_result.finish_reason == "function_calls"
+    assert create_result.thought == "I should make a tool call."
 
     # Should not be returning tool calls when the tool_calls are empty
     create_result = await model_client.create(messages=[UserMessage(content="Hello", source="user")], tools=[pass_tool])
