@@ -4,6 +4,7 @@ from .types import (
     GalleryComponents,
     GalleryItems,
     GalleryMetadata,
+    LLMCallEventMessage,
     MessageConfig,
     MessageMeta,
     Response,
@@ -22,4 +23,5 @@ __all__ = [
     "TeamResult",
     "Response",
     "SocketMessage",
+    "LLMCallEventMessage",
 ]

@@ -51,7 +51,7 @@ const PresetItem: React.FC<PresetItemProps> = ({
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    opacity: isDragging ? 0.5 : undefined,
+    opacity: isDragging ? 0.8 : undefined,
   };
 
   return (
@@ -60,7 +60,7 @@ const PresetItem: React.FC<PresetItemProps> = ({
       style={style}
       {...attributes}
       {...listeners}
-      className="p-2 text-primary mb-2 border border-secondary rounded cursor-move hover:bg-secondary transition-colors "
+      className={`p-2 text-primary mb-2 border  rounded cursor-move  bg-secondary transition-colors`}
     >
       <div className="flex items-center gap-2">
         <GripVertical className="w-4 h-4 inline-block" />
@@ -95,7 +95,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
         title: "Models",
         type: "model" as ComponentTypes,
         items: defaultGallery.items.components.models.map((model) => ({
-          label: `${model.component_type} - ${model.config.model}`,
+          label: `${model.label || model.config.model}`,
           config: model,
         })),
         icon: <Brain className="w-4 h-4" />,
@@ -178,7 +178,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
   return (
     <Sider
       width={300}
-      className="bg-primary z-10 mr-2 border-r border-secondary"
+      className="bg-primary border z-10 mr-2 border-r border-secondary"
     >
       <div className="rounded p-2 pt-2">
         <div className="flex justify-between items-center mb-2">

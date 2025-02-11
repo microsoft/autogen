@@ -101,7 +101,7 @@ tutorial/agents
 tutorial/teams
 tutorial/human-in-the-loop
 tutorial/termination
-tutorial/custom-agents
+
 tutorial/state
 
 ```
@@ -111,11 +111,13 @@ tutorial/state
 :hidden:
 :caption: Advanced
 
+custom-agents
 selector-group-chat
 swarm
 magentic-one
 memory
 serialize-components
+
 ```
 
 ```{toctree}
