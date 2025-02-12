@@ -307,6 +307,7 @@ def convert_tools(
                     parameters=(
                         cast(FunctionParameters, tool_schema["parameters"]) if "parameters" in tool_schema else {}
                     ),
+                    strict=(tool_schema["strict"] if "strict" in tool_schema else False),
                 ),
             )
         )

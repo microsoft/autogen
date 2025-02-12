@@ -18,12 +18,14 @@ class ParametersSchema(TypedDict):
     type: str
     properties: Dict[str, Any]
     required: NotRequired[Sequence[str]]
+    additionalProperties: NotRequired[bool]
 
 
 class ToolSchema(TypedDict):
     parameters: NotRequired[ParametersSchema]
     name: str
     description: NotRequired[str]
+    strict: NotRequired[bool]
 
 
 @runtime_checkable
@@ -66,12 +68,14 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
         return_type: Type[ReturnT],
         name: str,
         description: str,
+        strict: bool = False,
     ) -> None:
         self._args_type = args_type
         # Normalize Annotated to the base type.
         self._return_type = normalize_annotated_type(return_type)
         self._name = name
         self._description = description
+        self._strict = strict
 
     @property
     def schema(self) -> ToolSchema:
@@ -87,7 +91,10 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
             parameters=ParametersSchema(
                 type="object",
                 properties=model_schema["properties"],
+                required=model_schema.get("required", []),
+                additionalProperties=model_schema.get("additionalProperties", False),
             ),
+            strict=self._strict,
         )
         if "required" in model_schema:
             assert "parameters" in tool_schema

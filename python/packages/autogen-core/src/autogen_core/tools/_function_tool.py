@@ -83,7 +83,7 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
     component_config_schema = FunctionToolConfig
 
     def __init__(
-        self, func: Callable[..., Any], description: str, name: str | None = None, global_imports: Sequence[Import] = []
+        self, func: Callable[..., Any], description: str, name: str | None = None, global_imports: Sequence[Import] = [], strict: bool = False
     ) -> None:
         self._func = func
         self._global_imports = global_imports
@@ -92,8 +92,7 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
         args_model = args_base_model_from_signature(func_name + "args", signature)
         return_type = signature.return_annotation
         self._has_cancellation_support = "cancellation_token" in signature.parameters
-
-        super().__init__(args_model, return_type, func_name, description)
+        super().__init__(args_model, return_type, func_name, description, strict)
 
     async def run(self, args: BaseModel, cancellation_token: CancellationToken) -> Any:
         if asyncio.iscoroutinefunction(self._func):
