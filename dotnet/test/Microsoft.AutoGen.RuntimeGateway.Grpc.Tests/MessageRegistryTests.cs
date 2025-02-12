@@ -3,14 +3,15 @@
 
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
+using Microsoft.AutoGen.RuntimeGateway.Grpc.Tests.Helpers.Orleans;
 using Orleans.TestingHost;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Tests;
-public class MessageRegistryTests : IClassFixture<GatewayTestClusterFixture>
+public class MessageRegistryTests : IClassFixture<ClusterFixture>
 {
     private readonly TestCluster _cluster;
 
-    public MessageRegistryTests(GatewayTestClusterFixture fixture)
+    public MessageRegistryTests(ClusterFixture fixture)
     {
         _cluster = fixture.Cluster;
     }
