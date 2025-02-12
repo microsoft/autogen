@@ -59,7 +59,7 @@ export const LoadingDots = ({ size = 8 }) => {
 
 export const TruncatableText = memo(
   ({
-    content,
+    content = "",
     isJson = false,
     className = "",
     jsonThreshold = 1000,
