@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package HelloAgents;
+package agents;
 
 option csharp_namespace = "Microsoft.AutoGen.Contracts";
 message TextMessage {

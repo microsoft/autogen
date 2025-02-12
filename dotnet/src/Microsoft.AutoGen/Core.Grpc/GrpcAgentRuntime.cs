@@ -231,7 +231,9 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
 
         var messageId = evt.Id;
         var typeName = evt.Attributes[Constants.DATA_SCHEMA_ATTR].CeString;
-        var serializer = SerializationRegistry.GetSerializer(typeName) ?? throw new Exception();
+        var serializer = SerializationRegistry.GetSerializer(typeName) ?? {
+            _logger.LogWarning($"No serializer found for type {typeName}. Skipping message.");
+        }
         var message = serializer.Deserialize(evt.ProtoData);
 
         var messageContext = new MessageContext(messageId, cancellationToken)

@@ -58,7 +58,7 @@ async def main() -> None:
         topic_id=DefaultTopicId("HelloTopic", "HelloAgents/python"),
         sender=AgentId("HelloAgents", "python"),
     )
-
+    runtime.add_message_serializer(try_get_known_serializers_for_type(Output))
     await runtime.publish_message(
         message=output_message,
         topic_id=DefaultTopicId("agents.Output", "HelloAgents"),
