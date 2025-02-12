@@ -2,7 +2,7 @@ import asyncio
 import functools
 import warnings
 from textwrap import dedent
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Sequence, Tuple, Type
 
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -47,7 +47,7 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
             it does and the context in which it should be called.
         name (str, optional): An optional custom name for the tool. Defaults to
             the function's original name if not provided.
-        return_errors (tuple[type[Exception], ...] | type[Exception]): Select the error types that are forwarded to the
+        return_error_types (Tuple[Type[Exception], ...] | Type[Exception]): Select the error types that are forwarded to the
             agent. Error types not selected will raise an error. Defaults to forwarding all errors.
 
     Example:
@@ -90,7 +90,7 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
         description: str,
         name: str | None = None,
         global_imports: Sequence[Import] = [],
-        return_errors: tuple[type[Exception], ...] | type[Exception] = Exception,
+        return_error_types: Tuple[Type[Exception], ...] | Type[Exception] = Exception,
     ) -> None:
         self._func = func
         self._global_imports = global_imports
@@ -99,9 +99,8 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
         args_model = args_base_model_from_signature(func_name + "args", signature)
         return_type = signature.return_annotation
         self._has_cancellation_support = "cancellation_token" in signature.parameters
-        self._return_errors = return_errors
 
-        super().__init__(args_model, return_type, func_name, description)
+        super().__init__(args_model, return_type, func_name, description, return_error_types)
 
     async def run(self, args: BaseModel, cancellation_token: CancellationToken) -> Any:
         if asyncio.iscoroutinefunction(self._func):

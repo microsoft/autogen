@@ -395,7 +395,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
             result = await tool.run_json(arguments, cancellation_token)
             result_as_str = tool.return_value_as_string(result)
             return FunctionExecutionResult(content=result_as_str, call_id=tool_call.id, is_error=False)
-        except tool.return_errors as e:
+        except tool.return_error_types as e:
             return FunctionExecutionResult(content=f"Error: {e}", call_id=tool_call.id, is_error=True)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
