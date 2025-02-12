@@ -1,0 +1,5 @@
+tiktoken
+pyyaml
+/autogen_python/packages/autogen-core
+/autogen_python/packages/autogen-ext[openai,magentic-one]
+/autogen_python/packages/autogen-agentchat

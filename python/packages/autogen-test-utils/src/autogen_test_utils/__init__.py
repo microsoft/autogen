@@ -16,6 +16,8 @@ from autogen_core import (
 )
 from pydantic import BaseModel
 
+from asyncio import Event
+
 
 @dataclass
 class MessageType: ...
@@ -36,6 +38,7 @@ class LoopbackAgent(RoutedAgent):
         super().__init__("A loop back agent.")
         self.num_calls = 0
         self.received_messages: list[Any] = []
+        self.event = Event()
 
     @message_handler
     async def on_new_message(
@@ -43,6 +46,7 @@ class LoopbackAgent(RoutedAgent):
     ) -> MessageType | ContentMessage:
         self.num_calls += 1
         self.received_messages.append(message)
+        self.event.set()
         return message
 
 

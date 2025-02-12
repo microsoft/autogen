@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "autogen-ext"
-version = "0.4.5"
+version = "0.4.6"
 license = {file = "LICENSE-CODE"}
 description = "AutoGen extensions library"
 readme = "README.md"
@@ -15,7 +15,7 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 dependencies = [
-    "autogen-core==0.4.5",
+    "autogen-core==0.4.6",
 ]
 
 [project.optional-dependencies]
@@ -28,24 +28,24 @@ azure = [
 docker = ["docker~=7.0", "asyncio_atexit>=1.0.1"]
 openai = ["openai>=1.52.2", "tiktoken>=0.8.0", "aiofiles"]
 file-surfer = [
-    "autogen-agentchat==0.4.5",
+    "autogen-agentchat==0.4.6",
     "markitdown>=0.0.1a2",
 ]
 graphrag = ["graphrag>=1.0.1"]
 web-surfer = [
-    "autogen-agentchat==0.4.5",
+    "autogen-agentchat==0.4.6",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
     "markitdown>=0.0.1a2",
 ]
 magentic-one = [
-    "autogen-agentchat==0.4.5",
+    "autogen-agentchat==0.4.6",
     "markitdown>=0.0.1a2",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
 ]
 video-surfer = [
-    "autogen-agentchat==0.4.5",
+    "autogen-agentchat==0.4.6",
     "opencv-python>=4.5",
     "ffmpeg-python",
     "openai-whisper",
@@ -68,6 +68,10 @@ jupyter-executor = [
 
 semantic-kernel-core = [
     "semantic-kernel>=1.17.1",
+]
+
+gemini = [
+    "google-genai>=1.0.0",
 ]
 
 semantic-kernel-google = [
@@ -106,11 +110,21 @@ semantic-kernel-dapr = [
     "semantic-kernel[dapr]>=1.17.1",
 ]
 
+http-tool = [
+    "httpx>=0.27.0",
+    "json-schema-to-pydantic>=0.2.0"
+]
+
 semantic-kernel-all = [
     "semantic-kernel[google,hugging_face,mistralai,ollama,onnx,anthropic,usearch,pandas,aws,dapr]>=1.17.1",
 ]
 
 rich = ["rich>=13.9.4"]
+
+mcp = [
+    "mcp>=1.1.3",
+    "json-schema-to-pydantic>=0.2.2"
+]
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
@@ -136,6 +150,9 @@ exclude = ["src/autogen_ext/runtimes/grpc/protos", "tests/protos"]
 [tool.pytest.ini_options]
 minversion = "6.0"
 testpaths = ["tests"]
+markers = [
+    "grpc",
+]
 
 [tool.poe]
 include = "../../shared_tasks.toml"
@@ -146,6 +163,7 @@ test.sequence = [
     "pytest -n 1 --cov=src --cov-report=term-missing --cov-report=xml",
 ]
 test.default_item_type = "cmd"
+test-grpc = "pytest -n 1 --cov=src --cov-report=term-missing --cov-report=xml --grpc"
 mypy = "mypy --config-file ../../pyproject.toml --exclude src/autogen_ext/runtimes/grpc/protos --exclude tests/protos src tests"
 
 [tool.mypy]

@@ -2,6 +2,7 @@ version = 1
 requires-python = ">=3.10, <3.13"
 resolution-markers = [
     "python_full_version >= '3.12.4' and sys_platform == 'darwin'",
+    "python_version < '0'",
     "python_full_version >= '3.12' and python_full_version < '3.12.4' and sys_platform == 'darwin'",
     "python_full_version >= '3.12.4' and platform_machine == 'aarch64' and sys_platform == 'linux'",
     "python_full_version >= '3.12' and python_full_version < '3.12.4' and platform_machine == 'aarch64' and sys_platform == 'linux'",
@@ -439,7 +440,7 @@ wheels = [
 
 [[package]]
 name = "autogen-agentchat"
-version = "0.4.5"
+version = "0.4.6"
 source = { editable = "packages/autogen-agentchat" }
 dependencies = [
     { name = "autogen-core" },
@@ -450,7 +451,7 @@ requires-dist = [{ name = "autogen-core", editable = "packages/autogen-core" }]
 
 [[package]]
 name = "autogen-core"
-version = "0.4.5"
+version = "0.4.6"
 source = { editable = "packages/autogen-core" }
 dependencies = [
     { name = "jsonref" },
@@ -569,7 +570,7 @@ dev = [
 
 [[package]]
 name = "autogen-ext"
-version = "0.4.5"
+version = "0.4.6"
 source = { editable = "packages/autogen-ext" }
 dependencies = [
     { name = "autogen-core" },
@@ -592,11 +593,18 @@ file-surfer = [
     { name = "autogen-agentchat" },
     { name = "markitdown" },
 ]
+gemini = [
+    { name = "google-genai" },
+]
 graphrag = [
     { name = "graphrag" },
 ]
 grpc = [
     { name = "grpcio" },
+]
+http-tool = [
+    { name = "httpx" },
+    { name = "json-schema-to-pydantic" },
 ]
 jupyter-executor = [
     { name = "ipykernel" },
@@ -610,6 +618,10 @@ magentic-one = [
     { name = "markitdown" },
     { name = "pillow" },
     { name = "playwright" },
+]
+mcp = [
+    { name = "json-schema-to-pydantic" },
+    { name = "mcp" },
 ]
 openai = [
     { name = "aiofiles" },
@@ -691,13 +703,18 @@ requires-dist = [
     { name = "diskcache", marker = "extra == 'diskcache'", specifier = ">=5.6.3" },
     { name = "docker", marker = "extra == 'docker'", specifier = "~=7.0" },
     { name = "ffmpeg-python", marker = "extra == 'video-surfer'" },
+    { name = "google-genai", marker = "extra == 'gemini'", specifier = ">=1.0.0" },
     { name = "graphrag", marker = "extra == 'graphrag'", specifier = ">=1.0.1" },
     { name = "grpcio", marker = "extra == 'grpc'", specifier = "~=1.70.0" },
+    { name = "httpx", marker = "extra == 'http-tool'", specifier = ">=0.27.0" },
     { name = "ipykernel", marker = "extra == 'jupyter-executor'", specifier = ">=6.29.5" },
+    { name = "json-schema-to-pydantic", marker = "extra == 'http-tool'", specifier = ">=0.2.0" },
+    { name = "json-schema-to-pydantic", marker = "extra == 'mcp'", specifier = ">=0.2.2" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = "~=0.3.3" },
     { name = "markitdown", marker = "extra == 'file-surfer'", specifier = ">=0.0.1a2" },
     { name = "markitdown", marker = "extra == 'magentic-one'", specifier = ">=0.0.1a2" },
     { name = "markitdown", marker = "extra == 'web-surfer'", specifier = ">=0.0.1a2" },
+    { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.1.3" },
     { name = "nbclient", marker = "extra == 'jupyter-executor'", specifier = ">=0.10.2" },
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.52.2" },
     { name = "openai-whisper", marker = "extra == 'video-surfer'" },
@@ -749,7 +766,7 @@ requires-dist = [
 
 [[package]]
 name = "autogenstudio"
-version = "0.4.0"
+version = "0.4.1"
 source = { editable = "packages/autogen-studio" }
 dependencies = [
     { name = "aiofiles" },
@@ -759,6 +776,7 @@ dependencies = [
     { name = "autogen-ext", extra = ["azure", "magentic-one", "openai"] },
     { name = "azure-identity" },
     { name = "fastapi", extra = ["standard"] },
+    { name = "html2text" },
     { name = "loguru" },
     { name = "numpy" },
     { name = "psycopg" },
@@ -790,6 +808,7 @@ requires-dist = [
     { name = "azure-identity" },
     { name = "fastapi", marker = "extra == 'web'" },
     { name = "fastapi", extras = ["standard"] },
+    { name = "html2text" },
     { name = "loguru" },
     { name = "numpy", specifier = "<2.0.0" },
     { name = "psycopg" },
@@ -2207,6 +2226,20 @@ wheels = [
 ]
 
 [[package]]
+name = "google-genai"
+version = "1.1.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "google-auth" },
+    { name = "pydantic" },
+    { name = "requests" },
+    { name = "websockets" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6b/30/25443d2dec5fe4efd9f05440e13735ae68b19de2dea043b3b83a91a4e14b/google_genai-1.1.0-py3-none-any.whl", hash = "sha256:c48ac44612ad6aadc0bf96b12fa4314756baa16382c890fff793bcb53e9a9cc8", size = 130299 },
+]
+
+[[package]]
 name = "google-generativeai"
 version = "0.8.4"
 source = { registry = "https://pypi.org/simple" }
@@ -2809,6 +2842,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/2f/7a/7745d0d908563a478421c7520649dfd6a5c551858e2233ff7caf20cb8df7/json_repair-0.30.3.tar.gz", hash = "sha256:0ac56e7ae9253ee9c507a7e1a3a26799c9b0bbe5e2bec1b2cc5053e90d5b05e3", size = 27803 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fd/2d/79a46330c4b97ee90dd403fb0d267da7b25b24d7db604c5294e5c57d5f7c/json_repair-0.30.3-py3-none-any.whl", hash = "sha256:63bb588162b0958ae93d85356ecbe54c06b8c33f8a4834f93fa2719ea669804e", size = 18951 },
+]
+
+[[package]]
+name = "json-schema-to-pydantic"
+version = "0.2.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "pydantic" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/13/87/af1870beea329744a759349b972b309f8c95ae21e986e387e19733b85cc9/json_schema_to_pydantic-0.2.2.tar.gz", hash = "sha256:685db8d93aa29ccd257b2803fcd9a956c527e5fb108a523cbfe8cac1239b3785", size = 34158 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/25/8d/3c738e4b4b041269c4a506544b90e9ba924bbd800c8d496ed3e5a6da0265/json_schema_to_pydantic-0.2.2-py3-none-any.whl", hash = "sha256:01b82d234f2b482a273e117e29d063b6b86021a250035873d6eec4b85b70e64d", size = 11396 },
 ]
 
 [[package]]
@@ -3647,7 +3692,7 @@ version = "0.2.3"
 source = { editable = "packages/magentic-one-cli" }
 dependencies = [
     { name = "autogen-agentchat" },
-    { name = "autogen-ext", extra = ["magentic-one", "openai", "rich"] },
+    { name = "autogen-ext", extra = ["docker", "magentic-one", "openai", "rich"] },
     { name = "pyyaml" },
 ]
 
@@ -3659,7 +3704,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "autogen-agentchat", editable = "packages/autogen-agentchat" },
-    { name = "autogen-ext", extras = ["openai", "magentic-one", "rich"], editable = "packages/autogen-ext" },
+    { name = "autogen-ext", extras = ["docker", "openai", "magentic-one", "rich"], editable = "packages/autogen-ext" },
     { name = "pyyaml", specifier = ">=5.1" },
 ]
 
@@ -3850,6 +3895,23 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/99/5b/a36a337438a14116b16480db471ad061c36c3694df7c2084a0da7ba538b7/matplotlib_inline-0.1.7.tar.gz", hash = "sha256:8423b23ec666be3d16e16b60bdd8ac4e86e840ebd1dd11a30b9f117f2fa0ab90", size = 8159 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/8f/8e/9ad090d3553c280a8060fbf6e24dc1c0c29704ee7d1c372f0c174aa59285/matplotlib_inline-0.1.7-py3-none-any.whl", hash = "sha256:df192d39a4ff8f21b1895d72e6a13f5fcc5099f00fa84384e0ea28c2cc0653ca", size = 9899 },
+]
+
+[[package]]
+name = "mcp"
+version = "1.1.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "httpx" },
+    { name = "httpx-sse" },
+    { name = "pydantic" },
+    { name = "sse-starlette" },
+    { name = "starlette" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f7/60/66ebfd280b197f9a9d074c9e46cb1ac3186a32d12e6bd0425c24fe7cf7e8/mcp-1.1.3.tar.gz", hash = "sha256:af11018b8e9153cdd25f3722ec639fe7a462c00213a330fd6f593968341a9883", size = 57903 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b8/08/cfcfa13e41f8d27503c51a8cbf1939d720073ace92469d08655bb5de1b24/mcp-1.1.3-py3-none-any.whl", hash = "sha256:71462d6cd7c06c14689dfcf110ff22286ba1b608cfc3515c0a5cbe33d131731a", size = 36997 },
 ]
 
 [[package]]
@@ -6791,6 +6853,19 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/b5/39/8641040ab0d5e1d8a1c2325ae89a01ae659fc96c61a43d158fb71c9a0bf0/sqlmodel-0.0.22.tar.gz", hash = "sha256:7d37c882a30c43464d143e35e9ecaf945d88035e20117bf5ec2834a23cbe505e", size = 116392 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/dd/b1/3af5104b716c420e40a6ea1b09886cae3a1b9f4538343875f637755cae5b/sqlmodel-0.0.22-py3-none-any.whl", hash = "sha256:a1ed13e28a1f4057cbf4ff6cdb4fc09e85702621d3259ba17b3c230bfb2f941b", size = 28276 },
+]
+
+[[package]]
+name = "sse-starlette"
+version = "2.2.1"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "anyio" },
+    { name = "starlette" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/71/a4/80d2a11af59fe75b48230846989e93979c892d3a20016b42bb44edb9e398/sse_starlette-2.2.1.tar.gz", hash = "sha256:54470d5f19274aeed6b2d473430b08b4b379ea851d953b11d7f1c4a2c118b419", size = 17376 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d9/e0/5b8bd393f27f4a62461c5cf2479c75a2cc2ffa330976f9f00f5f6e4f50eb/sse_starlette-2.2.1-py3-none-any.whl", hash = "sha256:6410a3d3ba0c89e7675d4c273a301d64649c03a5ef1ca101f10b47f895fd0e99", size = 10120 },
 ]
 
 [[package]]

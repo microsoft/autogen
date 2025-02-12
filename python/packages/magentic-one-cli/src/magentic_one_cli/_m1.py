@@ -9,6 +9,7 @@ import yaml
 from autogen_agentchat.ui import Console, UserInputManager
 from autogen_core import CancellationToken
 from autogen_core.models import ChatCompletionClient
+from autogen_ext.code_executors.docker import DockerCommandLineCodeExecutor
 from autogen_ext.teams.magentic_one import MagenticOne
 from autogen_ext.ui import RichConsole
 
@@ -113,12 +114,19 @@ def main() -> None:
     # Run the task
     async def run_task(task: str, hil_mode: bool, use_rich_console: bool) -> None:
         input_manager = UserInputManager(callback=cancellable_input)
-        m1 = MagenticOne(client=client, hil_mode=hil_mode, input_func=input_manager.get_wrapped_callback())
 
-        if use_rich_console:
-            await RichConsole(m1.run_stream(task=task), output_stats=False, user_input_manager=input_manager)
-        else:
-            await Console(m1.run_stream(task=task), output_stats=False, user_input_manager=input_manager)
+        async with DockerCommandLineCodeExecutor(work_dir=os.getcwd()) as code_executor:
+            m1 = MagenticOne(
+                client=client,
+                hil_mode=hil_mode,
+                input_func=input_manager.get_wrapped_callback(),
+                code_executor=code_executor,
+            )
+
+            if use_rich_console:
+                await RichConsole(m1.run_stream(task=task), output_stats=False, user_input_manager=input_manager)
+            else:
+                await Console(m1.run_stream(task=task), output_stats=False, user_input_manager=input_manager)
 
     task = args.task if isinstance(args.task, str) else args.task[0]
     asyncio.run(run_task(task, not args.no_hil, args.rich))
