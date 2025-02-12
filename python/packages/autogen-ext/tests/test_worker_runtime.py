@@ -8,6 +8,7 @@ from autogen_core import (
     PROTOBUF_DATA_CONTENT_TYPE,
     AgentId,
     AgentType,
+    DefaultSubscription,
     DefaultTopicId,
     MessageContext,
     RoutedAgent,
@@ -129,6 +130,47 @@ async def test_register_receives_publish() -> None:
 
 
 @pytest.mark.grpc
+@pytest.mark.asyncio
+async def test_register_doesnt_receive_after_removing_subscription() -> None:
+    host_address = "localhost:50053"
+    host = GrpcWorkerAgentRuntimeHost(address=host_address)
+    host.start()
+
+    worker1 = GrpcWorkerAgentRuntime(host_address=host_address)
+    worker1.start()
+    worker1.add_message_serializer(try_get_known_serializers_for_type(MessageType))
+    await worker1.register_factory(
+        type=AgentType("name1"), agent_factory=lambda: LoopbackAgent(), expected_class=LoopbackAgent
+    )
+    sub = DefaultSubscription(agent_type="name1")
+    await worker1.add_subscription(sub)
+
+    agent_1_instance = await worker1.try_get_underlying_agent_instance(AgentId("name1", "default"), LoopbackAgent)
+    # Publish message from worker1
+    await worker1.publish_message(MessageType(), topic_id=DefaultTopicId())
+
+    # Let the agent run for a bit.
+    await agent_1_instance.event.wait()
+    agent_1_instance.event.clear()
+
+    # Agents in default topic source should have received the message.
+    assert agent_1_instance.num_calls == 1
+
+    await worker1.remove_subscription(sub.id)
+
+    # Publish message from worker1
+    await worker1.publish_message(MessageType(), topic_id=DefaultTopicId())
+
+    # Let the agent run for a bit.
+    await asyncio.sleep(2)
+
+    # Agent should not have received the message.
+    assert agent_1_instance.num_calls == 1
+
+    await worker1.stop()
+    await host.stop()
+
+
 @pytest.mark.asyncio
 async def test_register_receives_publish_cascade_single_worker() -> None:
     host_address = "localhost:50054"

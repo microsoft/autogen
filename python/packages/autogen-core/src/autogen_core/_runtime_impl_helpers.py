@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Awaitable, Callable, DefaultDict, List, Set
+from typing import Awaitable, Callable, DefaultDict, List, Set, Sequence
 
 from ._agent import Agent
 from ._agent_id import AgentId
@@ -34,6 +34,10 @@ class SubscriptionManager:
         self._subscriptions: List[Subscription] = []
         self._seen_topics: Set[TopicId] = set()
         self._subscribed_recipients: DefaultDict[TopicId, List[AgentId]] = defaultdict(list)
+
+    @property
+    def subscriptions(self) -> Sequence[Subscription]:
+        return self._subscriptions
 
     async def add_subscription(self, subscription: Subscription) -> None:
         # Check if the subscription already exists
