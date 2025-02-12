@@ -41,7 +41,7 @@ async def main(config: AppConfig):
     ui_agent_runtime.add_message_serializer(get_serializers([RequestToSpeak, GroupChatMessage, MessageChunk]))  # type: ignore[arg-type]
 
     Console().print(Markdown("Starting **`UI Agent`**"))
-    ui_agent_runtime.start()
+    await ui_agent_runtime.start()
     set_all_log_levels(logging.ERROR)
 
     ui_agent_type = await UIAgent.register(
