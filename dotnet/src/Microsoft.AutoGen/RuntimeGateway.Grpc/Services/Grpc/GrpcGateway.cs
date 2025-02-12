@@ -21,18 +21,20 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly IClusterClient _clusterClient;
     private readonly IRegistryGrain _gatewayRegistry;
     private readonly IGateway _reference;
-    private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
+    private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection<Message>>> _supportedAgentTypes = [];
     /// <summary>
     /// a map of the clientids form the grpc connection headers to the worker connections that service that id
     /// for the Message Channel
     /// </summary>
-    public readonly ConcurrentDictionary<string, GrpcWorkerConnection> _workers = new();
+    public readonly ConcurrentDictionary<string, GrpcWorkerConnection<Message>> _workers = new();
     /// <summary>
     /// a map of the clientids form the grpc connection headers to the worker connections for the Control Channel
     /// </summary>
-    public readonly ConcurrentDictionary<string, GrpcWorkerConnection> _controlWorkers = new();
-    private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
-    private readonly ConcurrentDictionary<(GrpcWorkerConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
+    public readonly ConcurrentDictionary<string, GrpcWorkerConnection<ControlMessage>> _controlWorkers = new();
+    private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection<Message>> _agentDirectory = new();
+    private readonly ConcurrentDictionary<(GrpcWorkerConnection<Message>, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
+    private readonly ConcurrentDictionary<(GrpcWorkerConnection<ControlMessage>, string), TaskCompletionSource<RpcResponse>> _pendingControlRequests = new();
+
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GrpcGateway"/> class.
@@ -217,13 +219,25 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     /// <param name="responseStream">The response stream.</param>
     /// <param name="context">The server call context.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    internal async Task ConnectToWorkerProcess(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
+    internal async Task ConnectToWorkerProcess<TMessage>(IAsyncStreamReader<TMessage> requestStream, IServerStreamWriter<TMessage> responseStream, ServerCallContext context)
+    where TMessage : class
     {
         _logger.LogInformation("Received new connection from {Peer}.", context.Peer);
-        var clientId = (context.RequestHeaders.Get("client-id")?.Value) ??
-            throw new RpcException(new Status(StatusCode.InvalidArgument, "Client ID is required."));
-        var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
-        _workers.GetOrAdd(clientId, workerProcess);
+        var clientId = context.RequestHeaders.Get("client-id")?.Value 
+            ?? throw new RpcException(new Status(StatusCode.InvalidArgument, "Client ID is required."));
+        var workerProcess = new GrpcWorkerConnection<TMessage>(this, requestStream, responseStream, context);
+        if (typeof(TMessage) == typeof(Message))
+        {
+            _workers.GetOrAdd(clientId, _ => (GrpcWorkerConnection<Message>)(object)workerProcess);
+        }
+        else if (typeof(TMessage) == typeof(ControlMessage))
+        {
+            _controlWorkers.GetOrAdd(clientId, _ => (GrpcWorkerConnection<ControlMessage>)(object)workerProcess);
+        }
+        else
+        {
+            throw new InvalidOperationException($"Unsupported message type: {typeof(TMessage).Name}");
+        }
         await workerProcess.Connect().ConfigureAwait(false);
     }
 
@@ -234,12 +248,12 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     /// <param name="responseStream">The response stream.</param>
     /// <param name="context">The server call context.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    internal async Task ConnectToControlChannel(IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
+    internal async Task ConnectToControlChannel(IAsyncStreamReader<ControlMessage> requestStream, IServerStreamWriter<ControlMessage> responseStream, ServerCallContext context)
     {
         _logger.LogInformation("Received new control channel connection from {Peer}.", context.Peer);
         var clientId = (context.RequestHeaders.Get("client-id")?.Value) ??
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Client ID is required."));
-        var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
+        var workerProcess = new GrpcWorkerConnection<ControlMessage>(this, requestStream, responseStream, context);
         _controlWorkers.GetOrAdd(clientId, workerProcess);
         await workerProcess.Connect().ConfigureAwait(false);
     }
@@ -251,27 +265,39 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     /// <param name="message">The received message.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    internal async Task OnReceivedMessageAsync(GrpcWorkerConnection connection, Message message, CancellationToken cancellationToken = default)
+    internal async Task OnReceivedMessageAsync<TMessage>(GrpcWorkerConnection<TMessage> connection, TMessage message, CancellationToken cancellationToken = default)
+    where TMessage : class
     {
         _logger.LogInformation("Received message {Message} from connection {Connection}.", message, connection);
-        switch (message.MessageCase)
+
+        switch (message)
         {
-            case Message.MessageOneofCase.Request:
-                await DispatchRequestAsync(connection, message.Request);
+            case Message msg:
+                switch (msg.MessageCase)
+                {
+                    case Message.MessageOneofCase.Request:
+                        await DispatchRequestAsync(connection, msg.Request);
+                        break;
+                    case Message.MessageOneofCase.Response:
+                        DispatchResponse(connection, msg.Response);
+                        break;
+                    case Message.MessageOneofCase.CloudEvent:
+                        await DispatchEventAsync(msg.CloudEvent, cancellationToken);
+                        break;
+                    default:
+                        await RespondBadRequestAsync(connection, $"Unknown message type for message '{msg}'.");
+                        break;
+                }
                 break;
-            case Message.MessageOneofCase.Response:
-                DispatchResponse(connection, message.Response);
-                break;
-            case Message.MessageOneofCase.CloudEvent:
-                await DispatchEventAsync(message.CloudEvent, cancellationToken);
-                break;
-            case Message.MessageOneofCase.ControlMessage:
-                // check type of the cntrl message and act accordingly
-                // for save state we will call into the agent state grain. 
+
+            //case ControlMessage controlMsg:
+            //    //await HandleControlMessageAsync(connection, controlMsg, cancellationToken);
+            //    break;
+
             default:
                 await RespondBadRequestAsync(connection, $"Unknown message type for message '{message}'.");
                 break;
-        };
+        }
     }
 
     /// <summary>
@@ -279,14 +305,25 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     /// </summary>
     /// <param name="connection">The worker connection.</param>
     /// <param name="response">The RPC response.</param>
-    private void DispatchResponse(GrpcWorkerConnection connection, RpcResponse response)
+    private void DispatchResponse<TMessage>(GrpcWorkerConnection<TMessage> connection, RpcResponse response)
+    where TMessage : class
     {
-        if (!_pendingRequests.TryRemove((connection, response.RequestId), out var completion))
+        if (connection is GrpcWorkerConnection<Message> messageConnection)
         {
-            _logger.LogWarning("Received response for unknown request id: {RequestId}.", response.RequestId);
-            return;
+            if (_pendingRequests.TryRemove((messageConnection, response.RequestId), out var completion))
+            {
+                completion.SetResult(response);
+                return;
+            }
         }
-        completion.SetResult(response);
+        else if (connection is GrpcWorkerConnection<ControlMessage> controlConnection)
+        {
+            if (_pendingControlRequests.TryRemove((controlConnection, response.RequestId), out var completion))
+            {
+                completion.SetResult(response);
+                return;
+            }
+        }
     }
 
     /// <summary>
@@ -330,7 +367,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     /// <param name="connection">The worker connection.</param>
     /// <param name="request">The RPC request.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    private async ValueTask DispatchRequestAsync(GrpcWorkerConnection connection, RpcRequest request)
+    private async ValueTask DispatchRequestAsync<TMessage>(GrpcWorkerConnection<TMessage> connection, RpcRequest request)
+    where TMessage : class
     {
         var requestId = request.RequestId;
         if (request.Target is null)
@@ -360,17 +398,27 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     /// <param name="request">The RPC request.</param>
     /// <param name="func">The function to invoke.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    private static async Task InvokeRequestDelegate(GrpcWorkerConnection connection, RpcRequest request, Func<RpcRequest, Task<RpcResponse>> func)
+    private static async Task InvokeRequestDelegate<TMessage>(GrpcWorkerConnection<TMessage> connection, RpcRequest request, Func<RpcRequest, Task<RpcResponse>> func)
+    where TMessage : class
     {
         try
         {
             var response = await func(request);
             response.RequestId = request.RequestId;
-            await connection.ResponseStream.WriteAsync(new Message { Response = response }).ConfigureAwait(false);
+
+            if (connection is GrpcWorkerConnection<Message> messageConnection)
+            {
+                await messageConnection.ResponseStream.WriteAsync(new Message { Response = response }).ConfigureAwait(false);
+            }
         }
         catch (Exception ex)
         {
-            await connection.ResponseStream.WriteAsync(new Message { Response = new RpcResponse { RequestId = request.RequestId, Error = ex.Message } }).ConfigureAwait(false);
+            if (connection is GrpcWorkerConnection<Message> messageConnection)
+            {
+                await messageConnection.ResponseStream.WriteAsync(
+                    new Message { Response = new RpcResponse { RequestId = request.RequestId, Error = ex.Message } }
+                ).ConfigureAwait(false);
+            }
         }
     }
 
@@ -378,25 +426,32 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     /// Handles the removal of a worker process.
     /// </summary>
     /// <param name="workerProcess">The worker process.</param>
-    internal void OnRemoveWorkerProcess(GrpcWorkerConnection workerProcess)
+    internal void OnRemoveWorkerProcess<TMessage>(GrpcWorkerConnection<TMessage> workerProcess)
+    where TMessage : class
     {
-        var clientId = workerProcess.ServerCallContext.RequestHeaders.Get("client-id")?.Value ??
-            throw new RpcException(new Status(StatusCode.InvalidArgument, "Grpc Client ID is required."));
+        var clientId = workerProcess.ServerCallContext.RequestHeaders.Get("client-id")?.Value 
+            ?? throw new RpcException(new Status(StatusCode.InvalidArgument, "Grpc Client ID is required."));
+
         _workers.TryRemove(clientId, out _);
         _controlWorkers.TryRemove(clientId, out _);
+
         var types = workerProcess.GetSupportedTypes();
         foreach (var type in types)
         {
-            if (_supportedAgentTypes.TryGetValue(type, out var supported))
+            if (_supportedAgentTypes.TryGetValue(type, out var supported) && workerProcess is GrpcWorkerConnection<Message> messageWorker)
             {
-                supported.Remove(workerProcess);
+                supported.Remove(messageWorker);
             }
         }
-        foreach (var pair in _agentDirectory)
+
+        if (workerProcess is GrpcWorkerConnection<Message> messageWorkerInstance)
         {
-            if (pair.Value == workerProcess)
+            foreach (var pair in _agentDirectory.ToList())
             {
-                ((IDictionary<(string Type, string Key), GrpcWorkerConnection>)_agentDirectory).Remove(pair);
+                if (ReferenceEquals(pair.Value, messageWorkerInstance)) // Ensures exact instance match
+                {
+                    _agentDirectory.TryRemove(pair.Key, out _);
+                }
             }
         }
     }
@@ -407,7 +462,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     /// <param name="connection">The worker connection.</param>
     /// <param name="error">The error message.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    private static async ValueTask RespondBadRequestAsync(GrpcWorkerConnection connection, string error)
+    private static async ValueTask RespondBadRequestAsync<TMessage>(GrpcWorkerConnection<TMessage> connection, string error)
+    where TMessage : class
     {
         throw new RpcException(new Status(StatusCode.InvalidArgument, error));
     }
@@ -441,7 +497,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     /// <param name="cloudEvent">The cloud event.</param>
     /// <param name="cancellationToken">The cancellation token.</param>
     /// <returns>A task that represents the asynchronous operation.</returns>
-    private async Task WriteResponseAsync(GrpcWorkerConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
+    private async Task WriteResponseAsync(GrpcWorkerConnection<Message> connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
         await connection.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);
     }
@@ -454,6 +510,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     /// <returns>A task that represents the asynchronous operation.</returns>
     public async Task WriteResponseAsync(IConnection connection, CloudEvent cloudEvent)
     {
-        await WriteResponseAsync((GrpcWorkerConnection)connection, cloudEvent, default).ConfigureAwait(false);
+        await WriteResponseAsync((GrpcWorkerConnection<Message>)connection, cloudEvent, default).ConfigureAwait(false);
     }
 }

@@ -84,7 +84,6 @@ message Message {
         RpcRequest request = 1;
         RpcResponse response = 2;
         io.cloudevents.v1.CloudEvent cloudEvent = 3;
-        ControlMessage controlMessage = 4;
     }
 }
 

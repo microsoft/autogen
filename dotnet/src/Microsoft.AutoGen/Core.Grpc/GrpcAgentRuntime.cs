@@ -426,11 +426,6 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
                 var cloudEvent = message.CloudEvent ?? throw new InvalidOperationException("CloudEvent is null.");
                 await HandlePublish(cloudEvent);
                 break;
-            case Message.MessageOneofCase.ControlMessage:
-                // parse the control message
-                // if it is a save state message
-                // call into a method to save the state
-                // reutrn the result to the server
                 throw new InvalidOperationException("ControlMessage is not supported.");
             default:
                 throw new InvalidOperationException($"Unexpected message '{message}'.");

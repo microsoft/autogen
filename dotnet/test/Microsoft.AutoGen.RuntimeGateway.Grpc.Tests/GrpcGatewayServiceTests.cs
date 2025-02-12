@@ -37,6 +37,21 @@ public class GrpcGatewayServiceTests
         await task;
     }
 
+    /*[Fact]
+    public async Task Test_OpenControlChannel()
+    {
+        var logger = Mock.Of<ILogger<GrpcGateway>>();
+        var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
+        var service = new GrpcGatewayService(gateway);
+        var client = new TestGrpcControlClient();
+
+        gateway._workers.Count.Should().Be(0);
+        var task = OpenConrolChannel(service, client);
+        gateway._workers.Count.Should().Be(1);
+        client.Dispose();
+        await task;
+    }*/
+
     [Fact]
     public async Task Test_Message_Exchange_Through_Gateway()
     {
@@ -180,6 +195,10 @@ public class GrpcGatewayServiceTests
     private Task OpenChannel(GrpcGatewayService service, TestGrpcClient client)
     {
         return service.OpenChannel(client.RequestStream, client.ResponseStream, client.CallContext);
+    }
+    private Task OpenConrolChannel(GrpcGatewayService service, TestGrpcControlClient client)
+    {
+        return service.OpenControlChannel(client.RequestStream, client.ResponseStream, client.CallContext);
     }
     private string GetFullName(Type type)
     {
