@@ -166,7 +166,7 @@ class HostConnection:
         send_queue: asyncio.Queue[agent_worker_pb2.Message],
         receive_queue: asyncio.Queue[agent_worker_pb2.Message],
         client_id: str,
-    ) -> asyncio.Task:
+    ) -> Task[None]:
         from grpc.aio import StreamStreamCall
 
         # TODO: where do exceptions from reading the iterable go? How do we recover from those?
@@ -184,7 +184,7 @@ class HostConnection:
                     logger.info("EOF")
                     break
                 logger.info(f"Received a message from host: {message}")
-                receive_queue.put(message)
+                await receive_queue.put(message)
                 logger.info("Put message in receive queue")
 
         return asyncio.create_task(read_loop())
