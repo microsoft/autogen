@@ -15,9 +15,4 @@ public class MessageRegistryState
     /// Dictionary mapping topic types to a list of CloudEvents that failed delivery.
     /// </summary>
     public ConcurrentDictionary<string, List<CloudEvent>> DeadLetterQueue { get; set; } = new();
-
-    /// <summary>
-    /// The concurrency ETag for identifying the queue's version or state.
-    /// </summary>
-    public string Etag { get; set; } = Guid.NewGuid().ToString();
 }

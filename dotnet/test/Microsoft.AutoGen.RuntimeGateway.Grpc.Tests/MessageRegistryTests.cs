@@ -30,7 +30,9 @@ public class MessageRegistryTests : IClassFixture<ClusterFixture>
         // Assert
         // attempt to remove the topic from the queue
         var removedMessages = await grain.RemoveMessagesAsync(topic);
-        Assert.Contains(message, removedMessages);
+        // attempt to compare the message with the removed message
+        Assert.Single(removedMessages);
+        Assert.Equal(message.Id, removedMessages[0].Id);
         // ensure the queue is empty
         removedMessages = await grain.RemoveMessagesAsync(topic);
         Assert.Empty(removedMessages);

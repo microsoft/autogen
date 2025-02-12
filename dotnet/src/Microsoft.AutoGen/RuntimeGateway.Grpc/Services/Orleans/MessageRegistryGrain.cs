@@ -30,14 +30,13 @@ internal sealed class MessageRegistryGrain(
     }
     private async ValueTask<bool> WriteMessageAsync(string topic, CloudEvent message, string etag)
     {
-        if (state.State.Etag != etag)
+        if (state.Etag != null && state.Etag != etag)
         {
             return false;
         }
         var queue = state.State.DeadLetterQueue.GetOrAdd(topic, _ => new());
         queue.Add(message);
         state.State.DeadLetterQueue.AddOrUpdate(topic, queue, (_, _) => queue);
-        state.State.Etag = Guid.NewGuid().ToString();
         await state.WriteStateAsync().ConfigureAwait(true);
         return true;
     }
