@@ -22,11 +22,17 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly IRegistryGrain _gatewayRegistry;
     private readonly IMessageRegistryGrain _messageRegistry;
     private readonly IGateway _reference;
-    private readonly ConcurrentDictionary<string, (string, List<GrpcWorkerConnection>)> _supportedAgentTypes = [];
+    /// <summary>
+    /// dictionary of supported agent types by type and clientid - use clientid to look up the worker
+    /// </summary>
+    private readonly ConcurrentDictionary<string, string> _supportedAgentTypes = [];
+    /// <summary>
+    /// dictionary of worker connections by clientid
+    /// </summary>
     public readonly ConcurrentDictionary<string, GrpcWorkerConnection> _workers = new();
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
     private readonly ConcurrentDictionary<(GrpcWorkerConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
-   
+
     /// <summary>
     /// Initializes a new instance of the <see cref="GrpcGateway"/> class.
     /// </summary>
@@ -83,9 +89,11 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         {
             if (_supportedAgentTypes.TryGetValue(request.Target.Type, out var supported))
             {
-                //item1 is a clientId, item2 is a list of worker processes
-                var workers = supported.Item2;
-                connection = workers[Random.Shared.Next(workers.Count)];
+                var clientId = supported;
+                if (!_workers.TryGetValue(clientId, out connection))
+                {
+                    throw new RpcException(new Status(StatusCode.NotFound, $"Worker not found for agent type {request.Target.Type}, clientId {clientId}."));
+                }
                 _agentDirectory[agentId] = connection;
             }
             else
@@ -119,31 +127,18 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             if (!_workers.TryGetValue(clientId, out var connection))
             {
                 _logger.LogInformation($"Grpc Worker Connection not found for ClientId {clientId}.");
-                // we still want to add the supported type - we will bind the connection when it calls OpenChannel
-                _supportedAgentTypes.AddOrUpdate(
-                    request.Type,
-                    _ => (clientId, new List<GrpcWorkerConnection> { }),
+            }
+            else { connection.AddSupportedType(request.Type); }
+            // we still want to add the supported type - we will bind the connection when it calls OpenChannel
+            _supportedAgentTypes.AddOrUpdate(
+                request.Type,
+                _ => clientId,
                     (_, existing) =>
-                    {
-                        existing.Item1 = clientId;
-                        return existing;
-                    }
+                        {
+                            existing = clientId;
+                            return existing;
+                        }
                 );
-            }
-            else{
-                connection.AddSupportedType(request.Type);
-                _supportedAgentTypes.AddOrUpdate(
-                    request.Type, 
-                    _ => (
-                        clientId, 
-                        new List<GrpcWorkerConnection> { connection }),
-                        (_, existing) =>
-                            {
-                                existing.Item2.Add(connection);
-                                return existing;
-                            }
-                    );
-            }
             await _gatewayRegistry.RegisterAgentTypeAsync(request, clientId, _reference).ConfigureAwait(true);
             return new RegisterAgentTypeResponse { };
         }
@@ -264,23 +259,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Client ID is required."));
         var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
         _workers.GetOrAdd(clientId, workerProcess);
-        // if this client has not yet registered any supported types, we will update supportedagenttypes with the connection when it calls RegisterAgentType
-        foreach (var type in _supportedAgentTypes.Keys)
-        {
-            if (_supportedAgentTypes.TryGetValue(type, out var supported))
-            {
-                //item1 is a clientId, item2 is a list of worker processes
-                if (supported.Item1 == clientId)
-                {
-                    supported.Item2.Add(workerProcess);
-                }
-                _supportedAgentTypes[type] = supported;
-            }
-            else
-            {
-                _supportedAgentTypes.TryAdd(type, (clientId, new List<GrpcWorkerConnection> { workerProcess }));
-            }
-        }
         await workerProcess.Connect().ConfigureAwait(false);
     }
 
@@ -308,7 +286,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             default:
                 await RespondBadRequestAsync(connection, $"Unknown message type for message '{message}'.");
                 break;
-        };
+        }
+        ;
     }
 
     /// <summary>
@@ -345,41 +324,37 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             {
                 if (_supportedAgentTypes.TryGetValue(agentType, out var supported))
                 {
-                    //item1 is a clientId, item2 is a list of worker processes
-                    if (supported.Item2.Count == 0)
+                    if (supported is null)
                     {
-                        _logger.LogWarning("No worker connections found for agent type {AgentType}.", agentType);
-                        // check if we can get the worker connection from the _workers dictionary
-                        if (_workers.TryGetValue(supported.Item1, out var connection))
-                        {
-                            // is the connection alive?
-                            if (connection.Completion?.IsCompleted == false)
-                            {
-                                tasks.Add(this.WriteResponseAsync(connection, evt, cancellationToken));
-                            }
-                            else
-                            {
-                                _logger.LogWarning("Worker connection for agent type {AgentType} is not alive.", agentType);
-                                // remove the connection from the list
-                                _workers.TryRemove(supported.Item1, out _);
-                                // remove the agent type from the supported agent types
-                                _supportedAgentTypes.TryRemove(agentType, out _);
-                                // write to the dead letter queue - maybe it will come back
-                                await _messageRegistry.WriteMessageAsync(evt.Source, evt).ConfigureAwait(true);
-                            }
-                            continue;
-                        } // if we can't find the worker connection, write to the dead letter queue
+                        _logger.LogWarning("No clientId found for agent type {AgentType}.", agentType);
                         _supportedAgentTypes.TryRemove(agentType, out _);
                         // write to the dead letter queue - maybe it will come back
                         await _messageRegistry.WriteMessageAsync(evt.Source, evt).ConfigureAwait(true);
+                        continue;
                     }
-                    var connections = supported.Item2;
-                    // if the connection is alive, add it to the set, if not remove the connection from the list
-                    var activeConnections = connections.Where(c => c.Completion?.IsCompleted == false).ToList();
-                    foreach (var connection in activeConnections)
+                    // check if we can get the worker connection from the _workers dictionary
+                    if (_workers.TryGetValue(supported, out var connection))
                     {
-                        tasks.Add(this.WriteResponseAsync(connection, evt, cancellationToken));
-                    }
+                        // is the connection alive?
+                        if (connection.Completion?.IsCompleted == false)
+                        {
+                            tasks.Add(this.WriteResponseAsync(connection, evt, cancellationToken));
+                        }
+                        else
+                        {
+                            _logger.LogWarning("Worker connection for agent type {AgentType} is not alive.", agentType);
+                            // remove the connection from the list
+                            _workers.TryRemove(supported, out _);
+                            // remove the agent type from the supported agent types
+                            _supportedAgentTypes.TryRemove(agentType, out _);
+                            // write to the dead letter queue - maybe it will come back
+                            await _messageRegistry.WriteMessageAsync(evt.Source, evt).ConfigureAwait(true);
+                        }
+                        continue;
+                    } // if we can't find the worker connection, write to the dead letter queue
+                    _supportedAgentTypes.TryRemove(agentType, out _);
+                    // write to the dead letter queue - maybe it will come back
+                    await _messageRegistry.WriteMessageAsync(evt.Source, evt).ConfigureAwait(true);
                 }
             }
             await Task.WhenAll(tasks).ConfigureAwait(false);
@@ -457,15 +432,17 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         {
             if (_supportedAgentTypes.TryGetValue(type, out var supported))
             {
-                //item1 is a clientId, item2 is a list of worker processes
-                supported.Item2.Remove(workerProcess);
+                if (supported == clientId)
+                {
+                    _supportedAgentTypes.TryRemove(type, out _);
+                }
             }
-        }
-        foreach (var pair in _agentDirectory)
-        {
-            if (pair.Value == workerProcess)
+            foreach (var pair in _agentDirectory)
             {
-                ((IDictionary<(string Type, string Key), GrpcWorkerConnection>)_agentDirectory).Remove(pair);
+                if (pair.Value == workerProcess)
+                {
+                    ((IDictionary<(string Type, string Key), GrpcWorkerConnection>)_agentDirectory).Remove(pair);
+                }
             }
         }
     }
@@ -482,29 +459,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     }
 
     /// <summary>
-    /// Dispatches an event to the specified agent types.
-    /// </summary>
-    /// <param name="agentTypes">The agent types.</param>
-    /// <param name="evt">The cloud event.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    private async ValueTask DispatchEventToAgentsAsync(IEnumerable<string> agentTypes, CloudEvent evt)
-    {
-        var tasks = new List<Task>(agentTypes.Count());
-        foreach (var agentType in agentTypes)
-        {
-            if (_supportedAgentTypes.TryGetValue(agentType, out var supported))
-            {
-                //item1 is a clientId, item2 is a list of worker processes
-                foreach (var connection in supported.Item2)
-                {
-                    tasks.Add(this.WriteResponseAsync(connection, evt));
-                }
-            }
-        }
-        await Task.WhenAll(tasks).ConfigureAwait(false);
-    }
-
-    /// <summary>
     /// Writes a response to a worker connection.
     /// </summary>
     /// <param name="connection">The worker connection.</param>
@@ -514,16 +468,5 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private async Task WriteResponseAsync(GrpcWorkerConnection connection, CloudEvent cloudEvent, CancellationToken cancellationToken = default)
     {
         await connection.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);
-    }
-
-    /// <summary>
-    /// Writes a response to a worker connection.
-    /// </summary>
-    /// <param name="connection">The worker connection.</param>
-    /// <param name="cloudEvent">The cloud event.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    public async Task WriteResponseAsync(IConnection connection, CloudEvent cloudEvent)
-    {
-        await WriteResponseAsync((GrpcWorkerConnection)connection, cloudEvent, default).ConfigureAwait(false);
     }
 }
