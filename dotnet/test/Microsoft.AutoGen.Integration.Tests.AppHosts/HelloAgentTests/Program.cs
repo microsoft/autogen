@@ -4,7 +4,8 @@
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 using Microsoft.AutoGen.Core.Grpc;
-using Samples;
+using Microsoft.AutoGen.Integration.Tests.AppHosts.HelloAgentTests;
+
 var appBuilder = new AgentsAppBuilder(); // Create app builder
 // if we are using distributed, we need the AGENT_HOST var defined and then we will use the grpc runtime
 if (Environment.GetEnvironmentVariable("AGENT_HOST") != null)

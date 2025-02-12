@@ -231,8 +231,25 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
 
         var messageId = evt.Id;
         var typeName = evt.Attributes[Constants.DATA_SCHEMA_ATTR].CeString;
-        var serializer = SerializationRegistry.GetSerializer(typeName) ?? {
-            _logger.LogWarning($"No serializer found for type {typeName}. Skipping message.");
+        var serializer = SerializationRegistry.GetSerializer(typeName);
+        if (serializer == null)
+        {
+            // get a Type from the name of the Type
+            var type = System.Type.GetType(typeName);
+            if (type != null && SerializationRegistry.Exists(type))
+            {
+                SerializationRegistry.RegisterSerializer(type);
+                serializer = SerializationRegistry.GetSerializer(typeName) ?? throw new Exception(
+                    $"Failed to get serializer for type {typeName} even though it is Registered."
+                    );
+            }
+            else
+            {
+                this._logger.LogError(
+                    $"Failed to deserialize message from cloud event with type {typeName}. MessageId: {messageId}. Sender: {sender}. Topic: {topic}. Skipping message."
+                    );
+                return;
+            }
         }
         var message = serializer.Deserialize(evt.ProtoData);
 

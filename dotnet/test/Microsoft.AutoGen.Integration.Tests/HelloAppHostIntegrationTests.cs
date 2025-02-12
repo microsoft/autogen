@@ -28,33 +28,27 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
     }
 
     [Fact]
-    public async Task AppHostLogsHelloAgentE2E()
+    public async Task Test_Dotnet_Sends_and_AppHost_Delivers_Python_Receives()
     {
-        var testEndpoints = new TestEndpoints(AppHostAssemblyName, new() {
-            { "backend", new List<string> { "/" } }
-        });
+        //Prepare
         var appHostPath = GetAssemblyPath(AppHostAssemblyName);
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
-
         await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
-        await app.WaitForResourcesAsync().WaitAsync(TimeSpan.FromSeconds(120));
-        if (testEndpoints.WaitForResources?.Count > 0)
-        {
-            // Wait until each resource transitions to the required state
-            var timeout = TimeSpan.FromMinutes(5);
-            foreach (var (ResourceName, TargetState) in testEndpoints.WaitForResources)
-            {
-                await app.WaitForResource(ResourceName, TargetState).WaitAsync(timeout);
-            }
-        }
-        //sleep to make sure the app is running
-        await Task.Delay(20000);
+        await app.WaitForResourcesAsync(new[] { KnownResourceStates.Running }).WaitAsync(TimeSpan.FromSeconds(120));
+        
+        //Act
+        var expectedMessage = "INFO:autogen_core:Received a message from host: cloudEvent {";
+        var containsExpectedMessage = false;
         app.EnsureNoErrorsLogged();
-        app.EnsureLogContains("HelloAgent said Goodbye");
-        app.EnsureLogContains("Wild Hello from Python!");
+        containsExpectedMessage = await app.WaitForExpectedMessageInResourceLogs(PythonResourceName, expectedMessage, TimeSpan.FromSeconds(120));
+        expectedMessage = "Hello World!";
+        containsExpectedMessage = false;
+        containsExpectedMessage = await app.WaitForExpectedMessageInResourceLogs(PythonResourceName, expectedMessage, TimeSpan.FromSeconds(120));
+        await app.StopAsync();
 
-        await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(15));
+        //Assert
+        Assert.True(containsExpectedMessage);
     }
 
     [Fact]
