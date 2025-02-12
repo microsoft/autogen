@@ -17,7 +17,7 @@ from autogen_core.models import (
     UserMessage,
 )
 
-from ._utils import MessageContent, hash_directory
+from ._functions import MessageContent, hash_directory
 
 
 def _html_opening(file_title: str, finished: bool = False) -> str:

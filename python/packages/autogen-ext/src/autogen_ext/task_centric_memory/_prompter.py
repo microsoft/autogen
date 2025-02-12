@@ -11,8 +11,8 @@ from autogen_core.models import (
     UserMessage,
 )
 
-from ._utils import UserContent
-from .page_logger import PageLogger
+from .utils._functions import UserContent
+from .utils.page_logger import PageLogger
 
 
 class Prompter:

@@ -12,11 +12,10 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
-
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 
+from ..task_centric_memory_controller import TaskCentricMemoryController
 from .page_logger import PageLogger
-from .task_centric_memory_controller import TaskCentricMemoryController
 
 
 class Apprentice:

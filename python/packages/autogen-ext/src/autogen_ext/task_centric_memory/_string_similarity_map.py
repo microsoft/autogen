@@ -8,7 +8,7 @@ from chromadb.api.types import (
 )
 from chromadb.config import Settings
 
-from .page_logger import PageLogger
+from .utils.page_logger import PageLogger
 
 
 class StringSimilarityMap:

@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Any, Dict, List, Optional, Tuple
 
 from ._string_similarity_map import StringSimilarityMap
-from .page_logger import PageLogger
+from .utils.page_logger import PageLogger
 
 
 @dataclass

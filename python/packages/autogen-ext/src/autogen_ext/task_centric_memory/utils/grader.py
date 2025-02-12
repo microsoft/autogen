@@ -12,7 +12,7 @@ from autogen_core.models import (
     UserMessage,
 )
 
-from ._utils import UserContent
+from ._functions import UserContent
 from .page_logger import PageLogger
 
 if TYPE_CHECKING:

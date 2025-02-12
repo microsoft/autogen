@@ -6,8 +6,8 @@ from autogen_core.models import (
 
 from ._prompter import Prompter
 from ._task_centric_memory_bank import Memo, TaskCentricMemoryBank
-from .grader import Grader
-from .page_logger import PageLogger
+from .utils.grader import Grader
+from .utils.page_logger import PageLogger
 
 
 class TaskCentricMemoryController:

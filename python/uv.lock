@@ -589,9 +589,6 @@ dependencies = [
 ]
 
 [package.optional-dependencies]
-task-centric-memory = [
-    { name = "chromadb" },
-]
 azure = [
     { name = "azure-ai-inference" },
     { name = "azure-core" },
@@ -681,6 +678,9 @@ semantic-kernel-onnx = [
 ]
 semantic-kernel-pandas = [
     { name = "semantic-kernel", extra = ["pandas"] },
+]
+task-centric-memory = [
+    { name = "chromadb" },
 ]
 video-surfer = [
     { name = "autogen-agentchat" },
