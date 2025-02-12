@@ -22,7 +22,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly IRegistryGrain _gatewayRegistry;
     private readonly IMessageRegistryGrain _messageRegistry;
     private readonly IGateway _reference;
-    private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
+    private readonly ConcurrentDictionary<string, (string, List<GrpcWorkerConnection>)> _supportedAgentTypes = [];
     public readonly ConcurrentDictionary<string, GrpcWorkerConnection> _workers = new();
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
     private readonly ConcurrentDictionary<(GrpcWorkerConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
@@ -81,8 +81,10 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         var agentId = (request.Target.Type, request.Target.Key);
         if (!_agentDirectory.TryGetValue(agentId, out var connection) || connection.Completion.IsCompleted == true)
         {
-            if (_supportedAgentTypes.TryGetValue(request.Target.Type, out var workers))
+            if (_supportedAgentTypes.TryGetValue(request.Target.Type, out var supported))
             {
+                //item1 is a clientId, item2 is a list of worker processes
+                var workers = supported.Item2;
                 connection = workers[Random.Shared.Next(workers.Count)];
                 _agentDirectory[agentId] = connection;
             }
@@ -116,11 +118,22 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Grpc Client ID is required."));
             if (!_workers.TryGetValue(clientId, out var connection))
             {
-                throw new RpcException(new Status(StatusCode.InvalidArgument, $"Grpc Worker Connection not found for ClientId {clientId}."));
+                _logger.LogInformation($"Grpc Worker Connection not found for ClientId {clientId}.");
             }
-            connection.AddSupportedType(request.Type);
-            _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
-
+            else{
+                connection.AddSupportedType(request.Type);
+                _supportedAgentTypes.AddOrUpdate(
+                    request.Type, 
+                    _ => (
+                        clientId, 
+                        new List<GrpcWorkerConnection> { connection }),
+                        (_, existing) =>
+                            {
+                                existing.Item2.Add(connection);
+                                return existing;
+                            }
+                    );
+            }
             await _gatewayRegistry.RegisterAgentTypeAsync(request, clientId, _reference).ConfigureAwait(true);
             return new RegisterAgentTypeResponse { };
         }
@@ -241,6 +254,22 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Client ID is required."));
         var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
         _workers.GetOrAdd(clientId, workerProcess);
+        foreach (var type in _supportedAgentTypes.Keys)
+        {
+            if (_supportedAgentTypes.TryGetValue(type, out var supported))
+            {
+                //item1 is a clientId, item2 is a list of worker processes
+                if (supported.Item1 == clientId)
+                {
+                    supported.Item2.Add(workerProcess);
+                }
+                _supportedAgentTypes[type] = supported;
+            }
+            else
+            {
+                _supportedAgentTypes[type] = (clientId, new List<GrpcWorkerConnection> { workerProcess });
+            }
+        }
         await workerProcess.Connect().ConfigureAwait(false);
     }
 
@@ -303,8 +332,10 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             var tasks = new List<Task>(targetAgentTypes.Count);
             foreach (var agentType in targetAgentTypes)
             {
-                if (_supportedAgentTypes.TryGetValue(agentType, out var connections))
+                if (_supportedAgentTypes.TryGetValue(agentType, out var supported))
                 {
+                    //item1 is a clientId, item2 is a list of worker processes
+                    var connections = supported.Item2;
                     // if the connection is alive, add it to the set, if not remove the connection from the list
                     var activeConnections = connections.Where(c => c.Completion?.IsCompleted == false).ToList();
                     foreach (var connection in activeConnections)
@@ -387,7 +418,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         {
             if (_supportedAgentTypes.TryGetValue(type, out var supported))
             {
-                supported.Remove(workerProcess);
+                //item1 is a clientId, item2 is a list of worker processes
+                supported.Item2.Remove(workerProcess);
             }
         }
         foreach (var pair in _agentDirectory)
@@ -421,9 +453,10 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         var tasks = new List<Task>(agentTypes.Count());
         foreach (var agentType in agentTypes)
         {
-            if (_supportedAgentTypes.TryGetValue(agentType, out var connections))
+            if (_supportedAgentTypes.TryGetValue(agentType, out var supported))
             {
-                foreach (var connection in connections)
+                //item1 is a clientId, item2 is a list of worker processes
+                foreach (var connection in supported.Item2)
                 {
                     tasks.Add(this.WriteResponseAsync(connection, evt));
                 }
