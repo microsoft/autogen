@@ -4,13 +4,14 @@ import os
 import shutil
 import sys
 import time
+from tempfile import TemporaryDirectory
 from types import SimpleNamespace
 
 import pytest
 
 from autogen import OpenAIWrapper, config_list_from_json
 from autogen.cache.cache import Cache
-from autogen.oai.client import LEGACY_CACHE_DIR, LEGACY_DEFAULT_CACHE_SEED
+from autogen.oai.client import LEGACY_CACHE_DIR, LEGACY_DEFAULT_CACHE_SEED, OpenAIClient
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 from conftest import skip_openai  # noqa: E402
@@ -357,6 +358,253 @@ def test_cache():
         # Test legacy cache is not used.
         assert not os.path.exists(os.path.join(LEGACY_CACHE_DIR, str(123)))
         assert not os.path.exists(os.path.join(cache_dir, str(LEGACY_DEFAULT_CACHE_SEED)))
+
+
+def test__remove_assistant_names_from_messages():
+    params = {
+        "messages": [
+            {
+                "content": "system message",
+                "role": "system",
+            },
+            {"content": "Initial message", "name": "Teacher_Agent", "role": "user"},
+            {
+                "content": None,
+                "role": "assistant",
+                "tool_calls": [
+                    {
+                        "function": {
+                            "arguments": '{"message":"function parameter"}',
+                            "name": "retrieve_exam_questions",
+                        },
+                        "id": "call_WtPX2rq3saIIqk4hM4jjAhNY",
+                        "type": "function",
+                    }
+                ],
+            },
+            {
+                "content": "function reply",
+                "role": "tool",
+                "tool_call_id": "call_WtPX2rq3saIIqk4hM4jjAhNY",
+            },
+            {
+                "content": "some message",
+                "role": "assistant",
+                "name": "Student_Agent",  # this is problematic for some reason and we'll remove it
+            },
+            {
+                "content": "some another message",
+                "name": "Teacher_Agent",
+                "role": "user",
+            },
+        ],
+        "model": "gpt-4o-mini",
+        "stream": False,
+        "temperature": 0.8,
+        "tools": [
+            {
+                "function": {
+                    "description": "Get exam questions from examiner",
+                    "name": "retrieve_exam_questions",
+                    "parameters": {
+                        "additionalProperties": False,
+                        "properties": {"message": {"description": "Message for examiner", "type": "string"}},
+                        "required": ["message"],
+                        "type": "object",
+                    },
+                },
+                "type": "function",
+            },
+        ],
+    }
+    actual = OpenAIClient._remove_assistant_names_from_messages(params)
+
+    assert [m for m in actual["messages"] if m.get("role") != "assistant"] == [
+        m for m in params["messages"] if m.get("role") != "assistant"
+    ]
+    assert [m for m in actual["messages"] if m.get("role") == "assistant" and m.get("content") is not None] == [
+        {"content": "some message", "role": "assistant"}
+    ]
+
+    actual.pop("messages")
+    params.pop("messages")
+    assert actual == params
+
+
+@pytest.mark.skipif(skip, reason="openai>=1 not installed")
+def test_chat_completion_after_tool_call():
+    config_list = config_list_from_json(
+        env_or_file=OAI_CONFIG_LIST,
+        file_location=KEY_LOC,
+        filter_dict={"tags": ["gpt-4o-mini"]},
+    )
+    with TemporaryDirectory() as temp_dir:
+        with Cache.disk(cache_seed=42, cache_path_root=temp_dir) as cache:
+            client = OpenAIWrapper(config_list=config_list, cache=cache)
+            params = {
+                "messages": [
+                    {
+                        "content": "You are a student writing a practice test. Your "
+                        "task is as follows:\n"
+                        "  1) Retrieve exam questions by calling a "
+                        "function.\n"
+                        "  2) Write a draft of proposed answers and engage "
+                        "in dialogue with your tutor.\n"
+                        "  3) Once you are done with the dialogue, register "
+                        "the final answers by calling a function.\n"
+                        "  4) Retrieve the final grade by calling a "
+                        "function.\n"
+                        "Finally, terminate the chat by saying 'TERMINATE'.",
+                        "role": "system",
+                    },
+                    {
+                        "content": "Prepare for the test about Leonardo da Vinci.",
+                        "name": "Teacher_Agent",
+                        "role": "user",
+                    },
+                    {
+                        "content": None,
+                        "role": "assistant",
+                        "tool_calls": [
+                            {
+                                "function": {
+                                    "arguments": '{"message":"Please '
+                                    "provide the exam "
+                                    "questions for the "
+                                    "test about Leonardo "
+                                    'da Vinci."}',
+                                    "name": "retrieve_exam_questions",
+                                },
+                                "id": "call_WtPX2rq3saIIqk4hM4jjAhNY",
+                                "type": "function",
+                            }
+                        ],
+                    },
+                    {
+                        "content": "1) Mona Lisa 2) Innovations 3) Florence at the time "
+                        "of Leonardo 4) The Last Supper 5) Vit",
+                        "role": "tool",
+                        "tool_call_id": "call_WtPX2rq3saIIqk4hM4jjAhNY",
+                    },
+                    {
+                        "content": "I have retrieved the exam questions about Leonardo "
+                        "da Vinci. Here they are:\n"
+                        "\n"
+                        "1. Mona Lisa\n"
+                        "2. Innovations\n"
+                        "3. Florence at the time of Leonardo\n"
+                        "4. The Last Supper\n"
+                        "5. Vitruvian Man\n"
+                        "\n"
+                        "Now, I'll draft proposed answers for each question. "
+                        "Let's start with the first one: \n"
+                        "\n"
+                        "1. **Mona Lisa**: The Mona Lisa, painted by "
+                        "Leonardo da Vinci in the early 16th century, is "
+                        "arguably the most famous painting in the world. It "
+                        "is known for the subject's enigmatic expression and "
+                        "da Vinci's masterful use of sfumato, which creates "
+                        "a soft transition between colors and tones.\n"
+                        "\n"
+                        # "What do you think of this draft answer? Would you "
+                        "like to add or change anything?",
+                        "role": "assistant",
+                        "name": "Student_Agent",  # this is problematic for some reason
+                    },
+                    {
+                        "content": "Your draft answer for the Mona Lisa is "
+                        "well-articulated and captures the essence of the "
+                        "painting and its significance. Here are a few "
+                        "suggestions to enhance your response:\n"
+                        "\n"
+                        "1. **Historical Context**: You could mention that "
+                        "the painting was created between 1503 and 1506 and "
+                        "is housed in the Louvre Museum in Paris.\n"
+                        "   \n"
+                        "2. **Artistic Techniques**: You might want to "
+                        "elaborate on the technique of sfumato, explaining "
+                        "how it contributes to the depth and realism of the "
+                        "portrait.\n"
+                        "\n"
+                        "3. **Cultural Impact**: It could be beneficial to "
+                        "touch on the painting's influence on art and "
+                        "culture, as well as its status as a symbol of the "
+                        "Renaissance.\n"
+                        "\n"
+                        "Here's a revised version incorporating these "
+                        "points:\n"
+                        "\n"
+                        "**Revised Answer**: The Mona Lisa, painted by "
+                        "Leonardo da Vinci between 1503 and 1506, is "
+                        "arguably the most famous painting in the world and "
+                        "is housed in the Louvre Museum in Paris. It is "
+                        "renowned for the subject's enigmatic expression, "
+                        "which has intrigued viewers for centuries. Da "
+                        "Vinci's masterful use of sfumato, a technique that "
+                        "allows for a soft transition between colors and "
+                        "tones, adds a remarkable depth and realism to the "
+                        "piece. The Mona Lisa has not only influenced "
+                        "countless artists and movements but has also become "
+                        "a symbol of the Renaissance and a cultural icon in "
+                        "its own right.\n"
+                        "\n"
+                        "Let me know if you would like to move on to the "
+                        "next question or make further adjustments!",
+                        "name": "Teacher_Agent",
+                        "role": "user",
+                    },
+                ],
+                "model": "gpt-4o-mini",
+                "stream": False,
+                "temperature": 0.8,
+                "tools": [
+                    {
+                        "function": {
+                            "description": "Get exam questions from examiner",
+                            "name": "retrieve_exam_questions",
+                            "parameters": {
+                                "additionalProperties": False,
+                                "properties": {"message": {"description": "Message for examiner", "type": "string"}},
+                                "required": ["message"],
+                                "type": "object",
+                            },
+                        },
+                        "type": "function",
+                    },
+                    {
+                        "function": {
+                            "description": "Write a final answers to exam "
+                            "questions to examiner, but only after "
+                            "discussing with the tutor first.",
+                            "name": "write_final_answers",
+                            "parameters": {
+                                "additionalProperties": False,
+                                "properties": {"message": {"description": "Message for examiner", "type": "string"}},
+                                "required": ["message"],
+                                "type": "object",
+                            },
+                        },
+                        "type": "function",
+                    },
+                    {
+                        "function": {
+                            "description": "Get the final grade after submitting " "the answers.",
+                            "name": "get_final_grade",
+                            "parameters": {
+                                "additionalProperties": False,
+                                "properties": {"message": {"description": "Message for examiner", "type": "string"}},
+                                "required": ["message"],
+                                "type": "object",
+                            },
+                        },
+                        "type": "function",
+                    },
+                ],
+            }
+
+            response = client.create(**params)
+
+            assert response is not None
 
 
 def test_throttled_api_calls():

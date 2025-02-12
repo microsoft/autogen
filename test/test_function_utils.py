@@ -157,6 +157,7 @@ def test_get_parameters() -> None:
             "c": {"type": "number", "description": "Parameter c", "default": 1.0},
         },
         "required": ["a"],
+        "additionalProperties": False,
     }
 
     actual = model_dump(get_parameters(required, param_annotations, default_values))
@@ -236,6 +237,7 @@ def test_get_function_schema() -> None:
                     },
                 },
                 "required": ["a", "d"],
+                "additionalProperties": False,
             },
         },
     }
@@ -264,6 +266,7 @@ def test_get_function_schema() -> None:
                     },
                 },
                 "required": ["a", "d"],
+                "additionalProperties": False,
             },
         },
     }
@@ -333,6 +336,7 @@ def test_get_function_schema_pydantic() -> None:
                     },
                 },
                 "required": ["base"],
+                "additionalProperties": False,
             },
         },
     }
