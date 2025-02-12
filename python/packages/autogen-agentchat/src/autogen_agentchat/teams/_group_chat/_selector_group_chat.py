@@ -145,13 +145,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
             roles=roles, participants=str(participants), history=history
         )
         select_speaker_messages: List[SystemMessage | UserMessage | AssistantMessage]
-        if self._model_client.model_info["family"] in [
-            ModelFamily.GPT_4,
-            ModelFamily.GPT_4O,
-            ModelFamily.GPT_35,
-            ModelFamily.O1,
-            ModelFamily.O3,
-        ]:
+        if ModelFamily.is_openai(self._model_client.model_info["family"]):
             select_speaker_messages = [SystemMessage(content=select_speaker_prompt)]
         else:
             # Many other models need a UserMessage to respond to
@@ -259,7 +253,7 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
             Without a termination condition, the group chat will run indefinitely.
         max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to None, meaning no limit.
         selector_prompt (str, optional): The prompt template to use for selecting the next speaker.
-            Must contain '{roles}', '{participants}', and '{history}' to be filled in.
+            Available fields: '{roles}', '{participants}', and '{history}'.
         allow_repeated_speaker (bool, optional): Whether to include the previous speaker in the list of candidates to be selected for the next turn.
             Defaults to False. The model may still select the previous speaker -- a warning will be logged if this happens.
         max_selector_attempts (int, optional): The maximum number of attempts to select a speaker using the model. Defaults to 3.
@@ -418,13 +412,6 @@ Read the above conversation. Then select the next role from {participants} to pl
         # Validate the participants.
         if len(participants) < 2:
             raise ValueError("At least two participants are required for SelectorGroupChat.")
-        # Validate the selector prompt.
-        if "{roles}" not in selector_prompt:
-            raise ValueError("The selector prompt must contain '{roles}'")
-        if "{participants}" not in selector_prompt:
-            raise ValueError("The selector prompt must contain '{participants}'")
-        if "{history}" not in selector_prompt:
-            raise ValueError("The selector prompt must contain '{history}'")
         self._selector_prompt = selector_prompt
         self._model_client = model_client
         self._allow_repeated_speaker = allow_repeated_speaker
