@@ -32,17 +32,28 @@ public class SemanticKernelAgent : IStreamingAgent
 {
     private readonly Kernel _kernel;
     private readonly string _systemMessage;
+    private readonly string? _modelServiceId;
     private readonly PromptExecutionSettings? _settings;
 
+    /// <summary>
+    /// Create a new instance of <see cref="SemanticKernelAgent"/>
+    /// </summary>
+    /// <param name="kernel">The Semantic Kernel - Kernel object</param>
+    /// <param name="name">The name of the agent.</param>
+    /// <param name="systemMessage">The system message.</param>
+    /// <param name="modelServiceId">Optional serviceId for the model.</param>
+    /// <param name="settings">The prompt execution settings.</param>
     public SemanticKernelAgent(
         Kernel kernel,
         string name,
         string systemMessage = "You are a helpful AI assistant",
+        string? modelServiceId = null,
         PromptExecutionSettings? settings = null)
     {
         _kernel = kernel;
         this.Name = name;
         _systemMessage = systemMessage;
+        _modelServiceId = modelServiceId;
         _settings = settings;
     }
 
@@ -52,7 +63,7 @@ public class SemanticKernelAgent : IStreamingAgent
     {
         var chatHistory = BuildChatHistory(messages);
         var option = BuildOption(options);
-        var chatService = _kernel.GetRequiredService<IChatCompletionService>();
+        var chatService = GetChatCompletionService();
 
         var reply = await chatService.GetChatMessageContentsAsync(chatHistory, option, _kernel, cancellationToken);
 
@@ -71,7 +82,7 @@ public class SemanticKernelAgent : IStreamingAgent
     {
         var chatHistory = BuildChatHistory(messages);
         var option = BuildOption(options);
-        var chatService = _kernel.GetRequiredService<IChatCompletionService>();
+        var chatService = GetChatCompletionService();
         var response = chatService.GetStreamingChatMessageContentsAsync(chatHistory, option, _kernel, cancellationToken);
 
         await foreach (var content in response)
@@ -106,6 +117,13 @@ public class SemanticKernelAgent : IStreamingAgent
             StopSequences = options?.StopSequence,
             ToolCallBehavior = ToolCallBehavior.AutoInvokeKernelFunctions,
         };
+    }
+
+    private IChatCompletionService GetChatCompletionService()
+    {
+        return string.IsNullOrEmpty(_modelServiceId)
+            ? _kernel.GetRequiredService<IChatCompletionService>()
+            : _kernel.GetRequiredService<IChatCompletionService>(_modelServiceId);
     }
 
     private IEnumerable<ChatMessageContent> ProcessMessage(IEnumerable<IMessage> messages)
