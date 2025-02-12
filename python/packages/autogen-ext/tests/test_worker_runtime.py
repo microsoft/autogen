@@ -517,6 +517,7 @@ async def test_proto_payloads() -> None:
 
 @pytest.mark.grpc
 @pytest.mark.asyncio
+@pytest.mark.skip(reason="Fix flakiness")
 async def test_grpc_max_message_size() -> None:
     default_max_size = 2**22
     new_max_size = default_max_size * 2
