@@ -20,12 +20,13 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly ILogger<GrpcGateway> _logger;
     private readonly IClusterClient _clusterClient;
     private readonly IRegistryGrain _gatewayRegistry;
+    private readonly IMessageRegistryGrain _messageRegistry;
     private readonly IGateway _reference;
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection>> _supportedAgentTypes = [];
     public readonly ConcurrentDictionary<string, GrpcWorkerConnection> _workers = new();
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
     private readonly ConcurrentDictionary<(GrpcWorkerConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
-
+   
     /// <summary>
     /// Initializes a new instance of the <see cref="GrpcGateway"/> class.
     /// </summary>
@@ -37,6 +38,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         _clusterClient = clusterClient;
         _reference = clusterClient.CreateObjectReference<IGateway>(this);
         _gatewayRegistry = clusterClient.GetGrain<IRegistryGrain>(0);
+        _messageRegistry = clusterClient.GetGrain<IMessageRegistryGrain>(0);
     }
 
     /// <summary>
@@ -139,6 +141,29 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         try
         {
             await _gatewayRegistry.SubscribeAsync(request).ConfigureAwait(true);
+
+            var topic = request.Subscription.SubscriptionCase switch
+            {
+                Subscription.SubscriptionOneofCase.TypeSubscription
+                    => request.Subscription.TypeSubscription.TopicType,
+                Subscription.SubscriptionOneofCase.TypePrefixSubscription
+                    => request.Subscription.TypePrefixSubscription.TopicTypePrefix,
+                _ => null
+            };
+
+            if (!string.IsNullOrEmpty(topic))
+            {
+                var removedMessages = await _messageRegistry.RemoveMessagesAsync(topic);
+                if (removedMessages.Any())
+                {
+                    _logger.LogInformation("Removed {Count} dead-letter messages for topic '{Topic}'.", removedMessages.Count, topic);
+                    // now that someone is subscribed, dispatch the messages
+                    foreach (var message in removedMessages)
+                    {
+                        await DispatchEventAsync(message).ConfigureAwait(true);
+                    }
+                }
+            }
             return new AddSubscriptionResponse { };
         }
         catch (Exception ex)
@@ -293,6 +318,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         {
             // log that no agent types were found
             _logger.LogWarning("No agent types found for event type {EventType}.", evt.Type);
+            // write to the dead letter queue
+            await _messageRegistry.WriteMessageAsync(evt.Source, evt).ConfigureAwait(true);
         }
     }
 
