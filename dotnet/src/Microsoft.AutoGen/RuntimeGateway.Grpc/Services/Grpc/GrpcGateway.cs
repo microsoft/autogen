@@ -264,6 +264,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Client ID is required."));
         var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
         _workers.GetOrAdd(clientId, workerProcess);
+        // if this client has not yet registered any supported types, we will update supportedagenttypes with the connection when it calls RegisterAgentType
         foreach (var type in _supportedAgentTypes.Keys)
         {
             if (_supportedAgentTypes.TryGetValue(type, out var supported))
@@ -277,7 +278,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             }
             else
             {
-                _supportedAgentTypes[type] = (clientId, new List<GrpcWorkerConnection> { workerProcess });
+                _supportedAgentTypes.TryAdd(type, (clientId, new List<GrpcWorkerConnection> { workerProcess }));
             }
         }
         await workerProcess.Connect().ConfigureAwait(false);
@@ -345,6 +346,33 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                 if (_supportedAgentTypes.TryGetValue(agentType, out var supported))
                 {
                     //item1 is a clientId, item2 is a list of worker processes
+                    if (supported.Item2.Count == 0)
+                    {
+                        _logger.LogWarning("No worker connections found for agent type {AgentType}.", agentType);
+                        // check if we can get the worker connection from the _workers dictionary
+                        if (_workers.TryGetValue(supported.Item1, out var connection))
+                        {
+                            // is the connection alive?
+                            if (connection.Completion?.IsCompleted == false)
+                            {
+                                tasks.Add(this.WriteResponseAsync(connection, evt, cancellationToken));
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Worker connection for agent type {AgentType} is not alive.", agentType);
+                                // remove the connection from the list
+                                _workers.TryRemove(supported.Item1, out _);
+                                // remove the agent type from the supported agent types
+                                _supportedAgentTypes.TryRemove(agentType, out _);
+                                // write to the dead letter queue - maybe it will come back
+                                await _messageRegistry.WriteMessageAsync(evt.Source, evt).ConfigureAwait(true);
+                            }
+                            continue;
+                        } // if we can't find the worker connection, write to the dead letter queue
+                        _supportedAgentTypes.TryRemove(agentType, out _);
+                        // write to the dead letter queue - maybe it will come back
+                        await _messageRegistry.WriteMessageAsync(evt.Source, evt).ConfigureAwait(true);
+                    }
                     var connections = supported.Item2;
                     // if the connection is alive, add it to the set, if not remove the connection from the list
                     var activeConnections = connections.Where(c => c.Completion?.IsCompleted == false).ToList();
