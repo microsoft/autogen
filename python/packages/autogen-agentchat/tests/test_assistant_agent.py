@@ -394,9 +394,9 @@ async def test_run_with_parallel_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.messages[1].models_usage.prompt_tokens == 10
     assert isinstance(result.messages[2], ToolCallExecutionEvent)
     expected_content = [
-        FunctionExecutionResult(call_id="1", content="pass"),
-        FunctionExecutionResult(call_id="2", content="pass"),
-        FunctionExecutionResult(call_id="3", content="task3"),
+        FunctionExecutionResult(call_id="1", content="pass", is_error=False),
+        FunctionExecutionResult(call_id="2", content="pass", is_error=False),
+        FunctionExecutionResult(call_id="3", content="task3", is_error=False),
     ]
     for expected in expected_content:
         assert expected in result.messages[2].content
@@ -877,8 +877,8 @@ async def test_model_client_stream_with_tool_calls() -> None:
                 FunctionCall(id="3", name="_echo_function", arguments=r'{"input": "task"}'),
             ]
             assert message.messages[2].content == [
-                FunctionExecutionResult(call_id="1", content="pass"),
-                FunctionExecutionResult(call_id="3", content="task"),
+                FunctionExecutionResult(call_id="1", content="pass", is_error=False),
+                FunctionExecutionResult(call_id="3", content="task", is_error=False),
             ]
         elif isinstance(message, ModelClientStreamingChunkEvent):
             chunks.append(message.content)
