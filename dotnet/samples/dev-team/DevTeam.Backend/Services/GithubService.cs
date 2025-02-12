@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// GithubService.cs
+
 using System.Text;
 using Azure.Storage.Files.Shares;
 using DevTeam.Options;
@@ -5,7 +8,7 @@ using Microsoft.Extensions.Options;
 using Octokit;
 using Octokit.Helpers;
 
-namespace DevTeam.Backend;
+namespace DevTeam.Backend.Services;
 
 public class GithubService : IManageGithub
 {

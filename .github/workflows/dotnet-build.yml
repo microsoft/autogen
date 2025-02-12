@@ -37,6 +37,7 @@ jobs:
           filters: |
             dotnet:
               - "dotnet/**"
+              - "protos/**"
             workflows:
               - ".github/workflows/**"
       - name: dotnet has changes
@@ -45,8 +46,9 @@ jobs:
       - name: workflows has changes
         run: echo "workflows has changes"
         if: steps.filter.outputs.workflows == 'true'
+
   build:
-    name: Dotnet Build
+    name: Dotnet Build & Test
     needs: paths-filter
     if: needs.paths-filter.outputs.hasChanges == 'true'
     defaults:
@@ -63,28 +65,24 @@ jobs:
     - uses: actions/checkout@v4
       with:
         lfs: true
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+    - uses: astral-sh/setup-uv@v5
       with:
-        python-version: ${{ matrix.python-version }}
-    - name: Install jupyter and ipykernel
+        enable-cache: true
+        version: "0.5.18"
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    - run: uv sync --locked --all-extras
+      working-directory: ./python
+    - name: Prepare python venv
       run: |
-        python -m pip install --upgrade pip
-        python -m pip install jupyter
-        python -m pip install ipykernel
-    - name: list available kernels
-      run: |
-        python -m jupyter kernelspec list
-    - name: Setup .NET
+        source ${{ github.workspace }}/python/.venv/bin/activate
+    - name: Setup .NET 8.0
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
-    - name: Install .NET Aspire workload
-      run: dotnet workload install aspire
     - name: Restore dependencies
-      run: |
-        # dotnet nuget add source --name dotnet-tool https://pkgs.dev.azure.com/dnceng/public/_packaging/dotnet-tools/nuget/v3/index.json --configfile NuGet.config
-        dotnet restore -bl
+      run: dotnet restore -bl
     - name: Format check
       run: |
         echo "Format check"
@@ -94,8 +92,100 @@ jobs:
       run: |
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
-    - name: Unit Test
-      run: dotnet test --no-build -bl --configuration Release
+    - name: Unit Test V1
+      run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV1"
+    - name: Unit Test V2 (With Coverage)
+      run: dotnet test --no-build -bl --configuration Release --filter "Category=UnitV2" --collect:"XPlat Code Coverage"
+    - name: Install Dev Certs for GRPC
+      if: matrix.os == 'ubuntu-latest'
+      run: dotnet dev-certs https --trust
+    - name: GRPC Tests (With Coverage)
+      if: matrix.os == 'ubuntu-latest'
+      run: dotnet test --no-build -bl --configuration Release --filter "Category=GRPC" --collect:"XPlat Code Coverage"
+    - name: Generate & Merge Coverage Report
+      if: matrix.os == 'ubuntu-latest'
+      run: |
+        # Install reportgenerator
+        dotnet tool install -g dotnet-reportgenerator-globaltool || dotnet tool update -g dotnet-reportgenerator-globaltool
+        # Ensure output directory exists
+        mkdir -p ${{ github.workspace }}/dotnet/coverage-report
+        # Merge all coverage reports and generate HTML + XML
+        reportgenerator \
+          -reports:${{ github.workspace }}/dotnet/**/TestResults/**/coverage.cobertura.xml \
+          -targetdir:${{ github.workspace }}/dotnet/coverage-report \
+          -reporttypes:"Cobertura;Html"
+        ls -R ${{ github.workspace }}/dotnet/coverage-report
+    - name: Upload Merged Coverage Report
+      if: matrix.os == 'ubuntu-latest'
+      uses: actions/upload-artifact@v4
+      with:
+        name: CodeCoverageReport
+        path: ${{ github.workspace }}/dotnet/coverage-report/
+        retention-days: 7
+    - name: Upload Coverage to Codecov
+      if: matrix.os == 'ubuntu-latest'
+      uses: codecov/codecov-action@v5
+      with:
+        files: ${{ github.workspace }}/dotnet/coverage-report/*.xml
+        flags: unittests
+        name: dotnet-codecov
+        fail_ci_if_error: true
+        token: ${{ secrets.CODECOV_TOKEN }}
+
+  integration-test:
+    strategy:
+      fail-fast: true
+      matrix:
+        os: [ ubuntu-latest]
+        version: [ net8.0 ]
+    needs: build
+    defaults:
+      run:
+        working-directory: dotnet
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v4
+      with:
+          lfs: true
+    - uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+        version: "0.5.18"
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    - run: uv sync --locked --all-extras
+      working-directory: ./python
+    - name: Prepare python venv
+      run: |
+        source ${{ github.workspace }}/python/.venv/bin/activate
+    - name: Setup .NET 8.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '8.0.x'
+    - name: Setup .NET 9.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+    - name: Install Temp Global.JSON
+      run: |
+        echo "{\"sdk\": {\"version\": \"9.0.101\"}}" > global.json
+    - name: Install .NET Aspire workload
+      run: dotnet workload install aspire
+    - name: Install dev certs
+      run:  dotnet --version && dotnet dev-certs https --trust
+    - name: Restore dependencies
+      run: |
+        dotnet restore -bl
+    - name: Build
+      run: |
+        echo "Build AutoGen"
+        dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
+    - name: Integration Test
+      run: dotnet --version && dotnet test --no-build -bl --configuration Release --filter "Category=Integration"
+    - name: Restore the global.json
+      run: rm global.json && git checkout -- global.json
+
   aot-test: # this make sure the AutoGen.Core is aot compatible
     strategy:
       fail-fast: false  # ensures the entire test matrix is run, even if one permutation fails
@@ -146,10 +236,21 @@ jobs:
     - name: list available kernels
       run: |
         python -m jupyter kernelspec list
-    - name: Setup .NET
+    - uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+        version: "0.5.18"
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+
+    - name: Setup .NET 8.0
       uses: actions/setup-dotnet@v4
       with:
+        dotnet-version: '8.0.x'
         global-json-file: dotnet/global.json
+    - name: Install dev certs
+      run:  dotnet --version && dotnet dev-certs https --trust
     - name: Restore dependencies
       run: |
         dotnet restore -bl
@@ -158,7 +259,7 @@ jobs:
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
     - name: OpenAI Test
-      run: dotnet test --no-build -bl --configuration Release
+      run: dotnet test --no-build -bl --configuration Release --filter type!=integration
       env:
         AZURE_OPENAI_API_KEY: ${{ secrets.AZURE_OPENAI_API_KEY }}
         AZURE_OPENAI_ENDPOINT: ${{ secrets.AZURE_OPENAI_ENDPOINT }}
@@ -234,4 +335,4 @@ jobs:
       env:
         MYGET_TOKEN: ${{ secrets.MYGET_TOKEN }}
       continue-on-error: true
-      
+

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// GithubAuthService.cs
+
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Security.Cryptography;
@@ -6,7 +9,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Octokit;
 
-namespace DevTeam.Backend;
+namespace DevTeam.Backend.Services;
 public class GithubAuthService
 {
     private readonly GithubOptions _githubSettings;

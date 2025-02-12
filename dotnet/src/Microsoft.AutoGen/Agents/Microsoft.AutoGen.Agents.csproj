@@ -1,25 +1,24 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-		<TargetFramework>net8.0</TargetFramework>
-		<ImplicitUsings>enable</ImplicitUsings>
-		<Nullable>enable</Nullable>
-		<PackageId>AutoGen.Worker.Client</PackageId>
-		<PackageProjectUrl>https://github.com/microsoft/autogen</PackageProjectUrl>
-		<Authors>Microsoft</Authors>
-		<Description>AutoGen Worker Client Library</Description>
-		<Tags>ai-agents;event-driven-agents</Tags>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
   </PropertyGroup>
 
-	<ItemGroup>
-		<ProjectReference Include="../Abstractions/Microsoft.AutoGen.Abstractions.csproj" />
-		<ProjectReference Include="..\Runtime\Microsoft.AutoGen.Runtime.csproj" />
-	</ItemGroup>
+  <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
 
-	<ItemGroup>
-	  <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
-	  <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
-	  <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
-	</ItemGroup>
-
+  <ItemGroup>
+		<ProjectReference Include="..\Contracts\Microsoft.AutoGen.Contracts.csproj" />
+		<ProjectReference Include="..\Core\Microsoft.AutoGen.Core.csproj" />
+		<ProjectReference Include="..\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+	  <PackageReference Include="Microsoft.SemanticKernel" />
+   	<PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
+    <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
+  </ItemGroup>
+  <ItemGroup>
+      <Protobuf Include="protos\agent_events.proto" GrpcServices="Client;Server" Link="Protos\agent_events.proto" />
+  </ItemGroup>
 </Project>

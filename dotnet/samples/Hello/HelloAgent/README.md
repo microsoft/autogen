@@ -25,11 +25,11 @@ Flow Diagram:
 ```mermaid
 %%{init: {'theme':'forest'}}%%
 graph LR;
-    A[Main] --> |"PublishEvent(NewMessage('World'))"| B{"Handle(NewMessageReceived item)"}
-    B --> |"PublishEvent(Output('***Hello, World***'))"| C[ConsoleAgent]
+    A[Main] --> |"PublishEventAsync(NewMessage('World'))"| B{"Handle(NewMessageReceived item, CancellationToken cancellationToken = default)"}
+    B --> |"PublishEventAsync(Output('***Hello, World***'))"| C[ConsoleAgent]
     C --> D{"WriteConsole()"}
-    B --> |"PublishEvent(ConversationClosed('Goodbye'))"| E{"Handle(ConversationClosed item)"}
-    B --> |"PublishEvent(Output('***Goodbye***'))"| C
+    B --> |"PublishEventAsync(ConversationClosed('Goodbye'))"| E{"Handle(ConversationClosed item, CancellationToken cancellationToken = default)"}
+    B --> |"PublishEventAsync(Output('***Goodbye***'))"| C
     E --> F{"Shutdown()"}
 
 ```
@@ -38,33 +38,33 @@ graph LR;
 
 The heart of an autogen application are the event handlers. Agents select a ```TopicSubscription``` to listen for events on a specific topic. When an event is received, the agent's event handler is called with the event data.
 
-Within that event handler you may optionally *emit* new events, which are then sent to the event bus for other agents to process. The EventTypes are declared gRPC ProtoBuf messages that are used to define the schema of the event.  The default protos are available via the ```Microsoft.AutoGen.Abstractions;``` namespace and are defined in [autogen/protos](/autogen/protos). The EventTypes are registered in the agent's constructor using the ```IHandle``` interface.
+Within that event handler you may optionally *emit* new events, which are then sent to the event bus for other agents to process. The EventTypes are declared gRPC ProtoBuf messages that are used to define the schema of the event.  The default protos are available via the ```Microsoft.AutoGen.Contracts;``` namespace and are defined in [autogen/protos](/autogen/protos). The EventTypes are registered in the agent's constructor using the ```IHandle``` interface.
 
 ```csharp
 TopicSubscription("HelloAgents")]
 public class HelloAgent(
-    IAgentContext context,
-    [FromKeyedServices("EventTypes")] EventTypes typeRegistry) : ConsoleAgent(
-        context,
+    iAgentWorker worker,
+    [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry) : ConsoleAgent(
+        worker,
         typeRegistry),
         ISayHello,
         IHandle<NewMessageReceived>,
         IHandle<ConversationClosed>
 {
-    public async Task Handle(NewMessageReceived item)
+    public async Task Handle(NewMessageReceived item, CancellationToken cancellationToken = default)
     {
         var response = await SayHello(item.Message).ConfigureAwait(false);
         var evt = new Output
         {
             Message = response
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt).ConfigureAwait(false);
+        await PublishEventAsync(evt).ConfigureAwait(false);
         var goodbye = new ConversationClosed
         {
             UserId = this.AgentId.Key,
             UserMessage = "Goodbye"
         }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(goodbye).ConfigureAwait(false);
+        await PublishEventAsync(goodbye).ConfigureAwait(false);
     }
 ```
 
@@ -108,7 +108,6 @@ message ReadmeRequested {
    string ask = 4;
 }
 ```
-
 
 ```xml
   <ItemGroup>

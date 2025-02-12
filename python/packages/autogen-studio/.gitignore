@@ -2,6 +2,8 @@ database.sqlite
 .cache/*
 autogenstudio/web/files/user/*
 autogenstudio/test
+autogenstudio/database/alembic.ini 
+autogenstudio/database/alembic/*
 autogenstudio/web/files/ui/*
 OAI_CONFIG_LIST
 scratch/
@@ -10,8 +12,10 @@ autogenstudio/web/ui/*
 autogenstudio/web/skills/user/*
 .release.sh
 .nightly.sh
+notebooks/test
 
 notebooks/work_dir/*
+notebooks/test.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

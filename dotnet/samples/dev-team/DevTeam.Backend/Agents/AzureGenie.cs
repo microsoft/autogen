@@ -1,23 +1,24 @@
-using DevTeam.Backend;
-using DevTeam.Shared;
-using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Agents;
-using Microsoft.SemanticKernel;
-using Microsoft.SemanticKernel.Memory;
-namespace Microsoft.AI.DevTeam;
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// AzureGenie.cs
 
-public class AzureGenie(IAgentContext context, Kernel kernel, ISemanticTextMemory memory, [FromKeyedServices("EventTypes")] EventTypes typeRegistry, IManageAzure azureService)
-    : SKAiAgent<object>(context, memory, kernel, typeRegistry),
+using DevTeam.Backend.Services;
+using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
+
+namespace DevTeam.Backend.Agents;
+
+[TopicSubscription(Consts.TopicName)]
+public class AzureGenie([FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry, IManageAzure azureService)
+    : Agent(typeRegistry),
     IHandle<ReadmeCreated>,
     IHandle<CodeCreated>
-
 {
-    public async Task Handle(ReadmeCreated item)
+    public async Task Handle(ReadmeCreated item, CancellationToken cancellationToken = default)
     {
         // TODO: Not sure we need to store the files if we use ACA Sessions
         //                //var data = item.ToData();
         //               // await Store(data["org"], data["repo"],  data.TryParseLong("parentNumber"),  data.TryParseLong("issueNumber"), "readme", "md", "output", data["readme"]);
-        //                await PublishEvent(new Event
+        //                await PublishEventAsync(new Event
         //                {
         //                    Namespace = item.Namespace,
         //                    Type = nameof(EventTypes.ReadmeStored),
@@ -27,13 +28,13 @@ public class AzureGenie(IAgentContext context, Kernel kernel, ISemanticTextMemor
         await Task.CompletedTask;
     }
 
-    public async Task Handle(CodeCreated item)
+    public async Task Handle(CodeCreated item, CancellationToken cancellationToken = default)
     {
         // TODO: Not sure we need to store the files if we use ACA Sessions
         //                //var data = item.ToData();
         //               // await Store(data["org"], data["repo"],  data.TryParseLong("parentNumber"),  data.TryParseLong("issueNumber"), "run", "sh", "output", data["code"]);
         //               // await RunInSandbox(data["org"], data["repo"],  data.TryParseLong("parentNumber"),  data.TryParseLong("issueNumber"));
-        //                await PublishEvent(new Event
+        //                await PublishEventAsync(new Event
         //                {
         //                    Namespace = item.Namespace,
         //                    Type = nameof(EventTypes.SandboxRunCreated),

@@ -1,33 +1,29 @@
-using Microsoft.AutoGen.Abstractions;
-using Microsoft.AutoGen.Agents;
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// HelloAIAgent.cs
+
+using Microsoft.AutoGen.Contracts;
+using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.DependencyInjection;
 
 namespace Hello;
-[TopicSubscription("HelloAgents")]
+[TopicSubscription("agents")]
 public class HelloAIAgent(
-    IAgentContext context,
-    [FromKeyedServices("EventTypes")] EventTypes typeRegistry,
+    [FromKeyedServices("AgentsMetadata")] AgentsMetadata typeRegistry,
+    IHostApplicationLifetime hostApplicationLifetime,
     IChatClient client) : HelloAgent(
-        context,
-        typeRegistry),
+        typeRegistry,
+        hostApplicationLifetime),
         IHandle<NewMessageReceived>
 {
     // This Handle supercedes the one in the base class
-    public new async Task Handle(NewMessageReceived item)
+    public new async Task Handle(NewMessageReceived item, CancellationToken cancellationToken = default)
     {
         var prompt = "Please write a limerick greeting someone with the name " + item.Message;
         var response = await client.CompleteAsync(prompt);
-        var evt = new Output
-        {
-            Message = response.Message.Text
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(evt).ConfigureAwait(false);
-        var goodbye = new ConversationClosed
-        {
-            UserId = this.AgentId.Key,
-            UserMessage = "Goodbye"
-        }.ToCloudEvent(this.AgentId.Key);
-        await PublishEvent(goodbye).ConfigureAwait(false);
+        var evt = new Output { Message = response.Message.Text };
+        await PublishMessageAsync(evt).ConfigureAwait(false);
+
+        var goodbye = new ConversationClosed { UserId = this.AgentId.Key, UserMessage = "Goodbye" };
+        await PublishMessageAsync(goodbye).ConfigureAwait(false);
     }
 }

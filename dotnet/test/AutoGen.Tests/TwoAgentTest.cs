@@ -1,15 +1,18 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // TwoAgentTest.cs
+
 #pragma warning disable xUnit1013
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FluentAssertions;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace AutoGen.Tests;
 
+[Trait("Category", "UnitV1")]
 public partial class TwoAgentTest
 {
     private ITestOutputHelper _output;

@@ -1,5 +1,6 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ChatCompletionRequest.cs
+
 using System.Collections.Generic;
 using System.Text.Json.Serialization;
 

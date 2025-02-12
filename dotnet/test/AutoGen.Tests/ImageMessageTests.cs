@@ -9,6 +9,7 @@ using Xunit;
 
 namespace AutoGen.Tests;
 
+[Trait("Category", "UnitV1")]
 public class ImageMessageTests
 {
     [Fact]
@@ -34,5 +35,19 @@ public class ImageMessageTests
         imageMessage.Url.Should().Be(localUrl);
         imageMessage.MimeType.Should().Be("image/png");
         imageMessage.Data.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ItCreateFromBase64Url()
+    {
+        var image = Path.Combine("testData", "images", "background.png");
+        var binary = File.ReadAllBytes(image);
+        var base64 = Convert.ToBase64String(binary);
+
+        var base64Url = $"data:image/png;base64,{base64}";
+        var imageMessage = new ImageMessage(Role.User, base64Url);
+
+        imageMessage.BuildDataUri().Should().Be(base64Url);
+        imageMessage.MimeType.Should().Be("image/png");
     }
 }

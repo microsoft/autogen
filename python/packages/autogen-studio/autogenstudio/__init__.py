@@ -1,4 +1,6 @@
-from .chatmanager import *
-from .datamodel import *
+from .database.db_manager import DatabaseManager
+from .datamodel import Team
+from .teammanager import TeamManager
 from .version import __version__
-from .workflowmanager import *
+
+__all__ = ["DatabaseManager", "Team", "TeamManager", "__version__"]

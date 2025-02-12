@@ -2,15 +2,18 @@ from dataclasses import dataclass
 from typing import Union
 
 import pytest
-from autogen_core.base import (
+from autogen_core import Image
+from autogen_core._serialization import (
     JSON_DATA_CONTENT_TYPE,
+    PROTOBUF_DATA_CONTENT_TYPE,
+    DataclassJsonMessageSerializer,
     MessageSerializer,
+    PydanticJsonMessageSerializer,
     SerializationRegistry,
     try_get_known_serializers_for_type,
 )
-from autogen_core.base._serialization import DataclassJsonMessageSerializer, PydanticJsonMessageSerializer
-from autogen_core.components import Image
 from PIL import Image as PILImage
+from protos.serialization_test_pb2 import NestingProtoMessage, ProtoMessage
 from pydantic import BaseModel
 
 
@@ -81,6 +84,30 @@ def test_nesting_dataclass_dataclass() -> None:
     serde = SerializationRegistry()
     with pytest.raises(ValueError):
         serde.add_serializer(try_get_known_serializers_for_type(NestingDataclassMessage))
+
+
+def test_proto() -> None:
+    serde = SerializationRegistry()
+    serde.add_serializer(try_get_known_serializers_for_type(ProtoMessage))
+
+    message = ProtoMessage(message="hello")
+    name = serde.type_name(message)
+    data = serde.serialize(message, type_name=name, data_content_type=PROTOBUF_DATA_CONTENT_TYPE)
+    assert name == "agents.ProtoMessage"
+    deserialized = serde.deserialize(data, type_name=name, data_content_type=PROTOBUF_DATA_CONTENT_TYPE)
+    assert deserialized.message == message.message
+
+
+def test_nested_proto() -> None:
+    serde = SerializationRegistry()
+    serde.add_serializer(try_get_known_serializers_for_type(NestingProtoMessage))
+
+    message = NestingProtoMessage(message="hello", nested=ProtoMessage(message="world"))
+    name = serde.type_name(message)
+    data = serde.serialize(message, type_name=name, data_content_type=PROTOBUF_DATA_CONTENT_TYPE)
+    deserialized = serde.deserialize(data, type_name=name, data_content_type=PROTOBUF_DATA_CONTENT_TYPE)
+    assert deserialized.message == message.message
+    assert deserialized.nested.message == message.nested.message
 
 
 @dataclass
@@ -159,3 +186,17 @@ def test_image_type() -> None:
     assert deserialized.image.image.size == (100, 100)
     assert deserialized.image.image.mode == "RGB"
     assert deserialized.image.image == image.image
+
+
+def test_type_name_for_protos() -> None:
+    type_name = SerializationRegistry().type_name(ProtoMessage())
+    assert type_name == "agents.ProtoMessage"
+
+    type_name = SerializationRegistry().type_name(ProtoMessage)
+    assert type_name == "agents.ProtoMessage"
+
+    type_name = SerializationRegistry().type_name(NestingProtoMessage())
+    assert type_name == "agents.NestingProtoMessage"
+
+    type_name = SerializationRegistry().type_name(NestingProtoMessage)
+    assert type_name == "agents.NestingProtoMessage"

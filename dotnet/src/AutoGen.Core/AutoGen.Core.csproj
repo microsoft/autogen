@@ -17,6 +17,7 @@
   <ItemGroup>
     <PackageReference Include="JsonSchema.Net.Generation" />
     <PackageReference Include="System.Memory.Data" />
+    <PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
   </ItemGroup>
   
   <ItemGroup Condition="'$(TargetFramework)' == 'netstandard2.0'">

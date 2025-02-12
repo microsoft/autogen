@@ -1,4 +1,5 @@
-// Copyright (c) Microsoft. All rights reserved.
+// Copyright (c) Microsoft Corporation. All rights reserved.
+// ChatRequestMessageTests.cs
 
 using System;
 using System.Collections.Generic;
@@ -13,6 +14,7 @@ using Xunit;
 
 namespace AutoGen.AzureAIInference.Tests;
 
+[Trait("Category", "UnitV1")]
 public class ChatRequestMessageTests
 {
     [Fact]

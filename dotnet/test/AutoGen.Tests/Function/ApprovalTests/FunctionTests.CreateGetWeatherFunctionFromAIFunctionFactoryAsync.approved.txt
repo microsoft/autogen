@@ -1,0 +1,76 @@
+﻿[
+  {
+    "Kind": 0,
+    "FunctionName": "GetWeather",
+    "FunctionDescription": "get weather",
+    "FunctionParameters": {
+      "type": "object",
+      "properties": {
+        "city": {
+          "type": "string"
+        },
+        "date": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "city"
+      ]
+    }
+  },
+  {
+    "Kind": 0,
+    "FunctionName": "GetWeatherStatic",
+    "FunctionDescription": "get weather from static method",
+    "FunctionParameters": {
+      "type": "object",
+      "properties": {
+        "city": {
+          "type": "string"
+        },
+        "date": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "city",
+        "date"
+      ]
+    }
+  },
+  {
+    "Kind": 0,
+    "FunctionName": "GetWeather",
+    "FunctionDescription": "get weather from async method",
+    "FunctionParameters": {
+      "type": "object",
+      "properties": {
+        "city": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "city"
+      ]
+    }
+  },
+  {
+    "Kind": 0,
+    "FunctionName": "GetWeatherAsyncStatic",
+    "FunctionDescription": "get weather from async static method",
+    "FunctionParameters": {
+      "type": "object",
+      "properties": {
+        "city": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "city"
+      ]
+    }
+  }
+]

@@ -7,6 +7,7 @@ using FluentAssertions;
 using Xunit;
 namespace AutoGen.Ollama.Tests;
 
+[Trait("Category", "UnitV1")]
 public class OllamaMessageTests
 {
     [Fact]

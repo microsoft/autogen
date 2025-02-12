@@ -181,7 +181,19 @@ public class SemanticKernelChatMessageContentConnector : IMiddleware, IStreaming
     private IEnumerable<ChatMessageContent> ProcessMessageForOthers(ImageMessage message)
     {
         var collectionItems = new ChatMessageContentItemCollection();
-        collectionItems.Add(new ImageContent(new Uri(message.Url ?? message.BuildDataUri())));
+        if (message.Url is not null)
+        {
+            collectionItems.Add(new ImageContent(new Uri(message.Url)));
+        }
+        else if (message.BuildDataUri() is string dataUri)
+        {
+            collectionItems.Add(new ImageContent(dataUri));
+        }
+        else
+        {
+            throw new InvalidOperationException("ImageMessage must have Url or DataUri");
+        }
+
         return [new ChatMessageContent(AuthorRole.User, collectionItems)];
     }
 

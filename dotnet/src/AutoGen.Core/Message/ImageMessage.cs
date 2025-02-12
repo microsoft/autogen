@@ -2,39 +2,65 @@
 // ImageMessage.cs
 
 using System;
+using System.Text.RegularExpressions;
 
 namespace AutoGen.Core;
 
 public class ImageMessage : IMessage
 {
-    public ImageMessage(Role role, string url, string? from = null, string? mimeType = null)
-        : this(role, new Uri(url), from, mimeType)
-    {
-    }
+    private static readonly Regex s_DataUriRegex = new Regex(@"^data:(?<mediatype>[^;]+);base64,(?<data>.*)$", RegexOptions.Compiled);
 
-    public ImageMessage(Role role, Uri uri, string? from = null, string? mimeType = null)
+    /// <summary>
+    /// Create an ImageMessage from a url.
+    /// The url can be a regular url or a data uri.
+    /// If the url is a data uri, the scheme must be "data" and the format must be data:[<mediatype>][;base64],<data>
+    /// </summary>
+    public ImageMessage(Role role, string url, string? from = null, string? mimeType = null)
     {
         this.Role = role;
         this.From = from;
-        this.Url = uri.ToString();
 
-        // try infer mimeType from uri extension if not provided
-        if (mimeType is null)
+        // url might be a data uri or a regular url
+        if (url.StartsWith("data:", StringComparison.OrdinalIgnoreCase))
         {
-            mimeType = uri switch
-            {
-                _ when uri.AbsoluteUri.EndsWith(".png", StringComparison.OrdinalIgnoreCase) => "image/png",
-                _ when uri.AbsoluteUri.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) => "image/jpeg",
-                _ when uri.AbsoluteUri.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) => "image/jpeg",
-                _ when uri.AbsoluteUri.EndsWith(".gif", StringComparison.OrdinalIgnoreCase) => "image/gif",
-                _ when uri.AbsoluteUri.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase) => "image/bmp",
-                _ when uri.AbsoluteUri.EndsWith(".webp", StringComparison.OrdinalIgnoreCase) => "image/webp",
-                _ when uri.AbsoluteUri.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) => "image/svg+xml",
-                _ => throw new ArgumentException("MimeType is required for ImageMessage", nameof(mimeType))
-            };
-        }
+            // the url must be in the format of data:[<mediatype>][;base64],<data>
+            var match = s_DataUriRegex.Match(url);
 
-        this.MimeType = mimeType;
+            if (!match.Success)
+            {
+                throw new ArgumentException("Invalid DataUri format, expected data:[<mediatype>][;base64],<data>", nameof(url));
+            }
+
+            this.Data = new BinaryData(Convert.FromBase64String(match.Groups["data"].Value), match.Groups["mediatype"].Value);
+
+            this.MimeType = match.Groups["mediatype"].Value;
+        }
+        else
+        {
+            this.Url = url;
+            // try infer mimeType from uri extension if not provided
+            if (mimeType is null)
+            {
+                mimeType = url switch
+                {
+                    _ when url.EndsWith(".png", StringComparison.OrdinalIgnoreCase) => "image/png",
+                    _ when url.EndsWith(".jpg", StringComparison.OrdinalIgnoreCase) => "image/jpeg",
+                    _ when url.EndsWith(".jpeg", StringComparison.OrdinalIgnoreCase) => "image/jpeg",
+                    _ when url.EndsWith(".gif", StringComparison.OrdinalIgnoreCase) => "image/gif",
+                    _ when url.EndsWith(".bmp", StringComparison.OrdinalIgnoreCase) => "image/bmp",
+                    _ when url.EndsWith(".webp", StringComparison.OrdinalIgnoreCase) => "image/webp",
+                    _ when url.EndsWith(".svg", StringComparison.OrdinalIgnoreCase) => "image/svg+xml",
+                    _ => throw new ArgumentException("MimeType is required for ImageMessage", nameof(mimeType))
+                };
+            }
+
+            this.MimeType = mimeType;
+        }
+    }
+
+    public ImageMessage(Role role, Uri uri, string? from = null, string? mimeType = null)
+        : this(role, uri.ToString(), from, mimeType)
+    {
     }
 
     public ImageMessage(Role role, BinaryData data, string? from = null)

@@ -1,3 +1,4 @@
+(agentid_and_lifecycle)=
 # Agent Identity and Lifecycle
 
 The agent runtime manages agents' identities
@@ -24,7 +25,7 @@ It associates an agent with a specific
 factory function, which produces instances of agents
 of the same agent type.
 For example, different factory functions can produce the same
-agent class but with different constructor perameters.
+agent class but with different constructor parameters.
 The agent key is an instance identifier
 for the given agent type.
 Agent IDs can be converted to and from strings. the format of this string is:

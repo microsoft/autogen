@@ -2,53 +2,71 @@
 myst:
   html_meta:
     "description lang=en": |
-      Tutorial for AutoGen AgentChat, a framework for building multi-agent applications with AI agents.
+      Tutorial for AgentChat, a high-level API for AutoGen
 ---
 
-# Tutorial
+# Introduction
 
-Tutorial to get started with AgentChat.
+This tutorial provides a step-by-step guide to using AgentChat.
+Make sure you have first followed the [installation instructions](../installation.md)
+to prepare your environment.
 
-```{include} ../warning.md
+At any point you are stuck, feel free to ask for help on
+[GitHub Discussions](https://github.com/microsoft/autogen/discussions)
+or [Discord](https://aka.ms/autogen-discord).
 
+```{note}
+If you are coming from AutoGen v0.2, please read the [migration guide](../migration-guide.md).
 ```
 
-::::{grid} 2 2 2 3
+::::{grid} 2 2 2 2
 :gutter: 3
 
-:::{grid-item-card} {fas}`book-open;pst-color-primary` Introduction
-:link: ./introduction.html
+:::{grid-item-card} {fas}`brain;pst-color-primary` Models
+:link: ./models.html
 
-Overview of agents and teams in AgentChat
+How to use LLM model clients
 :::
 
-:::{grid-item-card} {fas}`users;pst-color-primary` Agents
+:::{grid-item-card} {fas}`envelope;pst-color-primary` Messages
+:link: ./messages.html
+
+Understand the message types
+:::
+
+:::{grid-item-card} {fas}`robot;pst-color-primary` Agents
 :link: ./agents.html
 
-Building agents that use LLMs, tools, and execute code.
+Work with AgentChat agents and get started with {py:class}`~autogen_agentchat.agents.AssistantAgent`
 :::
 
-:::{grid-item-card} {fas}`users;pst-color-primary` Teams  
+:::{grid-item-card} {fas}`sitemap;pst-color-primary` Teams
 :link: ./teams.html
 
-Coordinating multiple agents in teams.
+Work with teams of agents and get started with {py:class}`~autogen_agentchat.teams.RoundRobinGroupChat`.
 :::
 
-:::{grid-item-card} {fas}`flag-checkered;pst-color-primary` Chat Termination
+:::{grid-item-card} {fas}`person-chalkboard;pst-color-primary` Human-in-the-Loop
+:link: ./human-in-the-loop.html
+
+Best practices for providing feedback to a team
+:::
+
+:::{grid-item-card} {fas}`circle-stop;pst-color-primary` Termination
 :link: ./termination.html
 
-Determining when to end a task.
+Control a team using termination conditions
 :::
 
+:::{grid-item-card} {fas}`code;pst-color-primary` Custom Agents
+:link: ./custom-agents.html
+
+Create your own agents
+:::
+
+:::{grid-item-card} {fas}`database;pst-color-primary` Managing State
+:link: ./state.html
+
+Save and load agents and teams for persistent sessions
+:::
 ::::
-
-```{toctree}
-:maxdepth: 1
-:hidden:
-
-introduction
-agents
-teams
-termination
-selector-group-chat
-```

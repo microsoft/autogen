@@ -3,9 +3,11 @@
 
 using AutoGen.Gemini.Sample;
 using AutoGen.Tests;
+using Xunit;
 
 namespace AutoGen.Gemini.Tests;
 
+[Trait("Category", "UnitV1")]
 public class SampleTests
 {
     [ApiKeyFact("GCP_VERTEX_PROJECT_ID")]
