@@ -119,6 +119,16 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             if (!_workers.TryGetValue(clientId, out var connection))
             {
                 _logger.LogInformation($"Grpc Worker Connection not found for ClientId {clientId}.");
+                // we still want to add the supported type - we will bind the connection when it calls OpenChannel
+                _supportedAgentTypes.AddOrUpdate(
+                    request.Type,
+                    _ => (clientId, new List<GrpcWorkerConnection> { }),
+                    (_, existing) =>
+                    {
+                        existing.Item1 = clientId;
+                        return existing;
+                    }
+                );
             }
             else{
                 connection.AddSupportedType(request.Type);
@@ -325,7 +335,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         var registry = _clusterClient.GetGrain<IRegistryGrain>(0);
         //intentionally blocking
-        var targetAgentTypes = await registry.GetSubscribedAndHandlingAgentsAsync(evt.Source, evt.Type).ConfigureAwait(true);
+        var targetAgentTypes = await registry.GetSubscribedAndHandlingAgentsAsync(evt.Type, evt.Source).ConfigureAwait(true);
         if (targetAgentTypes is not null && targetAgentTypes.Count > 0)
         {
             targetAgentTypes = targetAgentTypes.Distinct().ToList();
