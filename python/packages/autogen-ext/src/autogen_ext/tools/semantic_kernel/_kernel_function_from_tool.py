@@ -3,8 +3,8 @@ from typing import Any, TypeVar
 from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
 from pydantic import BaseModel
-from semantic_kernel.functions.kernel_parameter_metadata import KernelParameterMetadata
 from semantic_kernel.functions import KernelFunctionFromMethod, kernel_function
+from semantic_kernel.functions.kernel_parameter_metadata import KernelParameterMetadata
 
 InputT = TypeVar("InputT", bound=BaseModel)
 OutputT = TypeVar("OutputT", bound=BaseModel)

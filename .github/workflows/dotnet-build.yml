@@ -169,7 +169,7 @@ jobs:
         dotnet-version: '9.0.x'
     - name: Install Temp Global.JSON
       run: |
-        echo "{\"sdk\": {\"version\": \"9.0.101\"}}" > global.json
+        echo "{\"sdk\": {\"version\": \"9.0\"}}" > global.json
     - name: Install .NET Aspire workload
       run: dotnet workload install aspire
     - name: Install dev certs

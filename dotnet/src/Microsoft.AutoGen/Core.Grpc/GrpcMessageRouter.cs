@@ -34,6 +34,8 @@ internal sealed class AutoRestartChannel : IDisposable
         _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellation);
     }
 
+    public bool Connected { get => _channel is not null; }
+
     public void EnsureConnected()
     {
         _logger.LogInformation("Connecting to gRPC endpoint " + Environment.GetEnvironmentVariable("AGENT_HOST"));
@@ -286,6 +288,8 @@ internal sealed class GrpcMessageRouter(AgentRpc.AgentRpcClient client,
 
         this._incomingMessageChannel.Dispose();
     }
+
+    public bool IsChannelOpen => this._incomingMessageChannel.Connected;
 
     public void Dispose()
     {
