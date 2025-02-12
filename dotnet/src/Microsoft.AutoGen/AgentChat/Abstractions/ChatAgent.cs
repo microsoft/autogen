@@ -181,8 +181,7 @@ public interface IChatAgent :
     /// <summary>
     /// The types of messages that the agent produces.
     /// </summary>
-    public IEnumerable<Type> ProducedMessageTypes { get; } // TODO: Is there a way to make this part of the type somehow?
-                                                    // Annotations, or IProduce<>? Do we ever actually access this?
+    public IEnumerable<Type> ProducedMessageTypes { get; } // TODO: Is there a way to make this part of the type somehow? Annotations, or IProduce<>? Do we ever actually access this?
 
     /// <summary>
     /// Reset the agent to its initialization state.
