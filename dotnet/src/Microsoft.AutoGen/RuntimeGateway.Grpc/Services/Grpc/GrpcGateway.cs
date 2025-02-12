@@ -223,7 +223,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     where TMessage : class
     {
         _logger.LogInformation("Received new connection from {Peer}.", context.Peer);
-        var clientId = context.RequestHeaders.Get("client-id")?.Value 
+        var clientId = context.RequestHeaders.Get("client-id")?.Value
             ?? throw new RpcException(new Status(StatusCode.InvalidArgument, "Client ID is required."));
         var workerProcess = new GrpcWorkerConnection<TMessage>(this, requestStream, responseStream, context);
         if (typeof(TMessage) == typeof(Message))
@@ -429,7 +429,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     internal void OnRemoveWorkerProcess<TMessage>(GrpcWorkerConnection<TMessage> workerProcess)
     where TMessage : class
     {
-        var clientId = workerProcess.ServerCallContext.RequestHeaders.Get("client-id")?.Value 
+        var clientId = workerProcess.ServerCallContext.RequestHeaders.Get("client-id")?.Value
             ?? throw new RpcException(new Status(StatusCode.InvalidArgument, "Grpc Client ID is required."));
 
         _workers.TryRemove(clientId, out _);
