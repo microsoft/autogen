@@ -1,5 +1,5 @@
 from collections import defaultdict
-from typing import Awaitable, Callable, DefaultDict, List, Set, Sequence
+from typing import Awaitable, Callable, DefaultDict, List, Sequence, Set
 
 from ._agent import Agent
 from ._agent_id import AgentId
