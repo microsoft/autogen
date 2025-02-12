@@ -30,8 +30,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         var testEndpoints = new TestEndpoints(AppHostAssemblyName, new() {
             { "backend", ["/"] }
         });
-        var appHostName = GetAssemblyPath(AppHostAssemblyName);
-        var appHostPath = $"{appHostName}.dll";
+        var appHostPath = GetAssemblyPath(AppHostAssemblyName);
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
 
@@ -56,7 +55,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
     }
 
     [Fact]
-    public async Task AppHostLogsHelloAgentPythonSendsDotNetReceives()
+    public async Task AppHostLogsHelloAgentPythonSendsHelloAgentsDotNetReceives()
     {
         //Prepare
         var appHostPath = GetAssemblyPath(AppHostAssemblyName);
@@ -77,31 +76,66 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
 
         //Assert
         Assert.True(containsExpectedMessage);
+    }
 
+    [Fact]
+    public async Task AppHostLogsHelloAgentPythonSendsAgentHostReceives()
+    {
+        //Prepare
+        var appHostPath = GetAssemblyPath(AppHostAssemblyName);
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
+        await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
+        await app.WaitForResourcesAsync(new[] { KnownResourceStates.Running }).WaitAsync(TimeSpan.FromSeconds(120));
+        
+        //Act
+        var backendResourceName = "AgentHost";
+        var expectedMessage = "\"source\": \"HelloAgents/python\"";
+        var containsExpectedMessage = false;
+        app.EnsureNoErrorsLogged();
+        containsExpectedMessage = await app.WaitForExpectedMessageInResourceLogs(backendResourceName, expectedMessage, TimeSpan.FromSeconds(120));
+        await app.StopAsync();
+
+        //Assert
+        Assert.True(containsExpectedMessage);
+    }
+    [Fact]
+    public async Task AppHostLogsHelloAgentsDotNetSendsAgentHostReceives()
+    {
+        //Prepare
+        var appHostPath = GetAssemblyPath(AppHostAssemblyName);
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
+        await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
+        await app.WaitForResourcesAsync(new[] { KnownResourceStates.Running }).WaitAsync(TimeSpan.FromSeconds(120));
+        
+        //Act
+        var backendResourceName = "AgentHost";
+        var expectedMessage = "\"source\": \"HelloAgents/dotnet\"";
+        var containsExpectedMessage = false;
+        app.EnsureNoErrorsLogged();
+        containsExpectedMessage = await app.WaitForExpectedMessageInResourceLogs(backendResourceName, expectedMessage, TimeSpan.FromSeconds(120));
+        await app.StopAsync();
+
+        //Assert
+        Assert.True(containsExpectedMessage);
     }
     private static string GetAssemblyPath(string assemblyName)
     {
-        var parentDir = Directory.GetParent(AppContext.BaseDirectory)?.FullName 
+        var parentDir = Directory.GetParent(AppContext.BaseDirectory)?.FullName;
+        var grandParentDir = parentDir is not null ? Directory.GetParent(parentDir)?.FullName : null;
+        var greatGrandParentDir = grandParentDir is not null ? Directory.GetParent(grandParentDir)?.FullName : null 
             ?? AppContext.BaseDirectory;
-
-        // Search AppContext.BaseDirectory then its parent
-        var searchDirs = new[]
+        var options = new EnumerationOptions { RecurseSubdirectories = true, MatchCasing = MatchCasing.CaseInsensitive };
+        if (greatGrandParentDir is not null)
         {
-            AppContext.BaseDirectory,
-            parentDir
-        };
-
-        foreach (var dir in searchDirs)
-        {
-            var foundFile = Directory.GetFiles(dir, $"{assemblyName}.dll", SearchOption.AllDirectories)
-                .FirstOrDefault();
+            var foundFile = Directory.GetFiles(greatGrandParentDir, $"{assemblyName}.dll", options).FirstOrDefault();
             if (foundFile is not null)
             {
                 return foundFile;
             }
         }
-
-        throw new FileNotFoundException($"Could not find {assemblyName}.dll in {AppContext.BaseDirectory} or parent directory");
+        throw new FileNotFoundException($"Could not find {assemblyName}.dll in {grandParentDir ?? "unknown"} directory");
     }
 }
 

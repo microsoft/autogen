@@ -262,19 +262,19 @@ public static partial class DistributedApplicationExtensions
     {
         var containsExpectedMessage = false;
         var logWatchCancellation = new CancellationTokenSource();
-        var logs = app.GetResourceLogs(resourceName);
         var logWatchTask = Task.Run(async () =>
         {
-            if (logs != null && logs.Any(log => log.Message.Contains(expectedMessage)))
+            while (!containsExpectedMessage)
             {
-                containsExpectedMessage = true;
-                logWatchCancellation.Cancel();
+                var logs = app.GetResourceLogs(resourceName);
+                if (logs != null && logs.Any(log => log.Message.Contains(expectedMessage)))
+                {
+                    containsExpectedMessage = true;
+                    logWatchCancellation.Cancel();
+                }
             }
-        }, logWatchCancellation.Token);
-        while (!containsExpectedMessage)
-        {
-            await logWatchTask.ConfigureAwait(true);
-        }
+        }, logWatchCancellation.Token).WaitAsync(timeout);
+        await logWatchTask.ConfigureAwait(true);
         logWatchCancellation.Cancel();
         return containsExpectedMessage;
     }

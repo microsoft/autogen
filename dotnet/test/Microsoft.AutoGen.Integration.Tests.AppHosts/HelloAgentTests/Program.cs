@@ -19,5 +19,5 @@ else
 var app = await appBuilder.BuildAsync(); // Build the app
 // Create a custom message type from proto and define message
 NewMessageReceived message = new NewMessageReceived { Message = "Hello World!" };
-await app.PublishMessageAsync(message, new TopicId("HelloTopic")); // Publish custom message (handler has been set in HelloAgent)
+await app.PublishMessageAsync(message, new TopicId("HelloTopic", "HelloAgents/dotnet")); // Publish custom message (handler has been set in HelloAgent)
 await app.WaitForShutdownAsync(); // Wait for shutdown from agent

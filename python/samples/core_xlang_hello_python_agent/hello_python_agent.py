@@ -44,6 +44,7 @@ async def main() -> None:
 
     await UserProxy.register(runtime, "HelloAgent", lambda: UserProxy())
     await runtime.add_subscription(DefaultSubscription(agent_type="HelloAgent"))
+    await runtime.add_subscription(TypeSubscription(topic_type="HelloTopic", agent_type="HelloAgent"))
     await runtime.add_subscription(TypeSubscription(topic_type="agents.NewMessageReceived", agent_type="HelloAgent"))
     await runtime.add_subscription(TypeSubscription(topic_type="agents.ConversationClosed", agent_type="HelloAgent"))
     await runtime.add_subscription(TypeSubscription(topic_type="agents.Output", agent_type="HelloAgent"))
@@ -54,7 +55,7 @@ async def main() -> None:
 
     await runtime.publish_message(
         message=new_message,
-        topic_id=DefaultTopicId("agents.NewMessageReceived", "HelloAgents/python"),
+        topic_id=DefaultTopicId("HelloTopic", "HelloAgents/python"),
         sender=AgentId("HelloAgents", "python"),
     )
 
