@@ -1,24 +1,29 @@
 # api/routes/validation.py
+import importlib
+from typing import Any, Dict, List, Optional
+
+from autogen_core import ComponentModel, is_component_class
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Dict, List, Optional, Any
-import importlib
-from autogen_core import ComponentModel, is_component_class
 
 router = APIRouter()
 
+
 class ValidationRequest(BaseModel):
     component: Dict[str, Any]
+
 
 class ValidationError(BaseModel):
     field: str
     error: str
     suggestion: Optional[str] = None
 
+
 class ValidationResponse(BaseModel):
     is_valid: bool
     errors: List[ValidationError] = []
     warnings: List[ValidationError] = []
+
 
 class ValidationService:
     @staticmethod
@@ -33,25 +38,25 @@ class ValidationService:
             module_path, class_name = provider.rsplit(".", maxsplit=1)
             module = importlib.import_module(module_path)
             component_class = getattr(module, class_name)
-            
+
             if not is_component_class(component_class):
                 return ValidationError(
                     field="provider",
                     error=f"Class {provider} is not a valid component class",
-                    suggestion="Ensure the class inherits from Component and implements required methods"
+                    suggestion="Ensure the class inherits from Component and implements required methods",
                 )
             return None
         except ImportError:
             return ValidationError(
                 field="provider",
                 error=f"Could not import provider {provider}",
-                suggestion="Check that the provider module is installed and the path is correct"
+                suggestion="Check that the provider module is installed and the path is correct",
             )
         except Exception as e:
             return ValidationError(
                 field="provider",
                 error=f"Error validating provider: {str(e)}",
-                suggestion="Check the provider string format and class implementation"
+                suggestion="Check the provider string format and class implementation",
             )
 
     @staticmethod
@@ -61,7 +66,7 @@ class ValidationService:
             return ValidationError(
                 field="component_type",
                 error="Component type is missing",
-                suggestion="Add a component_type field to the component configuration"
+                suggestion="Add a component_type field to the component configuration",
             )
         return None
 
@@ -72,35 +77,41 @@ class ValidationService:
         try:
             # Convert to ComponentModel for initial validation
             model = ComponentModel(**component)
-            
+
             # Get the component class
             provider = model.provider
             module_path, class_name = provider.rsplit(".", maxsplit=1)
             module = importlib.import_module(module_path)
             component_class = getattr(module, class_name)
-            
+
             # Validate against component's schema
-            if hasattr(component_class, 'component_config_schema'):
+            if hasattr(component_class, "component_config_schema"):
                 try:
                     component_class.component_config_schema.model_validate(model.config)
                 except Exception as e:
-                    errors.append(ValidationError(
-                        field="config",
-                        error=f"Config validation failed: {str(e)}",
-                        suggestion="Check that the config matches the component's schema"
-                    ))
+                    errors.append(
+                        ValidationError(
+                            field="config",
+                            error=f"Config validation failed: {str(e)}",
+                            suggestion="Check that the config matches the component's schema",
+                        )
+                    )
             else:
-                errors.append(ValidationError(
-                    field="config",
-                    error="Component class missing config schema",
-                    suggestion="Implement component_config_schema in the component class"
-                ))
+                errors.append(
+                    ValidationError(
+                        field="config",
+                        error="Component class missing config schema",
+                        suggestion="Implement component_config_schema in the component class",
+                    )
+                )
         except Exception as e:
-            errors.append(ValidationError(
-                field="config",
-                error=f"Schema validation error: {str(e)}",
-                suggestion="Check the component configuration format"
-            ))
+            errors.append(
+                ValidationError(
+                    field="config",
+                    error=f"Schema validation error: {str(e)}",
+                    suggestion="Check the component configuration format",
+                )
+            )
         return errors
 
     @staticmethod
@@ -112,13 +123,13 @@ class ValidationService:
             module_path, class_name = model.provider.rsplit(".", maxsplit=1)
             module = importlib.import_module(module_path)
             component_class = getattr(module, class_name)
-            instance = component_class.load_component(model)
+            component_class.load_component(model)
             return None
         except Exception as e:
             return ValidationError(
                 field="instantiation",
                 error=f"Failed to instantiate component: {str(e)}",
-                suggestion="Check that the component can be properly instantiated with the given config"
+                suggestion="Check that the component can be properly instantiated with the given config",
             )
 
     @classmethod
@@ -146,17 +157,16 @@ class ValidationService:
 
         # Check for version warnings
         if "version" not in component:
-            warnings.append(ValidationError(
-                field="version",
-                error="Component version not specified",
-                suggestion="Consider adding a version to ensure compatibility"
-            ))
+            warnings.append(
+                ValidationError(
+                    field="version",
+                    error="Component version not specified",
+                    suggestion="Consider adding a version to ensure compatibility",
+                )
+            )
 
-        return ValidationResponse(
-            is_valid=len(errors) == 0,
-            errors=errors,
-            warnings=warnings
-        )
+        return ValidationResponse(is_valid=len(errors) == 0, errors=errors, warnings=warnings)
+
 
 @router.post("/")
 async def validate_component(request: ValidationRequest) -> ValidationResponse:

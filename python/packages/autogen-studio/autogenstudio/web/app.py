@@ -13,7 +13,7 @@ from ..version import VERSION
 from .config import settings
 from .deps import cleanup_managers, init_managers
 from .initialization import AppInitializer
-from .routes import runs, sessions, teams, ws, validation
+from .routes import runs, sessions, teams, validation, ws
 
 # Initialize application
 app_file_path = os.path.dirname(os.path.abspath(__file__))
