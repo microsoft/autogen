@@ -15,22 +15,22 @@ from autogen_core.models import (
 
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 
-from .agentic_memory_controller import AgenticMemoryController
 from .page_logger import PageLogger
+from .task_centric_memory_controller import TaskCentricMemoryController
 
 
 class Apprentice:
     """
-    A minimal wrapper combining agentic memory with an agent or team.
+    A minimal wrapper combining task-centric memory with an agent or team.
     Applications may use the Apprentice class, or they may directly instantiate
-    and call the Agentic Memory Controller using this class as an example.
+    and call the Task Centric Memory Controller using this class as an example.
 
     Args:
         client: The client to call the model.
         - config: An optional dict that can be used to override the following values:
             - name_of_agent_or_team: The name of the target agent or team for assigning tasks to.
             - disable_prefix_caching: True to disable prefix caching by prepending random ints to the first message.
-            - AgenticMemoryController: A config dict passed to AgenticMemoryController.
+            - TaskCentricMemoryController: A config dict passed to TaskCentricMemoryController.
         logger: An optional logger. If None, a default logger will be created.
 
     Methods:
@@ -54,7 +54,7 @@ class Apprentice:
         # Assign default values that can be overridden by config.
         self.name_of_agent_or_team = "SimpleAgent"
         self.disable_prefix_caching = False
-        agentic_memory_controller_config = None
+        memory_controller_config = None
 
         if config is not None:
             # Apply any overrides from the config.
@@ -63,8 +63,8 @@ class Apprentice:
                     self.name_of_agent_or_team = config[key]
                 elif key == "disable_prefix_caching":
                     self.disable_prefix_caching = config[key]
-                elif key == "AgenticMemoryController":
-                    agentic_memory_controller_config = config[key]
+                elif key == "TaskCentricMemoryController":
+                    memory_controller_config = config[key]
                 else:
                     self.logger.error('Unexpected item in config: ["{}"] = {}'.format(key, config[key]))
 
@@ -73,12 +73,12 @@ class Apprentice:
             self.rand = random.Random()
             self.rand.seed(int(time.time() * 1000))
 
-        # Create the AgenticMemoryController, which creates the AgenticMemoryBank.
-        self.memory_controller = AgenticMemoryController(
+        # Create the TaskCentricMemoryController, which creates the TaskCentricMemoryBank.
+        self.memory_controller = TaskCentricMemoryController(
             reset=True,
             client=self.client,
             task_assignment_callback=self.assign_task_to_agent_or_team,
-            config=agentic_memory_controller_config,
+            config=memory_controller_config,
             logger=self.logger,
         )
 

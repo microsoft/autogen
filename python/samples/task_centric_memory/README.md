@@ -1,4 +1,4 @@
-# Agentic Memory Code Samples
+# Task-Centric Memory Code Samples
 
 This directory contains code samples that illustrate the following forms of memory-based fast learning:
 * Agent learning from user advice and corrections
@@ -8,7 +8,7 @@ This directory contains code samples that illustrate the following forms of memo
 Each sample is contained in a separate python script, using data and configs stored in yaml files.
 Note that since agent behavior is non-deterministic, results will vary between runs.
 
-To watch operations live in a browser and see how agentic memory works,
+To watch operations live in a browser and see how task-centric memory works,
 open the HTML page at the location specified at the top of the config file,
 such as: `~/pagelogs/teachability/0  Call Tree.html`
 
@@ -20,7 +20,7 @@ To use _MagenticOneGroupChat_ instead, specify that in the yaml file where indic
 
 Install AutoGen and its extension package as follows:
 
-`pip install "autogen-ext[agentic-memory]"`
+`pip install "autogen-ext[task-centric-memory]"`
 
 Assign your OpenAI key to the environment variable OPENAI_API_KEY,
 or else modify `utils/client.py` as appropriate for the model you choose.
@@ -28,19 +28,19 @@ or else modify `utils/client.py` as appropriate for the model you choose.
 
 ## Running the Samples
 
-Execute the following commands from this (autogen_ext/agentic_memory) directory.
+Execute the following commands from this (autogen_ext/task_centric_memory) directory.
 
 
 ### Direct Memory Access
 
-This sample shows how an app can access the `AgenticMemoryController` directly
+This sample shows how an app can access the `TaskCentricMemoryController` directly
 to retrieve previously stored task-insight pairs as potentially useful examples when solving some new task.
 A task is any text instruction that the app may give to the agent or model client, which the app must create.
 An insight is any text (like advice, a hint, a demonstration or plan) that might help the agent perform related tasks.
 
 A typical app will perform the following steps in some interleaved order:
-1. Call the `AgenticMemoryController` repeatedly to store a set of task-insight pairs.
-2. Call the `AgenticMemoryController` repeatedly to retrieve any related insights for a potentially new task.
+1. Call the `TaskCentricMemoryController` repeatedly to store a set of task-insight pairs.
+2. Call the `TaskCentricMemoryController` repeatedly to retrieve any related insights for a potentially new task.
 3. Use the retrieved insights, typically by adding them to the agent's context window.
 
 This sample code adds several task-insight pairs to memory, then retrieves stored pairs for a set of new tasks,

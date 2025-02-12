@@ -4,13 +4,13 @@ from autogen_core.models import (
     ChatCompletionClient,
 )
 
-from ._agentic_memory_bank import AgenticMemoryBank, Memo
 from ._prompter import Prompter
+from ._task_centric_memory_bank import Memo, TaskCentricMemoryBank
 from .grader import Grader
 from .page_logger import PageLogger
 
 
-class AgenticMemoryController:
+class TaskCentricMemoryController:
     """
     Manages memory-based learning, testing, and the flow of information to and from the memory bank.
 
@@ -21,7 +21,7 @@ class AgenticMemoryController:
         - config: An optional dict that can be used to override the following values:
             - max_train_trials: The maximum number of trials to attempt when training on a task.
             - max_test_trials: The maximum number of trials to attempt when testing on a task.
-            - AgenticMemoryBank: A config dict passed to AgenticMemoryBank.
+            - TaskCentricMemoryBank: A config dict passed to TaskCentricMemoryBank.
         logger: An optional logger. If None, a default logger will be created.
 
     Methods:
@@ -51,7 +51,7 @@ class AgenticMemoryController:
         # Assign default values that can be overridden by config.
         self.max_train_trials = 10
         self.max_test_trials = 3
-        agentic_memory_bank_config = None
+        memory_bank_config = None
 
         if config is not None:
             # Apply any overrides from the config.
@@ -60,15 +60,15 @@ class AgenticMemoryController:
                     self.max_train_trials = config[key]
                 elif key == "max_test_trials":
                     self.max_test_trials = config[key]
-                elif key == "AgenticMemoryBank":
-                    agentic_memory_bank_config = config[key]
+                elif key == "TaskCentricMemoryBank":
+                    memory_bank_config = config[key]
                 else:
                     self.logger.error('Unexpected item in config: ["{}"] = {}'.format(key, config[key]))
 
         self.client = client
         self.task_assignment_callback = task_assignment_callback
         self.prompter = Prompter(client, logger)
-        self.memory_bank = AgenticMemoryBank(reset=reset, config=agentic_memory_bank_config, logger=logger)
+        self.memory_bank = TaskCentricMemoryBank(reset=reset, config=memory_bank_config, logger=logger)
         self.grader = Grader(client, logger)
         self.logger.leave_function()
 

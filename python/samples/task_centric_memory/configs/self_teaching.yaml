@@ -1,7 +1,7 @@
 
 PageLogger:
   level: DEBUG  # DEBUG, INFO, WARNING, ERROR, CRITICAL, or NONE.
-  path: ~/pagelogs/demonstration
+  path: ~/pagelogs/self-teaching
 
 client:
   model: gpt-4o-2024-08-06
@@ -15,17 +15,17 @@ client:
 Apprentice:
   name_of_agent_or_team: SimpleAgent  # SimpleAgent, MagenticOneGroupChat, etc.
   disable_prefix_caching: 1  # If true, prepends a small random string to the context, to decorrelate repeated runs.
-  AgenticMemoryController:
+  TaskCentricMemoryController:
     max_train_trials: 10
     max_test_trials: 3
-    AgenticMemoryBank:
-      path: ~/agentic_memory_bank/temp
+    TaskCentricMemoryBank:
+      path: ~/task_centric_memory_bank/temp
       relevance_conversion_threshold: 1.7
       n_results: 25
       distance_threshold: 100
 
 test:
-  main_task_file: data_files/tasks/cell_towers_1.yaml  # The task being tested.
-  demo_task_file: data_files/tasks/cell_towers_2.yaml  # A similar but different task.
-  demo_solution_file: data_files/insights/cell_towers_2_demo.yaml  # A demonstration of solving the second task.
-  num_trials: 10
+  task_file_1: data_files/tasks/10_liars.yaml  # Train and test on this task.
+  task_file_2: data_files/tasks/100_vampires.yaml  # Test generalization on this different, similar task.
+  num_loops: 10
+  num_final_test_trials: 3

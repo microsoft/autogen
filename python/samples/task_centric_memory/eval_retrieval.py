@@ -5,15 +5,15 @@ from typing import Any, Dict, Set
 from autogen_core.models import (
     ChatCompletionClient,
 )
-from autogen_ext.agentic_memory import AgenticMemoryController, PageLogger
+from autogen_ext.task_centric_memory import TaskCentricMemoryController, PageLogger
 from utils import create_oai_client, load_yaml_file
 
 
 async def eval_retrieval(
-    memory_controller: AgenticMemoryController, client: ChatCompletionClient, logger: PageLogger, config: Dict[str, Any]
+    memory_controller: TaskCentricMemoryController, client: ChatCompletionClient, logger: PageLogger, config: Dict[str, Any]
 ) -> str:
     """
-    Evaluates precision and recall of agentic memory retrieval.
+    Evaluates precision and recall of task-centric memory retrieval.
     """
     logger.enter_function()
 
@@ -77,11 +77,11 @@ async def run_example(config_filepath: str) -> None:
     # Create the necessary components.
     logger = PageLogger(config["PageLogger"])
     client = create_oai_client(config["client"])
-    memory_controller = AgenticMemoryController(
+    memory_controller = TaskCentricMemoryController(
         reset=True,
         client=client,
         task_assignment_callback=None,
-        config=config["AgenticMemoryController"],
+        config=config["TaskCentricMemoryController"],
         logger=logger,
     )
 

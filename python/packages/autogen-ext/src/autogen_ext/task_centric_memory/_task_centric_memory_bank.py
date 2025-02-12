@@ -17,7 +17,7 @@ class Memo:
     insight: str  # A hint, solution, plan, or any other text that may help solve a similar task.
 
 
-class AgenticMemoryBank:
+class TaskCentricMemoryBank:
     """
     Stores task-completion insights as memories in a vector DB for later retrieval.
 
@@ -51,7 +51,7 @@ class AgenticMemoryBank:
         self.logger.enter_function()
 
         # Assign default values that can be overridden by config.
-        memory_dir_path = os.path.expanduser("~/agentic_memory/temp")
+        memory_dir_path = os.path.expanduser("~/task_centric_memory/temp")
         self.relevance_conversion_threshold = 1.7
         self.n_results = 25
         self.distance_threshold = 100

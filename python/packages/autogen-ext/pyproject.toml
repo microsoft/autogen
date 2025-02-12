@@ -66,7 +66,7 @@ jupyter-executor = [
     "nbclient>=0.10.2",
 ]
 
-agentic-memory = ["chromadb>=0.6.3"]
+task-centric-memory = ["chromadb>=0.6.3"]
 
 semantic-kernel-core = [
     "semantic-kernel>=1.17.1",

@@ -12,9 +12,9 @@ client:
   top_p: 1.0
   max_retries: 65535
 
-AgenticMemoryController:
-  AgenticMemoryBank:
-    path: ~/agentic_memory_bank/retrieval
+TaskCentricMemoryController:
+  TaskCentricMemoryBank:
+    path: ~/task_centric_memory_bank/retrieval
     relevance_conversion_threshold: 1.7
     n_results: 25
     distance_threshold: 100

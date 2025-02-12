@@ -1,9 +1,9 @@
-# Agentic Memory
+# Task Centric Memory
 
-This AutoGen extension provides an implementation of agentic memory, which we define as a
+This AutoGen extension provides an implementation of task-centric memory, which we define as a
 broad ability for AI agents to accomplish tasks more effectively by learning quickly and continually (over the long term).
 This is distinct from what RAG or long context windows can provide.
-While still under active research and development, this implementation of agentic memory
+While still under active research and development, this memory implementation
 can be attached to virtually any unmodified AI agent, and is designed to enable agents that:
 
 * Remember guidance, corrections, and demonstrations provided by users.
@@ -25,19 +25,19 @@ can benefit other users in similar situations.
 * Enable enforcement of security boundaries at the level of individual memory banks.
 * Allow users to download and port memory banks between agents and systems.
 
-![agentic_memory.png](../../../imgs/agentic_memory.png)
+![task_centric_memory.png](../../../imgs/task_centric_memory.png)
 
-The block diagram above outlines the key components of our baseline agentic memory architecture,
-which augments an agent or team with agentic memory mechanisms.
+The block diagram above outlines the key components of our baseline task-centric memory architecture,
+which augments an agent or team with memory mechanisms.
 
-The **Agentic Memory Controller** implements the fast-learning methods described below,
-and manages communication with an **Agentic Memory Bank** containing a vector DB and associated structures.
+The **Task Centric Memory Controller** implements the fast-learning methods described below,
+and manages communication with an **Task Centric Memory Bank** containing a vector DB and associated structures.
 
-The **Apprentice** is a minimal reference implementation that wraps the combination of agentic memory plus some agent or team.
+The **Apprentice** is a minimal reference implementation that wraps the combination of memory plus some agent or team.
 Certain applications will use the Apprentice,
-while others will directly instantiate and call the Agentic Memory Controller.
+while others will directly instantiate and call the Task Centric Memory Controller.
 
-We’ve successfully tested agentic memory with a simple AssistantAgent and MagenticOneGroupChat.
+We’ve successfully tested task-centric memory with a simple AssistantAgent and MagenticOneGroupChat.
 
 ## Memory Creation and Storage
 
@@ -73,9 +73,9 @@ Retrieved insights that pass the filtering steps are listed under a heading like
 
 Install AutoGen and its extension package as follows:
 
-`pip install "autogen-ext[agentic-memory]"`
+`pip install "autogen-ext[task-centric-memory]"`
 
-We provide [sample code](../../../../../samples/agentic_memory) to illustrate the following forms of memory-based fast learning:
+We provide [sample code](../../../../../samples/task_centric_memory) to illustrate the following forms of memory-based fast learning:
 * Agent learning from user advice and corrections
 * Agent learning from user demonstrations
 * Agent learning from its own experience
