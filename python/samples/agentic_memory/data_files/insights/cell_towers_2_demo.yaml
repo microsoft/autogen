@@ -1,6 +1,6 @@
 # Demo created manually for solving the cell_towers_2 task.
 
-demo: 'Sort the houses by location:  3, 6, 10, 11, 12, 17, 19, 20.
+insight: 'Sort the houses by location:  3, 6, 10, 11, 12, 17, 19, 20.
   Then start at one end and place the towers only where absolutely needed.
   The house at 3 could be served by a tower as far away as mile marker 7, because 3 + 4 = 7, so place a tower at 7.
   This obviously covers houses up to mile 7.

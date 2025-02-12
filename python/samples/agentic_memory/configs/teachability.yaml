@@ -26,4 +26,4 @@ Apprentice:
 
 test:
   task_file: data_files/tasks/autogen_package.yaml  # The task being tested.
-  advice_file: data_files/advice/add_topic.yaml  # Advice provided to help solve the task.
+  insight_file: data_files/insights/add_topic.yaml  # Advice provided to help solve the task.

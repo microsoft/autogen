@@ -27,5 +27,5 @@ Apprentice:
 test:
   main_task_file: data_files/tasks/cell_towers_1.yaml  # The task being tested.
   demo_task_file: data_files/tasks/cell_towers_2.yaml  # A similar but different task.
-  demo_solution_file: data_files/demos/cell_towers_2_demo.yaml  # A demonstration of solving the second.
+  demo_solution_file: data_files/insights/cell_towers_2_demo.yaml  # A demonstration of solving the second task.
   num_trials: 10

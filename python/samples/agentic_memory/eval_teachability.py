@@ -23,8 +23,8 @@ async def eval_teachability(
     task_description = task_dict["task_description"]
     expected_answer = task_dict["expected_answer"]
 
-    advice_dict = load_yaml_file(config["advice_file"])
-    advice = advice_dict["advice"]
+    insight_dict = load_yaml_file(config["insight_file"])
+    insight = insight_dict["insight"]
 
     # First test without memory.
     apprentice.reset_memory()
@@ -45,7 +45,7 @@ async def eval_teachability(
 
     # Give advice that should help solve this task.
     logger.info("Give the advice.")
-    await apprentice.handle_user_message(advice)
+    await apprentice.handle_user_message(insight)
 
     # Now ask the question again to see if the advice helps.
     logger.info("\nAsk the question again to see if the advice helps.")

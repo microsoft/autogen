@@ -25,7 +25,7 @@ async def eval_learning_from_demonstration(
     task_description = main_task["task_description"]
     expected_answer = main_task["expected_answer"]
     demo_task = load_yaml_file(config["demo_task_file"])["task_description"]
-    demo_solution = load_yaml_file(config["demo_solution_file"])["demo"]
+    demo_solution = load_yaml_file(config["demo_solution_file"])["insight"]
 
     # Start by clearing memory then running a baseline test.
     logger.info("To get a baseline, clear memory, then assign the task.")
