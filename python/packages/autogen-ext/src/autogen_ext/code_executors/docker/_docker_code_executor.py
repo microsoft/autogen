@@ -12,7 +12,7 @@ from collections.abc import Sequence
 from hashlib import sha256
 from pathlib import Path
 from types import TracebackType
-from typing import Any, Callable, ClassVar, List, Optional, ParamSpec, Type, Union
+from typing import Any, Callable, ClassVar, Dict, List, Optional, ParamSpec, Type, Union
 
 from autogen_core import CancellationToken
 from autogen_core.code_executor import (
@@ -88,6 +88,13 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
             the Python process exits with atext. Defaults to True.
         functions (List[Union[FunctionWithRequirements[Any, A], Callable[..., Any]]]): A list of functions that are available to the code executor. Default is an empty list.
         functions_module (str, optional): The name of the module that will be created to store the functions. Defaults to "functions".
+        extra_volumes (Optional[Dict[str, Dict[str, str]]], optional): A dictionary of extra volumes (beyond the work_dir) to mount to the container;
+            key is host source path and value 'bind' is the container path. See  Defaults to None.
+            Example: extra_volumes = {'/home/user1/': {'bind': '/mnt/vol2', 'mode': 'rw'}, '/var/www': {'bind': '/mnt/vol1', 'mode': 'ro'}}
+        extra_hosts (Optional[Dict[str, str]], optional): A dictionary of host mappings to add to the container. (See Docker docs on extra_hosts) Defaults to None.
+            Example: extra_hosts = {"kubernetes.docker.internal": "host-gateway"}
+        init_command (Optional[str], optional): A shell command to run before each shell operation execution. Defaults to None.
+            Example: init_command="kubectl config use-context docker-hub"
     """
 
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
@@ -126,6 +133,9 @@ $functions"""
             ]
         ] = [],
         functions_module: str = "functions",
+        extra_volumes: Optional[Dict[str, Dict[str, str]]] = None,
+        extra_hosts: Optional[Dict[str, str]] = None,
+        init_command: Optional[str] = None,
     ):
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
@@ -157,6 +167,10 @@ $functions"""
 
         self._functions_module = functions_module
         self._functions = functions
+        self._extra_volumes = extra_volumes if extra_volumes is not None else {}
+        self._extra_hosts = extra_hosts if extra_hosts is not None else {}
+        self._init_command = init_command
+
         # Setup could take some time so we intentionally wait for the first code block to do it.
         if len(functions) > 0:
             self._setup_functions_complete = False
@@ -354,16 +368,22 @@ $functions"""
             # Let the docker exception escape if this fails.
             await asyncio.to_thread(client.images.pull, self._image)
 
+        # Prepare the command (if needed)
+        shell_command = "/bin/sh"
+        command = ["-c", f"{(self._init_command)};exec {shell_command}"] if self._init_command else None
+
         self._container = await asyncio.to_thread(
             client.containers.create,
             self._image,
             name=self.container_name,
-            entrypoint="/bin/sh",
+            entrypoint=shell_command,
+            command=command,
             tty=True,
             detach=True,
             auto_remove=self._auto_remove,
-            volumes={str(self._bind_dir.resolve()): {"bind": "/workspace", "mode": "rw"}},
+            volumes={str(self._bind_dir.resolve()): {"bind": "/workspace", "mode": "rw"}, **self._extra_volumes},
             working_dir="/workspace",
+            extra_hosts=self._extra_hosts,
         )
         await asyncio.to_thread(self._container.start)
 

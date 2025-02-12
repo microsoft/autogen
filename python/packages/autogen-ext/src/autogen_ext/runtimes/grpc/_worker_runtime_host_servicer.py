@@ -11,7 +11,7 @@ from autogen_core._agent_id import AgentId
 from autogen_core._runtime_impl_helpers import SubscriptionManager
 
 from ._constants import GRPC_IMPORT_ERROR_STR
-from ._utils import subscription_from_proto
+from ._utils import subscription_from_proto, subscription_to_proto
 
 try:
     import grpc
@@ -170,7 +170,11 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
                 del self._agent_type_to_client_id[agent_type]
             for sub_id in self._client_id_to_subscription_id_mapping.get(client_id, set()):
                 logger.info(f"Client id {client_id} disconnected. Removing corresponding subscription with id {id}")
-                await self._subscription_manager.remove_subscription(sub_id)
+                try:
+                    await self._subscription_manager.remove_subscription(sub_id)
+                # Catch and ignore if the subscription does not exist.
+                except ValueError:
+                    continue
         logger.info(f"Client {client_id} disconnected successfully")
 
     def _raise_on_exception(self, task: Task[Any]) -> None:
@@ -327,7 +331,8 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         ],
     ) -> agent_worker_pb2.RemoveSubscriptionResponse:
         _client_id = await get_client_id_or_abort(context)
-        raise NotImplementedError("Method not implemented.")
+        await self._subscription_manager.remove_subscription(request.id)
+        return agent_worker_pb2.RemoveSubscriptionResponse()
 
     async def GetSubscriptions(  # type: ignore
         self,
@@ -337,4 +342,23 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         ],
     ) -> agent_worker_pb2.GetSubscriptionsResponse:
         _client_id = await get_client_id_or_abort(context)
-        raise NotImplementedError("Method not implemented.")
+        subscriptions = self._subscription_manager.subscriptions
+        return agent_worker_pb2.GetSubscriptionsResponse(
+            subscriptions=[subscription_to_proto(sub) for sub in subscriptions]
+        )
+
+    # async def GetState(  # type: ignore
+    #     self,
+    #     request: agent_worker_pb2.AgentId,
+    #     context: grpc.aio.ServicerContext[agent_worker_pb2.AgentId, agent_worker_pb2.GetStateResponse],
+    # ) -> agent_worker_pb2.GetStateResponse:
+    #     _client_id = await get_client_id_or_abort(context)
+    #     raise NotImplementedError("Method not implemented!")
+
+    # async def SaveState(  # type: ignore
+    #     self,
+    #     request: agent_worker_pb2.AgentState,
+    #     context: grpc.aio.ServicerContext[agent_worker_pb2.AgentId, agent_worker_pb2.SaveStateResponse],
+    # ) -> agent_worker_pb2.SaveStateResponse:
+    #     _client_id = await get_client_id_or_abort(context)
+    #     raise NotImplementedError("Method not implemented!")
