@@ -9,6 +9,9 @@ namespace Microsoft.AutoGen.Integration.Tests;
 public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
 {
     private const string AppHostAssemblyName = "XlangTests.AppHost";
+    private const string DotNetResourceName = "HelloAgentTestsDotNET";
+    private const string PythonResourceName = "HelloAgentTestsPython";
+    private const string BackendResourceName = "AgentHost";
 
     [Fact]
     public async Task AppHostRunsCleanly()
@@ -28,7 +31,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
     public async Task AppHostLogsHelloAgentE2E()
     {
         var testEndpoints = new TestEndpoints(AppHostAssemblyName, new() {
-            { "backend", ["/"] }
+            { "backend", new List<string> { "/" } }
         });
         var appHostPath = GetAssemblyPath(AppHostAssemblyName);
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
@@ -55,7 +58,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
     }
 
     [Fact]
-    public async Task AppHostLogsHelloAgentPythonSendsHelloAgentsDotNetReceives()
+    public async Task Test_Python_Sends_and_AppHost_Delivers_DotNet_Receives()
     {
         //Prepare
         var appHostPath = GetAssemblyPath(AppHostAssemblyName);
@@ -65,13 +68,10 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         await app.WaitForResourcesAsync(new[] { KnownResourceStates.Running }).WaitAsync(TimeSpan.FromSeconds(120));
         
         //Act
-        //var backendResourceName = "AgentHost";
-        var dotNetResourceName = "HelloAgentTestsDotNET";
-        //var pythonResourceName = "HelloAgentTestsPython";
         var expectedMessage = "Hello from Python!";
         var containsExpectedMessage = false;
         app.EnsureNoErrorsLogged();
-        containsExpectedMessage = await app.WaitForExpectedMessageInResourceLogs(dotNetResourceName, expectedMessage, TimeSpan.FromSeconds(120));
+        containsExpectedMessage = await app.WaitForExpectedMessageInResourceLogs(DotNetResourceName, expectedMessage, TimeSpan.FromSeconds(120));
         await app.StopAsync();
 
         //Assert
@@ -79,9 +79,10 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
     }
 
     [Fact]
-    public async Task AppHostLogsHelloAgentPythonSendsAgentHostReceives()
+    public async Task Test_Python_Agent_Sends_And_AgentHost_Receives()
     {
         //Prepare
+        Environment.SetEnvironmentVariable("XLANG_TEST_NO_DOTNET", "true");
         var appHostPath = GetAssemblyPath(AppHostAssemblyName);
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
@@ -89,20 +90,21 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         await app.WaitForResourcesAsync(new[] { KnownResourceStates.Running }).WaitAsync(TimeSpan.FromSeconds(120));
         
         //Act
-        var backendResourceName = "AgentHost";
         var expectedMessage = "\"source\": \"HelloAgents/python\"";
         var containsExpectedMessage = false;
         app.EnsureNoErrorsLogged();
-        containsExpectedMessage = await app.WaitForExpectedMessageInResourceLogs(backendResourceName, expectedMessage, TimeSpan.FromSeconds(120));
+        containsExpectedMessage = await app.WaitForExpectedMessageInResourceLogs(BackendResourceName, expectedMessage, TimeSpan.FromSeconds(120));
         await app.StopAsync();
 
         //Assert
         Assert.True(containsExpectedMessage);
     }
+
     [Fact]
-    public async Task AppHostLogsHelloAgentsDotNetSendsAgentHostReceives()
+    public async Task Test_Dotnet_Agent_Sends_And_AgentHost_Receives()
     {
         //Prepare
+        Environment.SetEnvironmentVariable("XLANG_TEST_NO_PYTHON", "true");
         var appHostPath = GetAssemblyPath(AppHostAssemblyName);
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
@@ -110,16 +112,62 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         await app.WaitForResourcesAsync(new[] { KnownResourceStates.Running }).WaitAsync(TimeSpan.FromSeconds(120));
         
         //Act
-        var backendResourceName = "AgentHost";
         var expectedMessage = "\"source\": \"HelloAgents/dotnet\"";
         var containsExpectedMessage = false;
         app.EnsureNoErrorsLogged();
-        containsExpectedMessage = await app.WaitForExpectedMessageInResourceLogs(backendResourceName, expectedMessage, TimeSpan.FromSeconds(120));
+        containsExpectedMessage = await app.WaitForExpectedMessageInResourceLogs(BackendResourceName, expectedMessage, TimeSpan.FromSeconds(120));
         await app.StopAsync();
 
         //Assert
         Assert.True(containsExpectedMessage);
     }
+
+    [Fact]
+    public async Task Test_Dotnet_Agent_Sends_And_AgentHost_Delivers_Back_To_It()
+    {
+        //Prepare
+        Environment.SetEnvironmentVariable("XLANG_TEST_NO_PYTHON", "true");
+        var appHostPath = GetAssemblyPath(AppHostAssemblyName);
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
+        await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
+        await app.WaitForResourcesAsync(new[] { KnownResourceStates.Running }).WaitAsync(TimeSpan.FromSeconds(120));
+        
+        //Act
+        var expectedMessage = "Hello World!";
+        var containsExpectedMessage = false;
+        app.EnsureNoErrorsLogged();
+        containsExpectedMessage = await app.WaitForExpectedMessageInResourceLogs(DotNetResourceName, expectedMessage, TimeSpan.FromSeconds(120));
+        expectedMessage = "HelloAgent said Goodbye";
+        containsExpectedMessage = false;
+        containsExpectedMessage = await app.WaitForExpectedMessageInResourceLogs(DotNetResourceName, expectedMessage, TimeSpan.FromSeconds(120));
+        await app.StopAsync();
+
+        //Assert
+        Assert.True(containsExpectedMessage);
+    }
+
+    [Fact]
+    public async Task Test_Python_Agent_Sends_And_AgentHost_Delivers_Back_To_It()
+    {
+        //Prepare
+        Environment.SetEnvironmentVariable("XLANG_TEST_NO_DOTNET", "true");
+        var appHostPath = GetAssemblyPath(AppHostAssemblyName);
+        var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostPath, testOutput);
+        await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
+        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
+        await app.WaitForResourcesAsync(new[] { KnownResourceStates.Running }).WaitAsync(TimeSpan.FromSeconds(120));
+        
+        //Act
+        var expectedMessage = "INFO:autogen_core:Received a message from host: cloudEvent {";
+        var containsExpectedMessage = false;
+        app.EnsureNoErrorsLogged();
+        containsExpectedMessage = await app.WaitForExpectedMessageInResourceLogs(PythonResourceName, expectedMessage, TimeSpan.FromSeconds(120));
+        await app.StopAsync();
+        //Assert
+        Assert.True(containsExpectedMessage);
+    }
+    
     private static string GetAssemblyPath(string assemblyName)
     {
         var parentDir = Directory.GetParent(AppContext.BaseDirectory)?.FullName;

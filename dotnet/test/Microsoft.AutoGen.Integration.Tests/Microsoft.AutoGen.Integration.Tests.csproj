@@ -33,7 +33,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="../../../../src/Microsoft.AutoGen/AgentHost/Microsoft.AutoGen.AgentHost.csproj" />
+    <ProjectReference Include="../../src/Microsoft.AutoGen/AgentHost/Microsoft.AutoGen.AgentHost.csproj" />
     <ProjectReference Include="../Microsoft.AutoGen.Integration.Tests.AppHosts/HelloAgentTests/HelloAgentTests.csproj" />
     <ProjectReference Include="../Microsoft.AutoGen.Integration.Tests.AppHosts/InMemoryTests.AppHost/InMemoryTests.AppHost.csproj" />
   </ItemGroup>

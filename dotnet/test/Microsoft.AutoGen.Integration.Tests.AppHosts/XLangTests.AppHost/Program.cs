@@ -3,7 +3,8 @@
 
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.Hosting;
-
+//Environment.SetEnvironmentVariable("XLANG_TEST_NO_DOTNET", "true");
+//Environment.SetEnvironmentVariable("XLANG_TEST_NO_PYTHON", "true");
 var builder = DistributedApplication.CreateBuilder(args);
 var backend = builder.AddProject<Projects.Microsoft_AutoGen_AgentHost>("AgentHost").WithExternalHttpEndpoints();
 IResourceBuilder<ProjectResource>? dotnet = null;

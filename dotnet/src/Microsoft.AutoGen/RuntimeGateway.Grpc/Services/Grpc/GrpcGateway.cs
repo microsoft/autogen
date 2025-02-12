@@ -354,6 +354,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                     }
                 }
             }
+            await Task.WhenAll(tasks).ConfigureAwait(false);
         }
         else
         {
