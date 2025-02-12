@@ -12,6 +12,14 @@ async def mcp_server_tools(
     This factory function connects to an MCP server and returns adapters for all available tools.
     The adapters can be directly assigned to an AutoGen agent's tools list.
 
+    .. note::
+
+        To use this function, you need to install `mcp` extra for the `autogen-ext` package.
+
+        .. code-block:: bash
+
+            pip install -U "autogen-ext[mcp]"
+
     Args:
         server_params (McpServerParams): Connection parameters for the MCP server.
             Can be either StdioServerParams for command-line tools or
