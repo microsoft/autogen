@@ -1,17 +1,11 @@
-from ._openai_client import AzureOpenAIChatCompletionClient, BaseOpenAIChatCompletionClient, OpenAIChatCompletionClient
+from ._ollama_client import OllamaChatCompletionClient
 from .config import (
-    AzureOpenAIClientConfigurationConfigModel,
-    BaseOpenAIClientConfigurationConfigModel,
     CreateArgumentsConfigModel,
-    OpenAIClientConfigurationConfigModel,
+    BaseOllamaClientConfigurationConfigModel,
 )
 
 __all__ = [
-    "OpenAIChatCompletionClient",
-    "AzureOpenAIChatCompletionClient",
-    "BaseOpenAIChatCompletionClient",
-    "AzureOpenAIClientConfigurationConfigModel",
-    "OpenAIClientConfigurationConfigModel",
-    "BaseOpenAIClientConfigurationConfigModel",
+    "OllamaChatCompletionClient",
+    "BaseOllamaClientConfigurationConfigModel",
     "CreateArgumentsConfigModel",
 ]

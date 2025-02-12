@@ -1,10 +1,11 @@
-from typing import Any, Literal, Mapping, Optional
+from typing import Any, Mapping, Optional
 
 from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
 from pydantic import BaseModel
 from typing_extensions import TypedDict
 
 class CreateArguments(TypedDict, total=False):
+    model: str
     host: Optional[str]
 
 class BaseOllamaClientConfiguration(CreateArguments, total=False):
@@ -18,6 +19,7 @@ class BaseOllamaClientConfiguration(CreateArguments, total=False):
 
 # Pydantic equivalents of the above TypedDicts
 class CreateArgumentsConfigModel(BaseModel):
+    model: str
     host: str | None = None
 
 

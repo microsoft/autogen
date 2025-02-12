@@ -35,7 +35,6 @@ from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
-    ChatCompletionTokenLogprob,
     CreateResult,
     FinishReasons,
     FunctionExecutionResultMessage,
@@ -45,40 +44,17 @@ from autogen_core.models import (
     ModelInfo,
     RequestUsage,
     SystemMessage,
-    TopLogprob,
     UserMessage,
 )
-from autogen_core.tools import Tool, ToolSchema, ParametersSchema
-from openai import AsyncAzureOpenAI, AsyncOpenAI
-from openai.types.chat import (
-    ChatCompletion,
-    ChatCompletionAssistantMessageParam,
-    ChatCompletionContentPartImageParam,
-    ChatCompletionContentPartParam,
-    ChatCompletionContentPartTextParam,
-    ChatCompletionMessageParam,
-    ChatCompletionMessageToolCallParam,
-    ChatCompletionRole,
-    ChatCompletionSystemMessageParam,
-    ChatCompletionToolMessageParam,
-    ChatCompletionToolParam,
-    ChatCompletionUserMessageParam,
-    ParsedChatCompletion,
-    ParsedChoice,
-    completion_create_params,
-)
-from openai.types.chat.chat_completion import Choice
-from openai.types.chat.chat_completion_chunk import Choice as ChunkChoice
-from openai.types.shared_params import FunctionDefinition, FunctionParameters
+from autogen_core.tools import Tool, ToolSchema
+
 from pydantic import BaseModel
 from typing_extensions import Self, Unpack
 
 from . import _model_info
 from .config import (
-    AzureOpenAIClientConfiguration,
-    AzureOpenAIClientConfigurationConfigModel,
-    OpenAIClientConfiguration,
-    OpenAIClientConfigurationConfigModel,
+    BaseOllamaClientConfiguration,
+    BaseOllamaClientConfigurationConfigModel
 )
 
 from ollama import AsyncClient, Message, Tool as OllamaTool, Image as OllamaImage, ChatResponse
@@ -689,7 +665,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         stop_reason = None
         maybe_model = None
         content_chunks: List[str] = []
-        full_tool_calls: Dict[int, FunctionCall] = {}
+        full_tool_calls: List[FunctionCall] = []
         completion_tokens = 0
 
         while True:
@@ -710,31 +686,30 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
                     continue
 
                 # Otherwise, get tool calls
-                if choice.delta.tool_calls is not None:
-                    for tool_call_chunk in choice.delta.tool_calls:
-                        idx = tool_call_chunk.index
-                        if idx not in full_tool_calls:
-                            # We ignore the type hint here because we want to fill in type when the delta provides it
-                            full_tool_calls[idx] = FunctionCall(id="", arguments="", name="")
+                if chunk.message.tool_calls is not None:
+                    full_tool_calls.extend(
+                        [
+                            FunctionCall(
+                                id=str(self._tool_id),
+                                arguments=json.dumps(x.function.arguments),
+                                name=normalize_name(x.function.name),
+                            )
+                            for x in chunk.message.tool_calls
+                        ]
+                    )
 
-                        if tool_call_chunk.id is not None:
-                            full_tool_calls[idx].id += tool_call_chunk.id
-
-                        if tool_call_chunk.function is not None:
-                            if tool_call_chunk.function.name is not None:
-                                full_tool_calls[idx].name += tool_call_chunk.function.name
-                            if tool_call_chunk.function.arguments is not None:
-                                full_tool_calls[idx].arguments += tool_call_chunk.function.arguments
-                if choice.logprobs and choice.logprobs.content:
-                    logprobs = [
-                        ChatCompletionTokenLogprob(
-                            token=x.token,
-                            logprob=x.logprob,
-                            top_logprobs=[TopLogprob(logprob=y.logprob, bytes=y.bytes) for y in x.top_logprobs],
-                            bytes=x.bytes,
-                        )
-                        for x in choice.logprobs.content
-                    ]
+                # TODO: logprobs currently unsupported in ollama.
+                # See: https://github.com/ollama/ollama/issues/2415
+                # if choice.logprobs and choice.logprobs.content:
+                #     logprobs = [
+                #         ChatCompletionTokenLogprob(
+                #             token=x.token,
+                #             logprob=x.logprob,
+                #             top_logprobs=[TopLogprob(logprob=y.logprob, bytes=y.bytes) for y in x.top_logprobs],
+                #             bytes=x.bytes,
+                #         )
+                #         for x in choice.logprobs.content
+                #     ]
 
             except StopAsyncIteration:
                 break
@@ -742,8 +717,8 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         model = maybe_model or create_args["model"]
         model = model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
 
-        if chunk and chunk.usage:
-            prompt_tokens = chunk.usage.prompt_tokens
+        if chunk and chunk.prompt_eval_count:
+            prompt_tokens = chunk.prompt_eval_count
         else:
             prompt_tokens = 0
 
@@ -751,10 +726,10 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             raise ValueError("Function calls are not supported in this context")
 
         content: Union[str, List[FunctionCall]]
-        if len(content_deltas) > 1:
-            content = "".join(content_deltas)
-            if chunk and chunk.usage:
-                completion_tokens = chunk.usage.completion_tokens
+        if len(content_chunks) > 1:
+            content = "".join(content_chunks)
+            if chunk and chunk.eval_count:
+                completion_tokens = chunk.eval_count
             else:
                 completion_tokens = 0
         else:
@@ -764,7 +739,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             #     # value = json.dumps(tool_call)
             #     # completion_tokens += count_token(value, model=model)
             #     completion_tokens += 0
-            content = list(full_tool_calls.values())
+            content = full_tool_calls
 
         usage = RequestUsage(
             prompt_tokens=prompt_tokens,
@@ -776,7 +751,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             content=content,
             usage=usage,
             cached=False,
-            logprobs=logprobs,
+            logprobs=None,
         )
 
         self._total_usage = _add_usage(self._total_usage, usage)
@@ -790,6 +765,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
     def total_usage(self) -> RequestUsage:
         return self._total_usage
 
+    # TODO: probably needs work
     def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         model = self._create_args["model"]
         try:
@@ -798,53 +774,23 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             trace_logger.warning(f"Model {model} not found. Using cl100k_base encoding.")
             encoding = tiktoken.get_encoding("cl100k_base")
         tokens_per_message = 3
-        tokens_per_name = 1
         num_tokens = 0
 
         # Message tokens.
         for message in messages:
             num_tokens += tokens_per_message
-            oai_message = to_oai_type(message)
-            for oai_message_part in oai_message:
-                for key, value in oai_message_part.items():
-                    if value is None:
-                        continue
-
-                    if isinstance(message, UserMessage) and isinstance(value, list):
-                        typed_message_value = cast(List[ChatCompletionContentPartParam], value)
-
-                        assert len(typed_message_value) == len(
-                            message.content
-                        ), "Mismatch in message content and typed message value"
-
-                        # We need image properties that are only in the original message
-                        for part, content_part in zip(typed_message_value, message.content, strict=False):
-                            if isinstance(content_part, Image):
-                                # TODO: add detail parameter
-                                num_tokens += calculate_vision_tokens(content_part)
-                            elif isinstance(part, str):
-                                num_tokens += len(encoding.encode(part))
-                            else:
-                                try:
-                                    serialized_part = json.dumps(part)
-                                    num_tokens += len(encoding.encode(serialized_part))
-                                except TypeError:
-                                    trace_logger.warning(f"Could not convert {part} to string, skipping.")
-                    else:
-                        if not isinstance(value, str):
-                            try:
-                                value = json.dumps(value)
-                            except TypeError:
-                                trace_logger.warning(f"Could not convert {value} to string, skipping.")
-                                continue
-                        num_tokens += len(encoding.encode(value))
-                        if key == "name":
-                            num_tokens += tokens_per_name
+            ollama_message = to_ollama_type(message)
+            for ollama_message_part in ollama_message:
+                if isinstance(message.content, Image):
+                    num_tokens += calculate_vision_tokens(message.content)
+                elif ollama_message_part.content is not None:
+                    num_tokens += len(encoding.encode(ollama_message_part.content))
+        # TODO: every model family has its own message sequence.
         num_tokens += 3  # every reply is primed with <|start|>assistant<|message|>
 
         # Tool tokens.
-        oai_tools = convert_tools(tools)
-        for tool in oai_tools:
+        ollama_tools = convert_tools(tools)
+        for tool in ollama_tools:
             function = tool["function"]
             tool_tokens = len(encoding.encode(function["name"]))
             if "description" in function:
@@ -893,7 +839,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         return self._model_info
 
 
-class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenAIClientConfigurationConfigModel]):
+class OpenAIChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseOllamaClientConfigurationConfigModel]):
     """Chat completion client for OpenAI hosted models.
 
     You can also use this client for OpenAI-compatible ChatCompletion endpoints.
@@ -980,12 +926,12 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
     """
 
     component_type = "model"
-    component_config_schema = OpenAIClientConfigurationConfigModel
-    component_provider_override = "autogen_ext.models.openai.OpenAIChatCompletionClient"
+    component_config_schema = BaseOllamaClientConfigurationConfigModel
+    component_provider_override = "autogen_ext.models.ollama.OllamaChatCompletionClient"
 
-    def __init__(self, **kwargs: Unpack[OpenAIClientConfiguration]):
+    def __init__(self, **kwargs: Unpack[BaseOllamaClientConfiguration]):
         if "model" not in kwargs:
-            raise ValueError("model is required for OpenAIChatCompletionClient")
+            raise ValueError("model is required for OllamaChatCompletionClient")
 
         model_capabilities: Optional[ModelCapabilities] = None  # type: ignore
         copied_args = dict(kwargs).copy()
@@ -998,7 +944,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             model_info = kwargs["model_info"]
             del copied_args["model_info"]
 
-        client = _openai_client_from_config(copied_args)
+        client = _ollama_client_from_config(copied_args)
         create_args = _create_args_from_config(copied_args)
         self._raw_config: Dict[str, Any] = copied_args
         super().__init__(
@@ -1012,169 +958,14 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
 
     def __setstate__(self, state: Dict[str, Any]) -> None:
         self.__dict__.update(state)
-        self._client = _openai_client_from_config(state["_raw_config"])
+        self._client = _ollama_client_from_config(state["_raw_config"])
 
-    def _to_config(self) -> OpenAIClientConfigurationConfigModel:
+    def _to_config(self) -> BaseOllamaClientConfigurationConfigModel:
         copied_config = self._raw_config.copy()
-        return OpenAIClientConfigurationConfigModel(**copied_config)
+        return BaseOllamaClientConfigurationConfigModel(**copied_config)
 
     @classmethod
-    def _from_config(cls, config: OpenAIClientConfigurationConfigModel) -> Self:
+    def _from_config(cls, config: BaseOllamaClientConfigurationConfigModel) -> Self:
         copied_config = config.model_copy().model_dump(exclude_none=True)
         return cls(**copied_config)
 
-
-class AzureOpenAIChatCompletionClient(
-    BaseOpenAIChatCompletionClient, Component[AzureOpenAIClientConfigurationConfigModel]
-):
-    """Chat completion client for Azure OpenAI hosted models.
-
-    Args:
-
-        model (str): Which OpenAI model to use.
-        azure_endpoint (str): The endpoint for the Azure model. **Required for Azure models.**
-        azure_deployment (str): Deployment name for the Azure model. **Required for Azure models.**
-        api_version (str): The API version to use. **Required for Azure models.**
-        azure_ad_token (str): The Azure AD token to use. Provide this or `azure_ad_token_provider` for token-based authentication.
-        azure_ad_token_provider (optional, Callable[[], Awaitable[str]] | AzureTokenProvider): The Azure AD token provider to use. Provide this or `azure_ad_token` for token-based authentication.
-        api_key (optional, str): The API key to use, use this if you are using key based authentication. It is optional if you are using Azure AD token based authentication or `AZURE_OPENAI_API_KEY` environment variable.
-        timeout: (optional, float): The timeout for the request in seconds.
-        max_retries (optional, int): The maximum number of retries to attempt.
-        model_info (optional, ModelInfo): The capabilities of the model. **Required if the model name is not a valid OpenAI model.**
-        frequency_penalty (optional, float):
-        logit_bias: (optional, dict[str, int]):
-        max_tokens (optional, int):
-        n (optional, int):
-        presence_penalty (optional, float):
-        response_format (optional, literal["json_object", "text"]):
-        seed (optional, int):
-        stop (optional, str | List[str]):
-        temperature (optional, float):
-        top_p (optional, float):
-        user (optional, str):
-
-
-    To use this client, you must install the `azure` and `openai` extensions:
-
-        .. code-block:: bash
-
-            pip install "autogen-ext[openai,azure]"
-
-    To use the client, you need to provide your deployment id, Azure Cognitive Services endpoint,
-    api version, and model capabilities.
-    For authentication, you can either provide an API key or an Azure Active Directory (AAD) token credential.
-
-    The following code snippet shows how to use AAD authentication.
-    The identity used must be assigned the `Cognitive Services OpenAI User <https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/role-based-access-control#cognitive-services-openai-user>`_ role.
-
-        .. code-block:: python
-
-            from autogen_ext.models.openai import AzureOpenAIChatCompletionClient
-            from azure.identity import DefaultAzureCredential, get_bearer_token_provider
-
-            # Create the token provider
-            token_provider = get_bearer_token_provider(DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default")
-
-            az_model_client = AzureOpenAIChatCompletionClient(
-                azure_deployment="{your-azure-deployment}",
-                model="{deployed-model, such as 'gpt-4o'}",
-                api_version="2024-06-01",
-                azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
-                azure_ad_token_provider=token_provider,  # Optional if you choose key-based authentication.
-                # api_key="sk-...", # For key-based authentication. `AZURE_OPENAI_API_KEY` environment variable can also be used instead.
-            )
-
-    To load the client that uses identity based aith from a configuration, you can use the `load_component` method:
-
-    .. code-block:: python
-
-        from autogen_core.models import ChatCompletionClient
-
-        config = {
-            "provider": "AzureOpenAIChatCompletionClient",
-            "config": {
-                "model": "gpt-4o-2024-05-13",
-                "azure_endpoint": "https://{your-custom-endpoint}.openai.azure.com/",
-                "azure_deployment": "{your-azure-deployment}",
-                "api_version": "2024-06-01",
-                "azure_ad_token_provider": {
-                    "provider": "autogen_ext.auth.azure.AzureTokenProvider",
-                    "config": {
-                        "provider_kind": "DefaultAzureCredential",
-                        "scopes": ["https://cognitiveservices.azure.com/.default"],
-                    },
-                },
-            },
-        }
-
-        client = ChatCompletionClient.load_component(config)
-
-
-    To view the full list of available configuration options, see the :py:class:`AzureOpenAIClientConfigurationConfigModel` class.
-
-
-    .. note::
-
-        Right now only `DefaultAzureCredential` is supported with no additional args passed to it.
-
-    See `here <https://learn.microsoft.com/en-us/azure/ai-services/openai/how-to/managed-identity#chat-completions>`_ for how to use the Azure client directly or for more info.
-
-    """
-
-    component_type = "model"
-    component_config_schema = AzureOpenAIClientConfigurationConfigModel
-    component_provider_override = "autogen_ext.models.openai.AzureOpenAIChatCompletionClient"
-
-    def __init__(self, **kwargs: Unpack[AzureOpenAIClientConfiguration]):
-        model_capabilities: Optional[ModelCapabilities] = None  # type: ignore
-        copied_args = dict(kwargs).copy()
-        if "model_capabilities" in kwargs:
-            model_capabilities = kwargs["model_capabilities"]
-            del copied_args["model_capabilities"]
-
-        model_info: Optional[ModelInfo] = None
-        if "model_info" in kwargs:
-            model_info = kwargs["model_info"]
-            del copied_args["model_info"]
-
-        client = _azure_openai_client_from_config(copied_args)
-        create_args = _create_args_from_config(copied_args)
-        self._raw_config: Dict[str, Any] = copied_args
-        super().__init__(
-            client=client, create_args=create_args, model_capabilities=model_capabilities, model_info=model_info
-        )
-
-    def __getstate__(self) -> Dict[str, Any]:
-        state = self.__dict__.copy()
-        state["_client"] = None
-        return state
-
-    def __setstate__(self, state: Dict[str, Any]) -> None:
-        self.__dict__.update(state)
-        self._client = _azure_openai_client_from_config(state["_raw_config"])
-
-    def _to_config(self) -> AzureOpenAIClientConfigurationConfigModel:
-        from ...auth.azure import AzureTokenProvider
-
-        copied_config = self._raw_config.copy()
-        if "azure_ad_token_provider" in copied_config:
-            if not isinstance(copied_config["azure_ad_token_provider"], AzureTokenProvider):
-                raise ValueError("azure_ad_token_provider must be a AzureTokenProvider to be component serialized")
-
-            copied_config["azure_ad_token_provider"] = (
-                copied_config["azure_ad_token_provider"].dump_component().model_dump(exclude_none=True)
-            )
-
-        return AzureOpenAIClientConfigurationConfigModel(**copied_config)
-
-    @classmethod
-    def _from_config(cls, config: AzureOpenAIClientConfigurationConfigModel) -> Self:
-        from ...auth.azure import AzureTokenProvider
-
-        copied_config = config.model_copy().model_dump(exclude_none=True)
-        if "azure_ad_token_provider" in copied_config:
-            copied_config["azure_ad_token_provider"] = AzureTokenProvider.load_component(
-                copied_config["azure_ad_token_provider"]
-            )
-
-        return cls(**copied_config)
