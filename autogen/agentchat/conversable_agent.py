@@ -80,6 +80,7 @@ class ConversableAgent(LLMAgent):
         description: Optional[str] = None,
         chat_messages: Optional[Dict[Agent, List[Dict]]] = None,
         silent: Optional[bool] = None,
+        role_for_system_message: Literal["system", "user"] = "system",
     ):
         """
         Args:
@@ -144,7 +145,7 @@ class ConversableAgent(LLMAgent):
         else:
             self._oai_messages = chat_messages
 
-        self._oai_system_message = [{"content": system_message, "role": "system"}]
+        self._oai_system_message = [{"content": system_message, "role": role_for_system_message}]
         self._description = description if description is not None else system_message
         self._is_termination_msg = (
             is_termination_msg
