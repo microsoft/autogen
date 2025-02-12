@@ -11,8 +11,8 @@ internal delegate ValueTask MessagePublishServicer(GroupChatEventBase event_, st
 
 internal interface IGroupChatHandler : IHandle<GroupChatStart>, IHandle<GroupChatAgentResponse>, IHandle<object>
 {
-    void AttachMessagePublishServicer(MessagePublishServicer? servicer = null);
-    void DetachMessagePublishServicer() => this.AttachMessagePublishServicer(null);
+    public void AttachMessagePublishServicer(MessagePublishServicer? servicer = null);
+    public void DetachMessagePublishServicer() => this.AttachMessagePublishServicer(null);
 }
 
 internal sealed class GroupChatHandlerRouter<TManager> : HostableAgentAdapter,

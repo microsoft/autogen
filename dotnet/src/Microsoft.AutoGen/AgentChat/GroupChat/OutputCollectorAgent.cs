@@ -11,8 +11,8 @@ namespace Microsoft.AutoGen.AgentChat.Abstractions;
 
 internal interface IOutputCollectionSink
 {
-    void CollectMessage(AgentMessage message);
-    void Terminate(StopMessage message);
+    public void CollectMessage(AgentMessage message);
+    public void Terminate(StopMessage message);
 }
 
 internal sealed class OutputSink : IOutputCollectionSink

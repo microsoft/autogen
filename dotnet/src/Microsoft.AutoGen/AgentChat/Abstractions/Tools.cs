@@ -82,8 +82,8 @@ public class ParameterSchema<T>(string name, bool isRequired = false, T? default
 /// </summary>
 public interface ITool
 {
-    string Name { get; }
-    string Description { get; }
+    public string Name { get; }
+    public string Description { get; }
 
     public IEnumerable<ParameterSchema> Parameters { get; }
     public Type ReturnType { get; }
