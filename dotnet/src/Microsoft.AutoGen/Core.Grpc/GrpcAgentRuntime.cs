@@ -253,12 +253,33 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         }
     }
 
-    public ValueTask StartAsync(CancellationToken cancellationToken)
+    public async ValueTask StartAsync(CancellationToken cancellationToken)
     {
-        return this._messageRouter.StartAsync(cancellationToken);
+        await this._messageRouter.StartAsync(cancellationToken);
+        if (this._agentsContainer.RegisteredAgentTypes.Count > 0)
+        {
+            foreach (var type in this._agentsContainer.RegisteredAgentTypes)
+            {
+                await this._client.RegisterAgentAsync(new RegisterAgentTypeRequest
+                {
+                    Type = type
+                }, this.CallOptions);
+            }
+        }
+
+        if (this._agentsContainer.Subscriptions.Count > 0)
+        {
+            foreach (var subscription in this._agentsContainer.Subscriptions.Values)
+            {
+                await this._client.AddSubscriptionAsync(new AddSubscriptionRequest
+                {
+                    Subscription = subscription.ToProtobuf()
+                }, this.CallOptions);
+            }
+        }
     }
 
-    Task IHostedService.StartAsync(CancellationToken cancellationToken) => this._messageRouter.StartAsync(cancellationToken).AsTask();
+    Task IHostedService.StartAsync(CancellationToken cancellationToken) => this.StartAsync(cancellationToken).AsTask();
 
     public Task StopAsync(CancellationToken cancellationToken)
     {
@@ -344,30 +365,39 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
     {
         this._agentsContainer.AddSubscription(subscription);
 
-        var _ = await this._client.AddSubscriptionAsync(new AddSubscriptionRequest
+        if (this._messageRouter.IsChannelOpen)
         {
-            Subscription = subscription.ToProtobuf()
-        }, this.CallOptions);
+            var _ = await this._client.AddSubscriptionAsync(new AddSubscriptionRequest
+            {
+                Subscription = subscription.ToProtobuf()
+            }, this.CallOptions);
+        }
     }
 
     public async ValueTask RemoveSubscriptionAsync(string subscriptionId)
     {
         this._agentsContainer.RemoveSubscriptionAsync(subscriptionId);
 
-        await this._client.RemoveSubscriptionAsync(new RemoveSubscriptionRequest
+        if (this._messageRouter.IsChannelOpen)
         {
-            Id = subscriptionId
-        }, this.CallOptions);
+            await this._client.RemoveSubscriptionAsync(new RemoveSubscriptionRequest
+            {
+                Id = subscriptionId
+            }, this.CallOptions);
+        }
     }
 
     public async ValueTask<AgentType> RegisterAgentFactoryAsync(AgentType type, Func<Contracts.AgentId, IAgentRuntime, ValueTask<IHostableAgent>> factoryFunc)
     {
         this._agentsContainer.RegisterAgentFactory(type, factoryFunc);
 
-        await this._client.RegisterAgentAsync(new RegisterAgentTypeRequest
+        if (this._messageRouter.IsChannelOpen)
         {
-            Type = type,
-        }, this.CallOptions);
+            await this._client.RegisterAgentAsync(new RegisterAgentTypeRequest
+            {
+                Type = type,
+            }, this.CallOptions);
+        }
 
         return type;
     }
