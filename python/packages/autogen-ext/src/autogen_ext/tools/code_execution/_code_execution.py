@@ -1,7 +1,8 @@
-from autogen_core import CancellationToken
+from autogen_core import CancellationToken, Component, ComponentModel
 from autogen_core.code_executor import CodeBlock, CodeExecutor
 from autogen_core.tools import BaseTool
 from pydantic import BaseModel, Field, model_serializer
+from typing_extensions import Self
 
 
 class CodeExecutionInput(BaseModel):
@@ -17,7 +18,16 @@ class CodeExecutionResult(BaseModel):
         return self.output
 
 
-class PythonCodeExecutionTool(BaseTool[CodeExecutionInput, CodeExecutionResult]):
+class PythonCodeExecutionToolConfig(BaseModel):
+    """Configuration for PythonCodeExecutionTool"""
+
+    executor: ComponentModel
+    description: str = "Execute Python code blocks."
+
+
+class PythonCodeExecutionTool(
+    BaseTool[CodeExecutionInput, CodeExecutionResult], Component[PythonCodeExecutionToolConfig]
+):
     """A tool that executes Python code in a code executor and returns output.
 
     Example executors:
@@ -61,6 +71,9 @@ class PythonCodeExecutionTool(BaseTool[CodeExecutionInput, CodeExecutionResult])
         executor (CodeExecutor): The code executor that will be used to execute the code blocks.
     """
 
+    component_config_schema = PythonCodeExecutionToolConfig
+    component_provider_override = "autogen_ext.tools.code_execution.PythonCodeExecutionTool"
+
     def __init__(self, executor: CodeExecutor):
         super().__init__(CodeExecutionInput, CodeExecutionResult, "CodeExecutor", "Execute Python code blocks.")
         self._executor = executor
@@ -72,3 +85,13 @@ class PythonCodeExecutionTool(BaseTool[CodeExecutionInput, CodeExecutionResult])
         )
 
         return CodeExecutionResult(success=result.exit_code == 0, output=result.output)
+
+    def _to_config(self) -> PythonCodeExecutionToolConfig:
+        """Convert current instance to config object"""
+        return PythonCodeExecutionToolConfig(executor=self._executor.dump_component())
+
+    @classmethod
+    def _from_config(cls, config: PythonCodeExecutionToolConfig) -> Self:
+        """Create instance from config object"""
+        executor = CodeExecutor.load_component(config.executor)
+        return cls(executor=executor)

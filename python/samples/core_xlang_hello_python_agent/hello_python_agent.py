@@ -26,7 +26,7 @@ agnext_logger = logging.getLogger("autogen_core")
 
 async def main() -> None:
     load_dotenv()
-    agentHost = os.getenv("AGENT_HOST") or "localhost:53072"
+    agentHost = os.getenv("AGENT_HOST") or "http://localhost:50673"
     # grpc python bug - can only use the hostname, not prefix - if hostname has a prefix we have to remove it:
     if agentHost.startswith("http://"):
         agentHost = agentHost[7:]
@@ -37,7 +37,7 @@ async def main() -> None:
     runtime = GrpcWorkerAgentRuntime(host_address=agentHost, payload_serialization_format=PROTOBUF_DATA_CONTENT_TYPE)
 
     agnext_logger.info("1")
-    runtime.start()
+    await runtime.start()
     runtime.add_message_serializer(try_get_known_serializers_for_type(NewMessageReceived))
 
     agnext_logger.info("2")
