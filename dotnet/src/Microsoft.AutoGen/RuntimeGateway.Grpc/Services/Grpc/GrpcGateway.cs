@@ -117,7 +117,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             {
                 if (!_workers.TryGetValue(clientId, out var connection))
                 {
-                    throw new RpcException(new Status(StatusCode.InvalidArgument, $"Grpc Worker Connection not found for ClientId {clientId}."));
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, $"Grpc Worker Connection not found for ClientId {clientId}. Retry after you call OpenChannel() first."));
                 }
                 connection.AddSupportedType(request.Type);
                 _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
