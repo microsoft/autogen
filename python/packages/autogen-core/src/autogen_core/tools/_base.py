@@ -18,7 +18,7 @@ class ParametersSchema(TypedDict):
     type: str
     properties: Dict[str, Any]
     required: NotRequired[Sequence[str]]
-    additional_properties: NotRequired[bool]
+    additionalProperties: NotRequired[bool]
 
 
 class ToolSchema(TypedDict):
