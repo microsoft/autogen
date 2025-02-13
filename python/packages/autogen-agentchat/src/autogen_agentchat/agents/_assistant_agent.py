@@ -257,7 +257,6 @@ class AssistantAgent(BaseChatAgent):
         tool_call_summary_format: str = "{result}",
         memory: List[Memory] | None = None,
     ):
-        print("+++++ Agent init +++++")
         super().__init__(name=name, description=description)
         self._model_client = model_client
         self._memory = None
@@ -268,12 +267,6 @@ class AssistantAgent(BaseChatAgent):
                 self._memory = memory
             else:
                 raise TypeError(f"Expected Memory, List[Memory], or None, got {type(memory)}")
-        if self._memory is not None:
-            print("Memory contents:")
-            for i, mem in enumerate(self._memory):
-                print(f"Memory item {i}: {mem.__dict__}")
-        else:
-            print("Memory is None")
 
         self._system_messages: List[
             SystemMessage | UserMessage | AssistantMessage | FunctionExecutionResultMessage
@@ -351,8 +344,6 @@ class AssistantAgent(BaseChatAgent):
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
-        print("++++++++++on_messages_stream+++++++++++++")
-
         # Add messages to the model context.
         for msg in messages:
             if isinstance(msg, MultiModalMessage) and self._model_client.model_info["vision"] is False:
@@ -374,14 +365,9 @@ class AssistantAgent(BaseChatAgent):
                 memory_content += "\n".join(str(item.content) for item in memory_query_result)
                 # await self._model_context.add_message(SystemMessage(content=memory_content))
         # Generate an inference result based on the current model context.
-        print("++++++++++memory_content+++++++++++++")
-        print(memory_content)
-        print("+++++++++++memory_content++++++++++++")
-        llm_messages = self._system_messages + [SystemMessage(content=memory_content)] + await self._model_context.get_messages()
-        for msg in llm_messages:
-            print("+++++++++++++++++++++++")
-            print(msg.content)
-            print("+++++++++++++++++++++++")
+        llm_messages = (
+            self._system_messages + [SystemMessage(content=memory_content)] + await self._model_context.get_messages()
+        )
 
         result = await self._model_client.create(
             llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
