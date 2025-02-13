@@ -285,7 +285,17 @@ public static partial class DistributedApplicationExtensions
         }
         catch (Exception ex)
         {
-            if (Debugger.IsAttached) { var logs = app.GetResourceLogs(resourceName); }
+            if (Debugger.IsAttached)
+            {
+                var logs = app.GetResourceLogs(resourceName);
+                foreach (var log in logs)
+                {
+                    Console.WriteLine(log.Message);
+                }
+                var environment = app.Services.GetRequiredService<IHostEnvironment>();
+                var logCollector = app.Services.GetFakeLogCollector();
+                var allLogs = logCollector.GetSnapshot();
+            }
             throw new Exception($"Failed to find expected message '{expectedMessage}' in logs for resource '{resourceName}' within the timeout period.", ex);
         }
         finally
