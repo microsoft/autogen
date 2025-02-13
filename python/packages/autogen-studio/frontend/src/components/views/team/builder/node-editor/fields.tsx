@@ -31,10 +31,12 @@ import {
 import {
   Component,
   ComponentConfig,
+  FunctionToolConfig,
   Import,
 } from "../../../../types/datamodel";
 import DetailGroup from "./detailgroup";
 import { MonacoEditor } from "../../../monaco";
+import { EditPath } from "./node-editor";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -42,11 +44,27 @@ const { Option } = Select;
 interface NodeEditorFieldsProps {
   component: Component<ComponentConfig>;
   onNavigate: (componentType: string, id: string, parentField: string) => void;
+  workingCopy: Component<ComponentConfig> | null;
+  setWorkingCopy: (component: Component<ComponentConfig> | null) => void;
+  editPath: EditPath[];
+  updateComponentAtPath: (
+    root: Component<ComponentConfig>,
+    path: EditPath[],
+    updates: Partial<Component<ComponentConfig>>
+  ) => Component<ComponentConfig>;
+  getCurrentComponent: (
+    root: Component<ComponentConfig>
+  ) => Component<ComponentConfig> | null;
 }
 
 export const NodeEditorFields: React.FC<NodeEditorFieldsProps> = ({
   component,
   onNavigate,
+  workingCopy,
+  setWorkingCopy,
+  editPath,
+  updateComponentAtPath,
+  getCurrentComponent,
 }) => {
   const renderNestedComponentButton = (
     label: string,
@@ -58,18 +76,97 @@ export const NodeEditorFields: React.FC<NodeEditorFieldsProps> = ({
         <div className="space-y-2 mb-4">
           <div className="flex justify-between items-center">
             <span className="text-sm font-medium">{label}</span>
+            {parentField === "tools" && (
+              <Button
+                type="dashed"
+                size="small"
+                onClick={() => {
+                  // Create a blank FunctionTool
+                  const blankTool: Component<FunctionToolConfig> = {
+                    provider: "autogen_core.tools.FunctionTool",
+                    component_type: "tool",
+                    version: 1,
+                    component_version: 1,
+                    description:
+                      "Create custom tools by wrapping standard Python functions.",
+                    label: "New Tool",
+                    config: {
+                      source_code: "def new_function():\n    pass",
+                      name: "new_function",
+                      description: "Description of the new function",
+                      global_imports: [],
+                      has_cancellation_support: false,
+                    },
+                  };
+
+                  // Get current tools array and add new tool
+                  const currentTools =
+                    component as Component<ComponentConfig>[];
+                  const updatedTools = [...currentTools, blankTool];
+
+                  // Update the parent component with the new tools array
+                  if (workingCopy) {
+                    const updatedCopy = updateComponentAtPath(
+                      workingCopy,
+                      editPath,
+                      {
+                        config: {
+                          ...getCurrentComponent(workingCopy)?.config,
+                          tools: updatedTools,
+                        },
+                      }
+                    );
+                    setWorkingCopy(updatedCopy);
+                  }
+                }}
+                icon={<PlusCircle className="w-4 h-4" />}
+              >
+                Add Tool
+              </Button>
+            )}
           </div>
-          {component.map((item) => (
-            <Button
-              key={item.label}
-              onClick={() =>
-                onNavigate(item.component_type, item.label || "", parentField)
-              }
-              className="w-full flex justify-between items-center"
-            >
-              <span>{item.label}</span>
-              <Edit className="w-4 h-4" />
-            </Button>
+          {component.map((item, index) => (
+            <div key={item.label} className="flex items-center gap-2">
+              <Button
+                onClick={() =>
+                  onNavigate(item.component_type, item.label || "", parentField)
+                }
+                className="w-full flex justify-between items-center"
+              >
+                <span>{item.label}</span>
+                <Edit className="w-4 h-4" />
+              </Button>
+              {parentField === "tools" && (
+                <Button
+                  type="text"
+                  danger
+                  icon={<MinusCircle className="w-4 h-4" />}
+                  onClick={() => {
+                    // Remove tool at current index
+                    const currentTools =
+                      component as Component<ComponentConfig>[];
+                    const updatedTools = currentTools.filter(
+                      (_, idx) => idx !== index
+                    );
+
+                    // Update the parent component with the filtered tools array
+                    if (workingCopy) {
+                      const updatedCopy = updateComponentAtPath(
+                        workingCopy,
+                        editPath,
+                        {
+                          config: {
+                            ...getCurrentComponent(workingCopy)?.config,
+                            tools: updatedTools,
+                          },
+                        }
+                      );
+                      setWorkingCopy(updatedCopy);
+                    }
+                  }}
+                />
+              )}
+            </div>
           ))}
         </div>
       );

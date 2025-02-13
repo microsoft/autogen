@@ -6,7 +6,7 @@ import { NodeEditorProps } from "../types";
 import NodeEditorFields from "./fields";
 import { isComponent } from "../../../../types/guards";
 
-interface EditPath {
+export interface EditPath {
   componentType: string;
   id: string;
   parentField: string;
@@ -277,6 +277,11 @@ export const NodeEditor: React.FC<
           <NodeEditorFields
             component={currentComponent}
             onNavigate={navigateToComponent}
+            editPath={editPath}
+            workingCopy={workingCopy}
+            setWorkingCopy={setWorkingCopy}
+            updateComponentAtPath={updateComponentAtPath}
+            getCurrentComponent={getCurrentComponent}
           />
         )}
         <div className="flex justify-end gap-2 mt-4 absolute bottom-0 right-0 left-0 p-4 bg-primary border-t">
