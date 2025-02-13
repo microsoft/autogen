@@ -1,5 +1,4 @@
 import asyncio
-import inspect
 import json
 import logging
 import math
@@ -9,14 +8,11 @@ from asyncio import Task
 from typing import (
     Any,
     AsyncGenerator,
-    AsyncIterator,
     Dict,
     List,
     Mapping,
     Optional,
     Sequence,
-    Set,
-    Type,
     Union,
     cast,
 )
@@ -47,17 +43,14 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_core.tools import Tool, ToolSchema
-
+from ollama import AsyncClient, ChatResponse, Message
+from ollama import Image as OllamaImage
+from ollama import Tool as OllamaTool
 from pydantic import BaseModel
 from typing_extensions import Self, Unpack
 
 from . import _model_info
-from .config import (
-    BaseOllamaClientConfiguration,
-    BaseOllamaClientConfigurationConfigModel
-)
-
-from ollama import AsyncClient, Message, Tool as OllamaTool, Image as OllamaImage, ChatResponse
+from .config import BaseOllamaClientConfiguration, BaseOllamaClientConfigurationConfigModel
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
@@ -81,8 +74,9 @@ def _ollama_client_from_config(config: Mapping[str, Any]) -> AsyncClient:
     ollama_config = {k: v for k, v in copied_config.items() if k in ollama_init_kwargs}
     return AsyncClient(**ollama_config)
 
+
 def _create_args_from_config(config: Mapping[str, Any]) -> Dict[str, Any]:
-  return dict(config).copy()
+    return dict(config).copy()
     # create_args = {k: v for k, v in config.items() if k in create_kwargs}
     # create_args_keys = set(create_args.keys())
     # if not required_create_args.issubset(create_args_keys):
@@ -99,7 +93,7 @@ def _create_args_from_config(config: Mapping[str, Any]) -> Dict[str, Any]:
 # oai_tool_message_schema = type2schema(ChatCompletionToolMessageParam)
 
 
-def type_to_role(message: LLMMessage) -> str: # return type: Message.role
+def type_to_role(message: LLMMessage) -> str:  # return type: Message.role
     if isinstance(message, SystemMessage):
         return "system"
     elif isinstance(message, UserMessage):
@@ -113,22 +107,27 @@ def type_to_role(message: LLMMessage) -> str: # return type: Message.role
 def user_message_to_ollama(message: UserMessage) -> Sequence[Message]:
     assert_valid_name(message.source)
     if isinstance(message.content, str):
-        return [ Message(
-            content=message.content,
-            role="user",
-            #name=message.source, # TODO: No name parameter in Ollama
-        ) ]
+        return [
+            Message(
+                content=message.content,
+                role="user",
+                # name=message.source, # TODO: No name parameter in Ollama
+            )
+        ]
     else:
         ollama_messages: List[Message] = []
         for part in message.content:
             if isinstance(part, str):
-              ollama_messages.append(Message(content=part, role="user"))
+                ollama_messages.append(Message(content=part, role="user"))
             elif isinstance(part, Image):
                 # TODO: should images go into their own message? Should each image get its own message?
                 if not ollama_messages:
-                  ollama_messages.append(Message(role="user", images=[OllamaImage(value=part.to_base64())]))
+                    ollama_messages.append(Message(role="user", images=[OllamaImage(value=part.to_base64())]))
                 else:
-                  ollama_messages[-1].images.append(role="user", OllamaImage(value=part.to_base64())) # type: ignore
+                    if ollama_messages[-1].images is None:
+                        ollama_messages[-1].images = [OllamaImage(value=part.to_base64())]
+                    else:
+                        ollama_messages[-1].images.append(OllamaImage(value=part.to_base64()))  # type: ignore
             else:
                 raise ValueError(f"Unknown content type: {part}")
         return ollama_messages
@@ -140,24 +139,24 @@ def system_message_to_ollama(message: SystemMessage) -> Message:
         role="system",
     )
 
+
 def _func_args_to_ollama_args(args: str) -> Dict[str, Any]:
-  return json.loads(args)
+    return json.loads(args)
+
 
 def func_call_to_ollama(message: FunctionCall) -> Message.ToolCall:
     return Message.ToolCall(
-      function=Message.ToolCall.Function(
-        name = message.name,
-        arguments = _func_args_to_ollama_args(message.arguments),
-      )
+        function=Message.ToolCall.Function(
+            name=message.name,
+            arguments=_func_args_to_ollama_args(message.arguments),
+        )
     )
 
 
 def tool_message_to_ollama(
     message: FunctionExecutionResultMessage,
 ) -> Sequence[Message]:
-    return [
-        Message(content=x.content, role="tool") for x in message.content
-    ]
+    return [Message(content=x.content, role="tool") for x in message.content]
 
 
 def assistant_message_to_ollama(
@@ -168,13 +167,14 @@ def assistant_message_to_ollama(
         return Message(
             tool_calls=[func_call_to_ollama(x) for x in message.content],
             role="assistant",
-            #name=message.source,
+            # name=message.source,
         )
     else:
         return Message(
             content=message.content,
             role="assistant",
         )
+
 
 def to_ollama_type(message: LLMMessage) -> Sequence[Message]:
     if isinstance(message, SystemMessage):
@@ -257,22 +257,24 @@ def convert_tools(
             assert isinstance(tool, dict)
             tool_schema = tool
         parameters = tool_schema["parameters"] if "parameters" in tool_schema else None
-        ollama_properties : Mapping[str, OllamaTool.Function.Parameters.Property] | None = None
+        ollama_properties: Mapping[str, OllamaTool.Function.Parameters.Property] | None = None
         if parameters is not None:
-          ollama_properties = {}
-          for prop_name, prop_schema in parameters["properties"].items():
-              ollama_properties[prop_name] = OllamaTool.Function.Parameters.Property(
-                  type=prop_schema["type"],
-                  description=prop_schema["description"] if "description" in prop_schema else None,
-              )
+            ollama_properties = {}
+            for prop_name, prop_schema in parameters["properties"].items():
+                ollama_properties[prop_name] = OllamaTool.Function.Parameters.Property(
+                    type=prop_schema["type"],
+                    description=prop_schema["description"] if "description" in prop_schema else None,
+                )
         result.append(
             OllamaTool(
                 function=OllamaTool.Function(
                     name=tool_schema["name"],
-                    description= tool_schema["description"] if "description" in tool_schema else "",
+                    description=tool_schema["description"] if "description" in tool_schema else "",
                     parameters=OllamaTool.Function.Parameters(
-                      required = parameters["required"] if parameters is not None and "required" in parameters else None,
-                      properties=ollama_properties
+                        required=parameters["required"]
+                        if parameters is not None and "required" in parameters
+                        else None,
+                        properties=ollama_properties,
                     ),
                 ),
             )
@@ -304,6 +306,7 @@ def assert_valid_name(name: str) -> str:
         raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
     return name
 
+
 # TODO: Does this need to change?
 def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
     if stop_reason is None:
@@ -318,6 +321,7 @@ def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
     }
 
     return KNOWN_STOP_MAPPINGS.get(stop_reason, "unknown")
+
 
 # TODO: need to hook in ollama's flavor of json output
 class BaseOllamaChatCompletionClient(ChatCompletionClient):
@@ -370,7 +374,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
 
     @classmethod
     def create_from_config(cls, config: Dict[str, Any]) -> ChatCompletionClient:
-        return OpenAIChatCompletionClient(**config)
+        return OllamaChatCompletionClient(**config)
 
     async def create(
         self,
@@ -425,7 +429,6 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output.")
 
-        
         ollama_messages_nested = [to_ollama_type(m) for m in messages]
         ollama_messages = [item for sublist in ollama_messages_nested for item in sublist]
 
@@ -433,27 +436,27 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             raise ValueError("Model does not support function calling")
         future: Task[ChatResponse]
         if len(tools) > 0:
-          converted_tools = convert_tools(tools)
-          future = asyncio.ensure_future(
-            self._client.chat(  # type: ignore
-              model=self._model_name,
-              messages=ollama_messages,
-              tools=converted_tools,
-              stream=False,
-              format=response_format_value,
-              **create_args_no_response_format,
+            converted_tools = convert_tools(tools)
+            future = asyncio.ensure_future(
+                self._client.chat(  # type: ignore
+                    # model=self._model_name,
+                    messages=ollama_messages,
+                    tools=converted_tools,
+                    stream=False,
+                    format=response_format_value,
+                    **create_args_no_response_format,
+                )
             )
-          )
         else:
-          future = asyncio.ensure_future(
-            self._client.chat(  # type: ignore
-              model=self._model_name,
-              messages=ollama_messages,
-              stream=False,
-              format=response_format_value,
-              **create_args_no_response_format,
+            future = asyncio.ensure_future(
+                self._client.chat(  # type: ignore
+                    # model=self._model_name,
+                    messages=ollama_messages,
+                    stream=False,
+                    format=response_format_value,
+                    **create_args_no_response_format,
+                )
             )
-          )
         if cancellation_token is not None:
             cancellation_token.link_future(future)
         result: ChatResponse = await future
@@ -519,7 +522,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             finish_reason = "tool_calls"
             self._tool_id += 1
         else:
-            finish_reason = result.done_reason
+            finish_reason = result.done_reason or ""
             content = result.message.content or ""
 
         # Ollama currently doesn't provide these.
@@ -628,7 +631,6 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output.")
 
-        
         ollama_messages_nested = [to_ollama_type(m) for m in messages]
         ollama_messages = [item for sublist in ollama_messages_nested for item in sublist]
 
@@ -638,29 +640,29 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         if len(tools) > 0:
             converted_tools = convert_tools(tools)
             stream_future = asyncio.ensure_future(
-            self._client.chat(  # type: ignore
-              model=self._model_name,
-              messages=ollama_messages,
-              tools=converted_tools,
-              stream=True,
-              format=response_format_value,
-              **create_args_no_response_format,
+                self._client.chat(  # type: ignore
+                    # model=self._model_name,
+                    messages=ollama_messages,
+                    tools=converted_tools,
+                    stream=True,
+                    format=response_format_value,
+                    **create_args_no_response_format,
+                )
             )
-          )
         else:
             stream_future = asyncio.ensure_future(
-            self._client.chat(  # type: ignore
-              model=self._model_name,
-              messages=ollama_messages,
-              stream=True,
-              format=response_format_value,
-              **create_args_no_response_format,
+                self._client.chat(  # type: ignore
+                    # model=self._model_name,
+                    messages=ollama_messages,
+                    stream=True,
+                    format=response_format_value,
+                    **create_args_no_response_format,
+                )
             )
-          )
         if cancellation_token is not None:
             cancellation_token.link_future(stream_future)
         stream = await stream_future
-        
+
         chunk = None
         stop_reason = None
         maybe_model = None
@@ -839,7 +841,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         return self._model_info
 
 
-class OpenAIChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseOllamaClientConfigurationConfigModel]):
+class OllamaChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseOllamaClientConfigurationConfigModel]):
     """Chat completion client for OpenAI hosted models.
 
     You can also use this client for OpenAI-compatible ChatCompletion endpoints.
@@ -869,44 +871,25 @@ class OpenAIChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseO
         user (optional, str):
 
 
-    To use this client, you must install the `openai` extension:
+    To use this client, you must install the `ollama` extension:
 
     .. code-block:: bash
 
-        pip install "autogen-ext[openai]"
+        pip install "autogen-ext[ollama]"
 
-    The following code snippet shows how to use the client with an OpenAI model:
+    The following code snippet shows how to use the client with an Ollama model:
 
     .. code-block:: python
 
-        from autogen_ext.models.openai import OpenAIChatCompletionClient
+        from autogen_ext.models.ollama import OllamaChatCompletionClient
         from autogen_core.models import UserMessage
 
-        openai_client = OpenAIChatCompletionClient(
-            model="gpt-4o-2024-08-06",
-            # api_key="sk-...", # Optional if you have an OPENAI_API_KEY environment variable set.
+        ollama_client = OllamaChatCompletionClient(
+            model="llama3",
         )
 
-        result = await openai_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
+        result = await ollama_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
         print(result)
-
-
-    To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model capabilities:
-
-    .. code-block:: python
-
-        from autogen_ext.models.openai import OpenAIChatCompletionClient
-
-        custom_model_client = OpenAIChatCompletionClient(
-            model="custom-model-name",
-            base_url="https://custom-model.com/reset/of/the/path",
-            api_key="placeholder",
-            model_capabilities={
-                "vision": True,
-                "function_calling": True,
-                "json_output": True,
-            },
-        )
 
     To load the client from a configuration, you can use the `load_component` method:
 
@@ -915,13 +898,13 @@ class OpenAIChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseO
         from autogen_core.models import ChatCompletionClient
 
         config = {
-            "provider": "OpenAIChatCompletionClient",
-            "config": {"model": "gpt-4o", "api_key": "REPLACE_WITH_YOUR_API_KEY"},
+            "provider": "OllamaChatCompletionClient",
+            "config": {"model": "llama3"},
         }
 
         client = ChatCompletionClient.load_component(config)
 
-    To view the full list of available configuration options, see the :py:class:`OpenAIClientConfigurationConfigModel` class.
+    To view the full list of available configuration options, see the :py:class:`OllamaClientConfigurationConfigModel` class.
 
     """
 
@@ -968,4 +951,3 @@ class OpenAIChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseO
     def _from_config(cls, config: BaseOllamaClientConfigurationConfigModel) -> Self:
         copied_config = config.model_copy().model_dump(exclude_none=True)
         return cls(**copied_config)
-

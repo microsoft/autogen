@@ -1,7 +1,7 @@
 from ._ollama_client import OllamaChatCompletionClient
 from .config import (
-    CreateArgumentsConfigModel,
     BaseOllamaClientConfigurationConfigModel,
+    CreateArgumentsConfigModel,
 )
 
 __all__ = [

@@ -4,9 +4,11 @@ from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
 from pydantic import BaseModel
 from typing_extensions import TypedDict
 
+
 class CreateArguments(TypedDict, total=False):
     model: str
     host: Optional[str]
+
 
 class BaseOllamaClientConfiguration(CreateArguments, total=False):
     follow_redirects: bool
@@ -30,4 +32,3 @@ class BaseOllamaClientConfigurationConfigModel(CreateArgumentsConfigModel):
     headers: Mapping[str, str] | None = None
     model_capabilities: ModelCapabilities | None = None  # type: ignore
     model_info: ModelInfo | None = None
-
