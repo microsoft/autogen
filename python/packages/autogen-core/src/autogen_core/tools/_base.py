@@ -85,23 +85,29 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
             model_schema = cast(Dict[str, Any], jsonref.replace_refs(obj=model_schema, proxies=False))  # type: ignore
             del model_schema["$defs"]
 
+        parameters = ParametersSchema(
+            type="object",
+            properties=model_schema["properties"],
+        )
+
+        if "required" in model_schema:
+            parameters["required"] = model_schema["required"]
+        elif self._strict:
+            # If strict is enabled, we require this field to be present.
+            parameters["required"] = []
+
+        if "additionalProperties" in model_schema:
+            parameters["additionalProperties"] = model_schema["additionalProperties"]
+        elif self._strict:
+            # If strict is enabled, we don't allow additional properties.
+            parameters["additionalProperties"] = False
+
         tool_schema = ToolSchema(
             name=self._name,
             description=self._description,
-            parameters=ParametersSchema(
-                type="object",
-                properties=model_schema["properties"],
-                required=model_schema.get("required", []),
-                additionalProperties=model_schema.get(
-                    "additionalProperties", False
-                ),  # by default, we don't allow additional properties.
-            ),
+            parameters=parameters,
             strict=self._strict,
         )
-        if "required" in model_schema:
-            assert "parameters" in tool_schema
-            tool_schema["parameters"]["required"] = model_schema["required"]
-
         return tool_schema
 
     @property

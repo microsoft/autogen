@@ -93,6 +93,32 @@ def test_func_tool_schema_generation() -> None:
     assert len(schema["parameters"]["properties"]) == 3
 
 
+def test_func_tool_schema_generation_strict() -> None:
+    def my_function(arg: str, other: Annotated[int, "int arg"], nonrequired: int = 5) -> MyResult:
+        return MyResult(result="test")
+
+    tool = FunctionTool(my_function, description="Function tool.", strict=True)
+    schema = tool.schema
+
+    assert schema["name"] == "my_function"
+    assert "description" in schema
+    assert schema["description"] == "Function tool."
+    assert "parameters" in schema
+    assert schema["parameters"]["type"] == "object"
+    assert schema["parameters"]["properties"].keys() == {"arg", "other", "nonrequired"}
+    assert schema["parameters"]["properties"]["arg"]["type"] == "string"
+    assert schema["parameters"]["properties"]["arg"]["description"] == "arg"
+    assert schema["parameters"]["properties"]["other"]["type"] == "integer"
+    assert schema["parameters"]["properties"]["other"]["description"] == "int arg"
+    assert schema["parameters"]["properties"]["nonrequired"]["type"] == "integer"
+    assert schema["parameters"]["properties"]["nonrequired"]["description"] == "nonrequired"
+    assert "required" in schema["parameters"]
+    assert schema["parameters"]["required"] == ["arg", "other"]
+    assert len(schema["parameters"]["properties"]) == 3
+    assert "additionalProperties" in schema["parameters"]
+    assert schema["parameters"]["additionalProperties"] is False
+
+
 def test_func_tool_schema_generation_only_default_arg() -> None:
     def my_function(arg: str = "default") -> MyResult:
         return MyResult(result="test")
@@ -108,6 +134,26 @@ def test_func_tool_schema_generation_only_default_arg() -> None:
     assert schema["parameters"]["properties"]["arg"]["type"] == "string"
     assert schema["parameters"]["properties"]["arg"]["description"] == "arg"
     assert "required" not in schema["parameters"]
+
+
+def test_func_tool_schema_generation_only_default_arg_strict() -> None:
+    def my_function(arg: str = "default") -> MyResult:
+        return MyResult(result="test")
+
+    tool = FunctionTool(my_function, description="Function tool.", strict=True)
+    schema = tool.schema
+
+    assert schema["name"] == "my_function"
+    assert "description" in schema
+    assert schema["description"] == "Function tool."
+    assert "parameters" in schema
+    assert len(schema["parameters"]["properties"]) == 1
+    assert schema["parameters"]["properties"]["arg"]["type"] == "string"
+    assert schema["parameters"]["properties"]["arg"]["description"] == "arg"
+    assert "required" in schema["parameters"]
+    assert schema["parameters"]["required"] == []
+    assert "additionalProperties" in schema["parameters"]
+    assert schema["parameters"]["additionalProperties"] is False
 
 
 def test_func_tool_with_partial_positional_arguments_schema_generation() -> None:
