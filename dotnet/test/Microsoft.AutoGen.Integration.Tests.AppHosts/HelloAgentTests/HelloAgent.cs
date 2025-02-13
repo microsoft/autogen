@@ -6,11 +6,8 @@ using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using ConversationClosed = Microsoft.AutoGen.Agents.ConversationClosed;
-using NewMessageReceived = Microsoft.AutoGen.Agents.NewMessageReceived;
-using Shutdown = Microsoft.AutoGen.Agents.Shutdown;
 
-namespace Microsoft.AutoGen.Integration.Tests.AppHosts.HelloAgentTests;
+namespace Samples;
 
 [TypeSubscription("HelloTopic")]
 public class HelloAgent(
