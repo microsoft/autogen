@@ -9,8 +9,9 @@ from autogen_agentchat.messages import ChatMessage, HandoffMessage, StopMessage,
 from autogen_core import CancellationToken
 
 from semantic_kernel.connectors.ai.chat_completion_client_base import ChatCompletionClientBase
+from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
 from semantic_kernel.connectors.ai.prompt_execution_settings import PromptExecutionSettings
-from semantic_kernel.contents import ImageContent, TextContent
+from semantic_kernel.contents import FunctionCallContent, ImageContent, TextContent
 from semantic_kernel.contents.chat_history import ChatHistory
 from semantic_kernel.contents.chat_message_content import ChatMessageContent
 from semantic_kernel.contents.utils.author_role import AuthorRole
@@ -142,6 +143,14 @@ class SKAssistantAgent(BaseChatAgent):
         instructions: Optional[str] = None,
         execution_settings: Optional[PromptExecutionSettings] = None,
     ) -> None:
+        if execution_settings and (function_choice_behavior := execution_settings.function_choice_behavior):
+            if (
+                function_choice_behavior.enable_kernel_functions
+                and function_choice_behavior.maximum_auto_invoke_attempts == 0
+            ):
+                raise ValueError(
+                    "Function choice behavior auto_invoke must be enabled in execution_settings when using kernel functions."
+                )
         super().__init__(name, description)
         self._kernel = kernel
         self._service_id = service_id
@@ -182,7 +191,6 @@ class SKAssistantAgent(BaseChatAgent):
             raise KernelServiceNotFoundError(f"Chat completion service not found with service_id: {self._service_id}")
 
         assert isinstance(chat_completion_service, ChatCompletionClientBase)
-
         # 3) Get or create the PromptExecutionSettings
         settings = (
             self._execution_settings
@@ -190,6 +198,7 @@ class SKAssistantAgent(BaseChatAgent):
             or chat_completion_service.instantiate_prompt_execution_settings(  # type: ignore
                 service_id=self._service_id,
                 extension_data={"ai_model_id": chat_completion_service.ai_model_id},
+                function_choice_behavior=FunctionChoiceBehavior.Auto(auto_invoke=True),  # type: ignore
             )
         )
 
@@ -199,8 +208,16 @@ class SKAssistantAgent(BaseChatAgent):
             settings=settings,
             kernel=self._kernel,
         )
+
+        if any(isinstance(item, FunctionCallContent) for r in sk_responses for item in r.items):
+            raise TypeError(
+                "Function call content was returned by the chat completion client. "
+                "Please adjust prompt execution settings to auto invoke functions."
+            )
+
         # Convert SK's list of responses into a single final text
         assistant_reply = "\n".join(r.content for r in sk_responses if r.content)
+
         reply_message = TextMessage(content=assistant_reply, source=self.name)
 
         # 5) Add the new assistant message into our chat history
@@ -241,6 +258,7 @@ class SKAssistantAgent(BaseChatAgent):
             or chat_completion_service.instantiate_prompt_execution_settings(  # type: ignore
                 service_id=self._service_id,
                 extension_data={"ai_model_id": chat_completion_service.ai_model_id},
+                function_choice_behavior=FunctionChoiceBehavior.Auto(auto_invoke=True),  # type: ignore
             )
         )
 
@@ -252,7 +270,13 @@ class SKAssistantAgent(BaseChatAgent):
             kernel=self._kernel,
         ):
             for sk_message in sk_message_list:
-                if sk_message.content:
+                # Check for function calls
+                if any(isinstance(item, FunctionCallContent) for item in sk_message.items):
+                    raise TypeError(
+                        "Function call content was returned by the chat completion client. "
+                        "Please adjust prompt execution settings to auto invoke functions."
+                    )
+                elif sk_message.content:
                     accumulated_reply.append(sk_message.content)
 
         # 4) After streaming ends, save the entire assistant message

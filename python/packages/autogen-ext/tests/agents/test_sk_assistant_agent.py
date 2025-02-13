@@ -1,7 +1,6 @@
 from typing import Any, AsyncIterator
 from unittest.mock import AsyncMock, MagicMock
 
-
 import pytest
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
@@ -15,6 +14,7 @@ from autogen_agentchat.messages import (
 from autogen_core import CancellationToken, Image
 from autogen_ext.agents.semantic_kernel._sk_assistant_agent import SKAssistantAgent
 from semantic_kernel.connectors.ai.chat_completion_client_base import ChatCompletionClientBase
+from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
 from semantic_kernel.connectors.ai.prompt_execution_settings import PromptExecutionSettings
 from semantic_kernel.contents.chat_message_content import ChatMessageContent
 from semantic_kernel.contents.utils.author_role import AuthorRole
@@ -63,6 +63,24 @@ def mock_chat_service() -> MagicMock:
     service.instantiate_prompt_execution_settings = MagicMock(return_value=PromptExecutionSettings())
     service.ai_model_id = "mock-model-id"
     return service
+
+
+def test_invalid_execution_settings(mock_kernel: MagicMock) -> None:
+    """
+    Test that creating an SKAssistantAgent with invalid execution settings raises a ValueError.
+    """
+    # Create execution settings with kernel functions enabled but auto_invoke disabled
+    invalid_settings = PromptExecutionSettings(
+        function_choice_behavior=FunctionChoiceBehavior.Auto(auto_invoke=False),  # type: ignore
+    )
+
+    with pytest.raises(ValueError, match="Function choice behavior auto_invoke must be enabled"):
+        SKAssistantAgent(
+            name="TestAgent",
+            description="Testing invalid settings",
+            kernel=mock_kernel,
+            execution_settings=invalid_settings,
+        )
 
 
 @pytest.mark.asyncio
