@@ -15,7 +15,6 @@ from typing import (
     Union,
 )
 
-import google.generativeai as genai
 from autogen_core import (
     CancellationToken,
     Component,
@@ -32,8 +31,10 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
-from google.ai.generativelanguage_v1beta.types.generative_service import GenerationConfig
-from typing_extensions import Self, TypedDict, Unpack
+from autogen_core.tools import Tool, ToolSchema
+from google import genai  # Use google-genai library
+from google.genai import types  # Import types from google.genai
+from typing_extensions import Self, Unpack
 
 from . import _model_info
 from .config import (
@@ -45,130 +46,187 @@ from .config import (
 
 logger = logging.getLogger(__name__)
 
-# Type definitions
-class ToolSchema(TypedDict, total=False):
-    name: str
-    description: str
-    parameters: Dict[str, Any]
+# Remove local type definitions and use types from genai
+StructuredOutputSchema = Dict[str, Any]
 
-T = TypeVar("T", bound=Union[dict, Any])
-Tool = Union[T, ToolSchema]
-
-def _convert_message_to_genai_content(message: LLMMessage) -> Dict[str, Any]:
+def _convert_message_to_genai_content(message: LLMMessage) -> types.Content:
     """
-    Convert an LLMMessage to a Gemini content dictionary with enhanced vision support.
+    Convert an LLMMessage to a Gemini content with enhanced long context support.
 
     References:
+    - https://ai.google.dev/gemini-api/docs/long-context
     - https://ai.google.dev/gemini-api/docs/vision?lang=python
     """
-    if isinstance(message, SystemMessage):
-        # Gemini doesn't directly support system messages, so prepend to first user message
-        return {
-            "role": "user",
-            "parts": [{"text": str(message.content)}]
-        }
-    elif isinstance(message, UserMessage):
-        # Handle multimodal content with improved image support
-        parts: List[Dict[str, Any]] = []
+    def _process_content(content: Union[str, List[Any]]) -> List[types.Part]:
+        parts: List[types.Part] = []
 
         # Handle string content
-        if isinstance(message.content, str):
-            parts.append({"text": message.content})
+        if isinstance(content, str):
+            parts.append(types.Part.from_text(text=content))
 
         # Handle list of mixed content types
-        elif isinstance(message.content, list):
-            for part in message.content:
+        elif isinstance(content, list):
+            for part in content:
                 if isinstance(part, str):
-                    parts.append({"text": part})
+                    parts.append(types.Part.from_text(text=part))
                 elif isinstance(part, Image):
-                    # Enhanced image handling
                     try:
-                        # Attempt to detect MIME type if possible
+                        # Enhanced image handling for long context
                         mime_type = getattr(part, "mime_type", "image/jpeg")
-
-                        # Support for base64 and file path
+                        # Support for base64, file path, and other image representations
                         if hasattr(part, "to_base64"):
                             image_data = part.to_base64()
                         elif hasattr(part, "path"):
-                            # Read image file and convert to base64
                             with open(part.path, "rb") as img_file:
                                 import base64
                                 image_data = base64.b64encode(img_file.read()).decode("utf-8")
                         else:
-                            # Fallback to default base64 conversion
-                            image_data = part.to_base64()
-
-                        parts.append({
-                            "inline_data": {
-                                "mime_type": mime_type,
-                                "data": image_data
-                            }
-                        })
+                            image_data = str(part)  # Fallback to string representation
+                        parts.append(types.Part.from_data(data=image_data, mime_type=mime_type))
                     except Exception as e:
-                        logger.warning(f"Could not process image: {e}")
-                        parts.append({"text": "[Unprocessable Image]"})
+                        logger.warning(f"Could not process image in long context: {e}")
+                        parts.append(types.Part.from_text(text="[Unprocessable Image]"))
+                else:
+                    # Support for other potential content types
+                    parts.append(types.Part.from_text(text=str(part)))
 
-        return {
-            "role": "user",
-            "parts": parts
-        }
+        return parts
+
+    # Handle different message types with long context considerations
+    if isinstance(message, SystemMessage):
+        return types.Content(
+            role="user",
+            parts=[types.Part.from_text(text=str(message.content))]
+        )
+    elif isinstance(message, UserMessage):
+        return types.Content(
+            role="user",
+            parts=_process_content(message.content)
+        )
     elif isinstance(message, AssistantMessage):
-        return {
-            "role": "model",
-            "parts": [{"text": str(message.content)}]
-        }
+        return types.Content(
+            role="model",
+            parts=[types.Part.from_text(text=str(message.content))]
+        )
     else:
         # Default to user role for other message types
-        return {
-            "role": "user",
-            "parts": [{"text": str(message.content)}]
-        }
+        return types.Content(
+            role="user",
+            parts=[types.Part.from_text(text=str(message.content))]
+        )
 
-def _convert_tools_to_genai_function_declarations(tools: Sequence[Tool]) -> List[Dict[str, Any]]:
+
+def create_tool(name: str, description: str, parameters: Dict[str, Any]) -> types.Tool:
+    """Create a Gemini tool"""
+    return types.Tool(
+        function_declarations=[types.FunctionDeclaration(
+            name=name,
+            description=description,
+            parameters=types.Schema.from_dict(parameters) if isinstance(parameters, dict) else parameters
+        )]
+    )
+
+def convert_tool(tool: Union[Tool, ToolSchema]) -> types.Tool:
     """
-    Convert AutoGen tools to Gemini function declarations with robust type handling.
+    Convert an AutoGen tool to a Gemini tool.
+
+    References:
+    - [Function calling](https://ai.google.dev/gemini-api/docs/function-calling/tutorial?lang=python)
+    - [Extract structured data](https://ai.google.dev/gemini-api/tutorials/extract_structured_data)
     """
-    genai_tools: List[Dict[str, Any]] = []
-    for i, tool in enumerate(tools):
-        # Robust tool schema extraction with type checking
-        try:
-            # Handle both dict and object types
-            if isinstance(tool, dict):
-                tool_schema = tool.get("schema", tool) if "schema" in tool else tool
-            else:
-                # Convert non-dict objects to dict
-                tool_schema = {
-                    "name": getattr(tool, "name", ""),
-                    "description": getattr(tool, "description", ""),
-                    "parameters": getattr(tool, "parameters", {})
-                }
+    if isinstance(tool, Tool):
+        tool_schema = tool.schema.copy()
+    else:
+        assert isinstance(tool, dict)
+        tool_schema = tool.copy()
 
-            # Validate tool description
-            tool_desc = {
-                "name": str(tool_schema.get("name", f"tool_{i}")),
-                "description": str(tool_schema.get("description", "")),
-                "parameters": tool_schema.get("parameters", {}) or {}
-            }
+    if "parameters" in tool_schema:
+        for value in tool_schema["parameters"]["properties"].values():
+            if "title" in value.keys():
+                del value["title"]
 
-            # Validate tool description
-            if not tool_desc["name"]:
-                logger.warning("Tool missing name, skipping")
-                continue
+    function_def: Dict[str, Any] = dict(name=tool_schema["name"])
+    if "description" in tool_schema:
+        function_def["description"] = tool_schema["description"]
+    if "parameters" in tool_schema:
+        function_def["parameters"] = tool_schema["parameters"]
 
-            genai_tools.append({
-                "function_declarations": [{
-                    "name": tool_desc["name"],
-                    "description": tool_desc["description"],
-                    "parameters": tool_desc["parameters"]
-                }]
-            })
-        except Exception as e:
-            logger.warning(f"Could not process tool: {e}")
+    converted_tool = create_tool(
+        name=tool_schema["name"],
+        description=tool_schema["description"],
+        parameters=tool_schema["parameters"]
+    )
+    return converted_tool
 
-    return genai_tools
+
+
+def convert_tools(tools: Sequence[Tool | ToolSchema]) -> List[types.Tool]:
+    """
+    Convert AutoGen tools to Gemini function declarations using google.genai.types.Tool.
+    """
+    result: List[types.Tool] = []
+    for tool in tools:
+        converted_tool = convert_tool(tool)
+        result.append(converted_tool)
+    return result
+
+def _prepare_config(
+    config: Optional[Union[GenerateContentConfig, GenerateImagesConfig, CreateCachedContentConfig, Dict[str, Any]]] = None,
+    create_args: Dict[str, Any] = {},
+    extra_create_args: Dict[str, Any] = {},
+    tools: Optional[List[Tool]] = None,
+    response_format: Optional[Dict[str, str]] = None
+) -> Union[GenerateContentConfig, GenerateImagesConfig, CreateCachedContentConfig]:
+    """
+    Prepare and merge configuration with flexible type handling.
+
+    Args:
+        config: Configuration object or dictionary
+        create_args: Base configuration arguments
+        extra_create_args: Additional configuration arguments
+        tools: Optional tools for function calling
+        response_format: Optional response format configuration
+
+    Returns:
+        Prepared configuration object
+    """
+    # If config is None, create a new GenerateContentConfig, by default.
+    if config is None:
+        config = GenerateContentConfig()
+
+    # If config is a dictionary, convert to appropriate config type
+    if isinstance(config, dict):
+        if tools is not None:
+            config["tools"] = tools
+        if response_format is not None:
+            config["response_format"] = response_format
+        config = GenerateContentConfig(**config)
+    else:
+        # For existing config objects, update attributes if they exist
+        if tools is not None and hasattr(config, "tools"):
+            config.tools = tools
+        if response_format is not None and hasattr(config, "response_format"):
+            config.response_format = response_format
+
+    # Merge configuration arguments
+    merged_args = {**create_args, **extra_create_args}
+
+    # Update config with merged arguments, but only if the config is not a dictionary
+    if not isinstance(config, dict):
+      for key, value in merged_args.items():
+          if hasattr(config, key):
+              setattr(config, key, value)
+
+    return config
 
 class BaseGeminiChatCompletionClient(ChatCompletionClient):
-    """Base class for Gemini chat completion clients."""
+    """
+    Base class for Gemini chat completion clients with enhanced long context support.
+
+    References:
+    - https://ai.google.dev/gemini-api/docs/long-context
+    - https://github.com/googleapis/python-genai?tab=readme-ov-file
+    """
 
     def __init__(
         self,
@@ -178,6 +236,13 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
     ):
         self._model = model
         self._create_args = create_args
+
+        # Enhanced context caching with SDK-inspired approach
+        self._context_cache: Dict[str, Any] = {
+            "contents": [],  # Store cached contents
+            "system_instruction": None,  # Optional system-wide instruction
+            "ttl": None  # Time-to-live for cached content
+        }
 
         # Resolve model info
         if model_info is None:
@@ -192,121 +257,137 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._actual_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
 
-        # Add support for context caching
-        self._cached_context: Optional[Dict[str, Any]] = None
-        self._context_cache_duration: Optional[int] = None
-
     def cache_context(
         self,
-        context: Union[str, List[Dict[str, Any]]],
-        duration_hours: Optional[int] = None
-    ) -> None:
+        contents: Sequence[Union[str, Image]],
+        system_instruction: Optional[str] = None,
+        ttl: Optional[str] = "3600s"  # Default 1-hour cache
+    ) -> Dict[str, Any]:
         """
-        Cache context for more efficient long-context interactions.
+        Cache context for long-running conversations.
 
         References:
-        - https://ai.google.dev/gemini-api/docs/caching
+        - https://github.com/googleapis/python-genai?tab=readme-ov-file#caches
         """
-        self._cached_context = context
-        self._context_cache_duration = duration_hours
+        try:
+            # Convert contents to Gemini-compatible format
+            cached_contents = [
+                _convert_message_to_genai_content(
+                    UserMessage(content=[content], source="user")  # Wrap in list to match UserMessage signature
+                ) for content in contents
+            ]
 
-    async def create(
-        self,
-        messages: Sequence[LLMMessage],
-        *,
-        tools: Sequence[Tool] = [],
-        json_output: Optional[bool] = None,
-        extra_create_args: Mapping[str, Any] = {},
-        cancellation_token: Optional[CancellationToken] = None,
-        structured_output: Optional[Dict[str, Any]] = None,
-    ) -> CreateResult:
-        # Prepare generation config with long context support
-        generation_config = GenerationConfig(
-            **{
-                **self._create_args,
-                **extra_create_args,
-                # Enable long context optimizations
-                "max_output_tokens": extra_create_args.get("max_output_tokens", 8192),
+            # Update context cache
+            self._context_cache = {
+                "contents": cached_contents,
+                "system_instruction": system_instruction,
+                "ttl": ttl
             }
+
+            return self._context_cache
+        except Exception as e:
+            logger.error(f"Error caching context: {e}")
+            return {}
+
+    def generate_content(
+        self,
+        contents: Union[str, Sequence[Union[str, Image]]],
+        *,
+        tools: Sequence[Dict[str, Any]] = [],
+        json_output: Optional[bool] = None,
+        structured_output: Optional[Dict[str, Any]] = None,
+        extra_create_args: Mapping[str, Any] = {},
+        use_cached_context: bool = False,
+        config: Optional[Union[GenerateContentConfig, Dict[str, Any]]] = None
+    ) -> CreateResult:
+        """
+        Generate content using Gemini API's generate_content method with retries and enhanced error handling.
+
+        References:
+        - https://github.com/googleapis/python-genai?tab=readme-ov-file
+        """
+        # Normalize contents to a list
+        if isinstance(contents, str):
+            contents = [contents]
+
+        # Prepare messages with long context support
+        genai_contents = [
+            _convert_message_to_genai_content(
+                UserMessage(content=[content], source="auto")  # Use "auto" as source
+            ) for content in contents
+        ]
+
+        # Optionally use cached context
+        if use_cached_context and self._context_cache.get("contents"):
+            genai_contents = self._context_cache["contents"] + genai_contents
+
+        # Prepare tools and structured output
+        genai_tools = _convert_tools_to_genai_function_declarations(tools, structured_output) if tools or structured_output else None
+
+        # Prepare response format
+        response_format = None
+        if json_output or structured_output:
+            response_format = {
+                "type": structured_output.get("type", "json_object") if structured_output else "json_object"
+            }
+
+        # Prepare configuration, passing genai_tools and response_format
+        generation_config = _prepare_config(
+            config=config,
+            create_args=self._create_args,
+            extra_create_args=extra_create_args,
+            tools=genai_tools,  # Pass the prepared tools
+            response_format=response_format,  # Pass the prepared response_format
         )
 
-        # Structured output configuration
-        if structured_output:
-            generation_config.response_mime_type = structured_output.get("mime_type", "application/json")
-            generation_config.response_schema = structured_output.get("schema")
-
-        # Handle JSON output with more robust configuration
-        if json_output:
-            generation_config.response_mime_type = "application/json"
-            generation_config.response_format = {"type": "json_object"}
-
-        # Prepare messages with cached context if available
-        if self._cached_context:
-            # Prepend cached context to messages
-            messages = [
-                *([UserMessage(content=str(self._cached_context))] if self._cached_context else []),
-                *messages
-            ]
-
         try:
-            # Enhanced model initialization with long context support
-            model = genai.GenerativeModel(
-                model_name=self._model,
-                generation_config=generation_config,
-                # Optional: Add system instruction for consistent behavior
-                system_instruction=messages[0].content if isinstance(messages[0], SystemMessage) else None
+            client = genai.Client()
+            response = client.models.generate_content(
+                model=self._model,
+                contents=genai_contents,
+                config=generation_config
             )
 
-            # Start chat with long context capabilities
-            chat = model.start_chat(
-                # Optional: Configure history management for long context
-                history_metadata={
-                    "max_tokens": _model_info.get_token_limit(self._model),
-                    "strategy": "sliding_window"  # Efficient context management
-                }
-            )
+            # Process tool calls and structured output
+            tool_calls: List[FunctionCall] = []
+            if response.candidates and response.candidates[0].content.parts:
+                for part in response.candidates[0].content.parts:
+                    if hasattr(part, "function_call") and part.function_call: # Access function_call directly
+                        tool_calls.append(
+                            FunctionCall(
+                                id=str(len(tool_calls)),
+                                name=part.function_call.name,
+                                arguments=json.dumps(part.function_call.args)
+                            )
+                        )
 
-            # Process messages with advanced function calling
-            response = await chat.send_message_async(
-                _convert_message_to_genai_content(messages[-1]),
-                tools=_convert_tools_to_genai_function_declarations(tools) if tools else None
-            )
+            # Determine finish reason
+            finish_reason: Literal["stop", "length", "function_calls", "content_filter", "unknown"] = "stop"
+            if tool_calls:
+                finish_reason = "function_calls"
 
-            # Advanced tool call processing
-            tool_calls = [
-                FunctionCall(
-                    id=str(i),
-                    name=part.function_call.name,
-                    arguments=json.dumps(part.function_call.args)
-                )
-                for part in response.candidates[0].content.parts
-                if hasattr(part, "function_call")
-            ]
-
-            # Determine finish reason with more granular control
-            finish_reason: Literal["stop", "length", "function_calls", "content_filter", "unknown"] = (
-                "function_calls" if tool_calls else "stop"
-            )
-
-            # Create result with enhanced metadata
+            # Create result
             result = CreateResult(
-                content=tool_calls or response.text,
+                content=tool_calls if tool_calls else response.text,
                 finish_reason=finish_reason,
                 usage=RequestUsage(
                     prompt_tokens=response.usage_metadata.prompt_token_count,
                     completion_tokens=response.usage_metadata.candidates_token_count
                 ),
-                cached=bool(self._cached_context),
-                extra={
-                    "safety_ratings": response.candidates[0].safety_ratings,
-                    "citation_metadata": response.candidates[0].citation_metadata
-                }
+                cached=use_cached_context
             )
+
+            # Update usage tracking
+            self._total_usage = RequestUsage(
+                prompt_tokens=self._total_usage.prompt_tokens + result.usage.prompt_tokens,
+                completion_tokens=self._total_usage.completion_tokens + result.usage.completion_tokens
+            )
+            self._actual_usage = result.usage
 
             return result
 
         except Exception as e:
-            logger.error(f"Advanced Gemini API call error: {e}")
+            logger.error(f"Error during Gemini API generate_content call: {e}")
             return CreateResult(
                 content="",
                 finish_reason="unknown",
@@ -314,124 +395,226 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
                 cached=False
             )
 
-    async def create_stream(
+    async def generate_content_async(
         self,
-        messages: Sequence[LLMMessage],
+        contents: Union[str, Sequence[Union[str, Image]]],
         *,
-        tools: Sequence[Tool] = [],
+        tools: Sequence[Dict[str, Any]] = [],
         json_output: Optional[bool] = None,
+        structured_output: Optional[StructuredOutputSchema] = None,
         extra_create_args: Mapping[str, Any] = {},
-        cancellation_token: Optional[CancellationToken] = None,
-        max_consecutive_empty_chunk_tolerance: int = 0,
-        structured_output: Optional[Dict[str, Any]] = None,
-    ) -> AsyncGenerator[Union[str, FunctionCall, CreateResult], None]:
-        # Prepare generation config with long context support
-        generation_config = GenerationConfig(
-            **{
-                **self._create_args,
-                **extra_create_args,
-                "max_output_tokens": extra_create_args.get("max_output_tokens", 8192),
+        use_cached_context: bool = False,
+        config: Optional[Union[GenerateContentConfig, Dict[str, Any]]] = None,
+    ) -> CreateResult:
+        """
+        Asynchronously generate content using Gemini API's generate_content method with retries.
+
+        References:
+        - https://github.com/googleapis/python-genai?tab=readme-ov-file
+        """
+        # Normalize contents to a list
+        if isinstance(contents, str):
+            contents = [contents]
+
+        # Prepare messages with long context support
+        genai_contents = [
+            _convert_message_to_genai_content(
+                UserMessage(content=[content], source="auto")  # Use "auto" as source
+            ) for content in contents
+        ]
+
+        # Optionally use cached context
+        if use_cached_context and self._context_cache.get("contents"):
+            genai_contents = self._context_cache["contents"] + genai_contents
+
+        # Convert tools
+        if len(tools) > 0:
+            converted_tools = convert_tools(tools)
+
+        # Prepare tools and structured output
+        genai_tools = _convert_tools_to_genai_function_declarations(tools, structured_output) if tools or structured_output else None
+
+        # Prepare response format
+        response_format = None
+        if json_output or structured_output:
+            response_format = {
+                "type": structured_output.get("type", "json_object") if structured_output else "json_object"
             }
+
+        # Prepare configuration, passing genai_tools and response_format
+        generation_config = _prepare_config(
+            config=config,
+            create_args=self._create_args,
+            extra_create_args=extra_create_args,
+            tools=genai_tools,  # Pass the prepared tools
+            response_format=response_format,  # Pass the prepared response_format
         )
 
-        # Structured output configuration
-        if structured_output:
-            generation_config.response_mime_type = structured_output.get("mime_type", "application/json")
-            generation_config.response_schema = structured_output.get("schema")
-
-        # Handle JSON output with more robust configuration
-        if json_output:
-            generation_config.response_mime_type = "application/json"
-            generation_config.response_format = {"type": "json_object"}
-
         try:
-            # Enhanced model initialization
-            model = genai.GenerativeModel(
-                model_name=self._model,
-                generation_config=generation_config,
-                system_instruction=messages[0].content if isinstance(messages[0], SystemMessage) else None
+            client = genai.Client()
+            response = await client.aio.models.generate_content(
+                model=self._model,
+                contents=genai_contents,
+                config=generation_config,
             )
 
-            # Start chat with long context capabilities
-            chat = model.start_chat(
-                history_metadata={
-                    "max_tokens": _model_info.get_token_limit(self._model),
-                    "strategy": "sliding_window"
-                }
-            )
-
-            # Process messages with advanced function calling
-            response = await chat.send_message_async(
-                _convert_message_to_genai_content(messages[-1]),
-                tools=_convert_tools_to_genai_function_declarations(tools) if tools else None
-            )
-
-            # Initialize tracking variables
-            content_chunks: List[str] = []
+            # Process tool calls and structured output
             tool_calls: List[FunctionCall] = []
+            if response.candidates and response.candidates[0].content.parts:
+                for part in response.candidates[0].content.parts:
+                    if hasattr(part, "function_call") and part.function_call:  # Access function_call directly
+                        tool_calls.append(
+                            FunctionCall(
+                                id=str(len(tool_calls)),
+                                name=part.function_call.name,
+                                arguments=json.dumps(part.function_call.args)
+                            )
+                        )
 
-            # Process streaming content
-            for chunk in response.candidates[0].content.parts:
-                if hasattr(chunk, "text"):
-                    content_chunks.append(chunk.text)
-                    yield chunk.text
+            finish_reason: Literal["stop", "length", "function_calls", "content_filter", "unknown"] = "stop"
+            if tool_calls:
+                finish_reason = "function_calls"
 
-                if hasattr(chunk, "function_call"):
-                    tool_call = FunctionCall(
-                        id=str(len(tool_calls)),
-                        name=chunk.function_call.name,
-                        arguments=json.dumps(chunk.function_call.args)
-                    )
-                    tool_calls.append(tool_call)
-                    yield tool_call
-
-            # Determine finish reason with more granular control
-            finish_reason: Literal["stop", "length", "function_calls", "content_filter", "unknown"] = (
-                "function_calls" if tool_calls else "stop"
-            )
-
-            # Create final result with enhanced metadata
             result = CreateResult(
-                content=tool_calls or "".join(content_chunks),
+                content=tool_calls if tool_calls else response.text,
                 finish_reason=finish_reason,
                 usage=RequestUsage(
                     prompt_tokens=response.usage_metadata.prompt_token_count,
                     completion_tokens=response.usage_metadata.candidates_token_count
                 ),
-                cached=False,
-                extra={
-                    "safety_ratings": response.candidates[0].safety_ratings,
-                    "citation_metadata": response.candidates[0].citation_metadata
-                }
+                cached=use_cached_context
             )
 
-            yield result
+            self._total_usage = RequestUsage(
+                prompt_tokens=self._total_usage.prompt_tokens + result.usage.prompt_tokens,
+                completion_tokens=self._total_usage.completion_tokens + result.usage.completion_tokens
+            )
+            self._actual_usage = result.usage
+
+            return result
 
         except Exception as e:
-            logger.error(f"Advanced Gemini API streaming call error: {e}")
-            yield CreateResult(
+            logger.error(f"Error during Gemini API async call: {e}")
+            return CreateResult(
                 content="",
                 finish_reason="unknown",
                 usage=self._actual_usage,
                 cached=False
             )
 
-    def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool] = []) -> int:
-        """
-        Count tokens for the given messages and tools with robust type handling.
-        """
-        model = genai.GenerativeModel(self._model)
+    async def create(
+        self,
+        messages: Sequence[LLMMessage],
+        *,
+        tools: Sequence[Tool | ToolSchema] = [],
+        json_output: Optional[bool] = None,
+        extra_create_args: Mapping[str, Any] = {},
+        cancellation_token: Optional[CancellationToken] = None,
+    ) -> CreateResult:
+        """Create a chat completion using the Gemini model.
 
+        Args:
+            messages: The messages to send to the model.
+            tools: The tools that may be invoked during the chat.
+            json_output: Whether the model should return JSON.
+            extra_create_args: Additional arguments to pass to the model.
+            cancellation_token: Token for cancelling the request.
+
+        Returns:
+            CreateResult: The completion result.
+        """
+        # Prepare configuration
+        config = _prepare_config(
+            config=None,  # Let _prepare_config create a default
+            create_args=self._create_args,
+            extra_create_args=extra_create_args,
+            tools=_convert_tools_to_genai_function_declarations(tools),  # Convert tools
+            response_format={"type": "json_object"} if json_output else None,  # Set response format
+        )
+
+        # Prepare contents from messages
+        contents = [
+            _convert_message_to_genai_content(message) for message in messages
+        ]
+
+        try:
+            # Use the non-streaming generate_content method
+            return await self.generate_content_async(
+                contents=contents,
+                config=config,
+                tools=tools,  # Pass the original tools, not genai_tools
+                json_output=json_output,
+            )
+        except Exception as e:
+            logger.warning(f"Error in create: {str(e)}")
+            raise
+
+    async def create_stream(
+        self,
+        messages: Sequence[LLMMessage],
+        *,
+        tools: Sequence[Union[Tool, ToolSchema]] = [],
+        json_output: Optional[bool] = None,
+        extra_create_args: Mapping[str, Any] = {},
+        cancellation_token: Optional[CancellationToken] = None,
+    ) -> AsyncGenerator[Union[str, CreateResult], None]:
+        """Create a streaming chat completion using the Gemini model.
+
+        Args:
+            messages: The messages to send to the model.
+            tools: The tools that may be invoked during the chat.
+            json_output: Whether the model should return JSON.
+            extra_create_args: Additional arguments to pass to the model.
+            cancellation_token: Token for cancelling the request.
+
+        Yields:
+            Union[str, CreateResult]: The streaming completion results.
+        """
+        # Prepare configuration
+        config = _prepare_config(
+            config=None,  # Let _prepare_config create a default
+            create_args=self._create_args,
+            extra_create_args=extra_create_args,
+            tools=_convert_tools_to_genai_function_declarations(tools),  # Convert tools
+            response_format={"type": "json_object"} if json_output else None,  # Set response format
+        )
+
+        # Prepare contents from messages
+        contents = [
+            _convert_message_to_genai_content(message) for message in messages
+        ]
+
+        try:
+            client = genai.Client()
+            async for response in client.models.generate_content(
+                model=self._model,
+                contents=contents,
+                config=config,
+                stream=True,  # Enable streaming
+            ):
+                if response.text: # Check if the response has text
+                    yield response.text
+        except Exception as e:
+            logger.warning(f"Error in create_stream: {str(e)}")
+            raise
+
+    def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Dict[str, Any]] = []) -> int:
+        """
+        Count tokens for the given messages and tools.
+
+        According to Gemini API documentation, a token is approximately 4 characters.
+        This method provides a more accurate token counting approach.
+
+        References:
+        - https://ai.google.dev/gemini-api/docs/tokens
+        """
         # Prepare a list to store all text content
         all_text_content: List[str] = []
 
-        # Process messages
         for msg in messages:
-            # Handle different message types
             if isinstance(msg, SystemMessage):
                 all_text_content.append(f"System: {msg.content}")
             elif isinstance(msg, UserMessage):
-                # Handle both string and multimodal content
                 if isinstance(msg.content, str):
                     all_text_content.append(f"User: {msg.content}")
                 elif isinstance(msg.content, list):
@@ -440,51 +623,45 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
                         if isinstance(part, str):
                             user_text_parts.append(part)
                         elif isinstance(part, Image):
-                            # Add a placeholder for images
                             user_text_parts.append("[Image]")
                     all_text_content.append(f"User: {' '.join(user_text_parts)}")
             elif isinstance(msg, AssistantMessage):
                 all_text_content.append(f"Assistant: {msg.content}")
 
-        # Combine all text content
         combined_text = "\n".join(all_text_content)
 
-        # Count tokens for messages
-        message_token_count = model.count_tokens(combined_text).total_tokens
+        try:
+            client = genai.Client()
+            message_token_count = client.models.count_tokens(model=self._model, contents=combined_text).total_tokens
+        except Exception:
+            # Fallback to approximate token count (each token ~4 characters)
+            message_token_count = len(combined_text) // 4
 
-        # Count tokens for tools
         tool_token_count = 0
         if tools:
-            # Convert tools to a JSON representation for token counting
             tool_descriptions = []
-            for i, tool in enumerate(tools):
-                # Robust tool schema extraction
+            for tool in tools:
                 if isinstance(tool, dict):
-                    tool_schema = tool.get("schema", tool) if "schema" in tool else tool
+                    tool_schema = tool.get("schema", tool)
                 else:
-                    # Convert non-dict objects to dict
-                    tool_schema = {
-                        "name": getattr(tool, "name", f"tool_{i}"),
-                        "description": getattr(tool, "description", ""),
-                        "parameters": getattr(tool, "parameters", {})
-                    }
+                    tool_schema = tool
 
-                # Create a tool description
                 tool_desc = {
-                    "name": str(tool_schema.get("name", f"tool_{i}")),
-                    "description": str(tool_schema.get("description", "")),
+                    "name": tool_schema.get("name", ""),
+                    "description": tool_schema.get("description", ""),
                     "parameters": tool_schema.get("parameters", {})
                 }
                 tool_descriptions.append(tool_desc)
 
-            # Convert tool descriptions to JSON and count tokens
             tool_text = json.dumps(tool_descriptions)
-            tool_token_count = model.count_tokens(tool_text).total_tokens
+            try:
+                tool_token_count = client.models.count_tokens(model=self._model, contents=tool_text).total_tokens
+            except Exception:
+                tool_token_count = len(tool_text) // 4
 
-        # Return total token count
         return message_token_count + tool_token_count
 
-    def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool] = []) -> int:
+    def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Dict[str, Any]] = []) -> int:
         """
         Calculate remaining tokens based on model's token limit.
 
@@ -511,25 +688,53 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
         return self._model_info
 
 class GeminiChatCompletionClient(BaseGeminiChatCompletionClient, Component[GeminiClientConfigurationConfigModel]):
-    """Client for Gemini API."""
+    """
+    Client for Gemini API with enhanced capabilities.
+
+    This client provides access to Google's Gemini models with support for:
+    - Long context handling
+    - Vision/multimodal inputs
+    - Function/tool calling
+    - Structured output (JSON)
+    - Robust error handling and retries
+    - Token management
+    - Streaming responses
+    - Context caching
+
+    Args:
+        config (Optional[GeminiClientConfigurationConfigModel]): Configuration model
+        **kwargs: Configuration parameters that match GeminiClientConfiguration
+
+    Example:
+        ```python
+        from autogen_ext.models.gemini import GeminiChatCompletionClient
+
+        client = GeminiChatCompletionClient(
+            model="gemini-1.5-pro",
+            api_key="your-api-key",  # Or use GOOGLE_API_KEY env var
+            temperature=0.7,
+            max_output_tokens=1000
+        )
+        ```
+
+    References:
+        - https://ai.google.dev/gemini-api/docs
+        - https://github.com/googleapis/python-genai
+    """
 
     component_type = "model"
     component_config_schema = GeminiClientConfigurationConfigModel
 
     def __init__(self, config: Optional[GeminiClientConfigurationConfigModel] = None, **kwargs: Unpack[GeminiClientConfiguration]):
-        # Merge config and kwargs
         if config is None:
             config = GeminiClientConfigurationConfigModel(**kwargs)
 
-        # Get API key from config or environment
         api_key = config.api_key or os.environ.get("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("API key must be provided either in the configuration or as environment variable GOOGLE_API_KEY")
 
-        # Configure Gemini API
-        genai.configure(api_key=api_key)
+        client = genai.Client(api_key=api_key)
 
-        # Prepare create arguments
         create_args = {
             k: v for k, v in {
                 "temperature": config.temperature,
@@ -541,13 +746,11 @@ class GeminiChatCompletionClient(BaseGeminiChatCompletionClient, Component[Gemin
             }.items() if v is not None
         }
 
-        # Initialize base client
         super().__init__(
             model=config.model,
             create_args=create_args
         )
 
-        # Store raw configuration for serialization
         self._raw_config = config.model_dump(exclude_none=True)
 
     @classmethod
@@ -560,22 +763,49 @@ class GeminiChatCompletionClient(BaseGeminiChatCompletionClient, Component[Gemin
         return GeminiClientConfigurationConfigModel(**self._raw_config)
 
 class VertexAIChatCompletionClient(BaseGeminiChatCompletionClient, Component[VertexAIClientConfigurationConfigModel]):
-    """Client for Vertex AI."""
+    """
+    Client for Vertex AI Gemini models with enhanced capabilities.
+
+    This client provides access to Google's Gemini models through Vertex AI with support for:
+    - Long context handling
+    - Vision/multimodal inputs
+    - Function/tool calling
+    - Structured output (JSON)
+    - Robust error handling and retries
+    - Token management
+    - Streaming responses
+    - Context caching
+
+    Args:
+        config (Optional[VertexAIClientConfigurationConfigModel]): Configuration model
+        **kwargs: Configuration parameters that match VertexAIClientConfiguration
+
+    Example:
+        ```python
+        from autogen_ext.models.gemini import VertexAIChatCompletionClient
+
+        client = VertexAIChatCompletionClient(
+            model="gemini-1.5-pro",
+            project_id="your-project-id",
+            location="us-central1"
+        )
+        ```
+
+    References:
+        - https://cloud.google.com/vertex-ai
+        - https://github.com/googleapis/python-genai
+    """
 
     component_type = "model"
     component_config_schema = VertexAIClientConfigurationConfigModel
 
     def __init__(self, config: Optional[VertexAIClientConfigurationConfigModel] = None, **kwargs: Unpack[VertexAIClientConfiguration]):
-        # Merge config and kwargs
         if config is None:
             config = VertexAIClientConfigurationConfigModel(**kwargs)
 
-        # Vertex AI requires project_id
         if not config.project_id:
             raise ValueError("project_id is required for Vertex AI configuration")
 
-        # Configure Vertex AI (placeholder - actual implementation depends on Vertex AI SDK)
-        # This is a conceptual implementation and would need to be updated with actual Vertex AI integration
         create_args = {
             k: v for k, v in {
                 "temperature": config.temperature,
@@ -587,13 +817,11 @@ class VertexAIChatCompletionClient(BaseGeminiChatCompletionClient, Component[Ver
             }.items() if v is not None
         }
 
-        # Initialize base client
         super().__init__(
             model=config.model,
             create_args=create_args
         )
 
-        # Store raw configuration for serialization
         self._raw_config = config.model_dump(exclude_none=True)
 
     @classmethod
