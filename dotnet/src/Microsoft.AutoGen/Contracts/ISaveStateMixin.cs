@@ -1,5 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// ISaveState.cs
+// ISaveStateMixin.cs
 
 using System.Text.Json;
 
@@ -9,7 +9,9 @@ namespace Microsoft.AutoGen.Contracts;
 /// Defines a contract for saving and loading the state of an object.
 /// The state must be JSON serializable.
 /// </summary>
-public interface ISaveState
+/// <typeparam name="T">The type of the object implementing this interface.</typeparam>
+///
+public interface ISaveStateMixin<T> : ISaveState
 {
     /// <summary>
     /// Saves the current state of the object.
@@ -19,9 +21,10 @@ public interface ISaveState
     /// containing the saved state. The structure of the state is implementation-defined
     /// but must be JSON serializable.
     /// </returns>
-    public virtual ValueTask<JsonElement> SaveStateAsync()
+    async ValueTask<JsonElement> ISaveState.SaveStateAsync()
     {
-        return new ValueTask<JsonElement>(JsonDocument.Parse("{}").RootElement);
+        var state = await SaveStateImpl();
+        return JsonSerializer.SerializeToElement(state);
     }
 
     /// <summary>
@@ -32,9 +35,14 @@ public interface ISaveState
     /// is implementation-defined but must be JSON serializable.
     /// </param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public virtual ValueTask LoadStateAsync(JsonElement state)
+    ValueTask ISaveState.LoadStateAsync(JsonElement state)
     {
-        return ValueTask.CompletedTask;
+        // Throw if failed to deserialize
+        var stateObject = JsonSerializer.Deserialize<T>(state) ?? throw new InvalidDataException();
+        return LoadStateImpl(stateObject);
     }
-}
 
+    protected ValueTask<T> SaveStateImpl();
+
+    protected ValueTask LoadStateImpl(T state);
+}

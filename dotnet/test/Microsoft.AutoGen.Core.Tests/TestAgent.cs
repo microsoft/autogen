@@ -75,7 +75,7 @@ public class SubscribedAgent : TestAgent
 }
 
 [TypeSubscription("TestTopic")]
-public class SubscribedSaveLoadAgent : TestAgent
+public class SubscribedSaveLoadAgent : TestAgent, ISaveState
 {
     public SubscribedSaveLoadAgent(AgentId id,
         IAgentRuntime runtime,
@@ -83,13 +83,13 @@ public class SubscribedSaveLoadAgent : TestAgent
     {
     }
 
-    public override ValueTask<JsonElement> SaveStateAsync()
+    ValueTask<JsonElement> ISaveState.SaveStateAsync()
     {
         var jsonDoc = JsonSerializer.SerializeToElement(_receivedMessages);
         return ValueTask.FromResult(jsonDoc);
     }
 
-    public override ValueTask LoadStateAsync(JsonElement state)
+    ValueTask ISaveState.LoadStateAsync(JsonElement state)
     {
         _receivedMessages = JsonSerializer.Deserialize<Dictionary<string, object>>(state) ?? throw new InvalidOperationException("Failed to deserialize state");
         return ValueTask.CompletedTask;
