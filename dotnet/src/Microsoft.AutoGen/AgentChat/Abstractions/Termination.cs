@@ -19,7 +19,7 @@ public interface ITerminationCondition
     /// <summary>
     /// Checks if the termination condition has been reached
     /// </summary>
-    bool IsTerminated { get; }
+    public bool IsTerminated { get; }
 
     /// <summary>
     /// Check if the conversation should be terminated based on the messages received
@@ -30,19 +30,19 @@ public interface ITerminationCondition
     /// <returns>A <see cref="StopMessage"/> if the conversation should be terminated, or <c>null</c>
     /// otherwise.</returns>
     /// <exception cref="TerminatedException">If the termination condition has already been reached.</exception>
-    ValueTask<StopMessage?> CheckAndUpdateAsync(IList<AgentMessage> messages);
+    public ValueTask<StopMessage?> CheckAndUpdateAsync(IList<AgentMessage> messages);
 
     /// <summary>
     /// Resets the termination condition.
     /// </summary>
-    void Reset();
+    public void Reset();
 
     /// <summary>
     /// Combine this termination condition with another using a logical OR.
     /// </summary>
     /// <param name="other">Another termination condition.</param>
     /// <returns>The combined termination condition, with appropriate short-circuiting.</returns>
-    ITerminationCondition Or(ITerminationCondition other)
+    public ITerminationCondition Or(ITerminationCondition other)
     {
         return new CombinerCondition(CombinerCondition.Or, this, other);
     }
@@ -52,7 +52,7 @@ public interface ITerminationCondition
     /// </summary>
     /// <param name="other">Another termination condition.</param>
     /// <returns>The combined termination condition, with appropriate short-circuiting.</returns>
-    ITerminationCondition And(ITerminationCondition other)
+    public ITerminationCondition And(ITerminationCondition other)
     {
         return new CombinerCondition(CombinerCondition.And, this, other);
     }

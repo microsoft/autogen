@@ -81,6 +81,10 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
+    - name: Setup .NET 9.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
     - name: Restore dependencies
       run: dotnet restore -bl
     - name: Format check
@@ -169,7 +173,7 @@ jobs:
         dotnet-version: '9.0.x'
     - name: Install Temp Global.JSON
       run: |
-        echo "{\"sdk\": {\"version\": \"9.0.101\"}}" > global.json
+        echo "{\"sdk\": {\"version\": \"9.0\"}}" > global.json
     - name: Install .NET Aspire workload
       run: dotnet workload install aspire
     - name: Install dev certs
@@ -207,6 +211,10 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
+    - name: Setup .NET 9.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
 
     - name: publish AOT testApp, assert static analysis warning count, and run the app
       shell: pwsh
@@ -249,6 +257,10 @@ jobs:
       with:
         dotnet-version: '8.0.x'
         global-json-file: dotnet/global.json
+    - name: Setup .NET 9.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
     - name: Install dev certs
       run:  dotnet --version && dotnet dev-certs https --trust
     - name: Restore dependencies

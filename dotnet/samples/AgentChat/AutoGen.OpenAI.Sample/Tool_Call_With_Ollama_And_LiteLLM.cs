@@ -42,8 +42,6 @@ public class Tool_Call_With_Ollama_And_LiteLLM
             });
         #endregion Create_tools
         #region Create_Agent
-        var liteLLMUrl = "http://localhost:4000";
-
         // api-key is not required for local server
         // so you can use any string here
         var openAIClient = new OpenAIClient(new ApiKeyCredential("api-key"), new OpenAIClientOptions
@@ -59,7 +57,7 @@ public class Tool_Call_With_Ollama_And_LiteLLM
             .RegisterMiddleware(functionMiddleware)
             .RegisterPrintMessage();
 
-        var reply = await agent.SendAsync("what's the weather in new york");
+        await agent.SendAsync("what's the weather in new york");
         #endregion Create_Agent
     }
 }
