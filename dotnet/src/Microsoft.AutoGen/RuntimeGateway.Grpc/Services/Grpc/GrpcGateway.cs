@@ -363,7 +363,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                         tasks.Add(this.WriteResponseAsync(connection, evt, cancellationToken));
                     }
                 }
-                else{
+                else
+                {
                     // we have target agent types that aren't in the supported agent types
                     // could be a race condition or a bug
                     _logger.LogWarning($"Agent type {agentType} is not supported, but registry returned it as subscribed to {evt.Type}/{evt.Source}. Buffering an event to the dead-letter queue.");
