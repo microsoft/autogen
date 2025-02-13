@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Program.cs
-
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.Hosting;
 //Environment.SetEnvironmentVariable("XLANG_TEST_NO_DOTNET", "true");
@@ -28,6 +27,7 @@ if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("XLANG_TEST_NO_PYTHO
         .WithEnvironment("GRPC_DNS_RESOLVER", "native")
         .WithOtlpExporter()
         .WaitFor(backend);
+    if (dotnet != null) { python.WaitFor(dotnet); }
 }
 #pragma warning restore ASPIREHOSTINGPYTHON001 // Type is for evaluation purposes only and is subject to change or removal in future updates. Suppress this diagnostic to proceed.
 using var app = builder.Build();

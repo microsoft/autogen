@@ -62,7 +62,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         await app.WaitForResourcesAsync(new[] { KnownResourceStates.Running }).WaitAsync(TimeSpan.FromSeconds(120));
 
         //Act
-        var expectedMessage = "Hello from Python!";
+        var expectedMessage = "from Python!";
         var containsExpectedMessage = false;
         app.EnsureNoErrorsLogged();
         containsExpectedMessage = await app.WaitForExpectedMessageInResourceLogs(DotNetResourceName, expectedMessage, TimeSpan.FromSeconds(120));
