@@ -1,19 +1,12 @@
+import json
 import os
+from typing import List, Optional
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
-from autogen_core.models import (
-    AssistantMessage,
-    CreateResult,
-    RequestUsage,
-    SystemMessage,
-    UserMessage,
-)
-from autogen_ext.models.gemini import (
-    GeminiChatCompletionClient,
-    VertexAIChatCompletionClient,
-)
-from pydantic import ValidationError
+from autogen_core.models import AssistantMessage, CreateResult, RequestUsage, SystemMessage, UserMessage
+from autogen_ext.models.gemini import GeminiChatCompletionClient, VertexAIChatCompletionClient
+from pydantic import BaseModel, ValidationError
 
 
 @pytest.fixture
@@ -45,6 +38,23 @@ def mock_genai():
         mock.types.Schema = MagicMock()
         mock.types.Schema.from_dict = MagicMock(return_value=MagicMock())
 
+        # Create a custom mock class for GenerateContentConfig
+        class MockGenerateContentConfig:
+            def __init__(self):
+                self._attrs = {}
+
+            def __setattr__(self, name, value):
+                if name == "_attrs":
+                    super().__setattr__(name, value)
+                else:
+                    self._attrs[name] = value
+
+            def __getattr__(self, name):
+                return self._attrs.get(name)
+
+        # Setup GenerateContentConfig with proper attribute handling
+        mock.types.GenerateContentConfig = MagicMock(return_value=MockGenerateContentConfig())
+
         # Setup error types
         mock.errors = MagicMock()
         mock.errors.ClientError = Exception
@@ -69,7 +79,7 @@ def mock_response():
     response.candidates = [MagicMock()]
     response.candidates[0].content = MagicMock()
     response.candidates[0].content.parts = [MagicMock()]
-    response.candidates[0].content.parts[0].text = "Test response"
+    response.candidates[0].content.parts[0].text = response.text
     response.candidates[0].content.parts[0].function_call = None
     response.candidates[0].finish_reason = "stop"
     return response
@@ -121,7 +131,7 @@ def gemini_client(mock_genai):
         model="gemini-1.5-pro",
         api_key="test-api-key",
     )
-    client._client = mock_genai.Client()
+    client._genai_client = mock_genai.Client()
     return client
 
 
@@ -137,7 +147,7 @@ def vertex_client(mock_genai, mock_aiplatform):
             project_id="test-project",
             location="us-central1",
         )
-        client._client = mock_genai.Client()
+        client._genai_client = mock_genai.Client()
         return client
 
 
@@ -261,3 +271,126 @@ def test_client_capabilities(gemini_client, vertex_client):
         assert capabilities["json_output"] is True
         assert capabilities["function_calling"] is True
         assert capabilities["async_agentic"] is True
+
+
+class TestStoryOutput(BaseModel):
+    title: str
+    characters: List[str]
+    plot: str
+    moral: Optional[str] = None
+
+
+@pytest.mark.asyncio
+async def test_gemini_json_output(gemini_client, mock_genai, mock_response):
+    # Modify mock response to return JSON
+    json_text = '{"name": "test", "value": 123}'
+    mock_response.text = json_text
+    mock_response.candidates[0].content.parts[0].text = json_text
+    mock_genai.Client.return_value.aio.models.generate_content.return_value = mock_response
+
+    messages = [
+        UserMessage(content="Give me some test data", source="user"),
+    ]
+
+    result = await gemini_client.create(messages, json_output=True)
+
+    assert isinstance(result, CreateResult)
+    # The content should be a JSON string
+    assert isinstance(result.content, str)
+    # Parse the JSON string and verify its contents
+    parsed_content = json.loads(result.content)
+    assert isinstance(parsed_content, dict)
+    assert parsed_content["name"] == "test"
+    assert parsed_content["value"] == 123
+
+
+@pytest.mark.asyncio
+async def test_gemini_pydantic_output(gemini_client, mock_genai, mock_response):
+    # Modify mock response to return story data
+    json_text = """
+    {
+        "title": "The Kind Dragon",
+        "characters": ["Dragon", "Village People"],
+        "plot": "A dragon helps a village",
+        "moral": "Kindness matters"
+    }
+    """
+    mock_response.text = json_text
+    mock_response.candidates[0].content.parts[0].text = json_text
+    mock_genai.Client.return_value.aio.models.generate_content.return_value = mock_response
+
+    messages = [
+        UserMessage(content="Write a story about a kind dragon", source="user"),
+    ]
+
+    result = await gemini_client.create(
+        messages,
+        extra_create_args={
+            "response_format": {
+                "type": "pydantic",
+                "schema": TestStoryOutput
+            }
+        }
+    )
+
+    assert isinstance(result, CreateResult)
+    # The content should be a JSON string
+    assert isinstance(result.content, str)
+    # Parse the JSON string and verify it matches the Pydantic model
+    parsed_content = TestStoryOutput.model_validate_json(result.content)
+    assert isinstance(parsed_content, TestStoryOutput)
+    assert parsed_content.title == "The Kind Dragon"
+    assert "Dragon" in parsed_content.characters
+    assert parsed_content.moral == "Kindness matters"
+
+
+@pytest.mark.asyncio
+async def test_gemini_invalid_json_output(gemini_client, mock_genai, mock_response):
+    # Modify mock response to return invalid JSON
+    invalid_text = "Invalid JSON"
+    mock_response.text = invalid_text
+    mock_response.candidates[0].content.parts[0].text = invalid_text
+    mock_genai.Client.return_value.aio.models.generate_content.return_value = mock_response
+
+    messages = [
+        UserMessage(content="Give me some test data", source="user"),
+    ]
+
+    result = await gemini_client.create(messages, json_output=True)
+
+    # Should return the raw text when JSON parsing fails
+    assert isinstance(result, CreateResult)
+    assert isinstance(result.content, str)
+    assert result.content == "Invalid JSON"
+
+
+@pytest.mark.asyncio
+async def test_gemini_invalid_pydantic_output(gemini_client, mock_genai, mock_response):
+    # Modify mock response to return invalid story data
+    invalid_json = '{"title": "Test", "invalid_field": true}'
+    mock_response.text = invalid_json
+    mock_response.candidates[0].content.parts[0].text = invalid_json
+    mock_genai.Client.return_value.aio.models.generate_content.return_value = mock_response
+
+    messages = [
+        UserMessage(content="Write a story", source="user"),
+    ]
+
+    result = await gemini_client.create(
+        messages,
+        extra_create_args={
+            "response_format": {
+                "type": "pydantic",
+                "schema": TestStoryOutput
+            }
+        }
+    )
+
+    # Should return the raw JSON string when Pydantic validation fails
+    assert isinstance(result, CreateResult)
+    assert isinstance(result.content, str)
+    # Parse the JSON string and verify it's the original invalid data
+    parsed_content = json.loads(result.content)
+    assert isinstance(parsed_content, dict)
+    assert parsed_content["title"] == "Test"
+    assert parsed_content["invalid_field"] is True

@@ -4,9 +4,9 @@ from autogen_core.models import ModelFamily, ModelInfo
 
 # Model version mappings (aliases to actual model names)
 _MODEL_POINTERS = {
-    "gemini-pro": "gemini-1.5-pro",
-    "gemini-pro-vision": "gemini-1.5-pro-vision",
-    "gemini-flash": "gemini-1.5-flash",
+    "gemini-1.5-pro": "gemini-1.5-pro",
+    "gemini-1.5-pro-vision": "gemini-1.5-pro-vision",
+    "gemini-1.5-flash": "gemini-1.5-flash",
     "gemini-1.5-flash-8b": "gemini-1.5-flash-8b",
     "gemini-2.0-flash": "gemini-2.0-flash-001",
     "gemini-2.0-flash-lite": "gemini-2.0-flash-lite-001",
@@ -86,26 +86,29 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "gemini-2.0-flash-lite-preview-02-05": 1_048_576,  # 1M tokens
 }
 
+
 def resolve_model(model: str) -> str:
     """Resolve model aliases to their actual versions."""
     if model in _MODEL_POINTERS:
         return _MODEL_POINTERS[model]
     return model
 
+
 def get_info(model: str) -> ModelInfo:
     """Get model capabilities and information."""
     resolved_model = resolve_model(model)
     return _MODEL_INFO[resolved_model]
+
 
 def get_token_limit(model: str) -> int:
     """Get the token limit for a model."""
     resolved_model = resolve_model(model)
     return _MODEL_TOKEN_LIMITS[resolved_model]
 
+
 def is_experimental_model(model: str) -> bool:
     """Check if a model is experimental."""
     resolved_model = resolve_model(model)
-    return (
-        resolved_model in _EXPERIMENTAL_MODELS or
-        any(exp_model in resolved_model for exp_model in _EXPERIMENTAL_MODELS)
+    return resolved_model in _EXPERIMENTAL_MODELS or any(
+        exp_model in resolved_model for exp_model in _EXPERIMENTAL_MODELS
     )
