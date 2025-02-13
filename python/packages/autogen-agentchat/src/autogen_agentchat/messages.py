@@ -28,6 +28,7 @@ class BaseMessage(BaseModel, ABC):
     """Optional flag to indicate whether to display in Console."""
     to_display: bool = True
 
+
 class BaseChatMessage(BaseMessage, ABC):
     """Base class for chat messages."""
 
