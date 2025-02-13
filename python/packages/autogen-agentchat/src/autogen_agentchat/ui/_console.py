@@ -183,7 +183,7 @@ async def Console(
                         await aprint("", end="\n", flush=True)
                 elif message.to_display:
                     # Print message content.
-                        await aprint(_message_to_str(message, render_image_iterm=render_image_iterm), end="\n", flush=True)
+                    await aprint(_message_to_str(message, render_image_iterm=render_image_iterm), end="\n", flush=True)
                 if message.models_usage:
                     if output_stats and message.to_display:
                         await aprint(
