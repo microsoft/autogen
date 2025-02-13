@@ -135,6 +135,11 @@ class WizeGroupChatManager(BaseGroupChatManager):
             select_speaker_prompt = self._selector_prompt.format(
                 roles=roles, participants=str(participants), history=history
             )
+
+            print("++++++ DEBUG: select_speaker_prompt ++++++")
+            print(select_speaker_prompt)
+            print("++++++ ---------------------------- ++++++")
+
             select_speaker_messages = [SystemMessage(content=select_speaker_prompt)]
             response = await self._model_client.create(messages=select_speaker_messages)
             assert isinstance(response.content, str)
@@ -232,9 +237,6 @@ class WizeGroupChat(BaseGroupChat):
         self._selector_prompt = _SELECTOR_TEMPLATE.format(
             goal=goal, roles="{roles}", participants="{participants}", history="{history}"
         )
-        print("++++++ DEBUG ++++++")
-        print(self._selector_prompt)
-        print("++++++ ----- ++++++")
         self._model_client = model_client
         self._allow_repeated_speaker = allow_repeated_speaker
 
