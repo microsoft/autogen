@@ -132,7 +132,9 @@ class HostConnection:
         return [("client-id", self._client_id)]
 
     @classmethod
-    def from_host_address(cls, host_address: str, extra_grpc_config: ChannelArgumentType = DEFAULT_GRPC_CONFIG) -> Self:
+    async def from_host_address(
+        cls, host_address: str, extra_grpc_config: ChannelArgumentType = DEFAULT_GRPC_CONFIG
+    ) -> Self:
         logger.info("Connecting to %s", host_address)
         #  Always use DEFAULT_GRPC_CONFIG and override it with provided grpc_config
         merged_options = [
@@ -145,9 +147,11 @@ class HostConnection:
         )
         stub: AgentRpcAsyncStub = agent_worker_pb2_grpc.AgentRpcStub(channel)  # type: ignore
         instance = cls(channel, stub)
-        instance._connection_task = asyncio.create_task(
-            instance._connect(stub, instance._send_queue, instance._recv_queue, instance._client_id)
+
+        instance._connection_task = await instance._connect(
+            stub, instance._send_queue, instance._recv_queue, instance._client_id
         )
+
         return instance
 
     async def close(self) -> None:
@@ -162,23 +166,28 @@ class HostConnection:
         send_queue: asyncio.Queue[agent_worker_pb2.Message],
         receive_queue: asyncio.Queue[agent_worker_pb2.Message],
         client_id: str,
-    ) -> None:
+    ) -> Task[None]:
         from grpc.aio import StreamStreamCall
 
         # TODO: where do exceptions from reading the iterable go? How do we recover from those?
-        recv_stream: StreamStreamCall[agent_worker_pb2.Message, agent_worker_pb2.Message] = stub.OpenChannel(  # type: ignore
+        stream: StreamStreamCall[agent_worker_pb2.Message, agent_worker_pb2.Message] = stub.OpenChannel(  # type: ignore
             QueueAsyncIterable(send_queue), metadata=[("client-id", client_id)]
         )
 
-        while True:
-            logger.info("Waiting for message from host")
-            message = cast(agent_worker_pb2.Message, await recv_stream.read())  # type: ignore
-            if message == grpc.aio.EOF:  # type: ignore
-                logger.info("EOF")
-                break
-            logger.info(f"Received a message from host: {message}")
-            await receive_queue.put(message)
-            logger.info("Put message in receive queue")
+        await stream.wait_for_connection()
+
+        async def read_loop() -> None:
+            while True:
+                logger.info("Waiting for message from host")
+                message = cast(agent_worker_pb2.Message, await stream.read())  # type: ignore
+                if message == grpc.aio.EOF:  # type: ignore
+                    logger.info("EOF")
+                    break
+                logger.info(f"Received a message from host: {message}")
+                await receive_queue.put(message)
+                logger.info("Put message in receive queue")
+
+        return asyncio.create_task(read_loop())
 
     async def send(self, message: agent_worker_pb2.Message) -> None:
         logger.info(f"Send message to host: {message}")
@@ -248,12 +257,12 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
 
         self._payload_serialization_format = payload_serialization_format
 
-    def start(self) -> None:
+    async def start(self) -> None:
         """Start the runtime in a background task."""
         if self._running:
             raise ValueError("Runtime is already running.")
         logger.info(f"Connecting to host: {self._host_address}")
-        self._host_connection = HostConnection.from_host_address(
+        self._host_connection = await HostConnection.from_host_address(
             self._host_address, extra_grpc_config=self._extra_grpc_config
         )
         logger.info("Connection established")
