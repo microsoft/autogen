@@ -51,10 +51,10 @@
     </PropertyGroup>  
     <Message Importance="Normal" Text="Initializing virtual environment for $(PythonVenvRoot)" />
 
-    <Exec Command="$(UvPath) sync --all-extras" WorkingDirectory="$(PythonRoot)" Condition=" '$(CreateVenv)' == 'True' " ConsoleToMsBuild="true">
-      <Output TaskParameter="ConsoleOutput" PropertyName="OutputOfExec" />
+    <Exec Command="$(UvPath) sync --all-extras" WorkingDirectory="$(PythonRoot)" Condition=" '$(CreateVenv)' == 'True' " />
+      <!--Output TaskParameter="ConsoleOutput" PropertyName="OutputOfExec" />
     </Exec>
-    <!--Message Importance="Normal" Text="$(OutputOfExec)" />-->
+    <Message Importance="Normal" Text="$(OutputOfExec)" />-->
   </Target>
 
 
