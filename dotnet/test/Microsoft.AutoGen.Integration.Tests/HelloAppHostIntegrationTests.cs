@@ -28,7 +28,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
     }
 
     [Fact]
-    public async Task Test_Dotnet_Sends_and_AppHost_Delivers_Python_Receives()
+    public async Task Test_Dotnet_Sends_AppHost_Delivers_and_Python_Receives()
     {
         //Prepare
         var appHostPath = GetAssemblyPath(AppHostAssemblyName);
@@ -52,7 +52,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
     }
 
     [Fact]
-    public async Task Test_Python_Sends_and_AppHost_Delivers_DotNet_Receives()
+    public async Task Test_Python_Sends_AppHost_Delivers_and_DotNet_Receives()
     {
         //Prepare
         var appHostPath = GetAssemblyPath(AppHostAssemblyName);
