@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Program.cs
 
+using Microsoft.AutoGen.Agents;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 using Samples;

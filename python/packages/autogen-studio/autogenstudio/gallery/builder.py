@@ -8,6 +8,7 @@ from autogen_core import ComponentModel
 from autogen_core.models import ModelInfo
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.models.openai._openai_client import AzureOpenAIChatCompletionClient
 
 from autogenstudio.datamodel import Gallery, GalleryComponents, GalleryItems, GalleryMetadata
 
@@ -142,8 +143,7 @@ def create_default_gallery() -> Gallery:
 
     # Create base model client
     base_model = OpenAIChatCompletionClient(model="gpt-4o-mini")
-    builder.add_model(base_model.dump_component())
-
+    builder.add_model(base_model.dump_component(), label="OpenAI GPT-4o Mini", description="OpenAI GPT-4o-mini")
     # Create Mistral vllm model
     mistral_vllm_model = OpenAIChatCompletionClient(
         model="TheBloke/Mistral-7B-Instruct-v0.2-GGUF",
@@ -152,8 +152,22 @@ def create_default_gallery() -> Gallery:
     )
     builder.add_model(
         mistral_vllm_model.dump_component(),
-        label="Mistral-7B vllm",
-        description="Example on how to use the OpenAIChatCopletionClient with local models (Ollama, vllm etc).",
+        label="Mistral-7B Local",
+        description="Local Mistral-7B model client for instruction-based generation (Ollama, LMStudio).",
+    )
+
+    # create an azure mode
+    az_model_client = AzureOpenAIChatCompletionClient(
+        azure_deployment="{your-azure-deployment}",
+        model="gpt-4o-mini",
+        api_version="2024-06-01",
+        azure_endpoint="https://{your-custom-endpoint}.openai.azure.com/",
+        api_key="sk-...",  # For key-based authentication.
+    )
+    builder.add_model(
+        az_model_client.dump_component(),
+        label="AzureOpenAI GPT-4o-mini",
+        description="GPT-4o Mini Azure OpenAI model client.",
     )
 
     builder.add_tool(
@@ -169,6 +183,7 @@ def create_default_gallery() -> Gallery:
         model_client=base_model,
         tools=[tools.calculator_tool],
     )
+
     builder.add_agent(
         calc_assistant.dump_component(), description="An agent that provides assistance with ability to use tools."
     )
@@ -186,8 +201,23 @@ def create_default_gallery() -> Gallery:
     calc_team = RoundRobinGroupChat(participants=[calc_assistant], termination_condition=calc_or_term)
     builder.add_team(
         calc_team.dump_component(),
-        label="Default Team",
+        label="RoundRobin Team",
         description="A single AssistantAgent (with a calculator tool) in a RoundRobinGroupChat team. ",
+    )
+
+    critic_agent = AssistantAgent(
+        name="critic_agent",
+        system_message="You are a helpful assistant. Critique the assistant's output and suggest improvements.",
+        description="an agent that critiques and improves the assistant's output",
+        model_client=base_model,
+    )
+    selector_default_team = SelectorGroupChat(
+        participants=[calc_assistant, critic_agent], termination_condition=calc_or_term, model_client=base_model
+    )
+    builder.add_team(
+        selector_default_team.dump_component(),
+        label="Selector Team",
+        description="A team with 2 agents - an AssistantAgent (with a calculator tool) and a CriticAgent in a SelectorGroupChat team.",
     )
 
     # Create web surfer agent
@@ -240,7 +270,7 @@ Read the above conversation. Then select the next role from {participants} to pl
     builder.add_team(
         websurfer_team.dump_component(),
         label="Web Agent Team (Operator)",
-        description="A group chat team that have participants takes turn to publish a message\n    to all, using a ChatCompletion model to select the next speaker after each message.",
+        description="A team with 3 agents - a Web Surfer agent that can browse the web, a Verification Assistant that verifies and summarizes information, and a User Proxy that provides human feedback when needed.",
     )
 
     builder.add_tool(
@@ -347,7 +377,7 @@ Read the above conversation. Then select the next role from {participants} to pl
     builder.add_team(
         deep_research_team.dump_component(),
         label="Deep Research Team",
-        description="A team that performs deep research using web searches, verification, and summarization.",
+        description="A team with 3 agents - a Research Assistant that performs web searches and analyzes information, a Verifier that ensures research quality and completeness, and a Summary Agent that provides a detailed markdown summary of the research as a report to the user.",
     )
 
     return builder.build()

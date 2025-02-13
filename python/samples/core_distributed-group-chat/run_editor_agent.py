@@ -20,7 +20,7 @@ async def main(config: AppConfig):
     editor_agent_runtime.add_message_serializer(get_serializers([RequestToSpeak, GroupChatMessage, MessageChunk]))  # type: ignore[arg-type]
     await asyncio.sleep(4)
     Console().print(Markdown("Starting **`Editor Agent`**"))
-    editor_agent_runtime.start()
+    await editor_agent_runtime.start()
     editor_agent_type = await BaseGroupChatAgent.register(
         editor_agent_runtime,
         config.editor_agent.topic_type,

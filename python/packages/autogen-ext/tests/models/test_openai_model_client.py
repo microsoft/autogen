@@ -198,6 +198,18 @@ async def test_openai_chat_completion_client() -> None:
 
 
 @pytest.mark.asyncio
+async def test_openai_chat_completion_client_with_gemini_model() -> None:
+    client = OpenAIChatCompletionClient(model="gemini-1.5-flash", api_key="api_key")
+    assert client
+
+
+@pytest.mark.asyncio
+async def test_openai_chat_completion_client_raise_on_unknown_model() -> None:
+    with pytest.raises(ValueError, match="model_info is required"):
+        _ = OpenAIChatCompletionClient(model="unknown", api_key="api_key")
+
+
+@pytest.mark.asyncio
 async def test_custom_model_with_capabilities() -> None:
     with pytest.raises(ValueError, match="model_info is required"):
         client = OpenAIChatCompletionClient(model="dummy_model", base_url="https://api.dummy.com/v0", api_key="api_key")
@@ -337,7 +349,7 @@ async def test_openai_chat_completion_client_count_tokens(monkeypatch: pytest.Mo
             ],
             source="user",
         ),
-        FunctionExecutionResultMessage(content=[FunctionExecutionResult(content="Hello", call_id="1")]),
+        FunctionExecutionResultMessage(content=[FunctionExecutionResult(content="Hello", call_id="1", is_error=False)]),
     ]
 
     def tool1(test: str, test2: str) -> str:
@@ -890,7 +902,7 @@ async def _test_model_client_with_function_calling(model_client: OpenAIChatCompl
     messages.append(AssistantMessage(content=create_result.content, source="assistant"))
     messages.append(
         FunctionExecutionResultMessage(
-            content=[FunctionExecutionResult(content="passed", call_id=create_result.content[0].id)]
+            content=[FunctionExecutionResult(content="passed", call_id=create_result.content[0].id, is_error=False)]
         )
     )
     create_result = await model_client.create(messages=messages)
@@ -920,8 +932,8 @@ async def _test_model_client_with_function_calling(model_client: OpenAIChatCompl
     messages.append(
         FunctionExecutionResultMessage(
             content=[
-                FunctionExecutionResult(content="passed", call_id=create_result.content[0].id),
-                FunctionExecutionResult(content="failed", call_id=create_result.content[1].id),
+                FunctionExecutionResult(content="passed", call_id=create_result.content[0].id, is_error=False),
+                FunctionExecutionResult(content="failed", call_id=create_result.content[1].id, is_error=True),
             ]
         )
     )
@@ -952,14 +964,6 @@ async def test_gemini() -> None:
 
     model_client = OpenAIChatCompletionClient(
         model="gemini-1.5-flash",
-        api_key=api_key,
-        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-        model_info={
-            "function_calling": True,
-            "json_output": True,
-            "vision": True,
-            "family": ModelFamily.GEMINI_1_5_FLASH,
-        },
     )
     await _test_model_client_basic_completion(model_client)
     await _test_model_client_with_function_calling(model_client)
