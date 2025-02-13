@@ -1,13 +1,13 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // HelloAgent.cs
 
+using Microsoft.AutoGen.Agents;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
-using Microsoft.AutoGen.Agents;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using NewMessageReceived = Microsoft.AutoGen.Agents.NewMessageReceived;
 using ConversationClosed = Microsoft.AutoGen.Agents.ConversationClosed;
+using NewMessageReceived = Microsoft.AutoGen.Agents.NewMessageReceived;
 using Shutdown = Microsoft.AutoGen.Agents.Shutdown;
 
 namespace Microsoft.AutoGen.Integration.Tests.AppHosts.HelloAgentTests;

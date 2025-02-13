@@ -36,7 +36,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
         await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
         await app.WaitForResourcesAsync(new[] { KnownResourceStates.Running }).WaitAsync(TimeSpan.FromSeconds(120));
-        
+
         //Act
         var expectedMessage = "INFO:autogen_core:Received a message from host: cloudEvent {";
         var containsExpectedMessage = false;
@@ -60,7 +60,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
         await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
         await app.WaitForResourcesAsync(new[] { KnownResourceStates.Running }).WaitAsync(TimeSpan.FromSeconds(120));
-        
+
         //Act
         var expectedMessage = "Hello from Python!";
         var containsExpectedMessage = false;
@@ -82,7 +82,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
         await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
         await app.WaitForResourcesAsync(new[] { KnownResourceStates.Running }).WaitAsync(TimeSpan.FromSeconds(120));
-        
+
         //Act
         var expectedMessage = "\"source\": \"HelloAgents/python\"";
         var containsExpectedMessage = false;
@@ -104,7 +104,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
         await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
         await app.WaitForResourcesAsync(new[] { KnownResourceStates.Running }).WaitAsync(TimeSpan.FromSeconds(120));
-        
+
         //Act
         var expectedMessage = "\"source\": \"HelloAgents/dotnet\"";
         var containsExpectedMessage = false;
@@ -126,7 +126,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
         await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
         await app.WaitForResourcesAsync(new[] { KnownResourceStates.Running }).WaitAsync(TimeSpan.FromSeconds(120));
-        
+
         //Act
         var expectedMessage = "Hello World!";
         var containsExpectedMessage = false;
@@ -151,7 +151,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
         await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
         await app.WaitForResourcesAsync(new[] { KnownResourceStates.Running }).WaitAsync(TimeSpan.FromSeconds(120));
-        
+
         //Act
         var expectedMessage = "INFO:autogen_core:Received a message from host: cloudEvent {";
         var containsExpectedMessage = false;
@@ -161,12 +161,12 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         //Assert
         Assert.True(containsExpectedMessage);
     }
-    
+
     private static string GetAssemblyPath(string assemblyName)
     {
         var parentDir = Directory.GetParent(AppContext.BaseDirectory)?.FullName;
         var grandParentDir = parentDir is not null ? Directory.GetParent(parentDir)?.FullName : null;
-        var greatGrandParentDir = grandParentDir is not null ? Directory.GetParent(grandParentDir)?.FullName : null 
+        var greatGrandParentDir = grandParentDir is not null ? Directory.GetParent(grandParentDir)?.FullName : null
             ?? AppContext.BaseDirectory;
         var options = new EnumerationOptions { RecurseSubdirectories = true, MatchCasing = MatchCasing.CaseInsensitive };
         if (greatGrandParentDir is not null)
