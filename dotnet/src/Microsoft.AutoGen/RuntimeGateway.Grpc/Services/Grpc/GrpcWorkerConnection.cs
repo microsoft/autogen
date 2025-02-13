@@ -2,12 +2,12 @@
 // GrpcWorkerConnection.cs
 using System.Threading.Channels;
 using Grpc.Core;
-using Microsoft.AutoGen.Protobuf;
 using Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
 
-public sealed class GrpcWorkerConnection : IAsyncDisposable, IConnection
+public sealed class GrpcWorkerConnection<TMessage> : IAsyncDisposable, IConnection
+    where TMessage : class
 {
     private static long s_nextConnectionId;
     private Task _readTask = Task.CompletedTask;
@@ -18,13 +18,13 @@ public sealed class GrpcWorkerConnection : IAsyncDisposable, IConnection
     private readonly GrpcGateway _gateway;
     private readonly CancellationTokenSource _shutdownCancellationToken = new();
     public Task Completion { get; private set; } = Task.CompletedTask;
-    public GrpcWorkerConnection(GrpcGateway agentWorker, IAsyncStreamReader<Message> requestStream, IServerStreamWriter<Message> responseStream, ServerCallContext context)
+    public GrpcWorkerConnection(GrpcGateway agentWorker, IAsyncStreamReader<TMessage> requestStream, IServerStreamWriter<TMessage> responseStream, ServerCallContext context)
     {
         _gateway = agentWorker;
         RequestStream = requestStream;
         ResponseStream = responseStream;
         ServerCallContext = context;
-        _outboundMessages = Channel.CreateUnbounded<Message>(new UnboundedChannelOptions { AllowSynchronousContinuations = true, SingleReader = true, SingleWriter = false });
+        _outboundMessages = Channel.CreateUnbounded<TMessage>(new UnboundedChannelOptions { AllowSynchronousContinuations = true, SingleReader = true, SingleWriter = false });
     }
     public Task Connect()
     {
@@ -51,11 +51,11 @@ public sealed class GrpcWorkerConnection : IAsyncDisposable, IConnection
         return Completion = Task.WhenAll(_readTask, _writeTask);
     }
 
-    public IAsyncStreamReader<Message> RequestStream { get; }
-    public IServerStreamWriter<Message> ResponseStream { get; }
+    public IAsyncStreamReader<TMessage> RequestStream { get; }
+    public IServerStreamWriter<TMessage> ResponseStream { get; }
     public ServerCallContext ServerCallContext { get; }
 
-    private readonly Channel<Message> _outboundMessages;
+    private readonly Channel<TMessage> _outboundMessages;
 
     public void AddSupportedType(string type)
     {
@@ -73,7 +73,7 @@ public sealed class GrpcWorkerConnection : IAsyncDisposable, IConnection
         }
     }
 
-    public async Task SendMessage(Message message)
+    public async Task SendMessage(TMessage message)
     {
         await _outboundMessages.Writer.WriteAsync(message).ConfigureAwait(false);
     }
