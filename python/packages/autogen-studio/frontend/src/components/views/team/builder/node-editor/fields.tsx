@@ -1,6 +1,15 @@
 import React from "react";
-import { Input, Select, Switch, InputNumber, Form, Button } from "antd";
-import { Edit } from "lucide-react";
+import {
+  Input,
+  Select,
+  Switch,
+  InputNumber,
+  Form,
+  Button,
+  Divider,
+  Space,
+} from "antd";
+import { Edit, MinusCircle, PlusCircle } from "lucide-react";
 import {
   isTeamComponent,
   isAgentComponent,
@@ -19,8 +28,13 @@ import {
   isMaxMessageTermination,
   isTextMentionTermination,
 } from "../../../../types/guards";
-import { Component, ComponentConfig } from "../../../../types/datamodel";
+import {
+  Component,
+  ComponentConfig,
+  Import,
+} from "../../../../types/datamodel";
 import DetailGroup from "./detailgroup";
+import { MonacoEditor } from "../../../monaco";
 
 const { TextArea } = Input;
 const { Option } = Select;
@@ -390,44 +404,170 @@ export const NodeEditorFields: React.FC<NodeEditorFieldsProps> = ({
     return null;
   };
 
-  const renderToolFields = () => {
-    if (!component) return null;
-
-    if (isFunctionTool(component)) {
-      return (
-        <>
-          <Form.Item
-            label="Name"
-            name={["config", "name"]}
-            rules={[{ required: true }]}
-          >
-            <Input />
-          </Form.Item>
-          <Form.Item
-            label="Description"
-            name={["config", "description"]}
-            rules={[{ required: true }]}
-          >
-            <TextArea rows={4} />
-          </Form.Item>
-          <Form.Item
-            label="Source Code"
-            name={["config", "source_code"]}
-            rules={[{ required: true }]}
-          >
-            <TextArea rows={8} />
-          </Form.Item>
-          <Form.Item
-            label="Has Cancellation Support"
-            name={["config", "has_cancellation_support"]}
-            valuePropName="checked"
-          >
-            <Switch />
-          </Form.Item>
-        </>
-      );
+  const formatImport = (imp: Import): string => {
+    if (typeof imp === "string") {
+      return imp;
     }
-    return null;
+    return `from ${imp.module} import ${imp.imports.join(", ")}`;
+  };
+
+  const renderToolFields = () => {
+    if (!component || !isFunctionTool(component)) return null;
+    const editorRef = React.useRef(null);
+    const [showAddImport, setShowAddImport] = React.useState(false);
+    const [importType, setImportType] = React.useState<"direct" | "fromModule">(
+      "direct"
+    );
+
+    return (
+      <>
+        <Form.Item
+          label="Name"
+          name={["config", "name"]}
+          rules={[{ required: true }]}
+        >
+          <Input />
+        </Form.Item>
+
+        <Form.Item
+          label="Description"
+          name={["config", "description"]}
+          rules={[{ required: true }]}
+        >
+          <TextArea rows={4} />
+        </Form.Item>
+
+        <Form.Item label="Global Imports">
+          <div className="space-y-2">
+            <Form.List name={["config", "global_imports"]}>
+              {(fields, { add, remove }) => (
+                <div className="space-y-2">
+                  {/* Existing Imports */}
+                  <div className="flex flex-wrap gap-2">
+                    {fields.map((field, index) => {
+                      const imp = component.config.global_imports[index];
+                      return (
+                        <div
+                          key={field.key}
+                          className="flex items-center gap-2 bg-tertiary rounded px-2 py-1"
+                        >
+                          <span className="text-sm">{formatImport(imp)}</span>
+                          <Button
+                            type="text"
+                            size="small"
+                            className="flex items-center justify-center h-6 w-6 p-0"
+                            onClick={() => remove(field.name)}
+                            icon={<MinusCircle className="h-4 w-4" />}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Add Import UI */}
+                  {showAddImport ? (
+                    <div className="border rounded p-3 space-y-3">
+                      <Form.Item className="mb-2">
+                        <Select
+                          value={importType}
+                          onChange={setImportType}
+                          style={{ width: 200 }}
+                        >
+                          <Option value="direct">Direct Import</Option>
+                          <Option value="fromModule">From Module Import</Option>
+                        </Select>
+                      </Form.Item>
+
+                      {importType === "direct" ? (
+                        <Space>
+                          <Input
+                            placeholder="Package name (e.g., os)"
+                            className="w-64"
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                add(e.currentTarget.value);
+                                setShowAddImport(false);
+                              }
+                            }}
+                          />
+                          <Button
+                            onClick={() => {
+                              add(null); // You'll need to handle getting the input value
+                              setShowAddImport(false);
+                            }}
+                          >
+                            Add
+                          </Button>
+                        </Space>
+                      ) : (
+                        <Space direction="vertical" className="w-full">
+                          <Input
+                            placeholder="Module name (e.g., typing)"
+                            className="w-64"
+                          />
+                          <Space className="w-full">
+                            <Input
+                              placeholder="Import names (comma-separated)"
+                              className="w-64"
+                            />
+                            <Button
+                              onClick={() => {
+                                add(null); // You'll need to handle getting the input values
+                                setShowAddImport(false);
+                              }}
+                            >
+                              Add
+                            </Button>
+                          </Space>
+                        </Space>
+                      )}
+                    </div>
+                  ) : (
+                    <Button
+                      type="dashed"
+                      onClick={() => setShowAddImport(true)}
+                      className="w-full"
+                    >
+                      <PlusCircle className="h-4 w-4 mr-2" />
+                      Add Import
+                    </Button>
+                  )}
+                </div>
+              )}
+            </Form.List>
+          </div>
+        </Form.Item>
+
+        <Form.Item
+          label="Source Code"
+          name={["config", "source_code"]}
+          rules={[{ required: true }]}
+        >
+          <div className="h-96">
+            <Form.Item noStyle shouldUpdate>
+              {({ getFieldValue, setFieldValue }) => (
+                <MonacoEditor
+                  value={getFieldValue(["config", "source_code"]) || ""}
+                  editorRef={editorRef}
+                  language="python"
+                  onChange={(value) =>
+                    setFieldValue(["config", "source_code"], value)
+                  }
+                />
+              )}
+            </Form.Item>
+          </div>
+        </Form.Item>
+
+        <Form.Item
+          label="Has Cancellation Support"
+          name={["config", "has_cancellation_support"]}
+          valuePropName="checked"
+        >
+          <Switch />
+        </Form.Item>
+      </>
+    );
   };
 
   const renderTerminationFields = () => {
