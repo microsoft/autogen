@@ -359,6 +359,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                     var activeConnections = connections.Where(c => c.Completion?.IsCompleted == false).ToList();
                     foreach (var connection in activeConnections)
                     {
+                        _logger.LogDebug("Dispatching event {Event} to connection {Connection}, for AgentType {AgentType}.", evt, connection, agentType);
                         tasks.Add(this.WriteResponseAsync(connection, evt, cancellationToken));
                     }
                 }
