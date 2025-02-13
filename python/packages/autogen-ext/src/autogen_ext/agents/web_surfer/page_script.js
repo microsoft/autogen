@@ -367,10 +367,63 @@ var MultimodalWebSurfer = MultimodalWebSurfer || (function() {
        return results;
    };
 
+
+   let getVisibleText = function() {
+     // Get the window’s current viewport boundaries
+     const viewportHeight = window.innerHeight || document.documentElement.clientHeight;
+     const viewportWidth = window.innerWidth || document.documentElement.clientWidth;
+
+     let textInView = "";
+     const walker = document.createTreeWalker(
+       document.body,
+       NodeFilter.SHOW_TEXT,
+       null,
+       false
+     );
+
+     while (walker.nextNode()) {
+       const textNode = walker.currentNode;
+       // Create a range to retrieve bounding rectangles of the current text node
+       const range = document.createRange();
+       range.selectNodeContents(textNode);
+
+       const rects = range.getClientRects();
+
+       // Check if any rect is inside (or partially inside) the viewport
+       for (const rect of rects) {
+         const isVisible =
+           rect.width > 0 &&
+           rect.height > 0 &&
+           rect.bottom >= 0 &&
+           rect.right >= 0 &&
+           rect.top <= viewportHeight &&
+           rect.left <= viewportWidth;
+
+         if (isVisible) {
+           textInView += textNode.nodeValue.replace(/\s+/g, " ");
+           // Is the parent a block element?
+           if (textNode.parentNode) {
+             const parent = textNode.parentNode;
+             const style = window.getComputedStyle(parent);
+             if (["inline", "hidden", "none"].indexOf(style.display) === -1) {
+               textInView += "\n";
+             }
+           }
+           break; // No need to check other rects once found visible
+         }
+       }
+     }
+
+     // Remove blank lines from textInView
+     textInView = textInView.replace(/^\s*\n/gm, "").trim().replace(/\n+/g, "\n");
+     return textInView;
+   };	
+
    return {
        getInteractiveRects: getInteractiveRects,
        getVisualViewport: getVisualViewport,
        getFocusedElementId: getFocusedElementId,
        getPageMetadata: getPageMetadata,
+       getVisibleText: getVisibleText,
    };
 })();

@@ -1,66 +1,167 @@
-import dagre from "@dagrejs/dagre";
-import { CustomNode, CustomEdge } from "./types";
 import { nanoid } from "nanoid";
 import {
   TeamConfig,
-  ModelConfig,
+  Component,
+  ComponentConfig,
   AgentConfig,
-  ToolConfig,
-  ComponentTypes,
-  TerminationConfig,
 } from "../../../types/datamodel";
-
-interface ConversionResult {
-  nodes: CustomNode[];
-  edges: CustomEdge[];
-}
+import {
+  isAssistantAgent,
+  isUserProxyAgent,
+  isWebSurferAgent,
+} from "../../../types/guards";
+import { CustomNode, CustomEdge } from "./types";
 
 interface Position {
   x: number;
   y: number;
 }
 
-// Calculate positions for participants in a grid layout
-const calculateParticipantPosition = (
-  index: number,
-  totalParticipants: number
-): Position => {
-  const GRID_SPACING = 250;
-  const PARTICIPANTS_PER_ROW = 3;
+interface NodeDimensions {
+  width: number;
+  height: number;
+}
 
-  const row = Math.floor(index / PARTICIPANTS_PER_ROW);
-  const col = index % PARTICIPANTS_PER_ROW;
+// Updated layout configuration with dynamic height handling
+const LAYOUT_CONFIG = {
+  TEAM_NODE: {
+    X_POSITION: 100,
+    MIN_Y_POSITION: 200,
+  },
+  AGENT: {
+    START_X: 600,
+    START_Y: 200,
+    X_STAGGER: 0,
+    MIN_Y_STAGGER: 50, // Minimum vertical space between nodes
+  },
+  NODE: {
+    WIDTH: 272,
+    MIN_HEIGHT: 100,
+    PADDING: 20,
+  },
+  // Estimated heights for different node contents
+  CONTENT_HEIGHTS: {
+    BASE: 80, // Header + basic info
+    DESCRIPTION: 60,
+    MODEL_SECTION: 100,
+    TOOL_SECTION: 80,
+    TOOL_ITEM: 40,
+    AGENT_SECTION: 80,
+    AGENT_ITEM: 40,
+    TERMINATION_SECTION: 80,
+  },
+};
+
+// Calculate estimated node height based on content
+const calculateNodeHeight = (component: Component<ComponentConfig>): number => {
+  let height = LAYOUT_CONFIG.CONTENT_HEIGHTS.BASE;
+
+  // Add height for description if present
+  if (component.description) {
+    height += LAYOUT_CONFIG.CONTENT_HEIGHTS.DESCRIPTION;
+  }
+
+  // Add heights for specific component types
+  switch (component.component_type) {
+    case "team":
+      const teamConfig = component as Component<TeamConfig>;
+      // Add height for agents section
+      if (teamConfig.config.participants?.length) {
+        height += LAYOUT_CONFIG.CONTENT_HEIGHTS.AGENT_SECTION;
+        height +=
+          teamConfig.config.participants.length *
+          LAYOUT_CONFIG.CONTENT_HEIGHTS.AGENT_ITEM;
+      }
+      // Add height for termination section if present
+      if (teamConfig.config.termination_condition) {
+        height += LAYOUT_CONFIG.CONTENT_HEIGHTS.TERMINATION_SECTION;
+      }
+      break;
+
+    case "agent":
+      // Only AssistantAgent has model_client and tools
+      if (isAssistantAgent(component)) {
+        height += 200;
+        // Add height for tools section and items
+        if (component.config.tools?.length) {
+          height += LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_SECTION;
+          height +=
+            component.config.tools.length *
+            LAYOUT_CONFIG.CONTENT_HEIGHTS.TOOL_ITEM;
+        }
+      }
+      if (isWebSurferAgent(component)) {
+        height += 100;
+      }
+
+      if (isUserProxyAgent(component)) {
+        height += -100;
+      }
+
+      break;
+  }
+
+  return Math.max(height, LAYOUT_CONFIG.NODE.MIN_HEIGHT);
+};
+
+// Calculate position for an agent node considering previous nodes' heights
+const calculateAgentPosition = (
+  index: number,
+  previousNodes: CustomNode[]
+): Position => {
+  const previousNodeHeights = previousNodes.map(
+    (node) => calculateNodeHeight(node.data.component) + 50
+  );
+
+  const totalPreviousHeight = previousNodeHeights.reduce(
+    (sum, height) => sum + height + LAYOUT_CONFIG.AGENT.MIN_Y_STAGGER,
+    0
+  );
 
   return {
-    x: col * GRID_SPACING,
-    y: (row + 1) * GRID_SPACING,
+    x: LAYOUT_CONFIG.AGENT.START_X + index * LAYOUT_CONFIG.AGENT.X_STAGGER,
+    y: LAYOUT_CONFIG.AGENT.START_Y + totalPreviousHeight,
   };
 };
 
-// Helper to create nodes with consistent structure
+// Calculate team node position based on connected agents
+const calculateTeamPosition = (agentNodes: CustomNode[]): Position => {
+  if (agentNodes.length === 0) {
+    return {
+      x: LAYOUT_CONFIG.TEAM_NODE.X_POSITION,
+      y: LAYOUT_CONFIG.TEAM_NODE.MIN_Y_POSITION,
+    };
+  }
+
+  // Calculate the average Y position of all agent nodes
+  const totalY = agentNodes.reduce((sum, node) => sum + node.position.y, 0);
+  const averageY = totalY / agentNodes.length;
+
+  // Ensure minimum Y position
+  const y = Math.max(LAYOUT_CONFIG.TEAM_NODE.MIN_Y_POSITION, averageY);
+
+  return {
+    x: LAYOUT_CONFIG.TEAM_NODE.X_POSITION,
+    y,
+  };
+};
+
+// Helper to create nodes with consistent structure and dynamic height
 const createNode = (
-  type: ComponentTypes,
   position: Position,
-  config:
-    | TeamConfig
-    | ModelConfig
-    | AgentConfig
-    | ToolConfig
-    | TerminationConfig,
+  component: Component<ComponentConfig>,
   label?: string
 ): CustomNode => ({
   id: nanoid(),
-  type,
   position,
+  type: component.component_type,
   data: {
-    label: label || type,
-    type,
-    config,
-    connections: {
-      modelClient: null,
-      tools: [],
-      participants: [],
-      termination: null,
+    label: label || component.label || component.component_type,
+    component,
+    type: component.component_type,
+    dimensions: {
+      width: LAYOUT_CONFIG.NODE.WIDTH,
+      height: calculateNodeHeight(component),
     },
   },
 });
@@ -69,229 +170,100 @@ const createNode = (
 const createEdge = (
   source: string,
   target: string,
-  type:
-    | "model-connection"
-    | "tool-connection"
-    | "agent-connection"
-    | "team-connection"
-    | "termination-connection"
+  type: "agent-connection"
 ): CustomEdge => ({
   id: `e${source}-${target}`,
   source,
   target,
+  sourceHandle: `${source}-agent-output-handle`,
+  targetHandle: `${target}-agent-input-handle`,
   type,
 });
 
+// Convert team configuration to graph structure with dynamic layout
 export const convertTeamConfigToGraph = (
-  config: TeamConfig
-): ConversionResult => {
+  teamComponent: Component<TeamConfig>
+): { nodes: CustomNode[]; edges: CustomEdge[] } => {
   const nodes: CustomNode[] = [];
   const edges: CustomEdge[] = [];
 
-  // Create team node
-  const teamNode = createNode(
-    "team",
-    { x: 400, y: 50 },
-    {
-      ...config,
-      // participants: [], // Clear participants as we'll rebuild from edges
-    }
-  );
-  nodes.push(teamNode);
-
-  // Add model client if present
-  if (config.team_type === "SelectorGroupChat" && config.model_client) {
-    const modelNode = createNode(
-      "model",
-      { x: 200, y: 50 },
-      config.model_client,
-      config.model_client.model
-    );
-    nodes.push(modelNode);
-    edges.push({
-      id: nanoid(),
-      source: modelNode.id,
-      target: teamNode.id,
-      sourceHandle: `${modelNode.id}-model-output-handle`,
-      targetHandle: `${teamNode.id}-model-input-handle`,
-      type: "model-connection",
-    });
-  }
-
-  // Add participants (agents)
-  config.participants.forEach((participant, index) => {
-    const position = calculateParticipantPosition(
-      index,
-      config.participants.length
-    );
-    const agentNode = createNode("agent", position, {
-      ...participant,
-      // tools: [], // Clear tools as we'll rebuild from edges
-    });
-    nodes.push(agentNode);
-
-    // Connect to team
-    edges.push({
-      id: nanoid(),
-      source: teamNode.id,
-      target: agentNode.id,
-      sourceHandle: `${teamNode.id}-agent-output-handle`,
-      targetHandle: `${agentNode.id}-agent-input-handle`,
-      type: "agent-connection",
-    });
-
-    // Add agent's model client if present
-    if (participant.model_client) {
-      const agentModelNode = createNode(
-        "model",
-        {
-          x: position.x - 150,
-          y: position.y,
-        },
-        participant.model_client,
-        participant.model_client.model
-      );
-      nodes.push(agentModelNode);
-      edges.push({
-        id: nanoid(),
-        source: agentModelNode.id,
-        target: agentNode.id,
-        sourceHandle: `${agentModelNode.id}-model-output-handle`,
-        targetHandle: `${agentNode.id}-model-input-handle`,
-        type: "model-connection",
-      });
-    }
-
-    // Add agent's tools
-    participant.tools?.forEach((tool, toolIndex) => {
-      const toolNode = createNode(
-        "tool",
-        {
-          x: position.x + 150,
-          y: position.y + toolIndex * 100,
-        },
-        tool
-      );
-      nodes.push(toolNode);
-      edges.push({
-        id: nanoid(),
-        source: toolNode.id,
-        target: agentNode.id,
-        sourceHandle: `${toolNode.id}-tool-output-handle`,
-        targetHandle: `${agentNode.id}-tool-input-handle`,
-        type: "tool-connection",
-      });
-    });
+  // Create agent nodes first to calculate their positions
+  const agentNodes: CustomNode[] = [];
+  teamComponent.config.participants.forEach((participant, index) => {
+    const position = calculateAgentPosition(index, agentNodes);
+    const agentNode = createNode(position, participant);
+    agentNodes.push(agentNode);
   });
 
-  // Add termination condition if present
-  if (config?.termination_condition) {
-    const terminationNode = createNode(
-      "termination",
-      { x: 600, y: 50 },
-      config.termination_condition
-    );
-    nodes.push(terminationNode);
-    edges.push({
-      id: nanoid(),
-      source: terminationNode.id,
-      target: teamNode.id,
-      sourceHandle: `${terminationNode.id}-termination-output-handle`,
-      targetHandle: `${teamNode.id}-termination-input-handle`,
-      type: "termination-connection",
-    });
-  }
+  // Create team node with position based on agent positions
+  const teamNode = createNode(calculateTeamPosition(agentNodes), teamComponent);
+
+  // Add all nodes and create edges
+  nodes.push(teamNode, ...agentNodes);
+  agentNodes.forEach((agentNode) => {
+    edges.push(createEdge(teamNode.id, agentNode.id, "agent-connection"));
+  });
 
   return { nodes, edges };
 };
 
-const NODE_WIDTH = 272;
-const NODE_HEIGHT = 200;
-
+// Layout existing nodes with dynamic heights
 export const getLayoutedElements = (
   nodes: CustomNode[],
   edges: CustomEdge[]
-) => {
-  const g = new dagre.graphlib.Graph();
-  const calculateRank = (node: CustomNode) => {
-    if (node.data.type === "model") {
-      // Check if this model is connected to a team or agent
-      const isTeamModel = edges.some(
-        (e) =>
-          e.source === node.id &&
-          nodes.find((n) => n.id === e.target)?.data.type === "team"
-      );
-      return isTeamModel ? 0 : 2;
-    }
+): { nodes: CustomNode[]; edges: CustomEdge[] } => {
+  // Find team node and agent nodes
+  const teamNode = nodes.find((n) => n.data.type === "team");
+  if (!teamNode) return { nodes, edges };
 
-    switch (node.data.type) {
-      case "team":
-        return 1;
-      case "agent":
-        return 3;
-      case "tool":
-        return 4;
-      case "termination":
-        return 1; // Same rank as team
-      default:
-        return 0;
-    }
+  const agentNodes = nodes.filter((n) => n.data.type !== "team");
+
+  // Calculate new positions for agent nodes
+  const layoutedAgentNodes = agentNodes.map((node, index) => ({
+    ...node,
+    position: calculateAgentPosition(index, agentNodes.slice(0, index)),
+    data: {
+      ...node.data,
+      dimensions: {
+        width: LAYOUT_CONFIG.NODE.WIDTH,
+        height: calculateNodeHeight(node.data.component),
+      },
+    },
+  }));
+
+  // Update team node position
+  const layoutedTeamNode = {
+    ...teamNode,
+    position: calculateTeamPosition(layoutedAgentNodes),
+    data: {
+      ...teamNode.data,
+      dimensions: {
+        width: LAYOUT_CONFIG.NODE.WIDTH,
+        height: calculateNodeHeight(teamNode.data.component),
+      },
+    },
   };
 
-  g.setGraph({
-    rankdir: "LR",
-    nodesep: 250,
-    ranksep: 150,
-    ranker: "network-simplex", // or "tight-tree" depending on needs
-    align: "DL",
-  });
-  g.setDefaultEdgeLabel(() => ({}));
-
-  // Add nodes to the graph with their dimensions
-  nodes.forEach((node) => {
-    const rank = calculateRank(node);
-    g.setNode(node.id, {
-      width: NODE_WIDTH,
-      height: NODE_HEIGHT,
-      rank,
-    });
-  });
-
-  // Add edges to the graph
-  edges.forEach((edge) => {
-    g.setEdge(edge.source, edge.target);
-  });
-
-  // Apply the layout
-  dagre.layout(g);
-
-  // Get the laid out nodes with their new positions
-  const layoutedNodes = nodes.map((node) => {
-    const nodeWithPosition = g.node(node.id);
-    return {
-      ...node,
-      position: {
-        x: nodeWithPosition.x - NODE_WIDTH / 2,
-        y: nodeWithPosition.y - NODE_HEIGHT / 2,
-      },
-    };
-  });
-
-  return { nodes: layoutedNodes, edges };
+  return {
+    nodes: [layoutedTeamNode, ...layoutedAgentNodes],
+    edges,
+  };
 };
 
-export const getNodeConnections = (nodeId: string, edges: CustomEdge[]) => {
-  return {
-    modelClient:
-      edges.find((e) => e.target === nodeId && e.type === "model-connection")
-        ?.source || null,
+// Generate unique names (unchanged)
+export const getUniqueName = (
+  baseName: string,
+  existingNames: string[]
+): string => {
+  let validBaseName = baseName
+    .replace(/[^a-zA-Z0-9_$]/g, "_")
+    .replace(/^([^a-zA-Z_$])/, "_$1");
 
-    tools: edges
-      .filter((e) => e.target === nodeId && e.type === "tool-connection")
-      .map((e) => e.source),
+  if (!existingNames.includes(validBaseName)) return validBaseName;
 
-    participants: edges
-      .filter((e) => e.source === nodeId && e.type === "agent-connection")
-      .map((e) => e.target),
-  };
+  let counter = 1;
+  while (existingNames.includes(`${validBaseName}_${counter}`)) {
+    counter++;
+  }
+  return `${validBaseName}_${counter}`;
 };

@@ -12,7 +12,7 @@ using Azure.Storage.Files.Shares;
 using DevTeam.Options;
 using Microsoft.Extensions.Options;
 
-namespace DevTeam.Backend;
+namespace DevTeam.Backend.Services;
 
 public class AzureService : IManageAzure
 {

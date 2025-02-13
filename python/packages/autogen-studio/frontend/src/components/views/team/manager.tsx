@@ -1,11 +1,10 @@
 import React, { useCallback, useEffect, useState, useContext } from "react";
-import { Button, message, Modal } from "antd";
+import { message, Modal } from "antd";
 import { ChevronRight } from "lucide-react";
 import { appContext } from "../../../hooks/provider";
 import { teamAPI } from "./api";
 import { TeamSidebar } from "./sidebar";
 import type { Team } from "../../types/datamodel";
-import { defaultTeam } from "./types";
 import { TeamBuilder } from "./builder/builder";
 
 export const TeamManager: React.FC = () => {
@@ -37,6 +36,7 @@ export const TeamManager: React.FC = () => {
       setIsLoading(true);
       const data = await teamAPI.listTeams(user.email);
       setTeams(data);
+      // console.log("team data", data);
       if (!currentTeam && data.length > 0) {
         setCurrentTeam(data[0]);
       }
@@ -143,7 +143,7 @@ export const TeamManager: React.FC = () => {
         updated_at: undefined, // Let server handle timestamps
       };
 
-      console.log("teamData", sanitizedTeamData);
+      // console.log("teamData", sanitizedTeamData);
       const savedTeam = await teamAPI.createTeam(sanitizedTeamData, user.email);
 
       messageApi.success(
@@ -201,7 +201,7 @@ export const TeamManager: React.FC = () => {
               <>
                 <ChevronRight className="w-4 h-4 text-secondary" />
                 <span className="text-secondary">
-                  {currentTeam.config.name}
+                  {currentTeam.component?.label}
                   {currentTeam.id ? (
                     ""
                   ) : (

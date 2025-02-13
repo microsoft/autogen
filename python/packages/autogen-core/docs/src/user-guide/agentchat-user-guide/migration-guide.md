@@ -33,34 +33,39 @@ We provide a detailed guide on how to migrate your existing codebase from `v0.2`
 
 See each feature below for detailed information on how to migrate.
 
-- [Model Client](#model-client)
-- [Model Client for OpenAI-Compatible APIs](#model-client-for-openai-compatible-apis)
-- [Assistant Agent](#assistant-agent)
-- [Multi-Modal Agent](#multi-modal-agent)
-- [User Proxy](#user-proxy)
-- [Conversable Agent and Register Reply](#conversable-agent-and-register-reply)
-- [Save and Load Agent State](#save-and-load-agent-state)
-- [Two-Agent Chat](#two-agent-chat)
-- [Tool Use](#tool-use)
-- [Chat Result](#chat-result)
-- [Conversion between v0.2 and v0.4 Messages](#conversion-between-v02-and-v04-messages)
-- [Group Chat](#group-chat)
-- [Group Chat with Resume](#group-chat-with-resume)
-- [Save and Load Group Chat State](#save-and-load-group-chat-state)
-- [Group Chat with Tool Use](#group-chat-with-tool-use)
-- [Group Chat with Custom Selector (Stateflow)](#group-chat-with-custom-selector-stateflow)
-- [Nested Chat](#nested-chat)
-- [Sequential Chat](#sequential-chat)
-- [GPTAssistantAgent](#gptassistantagent)
-- [Long-Context Handling](#long-context-handling)
-- [Observability and Control](#observability-and-control)
-- [Code Executors](#code-executors)
+- [Migration Guide for v0.2 to v0.4](#migration-guide-for-v02-to-v04)
+  - [What is `v0.4`?](#what-is-v04)
+  - [New to AutoGen?](#new-to-autogen)
+  - [What's in this guide?](#whats-in-this-guide)
+  - [Model Client](#model-client)
+    - [Use component config](#use-component-config)
+    - [Use model client class directly](#use-model-client-class-directly)
+  - [Model Client for OpenAI-Compatible APIs](#model-client-for-openai-compatible-apis)
+  - [Model Client Cache](#model-client-cache)
+  - [Assistant Agent](#assistant-agent)
+  - [Multi-Modal Agent](#multi-modal-agent)
+  - [User Proxy](#user-proxy)
+  - [Conversable Agent and Register Reply](#conversable-agent-and-register-reply)
+  - [Save and Load Agent State](#save-and-load-agent-state)
+  - [Two-Agent Chat](#two-agent-chat)
+  - [Tool Use](#tool-use)
+  - [Chat Result](#chat-result)
+  - [Conversion between v0.2 and v0.4 Messages](#conversion-between-v02-and-v04-messages)
+  - [Group Chat](#group-chat)
+  - [Group Chat with Resume](#group-chat-with-resume)
+  - [Save and Load Group Chat State](#save-and-load-group-chat-state)
+  - [Group Chat with Tool Use](#group-chat-with-tool-use)
+  - [Group Chat with Custom Selector (Stateflow)](#group-chat-with-custom-selector-stateflow)
+  - [Nested Chat](#nested-chat)
+  - [Sequential Chat](#sequential-chat)
+  - [GPTAssistantAgent](#gptassistantagent)
+  - [Long Context Handling](#long-context-handling)
+  - [Observability and Control](#observability-and-control)
+  - [Code Executors](#code-executors)
 
 The following features currently in `v0.2`
 will be provided in the future releases of `v0.4.*` versions:
 
-- Model Client Cache [#4752](https://github.com/microsoft/autogen/issues/4752)
-- Jupyter Code Executor [#4795](https://github.com/microsoft/autogen/issues/4795)
 - Model Client Cost [#4835](https://github.com/microsoft/autogen/issues/4835)
 - Teachable Agent
 - RAG Agent
@@ -157,9 +162,68 @@ custom_model_client = OpenAIChatCompletionClient(
 > Please test them before using them.
 
 Read about [Model Clients](./tutorial/models.ipynb)
-in AgentChat Tutorial and more detailed information on [Core API Docs](../core-user-guide/framework/model-clients.ipynb)
+in AgentChat Tutorial and more detailed information on [Core API Docs](../core-user-guide/components/model-clients.ipynb)
 
 Support for other hosted models will be added in the future.
+
+## Model Client Cache
+
+In `v0.2`, you can set the cache seed through the `cache_seed` parameter in the LLM config.
+The cache is enabled by default.
+
+```python
+llm_config = {
+    "config_list": [{"model": "gpt-4o", "api_key": "sk-xxx"}],
+    "seed": 42,
+    "temperature": 0,
+    "cache_seed": 42,
+}
+```
+
+In `v0.4`, the cache is not enabled by default, to use it you need to use a
+{py:class}`~autogen_ext.models.cache.ChatCompletionCache` wrapper around the model client.
+
+You can use a {py:class}`~autogen_ext.cache_store.diskcache.DiskCacheStore` or {py:class}`~autogen_ext.cache_store.redis.RedisStore` to store the cache.
+
+```bash
+pip install -U "autogen-ext[openai, diskcache, redis]"
+```
+
+Here's an example of using `diskcache` for local caching:
+
+```python
+import asyncio
+import tempfile
+
+from autogen_core.models import UserMessage
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.models.cache import ChatCompletionCache, CHAT_CACHE_VALUE_TYPE
+from autogen_ext.cache_store.diskcache import DiskCacheStore
+from diskcache import Cache
+
+
+async def main():
+    with tempfile.TemporaryDirectory() as tmpdirname:
+        # Initialize the original client
+        openai_model_client = OpenAIChatCompletionClient(model="gpt-4o")
+
+        # Then initialize the CacheStore, in this case with diskcache.Cache.
+        # You can also use redis like:
+        # from autogen_ext.cache_store.redis import RedisStore
+        # import redis
+        # redis_instance = redis.Redis()
+        # cache_store = RedisCacheStore[CHAT_CACHE_VALUE_TYPE](redis_instance)
+        cache_store = DiskCacheStore[CHAT_CACHE_VALUE_TYPE](Cache(tmpdirname))
+        cache_client = ChatCompletionCache(openai_model_client, cache_store)
+
+        response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
+        print(response)  # Should print response from OpenAI
+        response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
+        print(response)  # Should print cached response
+
+
+asyncio.run(main())
+```
 
 ## Assistant Agent
 
@@ -359,7 +423,7 @@ class CustomAgent(BaseChatAgent):
 ```
 
 You can then use the custom agent in the same way as the {py:class}`~autogen_agentchat.agents.AssistantAgent`.
-See [Custom Agent Tutorial](./tutorial/custom-agents.ipynb)
+See [Custom Agent Tutorial](custom-agents.ipynb)
 for more details.
 
 ## Save and Load Agent State
@@ -705,6 +769,7 @@ def convert_to_v04_message(message: Dict[str, Any]) -> AgentEvent | ChatMessage:
                 FunctionExecutionResult(
                     call_id=tool_response["tool_call_id"],
                     content=tool_response["content"],
+                    is_error=False,
                 )
             )
         return ToolCallExecutionEvent(source="tools", content=tool_results)
@@ -1231,7 +1296,7 @@ in the Core API documentation for more details.
 The code executors in `v0.2` and `v0.4` are nearly identical except
 the `v0.4` executors support async API. You can also use
 {py:class}`~autogen_core.CancellationToken` to cancel a code execution if it takes too long.
-See [Command Line Code Executors Tutorial](../core-user-guide/framework/command-line-code-executors.ipynb)
+See [Command Line Code Executors Tutorial](../core-user-guide/components/command-line-code-executors.ipynb)
 in the Core API documentation.
 
 We also added `AzureContainerCodeExecutor` that can use Azure Container Apps (ACA)

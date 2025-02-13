@@ -17,10 +17,10 @@ dotnet add package AutoGen.Mistral
 ### Example
 
 Import the required namespace
-[!code-csharp[](../../samples/AutoGen.BasicSamples/CodeSnippet/MistralAICodeSnippet.cs?name=using_statement)]
+[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/CodeSnippet/MistralAICodeSnippet.cs?name=using_statement)]
 
 Create a @AutoGen.Mistral.MistralClientAgent and start chatting!
-[!code-csharp[](../../samples/AutoGen.BasicSamples/CodeSnippet/MistralAICodeSnippet.cs?name=create_mistral_agent)]
+[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/CodeSnippet/MistralAICodeSnippet.cs?name=create_mistral_agent)]
 
 Use @AutoGen.Core.IStreamingAgent.GenerateStreamingReplyAsync* to stream the chat completion.
-[!code-csharp[](../../samples/AutoGen.BasicSamples/CodeSnippet/MistralAICodeSnippet.cs?name=streaming_chat)]
+[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/CodeSnippet/MistralAICodeSnippet.cs?name=streaming_chat)]

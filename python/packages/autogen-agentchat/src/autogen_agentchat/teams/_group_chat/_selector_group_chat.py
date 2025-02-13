@@ -2,9 +2,13 @@ import logging
 import re
 from typing import Any, Callable, Dict, List, Mapping, Sequence
 
-from autogen_core.models import ChatCompletionClient, SystemMessage
+from autogen_core import Component, ComponentModel
+from autogen_core.models import AssistantMessage, ChatCompletionClient, ModelFamily, SystemMessage, UserMessage
+from pydantic import BaseModel
+from typing_extensions import Self
 
 from ... import TRACE_LOGGER_NAME
+from ...agents import BaseChatAgent
 from ...base import ChatAgent, TerminationCondition
 from ...messages import (
     AgentEvent,
@@ -35,6 +39,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         selector_prompt: str,
         allow_repeated_speaker: bool,
         selector_func: Callable[[Sequence[AgentEvent | ChatMessage]], str | None] | None,
+        max_selector_attempts: int,
     ) -> None:
         super().__init__(
             group_topic_type,
@@ -49,6 +54,7 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         self._previous_speaker: str | None = None
         self._allow_repeated_speaker = allow_repeated_speaker
         self._selector_func = selector_func
+        self._max_selector_attempts = max_selector_attempts
 
     async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
         pass
@@ -106,18 +112,17 @@ class SelectorGroupChatManager(BaseGroupChatManager):
                         message += " [Image]"
             else:
                 raise ValueError(f"Unexpected message type in selector: {type(msg)}")
-            history_messages.append(message)
+            history_messages.append(
+                message.rstrip() + "\n\n"
+            )  # Create some consistency for how messages are separated in the transcript
         history = "\n".join(history_messages)
 
         # Construct agent roles, we are using the participant topic type as the agent name.
-        roles = "\n".join(
-            [
-                f"{topic_type}: {description}".strip()
-                for topic_type, description in zip(
-                    self._participant_topic_types, self._participant_descriptions, strict=True
-                )
-            ]
-        )
+        # Each agent sould appear on a single line.
+        roles = ""
+        for topic_type, description in zip(self._participant_topic_types, self._participant_descriptions, strict=True):
+            roles += re.sub(r"\s+", " ", f"{topic_type}: {description}").strip() + "\n"
+        roles = roles.strip()
 
         # Construct agent list to be selected, skip the previous speaker if not allowed.
         if self._previous_speaker is not None and not self._allow_repeated_speaker:
@@ -128,27 +133,65 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 
         # Select the next speaker.
         if len(participants) > 1:
-            select_speaker_prompt = self._selector_prompt.format(
-                roles=roles, participants=str(participants), history=history
-            )
-            select_speaker_messages = [SystemMessage(content=select_speaker_prompt)]
-            response = await self._model_client.create(messages=select_speaker_messages)
-            assert isinstance(response.content, str)
-            mentions = self._mentioned_agents(response.content, self._participant_topic_types)
-            if len(mentions) != 1:
-                raise ValueError(f"Expected exactly one agent to be mentioned, but got {mentions}")
-            agent_name = list(mentions.keys())[0]
-            if (
-                not self._allow_repeated_speaker
-                and self._previous_speaker is not None
-                and agent_name == self._previous_speaker
-            ):
-                trace_logger.warning(f"Selector selected the previous speaker: {agent_name}")
+            agent_name = await self._select_speaker(roles, participants, history, self._max_selector_attempts)
         else:
             agent_name = participants[0]
         self._previous_speaker = agent_name
         trace_logger.debug(f"Selected speaker: {agent_name}")
         return agent_name
+
+    async def _select_speaker(self, roles: str, participants: List[str], history: str, max_attempts: int) -> str:
+        select_speaker_prompt = self._selector_prompt.format(
+            roles=roles, participants=str(participants), history=history
+        )
+        select_speaker_messages: List[SystemMessage | UserMessage | AssistantMessage]
+        if ModelFamily.is_openai(self._model_client.model_info["family"]):
+            select_speaker_messages = [SystemMessage(content=select_speaker_prompt)]
+        else:
+            # Many other models need a UserMessage to respond to
+            select_speaker_messages = [UserMessage(content=select_speaker_prompt, source="user")]
+
+        num_attempts = 0
+        while num_attempts < max_attempts:
+            num_attempts += 1
+            response = await self._model_client.create(messages=select_speaker_messages)
+            assert isinstance(response.content, str)
+            select_speaker_messages.append(AssistantMessage(content=response.content, source="selector"))
+            mentions = self._mentioned_agents(response.content, self._participant_topic_types)
+            if len(mentions) == 0:
+                trace_logger.debug(f"Model failed to select a valid name: {response.content} (attempt {num_attempts})")
+                feedback = f"No valid name was mentioned. Please select from: {str(participants)}."
+                select_speaker_messages.append(UserMessage(content=feedback, source="user"))
+            elif len(mentions) > 1:
+                trace_logger.debug(f"Model selected multiple names: {str(mentions)} (attempt {num_attempts})")
+                feedback = (
+                    f"Expected exactly one name to be mentioned. Please select only one from: {str(participants)}."
+                )
+                select_speaker_messages.append(UserMessage(content=feedback, source="user"))
+            else:
+                agent_name = list(mentions.keys())[0]
+                if (
+                    not self._allow_repeated_speaker
+                    and self._previous_speaker is not None
+                    and agent_name == self._previous_speaker
+                ):
+                    trace_logger.debug(f"Model selected the previous speaker: {agent_name} (attempt {num_attempts})")
+                    feedback = (
+                        f"Repeated speaker is not allowed, please select a different name from: {str(participants)}."
+                    )
+                    select_speaker_messages.append(UserMessage(content=feedback, source="user"))
+                else:
+                    # Valid selection
+                    trace_logger.debug(f"Model selected a valid name: {agent_name} (attempt {num_attempts})")
+                    return agent_name
+
+        if self._previous_speaker is not None:
+            trace_logger.warning(f"Model failed to select a speaker after {max_attempts}, using the previous speaker.")
+            return self._previous_speaker
+        trace_logger.warning(
+            f"Model failed to select a speaker after {max_attempts} and there was no previous speaker, using the first participant."
+        )
+        return participants[0]
 
     def _mentioned_agents(self, message_content: str, agent_names: List[str]) -> Dict[str, int]:
         """Counts the number of times each agent is mentioned in the provided message content.
@@ -184,7 +227,20 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         return mentions
 
 
-class SelectorGroupChat(BaseGroupChat):
+class SelectorGroupChatConfig(BaseModel):
+    """The declarative configuration for SelectorGroupChat."""
+
+    participants: List[ComponentModel]
+    model_client: ComponentModel
+    termination_condition: ComponentModel | None = None
+    max_turns: int | None = None
+    selector_prompt: str
+    allow_repeated_speaker: bool
+    # selector_func: ComponentModel | None
+    max_selector_attempts: int = 3
+
+
+class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
     """A group chat team that have participants takes turn to publish a message
     to all, using a ChatCompletion model to select the next speaker after each message.
 
@@ -197,13 +253,17 @@ class SelectorGroupChat(BaseGroupChat):
             Without a termination condition, the group chat will run indefinitely.
         max_turns (int, optional): The maximum number of turns in the group chat before stopping. Defaults to None, meaning no limit.
         selector_prompt (str, optional): The prompt template to use for selecting the next speaker.
-            Must contain '{roles}', '{participants}', and '{history}' to be filled in.
-        allow_repeated_speaker (bool, optional): Whether to allow the same speaker to be selected
-            consecutively. Defaults to False.
+            Available fields: '{roles}', '{participants}', and '{history}'.
+        allow_repeated_speaker (bool, optional): Whether to include the previous speaker in the list of candidates to be selected for the next turn.
+            Defaults to False. The model may still select the previous speaker -- a warning will be logged if this happens.
+        max_selector_attempts (int, optional): The maximum number of attempts to select a speaker using the model. Defaults to 3.
+            If the model fails to select a speaker after the maximum number of attempts, the previous speaker will be used if available,
+            otherwise the first participant will be used.
         selector_func (Callable[[Sequence[AgentEvent | ChatMessage]], str | None], optional): A custom selector
             function that takes the conversation history and returns the name of the next speaker.
             If provided, this function will be used to override the model to select the next speaker.
             If the function returns None, the model will be used to select the next speaker.
+
 
     Raises:
         ValueError: If the number of participants is less than two or if the selector prompt is invalid.
@@ -321,6 +381,9 @@ class SelectorGroupChat(BaseGroupChat):
             asyncio.run(main())
     """
 
+    component_config_schema = SelectorGroupChatConfig
+    component_provider_override = "autogen_agentchat.teams.SelectorGroupChat"
+
     def __init__(
         self,
         participants: List[ChatAgent],
@@ -337,6 +400,7 @@ Read the following conversation. Then select the next role from {participants} t
 Read the above conversation. Then select the next role from {participants} to play. Only return the role.
 """,
         allow_repeated_speaker: bool = False,
+        max_selector_attempts: int = 3,
         selector_func: Callable[[Sequence[AgentEvent | ChatMessage]], str | None] | None = None,
     ):
         super().__init__(
@@ -348,17 +412,11 @@ Read the above conversation. Then select the next role from {participants} to pl
         # Validate the participants.
         if len(participants) < 2:
             raise ValueError("At least two participants are required for SelectorGroupChat.")
-        # Validate the selector prompt.
-        if "{roles}" not in selector_prompt:
-            raise ValueError("The selector prompt must contain '{roles}'")
-        if "{participants}" not in selector_prompt:
-            raise ValueError("The selector prompt must contain '{participants}'")
-        if "{history}" not in selector_prompt:
-            raise ValueError("The selector prompt must contain '{history}'")
         self._selector_prompt = selector_prompt
         self._model_client = model_client
         self._allow_repeated_speaker = allow_repeated_speaker
         self._selector_func = selector_func
+        self._max_selector_attempts = max_selector_attempts
 
     def _create_group_chat_manager_factory(
         self,
@@ -380,4 +438,34 @@ Read the above conversation. Then select the next role from {participants} to pl
             self._selector_prompt,
             self._allow_repeated_speaker,
             self._selector_func,
+            self._max_selector_attempts,
+        )
+
+    def _to_config(self) -> SelectorGroupChatConfig:
+        return SelectorGroupChatConfig(
+            participants=[participant.dump_component() for participant in self._participants],
+            model_client=self._model_client.dump_component(),
+            termination_condition=self._termination_condition.dump_component() if self._termination_condition else None,
+            max_turns=self._max_turns,
+            selector_prompt=self._selector_prompt,
+            allow_repeated_speaker=self._allow_repeated_speaker,
+            max_selector_attempts=self._max_selector_attempts,
+            # selector_func=self._selector_func.dump_component() if self._selector_func else None,
+        )
+
+    @classmethod
+    def _from_config(cls, config: SelectorGroupChatConfig) -> Self:
+        return cls(
+            participants=[BaseChatAgent.load_component(participant) for participant in config.participants],
+            model_client=ChatCompletionClient.load_component(config.model_client),
+            termination_condition=TerminationCondition.load_component(config.termination_condition)
+            if config.termination_condition
+            else None,
+            max_turns=config.max_turns,
+            selector_prompt=config.selector_prompt,
+            allow_repeated_speaker=config.allow_repeated_speaker,
+            max_selector_attempts=config.max_selector_attempts,
+            # selector_func=ComponentLoader.load_component(config.selector_func, Callable[[Sequence[AgentEvent | ChatMessage]], str | None])
+            # if config.selector_func
+            # else None,
         )

@@ -25,8 +25,8 @@ public class InProccessDotnetInteractiveKernelBuilder
         this.compositeKernel = new CompositeKernel();
 
         // add jupyter connector
-        this.compositeKernel.AddKernelConnector(
-            new ConnectJupyterKernelCommand()
+        this.compositeKernel.AddConnectDirective(
+            new ConnectJupyterKernelDirective()
             .AddConnectionOptions(new JupyterHttpKernelConnectionOptions())
             .AddConnectionOptions(new JupyterLocalKernelConnectionOptions()));
     }
@@ -45,7 +45,7 @@ public class InProccessDotnetInteractiveKernelBuilder
             })
             .UseKernelHelpers()
             .UseWho()
-            .UseMathAndLaTeX()
+            //.UseMathAndLaTeX() // Latex is now formatted using TypeFormatters
             .UseValueSharing();
 
         this.AddKernel(csharpKernel, aliases);
@@ -61,7 +61,7 @@ public class InProccessDotnetInteractiveKernelBuilder
             .UseDefaultFormatting()
             .UseKernelHelpers()
             .UseWho()
-            .UseMathAndLaTeX()
+            //.UseMathAndLaTeX() // Latex is now formatted using TypeFormatters
             .UseValueSharing();
 
         this.AddKernel(fsharpKernel, aliases);

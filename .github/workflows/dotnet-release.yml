@@ -52,6 +52,7 @@ jobs:
       run: |
         echo "Build AutoGen"
         dotnet build --no-restore --configuration Release -bl /p:SignAssembly=true
+    - run: sudo dotnet dev-certs https --trust --no-password
     - name: Unit Test
       run: dotnet test --no-build -bl --configuration Release
       env:

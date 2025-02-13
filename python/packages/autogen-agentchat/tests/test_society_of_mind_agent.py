@@ -89,3 +89,13 @@ async def test_society_of_mind_agent(monkeypatch: pytest.MonkeyPatch) -> None:
     await society_of_mind_agent2.load_state(state)
     state2 = await society_of_mind_agent2.save_state()
     assert state == state2
+
+    # Test serialization.
+
+    soc_agent_config = society_of_mind_agent.dump_component()
+    assert soc_agent_config.provider == "autogen_agentchat.agents.SocietyOfMindAgent"
+
+    # Test deserialization.
+    loaded_soc_agent = SocietyOfMindAgent.load_component(soc_agent_config)
+    assert isinstance(loaded_soc_agent, SocietyOfMindAgent)
+    assert loaded_soc_agent.name == "society_of_mind"

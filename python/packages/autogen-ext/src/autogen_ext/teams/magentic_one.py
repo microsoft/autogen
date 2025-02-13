@@ -5,6 +5,7 @@ from autogen_agentchat.agents import CodeExecutorAgent, UserProxyAgent
 from autogen_agentchat.base import ChatAgent
 from autogen_agentchat.teams import MagenticOneGroupChat
 from autogen_core import CancellationToken
+from autogen_core.code_executor import CodeExecutor
 from autogen_core.models import ChatCompletionClient
 
 from autogen_ext.agents.file_surfer import FileSurfer
@@ -59,9 +60,9 @@ class MagenticOne(MagenticOneGroupChat):
     - WebSurfer: An LLM-based agent proficient in commanding and managing the state of a Chromium-based web browser. It performs actions on the browser and reports on the new state of the web page.
     - FileSurfer: An LLM-based agent that commands a markdown-based file preview application to read local files of most types. It can also perform common navigation tasks such as listing the contents of directories and navigating a folder structure.
     - Coder: An LLM-based agent specialized in writing code, analyzing information collected from other agents, or creating new artifacts.
-    - ComputerTerminal: Provides the team with access to a console shell where the Coder’s programs can be executed, and where new programming libraries can be installed.
+    - ComputerTerminal: Provides the team with access to a console shell where the Coder's programs can be executed, and where new programming libraries can be installed.
 
-    Together, Magentic-One’s agents provide the Orchestrator with the tools and capabilities needed to solve a broad variety of open-ended problems, as well as the ability to autonomously adapt to, and act in, dynamic and ever-changing web and file-system environments.
+    Together, Magentic-One's agents provide the Orchestrator with the tools and capabilities needed to solve a broad variety of open-ended problems, as well as the ability to autonomously adapt to, and act in, dynamic and ever-changing web and file-system environments.
 
     Examples:
 
@@ -126,14 +127,24 @@ class MagenticOne(MagenticOneGroupChat):
         client: ChatCompletionClient,
         hil_mode: bool = False,
         input_func: InputFuncType | None = None,
+        code_executor: CodeExecutor | None = None,
     ):
         self.client = client
         self._validate_client_capabilities(client)
 
+        if code_executor is None:
+            warnings.warn(
+                "Instantiating MagenticOne without a code_executor is deprecated. Provide a code_executor to clear this warning (e.g., code_executor=LocalCommandLineCodeExecutor() ).",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            code_executor = LocalCommandLineCodeExecutor()
+
         fs = FileSurfer("FileSurfer", model_client=client)
         ws = MultimodalWebSurfer("WebSurfer", model_client=client)
         coder = MagenticOneCoderAgent("Coder", model_client=client)
-        executor = CodeExecutorAgent("Executor", code_executor=LocalCommandLineCodeExecutor())
+        executor = CodeExecutorAgent("ComputerTerminal", code_executor=code_executor)
+
         agents: List[ChatAgent] = [fs, ws, coder, executor]
         if hil_mode:
             user_proxy = UserProxyAgent("User", input_func=input_func)
@@ -142,7 +153,7 @@ class MagenticOne(MagenticOneGroupChat):
 
     def _validate_client_capabilities(self, client: ChatCompletionClient) -> None:
         capabilities = client.model_info
-        required_capabilities = ["vision", "function_calling", "json_output"]
+        required_capabilities = ["function_calling", "json_output"]
 
         if not all(capabilities.get(cap) for cap in required_capabilities):
             warnings.warn(

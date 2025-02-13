@@ -16,5 +16,5 @@ You can use @AutoGen.LMStudio.LMStudioAgent from `AutoGen.LMStudio` package to c
 ### Usage
 The following code shows how to use `LMStudioAgent` to write a piece of C# code to calculate 100th of fibonacci. Before running the code, make sure you have local server from LM Studio running on `localhost:1234`.
 
-[!code-csharp[](../../samples/AutoGen.BasicSamples/Example08_LMStudio.cs?name=lmstudio_using_statements)]
-[!code-csharp[](../../samples/AutoGen.BasicSamples/Example08_LMStudio.cs?name=lmstudio_example_1)]
+[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/Example08_LMStudio.cs?name=lmstudio_using_statements)]
+[!code-csharp[](../../samples/AgentChat/Autogen.Basic.Sample/Example08_LMStudio.cs?name=lmstudio_example_1)]

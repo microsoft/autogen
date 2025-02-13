@@ -2,7 +2,6 @@ import copy
 from typing import List, Tuple, Union
 
 import pytest
-from autogen_core import InMemoryStore
 from autogen_core.models import (
     ChatCompletionClient,
     CreateResult,
@@ -10,7 +9,7 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
-from autogen_ext.models.cache import CHAT_CACHE_VALUE_TYPE, ChatCompletionCache
+from autogen_ext.models.cache import ChatCompletionCache
 from autogen_ext.models.replay import ReplayChatCompletionClient
 
 
@@ -21,8 +20,7 @@ def get_test_data() -> Tuple[list[str], list[str], SystemMessage, ChatCompletion
     system_prompt = SystemMessage(content="This is a system prompt")
     replay_client = ReplayChatCompletionClient(responses)
     replay_client.set_cached_bool_value(False)
-    store = InMemoryStore[CHAT_CACHE_VALUE_TYPE]()
-    cached_client = ChatCompletionCache(replay_client, store)
+    cached_client = ChatCompletionCache(replay_client)
 
     return responses, prompts, system_prompt, replay_client, cached_client
 
@@ -109,14 +107,14 @@ async def test_cache_create_stream() -> None:
     async for completion in cached_client.create_stream(
         [system_prompt, UserMessage(content=prompts[0], source="user")]
     ):
-        original_streamed_results.append(completion)
+        original_streamed_results.append(copy.copy(completion))
     total_usage0 = copy.copy(cached_client.total_usage())
 
     cached_completion_results: List[Union[str, CreateResult]] = []
     async for completion in cached_client.create_stream(
         [system_prompt, UserMessage(content=prompts[0], source="user")]
     ):
-        cached_completion_results.append(completion)
+        cached_completion_results.append(copy.copy(completion))
     total_usage1 = copy.copy(cached_client.total_usage())
 
     assert total_usage1.prompt_tokens == total_usage0.prompt_tokens

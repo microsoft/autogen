@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import traceback
 from datetime import datetime, timezone
 from typing import Any, Callable, Dict, Optional, Union
 from uuid import UUID
@@ -20,7 +21,7 @@ from autogen_core import Image as AGImage
 from fastapi import WebSocket, WebSocketDisconnect
 
 from ...database import DatabaseManager
-from ...datamodel import Message, MessageConfig, Run, RunStatus, TeamResult
+from ...datamodel import LLMCallEventMessage, Message, MessageConfig, Run, RunStatus, TeamResult
 from ...teammanager import TeamManager
 
 logger = logging.getLogger(__name__)
@@ -110,6 +111,7 @@ class WebSocketManager:
                             HandoffMessage,
                             ToolCallRequestEvent,
                             ToolCallExecutionEvent,
+                            LLMCallEventMessage,
                         ),
                     ):
                         await self._save_message(run_id, message)
@@ -137,12 +139,14 @@ class WebSocketManager:
 
         except Exception as e:
             logger.error(f"Stream error for run {run_id}: {e}")
+            traceback.print_exc()
             await self._handle_stream_error(run_id, e)
         finally:
             self._cancellation_tokens.pop(run_id, None)
 
     async def _save_message(self, run_id: UUID, message: Union[AgentEvent | ChatMessage, ChatMessage]) -> None:
         """Save a message to the database"""
+
         run = await self._get_run(run_id)
         if run:
             db_message = Message(
@@ -325,7 +329,15 @@ class WebSocketManager:
                 }
 
             elif isinstance(
-                message, (TextMessage, StopMessage, HandoffMessage, ToolCallRequestEvent, ToolCallExecutionEvent)
+                message,
+                (
+                    TextMessage,
+                    StopMessage,
+                    HandoffMessage,
+                    ToolCallRequestEvent,
+                    ToolCallExecutionEvent,
+                    LLMCallEventMessage,
+                ),
             ):
                 return {"type": "message", "data": message.model_dump()}
 
