@@ -138,7 +138,8 @@ def test_func_tool_schema_generation_only_default_arg() -> None:
     assert len(schema["parameters"]["properties"]) == 1
     assert schema["parameters"]["properties"]["arg"]["type"] == "string"
     assert schema["parameters"]["properties"]["arg"]["description"] == "arg"
-    assert "required" not in schema["parameters"]
+    assert "required" in schema["parameters"]
+    assert schema["parameters"]["required"] == []
 
 
 def test_func_tool_schema_generation_only_default_arg_strict() -> None:
