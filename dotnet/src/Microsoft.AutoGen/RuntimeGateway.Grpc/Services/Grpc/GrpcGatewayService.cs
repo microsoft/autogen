@@ -48,7 +48,7 @@ public sealed class GrpcGatewayService(GrpcGateway gateway) : AgentRpc.AgentRpcB
     {
         try
         {
-            await Gateway.ConnectToControlChannel(requestStream, responseStream, context).ConfigureAwait(true);
+            await Gateway.ConnectToWorkerProcess(requestStream, responseStream, context).ConfigureAwait(true);
         }
         catch
         {

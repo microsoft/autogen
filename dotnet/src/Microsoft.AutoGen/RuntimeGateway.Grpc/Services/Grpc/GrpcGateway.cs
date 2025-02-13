@@ -35,7 +35,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly ConcurrentDictionary<(GrpcWorkerConnection<Message>, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
     private readonly ConcurrentDictionary<(GrpcWorkerConnection<ControlMessage>, string), TaskCompletionSource<RpcResponse>> _pendingControlRequests = new();
 
-
     /// <summary>
     /// Initializes a new instance of the <see cref="GrpcGateway"/> class.
     /// </summary>
