@@ -10,6 +10,9 @@ _MODEL_POINTERS = {
     "gemini-1.5-flash-8b": "gemini-1.5-flash-8b",
     "gemini-2.0-flash": "gemini-2.0-flash-001",
     "gemini-2.0-flash-lite": "gemini-2.0-flash-lite-001",
+    "gemini-2.0-flash-preview": "gemini-2.0-flash-preview-02-05",
+    "gemini-2.0-flash-lite-preview": "gemini-2.0-flash-lite-preview-02-05",
+    "gemini-1.0-pro": "gemini-1.0-pro",
 }
 
 # Model capabilities and information
@@ -50,6 +53,24 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": False,
         "family": ModelFamily.GEMINI_2_0_FLASH,
     },
+    "gemini-2.0-flash-preview-02-05": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": False,  # Assuming no JSON output for preview
+        "family": ModelFamily.GEMINI_2_0_FLASH,
+    },
+    "gemini-2.0-flash-lite-preview-02-05": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": False,  # Assuming no JSON output for preview
+        "family": ModelFamily.GEMINI_2_0_FLASH,
+    },
+    "gemini-1.0-pro": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": False,
+        "family": ModelFamily.name_to_family("gemini-1.0-pro"),
+    },
 }
 
 # Experimental models
@@ -68,6 +89,9 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "gemini-1.5-flash-8b": 1_048_576,  # 1M tokens
     "gemini-2.0-flash-001": 1_048_576,  # 1M tokens
     "gemini-2.0-flash-lite-001": 1_048_576,  # 1M tokens
+    "gemini-2.0-flash-preview-02-05": 1_048_576,  # 1M tokens
+    "gemini-2.0-flash-lite-preview-02-05": 1_048_576,  # 1M tokens
+    "gemini-1.0-pro": 32_000,
 }
 
 def resolve_model(model: str) -> str:
