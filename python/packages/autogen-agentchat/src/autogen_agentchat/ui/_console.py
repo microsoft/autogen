@@ -167,6 +167,8 @@ async def Console(
         else:
             # Cast required for mypy to be happy
             message = cast(AgentEvent | ChatMessage, message)  # type: ignore
+            if not message.to_display:
+                continue
             if not streaming_chunks:
                 # Print message sender.
                 await aprint(f"{'-' * 10} {message.source} {'-' * 10}", end="\n", flush=True)

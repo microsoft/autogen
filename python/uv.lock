@@ -90,7 +90,6 @@ wheels = [
 
 [[package]]
 name = "agbench"
-version = "0.0.1a1"
 source = { editable = "packages/agbench" }
 dependencies = [
     { name = "azure-identity" },
@@ -766,7 +765,6 @@ requires-dist = [
 
 [[package]]
 name = "autogenstudio"
-version = "0.4.1"
 source = { editable = "packages/autogen-studio" }
 dependencies = [
     { name = "aiofiles" },

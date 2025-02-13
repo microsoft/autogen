@@ -25,6 +25,8 @@ class BaseMessage(BaseModel, ABC):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    """Optional flag to indicate whether to display in Console."""
+    to_display: bool = True
 
 class BaseChatMessage(BaseMessage, ABC):
     """Base class for chat messages."""
