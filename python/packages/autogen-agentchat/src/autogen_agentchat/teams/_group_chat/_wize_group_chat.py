@@ -35,7 +35,7 @@ Select the next role from {participants} to play. Only return the role name, not
 
 class WizeGroupChatManager(BaseGroupChatManager):
     """A group chat manager that selects the next speaker using a ChatCompletion
-    model and a custom selector function."""
+    model"""
 
     def __init__(
         self,
@@ -48,7 +48,6 @@ class WizeGroupChatManager(BaseGroupChatManager):
         model_client: ChatCompletionClient,
         selector_prompt: str,
         allow_repeated_speaker: bool,
-        selector_func: Callable[[Sequence[AgentEvent | ChatMessage]], str | None] | None,
     ) -> None:
         super().__init__(
             group_topic_type,
@@ -62,7 +61,6 @@ class WizeGroupChatManager(BaseGroupChatManager):
         self._selector_prompt = selector_prompt
         self._previous_speaker: str | None = None
         self._allow_repeated_speaker = allow_repeated_speaker
-        self._selector_func = selector_func
 
     async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
         pass
@@ -89,18 +87,10 @@ class WizeGroupChatManager(BaseGroupChatManager):
         self._previous_speaker = selector_state.previous_speaker
 
     async def select_speaker(self, thread: List[AgentEvent | ChatMessage]) -> str:
-        """Selects the next speaker in a group chat using a ChatCompletion client,
-        with the selector function as override if it returns a speaker name.
+        """Selects the next speaker in a group chat using a ChatCompletion client.
 
         A key assumption is that the agent type is the same as the topic type, which we use as the agent name.
         """
-
-        # Use the selector function if provided.
-        if self._selector_func is not None:
-            speaker = self._selector_func(thread)
-            if speaker is not None:
-                # Skip the model based selection.
-                return speaker
 
         # Construct the history of the conversation.
         history_messages: List[str] = []
@@ -213,10 +203,6 @@ class WizeGroupChat(BaseGroupChat):
         goal (str, optional): The goal for selecting the next speaker. Defaults to DEFAULT_GOAL.
         allow_repeated_speaker (bool, optional): Whether to allow the same speaker to be selected
             consecutively. Defaults to False.
-        selector_func (Callable[[Sequence[AgentEvent | ChatMessage]], str | None], optional): A custom selector
-            function that takes the conversation history and returns the name of the next speaker.
-            If provided, this function will be used to override the model to select the next speaker.
-            If the function returns None, the model will be used to select the next speaker.
 
     Raises:
         ValueError: If the number of participants is less than two or if the selector prompt is invalid.
@@ -231,7 +217,6 @@ class WizeGroupChat(BaseGroupChat):
         max_turns: int | None = None,
         goal: str = DEFAULT_GOAL,
         allow_repeated_speaker: bool = False,
-        selector_func: Callable[[Sequence[AgentEvent | ChatMessage]], str | None] | None = None,
     ):
         super().__init__(
             participants,
@@ -247,9 +232,11 @@ class WizeGroupChat(BaseGroupChat):
         self._selector_prompt = _SELECTOR_TEMPLATE.format(
             goal=goal, roles="{roles}", participants="{participants}", history="{history}"
         )
+        print("++++++ DEBUG ++++++")
+        print(self._selector_prompt)
+        print("++++++ ----- ++++++")
         self._model_client = model_client
         self._allow_repeated_speaker = allow_repeated_speaker
-        self._selector_func = selector_func
 
     def _create_group_chat_manager_factory(
         self,
@@ -270,5 +257,4 @@ class WizeGroupChat(BaseGroupChat):
             self._model_client,
             self._selector_prompt,
             self._allow_repeated_speaker,
-            self._selector_func,
         )
