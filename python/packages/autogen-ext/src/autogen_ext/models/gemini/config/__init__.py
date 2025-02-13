@@ -5,63 +5,92 @@ from pydantic import BaseModel, Field
 from typing_extensions import TypedDict
 
 
-class ResponseFormat(TypedDict):
-    type: Literal["text", "json_object"]
+class ResponseFormatConfig(BaseModel):
+    type: Literal["text", "json_object"] = Field(
+        default="text",
+        description="The format of the model's response."
+    )
 
 
-class CreateArguments(TypedDict, total=False):
-    temperature: Optional[float]
-    top_p: Optional[float]
-    top_k: Optional[int]
-    max_output_tokens: Optional[int]
-    stop_sequences: Optional[List[str]]
-    candidate_count: Optional[int]
-    safety_settings: Optional[Dict[str, Dict[str, str]]]
+class GeminiClientArgumentsConfig(BaseModel):
+    model: str = Field(
+        ...,
+        description="The name of the model to use."
+    )
+    timeout: Optional[float] = Field(
+        default=None,
+        description="The timeout for the API request."
+    )
+    max_retries: int = Field(
+        default=3,
+        description="The maximum number of retries for the API request."
+    )
+    model_info: Optional[ModelInfo] = Field(
+        default=None,
+        description="Information about the model."
+    )
+    default_headers: Optional[Dict[str, str]] = Field(
+        default=None,
+        description="Default headers to include in the API request."
+    )
 
 
-class BaseGeminiClientConfiguration(CreateArguments, total=False):
-    model: str
-    api_key: str
-    timeout: Union[float, None]
-    max_retries: int
-    model_info: ModelInfo
-    default_headers: Dict[str, str] | None
+class GeminiCreateArguments(BaseModel):
+    temperature: Optional[float] = Field(
+        default=None,
+        description="The temperature for the model. Must be between 0 and 1."
+    )
+    top_p: Optional[float] = Field(
+        default=None,
+        description="The top_p value for the model. Must be between 0 and 1."
+    )
+    top_k: Optional[int] = Field(
+        default=None,
+        description="The top_k value for the model."
+    )
+    max_output_tokens: Optional[int] = Field(
+        default=None,
+        description="The maximum number of tokens to generate."
+    )
+    stop_sequences: Optional[List[str]] = Field(
+        default=None,
+        description="A list of stop sequences."
+    )
+    candidate_count: Optional[int] = Field(
+        default=None,
+        description="The number of candidates to generate."
+    )
+    safety_settings: Optional[Dict[str, Dict[str, str]]] = Field(
+        default=None,
+        description="The safety settings for the model."
+    )
+    response_format: Optional[ResponseFormatConfig] = Field(
+        default=None,
+        description="The format of the model's response."
+    )
 
 
-class GeminiClientConfiguration(BaseGeminiClientConfiguration, total=False):
-    base_url: str  # Not used by the google-genai library, but kept for consistency
+class GeminiClientConfig(GeminiClientArgumentsConfig, GeminiCreateArguments):
+    api_key: str = Field(
+        ...,
+        description="The API key to use."
+    )
+    base_url: Optional[str] = Field(
+        default=None,
+        description="The base URL for the API. Not used by the google-genai library, but kept for consistency."
+    )
 
 
-class VertexAIClientConfiguration(BaseGeminiClientConfiguration, total=False):
-    project_id: str
-    location: str
-    credentials_path: Optional[str]
-
-# Pydantic models for configuration
-class CreateArgumentsConfigModel(BaseModel):
-    temperature: float | None = None
-    top_p: float | None = None
-    top_k: int | None = None
-    max_output_tokens: int | None = None
-    stop_sequences: List[str] | None = None
-    candidate_count: int | None = None
-    safety_settings: Dict[str, Dict[str, str]] | None = None
-
-
-class BaseGeminiClientConfigurationConfigModel(CreateArgumentsConfigModel):
-    model: str
-    api_key: str | None = None  # Optional, can be provided via environment variable
-    timeout: float | None = None
-    max_retries: int | None = 3
-    model_info: ModelInfo | None = None  # This could be inferred
-    default_headers: Dict[str, str] | None = None
-
-
-class GeminiClientConfigurationConfigModel(BaseGeminiClientConfigurationConfigModel):
-    base_url: str | None = None  # Not used by the google-genai library, but kept for consistency
-
-
-class VertexAIClientConfigurationConfigModel(BaseGeminiClientConfigurationConfigModel):
-    project_id: str
-    location: str = "us-central1"  # Default location
-    credentials_path: str | None = None  # Could also use ADC
+class VertexAIClientConfig(GeminiClientArgumentsConfig, GeminiCreateArguments):
+    project_id: str = Field(
+        ...,
+        description="The project ID to use."
+    )
+    location: str = Field(
+        default="us-central1",
+        description="The location to use."
+    )
+    credentials_path: Optional[str] = Field(
+        default=None,
+        description="The path to the credentials file. Could also use ADC."
+    )

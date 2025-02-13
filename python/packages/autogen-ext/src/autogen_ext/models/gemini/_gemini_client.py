@@ -35,20 +35,17 @@ from autogen_core.tools import Tool, ToolSchema
 from google import genai  # Use google-genai library
 from google.genai import types  # Import types from google.genai
 from google.genai.types import (
+    CreateCachedContentConfig,
     GenerateContentConfig,
     GenerateImagesConfig,
-    CreateCachedContentConfig,
 )
 from typing_extensions import Self, Unpack
 
 from . import _model_info
 from .config import (
-    GeminiClientConfiguration,
-    GeminiClientConfigurationConfigModel,
-    VertexAIClientConfiguration,
-    VertexAIClientConfigurationConfigModel,
+    GeminiClientConfig,
+    VertexAIClientConfig,
 )
-
 
 logger = logging.getLogger(__name__)
 
@@ -124,13 +121,26 @@ def _convert_message_to_genai_content(message: LLMMessage) -> types.Content:
 
 def create_tool(name: str, description: str, parameters: Dict[str, Any]) -> types.Tool:
     """Create a Gemini tool"""
-    return types.Tool(
-        function_declarations=[types.FunctionDeclaration(
-            name=name,
-            description=description,
-            parameters=types.Schema.from_dict(parameters) if isinstance(parameters, dict) else parameters
-        )]
-    )
+    try:
+        schema = types.Schema.from_dict(parameters) if isinstance(parameters, dict) else parameters
+        return types.Tool(
+            function_declarations=[types.FunctionDeclaration(
+                name=name,
+                description=description,
+                parameters=schema
+            )]
+        )
+    except Exception as e:
+        logger.warning(f"Error creating tool {name}: {e}")
+        # Return a simplified tool if conversion fails
+        return types.Tool(
+            function_declarations=[types.FunctionDeclaration(
+                name=name,
+                description=description,
+                parameters=types.Schema.from_dict({"type": "object", "properties": {}})
+            )]
+        )
+
 
 def convert_tool(tool: Union[Tool, ToolSchema]) -> types.Tool:
     """
@@ -146,24 +156,36 @@ def convert_tool(tool: Union[Tool, ToolSchema]) -> types.Tool:
         assert isinstance(tool, dict)
         tool_schema = tool.copy()
 
+    # Clean up parameters
     if "parameters" in tool_schema:
         for value in tool_schema["parameters"]["properties"].values():
-            if "title" in value.keys():
+            if "title" in value:
                 del value["title"]
 
-    function_def: Dict[str, Any] = dict(name=tool_schema["name"])
-    if "description" in tool_schema:
-        function_def["description"] = tool_schema["description"]
-    if "parameters" in tool_schema:
-        function_def["parameters"] = tool_schema["parameters"]
+    # Create function definition
+    function_def: Dict[str, Any] = {
+        "name": tool_schema["name"],
+        "description": tool_schema.get("description", ""),
+        "parameters": tool_schema.get("parameters", {})
+    }
 
-    converted_tool = create_tool(
-        name=tool_schema["name"],
-        description=tool_schema["description"],
-        parameters=tool_schema["parameters"]
-    )
-    return converted_tool
-
+    try:
+        converted_tool = create_tool(
+            name=function_def["name"],
+            description=function_def["description"],
+            parameters=function_def["parameters"]
+        )
+        return converted_tool
+    except Exception as e:
+        logger.warning(f"Error converting tool {function_def['name']}: {e}")
+        # Return a simplified tool if conversion fails
+        return types.Tool(
+            function_declarations=[types.FunctionDeclaration(
+                name=function_def["name"],
+                description=function_def["description"],
+                parameters=types.Schema.from_dict({"type": "object", "properties": {}})
+            )]
+        )
 
 
 def convert_tools(tools: Sequence[Tool | ToolSchema]) -> List[types.Tool]:
@@ -172,17 +194,22 @@ def convert_tools(tools: Sequence[Tool | ToolSchema]) -> List[types.Tool]:
     """
     result: List[types.Tool] = []
     for tool in tools:
-        converted_tool = convert_tool(tool)
-        result.append(converted_tool)
+        try:
+            converted_tool = convert_tool(tool)
+            result.append(converted_tool)
+        except Exception as e:
+            logger.warning(f"Error converting tool: {str(e)}")
+            continue
     return result
 
+
 def _prepare_config(
-    config: Optional[Union[GenerateContentConfig, GenerateImagesConfig, CreateCachedContentConfig, Dict[str, Any]]] = None,
+    config: Optional[Union[GenerateContentConfig, Dict[str, Any]]] = None,
     create_args: Dict[str, Any] = {},
     extra_create_args: Dict[str, Any] = {},
     tools: Optional[List[types.Tool]] = None,
     response_format: Optional[Dict[str, str]] = None
-) -> Union[GenerateContentConfig, GenerateImagesConfig, CreateCachedContentConfig]:
+) -> GenerateContentConfig:
     """
     Prepare and merge configuration with flexible type handling.
 
@@ -196,34 +223,28 @@ def _prepare_config(
     Returns:
         Prepared configuration object
     """
-    # If config is None, create a new GenerateContentConfig, by default.
+    # Start with default config
     if config is None:
         config = GenerateContentConfig()
 
-    # If config is a dictionary, convert to appropriate config type
+    # Convert dictionary to config object
     if isinstance(config, dict):
-        if tools is not None:
-            config["tools"] = tools
-        if response_format is not None:
-            config["response_format"] = response_format
         config = GenerateContentConfig(**config)
-    else:
-        # For existing config objects, update attributes if they exist
-        if tools is not None and hasattr(config, "tools"):
-            config.tools = tools
-        if response_format is not None and hasattr(config, "response_format"):
-            config.response_format = response_format
+
+    # Update config with tools and response format
+    if tools is not None:
+        config.tools = tools
+    if response_format is not None:
+        config.response_format = response_format
 
     # Merge configuration arguments
     merged_args = {**create_args, **extra_create_args}
-
-    # Update config with merged arguments, but only if the config is not a dictionary
-    if not isinstance(config, dict):
-      for key, value in merged_args.items():
-          if hasattr(config, key):
-              setattr(config, key, value)
+    for key, value in merged_args.items():
+        if hasattr(config, key):
+            setattr(config, key, value)
 
     return config
+
 
 class BaseGeminiChatCompletionClient(ChatCompletionClient):
     """
@@ -242,6 +263,7 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
     ):
         self._model = model
         self._create_args = create_args
+        self._client: Optional[genai.Client] = None  # Will be set by subclasses
 
         # Enhanced context caching with SDK-inspired approach
         self._context_cache: Dict[str, Any] = {
@@ -327,8 +349,8 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
         if use_cached_context and self._context_cache.get("contents"):
             genai_contents = self._context_cache["contents"] + genai_contents
 
-        # Prepare tools and structured output
-        genai_tools = _convert_tools_to_genai_function_declarations(tools, structured_output) if tools or structured_output else None
+        # Convert tools
+        genai_tools = convert_tools(tools) if tools else None
 
         # Prepare response format
         response_format = None
@@ -347,7 +369,7 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
         )
 
         try:
-            client = genai.Client()
+            client = self._client
             response = client.models.generate_content(
                 model=self._model,
                 contents=genai_contents,
@@ -358,7 +380,7 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
             tool_calls: List[FunctionCall] = []
             if response.candidates and response.candidates[0].content.parts:
                 for part in response.candidates[0].content.parts:
-                    if hasattr(part, "function_call") and part.function_call: # Access function_call directly
+                    if hasattr(part, "function_call") and part.function_call:
                         tool_calls.append(
                             FunctionCall(
                                 id=str(len(tool_calls)),
@@ -368,13 +390,24 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
                         )
 
             # Determine finish reason
-            finish_reason: Literal["stop", "length", "function_calls", "content_filter", "unknown"] = "stop"
-            if tool_calls:
+            finish_reason: Literal["stop", "length", "function_calls", "content_filter", "unknown"] = "unknown"
+            if hasattr(response.candidates[0], "finish_reason"):
+                finish_reason = response.candidates[0].finish_reason
+            elif tool_calls:
                 finish_reason = "function_calls"
+            else:
+                finish_reason = "stop"
+
+            # Get response text
+            text = ""
+            if response.candidates and response.candidates[0].content.parts:
+                for part in response.candidates[0].content.parts:
+                    if hasattr(part, "text"):
+                        text += part.text
 
             # Create result
             result = CreateResult(
-                content=tool_calls if tool_calls else response.text,
+                content=tool_calls if tool_calls else text,
                 finish_reason=finish_reason,
                 usage=RequestUsage(
                     prompt_tokens=response.usage_metadata.prompt_token_count,
@@ -407,8 +440,8 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
         *,
         tools: Sequence[Union[Tool, ToolSchema]] = [],
         json_output: Optional[bool] = None,
-        structured_output: Optional[StructuredOutputSchema] = None,
-        extra_create_args: Mapping[str, Any] = {},
+        structured_output: Optional[Dict[str, Any]] = None,
+        extra_create_args: Dict[str, Any] = {},
         use_cached_context: bool = False,
         config: Optional[Union[GenerateContentConfig, Dict[str, Any]]] = None,
     ) -> CreateResult:
@@ -418,27 +451,38 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
         References:
         - https://github.com/googleapis/python-genai?tab=readme-ov-file
         """
+        if not self._client:
+            raise RuntimeError("Client not initialized. Please use a concrete implementation class.")
+
         # Normalize contents to a list
         if isinstance(contents, str):
             contents = [contents]
 
         # Prepare messages with long context support
-        genai_contents = [
-            _convert_message_to_genai_content(
-                UserMessage(content=[content], source="auto")  # Use "auto" as source
-            ) for content in contents
-        ]
+        genai_contents = []
+        for content in contents:
+            if isinstance(content, str):
+                genai_contents.append(types.Content(
+                    role="user",
+                    parts=[types.Part.from_text(text=content)]
+                ))
+            elif isinstance(content, Image):
+                genai_contents.append(types.Content(
+                    role="user",
+                    parts=[types.Part.from_data(data=content.to_base64(), mime_type=content.mime_type)]
+                ))
+            else:
+                genai_contents.append(types.Content(
+                    role="user",
+                    parts=[types.Part.from_text(text=str(content))]
+                ))
 
         # Optionally use cached context
         if use_cached_context and self._context_cache.get("contents"):
             genai_contents = self._context_cache["contents"] + genai_contents
 
         # Convert tools
-        if len(tools) > 0:
-            converted_tools = convert_tools(tools)
-
-        # Prepare tools and structured output
-        genai_tools = _convert_tools_to_genai_function_declarations(tools, structured_output) if tools or structured_output else None
+        genai_tools = convert_tools(tools) if tools else None
 
         # Prepare response format
         response_format = None
@@ -457,8 +501,7 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
         )
 
         try:
-            client = genai.Client()
-            response = await client.aio.models.generate_content(
+            response = await self._client.aio.models.generate_content(
                 model=self._model,
                 contents=genai_contents,
                 config=generation_config,
@@ -468,7 +511,7 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
             tool_calls: List[FunctionCall] = []
             if response.candidates and response.candidates[0].content.parts:
                 for part in response.candidates[0].content.parts:
-                    if hasattr(part, "function_call") and part.function_call:  # Access function_call directly
+                    if hasattr(part, "function_call") and part.function_call:
                         tool_calls.append(
                             FunctionCall(
                                 id=str(len(tool_calls)),
@@ -477,12 +520,25 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
                             )
                         )
 
-            finish_reason: Literal["stop", "length", "function_calls", "content_filter", "unknown"] = "stop"
-            if tool_calls:
+            # Determine finish reason
+            finish_reason: Literal["stop", "length", "function_calls", "content_filter", "unknown"] = "unknown"
+            if hasattr(response.candidates[0], "finish_reason"):
+                finish_reason = response.candidates[0].finish_reason
+            elif tool_calls:
                 finish_reason = "function_calls"
+            else:
+                finish_reason = "stop"
 
+            # Get response text
+            text = ""
+            if response.candidates and response.candidates[0].content.parts:
+                for part in response.candidates[0].content.parts:
+                    if hasattr(part, "text"):
+                        text += part.text
+
+            # Create result
             result = CreateResult(
-                content=tool_calls if tool_calls else response.text,
+                content=tool_calls if tool_calls else text,
                 finish_reason=finish_reason,
                 usage=RequestUsage(
                     prompt_tokens=response.usage_metadata.prompt_token_count,
@@ -491,6 +547,7 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
                 cached=use_cached_context
             )
 
+            # Update usage tracking
             self._total_usage = RequestUsage(
                 prompt_tokens=self._total_usage.prompt_tokens + result.usage.prompt_tokens,
                 completion_tokens=self._total_usage.completion_tokens + result.usage.completion_tokens
@@ -529,12 +586,15 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
         Returns:
             CreateResult: The completion result.
         """
+        if not self._client:
+            raise RuntimeError("Client not initialized. Please use a concrete implementation class.")
+
         # Prepare configuration
         config = _prepare_config(
             config=None,  # Let _prepare_config create a default
             create_args=self._create_args,
-            extra_create_args=extra_create_args,
-            tools=_convert_tools_to_genai_function_declarations(tools),  # Convert tools
+            extra_create_args=dict(extra_create_args),  # Convert Mapping to Dict
+            tools=convert_tools(tools) if tools else None,  # Convert tools
             response_format={"type": "json_object"} if json_output else None,  # Set response format
         )
 
@@ -550,6 +610,7 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
                 config=config,
                 tools=tools,  # Pass the original tools, not genai_tools
                 json_output=json_output,
+                extra_create_args=extra_create_args,
             )
         except Exception as e:
             logger.warning(f"Error in create: {str(e)}")
@@ -559,7 +620,7 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
         self,
         messages: Sequence[LLMMessage],
         *,
-        tools: Sequence[Union[Tool, ToolSchema]] = [],
+        tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
@@ -576,12 +637,15 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
         Yields:
             Union[str, CreateResult]: The streaming completion results.
         """
+        if not self._client:
+            raise RuntimeError("Client not initialized. Please use a concrete implementation class.")
+
         # Prepare configuration
         config = _prepare_config(
             config=None,  # Let _prepare_config create a default
             create_args=self._create_args,
-            extra_create_args=extra_create_args,
-            tools=_convert_tools_to_genai_function_declarations(tools),  # Convert tools
+            extra_create_args=dict(extra_create_args),  # Convert Mapping to Dict
+            tools=convert_tools(tools) if tools else None,  # Convert tools
             response_format={"type": "json_object"} if json_output else None,  # Set response format
         )
 
@@ -591,20 +655,26 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
         ]
 
         try:
-            client = genai.Client()
-            async for response in client.models.generate_content(
+            # Get the response
+            response = await self._client.aio.models.generate_content(
                 model=self._model,
                 contents=contents,
                 config=config,
-                stream=True,  # Enable streaming
-            ):
-                if response.text: # Check if the response has text
-                    yield response.text
+            )
+
+            # Process the response in chunks
+            if response.text:
+                # Split the response into chunks (you can adjust the chunk size)
+                chunk_size = 100  # characters
+                text = response.text
+                for i in range(0, len(text), chunk_size):
+                    yield text[i:i + chunk_size]
+
         except Exception as e:
             logger.warning(f"Error in create_stream: {str(e)}")
             raise
 
-    def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Dict[str, Any]] = []) -> int:
+    def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         """
         Count tokens for the given messages and tools.
 
@@ -637,7 +707,7 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
         combined_text = "\n".join(all_text_content)
 
         try:
-            client = genai.Client()
+            client = self._client
             message_token_count = client.models.count_tokens(model=self._model, contents=combined_text).total_tokens
         except Exception:
             # Fallback to approximate token count (each token ~4 characters)
@@ -667,7 +737,7 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
 
         return message_token_count + tool_token_count
 
-    def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Dict[str, Any]] = []) -> int:
+    def remaining_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         """
         Calculate remaining tokens based on model's token limit.
 
@@ -693,7 +763,8 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
         """Return the model information."""
         return self._model_info
 
-class GeminiChatCompletionClient(BaseGeminiChatCompletionClient, Component[GeminiClientConfigurationConfigModel]):
+
+class GeminiChatCompletionClient(BaseGeminiChatCompletionClient, Component[GeminiClientConfig]):
     """
     Client for Gemini API with enhanced capabilities.
 
@@ -729,17 +800,19 @@ class GeminiChatCompletionClient(BaseGeminiChatCompletionClient, Component[Gemin
     """
 
     component_type = "model"
-    component_config_schema = GeminiClientConfigurationConfigModel
+    component_config_schema = GeminiClientConfig
 
-    def __init__(self, config: Optional[GeminiClientConfigurationConfigModel] = None, **kwargs: Unpack[GeminiClientConfiguration]):
+    def __init__(
+        self,
+        config: Optional[GeminiClientConfig] = None,
+        **kwargs: Any
+    ):
         if config is None:
-            config = GeminiClientConfigurationConfigModel(**kwargs)
+            config = GeminiClientConfig(**kwargs)
 
         api_key = config.api_key or os.environ.get("GOOGLE_API_KEY")
         if not api_key:
             raise ValueError("API key must be provided either in the configuration or as environment variable GOOGLE_API_KEY")
-
-        client = genai.Client(api_key=api_key)
 
         create_args = {
             k: v for k, v in {
@@ -754,21 +827,35 @@ class GeminiChatCompletionClient(BaseGeminiChatCompletionClient, Component[Gemin
 
         super().__init__(
             model=config.model,
-            create_args=create_args
+            create_args=create_args,
+            model_info=config.model_info,
         )
 
+        self._client = genai.Client(api_key=api_key)
         self._raw_config = config.model_dump(exclude_none=True)
 
     @classmethod
-    def _from_config(cls, config: GeminiClientConfigurationConfigModel) -> Self:
+    def _from_config(cls, config: GeminiClientConfig) -> Self:
         """Create an instance from a configuration model."""
         return cls(config=config)
 
-    def _to_config(self) -> GeminiClientConfigurationConfigModel:
+    def _to_config(self) -> GeminiClientConfig:
         """Convert the current instance to a configuration model."""
-        return GeminiClientConfigurationConfigModel(**self._raw_config)
+        return GeminiClientConfig(**self._raw_config)
 
-class VertexAIChatCompletionClient(BaseGeminiChatCompletionClient, Component[VertexAIClientConfigurationConfigModel]):
+    def capabilities(self) -> Dict[str, bool]:
+        """Return the capabilities of the client."""
+        return {
+            "stream": True,
+            "tools": True,
+            "vision": True,
+            "json_output": True,
+            "function_calling": True,
+            "async_agentic": True,
+        }
+
+
+class VertexAIChatCompletionClient(BaseGeminiChatCompletionClient, Component[VertexAIClientConfig]):
     """
     Client for Vertex AI Gemini models with enhanced capabilities.
 
@@ -803,11 +890,15 @@ class VertexAIChatCompletionClient(BaseGeminiChatCompletionClient, Component[Ver
     """
 
     component_type = "model"
-    component_config_schema = VertexAIClientConfigurationConfigModel
+    component_config_schema = VertexAIClientConfig
 
-    def __init__(self, config: Optional[VertexAIClientConfigurationConfigModel] = None, **kwargs: Unpack[VertexAIClientConfiguration]):
+    def __init__(
+        self,
+        config: Optional[VertexAIClientConfig] = None,
+        **kwargs: Any
+    ):
         if config is None:
-            config = VertexAIClientConfigurationConfigModel(**kwargs)
+            config = VertexAIClientConfig(**kwargs)
 
         if not config.project_id:
             raise ValueError("project_id is required for Vertex AI configuration")
@@ -825,16 +916,40 @@ class VertexAIChatCompletionClient(BaseGeminiChatCompletionClient, Component[Ver
 
         super().__init__(
             model=config.model,
-            create_args=create_args
+            create_args=create_args,
+            model_info=config.model_info,
         )
+
+        # Initialize Vertex AI client
+        try:
+            from google.cloud import aiplatform
+            aiplatform.init(
+                project=config.project_id,
+                location=config.location,
+                credentials=config.credentials_path,
+            )
+            self._client = genai.Client()
+        except ImportError:
+            raise ImportError("Please install google-cloud-aiplatform to use VertexAIChatCompletionClient")
 
         self._raw_config = config.model_dump(exclude_none=True)
 
     @classmethod
-    def _from_config(cls, config: VertexAIClientConfigurationConfigModel) -> Self:
+    def _from_config(cls, config: VertexAIClientConfig) -> Self:
         """Create an instance from a configuration model."""
         return cls(config=config)
 
-    def _to_config(self) -> VertexAIClientConfigurationConfigModel:
+    def _to_config(self) -> VertexAIClientConfig:
         """Convert the current instance to a configuration model."""
-        return VertexAIClientConfigurationConfigModel(**self._raw_config)
+        return VertexAIClientConfig(**self._raw_config)
+
+    def capabilities(self) -> Dict[str, bool]:
+        """Return the capabilities of the client."""
+        return {
+            "stream": True,
+            "tools": True,
+            "vision": True,
+            "json_output": True,
+            "function_calling": True,
+            "async_agentic": True,
+        }
