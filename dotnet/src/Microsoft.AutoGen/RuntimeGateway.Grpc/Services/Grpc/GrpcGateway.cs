@@ -243,7 +243,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             default:
                 await RespondBadRequestAsync(connection, $"Unknown message type for message '{message}'.");
                 break;
-        };
+        }
     }
 
     /// <summary>
