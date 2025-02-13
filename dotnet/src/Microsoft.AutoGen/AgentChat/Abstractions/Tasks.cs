@@ -59,7 +59,7 @@ public interface ITaskRunner
     /// <param name="task">The task definition in text form.</param>
     /// <param name="cancellationToken"></param>
     /// <returns>The result of running the task.</returns>
-    async ValueTask<TaskResult> RunAsync(string task, CancellationToken cancellationToken = default) =>
+    public async ValueTask<TaskResult> RunAsync(string task, CancellationToken cancellationToken = default) =>
         await this.RunAsync(ToMessage(task)!, cancellationToken);
 
     /// <summary>
@@ -73,7 +73,7 @@ public interface ITaskRunner
     /// <param name="cancellationToken"></param>
     /// <returns>The result of running the task.</returns>
     /// <exception cref="InvalidOperationException">If no response is generated.</exception>
-    async ValueTask<TaskResult> RunAsync(ChatMessage task, CancellationToken cancellationToken = default)
+    public async ValueTask<TaskResult> RunAsync(ChatMessage task, CancellationToken cancellationToken = default)
     {
         await foreach (TaskFrame frame in this.StreamAsync(task, cancellationToken))
         {
@@ -98,7 +98,7 @@ public interface ITaskRunner
     /// <param name="cancellationToken"></param>
     /// <returns>A stream of <see cref="TaskFrame"/> containing internal messages and intermediate results followed by
     /// the final <see cref="TaskResult"/></returns>
-    IAsyncEnumerable<TaskFrame> StreamAsync(string task, CancellationToken cancellationToken = default) =>
+    public IAsyncEnumerable<TaskFrame> StreamAsync(string task, CancellationToken cancellationToken = default) =>
         this.StreamAsync(ToMessage(task), cancellationToken);
 
     /// <summary>
@@ -113,5 +113,5 @@ public interface ITaskRunner
     /// <param name="cancellationToken"></param>
     /// <returns>A stream of <see cref="TaskFrame"/> containing internal messages and intermediate results followed by
     /// the final <see cref="TaskResult"/></returns>
-    IAsyncEnumerable<TaskFrame> StreamAsync(ChatMessage? task, CancellationToken cancellationToken = default);
+    public IAsyncEnumerable<TaskFrame> StreamAsync(ChatMessage? task, CancellationToken cancellationToken = default);
 }

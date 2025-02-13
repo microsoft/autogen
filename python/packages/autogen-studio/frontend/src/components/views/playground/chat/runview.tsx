@@ -60,7 +60,6 @@ const RunView: React.FC<RunViewProps> = ({
   const showLLMEvents = useSettingsStore(
     (state) => state.playground.showLLMEvents
   );
-  console.log("showLLMEvents", showLLMEvents);
 
   const visibleMessages = useMemo(() => {
     if (showLLMEvents) {

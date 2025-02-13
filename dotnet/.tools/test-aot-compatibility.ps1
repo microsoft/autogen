@@ -15,7 +15,7 @@ foreach ($line in $($publishOutput -split "`r`n"))
     }
 }
 
-pushd $rootDirectory/artifacts/bin/AutoGen.AotCompatibility.Tests/release
+pushd $rootDirectory/artifacts/bin/AutoGen.AotCompatibility.Tests/release/native
 
 Write-Host "Executing test App..."
 ./AutoGen.AotCompatibility.Tests
