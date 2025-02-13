@@ -93,8 +93,13 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
         if "required" in model_schema:
             parameters["required"] = model_schema["required"]
         elif self._strict:
-            # If strict is enabled, we require this field to be present.
             parameters["required"] = []
+
+        # If strict is enabled, the tool schema should list all properties as required.
+        if self._strict and set(parameters["required"]) != set(parameters["properties"].keys()):
+            raise ValueError(
+                "Strict mode is enabled, but not all input arguments are marked as required. Default arguments are not allowed in strict mode."
+            )
 
         if "additionalProperties" in model_schema:
             parameters["additionalProperties"] = model_schema["additionalProperties"]
