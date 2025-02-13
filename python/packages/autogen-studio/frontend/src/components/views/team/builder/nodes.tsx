@@ -392,9 +392,9 @@ export const AgentNode = memo<NodeProps<CustomNode>>((props) => {
             /> */}
 
             <div className="relative">
-              {component.config.model_client && (
+              {component.config?.model_client && (
                 <div className="text-sm">
-                  {component.config.model_client.config.model}
+                  {component.config?.model_client.config?.model}
                 </div>
               )}
               <DroppableZone

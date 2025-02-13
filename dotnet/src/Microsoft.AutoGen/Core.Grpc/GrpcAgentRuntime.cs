@@ -11,9 +11,10 @@ using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Core.Grpc;
 
-internal sealed class AgentsContainer(IAgentRuntime hostingRuntime)
+internal sealed class AgentsContainer(IAgentRuntime hostingRuntime, IProtoSerializationRegistry serializationRegistry)
 {
     private readonly IAgentRuntime hostingRuntime = hostingRuntime;
+    private readonly IProtoSerializationRegistry serializationRegistry = serializationRegistry;
 
     private Dictionary<Contracts.AgentId, IHostableAgent> agentInstances = new();
     public Dictionary<string, ISubscriptionDefinition> Subscriptions = new();
@@ -29,6 +30,10 @@ internal sealed class AgentsContainer(IAgentRuntime hostingRuntime)
             }
 
             agent = await factoryFunc(agentId, this.hostingRuntime);
+
+            // Just-in-Time register the message types so we can deserialize them
+            agent.RegisterHandledMessageTypes(this.serializationRegistry);
+
             this.agentInstances.Add(agentId, agent);
         }
 
@@ -92,7 +97,7 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         this._shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(hostApplicationLifetime.ApplicationStopping);
 
         this._messageRouter = new GrpcMessageRouter(client, this, _clientId, logger, this._shutdownCts.Token);
-        this._agentsContainer = new AgentsContainer(this);
+        this._agentsContainer = new AgentsContainer(this, this.SerializationRegistry);
 
         this.ServiceProvider = serviceProvider;
     }
@@ -231,8 +236,6 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
 
         var messageId = evt.Id;
         var typeName = evt.Attributes[Constants.DATA_SCHEMA_ATTR].CeString;
-        var serializer = SerializationRegistry.GetSerializer(typeName) ?? throw new Exception();
-        var message = serializer.Deserialize(evt.ProtoData);
 
         var messageContext = new MessageContext(messageId, cancellationToken)
         {
@@ -241,6 +244,10 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
             IsRpc = false
         };
 
+        // We may not have a Serializer registered yet, if this is the first time we are instantiating the agent
+        IProtobufMessageSerializer? serializer = SerializationRegistry.GetSerializer(typeName);
+        object? message = serializer?.Deserialize(evt.ProtoData);
+
         // Iterate over subscriptions values to find receiving agents
         foreach (var subscription in this._agentsContainer.Subscriptions.Values)
         {
@@ -248,6 +255,11 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
             {
                 var recipient = subscription.MapToAgent(topic);
                 var agent = await this._agentsContainer.EnsureAgentAsync(recipient);
+
+                // give the serializer a second chance to have been registered
+                serializer ??= SerializationRegistry.GetSerializer(typeName) ?? throw new Exception($"Could not find a serializer for message of type {typeName}");
+                message ??= serializer.Deserialize(evt.ProtoData);
+
                 await agent.OnMessageAsync(message, messageContext);
             }
         }

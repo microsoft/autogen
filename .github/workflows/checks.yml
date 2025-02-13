@@ -183,7 +183,7 @@ jobs:
 
   codecov:
     runs-on: ubuntu-latest
-    needs: [test]
+    needs: [test, test-grpc]
     strategy:
       matrix:
         package:
