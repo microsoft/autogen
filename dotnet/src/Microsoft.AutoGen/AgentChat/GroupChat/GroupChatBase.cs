@@ -78,6 +78,8 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
 
     private GroupChatOptions GroupChatOptions { get; }
 
+    private readonly RuntimeLayer runtimeLayer;
+
     private readonly List<AgentMessage> messageThread = new();
     private Dictionary<string, AgentChatConfig> Participants { get; } = new();
 
@@ -99,6 +101,9 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
         this.messageThread = new List<AgentMessage>(); // TODO: Allow injecting this
 
         this.TeamId = Guid.NewGuid().ToString().ToLowerInvariant();
+
+        this.runtimeLayer = new RuntimeLayer(this);
+        this.RunManager = new(this.InitializationLayersInternal);
     }
 
     public string TeamId
@@ -128,17 +133,48 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
         throw new Exception("Could not create chat manager; make sure that it contains a ctor() or ctor(GroupChatOptions), or override the CreateChatManager method");
     }
 
-    // TODO: Turn this into an IDisposable-based utility
-    private int running; // = 0
-    private bool EnsureSingleRun()
+    private sealed class RuntimeLayer(GroupChatBase<TManager> groupChat) : IRunContextLayer
     {
-        return Interlocked.CompareExchange(ref running, 1, 0) == 0;
+        public GroupChatBase<TManager> GroupChat { get; } = groupChat;
+        public InProcessRuntime? Runtime { get; private set; }
+        public OutputSink? OutputSink { get; private set; }
+
+        public Task ShutdownTask { get; set; } = Task.CompletedTask;
+
+        public async ValueTask DeinitializeAsync()
+        {
+            await this.ShutdownTask;
+
+            this.Runtime = null;
+            this.OutputSink = null;
+        }
+
+        public async ValueTask InitializeAsync()
+        {
+            this.Runtime = new InProcessRuntime();
+
+            foreach (AgentChatConfig config in this.GroupChat.Participants.Values)
+            {
+                await this.Runtime.RegisterChatAgentAsync(config);
+            }
+
+            await this.Runtime.RegisterGroupChatManagerAsync(this.GroupChat.GroupChatOptions, this.GroupChat.TeamId, this.GroupChat.CreateChatManager);
+
+            this.OutputSink = new OutputSink();
+            await this.Runtime.RegisterOutputCollectorAsync(this.OutputSink, this.GroupChat.GroupChatOptions.OutputTopicType);
+
+            await this.Runtime.StartAsync();
+        }
     }
 
-    private void EndRun()
-    {
-        this.running = 0;
-    }
+    private IRunContextLayer[] InitializationLayersInternal =>
+        [
+            this.runtimeLayer, ..this.InitializationLayers
+        ];
+
+    protected virtual IEnumerable<IRunContextLayer> InitializationLayers => [];
+
+    private RunManager RunManager { get; }
 
     public IAsyncEnumerable<TaskFrame> StreamAsync(string task, CancellationToken cancellationToken)
     {
@@ -157,78 +193,71 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
         return this.StreamAsync(taskStart, cancellationToken);
     }
 
-    public ValueTask ResetAsync(CancellationToken cancel)
+    private InProcessRuntime? Runtime => this.runtimeLayer.Runtime;
+    private OutputSink? OutputSink => this.runtimeLayer.OutputSink;
+
+    private Task ShutdownTask
     {
-        return ValueTask.CompletedTask;
+        get => this.runtimeLayer.ShutdownTask;
+        set => this.runtimeLayer.ShutdownTask = value;
     }
 
-    public async IAsyncEnumerable<TaskFrame> StreamAsync(ChatMessage? task, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    private Func<CancellationToken, ValueTask> PrepareStream(ChatMessage task)
+    {
+        GroupChatStart taskMessage = new GroupChatStart
+        {
+            Messages = [task]
+        };
+
+        return async (CancellationToken cancellationToken) =>
+        {
+            AgentId chatManagerId = new AgentId(GroupChatManagerTopicType, this.TeamId);
+            await this.Runtime!.SendMessageAsync(taskMessage, chatManagerId, cancellationToken: cancellationToken);
+
+            this.ShutdownTask = Task.Run(this.Runtime!.RunUntilIdleAsync);
+        };
+    }
+
+    private async IAsyncEnumerable<TaskFrame> StreamOutput([EnumeratorCancellation] CancellationToken cancellationToken)
+    {
+        List<AgentMessage> runMessages = new();
+
+        while (true)
+        {
+            OutputSink.SinkFrame frame = await this.OutputSink!.WaitForDataAsync(cancellationToken);
+            runMessages.AddRange(frame.Messages);
+
+            foreach (AgentMessage message in frame.Messages)
+            {
+                yield return new TaskFrame(message);
+            }
+
+            if (frame.IsTerminal)
+            {
+                TaskResult result = new TaskResult(runMessages);
+                yield return new TaskFrame(result);
+                break;
+            }
+        }
+    }
+
+    public IAsyncEnumerable<TaskFrame> StreamAsync(ChatMessage? task, CancellationToken cancellationToken = default)
     {
         if (task == null)
         {
             throw new ArgumentNullException(nameof(task));
         }
 
-        if (!this.EnsureSingleRun())
-        {
-            throw new InvalidOperationException("The task is already running.");
-        }
+        const string TaskAlreadyRunning = "The task is already running";
+        return this.RunManager.StreamAsync(
+            this.StreamOutput,
+            cancellationToken,
+            this.PrepareStream(task),
+            TaskAlreadyRunning);
+    }
 
-        // TODO: How do we allow the user to configure this?
-        //AgentsAppBuilder builder = new AgentsAppBuilder().UseInProcessRuntime();
-        InProcessRuntime runtime = new InProcessRuntime();
-
-        foreach (AgentChatConfig config in this.Participants.Values)
-        {
-            await runtime.RegisterChatAgentAsync(config);
-        }
-
-        await runtime.RegisterGroupChatManagerAsync(this.GroupChatOptions, this.TeamId, this.CreateChatManager);
-
-        OutputSink outputSink = new OutputSink();
-        await runtime.RegisterOutputCollectorAsync(outputSink, this.GroupChatOptions.OutputTopicType);
-
-        await runtime.StartAsync();
-
-        Task shutdownTask = Task.CompletedTask;
-
-        try
-        {
-            GroupChatStart taskMessage = new GroupChatStart
-            {
-                Messages = [task]
-            };
-
-            List<AgentMessage> runMessages = new();
-
-            AgentId chatManagerId = new AgentId(GroupChatManagerTopicType, this.TeamId);
-            await runtime.SendMessageAsync(taskMessage, chatManagerId, cancellationToken: cancellationToken);
-
-            shutdownTask = Task.Run(runtime.RunUntilIdleAsync);
-
-            while (true)
-            {
-                OutputSink.SinkFrame frame = await outputSink.WaitForDataAsync(cancellationToken);
-                runMessages.AddRange(frame.Messages);
-
-                foreach (AgentMessage message in frame.Messages)
-                {
-                    yield return new TaskFrame(message);
-                }
-
-                if (frame.IsTerminal)
-                {
-                    TaskResult result = new TaskResult(runMessages);
-                    yield return new TaskFrame(result);
-                    break;
-                }
-            }
-        }
-        finally
-        {
-            this.EndRun();
-
-            await shutdownTask;
-        }
+    public ValueTask ResetAsync(CancellationToken cancel)
+    {
+        return ValueTask.CompletedTask;
     }
 }
