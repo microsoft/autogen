@@ -168,24 +168,24 @@ async def Console(
         else:
             # Cast required for mypy to be happy
             message = cast(AgentEvent | ChatMessage, message)  # type: ignore
-            if not message.to_display:
-                continue
-            if not streaming_chunks:
+            if not streaming_chunks and message.to_display:
                 # Print message sender.
                 await aprint(f"{'-' * 10} {message.source} {'-' * 10}", end="\n", flush=True)
             if isinstance(message, ModelClientStreamingChunkEvent):
-                await aprint(message.content, end="")
+                if message.to_display:
+                    await aprint(message.content, end="")
                 streaming_chunks.append(message.content)
             else:
                 if streaming_chunks:
                     streaming_chunks.clear()
                     # Chunked messages are already printed, so we just print a newline.
-                    await aprint("", end="\n", flush=True)
-                else:
+                    if message.to_display:
+                        await aprint("", end="\n", flush=True)
+                elif message.to_display:
                     # Print message content.
-                    await aprint(_message_to_str(message, render_image_iterm=render_image_iterm), end="\n", flush=True)
+                        await aprint(_message_to_str(message, render_image_iterm=render_image_iterm), end="\n", flush=True)
                 if message.models_usage:
-                    if output_stats:
+                    if output_stats and message.to_display:
                         await aprint(
                             f"[Prompt tokens: {message.models_usage.prompt_tokens}, Completion tokens: {message.models_usage.completion_tokens}]",
                             end="\n",
