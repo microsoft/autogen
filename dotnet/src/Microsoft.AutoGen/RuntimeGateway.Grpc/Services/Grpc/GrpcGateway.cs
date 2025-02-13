@@ -251,26 +251,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         await workerProcess.Connect().ConfigureAwait(false);
     }
 
-    // <summary>
-    /// Connects to the control channel.
-    /// </summary>
-    /// <param name="requestStream">The request stream.</param>
-    /// <param name="responseStream">The response stream.</param>
-    /// <param name="context">The server call context.</param>
-    /// <returns>A task that represents the asynchronous operation.</returns>
-    internal async Task ConnectToControlChannel(IAsyncStreamReader<ControlMessage> requestStream, IServerStreamWriter<ControlMessage> responseStream, ServerCallContext context)
-    {
-        _logger.LogInformation("Received new control channel connection from {Peer}.", context.Peer);
-        var clientId = (context.RequestHeaders.Get("client-id")?.Value) ??
-            throw new RpcException(new Status(StatusCode.InvalidArgument, "Client ID is required."));
-        var workerProcess = new GrpcWorkerConnection<ControlMessage>(this, requestStream, responseStream, context);
-        _controlWorkers.GetOrAdd(clientId, workerProcess);
-
-        await this.AttachDanglingRegistrations(clientId).ConfigureAwait(false);
-
-        await workerProcess.Connect().ConfigureAwait(false);
-    }
-
     private ConcurrentDictionary<string, ConcurrentQueue<Func<ValueTask>>> _danglingRequests = new();
     private async Task InvokeOrDeferRegistrationAction(string clientId, Func<ValueTask> action)
     {
