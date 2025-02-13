@@ -83,7 +83,12 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
     component_config_schema = FunctionToolConfig
 
     def __init__(
-        self, func: Callable[..., Any], description: str, name: str | None = None, global_imports: Sequence[Import] = [], strict: bool = False
+        self,
+        func: Callable[..., Any],
+        description: str,
+        name: str | None = None,
+        global_imports: Sequence[Import] = [],
+        strict: bool = False,
     ) -> None:
         self._func = func
         self._global_imports = global_imports

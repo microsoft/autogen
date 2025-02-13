@@ -92,7 +92,9 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
                 type="object",
                 properties=model_schema["properties"],
                 required=model_schema.get("required", []),
-                additionalProperties=model_schema.get("additionalProperties", False),
+                additionalProperties=model_schema.get(
+                    "additionalProperties", False
+                ),  # by default, we don't allow additional properties.
             ),
             strict=self._strict,
         )

@@ -957,6 +957,82 @@ async def test_openai() -> None:
 
 
 @pytest.mark.asyncio
+async def test_openai_structured_output() -> None:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        pytest.skip("OPENAI_API_KEY not found in environment variables")
+
+    class AgentResponse(BaseModel):
+        thoughts: str
+        response: Literal["happy", "sad", "neutral"]
+
+    model_client = OpenAIChatCompletionClient(
+        model="gpt-4o-mini",
+        api_key=api_key,
+        response_format=AgentResponse,  # type: ignore
+    )
+
+    # Test that the openai client was called with the correct response format.
+    create_result = await model_client.create(messages=[UserMessage(content="I am happy.", source="user")])
+    assert isinstance(create_result.content, str)
+    response = AgentResponse.model_validate(json.loads(create_result.content))
+    assert response.thoughts
+    assert response.response in ["happy", "sad", "neutral"]
+
+
+@pytest.mark.asyncio
+async def test_openai_structured_output_with_tool_calls() -> None:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        pytest.skip("OPENAI_API_KEY not found in environment variables")
+
+    class AgentResponse(BaseModel):
+        thoughts: str
+        response: Literal["happy", "sad", "neutral"]
+
+    def sentiment_analysis(text: str) -> str:
+        """Given a text, return the sentiment."""
+        return "happy" if "happy" in text else "sad" if "sad" in text else "neutral"
+
+    tool = FunctionTool(sentiment_analysis, description="Sentiment Analysis", strict=True)
+
+    model_client = OpenAIChatCompletionClient(
+        model="gpt-4o-mini",
+        api_key=api_key,
+        response_format=AgentResponse,  # type: ignore
+    )
+
+    response1 = await model_client.create(
+        messages=[
+            SystemMessage(content="Analyze input text sentiment using the tool provided."),
+            UserMessage(content="I am happy.", source="user"),
+        ],
+        tools=[tool],
+    )
+    assert isinstance(response1.content, list)
+    assert len(response1.content) == 1
+    assert isinstance(response1.content[0], FunctionCall)
+    assert response1.content[0].name == "sentiment_analysis"
+    assert json.loads(response1.content[0].arguments) == {"text": "I am happy."}
+    assert response1.finish_reason == "function_calls"
+
+    response2 = await model_client.create(
+        messages=[
+            SystemMessage(content="Analyze input text sentiment using the tool provided."),
+            UserMessage(content="I am happy.", source="user"),
+            AssistantMessage(content=response1.content, source="assistant"),
+            FunctionExecutionResultMessage(
+                content=[FunctionExecutionResult(content="happy", call_id=response1.content[0].id, is_error=False)]
+            ),
+        ],
+    )
+    assert isinstance(response2.content, str)
+    parsed_response = AgentResponse.model_validate(json.loads(response2.content))
+    assert parsed_response.thoughts
+    assert parsed_response.response in ["happy", "sad", "neutral"]
+
+
+@pytest.mark.asyncio
 async def test_gemini() -> None:
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
