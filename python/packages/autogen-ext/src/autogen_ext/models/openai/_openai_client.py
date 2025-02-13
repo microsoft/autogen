@@ -307,6 +307,7 @@ def convert_tools(
                     parameters=(
                         cast(FunctionParameters, tool_schema["parameters"]) if "parameters" in tool_schema else {}
                     ),
+                    strict=(tool_schema["strict"] if "strict" in tool_schema else False),
                 ),
             )
         )
@@ -977,6 +978,12 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenAIClientConfigurationConfigModel]):
     """Chat completion client for OpenAI hosted models.
 
+    To use this client, you must install the `openai` extra:
+
+    .. code-block:: bash
+
+        pip install "autogen-ext[openai]"
+
     You can also use this client for OpenAI-compatible ChatCompletion endpoints.
     **Using this client for non-OpenAI models is not tested or guaranteed.**
 
@@ -996,7 +1003,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
         max_tokens (optional, int):
         n (optional, int):
         presence_penalty (optional, float):
-        response_format (optional, literal["json_object", "text"]):
+        response_format (optional, literal["json_object", "text"] | pydantic.BaseModel):
         seed (optional, int):
         stop (optional, str | List[str]):
         temperature (optional, float):
@@ -1009,63 +1016,132 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             This can be useful for models that do not support the `name` field in
             message. Defaults to False.
 
+    Examples:
 
-    To use this client, you must install the `openai` extension:
+        The following code snippet shows how to use the client with an OpenAI model:
 
-    .. code-block:: bash
+        .. code-block:: python
 
-        pip install "autogen-ext[openai]"
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_core.models import UserMessage
 
-    The following code snippet shows how to use the client with an OpenAI model:
+            openai_client = OpenAIChatCompletionClient(
+                model="gpt-4o-2024-08-06",
+                # api_key="sk-...", # Optional if you have an OPENAI_API_KEY environment variable set.
+            )
 
-    .. code-block:: python
-
-        from autogen_ext.models.openai import OpenAIChatCompletionClient
-        from autogen_core.models import UserMessage
-
-        openai_client = OpenAIChatCompletionClient(
-            model="gpt-4o-2024-08-06",
-            # api_key="sk-...", # Optional if you have an OPENAI_API_KEY environment variable set.
-        )
-
-        result = await openai_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
-        print(result)
+            result = await openai_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
+            print(result)
 
 
-    To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model info.
-    For example, to use Ollama, you can use the following code snippet:
+        To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model info.
+        For example, to use Ollama, you can use the following code snippet:
 
-    .. code-block:: python
+        .. code-block:: python
 
-        from autogen_ext.models.openai import OpenAIChatCompletionClient
-        from autogen_core.models import ModelFamily
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_core.models import ModelFamily
 
-        custom_model_client = OpenAIChatCompletionClient(
-            model="deepseek-r1:1.5b",
-            base_url="http://localhost:11434/v1",
-            api_key="placeholder",
-            model_info={
-                "vision": False,
-                "function_calling": False,
-                "json_output": False,
-                "family": ModelFamily.R1,
-            },
-        )
+            custom_model_client = OpenAIChatCompletionClient(
+                model="deepseek-r1:1.5b",
+                base_url="http://localhost:11434/v1",
+                api_key="placeholder",
+                model_info={
+                    "vision": False,
+                    "function_calling": False,
+                    "json_output": False,
+                    "family": ModelFamily.R1,
+                },
+            )
 
-    To load the client from a configuration, you can use the `load_component` method:
+        To use structured output as well as function calling, you can use the following code snippet:
 
-    .. code-block:: python
+        .. code-block:: python
 
-        from autogen_core.models import ChatCompletionClient
+            import asyncio
+            from typing import Literal
 
-        config = {
-            "provider": "OpenAIChatCompletionClient",
-            "config": {"model": "gpt-4o", "api_key": "REPLACE_WITH_YOUR_API_KEY"},
-        }
+            from autogen_core.models import (
+                AssistantMessage,
+                FunctionExecutionResult,
+                FunctionExecutionResultMessage,
+                SystemMessage,
+                UserMessage,
+            )
+            from autogen_core.tools import FunctionTool
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from pydantic import BaseModel
 
-        client = ChatCompletionClient.load_component(config)
 
-    To view the full list of available configuration options, see the :py:class:`OpenAIClientConfigurationConfigModel` class.
+            # Define the structured output format.
+            class AgentResponse(BaseModel):
+                thoughts: str
+                response: Literal["happy", "sad", "neutral"]
+
+
+            # Define the function to be called as a tool.
+            def sentiment_analysis(text: str) -> str:
+                \"\"\"Given a text, return the sentiment.\"\"\"
+                return "happy" if "happy" in text else "sad" if "sad" in text else "neutral"
+
+
+            # Create a FunctionTool instance with `strict=True`,
+            # which is required for structured output mode.
+            tool = FunctionTool(sentiment_analysis, description="Sentiment Analysis", strict=True)
+
+            # Create an OpenAIChatCompletionClient instance.
+            model_client = OpenAIChatCompletionClient(
+                model="gpt-4o-mini",
+                response_format=AgentResponse,  # type: ignore
+            )
+
+
+            async def main() -> None:
+                # Generate a response using the tool.
+                response1 = await model_client.create(
+                    messages=[
+                        SystemMessage(content="Analyze input text sentiment using the tool provided."),
+                        UserMessage(content="I am happy.", source="user"),
+                    ],
+                    tools=[tool],
+                )
+                print(response1.content)
+                # Should be a list of tool calls.
+                # [FunctionCall(name="sentiment_analysis", arguments={"text": "I am happy."}, ...)]
+
+                assert isinstance(response1.content, list)
+                response2 = await model_client.create(
+                    messages=[
+                        SystemMessage(content="Analyze input text sentiment using the tool provided."),
+                        UserMessage(content="I am happy.", source="user"),
+                        AssistantMessage(content=response1.content, source="assistant"),
+                        FunctionExecutionResultMessage(
+                            content=[FunctionExecutionResult(content="happy", call_id=response1.content[0].id, is_error=False)]
+                        ),
+                    ],
+                )
+                print(response2.content)
+                # Should be a structured output.
+                # {"thoughts": "The user is happy.", "response": "happy"}
+
+
+            asyncio.run(main())
+
+
+        To load the client from a configuration, you can use the `load_component` method:
+
+        .. code-block:: python
+
+            from autogen_core.models import ChatCompletionClient
+
+            config = {
+                "provider": "OpenAIChatCompletionClient",
+                "config": {"model": "gpt-4o", "api_key": "REPLACE_WITH_YOUR_API_KEY"},
+            }
+
+            client = ChatCompletionClient.load_component(config)
+
+        To view the full list of available configuration options, see the :py:class:`OpenAIClientConfigurationConfigModel` class.
 
     """
 
