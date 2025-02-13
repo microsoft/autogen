@@ -58,6 +58,8 @@ def test_parsing_params(bedrock_client):
         # "aws_secret_access_key": "test_secret_access_key",
         # "aws_session_token": "test_session_token",
         # "aws_profile_name": "test_profile_name",
+        # "aws_read_timeout": 120,
+        # "aws_connect_timeout: 30,
         "model": "anthropic.claude-3-sonnet-20240229-v1:0",
         "temperature": 0.8,
         "topP": 0.6,
