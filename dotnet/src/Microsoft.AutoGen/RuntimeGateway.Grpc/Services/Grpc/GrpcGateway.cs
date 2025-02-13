@@ -112,14 +112,21 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         {
             var clientId = context.RequestHeaders.Get("client-id")?.Value ??
                 throw new RpcException(new Status(StatusCode.InvalidArgument, "Grpc Client ID is required."));
-            if (!_workers.TryGetValue(clientId, out var connection))
-            {
-                throw new RpcException(new Status(StatusCode.InvalidArgument, $"Grpc Worker Connection not found for ClientId {clientId}."));
-            }
-            connection.AddSupportedType(request.Type);
-            _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
 
-            await _gatewayRegistry.RegisterAgentTypeAsync(request, clientId, _reference).ConfigureAwait(true);
+            Func<ValueTask> registerLambda = async () =>
+            {
+                if (!_workers.TryGetValue(clientId, out var connection))
+                {
+                    throw new RpcException(new Status(StatusCode.InvalidArgument, $"Grpc Worker Connection not found for ClientId {clientId}. Retry after you call OpenChannel() first."));
+                }
+                connection.AddSupportedType(request.Type);
+                _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
+
+                await _gatewayRegistry.RegisterAgentTypeAsync(request, clientId, _reference).ConfigureAwait(true);
+            };
+
+            await InvokeOrDeferRegistrationAction(clientId, registerLambda).ConfigureAwait(true);
+
             return new RegisterAgentTypeResponse { };
         }
         catch (Exception ex)
@@ -138,6 +145,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         try
         {
+            // We do not actually need to defer these, since we do not listen to ClientId on this for some reason...
+            // TODO: Fix this
             await _gatewayRegistry.SubscribeAsync(request).ConfigureAwait(true);
             return new AddSubscriptionResponse { };
         }
@@ -157,6 +166,8 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         try
         {
+            // We do not need to defer here because we will never have a guid to send to this unless the deferred
+            // AddSubscription calls were run after a client connection was established.
             await _gatewayRegistry.UnsubscribeAsync(request).ConfigureAwait(true);
             return new RemoveSubscriptionResponse { };
         }
@@ -216,7 +227,36 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             throw new RpcException(new Status(StatusCode.InvalidArgument, "Client ID is required."));
         var workerProcess = new GrpcWorkerConnection(this, requestStream, responseStream, context);
         _workers.GetOrAdd(clientId, workerProcess);
+
+        await this.AttachDanglingRegistrations(clientId).ConfigureAwait(false);
+
         await workerProcess.Connect().ConfigureAwait(false);
+    }
+
+    private ConcurrentDictionary<string, ConcurrentQueue<Func<ValueTask>>> _danglingRequests = new();
+    private async Task InvokeOrDeferRegistrationAction(string clientId, Func<ValueTask> action)
+    {
+        if (_workers.TryGetValue(clientId, out var _))
+        {
+            await action().ConfigureAwait(false);
+        }
+        else
+        {
+            ConcurrentQueue<Func<ValueTask>> danglingRequestQueue = _danglingRequests.GetOrAdd(clientId, _ => new ConcurrentQueue<Func<ValueTask>>());
+            danglingRequestQueue.Enqueue(action);
+        }
+    }
+
+    private async Task AttachDanglingRegistrations(string clientId)
+    {
+        _logger.LogInformation("Attaching dangling registrations for {ClientId}.", clientId);
+        if (_danglingRequests.TryRemove(clientId, out var requests))
+        {
+            foreach (var request in requests)
+            {
+                await request().ConfigureAwait(false);
+            }
+        }
     }
 
     /// <summary>
