@@ -81,6 +81,10 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
+    - name: Setup .NET 9.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
     - name: Restore dependencies
       run: dotnet restore -bl
     - name: Format check
@@ -207,6 +211,10 @@ jobs:
       uses: actions/setup-dotnet@v4
       with:
         dotnet-version: '8.0.x'
+    - name: Setup .NET 9.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
 
     - name: publish AOT testApp, assert static analysis warning count, and run the app
       shell: pwsh
@@ -249,6 +257,10 @@ jobs:
       with:
         dotnet-version: '8.0.x'
         global-json-file: dotnet/global.json
+    - name: Setup .NET 9.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
     - name: Install dev certs
       run:  dotnet --version && dotnet dev-certs https --trust
     - name: Restore dependencies
