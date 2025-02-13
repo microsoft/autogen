@@ -2,7 +2,7 @@ import asyncio
 import functools
 import warnings
 from textwrap import dedent
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Sequence, Tuple, Type
 
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -47,6 +47,8 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
             it does and the context in which it should be called.
         name (str, optional): An optional custom name for the tool. Defaults to
             the function's original name if not provided.
+        return_error_types (Tuple[Type[Exception], ...] | Type[Exception]): Select the error types that are forwarded to the
+            agent. Error types not selected will raise an error. Defaults to forwarding all errors.
 
     Example:
 
@@ -83,7 +85,12 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
     component_config_schema = FunctionToolConfig
 
     def __init__(
-        self, func: Callable[..., Any], description: str, name: str | None = None, global_imports: Sequence[Import] = []
+        self,
+        func: Callable[..., Any],
+        description: str,
+        name: str | None = None,
+        global_imports: Sequence[Import] = [],
+        return_error_types: Tuple[Type[Exception], ...] | Type[Exception] = Exception,
     ) -> None:
         self._func = func
         self._global_imports = global_imports
@@ -93,7 +100,7 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
         return_type = signature.return_annotation
         self._has_cancellation_support = "cancellation_token" in signature.parameters
 
-        super().__init__(args_model, return_type, func_name, description)
+        super().__init__(args_model, return_type, func_name, description, return_error_types)
 
     async def run(self, args: BaseModel, cancellation_token: CancellationToken) -> Any:
         if asyncio.iscoroutinefunction(self._func):
