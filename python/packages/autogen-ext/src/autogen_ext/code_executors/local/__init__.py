@@ -15,7 +15,7 @@ from typing import Any, Callable, ClassVar, List, Optional, Sequence, Union
 from autogen_core import CancellationToken, Component
 from autogen_core.code_executor import CodeBlock, CodeExecutor, FunctionWithRequirements, FunctionWithRequirementsStr
 from pydantic import BaseModel
-from typing_extensions import ParamSpec
+from typing_extensions import ParamSpec, Self
 
 from .._common import (
     PYTHON_VARIANTS,
@@ -383,7 +383,7 @@ $functions"""
         )
 
     @classmethod
-    def _from_config(cls, config: LocalCommandLineCodeExecutorConfig) -> "LocalCommandLineCodeExecutor":
+    def _from_config(cls, config: LocalCommandLineCodeExecutorConfig) -> Self:
         return cls(
             timeout=config.timeout,
             work_dir=Path(config.work_dir),
