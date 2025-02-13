@@ -50,7 +50,7 @@ async def main() -> None:
     await runtime.add_subscription(TypeSubscription(topic_type="agents.Output", agent_type="HelloAgent"))
     agnext_logger.info("3")
 
-    new_message = NewMessageReceived(message="from Python!")
+    new_message = NewMessageReceived(message="Hello from Python!")
     output_message = Output(message="^v^v^v---Wild Hello from Python!---^v^v^v")
 
     await runtime.publish_message(
@@ -61,7 +61,7 @@ async def main() -> None:
     runtime.add_message_serializer(try_get_known_serializers_for_type(Output))
     await runtime.publish_message(
         message=output_message,
-        topic_id=DefaultTopicId("agents.Output", "HelloAgents"),
+        topic_id=DefaultTopicId("HelloTopic", "HelloAgents/python"),
         sender=AgentId("HelloAgents", "python"),
     )
     await runtime.stop_when_signal()
