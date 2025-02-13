@@ -12,9 +12,10 @@ from string import Template
 from types import SimpleNamespace
 from typing import Any, Callable, ClassVar, List, Optional, Sequence, Union
 
-from autogen_core import CancellationToken
+from autogen_core import CancellationToken, Component
 from autogen_core.code_executor import CodeBlock, CodeExecutor, FunctionWithRequirements, FunctionWithRequirementsStr
-from typing_extensions import ParamSpec
+from pydantic import BaseModel
+from typing_extensions import ParamSpec, Self
 
 from .._common import (
     PYTHON_VARIANTS,
@@ -31,7 +32,15 @@ __all__ = ("LocalCommandLineCodeExecutor",)
 A = ParamSpec("A")
 
 
-class LocalCommandLineCodeExecutor(CodeExecutor):
+class LocalCommandLineCodeExecutorConfig(BaseModel):
+    """Configuration for LocalCommandLineCodeExecutor"""
+
+    timeout: int = 60
+    work_dir: str = "."  # Stored as string, converted to Path in _from_config
+    functions_module: str = "functions"
+
+
+class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeExecutorConfig]):
     """A code executor class that executes code through a local command line
     environment.
 
@@ -96,6 +105,9 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
             asyncio.run(example())
 
     """
+
+    component_config_schema = LocalCommandLineCodeExecutorConfig
+    component_provider_override = "autogen_ext.code_executors.local.LocalCommandLineCodeExecutor"
 
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
         "bash",
@@ -356,4 +368,24 @@ $functions"""
         warnings.warn(
             "Restarting local command line code executor is not supported. No action is taken.",
             stacklevel=2,
+        )
+
+    def _to_config(self) -> LocalCommandLineCodeExecutorConfig:
+        if self._functions:
+            logging.info("Functions will not be included in serialized configuration")
+        if self._virtual_env_context:
+            logging.info("Virtual environment context will not be included in serialized configuration")
+
+        return LocalCommandLineCodeExecutorConfig(
+            timeout=self._timeout,
+            work_dir=str(self._work_dir),
+            functions_module=self._functions_module,
+        )
+
+    @classmethod
+    def _from_config(cls, config: LocalCommandLineCodeExecutorConfig) -> Self:
+        return cls(
+            timeout=config.timeout,
+            work_dir=Path(config.work_dir),
+            functions_module=config.functions_module,
         )
