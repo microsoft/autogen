@@ -34,6 +34,11 @@ from autogen_core.models import (
 from autogen_core.tools import Tool, ToolSchema
 from google import genai  # Use google-genai library
 from google.genai import types  # Import types from google.genai
+from google.genai.types import (
+    GenerateContentConfig,
+    GenerateImagesConfig,
+    CreateCachedContentConfig,
+)
 from typing_extensions import Self, Unpack
 
 from . import _model_info
@@ -43,6 +48,7 @@ from .config import (
     VertexAIClientConfiguration,
     VertexAIClientConfigurationConfigModel,
 )
+
 
 logger = logging.getLogger(__name__)
 
@@ -174,7 +180,7 @@ def _prepare_config(
     config: Optional[Union[GenerateContentConfig, GenerateImagesConfig, CreateCachedContentConfig, Dict[str, Any]]] = None,
     create_args: Dict[str, Any] = {},
     extra_create_args: Dict[str, Any] = {},
-    tools: Optional[List[Tool]] = None,
+    tools: Optional[List[types.Tool]] = None,
     response_format: Optional[Dict[str, str]] = None
 ) -> Union[GenerateContentConfig, GenerateImagesConfig, CreateCachedContentConfig]:
     """
@@ -293,7 +299,7 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
         self,
         contents: Union[str, Sequence[Union[str, Image]]],
         *,
-        tools: Sequence[Dict[str, Any]] = [],
+        tools: Sequence[Union[Tool, ToolSchema]] = [],
         json_output: Optional[bool] = None,
         structured_output: Optional[Dict[str, Any]] = None,
         extra_create_args: Mapping[str, Any] = {},
@@ -399,7 +405,7 @@ class BaseGeminiChatCompletionClient(ChatCompletionClient):
         self,
         contents: Union[str, Sequence[Union[str, Image]]],
         *,
-        tools: Sequence[Dict[str, Any]] = [],
+        tools: Sequence[Union[Tool, ToolSchema]] = [],
         json_output: Optional[bool] = None,
         structured_output: Optional[StructuredOutputSchema] = None,
         extra_create_args: Mapping[str, Any] = {},
