@@ -45,8 +45,11 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
         func (Callable[..., ReturnT | Awaitable[ReturnT]]): The function to wrap and expose as a tool.
         description (str): A description to inform the model of the function's purpose, specifying what
             it does and the context in which it should be called.
-        name (str, optional): An optional custom name for the tool. Defaults to
+        name (str, optional): An optional custom name for the tool. Default to
             the function's original name if not provided.
+        strict (bool, optional): If set to True, the tool schema will only contain arguments that are explicitly
+            defined in the function signature, and no default values will be allowed. Default to False.
+            This is required to be set to True when used with models in structured output mode.
 
     Example:
 
