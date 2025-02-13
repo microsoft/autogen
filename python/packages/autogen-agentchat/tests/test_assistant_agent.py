@@ -1,8 +1,7 @@
 import asyncio
 import json
 import logging
-import os
-from typing import Any, AsyncGenerator, List, Literal
+from typing import Any, AsyncGenerator, List
 
 import pytest
 from autogen_agentchat import EVENT_LOGGER_NAME
@@ -19,7 +18,6 @@ from autogen_agentchat.messages import (
     ToolCallRequestEvent,
     ToolCallSummaryMessage,
 )
-from autogen_agentchat.ui import Console
 from autogen_core import ComponentModel, FunctionCall, Image
 from autogen_core.memory import ListMemory, Memory, MemoryContent, MemoryMimeType, MemoryQueryResult
 from autogen_core.model_context import BufferedChatCompletionContext
@@ -45,7 +43,6 @@ from openai.types.chat.chat_completion_message_tool_call import (
     Function,
 )
 from openai.types.completion_usage import CompletionUsage
-from pydantic import BaseModel
 from utils import FileLogHandler
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
