@@ -63,7 +63,7 @@ const RenderToolCall: React.FC<{ content: FunctionCall[] }> = ({ content }) => (
           Calling {call.name} tool with arguments
         </div>
         <TruncatableText
-          content={JSON.stringify(JSON.parse(call.arguments), null, 2)}
+          content={JSON.stringify(call.arguments, null, 2)}
           isJson={true}
           className="text-sm mt-1 bg-secondary p-2 rounded"
         />

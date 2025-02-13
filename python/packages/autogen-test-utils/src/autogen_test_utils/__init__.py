@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from asyncio import Event
 from dataclasses import dataclass
 from typing import Any
 
@@ -15,8 +16,6 @@ from autogen_core import (
     message_handler,
 )
 from pydantic import BaseModel
-
-from asyncio import Event
 
 
 @dataclass
