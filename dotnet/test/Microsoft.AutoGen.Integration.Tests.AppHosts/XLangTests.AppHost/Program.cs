@@ -2,6 +2,9 @@
 // Program.cs
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.Hosting;
+const string pythonHelloAgentPath = "../core_xlang_hello_python_agent";
+const string pythonHelloAgentPy = "hello_python_agent.py";
+const string pythonVEnv = "../../../../python/.venv";
 //Environment.SetEnvironmentVariable("XLANG_TEST_NO_DOTNET", "true");
 //Environment.SetEnvironmentVariable("XLANG_TEST_NO_PYTHON", "true");
 var builder = DistributedApplication.CreateBuilder(args);
@@ -20,7 +23,7 @@ if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("XLANG_TEST_NO_DOTNE
 if (string.IsNullOrEmpty(Environment.GetEnvironmentVariable("XLANG_TEST_NO_PYTHON")))
 {
     // xlang is over http for now - in prod use TLS between containers
-    python = builder.AddPythonApp("HelloAgentTestsPython", "../../../../python/samples/core_xlang_hello_python_agent", "hello_python_agent.py", "../../.venv")
+    python = builder.AddPythonApp("HelloAgentTestsPython", pythonHelloAgentPath, pythonHelloAgentPy, pythonVEnv)
         .WithReference(backend)
         .WithEnvironment("AGENT_HOST", backend.GetEndpoint("http"))
         .WithEnvironment("STAY_ALIVE_ON_GOODBYE", "true")

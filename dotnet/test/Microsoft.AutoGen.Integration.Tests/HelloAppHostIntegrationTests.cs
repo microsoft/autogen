@@ -65,7 +65,7 @@ public class HelloAppHostIntegrationTests(ITestOutputHelper testOutput)
         var expectedMessage = "from Python!";
         var containsExpectedMessage = false;
         app.EnsureNoErrorsLogged();
-        containsExpectedMessage = await app.WaitForExpectedMessageInResourceLogs(DotNetResourceName, expectedMessage, TimeSpan.FromSeconds(120));
+        containsExpectedMessage = await app.WaitForExpectedMessageInResourceLogs(DotNetResourceName, expectedMessage, TimeSpan.FromSeconds(60));
         await app.StopAsync();
 
         //Assert

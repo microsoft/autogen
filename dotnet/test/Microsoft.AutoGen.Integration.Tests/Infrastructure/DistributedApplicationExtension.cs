@@ -1,6 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // DistributedApplicationExtension.cs
 
+using System.Diagnostics;
 using System.Security.Cryptography;
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.Hosting;
@@ -274,8 +275,23 @@ public static partial class DistributedApplicationExtensions
                 }
             }
         }, logWatchCancellation.Token).WaitAsync(timeout);
-        await logWatchTask.ConfigureAwait(true);
-        logWatchCancellation.Cancel();
+        try
+        {
+            await logWatchTask.ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            // Task was cancelled, which means the expected message was found
+        }
+        catch (Exception ex)
+        {
+            if (Debugger.IsAttached) { var logs = app.GetResourceLogs(resourceName); }
+            throw new Exception($"Failed to find expected message '{expectedMessage}' in logs for resource '{resourceName}' within the timeout period.", ex);
+        }
+        finally
+        {
+            logWatchCancellation.Cancel();
+        }
         return containsExpectedMessage;
     }
 
