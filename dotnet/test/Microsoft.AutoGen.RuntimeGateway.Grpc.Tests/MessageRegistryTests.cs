@@ -52,7 +52,7 @@ public class MessageRegistryTests : IClassFixture<ClusterFixture>
         await grain.AddMessageToEventBufferAsync(topic, message);
         // wait 5 seconds
         await Task.Delay(5000);
-        // attemt to remove the topic from the queue
+        // attempt to remove the topic from the queue
         var removedMessages = await grain.RemoveMessagesAsync(topic);
         Assert.Empty(removedMessages);
     }
