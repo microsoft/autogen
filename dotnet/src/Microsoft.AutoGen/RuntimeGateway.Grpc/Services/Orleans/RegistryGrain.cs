@@ -277,6 +277,12 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
         }
         return new(subscriptions);
     }
+
+    public ValueTask UnsubscribeAsync(RemoveSubscriptionr ValueTask, List<Subscription> 1, GetSubscriptionsAsync 2, (GetSubscriptionsRequest request, object) 3)
+    {
+        throw new NotImplementedException();
+    }
+
     private sealed class WorkerState
     {
         public HashSet<string> SupportedTypes { get; set; } = [];
