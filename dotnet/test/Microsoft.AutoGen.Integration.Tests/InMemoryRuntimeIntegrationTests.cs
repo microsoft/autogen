@@ -6,38 +6,26 @@ namespace Microsoft.AutoGen.Integration.Tests;
 
 public class InMemoryRuntimeIntegrationTests(ITestOutputHelper testOutput)
 {
-
-    [Theory, Trait("Category", "Integration")]
-    [MemberData(nameof(AppHostAssemblies))]
-    public async Task HelloAgentsE2EInMemory(string appHostAssemblyPath)
+    [Fact]
+    public async Task HelloAgentsE2EInMemory()
     {
+        // Locate InMemoryTests.AppHost.dll in the test output folder
+        var appHostAssemblyPath = Directory.GetFiles(AppContext.BaseDirectory, "InMemoryTests.AppHost.dll", SearchOption.AllDirectories)
+            .FirstOrDefault()
+            ?? throw new FileNotFoundException("Could not find InMemoryTests.AppHost.dll in the test output folder");
         var appHost = await DistributedApplicationTestFactory.CreateAsync(appHostAssemblyPath, testOutput);
         await using var app = await appHost.BuildAsync().WaitAsync(TimeSpan.FromSeconds(15));
 
+        // Start the application and wait for resources
         await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
         await app.WaitForResourcesAsync().WaitAsync(TimeSpan.FromSeconds(120));
 
-        await app.StartAsync().WaitAsync(TimeSpan.FromSeconds(120));
-        await app.WaitForResourcesAsync().WaitAsync(TimeSpan.FromSeconds(120));
-
-        //sleep 5 seconds to make sure the app is running
-        await Task.Delay(15000);
+        // Sleep 5 seconds to ensure the app is up
+        await Task.Delay(5000);
         app.EnsureNoErrorsLogged();
         app.EnsureLogContains("Hello World");
         app.EnsureLogContains("HelloAgent said Goodbye");
 
         await app.StopAsync().WaitAsync(TimeSpan.FromSeconds(15));
-    }
-    public static TheoryData<string> AppHostAssemblies()
-    {
-        var appHostAssemblies = GetSamplesAppHostAssemblyPaths();
-        var theoryData = new TheoryData<string, bool>();
-        return new(appHostAssemblies.Select(p => Path.GetRelativePath(AppContext.BaseDirectory, p)));
-    }
-    private static IEnumerable<string> GetSamplesAppHostAssemblyPaths()
-    {
-        // All the AppHost projects are referenced by this project so we can find them by looking for all their assemblies in the base directory
-        return Directory.GetFiles(AppContext.BaseDirectory, "HelloAgent.AppHost.dll")
-            .Where(fileName => !fileName.EndsWith("Aspire.Hosting.AppHost.dll", StringComparison.OrdinalIgnoreCase));
     }
 }
