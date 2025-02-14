@@ -9,6 +9,7 @@ using Microsoft.AutoGen.Protobuf;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 namespace Microsoft.AutoGen.Core.Grpc;
 
@@ -17,7 +18,7 @@ public static class AgentsAppBuilderExtensions
     private const string _defaultAgentServiceAddress = "http://localhost:53071";
 
     // TODO: How do we ensure AddGrpcAgentWorker and UseInProcessRuntime are mutually exclusive?
-    public static AgentsAppBuilder AddGrpcAgentWorker(this AgentsAppBuilder builder, string? agentServiceAddress = null)
+    public static AgentsAppBuilder AddGrpcAgentWorker(this AgentsAppBuilder builder, string? agentServiceAddress = null, bool useStrictDeserialiation = false)
     {
         builder.Services.AddGrpcClient<AgentRpc.AgentRpcClient>(options =>
         {
@@ -65,7 +66,16 @@ public static class AgentsAppBuilderExtensions
         });
 
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
-        builder.Services.AddSingleton<IAgentRuntime, GrpcAgentRuntime>();
+        builder.Services.AddSingleton<IAgentRuntime, GrpcAgentRuntime>(
+            (services) =>
+            {
+                return new GrpcAgentRuntime(
+                    services.GetRequiredService<AgentRpc.AgentRpcClient>(),
+                    services.GetRequiredService<IHostApplicationLifetime>(),
+                    services,
+                    services.GetRequiredService<ILogger<GrpcAgentRuntime>>(),
+                    useStrictDeserialiation);
+            });
         builder.Services.AddHostedService<GrpcAgentRuntime>(services =>
         {
             return (services.GetRequiredService<IAgentRuntime>() as GrpcAgentRuntime)!;
