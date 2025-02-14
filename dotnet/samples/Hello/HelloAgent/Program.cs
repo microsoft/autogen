@@ -8,10 +8,9 @@ using Microsoft.AutoGen.Core.Grpc;
 using Samples;
 var appBuilder = new AgentsAppBuilder(); // Create app builder
 // if we are using distributed, we need the AGENT_HOST var defined and then we will use the grpc runtime
-if (Environment.GetEnvironmentVariable("AGENT_HOST") != null)
+if (Environment.GetEnvironmentVariable("AGENT_HOST") is string agentHost)
 {
-    appBuilder.AddGrpcAgentWorker(
-        Environment.GetEnvironmentVariable("AGENT_HOST"))
+    appBuilder.AddGrpcAgentWorker(agentHost)
         .AddAgent<HelloAgent>("HelloAgent");
 }
 else
