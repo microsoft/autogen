@@ -234,6 +234,7 @@ export const TeamNode = memo<NodeProps<CustomNode>>((props) => {
             <TruncatableText
               content={component.description || component.label || ""}
               textThreshold={150}
+              showFullscreen={false}
             />
           </div>
           {isSelectorTeam(component) && component.config.selector_prompt && (
@@ -242,6 +243,7 @@ export const TeamNode = memo<NodeProps<CustomNode>>((props) => {
               <TruncatableText
                 content={component.config.selector_prompt}
                 textThreshold={150}
+                showFullscreen={false}
               />
             </div>
           )}

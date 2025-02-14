@@ -3,10 +3,10 @@ import { Form, Button, Drawer, Breadcrumb } from "antd";
 import { ChevronLeft } from "lucide-react";
 import { Component, ComponentConfig } from "../../../../types/datamodel";
 import { NodeEditorProps } from "../types";
-import NodeEditorFields from "./fields";
 import { isComponent } from "../../../../types/guards";
+import NodeEditorFields from "./fields/fields";
 
-interface EditPath {
+export interface EditPath {
   componentType: string;
   id: string;
   parentField: string;
@@ -48,6 +48,7 @@ export const NodeEditor: React.FC<
             (acc, [key, value]) => {
               // Skip nested component fields as they're handled by buttons
               if (
+                key !== "global_imports" &&
                 typeof value === "object" &&
                 (Array.isArray(value) || value?.component_type)
               ) {
@@ -248,6 +249,7 @@ export const NodeEditor: React.FC<
     <Drawer
       title={
         <div className="flex items-center gap-4">
+          {" "}
           {editPath.length > 0 && (
             <Button
               onClick={navigateBack}
@@ -261,7 +263,7 @@ export const NodeEditor: React.FC<
         </div>
       }
       placement="right"
-      width={400}
+      size="large"
       onClose={onClose}
       open={true}
       className="node-editor-drawer"
@@ -275,9 +277,14 @@ export const NodeEditor: React.FC<
           <NodeEditorFields
             component={currentComponent}
             onNavigate={navigateToComponent}
+            editPath={editPath}
+            workingCopy={workingCopy}
+            setWorkingCopy={setWorkingCopy}
+            updateComponentAtPath={updateComponentAtPath}
+            getCurrentComponent={getCurrentComponent}
           />
         )}
-        <div className="flex justify-end gap-2 mt-4 absolute bottom-0 right-0 left-0 p-4 bg-white border-t">
+        <div className="flex justify-end gap-2 mt-4 absolute bottom-0 right-0 left-0 p-4 bg-primary border-t">
           <Button onClick={onClose}>Cancel</Button>
           <Button type="primary" onClick={handleFormSubmit}>
             Save Changes

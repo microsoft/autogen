@@ -1,11 +1,5 @@
 //team/builder/builder.tsx
-import React, {
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   DndContext,
   useSensor,
@@ -26,7 +20,7 @@ import {
   MiniMap,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Button, Layout, message, Modal, Switch, Tooltip } from "antd";
+import { Button, Layout, message, Switch, Tooltip } from "antd";
 import {
   Cable,
   CheckCircle,
@@ -39,7 +33,7 @@ import {
 } from "lucide-react";
 import { useTeamBuilderStore } from "./store";
 import { ComponentLibrary } from "./library";
-import { ComponentTypes, Team, Session } from "../../../types/datamodel";
+import { ComponentTypes, Team } from "../../../types/datamodel";
 import { CustomNode, CustomEdge, DragItem } from "./types";
 import { edgeTypes, nodeTypes } from "./nodes";
 
@@ -49,11 +43,8 @@ import TeamBuilderToolbar from "./toolbar";
 import { MonacoEditor } from "../../monaco";
 import { NodeEditor } from "./node-editor/node-editor";
 import debounce from "lodash.debounce";
-import { appContext } from "../../../../hooks/provider";
-import { sessionAPI } from "../../playground/api";
 import TestDrawer from "./testdrawer";
-import { teamAPI, validationAPI, ValidationResponse } from "../api";
-import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import { validationAPI, ValidationResponse } from "../api";
 import { ValidationErrors } from "./validationerrors";
 
 const { Sider, Content } = Layout;

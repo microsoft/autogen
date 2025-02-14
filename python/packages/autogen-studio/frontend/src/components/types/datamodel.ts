@@ -77,12 +77,20 @@ export type AgentMessageConfig =
   | ToolCallMessageConfig
   | ToolCallResultMessageConfig;
 
-// Tool Configs
+export interface FromModuleImport {
+  module: string;
+  imports: string[];
+}
+
+// Import can be either a string (direct import) or a FromModuleImport
+export type Import = string | FromModuleImport;
+
+// The complete FunctionToolConfig interface
 export interface FunctionToolConfig {
   source_code: string;
   name: string;
   description: string;
-  global_imports: any[]; // Sequence[Import] equivalent
+  global_imports: Import[];
   has_cancellation_support: boolean;
 }
 

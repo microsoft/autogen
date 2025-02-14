@@ -34,8 +34,7 @@ const PROVIDERS = {
 
   // Models
   OPENAI: "autogen_ext.models.openai.OpenAIChatCompletionClient",
-  AZURE_OPENAI:
-    "autogen_ext.models.azure_openai.AzureOpenAIChatCompletionClient",
+  AZURE_OPENAI: "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
 
   // Tools
   FUNCTION_TOOL: "autogen_core.tools.FunctionTool",
