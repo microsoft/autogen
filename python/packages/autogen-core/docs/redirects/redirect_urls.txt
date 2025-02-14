@@ -351,3 +351,4 @@
 /autogen/docs/reference/agentchat/contrib/vectordb/utils,/autogen/0.2/docs/reference/agentchat/contrib/vectordb/utils
 /autogen/0.4.0dev0/,/autogen/0.4.0.dev0/
 /autogen/0.4.0dev1/,/autogen/0.4.0.dev1/
+/autogen/dotnet/,/autogen/dotnet/dev/

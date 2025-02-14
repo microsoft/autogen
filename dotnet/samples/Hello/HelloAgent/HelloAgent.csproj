@@ -23,6 +23,7 @@
     <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Contracts\Microsoft.AutoGen.Contracts.csproj" />
     <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Core.Grpc\Microsoft.AutoGen.Core.Grpc.csproj" />
     <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Core\Microsoft.AutoGen.Core.csproj" />
+    <ProjectReference Include="..\..\..\src\Microsoft.AutoGen\Core.Grpc\Microsoft.AutoGen.Core.Grpc.csproj" />
   </ItemGroup>
 
   <ItemGroup>
