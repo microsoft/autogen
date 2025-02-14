@@ -3,8 +3,8 @@ import { Form, Button, Drawer, Breadcrumb } from "antd";
 import { ChevronLeft } from "lucide-react";
 import { Component, ComponentConfig } from "../../../../types/datamodel";
 import { NodeEditorProps } from "../types";
-import NodeEditorFields from "./fields";
 import { isComponent } from "../../../../types/guards";
+import NodeEditorFields from "./fields/fields";
 
 export interface EditPath {
   componentType: string;
