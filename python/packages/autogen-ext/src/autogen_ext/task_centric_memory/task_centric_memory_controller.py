@@ -39,7 +39,7 @@ class TaskCentricMemoryController:
         self,
         reset: bool,
         client: ChatCompletionClient,
-        task_assignment_callback: Callable[[str], Awaitable[Tuple[str, str]]] | None,
+        task_assignment_callback: Callable[[str], Awaitable[Tuple[str, str]]] | None = None,
         config: Dict[str, Any] | None = None,
         logger: PageLogger | None = None,
     ) -> None:

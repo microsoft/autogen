@@ -13,7 +13,7 @@ client:
   max_retries: 65535
 
 Apprentice:
-  name_of_agent_or_team: SimpleAgent  # SimpleAgent, MagenticOneGroupChat, etc.
+  name_of_agent_or_team: AssistantAgent  # AssistantAgent or MagenticOneGroupChat
   disable_prefix_caching: 1  # If true, prepends a small random string to the context, to decorrelate repeated runs.
   TaskCentricMemoryController:
     max_train_trials: 10

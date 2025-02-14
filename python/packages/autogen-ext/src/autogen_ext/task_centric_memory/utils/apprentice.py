@@ -5,14 +5,12 @@ from typing import Any, Dict, List, Sequence, Tuple
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import AgentEvent, ChatMessage, TextMessage
-from autogen_agentchat.teams import MagenticOneGroupChat
 from autogen_core.models import (
     ChatCompletionClient,
     LLMMessage,
     SystemMessage,
     UserMessage,
 )
-from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 
 from ..task_centric_memory_controller import TaskCentricMemoryController
 from .page_logger import PageLogger
@@ -51,7 +49,7 @@ class Apprentice:
         self.logger = logger
 
         # Assign default values that can be overridden by config.
-        self.name_of_agent_or_team = "SimpleAgent"
+        self.name_of_agent_or_team = "AssistantAgent"
         self.disable_prefix_caching = False
         memory_controller_config = None
 
@@ -143,15 +141,15 @@ class Apprentice:
         # Pass the task through.
         if self.name_of_agent_or_team == "MagenticOneGroupChat":
             response, work_history = await self._assign_task_to_magentic_one(task)
-        elif self.name_of_agent_or_team == "SimpleAgent":
-            response, work_history = await self._assign_task_to_simple_agent(task)
+        elif self.name_of_agent_or_team == "AssistantAgent":
+            response, work_history = await self._assign_task_to_assistant_agent(task)
         else:
             raise AssertionError("Invalid base agent")
 
         self.logger.leave_function()
         return response, work_history
 
-    async def _assign_task_to_simple_agent(self, task: str) -> Tuple[Any, Any]:
+    async def _assign_task_to_assistant_agent(self, task: str) -> Tuple[Any, Any]:
         """
         Passes the given task to a newly created AssistantAgent with a generic 6-step system prompt.
         """
@@ -185,14 +183,14 @@ In responding to every user message, you follow the same multi-step process give
         user_message_list: List[LLMMessage] = [user_message]
         input_messages: List[LLMMessage] = system_message_list + user_message_list
 
-        simple_agent = AssistantAgent(
-            "simple_agent",
+        assistant_agent = AssistantAgent(
+            "assistant_agent",
             self.client,
             system_message=system_message_content,
         )
 
         # Get the agent's response to the task.
-        task_result: TaskResult = await simple_agent.run(task=TextMessage(content=task, source="User"))
+        task_result: TaskResult = await assistant_agent.run(task=TextMessage(content=task, source="User"))
         messages: Sequence[AgentEvent | ChatMessage] = task_result.messages
         message: AgentEvent | ChatMessage = messages[-1]
         response_str = message.content
@@ -222,6 +220,8 @@ In responding to every user message, you follow the same multi-step process give
             description="A general GPT-4o AI assistant capable of performing a variety of tasks.",
         )
 
+        from autogen_ext.agents.web_surfer import MultimodalWebSurfer
+
         web_surfer = MultimodalWebSurfer(
             name="web_surfer",
             model_client=self.client,
@@ -229,6 +229,8 @@ In responding to every user message, you follow the same multi-step process give
             debug_dir="logs",
             to_save_screenshots=True,
         )
+
+        from autogen_agentchat.teams import MagenticOneGroupChat
 
         team = MagenticOneGroupChat(
             [general_agent, web_surfer],
