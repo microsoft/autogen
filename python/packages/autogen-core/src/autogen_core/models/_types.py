@@ -29,8 +29,8 @@ class UserMessage(BaseModel):
 
     content: Union[str, List[Union[str, Image]]]
 
-    # Name of the agent that sent this message
     source: str
+    """Name of the agent that sent this message."""
 
     type: Literal["UserMessage"] = "UserMessage"
 
@@ -39,9 +39,13 @@ class AssistantMessage(BaseModel):
     """Assistant message are sampled from the language model."""
 
     content: Union[str, List[FunctionCall]]
+    """The output of the model completion."""
 
-    # Name of the agent that sent this message
+    thought: str | None = None
+    """The reasoning text for the completion if available. Used for reasoning model and additional text content besides function calls."""
+
     source: str
+    """Name of the agent that sent this message."""
 
     type: Literal["AssistantMessage"] = "AssistantMessage"
 
