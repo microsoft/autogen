@@ -15,10 +15,18 @@ internal sealed class MessageRegistryGrain(
     private const int _retries = 5;
     private readonly ILogger<MessageRegistryGrain> _logger = logger;
 
-    public async Task WriteMessageAsync(string topic, CloudEvent message)
+    public async Task AddMessageToDeadLetterQueueAsync(string topic, CloudEvent message)
+    {
+        await TryWriteMessageAsync("dlq", topic, message).ConfigureAwait(true);
+    }
+    public async Task AddMessageToEventBufferAsync(string topic, CloudEvent message)
+    {
+        await TryWriteMessageAsync("eb", topic, message).ConfigureAwait(true);
+    }
+    private async ValueTask<bool> TryWriteMessageAsync(string whichQueue, string topic, CloudEvent message)
     {
         var retries = _retries;
-        while (!await WriteMessageAsync(topic, message, state.Etag).ConfigureAwait(false))
+        while (!await WriteMessageAsync(whichQueue,topic, message, state.Etag).ConfigureAwait(false))
         {
             if (retries-- <= 0)
             {
@@ -27,16 +35,29 @@ internal sealed class MessageRegistryGrain(
             _logger.LogWarning("Failed to write MessageRegistryState. Retrying...");
             retries--;
         }
+        if (retries == 0) { return false; } else { return true; }
     }
-    private async ValueTask<bool> WriteMessageAsync(string topic, CloudEvent message, string etag)
+    private async ValueTask<bool> WriteMessageAsync(string whichQueue, string topic, CloudEvent message, string etag)
     {
         if (state.Etag != null && state.Etag != etag)
         {
             return false;
         }
-        var queue = state.State.DeadLetterQueue.GetOrAdd(topic, _ => new());
-        queue.Add(message);
-        state.State.DeadLetterQueue.AddOrUpdate(topic, queue, (_, _) => queue);
+        switch (whichQueue)
+        {
+            case "dlq":
+                var dlqQueue = state.State.DeadLetterQueue.GetOrAdd(topic, _ => new());
+                dlqQueue.Add(message);
+                state.State.DeadLetterQueue.AddOrUpdate(topic, dlqQueue, (_, _) => dlqQueue);
+                break;
+            case "eb":
+                var ebQueue = state.State.EventBuffer.GetOrAdd(topic, _ => new());
+                ebQueue.Add(message);
+                state.State.EventBuffer.AddOrUpdate(topic, ebQueue, (_, _) => ebQueue);
+                break;
+            default:
+                throw new ArgumentException($"Invalid queue name: {whichQueue}");
+        }
         await state.WriteStateAsync().ConfigureAwait(true);
         return true;
     }

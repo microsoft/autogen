@@ -368,7 +368,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                     // we have target agent types that aren't in the supported agent types
                     // could be a race condition or a bug
                     _logger.LogWarning($"Agent type {agentType} is not supported, but registry returned it as subscribed to {evt.Type}/{evt.Source}. Buffering an event to the dead-letter queue.");
-                    await _messageRegistry.WriteMessageAsync(evt.Source, evt).ConfigureAwait(true);
+                    await _messageRegistry.AddMessageToDeadLetterQueueAsync(evt.Source, evt).ConfigureAwait(true);
                 }
             }
             await Task.WhenAll(tasks).ConfigureAwait(false);
@@ -378,7 +378,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             // log that no agent types were found
             _logger.LogWarning("No agent types found for event type {EventType}. Adding to Dead Letter Queue", evt.Type);
             // buffer the event to the dead-letter queue
-            await _messageRegistry.WriteMessageAsync(evt.Source, evt).ConfigureAwait(true);
+            await _messageRegistry.AddMessageToDeadLetterQueueAsync(evt.Source, evt).ConfigureAwait(true);
         }
     }
 

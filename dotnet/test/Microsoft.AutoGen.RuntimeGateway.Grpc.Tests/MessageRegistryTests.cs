@@ -25,7 +25,7 @@ public class MessageRegistryTests : IClassFixture<ClusterFixture>
         var message = new CloudEvent { Id = Guid.NewGuid().ToString(), Source = "test-source", Type = "test-type" };
 
         // Act
-        await grain.WriteMessageAsync(topic, message);
+        await grain.AddMessageToDeadLetterQueueAsync(topic, message);
 
         // Assert
         // attempt to remove the topic from the queue
