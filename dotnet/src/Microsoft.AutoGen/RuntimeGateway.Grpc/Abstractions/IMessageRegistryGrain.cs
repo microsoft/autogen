@@ -10,7 +10,12 @@ public interface IMessageRegistryGrain : IGrainWithIntegerKey
     /// <summary>
     /// Writes a message to the dead-letter queue for the given topic.
     /// </summary>
-    Task WriteMessageAsync(string topic, CloudEvent message);
+    Task AddMessageToDeadLetterQueueAsync(string topic, CloudEvent message);
+
+    /// <summary>
+    /// Writes a message to the event buffer for the given topic.
+    /// </summary>
+    Task AddMessageToEventBufferAsync(string topic, CloudEvent message);
 
     /// <summary>
     /// Removes all messages for the given topic from the dead-letter queue.
