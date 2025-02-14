@@ -21,6 +21,8 @@ class SystemMessage(BaseModel):
     """
 
     content: str
+    """The content of the message."""
+
     type: Literal["SystemMessage"] = "SystemMessage"
 
 
@@ -28,9 +30,10 @@ class UserMessage(BaseModel):
     """User message contains input from end users, or a catch-all for data provided to the model."""
 
     content: Union[str, List[Union[str, Image]]]
+    """The content of the message."""
 
-    # Name of the agent that sent this message
     source: str
+    """The name of the agent that sent this message."""
 
     type: Literal["UserMessage"] = "UserMessage"
 
@@ -39,9 +42,10 @@ class AssistantMessage(BaseModel):
     """Assistant message are sampled from the language model."""
 
     content: Union[str, List[FunctionCall]]
+    """The content of the message."""
 
-    # Name of the agent that sent this message
     source: str
+    """The name of the agent that sent this message."""
 
     type: Literal["AssistantMessage"] = "AssistantMessage"
 
@@ -50,8 +54,13 @@ class FunctionExecutionResult(BaseModel):
     """Function execution result contains the output of a function call."""
 
     content: str
+    """The output of the function call."""
+
     call_id: str
+    """The ID of the function call. Note this ID may be empty for some models."""
+
     is_error: bool | None = None
+    """Whether the function call resulted in an error."""
 
 
 class FunctionExecutionResultMessage(BaseModel):

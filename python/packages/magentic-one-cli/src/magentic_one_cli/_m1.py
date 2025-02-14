@@ -81,7 +81,7 @@ def main() -> None:
         "--config",
         type=str,
         nargs=1,
-        help="The model configuration file to use. Leave empty to print a sample configuration.",
+        help="The model configuration file to use.",
     )
     parser.add_argument("--sample-config", action="store_true", help="Print a sample configuration to console.")
 
