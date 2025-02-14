@@ -18,7 +18,7 @@ public class MessageRegistryState
     public ConcurrentDictionary<string, List<CloudEvent>> DeadLetterQueue { get; set; } = new();
     /// <summary>
     /// A Dictionary of events that have been recently delivered to agents.
-    /// We keep them around for a short time to ensur that anyone subscribing to the topic within the next few seconds has a chance to receive them.
+    /// We keep them around for a short time to ensure that anyone subscribing to the topic within the next few seconds has a chance to receive them.
     /// </summary>
     public ConcurrentDictionary<string, List<CloudEvent>> EventBuffer { get; set; } = new();
 }
