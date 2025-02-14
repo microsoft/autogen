@@ -175,7 +175,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                 var removedMessages = await _messageRegistry.RemoveMessagesAsync(topic);
                 if (removedMessages.Any())
                 {
-                    _logger.LogInformation("Removed {Count} dead-letter messages for topic '{Topic}'.", removedMessages.Count, topic);
+                    _logger.LogInformation("Removed {Count} dead-letter and buffer messages for topic '{Topic}'.", removedMessages.Count, topic);
                     // now that someone is subscribed, dispatch the messages
                     foreach (var message in removedMessages)
                     {
@@ -360,7 +360,11 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                     foreach (var connection in activeConnections)
                     {
                         _logger.LogDebug("Dispatching event {Event} to connection {Connection}, for AgentType {AgentType}.", evt, connection, agentType);
-                        tasks.Add(this.WriteResponseAsync(connection, evt, cancellationToken));
+                        tasks.Add(Task.Run(async () =>
+                        {
+                            await this.WriteResponseAsync(connection, evt, cancellationToken);
+                            await _messageRegistry.AddMessageToEventBufferAsync(evt.Source, evt).ConfigureAwait(true);
+                        }));
                     }
                 }
                 else
@@ -368,7 +372,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                     // we have target agent types that aren't in the supported agent types
                     // could be a race condition or a bug
                     _logger.LogWarning($"Agent type {agentType} is not supported, but registry returned it as subscribed to {evt.Type}/{evt.Source}. Buffering an event to the dead-letter queue.");
-                    await _messageRegistry.WriteMessageAsync(evt.Source, evt).ConfigureAwait(true);
+                    await _messageRegistry.AddMessageToDeadLetterQueueAsync(evt.Source, evt).ConfigureAwait(true);
                 }
             }
             await Task.WhenAll(tasks).ConfigureAwait(false);
@@ -378,7 +382,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
             // log that no agent types were found
             _logger.LogWarning("No agent types found for event type {EventType}. Adding to Dead Letter Queue", evt.Type);
             // buffer the event to the dead-letter queue
-            await _messageRegistry.WriteMessageAsync(evt.Source, evt).ConfigureAwait(true);
+            await _messageRegistry.AddMessageToDeadLetterQueueAsync(evt.Source, evt).ConfigureAwait(true);
         }
     }
 
