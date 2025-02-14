@@ -175,7 +175,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                 var removedMessages = await _messageRegistry.RemoveMessagesAsync(topic);
                 if (removedMessages.Any())
                 {
-                    _logger.LogInformation("Removed {Count} dead-letter messages for topic '{Topic}'.", removedMessages.Count, topic);
+                    _logger.LogInformation("Removed {Count} dead-letter and buffer messages for topic '{Topic}'.", removedMessages.Count, topic);
                     // now that someone is subscribed, dispatch the messages
                     foreach (var message in removedMessages)
                     {
@@ -360,7 +360,11 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                     foreach (var connection in activeConnections)
                     {
                         _logger.LogDebug("Dispatching event {Event} to connection {Connection}, for AgentType {AgentType}.", evt, connection, agentType);
-                        tasks.Add(this.WriteResponseAsync(connection, evt, cancellationToken));
+                        tasks.Add(Task.Run(async () =>
+                        {
+                            await this.WriteResponseAsync(connection, evt, cancellationToken);
+                            await _messageRegistry.AddMessageToEventBufferAsync(evt.Source, evt).ConfigureAwait(true);
+                        }));
                     }
                 }
                 else
