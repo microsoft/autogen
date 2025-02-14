@@ -80,7 +80,7 @@ class BedrockClient:
             signature_version="v4",
             retries={"max_attempts": self._retries, "mode": "standard"},
             read_timeout=self._aws_read_timeout,
-            connect_timeout=self._aws_connect_timeout
+            connect_timeout=self._aws_connect_timeout,
         )
 
         session = boto3.Session(
