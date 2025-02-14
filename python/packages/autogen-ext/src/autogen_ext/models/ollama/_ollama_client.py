@@ -141,7 +141,7 @@ def system_message_to_ollama(message: SystemMessage) -> Message:
 
 
 def _func_args_to_ollama_args(args: str) -> Dict[str, Any]:
-    return json.loads(args)
+    return json.loads(args)  # type: ignore
 
 
 def func_call_to_ollama(message: FunctionCall) -> Message.ToolCall:
@@ -323,7 +323,6 @@ def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
     return KNOWN_STOP_MAPPINGS.get(stop_reason, "unknown")
 
 
-# TODO: need to hook in ollama's flavor of json output
 class BaseOllamaChatCompletionClient(ChatCompletionClient):
     def __init__(
         self,
@@ -904,6 +903,9 @@ class OllamaChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseO
 
         client = ChatCompletionClient.load_component(config)
 
+
+    Note: Tool usage in ollama is stricter than in its OpenAI counterparts. While OpenAI accepts a map of [str, Any], Ollama requires a map of [str, Property] where Property is a typed object containing ``type`` and ``description`` fields. Therefore, only the keys ``type`` and ``description`` will be converted from the properties blob in the tool schema.
+    
     To view the full list of available configuration options, see the :py:class:`OllamaClientConfigurationConfigModel` class.
 
     """
