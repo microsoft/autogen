@@ -15,7 +15,7 @@ internal sealed class MessageRegistryGrain(
     // <summary>
     // The number of times to retry writing the state before giving up.
     // </summary>
-    
+
     private const int _retries = 5;
     /// <summary>
     /// The time to wait before removing a message from the event buffer.
@@ -73,7 +73,7 @@ internal sealed class MessageRegistryGrain(
     private async ValueTask<bool> TryWriteMessageAsync(string whichQueue, string topic, CloudEvent message)
     {
         var retries = _retries;
-        while (!await WriteMessageAsync(whichQueue,topic, message, state.Etag).ConfigureAwait(false))
+        while (!await WriteMessageAsync(whichQueue, topic, message, state.Etag).ConfigureAwait(false))
         {
             if (retries-- <= 0)
             {
