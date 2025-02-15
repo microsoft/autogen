@@ -23,6 +23,43 @@ class TaskCentricMemoryController:
             - max_test_trials: The maximum number of trials to attempt when testing on a task.
             - TaskCentricMemoryBank: A config dict passed to TaskCentricMemoryBank.
         logger: An optional logger. If None, a default logger will be created.
+
+    Installation:
+
+        The `task-centric-memory` extra needs to be installed:
+
+        .. code-block:: bash
+
+            pip install "autogen-ext[task-centric-memory]"
+
+    Example:
+
+        The following code snippet shows how to use this class for the most basic storage and retrieval of memories.:
+
+        .. code-block:: python
+
+            import asyncio
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+            from autogen_ext.task_centric_memory import TaskCentricMemoryController
+            from autogen_ext.task_centric_memory.utils import PageLogger
+
+            async def main() -> None:
+                client = OpenAIChatCompletionClient(model="gpt-4o")
+                page_logger = PageLogger(config={"level": "DEBUG", "path": "~/pagelogs/quickstart"})  # Optional, but very useful.
+                memory_controller = TaskCentricMemoryController(reset=True, client=client, logger=page_logger)
+
+                # Add a few task-insight pairs as memories, where an insight can be any string that may help solve the task.
+                await memory_controller.add_memo(task="What color do I like?", insight="Deep blue is my favorite color")
+                await memory_controller.add_memo(task="What's another color I like?", insight="I really like cyan")
+                await memory_controller.add_memo(task="What's my favorite food?", insight="Halibut is my favorite")
+
+                # Retrieve memories for a new task that's related to only two of the stored memories.
+                memos = await memory_controller.retrieve_relevant_memos(task="What colors do I like most?")
+                print("{} memories retrieved".format(len(memos)))
+                for memo in memos:
+                    print("- " + memo.insight)
+
+            asyncio.run(main())
     """
 
     def __init__(
