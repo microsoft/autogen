@@ -43,9 +43,12 @@ class TaskCentricMemoryController:
             from autogen_ext.task_centric_memory import TaskCentricMemoryController
             from autogen_ext.task_centric_memory.utils import PageLogger
 
+
             async def main() -> None:
                 client = OpenAIChatCompletionClient(model="gpt-4o")
-                page_logger = PageLogger(config={"level": "DEBUG", "path": "~/pagelogs/quickstart"})  # Optional, but very useful.
+                page_logger = PageLogger(
+                    config={"level": "DEBUG", "path": "~/pagelogs/quickstart"}
+                )  # Optional, but very useful.
                 memory_controller = TaskCentricMemoryController(reset=True, client=client, logger=page_logger)
 
                 # Add a few task-insight pairs as memories, where an insight can be any string that may help solve the task.
@@ -58,6 +61,7 @@ class TaskCentricMemoryController:
                 print("{} memories retrieved".format(len(memos)))
                 for memo in memos:
                     print("- " + memo.insight)
+
 
             asyncio.run(main())
     """
