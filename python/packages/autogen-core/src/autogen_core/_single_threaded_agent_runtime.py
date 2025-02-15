@@ -681,6 +681,10 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             runtime = SingleThreadedAgentRuntime()
             runtime.start()
 
+            # ... do other things ...
+
+            await runtime.stop()
+
         """
         if self._run_context is not None:
             raise RuntimeError("Runtime is already started")
@@ -752,6 +756,31 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         *,
         expected_class: type[T] | None = None,
     ) -> AgentType:
+        """Register a factory function for creating agents of an agent type.
+
+        :class:`AgentInstantiationContext` is automatically populated with the runtime and agent id
+        when the factory function is called.
+
+        Args:
+            type (str | AgentType): The type of agent this factory creates.
+                It is not the same as agent class name. The `type` parameter is
+                used to differentiate between different factory functions rather
+                than agent classes.
+            agent_factory (Callable[[], T | Awaitable[T]]): The factory function
+                that creates the agent instance.
+            expected_class (type[T] | None, optional): The expected class of the agent
+                instance created by the factory. If provided, the factory function
+                must return an instance of this class. Defaults to None, which means
+                no check is performed.
+
+        Returns:
+            AgentType: The type of agent that was registered.
+
+        Raises:
+            ValueError: If an agent with the same type already exists.
+            ValueError: If the factory function returns an instance of a different class
+                than the expected class.
+        """
         if isinstance(type, str):
             type = AgentType(type)
 
@@ -765,7 +794,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             else:
                 agent_instance = maybe_agent_instance
 
-            if type_func_alias(agent_instance) != expected_class:
+            if expected_class is not None and type_func_alias(agent_instance) != expected_class:
                 raise ValueError("Factory registered using the wrong type.")
 
             return agent_instance
