@@ -177,6 +177,21 @@ $functions"""
 
         self._virtual_env_context: Optional[SimpleNamespace] = virtual_env_context
 
+        # Check the current event loop policy if on windows.
+        if sys.platform == "win32":
+            current_policy = asyncio.get_event_loop_policy()
+            if hasattr(asyncio, "WindowsProactorEventLoopPolicy") and not isinstance(
+                current_policy, asyncio.WindowsProactorEventLoopPolicy()
+            ):
+                warnings.warn(
+                    "The current event loop policy is not WindowsProactorEventLoopPolicy. "
+                    "This may cause issues with subprocesses. "
+                    "Try setting the event loop policy to WindowsProactorEventLoopPolicy. "
+                    "For example: `asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())`. ",
+                    "See https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.ProactorEventLoop.",
+                    stacklevel=2,
+                )
+
     def format_functions_for_prompt(self, prompt_template: str = FUNCTION_PROMPT_TEMPLATE) -> str:
         """(Experimental) Format the functions for a prompt.
 
@@ -220,21 +235,6 @@ $functions"""
         func_file_content = build_python_functions_file(self._functions)
         func_file = self._work_dir / f"{self._functions_module}.py"
         func_file.write_text(func_file_content)
-
-        # Check the current event loop policy if on windows.
-        if sys.platform == "win32":
-            current_policy = asyncio.get_event_loop_policy()
-            if hasattr(asyncio, "WindowsProactorEventLoopPolicy") and not isinstance(
-                current_policy, asyncio.WindowsProactorEventLoopPolicy()
-            ):
-                warnings.warn(
-                    "The current event loop policy is not WindowsProactorEventLoopPolicy. "
-                    "This may cause issues with subprocesses. "
-                    "Try setting the event loop policy to WindowsProactorEventLoopPolicy. "
-                    "For example: `asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())`. ",
-                    "See https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.ProactorEventLoop.",
-                    stacklevel=2,
-                )
 
         # Collect requirements
         lists_of_packages = [x.python_packages for x in self._functions if isinstance(x, FunctionWithRequirements)]
