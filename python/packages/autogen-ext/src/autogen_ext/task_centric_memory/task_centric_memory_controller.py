@@ -23,16 +23,6 @@ class TaskCentricMemoryController:
             - max_test_trials: The maximum number of trials to attempt when testing on a task.
             - TaskCentricMemoryBank: A config dict passed to TaskCentricMemoryBank.
         logger: An optional logger. If None, a default logger will be created.
-
-    Methods:
-        reset_memory: Resets the memory bank.
-        train_on_task: Repeatedly assigns a task to the agent, and tries to learn from failures by creating useful insights as memories.
-        test_on_task: Assigns a task to the agent, along with any relevant insights retrieved from memory.
-        add_memo: Adds one insight to the memory bank, using the task (if provided) as context.
-        add_task_solution_pair_to_memory: Adds a task-solution pair to the memory bank, to be retrieved together later as a combined insight.
-        retrieve_relevant_memos: Retrieves any memos from memory that seem relevant to the task.
-        assign_task: Assigns a task to the agent, along with any relevant insights/memories.
-        handle_user_message: Handles a user message, extracting any advice and assigning a task to the agent.
     """
 
     def __init__(

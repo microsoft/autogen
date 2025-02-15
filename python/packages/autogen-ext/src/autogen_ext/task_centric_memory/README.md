@@ -22,7 +22,8 @@ Run a basic test to verify that the installation was successful.
 ```python
 import asyncio
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from autogen_ext.task_centric_memory import TaskCentricMemoryController, PageLogger
+from autogen_ext.task_centric_memory import TaskCentricMemoryController
+from autogen_ext.task_centric_memory.utils import PageLogger
 
 
 async def main() -> None:

@@ -26,11 +26,6 @@ class Grader:
     Args:
         client: The client to call the model.
         logger: An optional logger. If None, no logging will be performed.
-
-    Methods:
-        test_apprentice: Tests the apprentice on the given task.
-        call_model: Calls the model with the given input and returns the response.
-        is_response_correct: Determines whether the response is equivalent to the task's correct answer.
     """
 
     def __init__(self, client: ChatCompletionClient, logger: PageLogger | None = None) -> None:

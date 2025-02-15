@@ -22,15 +22,6 @@ class Prompter:
     Args:
         client: The client to call the model.
         logger: An optional logger. If None, no logging will be performed.
-
-    Methods:
-        call_model: Calls the model client with the given input and returns the response.
-        learn_from_failure: Tries to create an insight to help avoid the given failure in the future.
-        find_index_topics: Returns a list of topics related to the given string.
-        generalize_task: Attempts to rewrite a task description in a more general form.
-        validate_insight: Judges whether the insight could help solve the task.
-        extract_task: Returns a task found in the given text, or None if not found.
-        extract_advice: Returns advice from the given text, or None if not found.
     """
 
     def __init__(self, client: ChatCompletionClient, logger: PageLogger | None = None) -> None:

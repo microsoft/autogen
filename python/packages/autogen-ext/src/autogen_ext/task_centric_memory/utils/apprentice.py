@@ -12,7 +12,6 @@ from autogen_core.models import (
     UserMessage,
 )
 
-from ..task_centric_memory_controller import TaskCentricMemoryController
 from .page_logger import PageLogger
 
 
@@ -29,13 +28,6 @@ class Apprentice:
             - disable_prefix_caching: True to disable prefix caching by prepending random ints to the first message.
             - TaskCentricMemoryController: A config dict passed to TaskCentricMemoryController.
         logger: An optional logger. If None, a default logger will be created.
-
-    Methods:
-        reset_memory: Resets the memory bank.
-        assign_task: Assigns a task to the agent, along with any relevant insights/memories.
-        handle_user_message: Handles a user message, extracting any advice and assigning a task to the agent.
-        add_task_solution_pair_to_memory: Adds a task-solution pair to the memory bank, to be retrieved together later as a combined insight.
-        train_on_task: Repeatedly assigns a task to the completion agent, and tries to learn from failures by creating useful insights as memories.
     """
 
     def __init__(
@@ -71,6 +63,8 @@ class Apprentice:
             self.rand.seed(int(time.time() * 1000))
 
         # Create the TaskCentricMemoryController, which creates the TaskCentricMemoryBank.
+        from ..task_centric_memory_controller import TaskCentricMemoryController
+
         self.memory_controller = TaskCentricMemoryController(
             reset=True,
             client=self.client,

@@ -55,21 +55,6 @@ class PageLogger:
         - config: An optional dict that can be used to override the following values:
             - level: The logging level, one of DEBUG, INFO, WARNING, ERROR, CRITICAL, or NONE.
             - path: The path to the directory where the log files will be written.
-
-    Methods:
-        debug: Adds DEBUG text to the current page if debugging level <= DEBUG.
-        info: Adds INFO text to the current page if debugging level <= INFO.
-        warning: Adds WARNING text to the current page if debugging level <= WARNING.
-        error: Adds ERROR text to the current page if debugging level <= ERROR.
-        critical: Adds CRITICAL text to the current page if debugging level <= CRITICAL.
-        log_message_content: Adds a page containing the message's content, including any images.
-        log_model_call: Logs messages sent to a model and the CreateResult response to a new page.
-        log_model_task: Logs messages sent to a model and the TaskResult response to a new page.
-        log_link_to_local_file: Returns a link to a local file in the log.
-        add_link_to_image: Inserts a thumbnail link to an image to the page.
-        flush: Writes the current state of the log to disk.
-        enter_function: Adds a new page corresponding to the current function call.
-        leave_function: Finishes the page corresponding to the current function call.
     """
 
     def __init__(self, config: Dict[str, Any] | None = None) -> None:
@@ -439,10 +424,6 @@ class Page:
         indent_level: The level of indentation in the call tree.
         show_in_call_tree: Whether to display the page in the call tree.
         finished: Whether the page is complete.
-
-    Methods:
-        add_lines: Adds one or more lines to the page.
-        flush: Writes the HTML
     """
 
     def __init__(
@@ -503,13 +484,6 @@ class Page:
 class PageStack:
     """
     A call stack containing a list of currently active function pages in the order they called each other.
-
-    Methods:
-        push: Adds a page to the top of the stack.
-        pop: Removes and returns the top page from the stack.
-        top: Returns the top page from the stack without removing it.
-        size: Returns the number of pages in the stack.
-        write_stack_to_page: Logs a properly indented string displaying the current call stack
     """
 
     def __init__(self) -> None:

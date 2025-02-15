@@ -29,14 +29,6 @@ class TaskCentricMemoryBank:
             - n_results: The maximum number of most relevant results to return for any given topic.
             - distance_threshold: The maximum string-pair distance for a memo to be retrieved.
         - logger: An optional logger. If None, no logging will be performed.
-
-    Methods:
-        - reset: Forces immediate deletion of all contents, in memory and on disk.
-        - save_memos: Saves the current memo structures (possibly empty) to disk.
-        - contains_memos: Returns True if the memory bank contains any memos.
-        - add_memo: Adds a memo to the memory bank, given topics related to the insight, and optionally the task.
-        - add_task_with_solution: Adds a task-insight pair to the memory bank, to be retrieved together later.
-        - get_relevant_memos: Returns any memos from the memory bank that appear sufficiently relevant to the input topics.
     """
 
     def __init__(

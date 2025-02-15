@@ -5,7 +5,8 @@ from typing import Any, Dict, Set
 from autogen_core.models import (
     ChatCompletionClient,
 )
-from autogen_ext.task_centric_memory import TaskCentricMemoryController, PageLogger
+from autogen_ext.task_centric_memory import TaskCentricMemoryController
+from autogen_ext.task_centric_memory.utils import PageLogger
 from utils import create_oai_client, load_yaml_file
 
 

@@ -23,12 +23,6 @@ class StringSimilarityMap:
         - reset: True to clear the DB immediately after creation.
         - path_to_db_dir: Path to the directory where the DB is stored.
         - logger: An optional logger. If None, no logging will be performed.
-
-    Methods:
-        - add_input_output_pair: Adds one input-output string pair to the DB.
-        - get_related_string_pairs: Retrieves up to n string pairs related to the given query text within the specified distance threshold.
-        - reset_db: Forces immediate deletion of the DB's contents, in memory and on disk.
-        - save_string_pairs: Saves the string-pair dict to disk.
     """
 
     def __init__(self, reset: bool, path_to_db_dir: str, logger: PageLogger | None = None) -> None:
