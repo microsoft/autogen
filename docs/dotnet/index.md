@@ -24,6 +24,13 @@ _disableAffix: true
       <div class="card-body">
         <h5 class="card-title">Core</h5>
         <p class="card-text">An event-driven programming framework for building scalable multi-agent AI systems.</p>
+<p>
+- Deterministic and dynamic agentic workflows for business processes
+- Research on multi-agent collaboration
+- Distributed agents for multi-language applications
+- integration with event-driven, cloud native applications
+- Start here if you are building workflows or distributed agent systems
+</p>
         <a href="core/index.md" class="btn btn-primary">Get started</a>
       </div>
     </div>
