@@ -45,6 +45,105 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
+The code above could be added to any app or agent.
+
+The following code shows one way to incorporate task-centric memory directly into an AutoGen agent.
+
+```python
+
+import asyncio
+from dataclasses import dataclass
+from typing import List
+
+from autogen_core import AgentId, MessageContext, RoutedAgent, SingleThreadedAgentRuntime, message_handler
+from autogen_core.models import ChatCompletionClient, LLMMessage, SystemMessage, UserMessage
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from autogen_ext.task_centric_memory import TaskCentricMemoryController
+from autogen_ext.task_centric_memory.utils import PageLogger
+
+
+@dataclass
+class Message:
+    content: str
+
+
+class MemoryEnabledAgent(RoutedAgent):
+    def __init__(
+        self, description: str, model_client: ChatCompletionClient, memory_controller: TaskCentricMemoryController
+    ) -> None:
+        super().__init__(description)
+        self._model_client = model_client
+        self._memory_controller = memory_controller
+
+    @message_handler
+    async def handle_message(self, message: Message, context: MessageContext) -> Message:
+        # Retrieve relevant memories for the task.
+        memos = await self._memory_controller.retrieve_relevant_memos(task=message.content)
+
+        # Format the memories for the model.
+        formatted_memos = "Info that may be useful:\n" + "\n".join(["- " + memo.insight for memo in memos])
+        print(f"{'-'*23}Text appended to the user message{'-'*24}\n{formatted_memos}\n{'-'*80}")
+
+        # Create the messages for the model with the retrieved memories.
+        messages: List[LLMMessage] = [
+            SystemMessage(content="You are a helpful assistant."),
+            UserMessage(content=message.content, source="user"),
+            UserMessage(content=formatted_memos, source="user"),
+        ]
+
+        # Call the model with the messages.
+        model_result = await self._model_client.create(messages=messages)
+        assert isinstance(model_result.content, str)
+
+        # Send the model's response to the user.
+        return Message(content=model_result.content)
+
+
+async def main() -> None:
+    client = OpenAIChatCompletionClient(model="gpt-4o")
+    page_logger = PageLogger(config={"level": "DEBUG", "path": "~/pagelogs/quickstart2"})  # Optional, but very useful.
+    memory_controller = TaskCentricMemoryController(reset=True, client=client, logger=page_logger)
+
+    # Prepopulate memory to mimic learning from a prior session.
+    await memory_controller.add_memo(task="What color do I like?", insight="Deep blue is my favorite color")
+    await memory_controller.add_memo(task="What's another color I like?", insight="I really like cyan")
+    await memory_controller.add_memo(task="What's my favorite food?", insight="Halibut is my favorite")
+
+    # Create and start an agent runtime.
+    runtime = SingleThreadedAgentRuntime()
+    runtime.start()
+
+    # Register the agent type.
+    await MemoryEnabledAgent.register(
+        runtime,
+        "memory_enabled_agent",
+        lambda: MemoryEnabledAgent(
+            "A agent with memory", model_client=client, memory_controller=memory_controller
+        ),
+    )
+
+    # Send a direct message to the agent.
+    request = "What colors do I like most?"
+    print("User request: " + request)
+    response = await runtime.send_message(
+        Message(content=request), AgentId("memory_enabled_agent", "default")
+    )
+    print("Agent response: " + response.content)
+
+    # Stop the agent runtime.
+    await runtime.stop()
+
+
+asyncio.run(main())
+```
+
+## Sample Code
+
+The example above modifies the agent's code.
+But it's also possible to add task-centric memory to an agent or multi-agent team _without_ modifying any agent code.
+See the [sample code](../../../../../samples/task_centric_memory) for that and other forms of fast, memory-based learning.
+
+
 ## Architecture
 
 <p align="right">
@@ -98,11 +197,3 @@ When the agent is given a task, the following steps are performed by the control
 
 Retrieved insights that pass the filtering steps are listed under a heading like
 "Important insights that may help solve tasks like this", then appended to the task description before it is passed to the agent as usual.
-
-## Sample Code
-
-We provide [sample code](../../../../../samples/task_centric_memory) to illustrate the following forms of fast, memory-based learning:
-* Direct memory storage and retrieval
-* Learning from user advice and corrections
-* Learning from user demonstrations
-* Learning from the agent's own experience
