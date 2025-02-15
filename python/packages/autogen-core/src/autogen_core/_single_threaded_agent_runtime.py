@@ -762,31 +762,6 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         *,
         expected_class: type[T] | None = None,
     ) -> AgentType:
-        """Register a factory function for creating agents of an agent type.
-
-        :class:`AgentInstantiationContext` is automatically populated with the runtime and agent id
-        when the factory function is called.
-
-        Args:
-            type (str | AgentType): The type of agent this factory creates.
-                It is not the same as agent class name. The `type` parameter is
-                used to differentiate between different factory functions rather
-                than agent classes.
-            agent_factory (Callable[[], T | Awaitable[T]]): The factory function
-                that creates the agent instance.
-            expected_class (type[T] | None, optional): The expected class of the agent
-                instance created by the factory. If provided, the factory function
-                must return an instance of this class. Defaults to None, which means
-                no check is performed.
-
-        Returns:
-            AgentType: The type of agent that was registered.
-
-        Raises:
-            ValueError: If an agent with the same type already exists.
-            ValueError: If the factory function returns an instance of a different class
-                than the expected class.
-        """
         if isinstance(type, str):
             type = AgentType(type)
 
