@@ -676,14 +676,20 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         .. code-block:: python
 
+            import asyncio
             from autogen_core import SingleThreadedAgentRuntime
 
-            runtime = SingleThreadedAgentRuntime()
-            runtime.start()
 
-            # ... do other things ...
+            async def main() -> None:
+                runtime = SingleThreadedAgentRuntime()
+                runtime.start()
 
-            await runtime.stop()
+                # ... do other things ...
+
+                await runtime.stop()
+
+
+            asyncio.run(main())
 
         """
         if self._run_context is not None:

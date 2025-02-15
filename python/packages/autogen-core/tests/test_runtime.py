@@ -48,8 +48,10 @@ async def test_agent_type_register_factory() -> None:
     with pytest.raises(ValueError):
         # This should fail because the expected class does not match the actual class.
         await runtime.register_factory(
-            type=AgentType("name1"), agent_factory=agent_factory, expected_class=CascadingAgent
-        )  # type: ignore
+            type=AgentType("name1"),
+            agent_factory=agent_factory,  # type: ignore
+            expected_class=CascadingAgent,
+        )
 
     # Without expected_class, no error.
     await runtime.register_factory(type=AgentType("name2"), agent_factory=agent_factory)
