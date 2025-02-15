@@ -11,6 +11,7 @@ from autogen_core.models import (
     ModelFamily,
     ModelInfo,
     RequestUsage,
+    validate_model_info,
 )
 from autogen_core.tools import BaseTool, Tool, ToolSchema
 from semantic_kernel.connectors.ai.chat_completion_client_base import ChatCompletionClientBase
@@ -261,6 +262,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         self._model_info = model_info or ModelInfo(
             vision=False, function_calling=False, json_output=False, family=ModelFamily.UNKNOWN
         )
+        validate_model_info(self._model_info)
         self._total_prompt_tokens = 0
         self._total_completion_tokens = 0
         self._tools_plugin: Optional[KernelPlugin] = None
