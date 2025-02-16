@@ -178,6 +178,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
 
             class MyAgent(RoutedAgent):
+                def __init__(self):
+                    super().__init__("MyAgent")
+
                 @message_handler
                 async def handle_my_message(self, message: MyMessage, ctx: MessageContext) -> None:
                     print(f"Received message: {message.content}")
@@ -221,6 +224,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             # The agent is subscribed to the default topic.
             @default_subscription
             class MyAgent(RoutedAgent):
+                def __init__(self):
+                    super().__init__("MyAgent")
+
                 @message_handler
                 async def handle_my_message(self, message: MyMessage, ctx: MessageContext) -> None:
                     print(f"Received message: {message.content}")
