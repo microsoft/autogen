@@ -6,7 +6,7 @@ from autogen_ext.runtimes.grpc import GrpcWorkerAgentRuntime
 async def main() -> None:
     runtime = GrpcWorkerAgentRuntime(host_address="localhost:50051")
     runtime.add_message_serializer(try_get_known_serializers_for_type(CascadingMessage))
-    runtime.start()
+    await runtime.start()
     await ObserverAgent.register(runtime, "observer_agent", lambda: ObserverAgent())
     await runtime.publish_message(CascadingMessage(round=1), topic_id=DefaultTopicId())
     await runtime.stop_when_signal()

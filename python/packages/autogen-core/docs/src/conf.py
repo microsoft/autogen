@@ -131,6 +131,7 @@ html_theme_options = {
     },
     "show_version_warning_banner": True,
     "external_links": [
+      {"name": ".NET", "url": "https://microsoft.github.io/autogen/dotnet/"},
       {"name": "0.2 Docs", "url": "https://microsoft.github.io/autogen/0.2/"},
     ]
 }

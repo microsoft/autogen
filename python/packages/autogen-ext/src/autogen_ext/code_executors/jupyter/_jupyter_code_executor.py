@@ -8,6 +8,9 @@ from dataclasses import dataclass
 from pathlib import Path
 from types import TracebackType
 
+from autogen_core import Component
+from pydantic import BaseModel
+
 if sys.version_info >= (3, 11):
     from typing import Self
 else:
@@ -18,6 +21,7 @@ from autogen_core.code_executor import CodeBlock, CodeExecutor, CodeResult
 from nbclient import NotebookClient
 from nbformat import NotebookNode
 from nbformat import v4 as nbformat
+from typing_extensions import Self
 
 from .._common import silence_pip
 
@@ -29,7 +33,15 @@ class JupyterCodeResult(CodeResult):
     output_files: list[Path]
 
 
-class JupyterCodeExecutor(CodeExecutor):
+class JupyterCodeExecutorConfig(BaseModel):
+    """Configuration for JupyterCodeExecutor"""
+
+    kernel_name: str = "python3"
+    timeout: int = 60
+    output_dir: str = "."
+
+
+class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
     """A code executor class that executes code statefully using [nbclient](https://github.com/jupyter/nbclient).
 
     .. danger::
@@ -112,6 +124,9 @@ class JupyterCodeExecutor(CodeExecutor):
         timeout (int): The timeout for code execution, by default 60.
         output_dir (Path): The directory to save output files, by default ".".
     """
+
+    component_config_schema = JupyterCodeExecutorConfig
+    component_provider_override = "autogen_ext.code_executors.jupyter.JupyterCodeExecutor"
 
     def __init__(
         self,
@@ -261,3 +276,14 @@ class JupyterCodeExecutor(CodeExecutor):
         exc_tb: TracebackType | None,
     ) -> None:
         await self.stop()
+
+    def _to_config(self) -> JupyterCodeExecutorConfig:
+        """Convert current instance to config object"""
+        return JupyterCodeExecutorConfig(
+            kernel_name=self._kernel_name, timeout=self._timeout, output_dir=str(self._output_dir)
+        )
+
+    @classmethod
+    def _from_config(cls, config: JupyterCodeExecutorConfig) -> Self:
+        """Create instance from config object"""
+        return cls(kernel_name=config.kernel_name, timeout=config.timeout, output_dir=Path(config.output_dir))

@@ -110,3 +110,8 @@ cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-core/tests/pr
 
 [[tool.poe.tasks.gen-test-proto.sequence]]
 cmd = "python -m grpc_tools.protoc --python_out=./packages/autogen-ext/tests/protos --grpc_python_out=./packages/autogen-ext/tests/protos --mypy_out=./packages/autogen-ext/tests/protos --mypy_grpc_out=./packages/autogen-ext/tests/protos --proto_path ./packages/autogen-core/tests/protos serialization_test.proto"
+
+[tool.pytest.ini_options]
+markers = [
+    "grpc: tests invoking gRPC functionality",
+]
