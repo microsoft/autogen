@@ -39,12 +39,9 @@ internal sealed class MessageRegistryGrain(
     {
         await TryWriteMessageAsync("eb", topic, message).ConfigureAwait(true);
         // Schedule the removal task to run in the background after bufferTime
-        _ = Task.Delay(_bufferTime)
-            .ContinueWith(
-                async _ => await RemoveMessage(topic, message),
-                TaskScheduler.Current
-            );
+        RemoveMessageAfterDelay(topic, message).Ignore();
     }
+
     /// <summary>
     /// remove a specific message from the buffer for a given topic
     /// </summary>
@@ -64,6 +61,17 @@ internal sealed class MessageRegistryGrain(
         }
         return false;
     }
+
+    /// <summary>
+    /// remove a specific message from the buffer for a given topic after a delay
+    /// </summary>
+    /// <param name="topic"></param>
+    /// <param name="message"></param>
+    private async Task RemoveMessageAfterDelay(string topic, CloudEvent message)  
+    {  
+        await Task.Delay(_bufferTime);  
+        await RemoveMessage(topic, message);  
+    }  
 
     /// <summary>
     /// Tries to write a message to the given queue in Orleans state.
