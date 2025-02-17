@@ -92,7 +92,7 @@ internal sealed class TestGrpcWorkerConnection : IAsyncDisposable
                     default:
                         // if it wasn't recognized return bad request
                         throw new RpcException(new Status(StatusCode.InvalidArgument, $"Unknown message type for message '{message}'"));
-                };
+                }
             }
         }
         catch (OperationCanceledException)

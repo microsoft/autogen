@@ -33,6 +33,31 @@ def tracer_provider() -> TracerProvider:
 
 
 @pytest.mark.asyncio
+async def test_agent_type_register_factory() -> None:
+    runtime = SingleThreadedAgentRuntime()
+
+    def agent_factory() -> NoopAgent:
+        id = AgentInstantiationContext.current_agent_id()
+        assert id == AgentId("name1", "default")
+        agent = NoopAgent()
+        assert agent.id == id
+        return agent
+
+    await runtime.register_factory(type=AgentType("name1"), agent_factory=agent_factory, expected_class=NoopAgent)
+
+    with pytest.raises(ValueError):
+        # This should fail because the expected class does not match the actual class.
+        await runtime.register_factory(
+            type=AgentType("name1"),
+            agent_factory=agent_factory,  # type: ignore
+            expected_class=CascadingAgent,
+        )
+
+    # Without expected_class, no error.
+    await runtime.register_factory(type=AgentType("name2"), agent_factory=agent_factory)
+
+
+@pytest.mark.asyncio
 async def test_agent_type_must_be_unique() -> None:
     runtime = SingleThreadedAgentRuntime()
 

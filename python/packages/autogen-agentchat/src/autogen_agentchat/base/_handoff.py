@@ -53,4 +53,4 @@ class Handoff(BaseModel):
         def _handoff_tool() -> str:
             return self.message
 
-        return FunctionTool(_handoff_tool, name=self.name, description=self.description)
+        return FunctionTool(_handoff_tool, name=self.name, description=self.description, strict=True)
