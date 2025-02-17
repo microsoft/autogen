@@ -723,7 +723,7 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
             else:
                 agent_instance = maybe_agent_instance
 
-            if type_func_alias(agent_instance) != expected_class:
+            if expected_class is not None and type_func_alias(agent_instance) != expected_class:
                 raise ValueError("Factory registered using the wrong type.")
 
             return agent_instance

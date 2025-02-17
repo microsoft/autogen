@@ -47,6 +47,7 @@ from autogen_core.models import (
     SystemMessage,
     TopLogprob,
     UserMessage,
+    validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
 from openai import AsyncAzureOpenAI, AsyncOpenAI
@@ -384,6 +385,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             self._model_info = info
         elif model_capabilities is None and model_info is not None:
             self._model_info = model_info
+
+        # Validate model_info, check if all required fields are present
+        validate_model_info(self._model_info)
 
         self._resolved_model: Optional[str] = None
         if "model" in create_args:
