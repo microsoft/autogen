@@ -67,11 +67,11 @@ internal sealed class MessageRegistryGrain(
     /// </summary>
     /// <param name="topic"></param>
     /// <param name="message"></param>
-    private async Task RemoveMessageAfterDelay(string topic, CloudEvent message)  
-    {  
-        await Task.Delay(_bufferTime);  
-        await RemoveMessage(topic, message);  
-    }  
+    private async Task RemoveMessageAfterDelay(string topic, CloudEvent message)
+    {
+        await Task.Delay(_bufferTime);
+        await RemoveMessage(topic, message);
+    }
 
     /// <summary>
     /// Tries to write a message to the given queue in Orleans state.
