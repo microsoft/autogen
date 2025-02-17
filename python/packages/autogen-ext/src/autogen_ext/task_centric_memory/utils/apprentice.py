@@ -1,6 +1,6 @@
 import random
 import time
-from typing import Any, Dict, List, Sequence, Tuple
+from typing import TYPE_CHECKING, Any, List, Sequence, Tuple, TypedDict
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base import TaskResult
@@ -14,6 +14,17 @@ from autogen_core.models import (
 
 from .page_logger import PageLogger
 
+if TYPE_CHECKING:
+    from ..task_centric_memory_controller import TaskCentricMemoryControllerConfig
+
+
+# Following the nested-config pattern, this TypedDict minimizes code changes by encapsulating
+# the settings that change frequently, as when loading many settings from a single YAML file.
+class ApprenticeConfig(TypedDict, total=False):
+    name_of_agent_or_team: str
+    disable_prefix_caching: bool
+    TaskCentricMemoryController: "TaskCentricMemoryControllerConfig"
+
 
 class Apprentice:
     """
@@ -23,39 +34,33 @@ class Apprentice:
 
     Args:
         client: The client to call the model.
-        - config: An optional dict that can be used to override the following values:
+        config: An optional dict that can be used to override the following values:
+
             - name_of_agent_or_team: The name of the target agent or team for assigning tasks to.
             - disable_prefix_caching: True to disable prefix caching by prepending random ints to the first message.
             - TaskCentricMemoryController: A config dict passed to TaskCentricMemoryController.
+
         logger: An optional logger. If None, a default logger will be created.
     """
 
     def __init__(
         self,
         client: ChatCompletionClient,
-        config: Dict[str, Any] | None = None,
+        config: ApprenticeConfig | None = None,
         logger: PageLogger | None = None,
     ) -> None:
         if logger is None:
             logger = PageLogger({"level": "DEBUG"})
         self.logger = logger
 
-        # Assign default values that can be overridden by config.
+        # Apply default settings and any config overrides.
         self.name_of_agent_or_team = "AssistantAgent"
         self.disable_prefix_caching = False
         memory_controller_config = None
-
         if config is not None:
-            # Apply any overrides from the config.
-            for key in config:
-                if key == "name_of_agent_or_team":
-                    self.name_of_agent_or_team = config[key]
-                elif key == "disable_prefix_caching":
-                    self.disable_prefix_caching = config[key]
-                elif key == "TaskCentricMemoryController":
-                    memory_controller_config = config[key]
-                else:
-                    self.logger.error('Unexpected item in config: ["{}"] = {}'.format(key, config[key]))
+            self.name_of_agent_or_team = config.get("name_of_agent_or_team", self.name_of_agent_or_team)
+            self.disable_prefix_caching = config.get("disable_prefix_caching", self.disable_prefix_caching)
+            memory_controller_config = config.get("TaskCentricMemoryController", memory_controller_config)
 
         self.client = client
         if self.disable_prefix_caching:

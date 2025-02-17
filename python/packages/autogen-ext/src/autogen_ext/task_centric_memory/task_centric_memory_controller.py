@@ -1,4 +1,4 @@
-from typing import Any, Awaitable, Callable, Dict, List, Tuple
+from typing import TYPE_CHECKING, Awaitable, Callable, List, Tuple, TypedDict
 
 from autogen_core.models import (
     ChatCompletionClient,
@@ -6,33 +6,44 @@ from autogen_core.models import (
 
 from ._prompter import Prompter
 from ._task_centric_memory_bank import Memo, TaskCentricMemoryBank
+
+if TYPE_CHECKING:
+    from ._task_centric_memory_bank import TaskCentricMemoryBankConfig
 from .utils.grader import Grader
 from .utils.page_logger import PageLogger
 
 
+# Following the nested-config pattern, this TypedDict minimizes code changes by encapsulating
+# the settings that change frequently, as when loading many settings from a single YAML file.
+class TaskCentricMemoryControllerConfig(TypedDict, total=False):
+    max_train_trials: int
+    max_test_trials: int
+    TaskCentricMemoryBank: "TaskCentricMemoryBankConfig"
+
+
 class TaskCentricMemoryController:
     """
-    Manages memory-based learning, testing, and the flow of information to and from the memory bank.
+    Implements fast, memory-based learning, and manages the flow of information to and from a memory bank.
 
     Args:
-        reset: True to clear the memory bank before starting.
-        client: The client to call the model.
-        task_assignment_callback: The callback to assign a task to the agent.
-        - config: An optional dict that can be used to override the following values:
-            - max_train_trials: The maximum number of trials to attempt when training on a task.
-            - max_test_trials: The maximum number of trials to attempt when testing on a task.
+        reset: True to empty the memory bank before starting.
+        client: The model client to use internally.
+        task_assignment_callback: An optional callback used to assign a task to any agent managed by the caller.
+        config: An optional dict that can be used to override the following values:
+
+            - max_train_trials: The maximum number of learning iterations to attempt when training on a task.
+            - max_test_trials: The total number of attempts made when testing for failure on a task.
             - TaskCentricMemoryBank: A config dict passed to TaskCentricMemoryBank.
+
         logger: An optional logger. If None, a default logger will be created.
 
-    Installation:
+    Example:
 
-        The `task-centric-memory` extra needs to be installed:
+        The `task-centric-memory` extra first needs to be installed:
 
         .. code-block:: bash
 
             pip install "autogen-ext[task-centric-memory]"
-
-    Example:
 
         The following code snippet shows how to use this class for the most basic storage and retrieval of memories.:
 
@@ -71,7 +82,7 @@ class TaskCentricMemoryController:
         reset: bool,
         client: ChatCompletionClient,
         task_assignment_callback: Callable[[str], Awaitable[Tuple[str, str]]] | None = None,
-        config: Dict[str, Any] | None = None,
+        config: TaskCentricMemoryControllerConfig | None = None,
         logger: PageLogger | None = None,
     ) -> None:
         if logger is None:
@@ -79,22 +90,14 @@ class TaskCentricMemoryController:
         self.logger = logger
         self.logger.enter_function()
 
-        # Assign default values that can be overridden by config.
+        # Apply default settings and any config overrides.
         self.max_train_trials = 10
         self.max_test_trials = 3
         memory_bank_config = None
-
         if config is not None:
-            # Apply any overrides from the config.
-            for key in config:
-                if key == "max_train_trials":
-                    self.max_train_trials = config[key]
-                elif key == "max_test_trials":
-                    self.max_test_trials = config[key]
-                elif key == "TaskCentricMemoryBank":
-                    memory_bank_config = config[key]
-                else:
-                    self.logger.error('Unexpected item in config: ["{}"] = {}'.format(key, config[key]))
+            self.max_train_trials = config.get("max_train_trials", self.max_train_trials)
+            self.max_test_trials = config.get("max_test_trials", self.max_test_trials)
+            memory_bank_config = config.get("TaskCentricMemoryBank", memory_bank_config)
 
         self.client = client
         self.task_assignment_callback = task_assignment_callback
@@ -105,7 +108,7 @@ class TaskCentricMemoryController:
 
     def reset_memory(self) -> None:
         """
-        Resets the memory bank.
+        Empties the memory bank in RAM and on disk.
         """
         self.memory_bank.reset()
 
@@ -125,7 +128,7 @@ class TaskCentricMemoryController:
 
     async def test_on_task(self, task: str, expected_answer: str, num_trials: int = 1) -> Tuple[str, int, int]:
         """
-        Assigns a task to the agent, along with any relevant insights retrieved from memory.
+        Assigns a task to the agent, along with any relevant memos retrieved from memory.
         """
         self.logger.enter_function()
         assert self.task_assignment_callback is not None
@@ -199,7 +202,7 @@ class TaskCentricMemoryController:
     async def add_task_solution_pair_to_memory(self, task: str, solution: str) -> None:
         """
         Adds a task-solution pair to the memory bank, to be retrieved together later as a combined insight.
-        This is useful when the insight is a demonstration of how to solve a given type of task.
+        This is useful when the task-solution pair is an exemplar of solving a task related to some other task.
         """
         self.logger.enter_function()
 
@@ -370,7 +373,7 @@ class TaskCentricMemoryController:
 
     async def assign_task(self, task: str, use_memory: bool = True, should_await: bool = True) -> str:
         """
-        Assigns a task to the agent, along with any relevant insights/memories.
+        Assigns a task to some agent through the task_assignment_callback, along with any relevant memories.
         """
         self.logger.enter_function()
 
@@ -397,7 +400,7 @@ class TaskCentricMemoryController:
 
     async def handle_user_message(self, text: str, should_await: bool = True) -> str:
         """
-        Handles a user message, extracting any advice and assigning a task to the agent.
+        Handles a user message by extracting any advice as an insight to be stored in memory, and then calling assign_task().
         """
         self.logger.enter_function()
 

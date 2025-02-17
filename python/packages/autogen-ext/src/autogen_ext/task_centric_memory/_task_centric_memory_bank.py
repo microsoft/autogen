@@ -1,7 +1,7 @@
 import os
 import pickle
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, TypedDict
 
 from ._string_similarity_map import StringSimilarityMap
 from .utils.page_logger import PageLogger
@@ -17,24 +17,35 @@ class Memo:
     insight: str  # A hint, solution, plan, or any other text that may help solve a similar task.
 
 
+# Following the nested-config pattern, this TypedDict minimizes code changes by encapsulating
+# the settings that change frequently, as when loading many settings from a single YAML file.
+class TaskCentricMemoryBankConfig(TypedDict, total=False):
+    path: str
+    relevance_conversion_threshold: float
+    n_results: int
+    distance_threshold: int
+
+
 class TaskCentricMemoryBank:
     """
     Stores task-completion insights as memories in a vector DB for later retrieval.
 
     Args:
-        - reset: True to clear the DB before starting.
-        - config: An optional dict that can be used to override the following values:
+        reset: True to clear the DB before starting.
+        config: An optional dict that can be used to override the following values:
+
             - path: The path to the directory where the memory bank files are stored.
             - relevance_conversion_threshold: The threshold used to normalize relevance.
             - n_results: The maximum number of most relevant results to return for any given topic.
             - distance_threshold: The maximum string-pair distance for a memo to be retrieved.
-        - logger: An optional logger. If None, no logging will be performed.
+
+        logger: An optional logger. If None, no logging will be performed.
     """
 
     def __init__(
         self,
         reset: bool,
-        config: Dict[str, Any] | None = None,
+        config: TaskCentricMemoryBankConfig | None = None,
         logger: PageLogger | None = None,
     ) -> None:
         if logger is None:
@@ -42,26 +53,20 @@ class TaskCentricMemoryBank:
         self.logger = logger
         self.logger.enter_function()
 
-        # Assign default values that can be overridden by config.
-        memory_dir_path = os.path.expanduser("~/task_centric_memory/temp")
+        # Apply default settings and any config overrides.
+        memory_dir_path = "~/task_centric_memory/temp"
         self.relevance_conversion_threshold = 1.7
         self.n_results = 25
         self.distance_threshold = 100
-
         if config is not None:
-            # Apply any overrides from the config.
-            for key in config:
-                if key == "path":
-                    memory_dir_path = os.path.expanduser(config[key])
-                elif key == "relevance_conversion_threshold":
-                    self.relevance_conversion_threshold = config[key]
-                elif key == "n_results":
-                    self.n_results = config[key]
-                elif key == "distance_threshold":
-                    self.distance_threshold = config[key]
-                else:
-                    self.logger.error('Unexpected item in config: ["{}"] = {}'.format(key, config[key]))
+            memory_dir_path = config.get("path", memory_dir_path)
+            self.relevance_conversion_threshold = config.get(
+                "relevance_conversion_threshold", self.relevance_conversion_threshold
+            )
+            self.n_results = config.get("n_results", self.n_results)
+            self.distance_threshold = config.get("distance_threshold", self.distance_threshold)
 
+        memory_dir_path = os.path.expanduser(memory_dir_path)
         path_to_db_dir = os.path.join(memory_dir_path, "string_map")
         self.path_to_dict = os.path.join(memory_dir_path, "uid_memo_dict.pkl")
 

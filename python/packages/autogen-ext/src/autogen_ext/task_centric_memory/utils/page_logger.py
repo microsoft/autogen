@@ -2,7 +2,7 @@ import inspect
 import json
 import os
 import shutil
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Dict, List, Optional, Sequence, TypedDict
 
 from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import AgentEvent, ChatMessage
@@ -47,17 +47,25 @@ def _html_closing() -> str:
     return """</body></html>"""
 
 
+# Following the nested-config pattern, this TypedDict minimizes code changes by encapsulating
+# the settings that change frequently, as when loading many settings from a single YAML file.
+class PageLoggerConfig(TypedDict, total=False):
+    level: str
+    path: str
+
+
 class PageLogger:
     """
     Logs text and images to a set of HTML pages, one per function/method, linked to each other in a call tree.
 
     Args:
-        - config: An optional dict that can be used to override the following values:
+        config: An optional dict that can be used to override the following values:
+
             - level: The logging level, one of DEBUG, INFO, WARNING, ERROR, CRITICAL, or NONE.
             - path: The path to the directory where the log files will be written.
     """
 
-    def __init__(self, config: Dict[str, Any] | None = None) -> None:
+    def __init__(self, config: PageLoggerConfig | None = None) -> None:
         self.levels = {
             "DEBUG": 10,
             "INFO": 20,
@@ -67,21 +75,16 @@ class PageLogger:
             "NONE": 100,
         }
 
-        # Assign default values that can be overridden by config.
-        self.level = self.levels["NONE"]  # Default to no logging at all.
-        self.log_dir = os.path.expanduser("~/pagelogs/temp")
-
+        # Apply default settings and any config overrides.
+        level_str = "NONE"  # Default to no logging at all.
+        self.log_dir = "~/pagelogs/temp"
         if config is not None:
-            # Apply any overrides from the config.
-            for key in config:
-                if key == "level":
-                    self.level = self.levels[config[key]]
-                elif key == "path":
-                    self.log_dir = os.path.expanduser(config[key])
-                else:
-                    raise ValueError(f"Unknown key in PageLogger config: {key}")
+            level_str = config.get("level", level_str)
+            self.log_dir = config.get("path", self.log_dir)
+        self.level = self.levels[level_str]
+        self.log_dir = os.path.expanduser(self.log_dir)
 
-        # If the log level is set to NONE or higher, don't log anything.
+        # If the logging level is set to NONE or higher, don't log anything.
         if self.level >= self.levels["NONE"]:
             return
 
