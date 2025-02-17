@@ -47,7 +47,9 @@ dotnet add package Microsoft.AutoGen.AgentHost
 
 # other optional packages
 dotnet add package Microsoft.AutoGen.Agents
-dotnet add package Microsoft.AutoGen.Extensions
+dotnet add package Microsoft.AutoGen.Extensions.Aspire
+dotnet add package Microsoft.AutoGen.Extensions.MEAI
+dotnet add package Microsoft.AutoGen.Extensions.SemanticKernel
 ```
 
 </pre></div></p>
