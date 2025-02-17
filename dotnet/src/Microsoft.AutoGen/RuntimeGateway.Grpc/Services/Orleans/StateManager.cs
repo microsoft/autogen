@@ -72,4 +72,3 @@ internal sealed class StateManager(IStorage state)
         }
     }
 }
- 
