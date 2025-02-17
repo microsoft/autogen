@@ -183,6 +183,7 @@ def create_default_gallery() -> Gallery:
         model_client=base_model,
         tools=[tools.calculator_tool],
     )
+
     builder.add_agent(
         calc_assistant.dump_component(), description="An agent that provides assistance with ability to use tools."
     )
@@ -200,8 +201,23 @@ def create_default_gallery() -> Gallery:
     calc_team = RoundRobinGroupChat(participants=[calc_assistant], termination_condition=calc_or_term)
     builder.add_team(
         calc_team.dump_component(),
-        label="Default Team",
+        label="RoundRobin Team",
         description="A single AssistantAgent (with a calculator tool) in a RoundRobinGroupChat team. ",
+    )
+
+    critic_agent = AssistantAgent(
+        name="critic_agent",
+        system_message="You are a helpful assistant. Critique the assistant's output and suggest improvements.",
+        description="an agent that critiques and improves the assistant's output",
+        model_client=base_model,
+    )
+    selector_default_team = SelectorGroupChat(
+        participants=[calc_assistant, critic_agent], termination_condition=calc_or_term, model_client=base_model
+    )
+    builder.add_team(
+        selector_default_team.dump_component(),
+        label="Selector Team",
+        description="A team with 2 agents - an AssistantAgent (with a calculator tool) and a CriticAgent in a SelectorGroupChat team.",
     )
 
     # Create web surfer agent

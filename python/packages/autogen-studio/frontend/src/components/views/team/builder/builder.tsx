@@ -27,7 +27,16 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { Button, Layout, message, Modal, Switch, Tooltip } from "antd";
-import { Cable, Code2, Download, PlayCircle, Save } from "lucide-react";
+import {
+  Cable,
+  CheckCircle,
+  CircleX,
+  Code2,
+  Download,
+  ListCheck,
+  PlayCircle,
+  Save,
+} from "lucide-react";
 import { useTeamBuilderStore } from "./store";
 import { ComponentLibrary } from "./library";
 import { ComponentTypes, Team, Session } from "../../../types/datamodel";
@@ -43,6 +52,9 @@ import debounce from "lodash.debounce";
 import { appContext } from "../../../../hooks/provider";
 import { sessionAPI } from "../../playground/api";
 import TestDrawer from "./testdrawer";
+import { teamAPI, validationAPI, ValidationResponse } from "../api";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import { ValidationErrors } from "./validationerrors";
 
 const { Sider, Content } = Layout;
 interface DragItemData {
@@ -76,6 +88,10 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
   const [activeDragItem, setActiveDragItem] = useState<DragItemData | null>(
     null
   );
+  const [validationResults, setValidationResults] =
+    useState<ValidationResponse | null>(null);
+
+  const [validationLoading, setValidationLoading] = useState(false);
 
   const [testDrawerVisible, setTestDrawerVisible] = useState(false);
 
@@ -145,6 +161,12 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
       setNodes(initialNodes);
       setEdges(initialEdges);
     }
+    handleValidate();
+
+    return () => {
+      console.log("cleanup component");
+      setValidationResults(null);
+    };
   }, [team, setNodes, setEdges]);
 
   // Handle JSON changes
@@ -167,8 +189,31 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
   useEffect(() => {
     return () => {
       handleJsonChange.cancel();
+      setValidationResults(null);
     };
   }, [handleJsonChange]);
+
+  const handleValidate = useCallback(async () => {
+    const component = syncToJson();
+    if (!component) {
+      throw new Error("Unable to generate valid configuration");
+    }
+
+    try {
+      setValidationLoading(true);
+      const validationResult = await validationAPI.validateComponent(component);
+
+      setValidationResults(validationResult);
+      // if (validationResult.is_valid) {
+      //   messageApi.success("Validation successful");
+      // }
+    } catch (error) {
+      console.error("Validation error:", error);
+      messageApi.error("Validation failed");
+    } finally {
+      setValidationLoading(false);
+    }
+  }, [syncToJson]);
 
   // Handle save
   const handleSave = useCallback(async () => {
@@ -291,6 +336,8 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
     setTestDrawerVisible(false);
   };
 
+  const teamValidated = validationResults && validationResults.is_valid;
+
   const onDragStart = (item: DragItem) => {
     // We can add any drag start logic here if needed
   };
@@ -303,6 +350,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
   return (
     <div>
       {contextHolder}
+
       <div className="flex gap-2 text-xs rounded border-dashed border p-2 mb-2 items-center">
         <div className="flex-1">
           <Switch
@@ -319,36 +367,16 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
               <Code2 className="w-3 h-3 mt-1 inline-block mr-1" />
             </div>
           />
-          {isJsonMode ? (
-            "JSON "
-          ) : (
-            <>
-              Visual builder{" "}
-              {/* <span className="text-xs text-orange-500  border border-orange-400 rounded-lg px-2 mx-1">
-              {" "}
-              experimental{" "}
-            </span> */}
-            </>
-          )}{" "}
-          mode{" "}
-          <span className="text-xs text-orange-500 ml-1 underline">
-            {" "}
-            (experimental)
-          </span>
+          {isJsonMode ? "View JSON" : <>Visual Builder</>}{" "}
         </div>
+
         <div>
-          <Tooltip title="Test Team">
-            <Button
-              type="primary"
-              icon={<PlayCircle size={18} />}
-              className="p-1.5 mr-2 px-2.5 hover:bg-primary/10 rounded-md text-primary/75 hover:text-primary"
-              onClick={() => {
-                setTestDrawerVisible(true);
-              }}
-            >
-              Test Team
-            </Button>
-          </Tooltip>
+          {validationResults && !validationResults.is_valid && (
+            <div className="inline-block mr-2">
+              {" "}
+              <ValidationErrors validation={validationResults} />
+            </div>
+          )}
           <Tooltip title="Download Team">
             <Button
               type="text"
@@ -382,6 +410,59 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
               onClick={handleSave}
               // disabled={!isDirty}
             />
+          </Tooltip>
+
+          <Tooltip
+            title=<div>
+              Validate Team
+              {validationResults && (
+                <div className="text-xs text-center my-1">
+                  {teamValidated ? (
+                    <span>
+                      <CheckCircle className="w-3 h-3 text-green-500 inline-block mr-1" />
+                      success
+                    </span>
+                  ) : (
+                    <div className="">
+                      <CircleX className="w-3 h-3 text-red-500 inline-block mr-1" />
+                      errors
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          >
+            <Button
+              type="text"
+              loading={validationLoading}
+              icon={
+                <div className="relative">
+                  <ListCheck size={18} />
+                  {validationResults && (
+                    <div
+                      className={` ${
+                        teamValidated ? "bg-green-500" : "bg-red-500"
+                      } absolute top-0 right-0 w-2 h-2  rounded-full`}
+                    ></div>
+                  )}
+                </div>
+              }
+              className="p-1.5 hover:bg-primary/10 rounded-md text-primary/75 hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleValidate}
+            />
+          </Tooltip>
+
+          <Tooltip title="Run Team">
+            <Button
+              type="primary"
+              icon={<PlayCircle size={18} />}
+              className="p-1.5 ml-2 px-2.5 hover:bg-primary/10 rounded-md text-primary/75 hover:text-primary"
+              onClick={() => {
+                setTestDrawerVisible(true);
+              }}
+            >
+              Run
+            </Button>
           </Tooltip>
         </div>
       </div>

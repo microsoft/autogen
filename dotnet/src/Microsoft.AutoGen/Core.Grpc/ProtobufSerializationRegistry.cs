@@ -28,10 +28,7 @@ public class ProtobufSerializationRegistry : IProtoSerializationRegistry
 
     public void RegisterSerializer(Type type, IProtobufMessageSerializer serializer)
     {
-        if (_serializers.ContainsKey(TypeNameResolver.ResolveTypeName(type)))
-        {
-            throw new InvalidOperationException($"Serializer already registered for {type.FullName}");
-        }
+        _serializers.TryAdd(TypeNameResolver.ResolveTypeName(type), serializer);
         _serializers[TypeNameResolver.ResolveTypeName(type)] = serializer;
     }
 }
