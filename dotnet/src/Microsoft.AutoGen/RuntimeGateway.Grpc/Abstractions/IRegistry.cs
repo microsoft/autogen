@@ -19,16 +19,15 @@ public interface IRegistry
     /// <param name="request">The subscription request.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     /// <remarks>removing CancellationToken from here as it is not compatible with Orleans Serialization</remarks>
-    /// <remarks>removing CancellationToken from here as it is not compatible with Orleans Serialization</remarks>
     ValueTask SubscribeAsync(AddSubscriptionRequest request);
 
     /// <summary>
     /// Unsubscribes an agent from a topic.
     /// </summary>
     /// <param name="request">The unsubscription request.</param>
-    /// <returns>A task representing the asynchronous operation.</retur/// <remarks>removing CancellationToken from here as it is not compatible with Orleans Serialization</remarks>
+    /// <returns>A task representing the asynchronous operation.</returns>
     /// <remarks>removing CancellationToken from here as it is not compatible with Orleans Serialization</remarks>
-    ValueTask UnsubscribeAsync(RemoveSubscriptionRequest request); // TODO: This should have its own request type.equest r // TODO: This should have its own request type.equest); // TODO: This should have its own request type.
+    ValueTask UnsubscribeAsync(RemoveSubscriptionRequest request);  // TODO: This should have its own request type.
 
     /// <summary>
     /// Gets the subscriptions for a specified agent type.
