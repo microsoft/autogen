@@ -277,6 +277,7 @@ internal sealed class RegistryGrain([PersistentState("state", "AgentRegistryStor
         }
         return new(subscriptions);
     }
+
     private sealed class WorkerState
     {
         public HashSet<string> SupportedTypes { get; set; } = [];
