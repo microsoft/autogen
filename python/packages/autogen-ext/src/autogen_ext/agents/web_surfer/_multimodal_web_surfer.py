@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import hashlib
 import io
@@ -5,8 +6,10 @@ import json
 import logging
 import os
 import re
+import sys
 import time
 import traceback
+import warnings
 from typing import (
     Any,
     AsyncGenerator,
@@ -112,6 +115,18 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         Please note that using the MultimodalWebSurfer involves interacting with a digital world designed for humans, which carries inherent risks.
         Be aware that agents may occasionally attempt risky actions, such as recruiting humans for help or accepting cookie agreements without human involvement. Always ensure agents are monitored and operate within a controlled environment to prevent unintended consequences.
         Moreover, be cautious that MultimodalWebSurfer may be susceptible to prompt injection attacks from webpages.
+
+    .. note::
+
+        On Windows, the event loop policy must be set to `WindowsProactorEventLoopPolicy` to avoid issues with subprocesses.
+
+        .. code-block:: python
+
+            import sys
+            import asyncio
+
+            if sys.platform == "win32":
+                asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
     Args:
         name (str): The name of the agent.
@@ -277,6 +292,22 @@ class MultimodalWebSurfer(BaseChatAgent, Component[MultimodalWebSurferConfig]):
         """
         On the first call, we initialize the browser and the page.
         """
+
+        # Check the current event loop policy if on windows.
+        if sys.platform == "win32":
+            current_policy = asyncio.get_event_loop_policy()
+            if hasattr(asyncio, "WindowsProactorEventLoopPolicy") and not isinstance(
+                current_policy, asyncio.WindowsProactorEventLoopPolicy
+            ):
+                warnings.warn(
+                    "The current event loop policy is not WindowsProactorEventLoopPolicy. "
+                    "This may cause issues with subprocesses. "
+                    "Try setting the event loop policy to WindowsProactorEventLoopPolicy. "
+                    "For example: `asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())`. "
+                    "See https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.ProactorEventLoop.",
+                    stacklevel=2,
+                )
+
         self._last_download = None
         self._prior_metadata_hash = None
 

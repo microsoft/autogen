@@ -198,6 +198,18 @@ async def test_openai_chat_completion_client() -> None:
 
 
 @pytest.mark.asyncio
+async def test_openai_chat_completion_client_with_gemini_model() -> None:
+    client = OpenAIChatCompletionClient(model="gemini-1.5-flash", api_key="api_key")
+    assert client
+
+
+@pytest.mark.asyncio
+async def test_openai_chat_completion_client_raise_on_unknown_model() -> None:
+    with pytest.raises(ValueError, match="model_info is required"):
+        _ = OpenAIChatCompletionClient(model="unknown", api_key="api_key")
+
+
+@pytest.mark.asyncio
 async def test_custom_model_with_capabilities() -> None:
     with pytest.raises(ValueError, match="model_info is required"):
         client = OpenAIChatCompletionClient(model="dummy_model", base_url="https://api.dummy.com/v0", api_key="api_key")
@@ -337,7 +349,7 @@ async def test_openai_chat_completion_client_count_tokens(monkeypatch: pytest.Mo
             ],
             source="user",
         ),
-        FunctionExecutionResultMessage(content=[FunctionExecutionResult(content="Hello", call_id="1")]),
+        FunctionExecutionResultMessage(content=[FunctionExecutionResult(content="Hello", call_id="1", is_error=False)]),
     ]
 
     def tool1(test: str, test2: str) -> str:
@@ -890,7 +902,7 @@ async def _test_model_client_with_function_calling(model_client: OpenAIChatCompl
     messages.append(AssistantMessage(content=create_result.content, source="assistant"))
     messages.append(
         FunctionExecutionResultMessage(
-            content=[FunctionExecutionResult(content="passed", call_id=create_result.content[0].id)]
+            content=[FunctionExecutionResult(content="passed", call_id=create_result.content[0].id, is_error=False)]
         )
     )
     create_result = await model_client.create(messages=messages)
@@ -920,8 +932,8 @@ async def _test_model_client_with_function_calling(model_client: OpenAIChatCompl
     messages.append(
         FunctionExecutionResultMessage(
             content=[
-                FunctionExecutionResult(content="passed", call_id=create_result.content[0].id),
-                FunctionExecutionResult(content="failed", call_id=create_result.content[1].id),
+                FunctionExecutionResult(content="passed", call_id=create_result.content[0].id, is_error=False),
+                FunctionExecutionResult(content="failed", call_id=create_result.content[1].id, is_error=True),
             ]
         )
     )
@@ -945,6 +957,82 @@ async def test_openai() -> None:
 
 
 @pytest.mark.asyncio
+async def test_openai_structured_output() -> None:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        pytest.skip("OPENAI_API_KEY not found in environment variables")
+
+    class AgentResponse(BaseModel):
+        thoughts: str
+        response: Literal["happy", "sad", "neutral"]
+
+    model_client = OpenAIChatCompletionClient(
+        model="gpt-4o-mini",
+        api_key=api_key,
+        response_format=AgentResponse,  # type: ignore
+    )
+
+    # Test that the openai client was called with the correct response format.
+    create_result = await model_client.create(messages=[UserMessage(content="I am happy.", source="user")])
+    assert isinstance(create_result.content, str)
+    response = AgentResponse.model_validate(json.loads(create_result.content))
+    assert response.thoughts
+    assert response.response in ["happy", "sad", "neutral"]
+
+
+@pytest.mark.asyncio
+async def test_openai_structured_output_with_tool_calls() -> None:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        pytest.skip("OPENAI_API_KEY not found in environment variables")
+
+    class AgentResponse(BaseModel):
+        thoughts: str
+        response: Literal["happy", "sad", "neutral"]
+
+    def sentiment_analysis(text: str) -> str:
+        """Given a text, return the sentiment."""
+        return "happy" if "happy" in text else "sad" if "sad" in text else "neutral"
+
+    tool = FunctionTool(sentiment_analysis, description="Sentiment Analysis", strict=True)
+
+    model_client = OpenAIChatCompletionClient(
+        model="gpt-4o-mini",
+        api_key=api_key,
+        response_format=AgentResponse,  # type: ignore
+    )
+
+    response1 = await model_client.create(
+        messages=[
+            SystemMessage(content="Analyze input text sentiment using the tool provided."),
+            UserMessage(content="I am happy.", source="user"),
+        ],
+        tools=[tool],
+    )
+    assert isinstance(response1.content, list)
+    assert len(response1.content) == 1
+    assert isinstance(response1.content[0], FunctionCall)
+    assert response1.content[0].name == "sentiment_analysis"
+    assert json.loads(response1.content[0].arguments) == {"text": "I am happy."}
+    assert response1.finish_reason == "function_calls"
+
+    response2 = await model_client.create(
+        messages=[
+            SystemMessage(content="Analyze input text sentiment using the tool provided."),
+            UserMessage(content="I am happy.", source="user"),
+            AssistantMessage(content=response1.content, source="assistant"),
+            FunctionExecutionResultMessage(
+                content=[FunctionExecutionResult(content="happy", call_id=response1.content[0].id, is_error=False)]
+            ),
+        ],
+    )
+    assert isinstance(response2.content, str)
+    parsed_response = AgentResponse.model_validate(json.loads(response2.content))
+    assert parsed_response.thoughts
+    assert parsed_response.response in ["happy", "sad", "neutral"]
+
+
+@pytest.mark.asyncio
 async def test_gemini() -> None:
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
@@ -952,14 +1040,6 @@ async def test_gemini() -> None:
 
     model_client = OpenAIChatCompletionClient(
         model="gemini-1.5-flash",
-        api_key=api_key,
-        base_url="https://generativelanguage.googleapis.com/v1beta/openai/",
-        model_info={
-            "function_calling": True,
-            "json_output": True,
-            "vision": True,
-            "family": ModelFamily.GEMINI_1_5_FLASH,
-        },
     )
     await _test_model_client_basic_completion(model_client)
     await _test_model_client_with_function_calling(model_client)

@@ -7,11 +7,11 @@ namespace Microsoft.AutoGen.Core;
 
 internal interface IResultSink<TResult> : IValueTaskSource<TResult>
 {
-    void SetResult(TResult result);
-    void SetException(Exception exception);
-    void SetCancelled();
+    public void SetResult(TResult result);
+    public void SetException(Exception exception);
+    public void SetCancelled();
 
-    ValueTask<TResult> Future { get; }
+    public ValueTask<TResult> Future { get; }
 }
 
 public sealed class ResultSink<TResult> : IResultSink<TResult>
