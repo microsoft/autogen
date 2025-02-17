@@ -52,6 +52,7 @@ async def test_agent_types_must_be_unique_single_worker() -> None:
         )
 
     await worker.register_factory(type=AgentType("name4"), agent_factory=lambda: NoopAgent(), expected_class=NoopAgent)
+    await worker.register_factory(type=AgentType("name5"), agent_factory=lambda: NoopAgent())
 
     await worker.stop()
     await host.stop()

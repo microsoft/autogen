@@ -93,6 +93,12 @@ class ModelCapabilities(TypedDict, total=False):
 
 
 class ModelInfo(TypedDict, total=False):
+    """ModelInfo is a dictionary that contains information about a model's properties.
+    It is expected to be used in the model_info property of a model client.
+
+    We are expecting this to grow over time as we add more features.
+    """
+
     vision: Required[bool]
     """True if the model supports vision, aka image input, otherwise False."""
     function_calling: Required[bool]
@@ -101,6 +107,21 @@ class ModelInfo(TypedDict, total=False):
     """True if the model supports json output, otherwise False. Note: this is different to structured json."""
     family: Required[ModelFamily.ANY | str]
     """Model family should be one of the constants from :py:class:`ModelFamily` or a string representing an unknown model family."""
+
+
+def validate_model_info(model_info: ModelInfo) -> None:
+    """Validates the model info dictionary.
+
+    Raises:
+        ValueError: If the model info dictionary is missing required fields.
+    """
+    required_fields = ["vision", "function_calling", "json_output", "family"]
+    for field in required_fields:
+        if field not in model_info:
+            raise ValueError(
+                f"Missing required field '{field}' in ModelInfo. "
+                "Starting in v0.4.7, the required fields are enforced."
+            )
 
 
 class ChatCompletionClient(ComponentBase[BaseModel], ABC):

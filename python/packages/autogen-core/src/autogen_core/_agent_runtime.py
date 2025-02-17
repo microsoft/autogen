@@ -126,7 +126,7 @@ class AgentRuntime(Protocol):
         Args:
             type (str): The type of agent this factory creates. It is not the same as agent class name. The `type` parameter is used to differentiate between different factory functions rather than agent classes.
             agent_factory (Callable[[], T]): The factory that creates the agent, where T is a concrete Agent type. Inside the factory, use `autogen_core.AgentInstantiationContext` to access variables like the current runtime and agent ID.
-            expected_class (type[T] | None, optional): The expected class of the agent, used for runtime validation of the factory. Defaults to None.
+            expected_class (type[T] | None, optional): The expected class of the agent, used for runtime validation of the factory. Defaults to None. If None, no validation is performed.
         """
         ...
 
