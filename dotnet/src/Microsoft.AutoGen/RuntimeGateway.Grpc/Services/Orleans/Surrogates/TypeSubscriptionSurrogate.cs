@@ -17,6 +17,11 @@ public struct TypeSubscriptionSurrogate
 public sealed class TypeSubscriptionSurrogateConverter :
     IConverter<TypeSubscription, TypeSubscriptionSurrogate>
 {
+    /// <summary>
+    /// Converts from the surrogate to the original type.
+    /// </summary>
+    /// <param name="surrogate">The surrogate to convert from.</param>
+    /// <returns>The original type.</returns>
     public TypeSubscription ConvertFromSurrogate(
         in TypeSubscriptionSurrogate surrogate) =>
         new TypeSubscription
@@ -25,6 +30,11 @@ public sealed class TypeSubscriptionSurrogateConverter :
             AgentType = surrogate.AgentType
         };
 
+    /// <summary>
+    /// Converts from the original type to the surrogate.
+    /// </summary>
+    /// <param name="value">The original type to convert from.</param>
+    /// <returns>The surrogate type.</returns>
     public TypeSubscriptionSurrogate ConvertToSurrogate(
         in TypeSubscription value) =>
         new TypeSubscriptionSurrogate
