@@ -14,13 +14,15 @@ from pathlib import Path
 from types import TracebackType
 from typing import Any, Callable, ClassVar, Dict, List, Optional, ParamSpec, Type, Union
 
-from autogen_core import CancellationToken
+from autogen_core import CancellationToken, Component
 from autogen_core.code_executor import (
     CodeBlock,
     CodeExecutor,
     FunctionWithRequirements,
     FunctionWithRequirementsStr,
 )
+from pydantic import BaseModel
+from typing_extensions import Self
 
 from .._common import (
     CommandLineCodeResult,
@@ -50,7 +52,23 @@ async def _wait_for_ready(container: Any, timeout: int = 60, stop_time: float = 
 A = ParamSpec("A")
 
 
-class DockerCommandLineCodeExecutor(CodeExecutor):
+class DockerCommandLineCodeExecutorConfig(BaseModel):
+    """Configuration for DockerCommandLineCodeExecutor"""
+
+    image: str = "python:3-slim"
+    container_name: Optional[str] = None
+    timeout: int = 60
+    work_dir: str = "."  # Stored as string, converted to Path
+    bind_dir: Optional[str] = None  # Stored as string, converted to Path
+    auto_remove: bool = True
+    stop_container: bool = True
+    functions_module: str = "functions"
+    extra_volumes: Dict[str, Dict[str, str]] = {}
+    extra_hosts: Dict[str, str] = {}
+    init_command: Optional[str] = None
+
+
+class DockerCommandLineCodeExecutor(CodeExecutor, Component[DockerCommandLineCodeExecutorConfig]):
     """Executes code through a command line environment in a Docker container.
 
     .. note::
@@ -96,6 +114,9 @@ class DockerCommandLineCodeExecutor(CodeExecutor):
         init_command (Optional[str], optional): A shell command to run before each shell operation execution. Defaults to None.
             Example: init_command="kubectl config use-context docker-hub"
     """
+
+    component_config_schema = DockerCommandLineCodeExecutorConfig
+    component_provider_override = "autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor"
 
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
         "bash",
@@ -412,3 +433,41 @@ $functions"""
     ) -> Optional[bool]:
         await self.stop()
         return None
+
+    def _to_config(self) -> DockerCommandLineCodeExecutorConfig:
+        """(Experimental) Convert the component to a config object."""
+        if self._functions:
+            logging.info("Functions will not be included in serialized configuration")
+
+        return DockerCommandLineCodeExecutorConfig(
+            image=self._image,
+            container_name=self.container_name,
+            timeout=self._timeout,
+            work_dir=str(self._work_dir),
+            bind_dir=str(self._bind_dir) if self._bind_dir else None,
+            auto_remove=self._auto_remove,
+            stop_container=self._stop_container,
+            functions_module=self._functions_module,
+            extra_volumes=self._extra_volumes,
+            extra_hosts=self._extra_hosts,
+            init_command=self._init_command,
+        )
+
+    @classmethod
+    def _from_config(cls, config: DockerCommandLineCodeExecutorConfig) -> Self:
+        """(Experimental) Create a component from a config object."""
+        bind_dir = Path(config.bind_dir) if config.bind_dir else None
+        return cls(
+            image=config.image,
+            container_name=config.container_name,
+            timeout=config.timeout,
+            work_dir=Path(config.work_dir),
+            bind_dir=bind_dir,
+            auto_remove=config.auto_remove,
+            stop_container=config.stop_container,
+            functions=[],  # Functions not restored from config
+            functions_module=config.functions_module,
+            extra_volumes=config.extra_volumes,
+            extra_hosts=config.extra_hosts,
+            init_command=config.init_command,
+        )

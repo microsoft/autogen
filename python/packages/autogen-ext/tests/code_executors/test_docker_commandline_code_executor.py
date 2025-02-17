@@ -209,3 +209,12 @@ async def test_docker_commandline_code_executor_extra_args() -> None:
             code_result = await executor.execute_code_blocks(code_blocks, cancellation_token)
             assert code_result.exit_code == 0
             assert "This is a test file." in code_result.output
+
+
+@pytest.mark.asyncio
+async def test_docker_commandline_code_executor_serialization() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        executor = DockerCommandLineCodeExecutor(work_dir=temp_dir)
+        loaded_executor = DockerCommandLineCodeExecutor.load_component(executor.dump_component())
+        assert executor.bind_dir == loaded_executor.bind_dir
+        assert executor.timeout == loaded_executor.timeout

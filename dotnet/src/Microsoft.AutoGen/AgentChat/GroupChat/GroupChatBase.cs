@@ -114,7 +114,7 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
             if (Activator.CreateInstance(typeof(TManager), options) is TManager result)
             {
                 return result;
-            };
+            }
         }
         catch (TargetInvocationException tie)
         {
