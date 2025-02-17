@@ -38,7 +38,7 @@ internal sealed class MessageRegistryGrain(
         _ = Task.Delay(_bufferTime)
             .ContinueWith(
                 async _ => await RemoveMessage(topic, message),
-                TaskScheduler.Default
+                TaskScheduler.Current
             );
     }
     /// <summary>
