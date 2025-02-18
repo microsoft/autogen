@@ -25,7 +25,7 @@ internal sealed class MessageRegistryGrain : Grain, IMessageRegistryGrain
     /// maximum size of a message we will write to the state store in bytes
     /// </summary>
     /// <remarks>set this to HALF your intended limit as protobuf strings are UTF8 but .NET UTF16</remarks>
-    private const int _maxMessageSize = 1024 * 1024 * 99; // 99MB
+    private const int _maxMessageSize = 1024 * 1024 * 10; // 10MB
 
     /// <summary>
     /// maximum size of a each queue

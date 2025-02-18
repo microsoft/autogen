@@ -91,7 +91,7 @@ public class MessageRegistryTests
         var cluster = fixture.Cluster;
         var grain = cluster.GrainFactory.GetGrain<IMessageRegistryGrain>(0);
         var topic = Guid.NewGuid().ToString(); // Random topic
-        var maxMessageSize = 1024 * 1024 * 99; // 99MB
+        var maxMessageSize = 1024 * 1024 * 10; // 10MB
         var message = new CloudEvent { Id = Guid.NewGuid().ToString(), Source = "test-source", Type = "test-type" };
         
         // Act        
