@@ -8,7 +8,7 @@ using Microsoft.AutoGen.RuntimeGateway.Grpc.Tests.Helpers.Orleans;
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Tests;
 public class MessageRegistryTests
 {
-     public MessageRegistryTests(){}
+    public MessageRegistryTests() { }
 
     [Fact]
     public async Task Write_and_Remove_Messages()
@@ -93,7 +93,7 @@ public class MessageRegistryTests
         var topic = Guid.NewGuid().ToString(); // Random topic
         var maxMessageSize = 1024 * 1024 * 10; // 10MB
         var message = new CloudEvent { Id = Guid.NewGuid().ToString(), Source = "test-source", Type = "test-type" };
-        
+
         // Act        
         await grain.AddMessageToDeadLetterQueueAsync(topic, message); // small message
         message.BinaryData = Google.Protobuf.ByteString.CopyFrom(new byte[maxMessageSize + 1]);
@@ -117,7 +117,7 @@ public class MessageRegistryTests
         var topic = Guid.NewGuid().ToString(); // Random topic
         var bigMessage = 1024 * 1024 * 1; // 1MB
         var message = new CloudEvent { Id = Guid.NewGuid().ToString(), Source = "test-source", Type = "test-type" };
-        
+
         // Act
         for (int i = 0; i < 11; i++)
         {
