@@ -849,7 +849,7 @@ class OllamaChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseO
         host (optional, str): Model host url.
         response_format (optional, pydantic.BaseModel): The format of the response. If provided, the response will be parsed into this format as json.
         model_info (optional, ModelInfo): The capabilities of the model. **Required if the model is not listed in the ollama model info.**
-    
+
     Note:
         Only models with 200k+ downloads (as of Jan 21, 2025), + phi4, deepseek-r1 have pre-defined model infos. See `this file <https://github.com/microsoft/autogen/blob/main/python/packages/autogen-ext/src/autogen_ext/models/ollama/_model_info.py>`__ for the full list. An entry for one model encompases all parameter variants of that model.
 
@@ -892,9 +892,11 @@ class OllamaChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseO
 
         from pydantic import BaseModel
 
+
         class StructuredOutput(BaseModel):
             first_name: str
             last_name: str
+
 
         ollama_client = OllamaChatCompletionClient(
             model="llama3",
