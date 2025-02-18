@@ -5,9 +5,11 @@ from pydantic import BaseModel
 from typing_extensions import TypedDict
 
 
+# response_format MUST be a pydantic.BaseModel type or None
 class CreateArguments(TypedDict, total=False):
     model: str
     host: Optional[str]
+    response_format: Any
 
 
 class BaseOllamaClientConfiguration(CreateArguments, total=False):
@@ -20,9 +22,11 @@ class BaseOllamaClientConfiguration(CreateArguments, total=False):
 
 
 # Pydantic equivalents of the above TypedDicts
+# response_format MUST be a pydantic.BaseModel type or None
 class CreateArgumentsConfigModel(BaseModel):
     model: str
     host: str | None = None
+    response_format: Any = None
 
 
 class BaseOllamaClientConfigurationConfigModel(CreateArgumentsConfigModel):

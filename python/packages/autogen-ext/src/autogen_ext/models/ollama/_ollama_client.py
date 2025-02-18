@@ -890,6 +890,8 @@ class OllamaChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseO
 
     .. code-block:: python
 
+        from autogen_ext.models.ollama import OllamaChatCompletionClient
+        from autogen_core.models import UserMessage
         from pydantic import BaseModel
 
 
