@@ -170,24 +170,23 @@ public interface IChatAgent :
     /// <summary>
     /// The name of the agent. This is used by team to uniquely identify the agent.It should be unique within the team.
     /// </summary>
-    AgentName Name { get; }
+    public AgentName Name { get; }
 
     /// <summary>
     /// The description of the agent. This is used by team to make decisions about which agents to use.The description
     /// should describe the agent's capabilities and how to interact with it.
     /// </summary>
-    string Description { get; }
+    public string Description { get; }
 
     /// <summary>
     /// The types of messages that the agent produces.
     /// </summary>
-    IEnumerable<Type> ProducedMessageTypes { get; } // TODO: Is there a way to make this part of the type somehow?
-                                                    // Annotations, or IProduce<>? Do we ever actually access this?
+    public IEnumerable<Type> ProducedMessageTypes { get; } // TODO: Is there a way to make this part of the type somehow? Annotations, or IProduce<>? Do we ever actually access this?
 
     /// <summary>
     /// Reset the agent to its initialization state.
     /// </summary>
     /// <param name="cancellationToken"></param>
     /// <returns></returns>
-    ValueTask ResetAsync(CancellationToken cancellationToken);
+    public ValueTask ResetAsync(CancellationToken cancellationToken);
 }
