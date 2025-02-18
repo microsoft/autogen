@@ -12,6 +12,9 @@ internal sealed class MessageRegistryGrain(
     ILogger<MessageRegistryGrain> logger
 ) : Grain, IMessageRegistryGrain
 {
+    private const string dlq = "Dead Letter Queue";
+    private const string eb = "Event Buffer";
+
     // <summary>
     // Helper class for managing state writes.
     // </summary>
@@ -26,20 +29,49 @@ internal sealed class MessageRegistryGrain(
     /// in milliseconds
     /// </summary>
     private const int _bufferTime = 5000;
+
+    /// <summary>
+    /// maximum size of a message we will write to the state store in bytes
+    /// </summary>
+    /// <remarks>set this to HALF your intended limit as protobuf strings are UTF8 but .NET UTF16</remarks>
+    private const int _maxMessageSize = 1024 * 1024 * 99; // 99MB
+
+    /// <summary>
+    /// maximum size of a each queue
+    /// </summary>
+    /// <remarks>set this to HALF your intended limit as protobuf strings are UTF8 but .NET UTF16</remarks>
+    private const int _maxQueueSize = 1024 * 1024 * 99; // 99MB
+
+    /// <summary>
+    /// variable to hold the current size of the dead letter queue
+    /// </summary>
+    private int _dlqSize;
+
+    /// <summary>
+    /// variable to hold the current size of the event buffer
+    /// </summary>
+    private int _ebSize;
+
     private readonly ILogger<MessageRegistryGrain> _logger = logger;
 
     // <inheritdoc />
     public async Task AddMessageToDeadLetterQueueAsync(string topic, CloudEvent message)
     {
-        await TryWriteMessageAsync("dlq", topic, message).ConfigureAwait(true);
+        var size = CheckMessageSize(dlq, topic, message);
+        if (size == 0 || _dlqSize + size > _maxQueueSize) { return; }
+        await TryWriteMessageAsync(dlq, topic, message).ConfigureAwait(true);
+        _dlqSize += size;
     }
 
     ///<inheritdoc />
     public async Task AddMessageToEventBufferAsync(string topic, CloudEvent message)
     {
-        await TryWriteMessageAsync("eb", topic, message).ConfigureAwait(true);
+        var size = CheckMessageSize(eb, topic, message);
+        if (size == 0 || _ebSize + size > _maxQueueSize) { return; }
+        await TryWriteMessageAsync(eb, topic, message).ConfigureAwait(true);
+        _ebSize += size;
         // Schedule the removal task to run in the background after bufferTime
-        RemoveMessageAfterDelay(topic, message).Ignore();
+        RemoveMessageAfterDelay(size, topic, message).Ignore();
     }
 
     /// <summary>
@@ -67,10 +99,28 @@ internal sealed class MessageRegistryGrain(
     /// </summary>
     /// <param name="topic"></param>
     /// <param name="message"></param>
-    private async Task RemoveMessageAfterDelay(string topic, CloudEvent message)
+    private async Task RemoveMessageAfterDelay(int size, string topic, CloudEvent message)
     {
         await Task.Delay(_bufferTime);
         await RemoveMessage(topic, message);
+        _ebSize -= size;
+    }
+
+    /// <summary>
+    /// check the size of the message
+    /// </summary>
+    /// <param name="topic"></param>
+    /// <param name="message"></param>
+    /// <returns>ValueTask<bool></returns>
+    private int CheckMessageSize(string whichQueue, string topic, CloudEvent message)
+    {
+        var size = message.CalculateSize();
+        if (size > _maxMessageSize)
+        {
+            _logger.LogWarning($"Message size {size} for topic {topic} exceeds maximum size {_maxMessageSize}. This message will not be written to the {whichQueue}.");
+            return 0;
+        }
+        return size;
     }
 
     /// <summary>
@@ -113,12 +163,12 @@ internal sealed class MessageRegistryGrain(
         }
         switch (whichQueue)
         {
-            case "dlq":
+            case dlq:
                 var dlqQueue = state.State.DeadLetterQueue.GetOrAdd(topic, _ => new());
                 dlqQueue.Add(message);
                 state.State.DeadLetterQueue.AddOrUpdate(topic, dlqQueue, (_, _) => dlqQueue);
                 break;
-            case "eb":
+            case eb:
                 var ebQueue = state.State.EventBuffer.GetOrAdd(topic, _ => new());
                 ebQueue.Add(message);
                 state.State.EventBuffer.AddOrUpdate(topic, ebQueue, (_, _) => ebQueue);

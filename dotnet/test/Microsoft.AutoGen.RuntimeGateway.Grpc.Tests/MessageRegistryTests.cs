@@ -76,4 +76,25 @@ public class MessageRegistryTests : IClassFixture<ClusterFixture>
         var removedMessages = await grain.RemoveMessagesAsync(topic);
         Assert.Single(removedMessages);
     }
+
+    /// <summary>
+    /// Test that messages which exceed the mas message size are not written to the event buffer
+    /// </summary>
+    [Fact]
+    public async Task Do_No_Buffer_If_Messages_Exceed_MaxMessageSize()
+    {
+        // Arrange
+        var grain = _cluster.GrainFactory.GetGrain<IMessageRegistryGrain>(0);
+        var topic = Guid.NewGuid().ToString(); // Random topic
+        var maxMessageSize = 1024 * 1024 * 99; // 99MB
+        var message = new CloudEvent { Id = Guid.NewGuid().ToString(), Source = "test-source", Type = "test-type" };
+        
+        // Act        
+        await grain.AddMessageToEventBufferAsync(topic, message); // small message
+        message.BinaryData = Google.Protobuf.ByteString.CopyFrom(new byte[maxMessageSize + 1]);
+        await grain.AddMessageToEventBufferAsync(topic, message); // over the limit
+        // attempt to remove the topic from the queue
+        var removedMessages = await grain.RemoveMessagesAsync(topic);
+        Assert.Single(removedMessages); // only the small message should be in the buffer
+    }
 }
