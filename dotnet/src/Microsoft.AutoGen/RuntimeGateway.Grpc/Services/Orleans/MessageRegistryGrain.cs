@@ -4,9 +4,10 @@
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 using Microsoft.Extensions.Logging;
+using Orleans.Concurrency;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
-
+[Reentrant]
 internal sealed class MessageRegistryGrain : Grain, IMessageRegistryGrain
 {
     public enum QueueType
