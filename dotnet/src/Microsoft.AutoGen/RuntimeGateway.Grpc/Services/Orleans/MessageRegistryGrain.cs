@@ -13,9 +13,13 @@ internal sealed class MessageRegistryGrain(
 ) : Grain, IMessageRegistryGrain
 {
     // <summary>
+    // Helper class for managing state writes.
+    // </summary>
+    private readonly StateManager _stateManager = new(state);
+
+    // <summary>
     // The number of times to retry writing the state before giving up.
     // </summary>
-
     private const int _retries = 5;
     /// <summary>
     /// The time to wait before removing a message from the event buffer.
@@ -35,12 +39,9 @@ internal sealed class MessageRegistryGrain(
     {
         await TryWriteMessageAsync("eb", topic, message).ConfigureAwait(true);
         // Schedule the removal task to run in the background after bufferTime
-        _ = Task.Delay(_bufferTime)
-            .ContinueWith(
-                async _ => await RemoveMessage(topic, message),
-                TaskScheduler.Default
-            );
+        RemoveMessageAfterDelay(topic, message).Ignore();
     }
+
     /// <summary>
     /// remove a specific message from the buffer for a given topic
     /// </summary>
@@ -54,11 +55,22 @@ internal sealed class MessageRegistryGrain(
             if (events != null && events.Remove(message))
             {
                 state.State.EventBuffer.AddOrUpdate(topic, events, (_, _) => events);
-                await state.WriteStateAsync().ConfigureAwait(true);
+                await _stateManager.WriteStateAsync().ConfigureAwait(true);
                 return true;
             }
         }
         return false;
+    }
+
+    /// <summary>
+    /// remove a specific message from the buffer for a given topic after a delay
+    /// </summary>
+    /// <param name="topic"></param>
+    /// <param name="message"></param>
+    private async Task RemoveMessageAfterDelay(string topic, CloudEvent message)
+    {
+        await Task.Delay(_bufferTime);
+        await RemoveMessage(topic, message);
     }
 
     /// <summary>
@@ -114,7 +126,7 @@ internal sealed class MessageRegistryGrain(
             default:
                 throw new ArgumentException($"Invalid queue name: {whichQueue}");
         }
-        await state.WriteStateAsync().ConfigureAwait(true);
+        await _stateManager.WriteStateAsync().ConfigureAwait(true);
         return true;
     }
 
@@ -124,7 +136,7 @@ internal sealed class MessageRegistryGrain(
         var messages = new List<CloudEvent>();
         if (state.State.DeadLetterQueue != null && state.State.DeadLetterQueue.Remove(topic, out List<CloudEvent>? letters))
         {
-            await state.WriteStateAsync().ConfigureAwait(true);
+            await _stateManager.WriteStateAsync().ConfigureAwait(true);
             if (letters != null)
             {
                 messages.AddRange(letters);
@@ -132,7 +144,7 @@ internal sealed class MessageRegistryGrain(
         }
         if (state.State.EventBuffer != null && state.State.EventBuffer.Remove(topic, out List<CloudEvent>? events))
         {
-            await state.WriteStateAsync().ConfigureAwait(true);
+            await _stateManager.WriteStateAsync().ConfigureAwait(true);
             if (events != null)
             {
                 messages.AddRange(events);
