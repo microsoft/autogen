@@ -5,7 +5,7 @@ using Microsoft.AutoGen.Protobuf;
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 
 /// <summary>
-/// Interface for managing agent registration, placement, and subscriptions.
+/// Keeps track of which agents are registered with which gateways.
 /// </summary>
 public interface IGatewayRegistry : IRegistry
 {
@@ -27,6 +27,7 @@ public interface IGatewayRegistry : IRegistry
     /// Registers a new agent type with the specified worker.
     /// </summary>
     /// <param name="request">The request containing agent type details.</param>
+    /// <param name="clientId">The client ID of the worker.</param>
     /// <param name="worker">The worker to register the agent type with.</param>
     /// <returns>A task representing the asynchronous operation.</returns>
     ValueTask RegisterAgentTypeAsync(RegisterAgentTypeRequest request, string clientId, IGateway worker);
