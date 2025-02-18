@@ -1,22 +1,40 @@
 import base64
+import json
+import logging
+import warnings
 from collections.abc import AsyncGenerator
 from dataclasses import asdict
-from typing import Any, Optional, Sequence
+from typing import Any, List, Optional, Sequence
 
 from autogen_agentchat.agents._base_chat_agent import BaseChatAgent
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import ChatMessage, HandoffMessage, StopMessage, TextMessage, ToolCallSummaryMessage
-from autogen_core import CancellationToken
+from autogen_agentchat.messages import (
+    AgentEvent,
+    ChatMessage,
+    HandoffMessage,
+    StopMessage,
+    TextMessage,
+    ToolCallExecutionEvent,
+    ToolCallRequestEvent,
+    ToolCallSummaryMessage,
+)
+from autogen_core import CancellationToken, FunctionCall
+from autogen_core.models._types import FunctionExecutionResult
+from autogen_ext.models.semantic_kernel import SKChatCompletionAdapter
 
 from semantic_kernel.connectors.ai.chat_completion_client_base import ChatCompletionClientBase
 from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
 from semantic_kernel.connectors.ai.prompt_execution_settings import PromptExecutionSettings
-from semantic_kernel.contents import FunctionCallContent, ImageContent, TextContent
+from semantic_kernel.contents import FunctionCallContent, FunctionResultContent, ImageContent, TextContent
 from semantic_kernel.contents.chat_history import ChatHistory
 from semantic_kernel.contents.chat_message_content import ChatMessageContent
 from semantic_kernel.contents.utils.author_role import AuthorRole
 from semantic_kernel.exceptions import KernelServiceNotFoundError
 from semantic_kernel.kernel import Kernel
+
+EVENT_LOGGER_NAME = "autogen_ext.agents.semantic_kernel.SKAssistantAgent"
+
+event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class SKAssistantAgent(BaseChatAgent):
@@ -137,7 +155,8 @@ class SKAssistantAgent(BaseChatAgent):
     def __init__(
         self,
         name: str,
-        description: str,
+        description: str = "An agent that uses semantic kernel to execute tools.",
+        *,
         kernel: Kernel,
         service_id: str = "default",
         instructions: Optional[str] = None,
@@ -166,6 +185,7 @@ class SKAssistantAgent(BaseChatAgent):
 
     @property
     def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+        # TODO: Add Handoffs support
         return [TextMessage]
 
     async def on_messages(
@@ -209,14 +229,18 @@ class SKAssistantAgent(BaseChatAgent):
             kernel=self._kernel,
         )
 
-        if any(isinstance(item, FunctionCallContent) for r in sk_responses for item in r.items):
-            raise TypeError(
-                "Function call content was returned by the chat completion client. "
-                "Please adjust prompt execution settings to auto invoke functions."
-            )
+        assert len(sk_responses) == 1, "get_chat_message_contents should only return one response"
 
-        # Convert SK's list of responses into a single final text
-        assistant_reply = "\n".join(r.content for r in sk_responses if r.content)
+        # Process text content from first response
+        text_content: list[str] = []
+        sk_response = sk_responses[0]
+
+        for item in sk_response.items:
+            if isinstance(item, TextContent):
+                text_content.append(item.text)
+
+        # Combine all text content
+        assistant_reply = "\n".join(text_content)
 
         reply_message = TextMessage(content=assistant_reply, source=self.name)
 
@@ -226,14 +250,14 @@ class SKAssistantAgent(BaseChatAgent):
                 self._convert_chat_message_to_sk_chat_message_content(AuthorRole.ASSISTANT, reply_message)
             )
 
-        # 6) Return an autogen Response containing the text
+        # 6) Return an autogen Response containing just the text
         return Response(chat_message=reply_message)
 
     async def on_messages_stream(
         self,
         messages: Sequence[ChatMessage],
         cancellation_token: CancellationToken,
-    ) -> AsyncGenerator[ChatMessage | Response, None]:
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         """
         Handle new messages in streaming mode, yielding a final Response.
         """
@@ -263,29 +287,103 @@ class SKAssistantAgent(BaseChatAgent):
         )
 
         # 3) Stream the SK response
-        accumulated_reply: list[str] = []
+        accumulated_text: list[str] = []
+        function_calls_in_progress: dict[str, FunctionCallContent] = {}
+        last_function_call_id: Optional[str] = None
+        inner_messages: List[AgentEvent | ChatMessage] = []
+
         async for sk_message_list in chat_completion_service.get_streaming_chat_message_contents(
             chat_history=self._chat_history,
             settings=settings,
             kernel=self._kernel,
         ):
             for sk_message in sk_message_list:
-                # Check for function calls
-                if any(isinstance(item, FunctionCallContent) for item in sk_message.items):
-                    raise TypeError(
-                        "Function call content was returned by the chat completion client. "
-                        "Please adjust prompt execution settings to auto invoke functions."
-                    )
-                elif sk_message.content:
-                    accumulated_reply.append(sk_message.content)
+                for item in sk_message.items:
+                    if isinstance(item, FunctionCallContent):
+                        # If the chunk has a valid ID, we start or continue that ID explicitly
+                        if item.id:
+                            last_function_call_id = item.id
+                            if last_function_call_id not in function_calls_in_progress:
+                                # Deep copy to avoid changing the SK function call object which interacts with the API
+                                function_calls_in_progress[last_function_call_id] = FunctionCallContent(
+                                    **item.model_dump()
+                                )
+                            else:
+                                # Merge partial arguments into existing call
+                                existing_call = function_calls_in_progress[last_function_call_id]
+                                SKChatCompletionAdapter._merge_function_call_content(existing_call, item)  # type: ignore
+                        else:
+                            # item.id is None, so we assume it belongs to the last known ID
+                            if not last_function_call_id:
+                                # No call in progress means we can't merge
+                                warnings.warn(
+                                    "Received function call chunk with no ID and no call in progress.", stacklevel=2
+                                )
+                                continue
+
+                            existing_call = function_calls_in_progress[last_function_call_id]
+                            # Merge partial chunk
+                            SKChatCompletionAdapter._merge_function_call_content(existing_call, item)  # type: ignore
+                        continue
+
+                    else:
+                        # Handle text content
+                        if isinstance(item, TextContent):
+                            accumulated_text.append(item.text)
+
+                        # Handle function result content
+                        elif isinstance(item, FunctionResultContent):
+                            exec_results = item.model_dump_json()
+                            assert last_function_call_id is not None
+                            tool_call_result = FunctionExecutionResult(
+                                content=exec_results,
+                                call_id=last_function_call_id,
+                                is_error=False,
+                            )
+                            tool_call_result_msg = ToolCallExecutionEvent(content=[tool_call_result], source=self.name)
+                            inner_messages.append(tool_call_result_msg)
+                            event_logger.debug(tool_call_result_msg)
+                            yield tool_call_result_msg
+                            last_function_call_id = None
+
+                # Check if the model signaled tool_calls finished
+                if sk_message.finish_reason == "tool_calls" and function_calls_in_progress:
+                    function_calls: list[FunctionCall] = []
+                    for _, call_content in function_calls_in_progress.items():
+                        plugin_name = call_content.plugin_name or ""
+                        function_name = call_content.function_name
+                        if plugin_name:
+                            full_name = f"{plugin_name}-{function_name}"
+                        else:
+                            full_name = function_name
+
+                        if isinstance(call_content.arguments, dict):
+                            arguments = json.dumps(call_content.arguments)
+                        else:
+                            arguments = call_content.arguments or "{}"  # type: ignore
+                        assert isinstance(arguments, str)
+                        function_calls.append(
+                            FunctionCall(
+                                id=call_content.id or "unknown_id",
+                                name=full_name,
+                                arguments=arguments,
+                            )
+                        )
+
+                    tool_call_msg = ToolCallRequestEvent(content=function_calls, source=self.name)
+                    inner_messages.append(tool_call_msg)
+                    yield tool_call_msg
+                    function_calls_in_progress.clear()
+
+        # breakpoint()
 
         # 4) After streaming ends, save the entire assistant message
-        final_text = "".join(accumulated_reply).strip()
+        final_text = "".join(accumulated_text).strip()
         if final_text:
             self._chat_history.add_assistant_message(final_text, name=self.name)
 
-        # 5) Finally, yield the single autogen Response
-        yield Response(chat_message=TextMessage(content=final_text, source=self.name))
+        # 5) Finally, yield the single autogen Response with function calls
+        yield Response(chat_message=TextMessage(content=final_text, source=self.name), inner_messages=inner_messages)
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Clear the entire conversation history."""

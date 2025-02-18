@@ -4,6 +4,7 @@ from unittest.mock import AsyncMock, MagicMock
 import pytest
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import (
+    AgentEvent,
     ChatMessage,
     HandoffMessage,
     MultiModalMessage,
@@ -158,7 +159,8 @@ async def test_on_messages_stop_message(mock_kernel: MagicMock, mock_chat_servic
     mock_chat_service.get_chat_message_contents.return_value = [
         ChatMessageContent(role=AuthorRole.ASSISTANT, content="Stopping now.")
     ]
-    agent = SKAssistantAgent("TestAgent", "desc", mock_kernel)
+
+    agent = SKAssistantAgent("TestAgent", "desc", kernel=mock_kernel)
 
     messages = [
         StopMessage(content="Please stop.", source="user"),
@@ -178,7 +180,7 @@ async def test_on_messages_tool_call_summary(mock_kernel: MagicMock, mock_chat_s
     mock_chat_service.get_chat_message_contents.return_value = [
         ChatMessageContent(role=AuthorRole.ASSISTANT, content="Tool call summary acknowledged.")
     ]
-    agent = SKAssistantAgent("TestAgent", "desc", mock_kernel)
+    agent = SKAssistantAgent("TestAgent", "desc", kernel=mock_kernel)
 
     messages = [
         ToolCallSummaryMessage(content="Summary of tool call", source="user"),
@@ -198,7 +200,7 @@ async def test_on_messages_handoff_message(mock_kernel: MagicMock, mock_chat_ser
     mock_chat_service.get_chat_message_contents.return_value = [
         ChatMessageContent(role=AuthorRole.ASSISTANT, content="Handoff message received.")
     ]
-    agent = SKAssistantAgent("TestAgent", "desc", mock_kernel)
+    agent = SKAssistantAgent("TestAgent", "desc", kernel=mock_kernel)
 
     messages = [
         HandoffMessage(target="AnotherAgent", content="Please handle this conversation.", source="user", context=[]),
@@ -215,7 +217,7 @@ async def test_on_messages_no_service_found(mock_kernel: MagicMock) -> None:
     Test that a KernelServiceNotFoundError is raised if there's no chat service with the given service_id.
     """
     mock_kernel.get_service.return_value = None
-    agent = SKAssistantAgent("TestAgent", "desc", mock_kernel, service_id="not-found")
+    agent = SKAssistantAgent("TestAgent", "desc", kernel=mock_kernel, service_id="not-found")
 
     with pytest.raises(KernelServiceNotFoundError):
         await agent.on_messages([TextMessage(content="test", source="user")], CancellationToken())
@@ -228,7 +230,7 @@ async def test_on_reset_clears_history(mock_kernel: MagicMock, mock_chat_service
     """
     mock_kernel.get_service.return_value = mock_chat_service
 
-    agent = SKAssistantAgent("TestAgent", "desc", mock_kernel)
+    agent = SKAssistantAgent("TestAgent", "desc", kernel=mock_kernel)
     # Add some messages
     await agent.on_messages([TextMessage(content="Hello", source="user")], CancellationToken())
     assert len(agent._chat_history.messages) > 0  # type: ignore
@@ -254,10 +256,10 @@ async def test_on_messages_stream(mock_kernel: MagicMock, mock_chat_service: Mag
 
     mock_kernel.get_service.return_value = mock_chat_service
 
-    agent = SKAssistantAgent("TestAgent", "desc", mock_kernel)
+    agent = SKAssistantAgent("TestAgent", "desc", kernel=mock_kernel)
 
     messages = [TextMessage(content="Hello streaming!", source="user")]
-    results: list[ChatMessage | Response] = []
+    results: list[AgentEvent | ChatMessage | Response] = []
     async for item in agent.on_messages_stream(messages, CancellationToken()):
         results.append(item)
 
