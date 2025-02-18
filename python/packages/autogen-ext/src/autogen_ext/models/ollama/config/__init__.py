@@ -6,6 +6,7 @@ from typing_extensions import TypedDict
 
 
 # response_format MUST be a pydantic.BaseModel type or None
+# TODO: check if we can extend response_format to support json and/or dict
 class CreateArguments(TypedDict, total=False):
     model: str
     host: Optional[str]

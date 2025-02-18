@@ -402,6 +402,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
                 response_format_value = value.model_json_schema()
             else:
                 # response_format_value is not a Pydantic model class
+                # TODO: Should this be an warning/error?
                 response_format_value = None
 
         # Remove 'response_format' from create_args to prevent passing it twice
