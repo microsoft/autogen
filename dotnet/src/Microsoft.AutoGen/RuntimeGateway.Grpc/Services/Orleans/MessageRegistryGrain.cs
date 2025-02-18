@@ -40,7 +40,7 @@ internal sealed class MessageRegistryGrain(
     /// maximum size of a each queue
     /// </summary>
     /// <remarks>set this to HALF your intended limit as protobuf strings are UTF8 but .NET UTF16</remarks>
-    private const int _maxQueueSize = 1024 * 1024 * 99; // 99MB
+    private const int _maxQueueSize = 1024 * 1024 * 999; // 999MB
 
     /// <summary>
     /// variable to hold the current size of the dead letter queue
@@ -52,13 +52,34 @@ internal sealed class MessageRegistryGrain(
     /// </summary>
     private int _ebSize;
 
+    /// <summary>
+    /// dictionary to hold timestamps of when messages were added to the dlq with topic as the value
+    /// </summary>
+    /// <remarks>this is used to remove the oldest message from the queue when the queue is full</remarks>
+    private readonly Dictionary<DateTime, string> _dlqTimestamps = new();
+
+    /// <summary>
+    /// dictionary to hold timestamps of when messages were added to the eb with topic as the value
+    /// </summary>
+    /// <remarks>this is used to remove the oldest message from the queue when the queue is full</remarks>
+    private readonly Dictionary<DateTime, string> _ebTimestamps = new();
+
     private readonly ILogger<MessageRegistryGrain> _logger = logger;
 
     // <inheritdoc />
     public async Task AddMessageToDeadLetterQueueAsync(string topic, CloudEvent message)
     {
         var size = CheckMessageSize(dlq, topic, message);
-        if (size == 0 || _dlqSize + size > _maxQueueSize) { return; }
+        if (size == 0 ){ return; }
+        if (_dlqSize + size > _maxQueueSize)
+        {
+            // remove the oldest message from the queue - get the oldest timestamp
+            var oldestTimestampTopic = _dlqTimestamps.OrderBy(x => x.Key).FirstOrDefault().Value;
+            // remove the message from the queue
+            var removedMessages = await RemoveMessageAsync(oldestTimestampTopic);
+            // update the oldest timestamp
+            _dlqTimestamps.Remove(_dlqTimestamps.OrderBy(x => x.Key).FirstOrDefault().Key);
+        }
         await TryWriteMessageAsync(dlq, topic, message).ConfigureAwait(true);
         _dlqSize += size;
     }
@@ -67,11 +88,43 @@ internal sealed class MessageRegistryGrain(
     public async Task AddMessageToEventBufferAsync(string topic, CloudEvent message)
     {
         var size = CheckMessageSize(eb, topic, message);
-        if (size == 0 || _ebSize + size > _maxQueueSize) { return; }
+        if (size == 0) { return; }
+        if (_ebSize + size > _maxQueueSize)
+        {
+            // remove the oldest message from the queue - get the oldest timestamp
+            var oldestTimestampTopic = _ebTimestamps.OrderBy(x => x.Key).FirstOrDefault().Value;
+            // remove the message from the queue
+            var removedMessages = await RemoveMessageAsync(oldestTimestampTopic);
+            // update the oldest timestamp
+            _ebTimestamps.Remove(_ebTimestamps.OrderBy(x => x.Key).FirstOrDefault().Key);
+        }
         await TryWriteMessageAsync(eb, topic, message).ConfigureAwait(true);
         _ebSize += size;
         // Schedule the removal task to run in the background after bufferTime
-        RemoveMessageAfterDelay(size, topic, message).Ignore();
+        RemoveMessageAfterDelayAsync(size, topic, message).Ignore();
+    }
+
+    /// <summary>
+    /// remove only the first message from the buffer for a given topic
+    /// </summary>
+    /// <param name="topic"></param>
+    /// <returns>ValueTask<bool></returns>
+    private async ValueTask<bool> RemoveMessageAsync(string topic)
+    {
+        if (state.State.DeadLetterQueue != null && state.State.DeadLetterQueue.TryGetValue(topic, out List<CloudEvent>? letters))
+        {
+            if (letters != null && letters.Count > 0)
+            {
+                var message = letters[0];
+                letters.RemoveAt(0);
+                state.State.DeadLetterQueue.AddOrUpdate(topic, letters, (_, _) => letters);
+                // update the size of the queue
+                _dlqSize -= message.CalculateSize();
+                await _stateManager.WriteStateAsync().ConfigureAwait(true);
+                return true;
+            }
+        }
+        return false;
     }
 
     /// <summary>
@@ -80,7 +133,7 @@ internal sealed class MessageRegistryGrain(
     /// <param name="topic"></param>
     /// <param name="message"></param>
     /// <returns>ValueTask<bool></returns>
-    private async ValueTask<bool> RemoveMessage(string topic, CloudEvent message)
+    private async ValueTask<bool> RemoveMessageAsync(string topic, CloudEvent message)
     {
         if (state.State.EventBuffer != null && state.State.EventBuffer.TryGetValue(topic, out List<CloudEvent>? events))
         {
@@ -99,10 +152,10 @@ internal sealed class MessageRegistryGrain(
     /// </summary>
     /// <param name="topic"></param>
     /// <param name="message"></param>
-    private async Task RemoveMessageAfterDelay(int size, string topic, CloudEvent message)
+    private async Task RemoveMessageAfterDelayAsync(int size, string topic, CloudEvent message)
     {
         await Task.Delay(_bufferTime);
-        await RemoveMessage(topic, message);
+        await RemoveMessageAsync(topic, message);
         _ebSize -= size;
     }
 
@@ -144,7 +197,12 @@ internal sealed class MessageRegistryGrain(
             _logger.LogWarning("Failed to write MessageRegistryState. Retrying...");
             retries--;
         }
-        if (retries == 0) { return false; } else { return true; }
+        if (retries == 0) { return false; } else 
+        {
+            if (whichQueue == dlq) { _dlqTimestamps.Add(DateTime.UtcNow, topic); }
+            else if (whichQueue == eb) { _ebTimestamps.Add(DateTime.UtcNow, topic); }
+            return true;
+        }
     }
     /// <summary>
     /// Writes a message to the given queue in Orleans state.
