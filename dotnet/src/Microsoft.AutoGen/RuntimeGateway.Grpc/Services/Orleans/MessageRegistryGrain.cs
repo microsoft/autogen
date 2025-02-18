@@ -41,10 +41,11 @@ internal sealed class MessageRegistryGrain : Grain, IMessageRegistryGrain
         [PersistentState("state", "PubSubStore")] IPersistentState<MessageRegistryState> state,
         ILogger<MessageRegistryGrain> logger)
     {
+        var stateManager = new StateManager(state);
         _dlqQueue = new MessageRegistryQueue(
             QueueType.DeadLetterQueue,
             state,
-            new StateManager(state),
+            stateManager,
             logger,
             _maxMessageSize,
             _maxQueueSize);
@@ -52,7 +53,7 @@ internal sealed class MessageRegistryGrain : Grain, IMessageRegistryGrain
         _ebQueue = new MessageRegistryQueue(
             QueueType.EventBuffer,
             state,
-            new StateManager(state),
+            stateManager,
             logger,
             _maxMessageSize,
             _maxQueueSize);
