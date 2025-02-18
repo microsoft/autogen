@@ -18,7 +18,7 @@ pip install -U "autogen-agentchat" "autogen-ext[openai]" "autogen-ext[task-centr
 ## Quickstart
 
 <p align="right">
-  <img src="../../../imgs/task_centric_memory_2.png" alt="Description" width="300" align="right" style="margin-left: 10px;">
+  <img src="../../../imgs/task_centric_memory_2.png" alt="Description" width="150" align="right" style="margin-left: 10px;">
 </p>
 
 This first code snippet runs a basic test to verify that the installation was successful,
@@ -51,7 +51,7 @@ asyncio.run(main())
 ```
 
 <p align="right">
-  <img src="../../../imgs/task_centric_memory_3.png" alt="Description" width="300" align="right" style="margin-left: 10px;">
+  <img src="../../../imgs/task_centric_memory_3.png" alt="Description" width="150" align="right" style="margin-left: 10px;">
 </p>
 
 This second code example shows one way to incorporate task-centric memory directly into an AutoGen agent,
