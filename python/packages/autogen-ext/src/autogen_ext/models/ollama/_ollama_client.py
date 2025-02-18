@@ -843,7 +843,7 @@ class OllamaChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseO
     """Chat completion client for Ollama hosted models.
 
     You can also use this client for Ollama-compatible ChatCompletion endpoints.
-    
+
     Ollama must be installed and the appropriate model pulled.
 
     Args:
