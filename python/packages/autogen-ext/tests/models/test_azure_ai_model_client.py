@@ -150,7 +150,7 @@ async def test_azure_ai_chat_completion_client_validation() -> None:
             credential=AzureKeyCredential("api_key"),
         )
 
-    with pytest.raises(ValueError, match="family is required"):
+    with pytest.raises(ValueError, match="Missing required field 'family'"):
         AzureAIChatCompletionClient(
             model="model",
             endpoint="endpoint",
