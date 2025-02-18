@@ -245,7 +245,6 @@ def _add_usage(usage1: RequestUsage, usage2: RequestUsage) -> RequestUsage:
 
 
 # Ollama's tools follow a stricter protocol than OAI or us. While OAI accepts a map of [str, Any], Ollama requires a map of [str, Property] where Property is a typed object containing a type and description. Therefore, only the keys "type" and "description" will be converted from the properties blob in the tool schema
-# TODO: write docstrings conveying the above
 def convert_tools(
     tools: Sequence[Tool | ToolSchema],
 ) -> List[OllamaTool]:
@@ -841,33 +840,16 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
 
 
 class OllamaChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseOllamaClientConfigurationConfigModel]):
-    """Chat completion client for OpenAI hosted models.
+    """Chat completion client for Ollama hosted models.
 
-    You can also use this client for OpenAI-compatible ChatCompletion endpoints.
-    **Using this client for non-OpenAI models is not tested or guaranteed.**
+    You can also use this client for Ollama-compatible ChatCompletion endpoints.
 
-    For non-OpenAI models, please first take a look at our `community extensions <https://microsoft.github.io/autogen/dev/user-guide/extensions-user-guide/index.html>`_
-    for additional model clients.
+    Ollama must be installed and the appropriate model pulled.
 
     Args:
-        model (str): Which OpenAI model to use.
-        api_key (optional, str): The API key to use. **Required if 'OPENAI_API_KEY' is not found in the environment variables.**
-        organization (optional, str): The organization ID to use.
-        base_url (optional, str): The base URL to use. **Required if the model is not hosted on OpenAI.**
-        timeout: (optional, float): The timeout for the request in seconds.
-        max_retries (optional, int): The maximum number of retries to attempt.
-        model_info (optional, ModelInfo): The capabilities of the model. **Required if the model name is not a valid OpenAI model.**
-        frequency_penalty (optional, float):
-        logit_bias: (optional, dict[str, int]):
-        max_tokens (optional, int):
-        n (optional, int):
-        presence_penalty (optional, float):
-        response_format (optional, literal["json_object", "text"]):
-        seed (optional, int):
-        stop (optional, str | List[str]):
-        temperature (optional, float):
-        top_p (optional, float):
-        user (optional, str):
+        model (str): Which Ollama model to use.
+        host (str): Model host url.
+        response_format (optional, pydantic.BaseModel)
 
 
     To use this client, you must install the `ollama` extension:
@@ -903,6 +885,22 @@ class OllamaChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseO
 
         client = ChatCompletionClient.load_component(config)
 
+    To output structured data, you can use the `response_format` argument:
+    .. code-block:: python
+        from pydantic import BaseModel
+
+
+        class StructuredOutput(BaseModel):
+            first_name: str
+            last_name: str
+
+
+        ollama_client = OllamaChatCompletionClient(
+            model="llama3",
+            response_format=StructuredOutput,
+        )
+        result = await ollama_client.create([UserMessage(content="Who was the first man on the moon?", source="user")])  # type: ignore
+        print(result)
 
     Note: Tool usage in ollama is stricter than in its OpenAI counterparts. While OpenAI accepts a map of [str, Any], Ollama requires a map of [str, Property] where Property is a typed object containing ``type`` and ``description`` fields. Therefore, only the keys ``type`` and ``description`` will be converted from the properties blob in the tool schema.
 
