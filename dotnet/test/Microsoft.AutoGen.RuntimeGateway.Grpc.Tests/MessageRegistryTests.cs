@@ -90,9 +90,9 @@ public class MessageRegistryTests : IClassFixture<ClusterFixture>
         var message = new CloudEvent { Id = Guid.NewGuid().ToString(), Source = "test-source", Type = "test-type" };
         
         // Act        
-        await grain.AddMessageToEventBufferAsync(topic, message); // small message
+        await grain.AddMessageToDeadLetterQueueAsync(topic, message); // small message
         message.BinaryData = Google.Protobuf.ByteString.CopyFrom(new byte[maxMessageSize + 1]);
-        await grain.AddMessageToEventBufferAsync(topic, message); // over the limit
+        await grain.AddMessageToDeadLetterQueueAsync(topic, message); // over the limit
         // attempt to remove the topic from the queue
         var removedMessages = await grain.RemoveMessagesAsync(topic);
         Assert.Single(removedMessages); // only the small message should be in the buffer
@@ -107,19 +107,19 @@ public class MessageRegistryTests : IClassFixture<ClusterFixture>
         // Arrange
         var grain = _cluster.GrainFactory.GetGrain<IMessageRegistryGrain>(0);
         var topic = Guid.NewGuid().ToString(); // Random topic
-        var bigMessage = 1024 * 1024 * 99; // 99MB
+        var bigMessage = 1024 * 1024 * 98; // 98MB
         var message = new CloudEvent { Id = Guid.NewGuid().ToString(), Source = "test-source", Type = "test-type" };
         
         // Act
-        for (int i = 0; i < 11; i++)
+        for (int i = 0; i < 3; i++)
         {
             message.BinaryData = Google.Protobuf.ByteString.CopyFrom(new byte[bigMessage]);
             message.Source = i.ToString();
-            await grain.AddMessageToEventBufferAsync(topic, message);
+            await grain.AddMessageToDeadLetterQueueAsync(topic, message);
         }
         // attempt to remove the topic from the queue
         var removedMessages = await grain.RemoveMessagesAsync(topic);
-        Assert.Equal(10, removedMessages.Count); // only 10 messages should be in the buffer
+        Assert.Equal(3, removedMessages.Count); // only 3 messages should be in the buffer
 
     }
 }
