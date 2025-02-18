@@ -885,6 +885,22 @@ class OllamaChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseO
 
         client = ChatCompletionClient.load_component(config)
 
+    To output structured data, you can use the `response_format` argument:
+    .. code-block:: python
+        from pydantic import BaseModel
+
+
+        class StructuredOutput(BaseModel):
+            first_name: str
+            last_name: str
+
+
+        ollama_client = OllamaChatCompletionClient(
+            model="llama3",
+            response_format=StructuredOutput,
+        )
+        result = await ollama_client.create([UserMessage(content="Who was the first man on the moon?", source="user")])  # type: ignore
+        print(result)
 
     Note: Tool usage in ollama is stricter than in its OpenAI counterparts. While OpenAI accepts a map of [str, Any], Ollama requires a map of [str, Property] where Property is a typed object containing ``type`` and ``description`` fields. Therefore, only the keys ``type`` and ``description`` will be converted from the properties blob in the tool schema.
 
