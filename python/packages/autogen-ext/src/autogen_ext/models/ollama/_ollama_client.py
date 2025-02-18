@@ -842,15 +842,16 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
 class OllamaChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseOllamaClientConfigurationConfigModel]):
     """Chat completion client for Ollama hosted models.
 
-    You can also use this client for Ollama-compatible ChatCompletion endpoints.
-
     Ollama must be installed and the appropriate model pulled.
 
     Args:
         model (str): Which Ollama model to use.
-        host (str): Model host url.
-        response_format (optional, pydantic.BaseModel)
-
+        host (optional, str): Model host url.
+        response_format (optional, pydantic.BaseModel): The format of the response. If provided, the response will be parsed into this format as json.
+        model_info (optional, ModelInfo): The capabilities of the model. **Required if the model is not listed in the ollama model info.**
+    
+    Note:
+        Only models with 200k+ downloads (as of Jan 21, 2025), + phi4, deepseek-r1 have pre-defined model infos. See `this file <https://github.com/microsoft/autogen/blob/main/python/packages/autogen-ext/src/autogen_ext/models/ollama/_model_info.py>`__ for the full list. An entry for one model encompases all parameter variants of that model.
 
     To use this client, you must install the `ollama` extension:
 
@@ -886,14 +887,14 @@ class OllamaChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseO
         client = ChatCompletionClient.load_component(config)
 
     To output structured data, you can use the `response_format` argument:
-    .. code-block:: python
-        from pydantic import BaseModel
 
+    .. code-block:: python
+
+        from pydantic import BaseModel
 
         class StructuredOutput(BaseModel):
             first_name: str
             last_name: str
-
 
         ollama_client = OllamaChatCompletionClient(
             model="llama3",
@@ -902,7 +903,8 @@ class OllamaChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseO
         result = await ollama_client.create([UserMessage(content="Who was the first man on the moon?", source="user")])  # type: ignore
         print(result)
 
-    Note: Tool usage in ollama is stricter than in its OpenAI counterparts. While OpenAI accepts a map of [str, Any], Ollama requires a map of [str, Property] where Property is a typed object containing ``type`` and ``description`` fields. Therefore, only the keys ``type`` and ``description`` will be converted from the properties blob in the tool schema.
+    Note:
+        Tool usage in ollama is stricter than in its OpenAI counterparts. While OpenAI accepts a map of [str, Any], Ollama requires a map of [str, Property] where Property is a typed object containing ``type`` and ``description`` fields. Therefore, only the keys ``type`` and ``description`` will be converted from the properties blob in the tool schema.
 
     To view the full list of available configuration options, see the :py:class:`OllamaClientConfigurationConfigModel` class.
 
