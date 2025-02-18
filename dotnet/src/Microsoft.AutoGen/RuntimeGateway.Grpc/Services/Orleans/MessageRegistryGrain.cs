@@ -31,7 +31,7 @@ internal sealed class MessageRegistryGrain : Grain, IMessageRegistryGrain
     /// maximum size of a each queue
     /// </summary>
     /// <remarks>set this to HALF your intended limit as protobuf strings are UTF8 but .NET UTF16</remarks>
-    private const int _maxQueueSize = 1024 * 1024 * 256; // 256MB
+    private const int _maxQueueSize = 1024 * 1024 * 10; // 10MB
 
     private readonly MessageRegistryQueue _dlqQueue;
     private readonly MessageRegistryQueue _ebQueue;
