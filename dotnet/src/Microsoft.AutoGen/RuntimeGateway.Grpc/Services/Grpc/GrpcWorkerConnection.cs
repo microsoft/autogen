@@ -2,12 +2,11 @@
 // GrpcWorkerConnection.cs
 using System.Threading.Channels;
 using Grpc.Core;
-using Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
 
-public sealed class GrpcWorkerConnection<TMessage> : IAsyncDisposable, IConnection
-    where TMessage : class
+public sealed class GrpcWorkerConnection<TMessage> : IAsyncDisposable
+where TMessage : class
 {
     private static long s_nextConnectionId;
     private Task _readTask = Task.CompletedTask;
@@ -57,6 +56,7 @@ public sealed class GrpcWorkerConnection<TMessage> : IAsyncDisposable, IConnecti
 
     private readonly Channel<TMessage> _outboundMessages;
 
+    /// <inheritdoc/>
     public void AddSupportedType(string type)
     {
         lock (_lock)
@@ -65,6 +65,7 @@ public sealed class GrpcWorkerConnection<TMessage> : IAsyncDisposable, IConnecti
         }
     }
 
+    /// <inheritdoc/>
     public HashSet<string> GetSupportedTypes()
     {
         lock (_lock)
@@ -73,10 +74,13 @@ public sealed class GrpcWorkerConnection<TMessage> : IAsyncDisposable, IConnecti
         }
     }
 
+    /// <inheritdoc/>
     public async Task SendMessage(TMessage message)
     {
         await _outboundMessages.Writer.WriteAsync(message).ConfigureAwait(false);
     }
+
+    /// <inheritdoc/>
     public async Task RunReadPump()
     {
         await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
@@ -98,6 +102,7 @@ public sealed class GrpcWorkerConnection<TMessage> : IAsyncDisposable, IConnecti
         }
     }
 
+    /// <inheritdoc/>
     public async Task RunWritePump()
     {
         await Task.CompletedTask.ConfigureAwait(ConfigureAwaitOptions.ForceYielding);
@@ -117,11 +122,13 @@ public sealed class GrpcWorkerConnection<TMessage> : IAsyncDisposable, IConnecti
         }
     }
 
+    /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
         _shutdownCancellationToken.Cancel();
         await Completion.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
     }
 
+    /// <inheritdoc/>
     public override string ToString() => $"Connection-{_connectionId}";
 }

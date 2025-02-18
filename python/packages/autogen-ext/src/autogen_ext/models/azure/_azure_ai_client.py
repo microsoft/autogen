@@ -17,6 +17,7 @@ from autogen_core.models import (
     RequestUsage,
     SystemMessage,
     UserMessage,
+    validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
 from azure.ai.inference.aio import ChatCompletionsClient
@@ -246,10 +247,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             raise ValueError("credential is required for AzureAIChatCompletionClient")
         if "model_info" not in config:
             raise ValueError("model_info is required for AzureAIChatCompletionClient")
-        if "family" not in config["model_info"]:
-            raise ValueError(
-                "family is required for model_info in AzureAIChatCompletionClient. See autogen_core.models.ModelFamily for options."
-            )
+        validate_model_info(config["model_info"])
         if _is_github_model(config["endpoint"]) and "model" not in config:
             raise ValueError("model is required for when using a Github model with AzureAIChatCompletionClient")
         return cast(AzureAIChatCompletionClientConfig, config)

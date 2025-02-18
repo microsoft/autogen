@@ -90,7 +90,8 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
     public GrpcAgentRuntime(AgentRpc.AgentRpcClient client,
                             IHostApplicationLifetime hostApplicationLifetime,
                             IServiceProvider serviceProvider,
-                            ILogger<GrpcAgentRuntime> logger)
+                            ILogger<GrpcAgentRuntime> logger,
+                            bool strictMessageDeserialization = false)
     {
         this._client = client;
         this._logger = logger;
@@ -98,6 +99,7 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
 
         this._messageRouter = new GrpcMessageRouter(client, this, _clientId, logger, this._shutdownCts.Token);
         this._agentsContainer = new AgentsContainer(this, this.SerializationRegistry);
+        this._strictMessageDeserialization = strictMessageDeserialization;
 
         this.ServiceProvider = serviceProvider;
     }
@@ -128,6 +130,7 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
         }
     }
 
+    private readonly bool _strictMessageDeserialization;
     public IProtoSerializationRegistry SerializationRegistry { get; } = new ProtobufSerializationRegistry();
 
     public void Dispose()
@@ -257,10 +260,22 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
                 var agent = await this._agentsContainer.EnsureAgentAsync(recipient);
 
                 // give the serializer a second chance to have been registered
-                serializer ??= SerializationRegistry.GetSerializer(typeName) ?? throw new Exception($"Could not find a serializer for message of type {typeName}");
-                message ??= serializer.Deserialize(evt.ProtoData);
+                serializer ??= SerializationRegistry.GetSerializer(typeName);
 
-                await agent.OnMessageAsync(message, messageContext);
+                if (serializer != null)
+                {
+                    message ??= serializer.Deserialize(evt.ProtoData);
+                    await agent.OnMessageAsync(message, messageContext);
+                }
+                else if (_strictMessageDeserialization)
+                {
+                    throw new Exception($"Could not find a serializer for message of type {typeName}");
+
+                }
+                else
+                {
+                    _logger.LogWarning($"Could not find a serializer for message of type {typeName}; this is likely due there not yet being an instantiated agent with a contract for it.");
+                }
             }
         }
     }
