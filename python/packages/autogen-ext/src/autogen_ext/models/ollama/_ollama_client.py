@@ -905,7 +905,7 @@ class OllamaChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseO
 
 
     Note: Tool usage in ollama is stricter than in its OpenAI counterparts. While OpenAI accepts a map of [str, Any], Ollama requires a map of [str, Property] where Property is a typed object containing ``type`` and ``description`` fields. Therefore, only the keys ``type`` and ``description`` will be converted from the properties blob in the tool schema.
-    
+
     To view the full list of available configuration options, see the :py:class:`OllamaClientConfigurationConfigModel` class.
 
     """
