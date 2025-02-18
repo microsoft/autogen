@@ -17,7 +17,12 @@ pip install -U "autogen-agentchat" "autogen-ext[openai]" "autogen-ext[task-centr
 
 ## Quickstart
 
-Run a basic test to verify that the installation was successful.
+<p align="right">
+  <img src="../../../imgs/task_centric_memory_2.png" alt="Description" width="300" align="right" style="margin-left: 10px;">
+</p>
+
+This first code snippet runs a basic test to verify that the installation was successful,
+as illustrated by the diagram to the right. 
 
 ```python
 import asyncio
@@ -45,9 +50,13 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-The code above could be added to any app or agent.
+<p align="right">
+  <img src="../../../imgs/task_centric_memory_3.png" alt="Description" width="300" align="right" style="margin-left: 10px;">
+</p>
 
-The following code shows one way to incorporate task-centric memory directly into an AutoGen agent.
+This second code example shows one way to incorporate task-centric memory directly into an AutoGen agent,
+in this case a subclass of RoutedAgent.
+To keep the code smalle, only the simplest form of memory retrieval is exercised by this agent.
 
 ```python
 
@@ -150,7 +159,7 @@ See the [sample code](../../../../../samples/task_centric_memory) for that and o
   <img src="../../../imgs/task_centric_memory.png" alt="Description" width="300" align="right" style="margin-left: 10px;">
 </p>
 
-The block diagram to the right outlines the key components of the architecture.
+The block diagram to the right outlines the key components of the architecture in the most general form.
 The memory components are shown in blue, and the green blocks represent external components.
 
 The **Task-Centric Memory Controller** implements the fast-learning methods described below,
