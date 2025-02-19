@@ -229,6 +229,9 @@ async def test_on_reset_clears_history(mock_kernel: MagicMock, mock_chat_service
     Test on_reset to ensure conversation history is cleared.
     """
     mock_kernel.get_service.return_value = mock_chat_service
+    mock_chat_service.get_chat_message_contents.return_value = [
+        ChatMessageContent(role=AuthorRole.ASSISTANT, content="Mocked assistant reply")
+    ]
 
     agent = SKAssistantAgent("TestAgent", "desc", kernel=mock_kernel)
     # Add some messages
