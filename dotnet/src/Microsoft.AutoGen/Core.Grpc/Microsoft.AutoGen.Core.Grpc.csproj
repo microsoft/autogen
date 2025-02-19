@@ -6,6 +6,8 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
+
   <ItemGroup>
     <ProjectReference Include="..\Core\Microsoft.AutoGen.Core.csproj" />
     <ProjectReference Include="..\Contracts\Microsoft.AutoGen.Contracts.csproj" />

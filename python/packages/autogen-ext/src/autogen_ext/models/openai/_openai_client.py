@@ -47,6 +47,7 @@ from autogen_core.models import (
     SystemMessage,
     TopLogprob,
     UserMessage,
+    validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
 from openai import AsyncAzureOpenAI, AsyncOpenAI
@@ -385,6 +386,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         elif model_capabilities is None and model_info is not None:
             self._model_info = model_info
 
+        # Validate model_info, check if all required fields are present
+        validate_model_info(self._model_info)
+
         self._resolved_model: Optional[str] = None
         if "model" in create_args:
             self._resolved_model = _model_info.resolve_model(create_args["model"])
@@ -557,7 +561,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             if self._resolved_model != result.model:
                 warnings.warn(
                     f"Resolved model mismatch: {self._resolved_model} != {result.model}. "
-                    "Model mapping in autogen_ext.models.openai may be incorrect.",
+                    "Model mapping in autogen_ext.models.openai may be incorrect. "
+                    f"Set the model to {result.model} to enhance token/cost estimation and suppress this warning.",
                     stacklevel=2,
                 )
 

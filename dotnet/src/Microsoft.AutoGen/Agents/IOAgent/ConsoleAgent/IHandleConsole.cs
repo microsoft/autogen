@@ -1,6 +1,5 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // IHandleConsole.cs
-using Google.Protobuf;
 using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Agents;
@@ -14,13 +13,12 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>, IProcessIO
     /// <summary>
     /// Prototype for Publish Message Async method
     /// </summary>
-    /// <typeparam name="T"></typeparam>
     /// <param name="message"></param>
     /// <param name="topic"></param>
     /// <param name="messageId"></param>
-    /// <param name="token"></param>
+    /// <param name="cancellationToken"></param>
     /// <returns>ValueTask</returns>
-    ValueTask PublishMessageAsync<T>(T message, TopicId topic, string? messageId, CancellationToken token = default) where T : IMessage;
+    ValueTask PublishMessageAsync(object message, TopicId topic, string? messageId = null, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Receives events of type Output and writes them to the console
@@ -39,7 +37,7 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>, IProcessIO
         {
             Route = "console"
         };
-        await PublishMessageAsync(evt, new TopicId("OutputWritten"), null, token: CancellationToken.None).ConfigureAwait(false);
+        await PublishMessageAsync(evt, new TopicId("OutputWritten"), null, cancellationToken: CancellationToken.None).ConfigureAwait(false);
     }
 
     /// <summary>
@@ -60,6 +58,6 @@ public interface IHandleConsole : IHandle<Output>, IHandle<Input>, IProcessIO
         {
             Route = "console"
         };
-        await PublishMessageAsync(evt, new TopicId("InputProcessed"), null, token: CancellationToken.None).ConfigureAwait(false);
+        await PublishMessageAsync(evt, new TopicId("InputProcessed"), null, cancellationToken: CancellationToken.None).ConfigureAwait(false);
     }
 }

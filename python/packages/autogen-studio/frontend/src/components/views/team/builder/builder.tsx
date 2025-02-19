@@ -1,5 +1,6 @@
 //team/builder/builder.tsx
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   DndContext,
   useSensor,
@@ -34,6 +35,7 @@ import {
 import { useTeamBuilderStore } from "./store";
 import { ComponentLibrary } from "./library";
 import { ComponentTypes, Team } from "../../../types/datamodel";
+import { ComponentTypes, Team } from "../../../types/datamodel";
 import { CustomNode, CustomEdge, DragItem } from "./types";
 import { edgeTypes, nodeTypes } from "./nodes";
 
@@ -43,6 +45,7 @@ import TeamBuilderToolbar from "./toolbar";
 import { MonacoEditor } from "../../monaco";
 import debounce from "lodash.debounce";
 import TestDrawer from "./testdrawer";
+import { validationAPI, ValidationResponse } from "../api";
 import { validationAPI, ValidationResponse } from "../api";
 import { ValidationErrors } from "./validationerrors";
 import ComponentEditor from "./component-editor/component-editor";

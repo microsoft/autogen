@@ -59,6 +59,18 @@ class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeE
     For shell scripts, use the language "bash", "shell", or "sh" for the code
     block.
 
+    .. note::
+
+        On Windows, the event loop policy must be set to `WindowsProactorEventLoopPolicy` to avoid issues with subprocesses.
+
+        .. code-block:: python
+
+            import sys
+            import asyncio
+
+            if sys.platform == "win32":
+                asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
+
     Args:
         timeout (int): The timeout for the execution of any single code block. Default is 60.
         work_dir (str): The working directory for the code execution. If None,
@@ -164,6 +176,21 @@ $functions"""
             self._setup_functions_complete = True
 
         self._virtual_env_context: Optional[SimpleNamespace] = virtual_env_context
+
+        # Check the current event loop policy if on windows.
+        if sys.platform == "win32":
+            current_policy = asyncio.get_event_loop_policy()
+            if hasattr(asyncio, "WindowsProactorEventLoopPolicy") and not isinstance(
+                current_policy, asyncio.WindowsProactorEventLoopPolicy
+            ):
+                warnings.warn(
+                    "The current event loop policy is not WindowsProactorEventLoopPolicy. "
+                    "This may cause issues with subprocesses. "
+                    "Try setting the event loop policy to WindowsProactorEventLoopPolicy. "
+                    "For example: `asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())`. "
+                    "See https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.ProactorEventLoop.",
+                    stacklevel=2,
+                )
 
     def format_functions_for_prompt(self, prompt_template: str = FUNCTION_PROMPT_TEMPLATE) -> str:
         """(Experimental) Format the functions for a prompt.
