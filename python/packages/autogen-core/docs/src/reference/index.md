@@ -54,6 +54,7 @@ python/autogen_ext.models.azure
 python/autogen_ext.models.semantic_kernel
 python/autogen_ext.task_centric_memory
 python/autogen_ext.task_centric_memory.utils
+python/autogen_ext.models.ollama
 python/autogen_ext.tools.code_execution
 python/autogen_ext.tools.graphrag
 python/autogen_ext.tools.http
