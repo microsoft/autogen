@@ -208,12 +208,19 @@ def assistant_message_to_oai(
 ) -> ChatCompletionAssistantMessageParam:
     assert_valid_name(message.source)
     if isinstance(message.content, list):
-        return ChatCompletionAssistantMessageParam(
-            content=message.thought,
-            tool_calls=[func_call_to_oai(x) for x in message.content],
-            role="assistant",
-            name=message.source,
-        )
+        if message.thought is not None:
+            return ChatCompletionAssistantMessageParam(
+                content=message.thought,
+                tool_calls=[func_call_to_oai(x) for x in message.content],
+                role="assistant",
+                name=message.source,
+            )
+        else:
+            return ChatCompletionAssistantMessageParam(
+                tool_calls=[func_call_to_oai(x) for x in message.content],
+                role="assistant",
+                name=message.source,
+            )
     else:
         return ChatCompletionAssistantMessageParam(
             content=message.content,
@@ -785,6 +792,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     content_deltas.append(choice.delta.content)
                     if len(choice.delta.content) > 0:
                         yield choice.delta.content
+                    # NOTE: for OpenAI, tool_calls and content are mutually exclusive it seems, so we can skip the rest of the loop.
+                    # However, this may not be the case for other APIs -- we should expect this may need to be updated.
                     continue
 
                 # Otherwise, get tool calls
@@ -829,15 +838,24 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             raise ValueError("Function calls are not supported in this context")
 
         content: Union[str, List[FunctionCall]]
-        if len(content_deltas) > 1:
+        thought: str | None = None
+        if full_tool_calls:
+            # This is a tool call.
+            content = list(full_tool_calls.values())
+            if len(content_deltas) > 1:
+                # Put additional text content in the thought field.
+                thought = "".join(content_deltas)
+        elif len(content_deltas) > 0:
+            # This is a text-only content.
             content = "".join(content_deltas)
-            if chunk and chunk.usage:
-                completion_tokens = chunk.usage.completion_tokens
-            else:
-                completion_tokens = 0
+        else:
+            warnings.warn("No text content or tool calls are available. Model returned empty result.", stacklevel=2)
+            content = ""
+
+        if chunk and chunk.usage:
+            completion_tokens = chunk.usage.completion_tokens
         else:
             completion_tokens = 0
-            content = list(full_tool_calls.values())
 
         usage = RequestUsage(
             prompt_tokens=prompt_tokens,
@@ -846,8 +864,6 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
             thought, content = parse_r1_content(content)
-        else:
-            thought = None
 
         result = CreateResult(
             finish_reason=normalize_stop_reason(stop_reason),
