@@ -39,7 +39,7 @@ event_logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 class SKAssistantAgent(BaseChatAgent):
     """
-    SKAssistantAgent is a specialized agent that leverages Semantic Kernel for
+    SKAssistantAgent is a specialized agent that leverages [Semantic Kernel](https://learn.microsoft.com/en-us/semantic-kernel/overview/) for
     conversation handling and response generation. It extends the autogen
     ``BaseChatAgent`` class and uses a single Semantic Kernel ``ChatHistory``
     to store and manage dialogue context.
@@ -66,7 +66,7 @@ class SKAssistantAgent(BaseChatAgent):
 
     Example usage:
 
-    The example below showcases how to use ``SKAssistantAgent`` with a custom plugin for turning lights on or off, adjusting
+    The example below showcases how to use ``SKAssistantAgent`` with a custom [plugin](https://learn.microsoft.com/en-us/semantic-kernel/concepts/plugins/?pivots=programming-language-python) for turning lights on or off, adjusting
     brightness, and more:
 
     .. code-block:: python
