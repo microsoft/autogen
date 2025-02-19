@@ -10,6 +10,7 @@ from autogen_agentchat.messages import (
     MultiModalMessage,
     StopMessage,
     TextMessage,
+    ToolCallRequestEvent,
     ToolCallSummaryMessage,
 )
 from autogen_core import CancellationToken, Image
@@ -17,7 +18,7 @@ from autogen_ext.agents.semantic_kernel._sk_assistant_agent import SKAssistantAg
 from semantic_kernel.connectors.ai.chat_completion_client_base import ChatCompletionClientBase
 from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
 from semantic_kernel.connectors.ai.prompt_execution_settings import PromptExecutionSettings
-from semantic_kernel.contents.chat_message_content import ChatMessageContent
+from semantic_kernel.contents import ChatMessageContent, FunctionCallContent
 from semantic_kernel.contents.utils.author_role import AuthorRole
 from semantic_kernel.exceptions import KernelServiceNotFoundError
 from semantic_kernel.kernel import Kernel
@@ -273,3 +274,73 @@ async def test_on_messages_stream(mock_kernel: MagicMock, mock_chat_service: Mag
     # chat_history should now have user + assistant
     assert len(agent._chat_history.messages) == 2  # type: ignore
     assert mock_chat_service.get_streaming_chat_message_contents.call_count == 1  # type: ignore
+
+
+@pytest.mark.asyncio
+async def test_on_messages_stream_tool_calls(mock_kernel, mock_chat_service):
+    """
+    Test that tool calls in progress are properly detected and yield a ToolCallRequestEvent
+    when finish_reason == "tool_calls".
+    """
+
+    async def mock_stream(*args: Any, **kwargs: Any) -> AsyncIterator[list[ChatMessageContent]]:
+        # First chunk: partial function call with id="call1"
+        yield [
+            ChatMessageContent(
+                role=AuthorRole.ASSISTANT,
+                items=[
+                    FunctionCallContent(
+                        id="call1", plugin_name="myPlugin", function_name="myFunc", arguments={"param1": "partial"}
+                    )
+                ],
+                finish_reason=None,
+            )
+        ]
+        # Second chunk: same function call ID with more arguments
+        yield [
+            ChatMessageContent(
+                role=AuthorRole.ASSISTANT,
+                items=[
+                    FunctionCallContent(
+                        id="call1", plugin_name="myPlugin", function_name="myFunc", arguments={"param2": "partial2"}
+                    )
+                ],
+                finish_reason=None,
+            )
+        ]
+        # Third chunk: signals finish of tool calls
+        yield [
+            ChatMessageContent(
+                role=AuthorRole.ASSISTANT,
+                items=[],
+                finish_reason="tool_calls",
+            )
+        ]
+
+    mock_chat_service.get_streaming_chat_message_contents.side_effect = mock_stream
+    mock_kernel.get_service.return_value = mock_chat_service
+
+    agent = SKAssistantAgent("TestAgent", "desc", kernel=mock_kernel)
+
+    # Trigger streaming with a user message
+    messages = [TextMessage(content="Test tool call streaming", source="user")]
+    results = []
+    async for event in agent.on_messages_stream(messages, CancellationToken()):
+        results.append(event)
+
+    # We expect at least one yield to be the ToolCallRequestEvent
+    tool_call_events = [r for r in results if isinstance(r, ToolCallRequestEvent)]
+    assert len(tool_call_events) == 1, "Should have exactly one ToolCallRequestEvent emitted."
+
+    # Check the function calls within the ToolCallRequestEvent
+    event_content = tool_call_events[0].content
+    assert len(event_content) == 1, "Expected one FunctionCall in the ToolCallRequestEvent."
+
+    func_call = event_content[0]
+    # The plugin-function name is combined as pluginName-functionName
+    assert func_call.name == "myPlugin-myFunc"
+    # Merged arguments should include both partial keys
+    assert func_call.arguments == '{"param1": "partial", "param2": "partial2"}'
+
+    # Ensure the agent name is set correctly
+    assert tool_call_events[0].source == "TestAgent"
