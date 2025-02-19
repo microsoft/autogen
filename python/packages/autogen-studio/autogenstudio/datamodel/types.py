@@ -52,19 +52,15 @@ class GalleryComponents(BaseModel):
     models: List[ComponentModel]
     tools: List[ComponentModel]
     terminations: List[ComponentModel]
-
-
-class GalleryItems(BaseModel):
-    teams: List[ComponentModel]
-    components: GalleryComponents
+    teams: List[ComponentModel]   
 
 
 class Gallery(BaseModel):
     id: str
     name: str
     url: Optional[str] = None
-    metadata: GalleryMetadata
-    items: GalleryItems
+    metadata: GalleryMetadata 
+    components: GalleryComponents
 
 
 # web request/response data models
