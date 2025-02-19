@@ -10,7 +10,7 @@ You can obtain the SDK as a nuget package or by cloning the repository. The SDK 
 Minimally you will need the following:
 
 ```bash
-sotnet add package Microsoft.AutoGen.Contracts
+dotnet add package Microsoft.AutoGen.Contracts
 dotnet add package Microsoft.AutoGen.Core
 ```
 
