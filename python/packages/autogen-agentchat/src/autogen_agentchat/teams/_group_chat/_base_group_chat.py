@@ -494,7 +494,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         """
 
         if not self._initialized:
-            raise RuntimeError("The group chat has not been initialized. It must be run before it can be reset.")
+            await self._init(self._runtime)
 
         if self._is_running:
             raise RuntimeError("The group chat is currently running. It must be stopped before it can be reset.")
