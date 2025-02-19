@@ -20,6 +20,7 @@ from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoic
 from semantic_kernel.connectors.ai.prompt_execution_settings import PromptExecutionSettings
 from semantic_kernel.contents import ChatMessageContent, FunctionCallContent
 from semantic_kernel.contents.utils.author_role import AuthorRole
+from semantic_kernel.contents.utils.finish_reason import FinishReason
 from semantic_kernel.exceptions import KernelServiceNotFoundError
 from semantic_kernel.kernel import Kernel
 
@@ -277,7 +278,7 @@ async def test_on_messages_stream(mock_kernel: MagicMock, mock_chat_service: Mag
 
 
 @pytest.mark.asyncio
-async def test_on_messages_stream_tool_calls(mock_kernel, mock_chat_service):
+async def test_on_messages_stream_tool_calls(mock_kernel: MagicMock, mock_chat_service: MagicMock) -> None:
     """
     Test that tool calls in progress are properly detected and yield a ToolCallRequestEvent
     when finish_reason == "tool_calls".
@@ -313,7 +314,7 @@ async def test_on_messages_stream_tool_calls(mock_kernel, mock_chat_service):
             ChatMessageContent(
                 role=AuthorRole.ASSISTANT,
                 items=[],
-                finish_reason="tool_calls",
+                finish_reason=FinishReason.TOOL_CALLS,
             )
         ]
 
@@ -324,7 +325,7 @@ async def test_on_messages_stream_tool_calls(mock_kernel, mock_chat_service):
 
     # Trigger streaming with a user message
     messages = [TextMessage(content="Test tool call streaming", source="user")]
-    results = []
+    results: list[AgentEvent | ChatMessage | Response] = []
     async for event in agent.on_messages_stream(messages, CancellationToken()):
         results.append(event)
 
