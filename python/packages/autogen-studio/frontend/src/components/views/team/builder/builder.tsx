@@ -20,7 +20,7 @@ import {
   MiniMap,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Button, Layout, message, Switch, Tooltip } from "antd";
+import { Button, Drawer, Layout, message, Switch, Tooltip } from "antd";
 import {
   Cable,
   CheckCircle,
@@ -41,11 +41,11 @@ import { edgeTypes, nodeTypes } from "./nodes";
 import "./builder.css";
 import TeamBuilderToolbar from "./toolbar";
 import { MonacoEditor } from "../../monaco";
-import { NodeEditor } from "./node-editor/node-editor";
 import debounce from "lodash.debounce";
 import TestDrawer from "./testdrawer";
 import { validationAPI, ValidationResponse } from "../api";
 import { ValidationErrors } from "./validationerrors";
+import ComponentEditor from "./component-editor/component-editor";
 
 const { Sider, Content } = Layout;
 interface DragItemData {
@@ -529,17 +529,35 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
             </Content>
           </Layout>
 
-          <NodeEditor
-            node={nodes.find((n) => n.id === selectedNodeId) || null}
-            onUpdate={(updates) => {
-              if (selectedNodeId) {
-                console.log("updating node", selectedNodeId, updates);
-                updateNode(selectedNodeId, updates);
-                handleSave();
-              }
-            }}
-            onClose={() => setSelectedNode(null)}
-          />
+          {selectedNodeId && (
+            <Drawer
+              title="Edit Component"
+              placement="right"
+              size="large"
+              onClose={() => setSelectedNode(null)}
+              open={!!selectedNodeId}
+              className="component-editor-drawer"
+            >
+              {nodes.find((n) => n.id === selectedNodeId)?.data.component && (
+                <ComponentEditor
+                  component={
+                    nodes.find((n) => n.id === selectedNodeId)!.data.component
+                  }
+                  onChange={(updatedComponent) => {
+                    console.log("builder updating component", updatedComponent);
+                    if (selectedNodeId) {
+                      updateNode(selectedNodeId, {
+                        component: updatedComponent,
+                      });
+                      handleSave();
+                    }
+                  }}
+                  onClose={() => setSelectedNode(null)}
+                  navigationDepth={true}
+                />
+              )}
+            </Drawer>
+          )}
         </Layout>
         <DragOverlay
           dropAnimation={{

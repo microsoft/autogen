@@ -101,7 +101,15 @@ const NodeEditorFields: React.FC<NodeEditorFieldsProps> = ({
   } else if (isTerminationComponent(component)) {
     specificFields = (
       <DetailGroup title="Configuration">
-        <TerminationFields component={component} onNavigate={onNavigate} />
+        <TerminationFields
+          component={component}
+          onNavigate={onNavigate}
+          workingCopy={workingCopy}
+          setWorkingCopy={setWorkingCopy}
+          editPath={editPath}
+          updateComponentAtPath={updateComponentAtPath}
+          getCurrentComponent={getCurrentComponent}
+        />
       </DetailGroup>
     );
   }
