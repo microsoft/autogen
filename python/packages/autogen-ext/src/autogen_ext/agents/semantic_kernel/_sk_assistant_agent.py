@@ -66,9 +66,93 @@ class SKAssistantAgent(BaseChatAgent):
 
     Example usage:
 
+    The example below showcases how to use ``SKAssistantAgent`` with a custom plugin for turning lights on or off, adjusting
+    brightness, and more:
+
+    .. code-block:: python
+
+        import asyncio
+        import os
+
+        from typing import List, Optional, TypedDict
+        from autogen_agentchat.ui._console import Console
+        from semantic_kernel import Kernel
+        from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
+        from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion, AzureChatPromptExecutionSettings
+        from semantic_kernel.functions import kernel_function, KernelParameterMetadata, KernelPlugin
+        from autogen_ext.agents.semantic_kernel import SKAssistantAgent
+
+
+        class LightModel(TypedDict):
+            id: int
+            name: str
+            is_on: bool
+            brightness: int
+            hex: str
+
+        class LightsPlugin:
+            def __init__(self, lights: List[LightModel]):
+                self._lights = lights
+
+            @kernel_function
+            async def get_lights(self) -> List[LightModel]:
+                \"\"\"Gets a list of lights and their current state.\"\"\"
+                return self._lights
+
+            @kernel_function
+            async def change_state(self, change_state: LightModel) -> Optional[LightModel]:
+                \"\"\"Changes the state of the light.\"\"\"
+                for light in self._lights:
+                    if light["id"] == change_state["id"]:
+                        light["is_on"] = change_state.get("is_on", light["is_on"])
+                        light["brightness"] = change_state.get("brightness", light["brightness"])
+                        light["hex"] = change_state.get("hex", light["hex"])
+                        return light
+                return None
+
+        async def main():
+            # Initialize the kernel
+            kernel = Kernel()
+
+            # Configure Azure OpenAI chat completion
+            ai_service = AzureChatCompletion(
+                api_key=os.getenv("AZURE_OPENAI_API_KEY"),
+                deployment_name="gpt-4o",
+                endpoint=os.getenv("AZURE_OPENAI_ENDPOINT"),
+                api_version=os.getenv("AZURE_OPENAI_VERSION"),
+            )
+            kernel.add_service(ai_service)
+
+            # Create and add the LightsPlugin
+            lights = [
+                {"id": 1, "name": "Table Lamp", "is_on": False, "brightness": 100, "hex": "FF0000"},
+                {"id": 2, "name": "Porch Light", "is_on": False, "brightness": 50, "hex": "00FF00"},
+                {"id": 3, "name": "Chandelier", "is_on": True, "brightness": 75, "hex": "0000FF"},
+            ]
+            lights_plugin = LightsPlugin(lights)
+            kernel.add_plugin(lights_plugin, plugin_name="Lights")
+
+            # Create the SKAssistantAgent
+            agent = SKAssistantAgent(
+                name="MyAssistant",
+                description="An AI assistant that can control smart lights and their settings",
+                kernel=kernel,
+                execution_settings=AzureChatPromptExecutionSettings(
+                    function_choice_behavior=FunctionChoiceBehavior.Auto(auto_invoke=True)
+                ),
+            )
+
+            # Example query to turn on the table lamp and set brightness
+            query = "Turn on the table lamp and set its brightness to 75%"
+            await Console(agent.run_stream(task=query))
+
+        if __name__ == "__main__":
+            asyncio.run(main())
+
+
     The following example demonstrates how to create and use an ``SKAssistantAgent``
-    in conjunction with a Semantic Kernel. It sets up an Azure-based chat model,
-    adds a Bing search plugin, and then streams the agent's response to the console:
+    in conjunction with a Semantic Kernel to leverage semantic kernel existing plugin ecosystem.
+    It sets up an Azure-based chat model, adds a Bing search plugin, and then streams the agent's response to the console:
 
     .. code-block:: python
 
