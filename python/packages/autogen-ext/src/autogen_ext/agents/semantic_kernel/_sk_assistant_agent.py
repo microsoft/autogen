@@ -79,7 +79,7 @@ class SKAssistantAgent(BaseChatAgent):
         from semantic_kernel import Kernel
         from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
         from semantic_kernel.connectors.ai.open_ai import AzureChatCompletion, AzureChatPromptExecutionSettings
-        from semantic_kernel.functions import kernel_function, KernelParameterMetadata, KernelPlugin
+        from semantic_kernel.functions import kernel_function
         from autogen_ext.agents.semantic_kernel import SKAssistantAgent
 
 
@@ -90,18 +90,19 @@ class SKAssistantAgent(BaseChatAgent):
             brightness: int
             hex: str
 
+
         class LightsPlugin:
             def __init__(self, lights: List[LightModel]):
                 self._lights = lights
 
             @kernel_function
             async def get_lights(self) -> List[LightModel]:
-                \"\"\"Gets a list of lights and their current state.\"\"\"
+                '''Gets a list of lights and their current state.'''
                 return self._lights
 
             @kernel_function
             async def change_state(self, change_state: LightModel) -> Optional[LightModel]:
-                \"\"\"Changes the state of the light.\"\"\"
+                '''Changes the state of the light.'''
                 for light in self._lights:
                     if light["id"] == change_state["id"]:
                         light["is_on"] = change_state.get("is_on", light["is_on"])
@@ -109,6 +110,7 @@ class SKAssistantAgent(BaseChatAgent):
                         light["hex"] = change_state.get("hex", light["hex"])
                         return light
                 return None
+
 
         async def main():
             # Initialize the kernel
@@ -125,9 +127,9 @@ class SKAssistantAgent(BaseChatAgent):
 
             # Create and add the LightsPlugin
             lights = [
-                {"id": 1, "name": "Table Lamp", "is_on": False, "brightness": 100, "hex": "FF0000"},
-                {"id": 2, "name": "Porch Light", "is_on": False, "brightness": 50, "hex": "00FF00"},
-                {"id": 3, "name": "Chandelier", "is_on": True, "brightness": 75, "hex": "0000FF"},
+                LightModel(id=1, name="Table Lamp", is_on=False, brightness=100, hex="FF0000"),
+                LightModel(id=2, name="Porch Light", is_on=False, brightness=50, hex="00FF00"),
+                LightModel(id=3, name="Chandelier", is_on=True, brightness=75, hex="0000FF"),
             ]
             lights_plugin = LightsPlugin(lights)
             kernel.add_plugin(lights_plugin, plugin_name="Lights")
@@ -138,13 +140,14 @@ class SKAssistantAgent(BaseChatAgent):
                 description="An AI assistant that can control smart lights and their settings",
                 kernel=kernel,
                 execution_settings=AzureChatPromptExecutionSettings(
-                    function_choice_behavior=FunctionChoiceBehavior.Auto(auto_invoke=True)
+                    function_choice_behavior=FunctionChoiceBehavior.Auto(auto_invoke=True)  # type: ignore
                 ),
             )
 
             # Example query to turn on the table lamp and set brightness
             query = "Turn on the table lamp and set its brightness to 75%"
             await Console(agent.run_stream(task=query))
+
 
         if __name__ == "__main__":
             asyncio.run(main())
