@@ -196,7 +196,11 @@ def create_default_gallery() -> Gallery:
 
     builder.add_termination(calc_text_term.dump_component())
     builder.add_termination(calc_max_term.dump_component())
-    builder.add_termination(calc_or_term.dump_component(), label="OR Termination", description="Termination condition that ends the conversation when either a message contains 'TERMINATE' or the maximum number of messages is reached.")
+    builder.add_termination(
+        calc_or_term.dump_component(),
+        label="OR Termination",
+        description="Termination condition that ends the conversation when either a message contains 'TERMINATE' or the maximum number of messages is reached.",
+    )
 
     # Create calculator team
     calc_team = RoundRobinGroupChat(participants=[calc_assistant], termination_condition=calc_or_term)
@@ -228,7 +232,11 @@ def create_default_gallery() -> Gallery:
         model_client=base_model,
         headless=True,
     )
-    builder.add_agent(websurfer_agent.dump_component(), label="Web Surfer Agent", description="An agent that solves tasks by browsing the web using a headless browser.")
+    builder.add_agent(
+        websurfer_agent.dump_component(),
+        label="Web Surfer Agent",
+        description="An agent that solves tasks by browsing the web using a headless browser.",
+    )
 
     # Create verification assistant
     verification_assistant = AssistantAgent(
@@ -237,7 +245,11 @@ def create_default_gallery() -> Gallery:
         system_message="You are a task verification assistant who is working with a web surfer agent to solve tasks. At each point, check if the task has been completed as requested by the user. If the websurfer_agent responds and the task has not yet been completed, respond with what is left to do and then say 'keep going'. If and only when the task has been completed, summarize and present a final answer that directly addresses the user task in detail and then respond with TERMINATE.",
         model_client=base_model,
     )
-    builder.add_agent(verification_assistant.dump_component(), label="Verification Assistant", description="an agent that verifies and summarizes information")
+    builder.add_agent(
+        verification_assistant.dump_component(),
+        label="Verification Assistant",
+        description="an agent that verifies and summarizes information",
+    )
 
     # Create user proxy
     web_user_proxy = UserProxyAgent(

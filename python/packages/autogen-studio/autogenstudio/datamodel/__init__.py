@@ -1,7 +1,7 @@
 from .db import Message, Run, RunStatus, Session, Team
 from .types import (
     Gallery,
-    GalleryComponents, 
+    GalleryComponents,
     GalleryMetadata,
     LLMCallEventMessage,
     MessageConfig,

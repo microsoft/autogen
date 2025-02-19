@@ -52,14 +52,14 @@ class GalleryComponents(BaseModel):
     models: List[ComponentModel]
     tools: List[ComponentModel]
     terminations: List[ComponentModel]
-    teams: List[ComponentModel]   
+    teams: List[ComponentModel]
 
 
 class Gallery(BaseModel):
     id: str
     name: str
     url: Optional[str] = None
-    metadata: GalleryMetadata 
+    metadata: GalleryMetadata
     components: GalleryComponents
 
 
