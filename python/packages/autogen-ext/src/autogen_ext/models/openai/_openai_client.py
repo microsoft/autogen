@@ -561,7 +561,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             if self._resolved_model != result.model:
                 warnings.warn(
                     f"Resolved model mismatch: {self._resolved_model} != {result.model}. "
-                    "Model mapping in autogen_ext.models.openai may be incorrect.",
+                    "Model mapping in autogen_ext.models.openai may be incorrect. "
+                    f"Set the model to {result.model} to enhance token/cost estimation and suppress this warning.",
                     stacklevel=2,
                 )
 
