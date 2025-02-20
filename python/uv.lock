@@ -1,4 +1,5 @@
 version = 1
+revision = 1
 requires-python = ">=3.10, <3.13"
 resolution-markers = [
     "python_full_version >= '3.12.4' and sys_platform == 'darwin'",
@@ -90,7 +91,6 @@ wheels = [
 
 [[package]]
 name = "agbench"
-version = "0.0.1a1"
 source = { editable = "packages/agbench" }
 dependencies = [
     { name = "azure-identity" },
@@ -738,6 +738,7 @@ requires-dist = [
     { name = "semantic-kernel", extras = ["pandas"], marker = "extra == 'semantic-kernel-pandas'", specifier = ">=1.17.1" },
     { name = "tiktoken", marker = "extra == 'openai'", specifier = ">=0.8.0" },
 ]
+provides-extras = ["langchain", "azure", "docker", "openai", "file-surfer", "graphrag", "web-surfer", "magentic-one", "video-surfer", "diskcache", "redis", "grpc", "jupyter-executor", "semantic-kernel-core", "gemini", "semantic-kernel-google", "semantic-kernel-hugging-face", "semantic-kernel-mistralai", "semantic-kernel-ollama", "semantic-kernel-onnx", "semantic-kernel-anthropic", "semantic-kernel-pandas", "semantic-kernel-aws", "semantic-kernel-dapr", "http-tool", "semantic-kernel-all", "rich", "mcp"]
 
 [package.metadata.requires-dev]
 dev = [
@@ -766,7 +767,6 @@ requires-dist = [
 
 [[package]]
 name = "autogenstudio"
-version = "0.4.1"
 source = { editable = "packages/autogen-studio" }
 dependencies = [
     { name = "aiofiles" },
@@ -822,6 +822,7 @@ requires-dist = [
     { name = "uvicorn", marker = "extra == 'web'" },
     { name = "websockets" },
 ]
+provides-extras = ["web", "database"]
 
 [[package]]
 name = "autograd"

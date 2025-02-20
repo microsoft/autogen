@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from loguru import logger
 
 from ...datamodel import Run, RunStatus
+from ...datamodel import Session
 from ..deps import get_db, get_websocket_manager
 from ..managers import WebSocketManager
 
