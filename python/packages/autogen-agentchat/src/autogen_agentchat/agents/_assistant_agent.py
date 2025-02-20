@@ -11,6 +11,7 @@ from typing import (
     List,
     Mapping,
     Sequence,
+    Tuple,
 )
 
 from autogen_core import CancellationToken, Component, ComponentModel, FunctionCall
@@ -441,28 +442,26 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         inner_messages.append(tool_call_msg)
         yield tool_call_msg
 
-        # Execute the tool calls.
-        exec_results = await asyncio.gather(
+        # Execute the tool calls and hanoff calls.
+        executed_calls_and_results = await asyncio.gather(
             *[self._execute_tool_call(call, cancellation_token) for call in model_result.content]
         )
+        # Collect the execution results in a list.
+        exec_results = [result for _, result in executed_calls_and_results]
+        # Add the execution results to output and model context.
         tool_call_result_msg = ToolCallExecutionEvent(content=exec_results, source=self.name)
         event_logger.debug(tool_call_result_msg)
         await self._model_context.add_message(FunctionExecutionResultMessage(content=exec_results))
         inner_messages.append(tool_call_result_msg)
         yield tool_call_result_msg
 
-        # Correlate tool call results with tool calls.
-        tool_calls = [call for call in model_result.content if call.name not in self._handoffs]
+        # Separate out tool calls and tool call results from handoff requests.
+        tool_calls: List[FunctionCall] = []
         tool_call_results: List[FunctionExecutionResult] = []
-        for tool_call in tool_calls:
-            found = False
-            for exec_result in exec_results:
-                if exec_result.call_id == tool_call.id:
-                    found = True
-                    tool_call_results.append(exec_result)
-                    break
-            if not found:
-                raise RuntimeError(f"Tool call result not found for call id: {tool_call.id}")
+        for exec_call, exec_result in executed_calls_and_results:
+            if exec_call.name not in self._handoffs:
+                tool_calls.append(exec_call)
+                tool_call_results.append(exec_result)
 
         # Detect handoff requests.
         handoff_reqs = [call for call in model_result.content if call.name in self._handoffs]
@@ -546,7 +545,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
     async def _execute_tool_call(
         self, tool_call: FunctionCall, cancellation_token: CancellationToken
-    ) -> FunctionExecutionResult:
+    ) -> Tuple[FunctionCall, FunctionExecutionResult]:
         """Execute a tool call and return the result."""
         try:
             if not self._tools + self._handoff_tools:
@@ -557,9 +556,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             arguments = json.loads(tool_call.arguments)
             result = await tool.run_json(arguments, cancellation_token)
             result_as_str = tool.return_value_as_string(result)
-            return FunctionExecutionResult(content=result_as_str, call_id=tool_call.id, is_error=False)
+            return (tool_call, FunctionExecutionResult(content=result_as_str, call_id=tool_call.id, is_error=False))
         except Exception as e:
-            return FunctionExecutionResult(content=f"Error: {e}", call_id=tool_call.id, is_error=True)
+            return (tool_call, FunctionExecutionResult(content=f"Error: {e}", call_id=tool_call.id, is_error=True))
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Reset the assistant agent to its initialization state."""

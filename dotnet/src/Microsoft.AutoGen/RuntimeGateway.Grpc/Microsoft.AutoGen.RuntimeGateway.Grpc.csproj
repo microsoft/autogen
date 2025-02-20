@@ -4,11 +4,15 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
+
   <ItemGroup>
     <ProjectReference Include="..\Contracts\Microsoft.AutoGen.Contracts.csproj" />
     <ProjectReference Include="..\Core\Microsoft.AutoGen.Core.csproj" />
     <ProjectReference Include="..\Core.Grpc\Microsoft.AutoGen.Core.Grpc.csproj" />
   </ItemGroup>
+
   <ItemGroup>
     <PackageReference Include="Microsoft.Orleans.Reminders" />
     <PackageReference Include="Microsoft.Orleans.Persistence.Memory" />
@@ -30,6 +34,7 @@
 		<PackageReference Include="Microsoft.Orleans.Streaming.EventHubs" />
 		<PackageReference Include="OrleansDashboard" />
 	</ItemGroup>
+
 	<ItemGroup>
     	<PackageReference Include="Grpc.AspNetCore" />
     	<PackageReference Include="Grpc.Net.ClientFactory" />
