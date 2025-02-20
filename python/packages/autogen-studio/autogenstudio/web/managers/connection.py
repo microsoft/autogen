@@ -21,7 +21,7 @@ from autogen_core import Image as AGImage
 from fastapi import WebSocket, WebSocketDisconnect
 
 from ...database import DatabaseManager
-from ...datamodel import LLMCallEventMessage, Message, MessageConfig, Run, RunStatus, TeamResult
+from ...datamodel import LLMCallEventMessage, Message, MessageConfig, Run, RunStatus, TeamResult, Session
 from ...teammanager import TeamManager
 
 logger = logging.getLogger(__name__)
@@ -82,15 +82,22 @@ class WebSocketManager:
 
         try:
             # Update run with task and status
+            tool_context = None
             run = await self._get_run(run_id)
             if run:
                 run.task = MessageConfig(content=task, source="user").model_dump()
                 run.status = RunStatus.ACTIVE
                 self.db_manager.upsert(run)
 
+
+                # get session
+                session = self.db_manager.get(Session, filters={"id": run.session_id}, return_json=False)
+                user_id = session.data[0].user_id
+                tool_context = {"user_id": user_id}
+
             input_func = self.create_input_func(run_id)
 
-            async for message in team_manager.run_stream(
+            async for message in team_manager.run_stream(tool_context=tool_context,
                 task=task, team_config=team_config, input_func=input_func, cancellation_token=cancellation_token
             ):
                 if cancellation_token.is_cancelled() or run_id in self._closed_connections:

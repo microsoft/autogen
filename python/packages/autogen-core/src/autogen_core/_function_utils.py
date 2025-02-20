@@ -310,6 +310,8 @@ def args_base_model_from_signature(name: str, sig: inspect.Signature) -> Type[Ba
         # This is handled externally
         if param_name == "cancellation_token":
             continue
+        if param_name == "context":
+            continue
 
         if param.annotation is inspect.Parameter.empty:
             raise ValueError("No annotation")
