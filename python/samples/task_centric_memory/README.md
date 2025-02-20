@@ -1,10 +1,17 @@
 # Task-Centric Memory Code Samples
 
+<p align="right">
+  <img src="../../packages/autogen-ext/imgs/task_centric_memory.png" alt="Description" width="300" align="right" style="margin-left: 10px;">
+</p>
+
 This directory contains code samples that illustrate the following forms of fast, memory-based learning:
 * Direct memory storage and retrieval
 * Learning from user advice and corrections
 * Learning from user demonstrations
 * Learning from the agent's own experience
+
+Each sample connects task-centric memory to a selectable agent with no changes to that agent's code.
+See the block diagram to the right for an overview of the components and their interactions.
 
 Each sample is contained in a separate python script, using data and configs stored in yaml files for easy modification.
 Note that since agent behavior is non-deterministic, results will vary between runs.
@@ -69,7 +76,7 @@ With the benefit of memory, the agent usually succeeds on this sample.
 ### Agent Learning from User Demonstrations
 
 This sample asks the agent to perform a reasoning task (ten times) on which it usually fails.
-The agent is then given a demonstration of how to solve a similar but different task, and the context window is cleared.
+The agent is then given one demonstration of how to solve a similar but different task, and the context window is cleared.
 Finally the agent is tested 10 more times to see if it can retrieve and apply the demonstration to the original task.
 
 `python eval_learning_from_demonstration.py configs/demonstration.yaml`
@@ -80,9 +87,9 @@ The agent's success rate tends to be measurably higher after the demonstration h
 ### Agent Learning from Its Own Experience
 
 This sample asks the agent to perform a reasoning task on which it usually fails.
-Then the agent iterates through a background learning loop to find a solution,
-which it then stores as an insight in memory.
-Finally the agent is tested again to see if it can retrieve and apply the insight to the original task,
+Then using automatic success or failure feedback (for a verifiable task with no side-effects on the environment), 
+the agent iterates through a background learning loop to find a solution, which it then stores as an insight in memory.
+Finally the agent is tested again to see if it can retrieve and apply its insight to the original task,
 as well as to a similar but different task as a test of generalization.
 
 `python eval_self_teaching.py configs/self_teaching.yaml`

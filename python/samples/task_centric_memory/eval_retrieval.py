@@ -10,6 +10,21 @@ from autogen_ext.task_centric_memory.utils import PageLogger
 from utils import create_oai_client, load_yaml_file
 
 
+"""
+This code sample evaluates memory precision and recall, with no agent involved at all.
+See the config file configs/retrieval.yaml for an overall view of the structure and settings in this sample,
+as well as the data files used for the test.
+
+Execute the sample with this command:
+    python eval_retrieval.py configs/retrieval.yaml
+
+This sample shows how an app can access the `TaskCentricMemoryController` directly
+to retrieve previously stored task-insight pairs as potentially useful examplars when solving some new task.
+A task is any text instruction that the app may give to an agent.
+An insight is any text (like a hint, advice, a demonstration or plan) that might help the agent perform such tasks.
+"""
+
+
 async def eval_retrieval(
     memory_controller: TaskCentricMemoryController, client: ChatCompletionClient, logger: PageLogger, config: Dict[str, Any]
 ) -> str:

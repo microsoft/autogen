@@ -10,6 +10,25 @@ from autogen_ext.task_centric_memory.utils import Apprentice, Grader, PageLogger
 from utils import create_oai_client, load_yaml_file
 
 
+"""
+This code sample connects task-centric memory to a selectable agent with no changes to that agent's code.
+See the block diagram in the README for an overview of the components and their interactions.
+See the config file configs/self_teaching.yaml for an overall view of the structure and settings in this sample.
+
+Execute the sample with this command:
+    python eval_self_teaching.py configs/self_teaching.yaml
+
+We say that an agent is self-teaching if it can learn quickly from its own trial and error with no user input.
+This sample asks the agent to perform a reasoning task on which it usually fails.
+Then using automatic success or failure feedback (for a verifiable task with no side-effects on the environment), 
+the agent iterates through a background learning loop to find a solution, which it then stores as an insight in memory.
+Finally the agent is tested again to see if it can retrieve and apply its insight to the original task,
+as well as to a similar but different task as a test of generalization.
+
+If adapting this sample code to a new setting, the Apprentice class can be used or completely replaced by other code.
+"""
+
+
 async def eval_self_teaching(
     apprentice: Apprentice, client: ChatCompletionClient, logger: PageLogger, config: Dict[str, Any]
 ) -> str:

@@ -9,6 +9,24 @@ from autogen_ext.task_centric_memory.utils import Apprentice, Grader, PageLogger
 from utils import create_oai_client, load_yaml_file
 
 
+"""
+This code sample connects task-centric memory to a selectable agent with no changes to that agent's code.
+See the block diagram in the README for an overview of the components and their interactions.
+See the config file configs/demonstration.yaml for an overall view of the structure and settings in this sample.
+
+Execute the sample with this command:
+    python eval_learning_from_demonstration.py configs/demonstration.yaml
+
+Here, to learn from a demonstration means to remember a previously demonstrated solution for the same or a similar task.
+
+1. The function below asks the agent to perform a reasoning task (ten times) on which it usually fails.
+2. Then agent is then given one demonstration of how to solve a similar but different task, and the context window is cleared.
+3. Finally the agent is tested 10 more times to see if it can retrieve and apply the demonstration to the original task.
+
+If adapting this sample code to a new setting, the Apprentice class can be used or completely replaced by other code.
+"""
+
+
 async def eval_learning_from_demonstration(
     apprentice: Apprentice, client: ChatCompletionClient, logger: PageLogger, config: Dict[str, Any]
 ) -> str:

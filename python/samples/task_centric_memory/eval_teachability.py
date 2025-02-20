@@ -10,11 +10,29 @@ from autogen_ext.task_centric_memory.utils import Apprentice, Grader, PageLogger
 from utils import create_oai_client, load_yaml_file
 
 
+"""
+This code sample connects task-centric memory to a selectable agent with no changes to that agent's code.
+See the block diagram in the README for an overview of the components and their interactions.
+See the config file configs/eval_teachability.yaml for an overall view of the structure and settings in this sample.
+
+Execute the sample with this command:
+    python eval_teachability.py configs/eval_teachability.yaml
+
+Teachable agents use memory to learn quickly from user teachings, hints, and advice.
+The function below passes user instructions (loaded from a file) to the agent by calling Apprentice.handle_user_message().
+If adapting this sample code to a new setting, the Apprentice class can be used or completely replaced by other code.
+
+1. In the first conversation, the agent is expected to fail because it lacks the necessary knowledge.
+2. In the second conversation (starting with an empty context window), the user provides the missing insight.
+3. In the third conversation, the agent is expected to succeed after retrieving the key insight from memory.
+"""
+
+
 async def eval_teachability(
     apprentice: Apprentice, client: ChatCompletionClient, logger: PageLogger, config: Dict[str, Any]
 ) -> str:
     """
-    Evalutes the ability to learn quickly from user teachings, hints, and advice.
+    Evaluates the ability to learn quickly from user teachings, hints, and advice.
     """
     logger.enter_function()
 
