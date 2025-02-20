@@ -3,53 +3,163 @@ description: Report a bug
 type: "bug"
 
 body:
+  - type: markdown
+    attributes:
+      value: |
+        ## Please Read the following before submitting an issue.
+
+        ### Have you read the doc?
+        - [Python AgentChat User Guide and Tutorial](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/index.html)
+        - [Python Core API User Guide](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/index.html)
+        - [Python API Doc](https://microsoft.github.io/autogen/stable/reference/index.html)
+        - [.NET Doc](https://microsoft.github.io/autogen/dotnet/)
+
+        ### Have you searched for related issues?
+        - Some other users might have the same issue as yours.
+
+        ### Are you familiar with GitHub Markdown Syntax?
+        Please use [GitHub Markdown](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax)
+        syntax to format your input.
+        Pay attention to code blocks. Use "```" blocks for code and output.
+        For examples:
+
+        ````
+        ```python
+        # your Python code here.
+        ```
+        ````
+
+        ````
+        ```bash
+        # your bash shell command here.
+        ```
+        ````
+
+        If your output contains "```", use "````" (four "`") to escape them.
+
+        You can use the "Preview" switcher to check your formatted output.
   - type: textarea
     attributes:
       label: What happened?
-      description: Please provide as much information as possible, this helps us address the issue.
-    validations:
-      required: true
-  - type: textarea
-    attributes:
-      label: What did you expect to happen?
-    validations:
-      required: true
-  - type: textarea
-    attributes:
-      label: How can we reproduce it (as minimally and precisely as possible)?
-      description: Please provide steps to reproduce. Provide code that can be run if possible.
-    validations:
-      required: true
-  - type: input
-    attributes:
-      label: AutoGen version
-      description: What version or commit of the library was used
+      description: Please provide as much information as possible, this helps us address the issue. Use Markdown to format your text.
+      value: |
+        **Describe the bug**
+        A clear and concise description of what the bug is.
+        If it is a question or suggestion, please use [Discussions](https://github.com/microsoft/autogen/discussions)
+        instead.
+
+        **To Reproduce**
+        Steps to reproduce the behavior. Please include code and outputs such as stacktrace.
+
+        - If your input is just "I tried X, and it didn't work" or
+        "X is not working", your issue will be ignored.
+        - If your input is not well formatted, it will hurt readability and
+        may be ignored as well.
+
+        **Expected behavior**
+        A clear and concise description of what you expected to happen.
+
+        **Screenshots**
+        If applicable, add screenshots to help explain your problem.
+
+        **Additional context**
+        Add any other context about the problem here.
     validations:
       required: true
   - type: dropdown
     attributes:
-      label: Which package was this bug in
+      label: Which packages was the bug in?
+      multiple: true
       options:
-        - Core
-        - AgentChat
-        - Extensions
-        - AutoGen Studio
-        - Magentic One
-        - AutoGen Bench
-        - Other
+        - Python Core (autogen-core)
+        - Python AgentChat (autogen-agentchat>=0.4.0)
+        - Python Extensions (autogen-ext)
+        - .NET Core (Microsoft.AutoGen.Core)
+        - AutoGen Studio (autogensudio)
+        - AutoGen Bench (agbench)
+        - Magentic One CLI (magentic-one-cli)
+        - V0.2 (autogen-agetnchat==0.2.*)
     validations:
       required: true
+  - type: dropdown
+    attributes:
+      label: AutoGen library version.
+      description: What is the version of the library was used.
+      multiple: false
+      options:
+        - "Python dev (main branch)"
+        - "Python 0.4.7"
+        - "Python 0.4.6"
+        - "Python 0.4.5"
+        - "Python 0.4.4"
+        - "Python 0.4.3"
+        - "Python 0.4.2"
+        - "Python 0.4.1"
+        - "Python 0.4.0"
+        - ".NET dev (main branch)"
+        - "Studio 0.4.1"
+        - "Studio 0.4.0"
+        - "Other (please specify)"
+    validations:
+      required: True
+  - type: input
+    attributes:
+      label: Other library version.
+      description: "Please specify if selected 'Other' above"
   - type: input
     attributes:
       label: Model used
-      description: If a model was used, please describe it here, indicating whether it is a local model or a cloud-hosted model
-      placeholder: gpt-4, mistral-7B etc
+      description: If a model was used, please name here. Use full model name with version number.
+      placeholder: "e.g., gpt-4o-2024-11-20"
+  - type: dropdown
+    attributes:
+      label: Model provider
+      description: The provider or hosting service that runs the model.
+      options:
+        - "Anthropic"
+        - "AWS Bedrock"
+        - "Azure OpenAI"
+        - "Azure AI Foundary (Azure AI Studio)"
+        - "DeepSeek (Hosted)"
+        - "GitHub Models"
+        - "Google Gemini"
+        - "Google Vertex AI"
+        - "HuggingFace Models (Hosted)"
+        - "HuggingFace Transformers (Local)"
+        - "LlamaCpp"
+        - "Mistral AI"
+        - "Ollama"
+        - "OpenAI"
+        - "OpenRouter"
+        - "Together AI"
+        - "vLLM"
+        - "Other (please specify below)"
   - type: input
+    attributes:
+      label: Other model provider
+      description: "Other provider if not found above."
+  - type: dropdown
     attributes:
       label: Python version
-  - type: input
+      options:
+        - "3.10"
+        - "3.11"
+        - "3.12"
+        - "3.13"
+        - Other (please note we only support Python 3.10+)
+  - type: dropdown
+    attributes:
+      label: .NET version
+      options:
+        - ".NET 9"
+        - ".NET 8"
+  - type: dropdown
     attributes:
       label: Operating system
-  - type: textarea
-    attributes:
-      label: Any additional info you think would be helpful for fixing this bug
+      options:
+        - Windows
+        - MacOS
+        - Ubuntu
+        - Fedora
+        - CentOS
+        - Other
