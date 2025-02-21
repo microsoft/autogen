@@ -401,7 +401,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         # STEP 3: Run the first inference
         model_result = None
-        async for inference_output in self._perform_inference(cancellation_token, stream=self._model_client_stream):
+        async for inference_output in self._call_llm(cancellation_token, stream=self._model_client_stream):
             if isinstance(inference_output, CreateResult):
                 model_result = inference_output
             else:
@@ -443,7 +443,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     events.append(memory_query_event_msg)
         return events
 
-    async def _perform_inference(
+    async def _call_llm(
         self, cancellation_token: CancellationToken, stream: bool
     ) -> AsyncGenerator[Union[CreateResult, ModelClientStreamingChunkEvent], None]:
         """
