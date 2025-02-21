@@ -7,10 +7,14 @@ Any important differences between the language versions are documented in the [D
 ## Getting Started
 
 You can obtain the SDK as a nuget package or by cloning the repository. The SDK is available on [NuGet](https://www.nuget.org/packages/Microsoft.AutoGen).
+Minimally you will need the following:
 
 ```bash
+dotnet add package Microsoft.AutoGen.Contracts
 dotnet add package Microsoft.AutoGen.Core
 ```
+
+See [Installation](./installation.md) for more detailed notes on installing all the related packages. 
 
 You can quickly get started by looking at the samples in the [samples](https://github.com/microsoft/autogen/tree/main/dotnet/samples) directory of the repository.
 
@@ -74,7 +78,7 @@ dotnet add package Microsoft.AutoGen.AgentHost
 You can run the backend on its own:
 
 ```bash
-dotnet run --project Microsoft.AutoGen.RuntimeGateway
+dotnet run --project Microsoft.AutoGen.AgentHost
 ```
 
 or you can run iclude it inside your own application:
@@ -116,6 +120,8 @@ var url = backend.GetEndpoint("http").Url;
 Console.WriteLine("Backend URL: " + url);
 await app.WaitForShutdownAsync();
 ```
+
+You can find more examples of how to use Aspire and XLang agents in the [Microsoft.AutoGen.Integration.Tests.AppHost](https://github.com/microsoft/autogen/blob/acd7e864300e24a3ee67a89a916436e8894bb143/dotnet/test/Microsoft.AutoGen.Integration.Tests.AppHosts/) directory. 
 
 ### Configuring Logging
 

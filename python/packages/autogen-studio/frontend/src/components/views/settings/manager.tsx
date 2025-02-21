@@ -26,7 +26,7 @@ const SettingToggle: React.FC<SettingToggleProps> = ({
   label,
   description,
 }) => (
-  <div className="flex justify-between items-start p-4 hover:bg-secondary/5 rounded-lg transition-colors">
+  <div className="flex justify-between items-start p-4 hover:bg-secondary/5 rounded transition-colors">
     <div className="flex flex-col gap-1">
       <label className="font-medium">{label}</label>
       {description && (
@@ -85,7 +85,7 @@ export const SettingsManager: React.FC = () => {
             icon={MessagesSquare}
             onReset={resetPlaygroundSettings}
           />
-          <div className="space-y-2 rounded-xl border border-secondary">
+          <div className="space-y-2 rounded  border border-secondary">
             <SettingToggle
               checked={playground.showLLMEvents}
               onChange={(checked) =>

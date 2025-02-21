@@ -145,13 +145,18 @@ export const useGalleryStore = create<GalleryStore>()(
       getGalleryComponents: () => {
         const defaultGallery = get().getDefaultGallery();
         return {
-          teams: defaultGallery.items.teams,
-          components: defaultGallery.items.components,
+          teams: defaultGallery.components.teams,
+          components: {
+            agents: defaultGallery.components.agents,
+            models: defaultGallery.components.models,
+            tools: defaultGallery.components.tools,
+            terminations: defaultGallery.components.terminations,
+          },
         };
       },
     }),
     {
-      name: "gallery-storage-v7",
+      name: "gallery-storage-v8",
     }
   )
 );
