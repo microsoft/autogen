@@ -22,6 +22,7 @@ from nbclient import NotebookClient
 from nbformat import NotebookNode
 from nbformat import v4 as nbformat
 from typing_extensions import Self
+from jupyter_client.manager import KernelManager
 
 from .._common import silence_pip
 
@@ -133,6 +134,7 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
         kernel_name: str = "python3",
         timeout: int = 60,
         output_dir: Path = Path("."),
+        km: KernelManager | None = None
     ):
         if timeout < 1:
             raise ValueError("Timeout must be greater than or equal to 1.")
@@ -146,6 +148,7 @@ class JupyterCodeExecutor(CodeExecutor, Component[JupyterCodeExecutorConfig]):
             kernel_name=self._kernel_name,
             timeout=self._timeout,
             allow_errors=True,
+            km=km,
         )
 
     async def execute_code_blocks(
