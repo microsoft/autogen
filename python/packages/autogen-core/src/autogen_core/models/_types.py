@@ -44,6 +44,9 @@ class AssistantMessage(BaseModel):
     content: Union[str, List[FunctionCall]]
     """The content of the message."""
 
+    thought: str | None = None
+    """The reasoning text for the completion if available. Used for reasoning model and additional text content besides function calls."""
+
     source: str
     """The name of the agent that sent this message."""
 
