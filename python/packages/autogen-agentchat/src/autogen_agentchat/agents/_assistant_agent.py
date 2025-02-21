@@ -381,7 +381,13 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         """
         Process the incoming messages with the assistant agent and yield events/responses as they happen.
-        Refactored into helper steps for clarity.
+
+        Args:
+            messages: A sequence of chat messages to process
+            cancellation_token: Token for cancelling the operation
+
+        Returns:
+            An async generator that yields AgentEvents, ChatMessages, or Response objects as processing occurs
         """
 
         # STEP 1: Add new user/handoff messages to the model context
@@ -402,15 +408,13 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 # Streaming chunk event
                 yield inference_output
 
-        # If no valid result came back, raise an error (should never happen)
-        if not model_result:
-            raise RuntimeError("No model result was produced.")
+        assert model_result is not None, "No model result was produced."
 
         # Add the assistant message to the model context (final or partial)
         await self._model_context.add_message(AssistantMessage(content=model_result.content, source=self.name))
 
-        # STEP 4: Handle the model output
-        async for output_event in self._handle_model_result(model_result, inner_messages, cancellation_token):
+        # STEP 4: Process the model output
+        async for output_event in self._process_model_result(model_result, inner_messages, cancellation_token):
             yield output_event
 
     async def _add_messages_to_context(self, messages: Sequence[ChatMessage]) -> None:
@@ -467,7 +471,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             )
             yield model_result
 
-    async def _handle_model_result(
+    async def _process_model_result(
         self,
         model_result: CreateResult,
         inner_messages: List[AgentEvent | ChatMessage],
