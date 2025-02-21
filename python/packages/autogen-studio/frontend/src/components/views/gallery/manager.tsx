@@ -85,14 +85,12 @@ export const GalleryManager: React.FC = () => {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
       },
-      items: galleryData.items || {
+      components: galleryData.components || {
         teams: [],
-        components: {
-          agents: [],
-          models: [],
-          tools: [],
-          terminations: [],
-        },
+        agents: [],
+        models: [],
+        tools: [],
+        terminations: [],
       },
     };
 
