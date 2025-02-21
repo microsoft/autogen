@@ -57,6 +57,13 @@ export const LoadingDots = ({ size = 8 }) => {
 // import { Minimize2, Maximize2, ArrowsMaximize, X } from 'lucide-react';
 // import { Tooltip } from 'antd';
 
+function safeJsonStringify(input: any): string {
+  if (typeof input === "object" && input !== null) {
+    return JSON.stringify(input);
+  }
+  return input;
+}
+
 export const TruncatableText = memo(
   ({
     content = "",
@@ -76,10 +83,12 @@ export const TruncatableText = memo(
     const [isExpanded, setIsExpanded] = useState(false);
     const [isFullscreen, setIsFullscreen] = useState(false);
     const threshold = isJson ? jsonThreshold : textThreshold;
+    content = safeJsonStringify(content) + "";
     const shouldTruncate = content.length > threshold;
 
-    const toggleExpand = () => {
+    const toggleExpand = (e: React.MouseEvent) => {
       setIsExpanded(!isExpanded);
+      e.stopPropagation();
     };
 
     const displayContent =

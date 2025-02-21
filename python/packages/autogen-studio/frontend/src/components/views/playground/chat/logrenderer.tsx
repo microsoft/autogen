@@ -57,7 +57,7 @@ const FullLogView = ({
       <Tooltip title="Close">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/70 text-primary transition-colors"
+          className="absolute top-4 right-4 p-2 rounded-full bg-tertiary hover:bg-secondary text-primary transition-colors"
         >
           <X size={24} />
         </button>
@@ -79,14 +79,19 @@ const FullLogView = ({
             <div key={idx} className="p-4 bg-tertiary rounded-lg">
               <div className="flex justify-between mb-2">
                 <span className="text-xs font-medium uppercase text-secondary">
-                  {msg.role} {msg.name && `(${msg.name})`}
+                  {(msg.name && `${msg.name}`) || msg.role}{" "}
+                  {Array.isArray(msg.content) + " array "}
                 </span>
               </div>
-              <TruncatableText
-                content={msg.content}
-                textThreshold={1000}
-                showFullscreen={false}
-              />
+              {Array.isArray(msg.content) ? (
+                msg.content.map((item, index) => (
+                  <div key={index} className="text-sm text-secondary">
+                    <TruncatableText content={item} showFullscreen={false} />
+                  </div>
+                ))
+              ) : (
+                <TruncatableText content={msg.content} showFullscreen={false} />
+              )}
             </div>
           ))}
         </div>
@@ -141,6 +146,8 @@ const LLMLogRenderer: React.FC<LLMLogRendererProps> = ({ content }) => {
       return null;
     }
   }, [content]);
+
+  console.log(parsedContent);
 
   if (!parsedContent) {
     return (
