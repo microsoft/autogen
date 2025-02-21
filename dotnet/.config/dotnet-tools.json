@@ -6,13 +6,22 @@
       "version": "0.1.205",
       "commands": [
         "dotnet-repl"
-      ]
+      ],
+      "rollForward": true
     },
     "docfx": {
       "version": "2.67.5",
       "commands": [
         "docfx"
-      ]
+      ],
+      "rollForward": true
+    },
+    "microsoft.autogen.agenthost": {
+      "version": "0.4.0",
+      "commands": [
+        "agenthost"
+      ],
+      "rollForward": false
     }
   }
 }
