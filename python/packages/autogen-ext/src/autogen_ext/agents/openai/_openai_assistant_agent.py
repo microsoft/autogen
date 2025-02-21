@@ -11,6 +11,7 @@ from typing import (
     Iterable,
     List,
     Literal,
+    Mapping,
     Optional,
     Sequence,
     Set,
@@ -36,8 +37,9 @@ from autogen_core import CancellationToken, FunctionCall
 from autogen_core.models._model_client import ChatCompletionClient
 from autogen_core.models._types import FunctionExecutionResult
 from autogen_core.tools import FunctionTool, Tool
+from pydantic import BaseModel, Field
 
-from openai import NOT_GIVEN, AsyncClient, NotGiven
+from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI, NotGiven
 from openai.pagination import AsyncCursorPage
 from openai.resources.beta.threads import AsyncMessages, AsyncRuns, AsyncThreads
 from openai.types import FileObject
@@ -77,17 +79,27 @@ def _convert_tool_to_function_param(tool: Tool) -> "FunctionToolParam":
     return FunctionToolParam(type="function", function=function_def)
 
 
+class OpenAIAssistantAgentState(BaseModel):
+    type: str = Field(default="OpenAIAssistantAgentState")
+    assistant_id: Optional[str] = None
+    thread_id: Optional[str] = None
+    initial_message_ids: List[str] = Field(default_factory=list)
+    vector_store_id: Optional[str] = None
+    uploaded_file_ids: List[str] = Field(default_factory=list)
+
+
 class OpenAIAssistantAgent(BaseChatAgent):
-    """An agent implementation that uses the OpenAI Assistant API to generate responses.
+    """An agent implementation that uses the Assistant API to generate responses.
 
     Installation:
 
     .. code-block:: bash
 
         pip install "autogen-ext[openai]"
+        # pip install "autogen-ext[openai,azure]"  # For Azure OpenAI Assistant
 
 
-    This agent leverages the OpenAI Assistant API to create AI assistants with capabilities like:
+    This agent leverages the Assistant API to create AI assistants with capabilities like:
 
     * Code interpretation and execution
     * File handling and search
@@ -111,10 +123,13 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
     You can use an existing thread or assistant by providing the `thread_id` or `assistant_id` parameters.
 
-    Example:
+    Examples:
+
+        Use the assistant to analyze data in a CSV file:
+
         .. code-block:: python
 
-            from openai import AsyncClient
+            from openai import AsyncOpenAI
             from autogen_core import CancellationToken
             import asyncio
             from autogen_ext.agents.openai import OpenAIAssistantAgent
@@ -125,7 +140,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 cancellation_token = CancellationToken()
 
                 # Create an OpenAI client
-                client = AsyncClient(api_key="your-api-key", base_url="your-base-url")
+                client = AsyncOpenAI(api_key="your-api-key", base_url="your-base-url")
 
                 # Create an assistant with code interpreter
                 assistant = OpenAIAssistantAgent(
@@ -154,10 +169,55 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
             asyncio.run(example())
 
+        Use Azure OpenAI Assistant with AAD authentication:
+
+        .. code-block:: python
+
+            from openai import AsyncAzureOpenAI
+            import asyncio
+            from azure.identity import DefaultAzureCredential, get_bearer_token_provider
+            from autogen_core import CancellationToken
+            from autogen_ext.agents.openai import OpenAIAssistantAgent
+            from autogen_agentchat.messages import TextMessage
+
+
+            async def example():
+                cancellation_token = CancellationToken()
+
+                # Create an Azure OpenAI client
+                token_provider = get_bearer_token_provider(DefaultAzureCredential())
+                client = AsyncAzureOpenAI(
+                    azure_deployment="YOUR_AZURE_DEPLOYMENT",
+                    api_version="YOUR_API_VERSION",
+                    azure_endpoint="YOUR_AZURE_ENDPOINT",
+                    azure_ad_token_provider=token_provider,
+                )
+
+                # Create an assistant with code interpreter
+                assistant = OpenAIAssistantAgent(
+                    name="Python Helper",
+                    description="Helps with Python programming",
+                    client=client,
+                    model="gpt-4o",
+                    instructions="You are a helpful Python programming assistant.",
+                    tools=["code_interpreter"],
+                )
+
+                # Get response from the assistant
+                response = await assistant.on_messages([TextMessage(source="user", content="Hello.")], cancellation_token)
+
+                print(response)
+
+                # Clean up resources
+                await assistant.delete_assistant(cancellation_token)
+
+
+            asyncio.run(example())
+
     Args:
         name (str): Name of the assistant
         description (str): Description of the assistant's purpose
-        client (AsyncClient): OpenAI API client instance
+        client (AsyncOpenAI | AsyncAzureOpenAI): OpenAI client or Azure OpenAI client instance
         model (str): Model to use (e.g. "gpt-4")
         instructions (str): System instructions for the assistant
         tools (Optional[Iterable[Union[Literal["code_interpreter", "file_search"], Tool | Callable[..., Any] | Callable[..., Awaitable[Any]]]]]): Tools the assistant can use
@@ -174,7 +234,7 @@ class OpenAIAssistantAgent(BaseChatAgent):
         self,
         name: str,
         description: str,
-        client: "AsyncClient",
+        client: AsyncOpenAI | AsyncAzureOpenAI,
         model: str,
         instructions: str,
         tools: Optional[
@@ -321,17 +381,14 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
     async def _execute_tool_call(self, tool_call: FunctionCall, cancellation_token: CancellationToken) -> str:
         """Execute a tool call and return the result."""
-        try:
-            if not self._original_tools:
-                raise ValueError("No tools are available.")
-            tool = next((t for t in self._original_tools if t.name == tool_call.name), None)
-            if tool is None:
-                raise ValueError(f"The tool '{tool_call.name}' is not available.")
-            arguments = json.loads(tool_call.arguments)
-            result = await tool.run_json(arguments, cancellation_token)
-            return tool.return_value_as_string(result)
-        except Exception as e:
-            return f"Error: {e}"
+        if not self._original_tools:
+            raise ValueError("No tools are available.")
+        tool = next((t for t in self._original_tools if t.name == tool_call.name), None)
+        if tool is None:
+            raise ValueError(f"The tool '{tool_call.name}' is not available.")
+        arguments = json.loads(tool_call.arguments)
+        result = await tool.run_json(arguments, cancellation_token)
+        return tool.return_value_as_string(result)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         """Handle incoming messages and return a response."""
@@ -403,8 +460,15 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 # Execute tool calls and get results
                 tool_outputs: List[FunctionExecutionResult] = []
                 for tool_call in tool_calls:
-                    result = await self._execute_tool_call(tool_call, cancellation_token)
-                    tool_outputs.append(FunctionExecutionResult(content=result, call_id=tool_call.id))
+                    try:
+                        result = await self._execute_tool_call(tool_call, cancellation_token)
+                        is_error = False
+                    except Exception as e:
+                        result = f"Error: {e}"
+                        is_error = True
+                    tool_outputs.append(
+                        FunctionExecutionResult(content=result, call_id=tool_call.id, is_error=is_error)
+                    )
 
                 # Add tool result message to inner messages
                 tool_result_msg = ToolCallExecutionEvent(source=self.name, content=tool_outputs)
@@ -617,3 +681,21 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 self._vector_store_id = None
             except Exception as e:
                 event_logger.error(f"Failed to delete vector store: {str(e)}")
+
+    async def save_state(self) -> Mapping[str, Any]:
+        state = OpenAIAssistantAgentState(
+            assistant_id=self._assistant.id if self._assistant else self._assistant_id,
+            thread_id=self._thread.id if self._thread else self._init_thread_id,
+            initial_message_ids=list(self._initial_message_ids),
+            vector_store_id=self._vector_store_id,
+            uploaded_file_ids=self._uploaded_file_ids,
+        )
+        return state.model_dump()
+
+    async def load_state(self, state: Mapping[str, Any]) -> None:
+        agent_state = OpenAIAssistantAgentState.model_validate(state)
+        self._assistant_id = agent_state.assistant_id
+        self._init_thread_id = agent_state.thread_id
+        self._initial_message_ids = set(agent_state.initial_message_ids)
+        self._vector_store_id = agent_state.vector_store_id
+        self._uploaded_file_ids = agent_state.uploaded_file_ids

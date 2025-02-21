@@ -1,4 +1,5 @@
 import inspect
+from functools import partial
 from typing import Annotated, List
 
 import pytest
@@ -92,6 +93,37 @@ def test_func_tool_schema_generation() -> None:
     assert len(schema["parameters"]["properties"]) == 3
 
 
+def test_func_tool_schema_generation_strict() -> None:
+    def my_function1(arg: str, other: Annotated[int, "int arg"], nonrequired: int = 5) -> MyResult:
+        return MyResult(result="test")
+
+    with pytest.raises(ValueError, match="Strict mode is enabled"):
+        tool = FunctionTool(my_function1, description="Function tool.", strict=True)
+        schema = tool.schema
+
+    def my_function2(arg: str, other: Annotated[int, "int arg"]) -> MyResult:
+        return MyResult(result="test")
+
+    tool = FunctionTool(my_function2, description="Function tool.", strict=True)
+    schema = tool.schema
+
+    assert schema["name"] == "my_function2"
+    assert "description" in schema
+    assert schema["description"] == "Function tool."
+    assert "parameters" in schema
+    assert schema["parameters"]["type"] == "object"
+    assert schema["parameters"]["properties"].keys() == {"arg", "other"}
+    assert schema["parameters"]["properties"]["arg"]["type"] == "string"
+    assert schema["parameters"]["properties"]["arg"]["description"] == "arg"
+    assert schema["parameters"]["properties"]["other"]["type"] == "integer"
+    assert schema["parameters"]["properties"]["other"]["description"] == "int arg"
+    assert "required" in schema["parameters"]
+    assert schema["parameters"]["required"] == ["arg", "other"]
+    assert len(schema["parameters"]["properties"]) == 2
+    assert "additionalProperties" in schema["parameters"]
+    assert schema["parameters"]["additionalProperties"] is False
+
+
 def test_func_tool_schema_generation_only_default_arg() -> None:
     def my_function(arg: str = "default") -> MyResult:
         return MyResult(result="test")
@@ -106,7 +138,78 @@ def test_func_tool_schema_generation_only_default_arg() -> None:
     assert len(schema["parameters"]["properties"]) == 1
     assert schema["parameters"]["properties"]["arg"]["type"] == "string"
     assert schema["parameters"]["properties"]["arg"]["description"] == "arg"
-    assert "required" not in schema["parameters"]
+    assert "required" in schema["parameters"]
+    assert schema["parameters"]["required"] == []
+
+
+def test_func_tool_schema_generation_only_default_arg_strict() -> None:
+    def my_function(arg: str = "default") -> MyResult:
+        return MyResult(result="test")
+
+    with pytest.raises(ValueError, match="Strict mode is enabled"):
+        tool = FunctionTool(my_function, description="Function tool.", strict=True)
+        _ = tool.schema
+
+
+def test_func_tool_with_partial_positional_arguments_schema_generation() -> None:
+    """Test correct schema generation for a partial function with positional arguments."""
+
+    def get_weather(country: str, city: str) -> str:
+        return f"The temperature in {city}, {country} is 75°"
+
+    partial_function = partial(get_weather, "Germany")
+    tool = FunctionTool(partial_function, description="Partial function tool.")
+    schema = tool.schema
+
+    assert schema["name"] == "get_weather"
+    assert "description" in schema
+    assert schema["description"] == "Partial function tool."
+    assert "parameters" in schema
+    assert schema["parameters"]["type"] == "object"
+    assert schema["parameters"]["properties"].keys() == {"city"}
+    assert schema["parameters"]["properties"]["city"]["type"] == "string"
+    assert schema["parameters"]["properties"]["city"]["description"] == "city"
+    assert "required" in schema["parameters"]
+    assert schema["parameters"]["required"] == ["city"]
+    assert "country" not in schema["parameters"]["properties"]  # check country not in schema params
+    assert len(schema["parameters"]["properties"]) == 1
+
+
+def test_func_call_tool_with_kwargs_schema_generation() -> None:
+    """Test correct schema generation for a partial function with kwargs."""
+
+    def get_weather(country: str, city: str) -> str:
+        return f"The temperature in {city}, {country} is 75°"
+
+    partial_function = partial(get_weather, country="Germany")
+    tool = FunctionTool(partial_function, description="Partial function tool.")
+    schema = tool.schema
+
+    assert schema["name"] == "get_weather"
+    assert "description" in schema
+    assert schema["description"] == "Partial function tool."
+    assert "parameters" in schema
+    assert schema["parameters"]["type"] == "object"
+    assert schema["parameters"]["properties"].keys() == {"country", "city"}
+    assert schema["parameters"]["properties"]["city"]["type"] == "string"
+    assert schema["parameters"]["properties"]["country"]["type"] == "string"
+    assert "required" in schema["parameters"]
+    assert schema["parameters"]["required"] == ["city"]  # only city is required
+    assert len(schema["parameters"]["properties"]) == 2
+
+
+@pytest.mark.asyncio
+async def test_run_func_call_tool_with_kwargs_and_args() -> None:
+    """Test run partial function with kwargs and args."""
+
+    def get_weather(country: str, city: str, unit: str = "Celsius") -> str:
+        return f"The temperature in {city}, {country} is 75° {unit}"
+
+    partial_function = partial(get_weather, "Germany", unit="Fahrenheit")
+    tool = FunctionTool(partial_function, description="Partial function tool.")
+    result = await tool.run_json({"city": "Berlin"}, CancellationToken())
+    assert isinstance(result, str)
+    assert result == "The temperature in Berlin, Germany is 75° Fahrenheit"
 
 
 @pytest.mark.asyncio

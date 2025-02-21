@@ -10,7 +10,13 @@ from autogen_core.models import RequestUsage
 
 from autogen_agentchat.agents import UserProxyAgent
 from autogen_agentchat.base import Response, TaskResult
-from autogen_agentchat.messages import AgentEvent, ChatMessage, MultiModalMessage, UserInputRequestedEvent
+from autogen_agentchat.messages import (
+    AgentEvent,
+    ChatMessage,
+    ModelClientStreamingChunkEvent,
+    MultiModalMessage,
+    UserInputRequestedEvent,
+)
 
 
 def _is_running_in_iterm() -> bool:
@@ -69,8 +75,8 @@ class UserInputManager:
             self.input_events[request_id] = event
 
 
-def aprint(output: str, end: str = "\n") -> Awaitable[None]:
-    return asyncio.to_thread(print, output, end=end)
+def aprint(output: str, end: str = "\n", flush: bool = False) -> Awaitable[None]:
+    return asyncio.to_thread(print, output, end=end, flush=flush)
 
 
 async def Console(
@@ -106,6 +112,8 @@ async def Console(
 
     last_processed: Optional[T] = None
 
+    streaming_chunks: List[str] = []
+
     async for message in stream:
         if isinstance(message, TaskResult):
             duration = time.time() - start_time
@@ -118,7 +126,7 @@ async def Console(
                     f"Total completion tokens: {total_usage.completion_tokens}\n"
                     f"Duration: {duration:.2f} seconds\n"
                 )
-                await aprint(output, end="")
+                await aprint(output, end="", flush=True)
 
             # mypy ignore
             last_processed = message  # type: ignore
@@ -133,7 +141,7 @@ async def Console(
                     output += f"[Prompt tokens: {message.chat_message.models_usage.prompt_tokens}, Completion tokens: {message.chat_message.models_usage.completion_tokens}]\n"
                 total_usage.completion_tokens += message.chat_message.models_usage.completion_tokens
                 total_usage.prompt_tokens += message.chat_message.models_usage.prompt_tokens
-            await aprint(output, end="")
+            await aprint(output, end="", flush=True)
 
             # Print summary.
             if output_stats:
@@ -148,7 +156,7 @@ async def Console(
                     f"Total completion tokens: {total_usage.completion_tokens}\n"
                     f"Duration: {duration:.2f} seconds\n"
                 )
-                await aprint(output, end="")
+                await aprint(output, end="", flush=True)
 
             # mypy ignore
             last_processed = message  # type: ignore
@@ -159,13 +167,29 @@ async def Console(
         else:
             # Cast required for mypy to be happy
             message = cast(AgentEvent | ChatMessage, message)  # type: ignore
-            output = f"{'-' * 10} {message.source} {'-' * 10}\n{_message_to_str(message, render_image_iterm=render_image_iterm)}\n"
-            if message.models_usage:
-                if output_stats:
-                    output += f"[Prompt tokens: {message.models_usage.prompt_tokens}, Completion tokens: {message.models_usage.completion_tokens}]\n"
-                total_usage.completion_tokens += message.models_usage.completion_tokens
-                total_usage.prompt_tokens += message.models_usage.prompt_tokens
-            await aprint(output, end="")
+            if not streaming_chunks:
+                # Print message sender.
+                await aprint(f"{'-' * 10} {message.source} {'-' * 10}", end="\n", flush=True)
+            if isinstance(message, ModelClientStreamingChunkEvent):
+                await aprint(message.content, end="")
+                streaming_chunks.append(message.content)
+            else:
+                if streaming_chunks:
+                    streaming_chunks.clear()
+                    # Chunked messages are already printed, so we just print a newline.
+                    await aprint("", end="\n", flush=True)
+                else:
+                    # Print message content.
+                    await aprint(_message_to_str(message, render_image_iterm=render_image_iterm), end="\n", flush=True)
+                if message.models_usage:
+                    if output_stats:
+                        await aprint(
+                            f"[Prompt tokens: {message.models_usage.prompt_tokens}, Completion tokens: {message.models_usage.completion_tokens}]",
+                            end="\n",
+                            flush=True,
+                        )
+                    total_usage.completion_tokens += message.models_usage.completion_tokens
+                    total_usage.prompt_tokens += message.models_usage.prompt_tokens
 
     if last_processed is None:
         raise ValueError("No TaskResult or Response was processed.")

@@ -3,11 +3,9 @@ import { Button, Tooltip } from "antd";
 import {
   Bot,
   Plus,
-  Edit,
   Trash2,
   PanelLeftClose,
   PanelLeftOpen,
-  Calendar,
   Copy,
   GalleryHorizontalEnd,
   InfoIcon,
@@ -15,7 +13,6 @@ import {
 } from "lucide-react";
 import type { Team } from "../../types/datamodel";
 import { getRelativeTimeString } from "../atoms";
-import { defaultTeam } from "./types";
 import { useGalleryStore } from "../gallery/store";
 
 interface TeamSidebarProps {
@@ -42,12 +39,16 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
   isLoading = false,
 }) => {
   const defaultGallery = useGalleryStore((state) => state.getDefaultGallery());
-
   const createTeam = () => {
-    const newTeam = Object.assign({}, defaultTeam);
-    newTeam.config.name = "new_team_" + new Date().getTime();
+    const newTeam = Object.assign(
+      {},
+      { component: defaultGallery?.items.teams[0] }
+    );
+    newTeam.component.label =
+      "default_team" + new Date().getTime().toString().slice(0, 2);
     onCreateTeam(newTeam);
   };
+
   // Render collapsed state
   if (!isOpen) {
     return (
@@ -102,7 +103,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
 
       <div className="my-4 flex text-sm  ">
         <div className=" mr-2 w-full">
-          <Tooltip title="Create new session">
+          <Tooltip title="Create a new team">
             <Button
               type="primary"
               className="w-full"
@@ -161,7 +162,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                     {/* Team Name and Actions Row */}
                     <div className="flex items-center justify-between">
                       <span className="font-medium truncate">
-                        {team.config.name}
+                        {team.component?.label}
                       </span>
                       <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         {/* <Tooltip title="Edit team">
@@ -195,13 +196,13 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                     {/* Team Metadata Row */}
                     <div className="mt-1 flex items-center gap-2 text-xs text-secondary">
                       <span className="bg-secondary/20  truncate   rounded">
-                        {team.config.team_type}
+                        {team.component.component_type}
                       </span>
                       <div className="flex items-center gap-1">
                         <Bot className="w-3 h-3" />
                         <span>
-                          {team.config.participants.length}{" "}
-                          {team.config.participants.length === 1
+                          {team.component.config.participants.length}{" "}
+                          {team.component.config.participants.length === 1
                             ? "agent"
                             : "agents"}
                         </span>
@@ -232,7 +233,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
           <div key={"gallery_content"} className="scroll overflow-y-auto">
             {defaultGallery?.items.teams.map((galleryTeam) => (
               <div
-                key={galleryTeam.name + galleryTeam.team_type}
+                key={galleryTeam.label + galleryTeam.component_type}
                 className="relative border-secondary"
               >
                 <div
@@ -243,7 +244,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                   {/* Team Name and Use Template Action */}
                   <div className="flex items-center justify-between">
                     <span className="font-medium truncate">
-                      {galleryTeam.name}
+                      {galleryTeam.label}
                     </span>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Tooltip title="Use as template">
@@ -254,10 +255,12 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                           icon={<Copy className="w-4 h-4" />}
                           onClick={(e) => {
                             e.stopPropagation();
-                            galleryTeam.name =
-                              galleryTeam.name + "_" + new Date().getTime();
+                            galleryTeam.label =
+                              galleryTeam.label +
+                              "_" +
+                              (new Date().getTime() + "").substring(0, 5);
                             onCreateTeam({
-                              config: galleryTeam,
+                              component: galleryTeam,
                             });
                           }}
                         />
@@ -268,13 +271,13 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                   {/* Team Metadata Row */}
                   <div className="mt-1 flex items-center gap-2 text-xs text-secondary">
                     <span className="bg-secondary/20 truncate rounded">
-                      {galleryTeam.team_type}
+                      {galleryTeam.component_type}
                     </span>
                     <div className="flex items-center gap-1">
                       <Bot className="w-3 h-3" />
                       <span>
-                        {galleryTeam.participants.length}{" "}
-                        {galleryTeam.participants.length === 1
+                        {galleryTeam.config.participants.length}{" "}
+                        {galleryTeam.config.participants.length === 1
                           ? "agent"
                           : "agents"}
                       </span>

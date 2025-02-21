@@ -1,9 +1,10 @@
 # api/config.py
+
 from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    DATABASE_URI: str = "sqlite:///./autogen.db"
+    DATABASE_URI: str = "sqlite:///./autogen0404.db"
     API_DOCS: bool = False
     CLEANUP_INTERVAL: int = 300  # 5 minutes
     SESSION_TIMEOUT: int = 3600  # 1 hour
@@ -11,8 +12,7 @@ class Settings(BaseSettings):
     DEFAULT_USER_ID: str = "guestuser@gmail.com"
     UPGRADE_DATABASE: bool = False
 
-    class Config:
-        env_prefix = "AUTOGENSTUDIO_"
+    model_config = {"env_prefix": "AUTOGENSTUDIO_"}
 
 
 settings = Settings()

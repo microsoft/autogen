@@ -3,7 +3,7 @@
 There are two ways for runtime to deliver messages,
 direct messaging or broadcast. Direct messaging is one to one: the sender
 must provide the recipient's agent ID. On the other hand,
-broadcast is one to many and the sender does not provide recpients'
+broadcast is one to many and the sender does not provide recipients'
 agent IDs.
 
 Many scenarios are suitable for broadcast.

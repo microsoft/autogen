@@ -11,6 +11,7 @@ from typing import (
     List,
     Mapping,
     Sequence,
+    Tuple,
 )
 
 from autogen_core import CancellationToken, Component, ComponentModel, FunctionCall
@@ -22,13 +23,14 @@ from autogen_core.model_context import (
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
+    CreateResult,
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
     SystemMessage,
     UserMessage,
 )
-from autogen_core.tools import FunctionTool, BaseTool
+from autogen_core.tools import BaseTool, FunctionTool
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -40,13 +42,14 @@ from ..messages import (
     ChatMessage,
     HandoffMessage,
     MemoryQueryEvent,
-    MultiModalMessage,
+    ModelClientStreamingChunkEvent,
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
     ToolCallSummaryMessage,
 )
 from ..state import AssistantAgentState
+from ..utils import remove_images
 from ._base_chat_agent import BaseChatAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -60,8 +63,10 @@ class AssistantAgentConfig(BaseModel):
     tools: List[ComponentModel] | None
     handoffs: List[HandoffBase | str] | None = None
     model_context: ComponentModel | None = None
+    memory: List[ComponentModel] | None = None
     description: str
     system_message: str | None = None
+    model_client_stream: bool = False
     reflect_on_tool_use: bool
     tool_call_summary_format: str
 
@@ -126,6 +131,14 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     This will limit the number of recent messages sent to the model and can be useful
     when the model has a limit on the number of tokens it can process.
 
+    Streaming mode:
+
+    The assistant agent can be used in streaming mode by setting `model_client_stream=True`.
+    In this mode, the :meth:`on_messages_stream` and :meth:`BaseChatAgent.run_stream` methods will also yield
+    :class:`~autogen_agentchat.messages.ModelClientStreamingChunkEvent`
+    messages as the model client produces chunks of response.
+    The chunk messages will not be included in the final response's inner messages.
+
 
     Args:
         name (str): The name of the agent.
@@ -138,6 +151,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_context (ChatCompletionContext | None, optional): The model context for storing and retrieving :class:`~autogen_core.models.LLMMessage`. It can be preloaded with initial messages. The initial messages will be cleared when the agent is reset.
         description (str, optional): The description of the agent.
         system_message (str, optional): The system message for the model. If provided, it will be prepended to the messages in the model context when making an inference. Set to `None` to disable.
+        model_client_stream (bool, optional): If `True`, the model client will be used in streaming mode.
+            :meth:`on_messages_stream` and :meth:`BaseChatAgent.run_stream` methods will also yield :class:`~autogen_agentchat.messages.ModelClientStreamingChunkEvent`
+            messages as the model client produces chunks of response. Defaults to `False`.
         reflect_on_tool_use (bool, optional): If `True`, the agent will make another model inference using the tool call and result
             to generate a response. If `False`, the tool call result will be returned as the response. Defaults to `False`.
         tool_call_summary_format (str, optional): The format string used to create a tool call summary for every tool call result.
@@ -268,12 +284,14 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         system_message: (
             str | None
         ) = "You are a helpful AI assistant. Solve tasks using your tools. Reply with TERMINATE when the task has been completed.",
+        model_client_stream: bool = False,
         reflect_on_tool_use: bool = False,
         tool_call_summary_format: str = "{result}",
         memory: Sequence[Memory] | None = None,
     ):
         super().__init__(name=name, description=description)
         self._model_client = model_client
+        self._model_client_stream = model_client_stream
         self._memory = None
         if memory is not None:
             if isinstance(memory, list):
@@ -340,7 +358,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
     @property
     def produced_message_types(self) -> Sequence[type[ChatMessage]]:
-        """The types of messages that the assistant agent produces."""
+        """The types of final response messages that the assistant agent produces."""
         message_types: List[type[ChatMessage]] = [TextMessage]
         if self._handoffs:
             message_types.append(HandoffMessage)
@@ -359,8 +377,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
         # Add messages to the model context.
         for msg in messages:
-            if isinstance(msg, MultiModalMessage) and self._model_client.model_info["vision"] is False:
-                raise ValueError("The model does not support vision.")
             if isinstance(msg, HandoffMessage):
                 # Add handoff context to the model context.
                 for context_msg in msg.context:
@@ -382,10 +398,24 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     yield memory_query_event_msg
 
         # Generate an inference result based on the current model context.
-        llm_messages = self._system_messages + await self._model_context.get_messages()
-        model_result = await self._model_client.create(
-            llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
-        )
+        llm_messages = self._get_compatible_context(self._system_messages + await self._model_context.get_messages())
+        model_result: CreateResult | None = None
+        if self._model_client_stream:
+            # Stream the model client.
+            async for chunk in self._model_client.create_stream(
+                llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
+            ):
+                if isinstance(chunk, CreateResult):
+                    model_result = chunk
+                elif isinstance(chunk, str):
+                    yield ModelClientStreamingChunkEvent(content=chunk, source=self.name)
+                else:
+                    raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
+            assert isinstance(model_result, CreateResult)
+        else:
+            model_result = await self._model_client.create(
+                llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
+            )
 
         # Add the response to the model context.
         await self._model_context.add_message(AssistantMessage(content=model_result.content, source=self.name))
@@ -412,28 +442,26 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         inner_messages.append(tool_call_msg)
         yield tool_call_msg
 
-        # Execute the tool calls.
-        exec_results = await asyncio.gather(
+        # Execute the tool calls and hanoff calls.
+        executed_calls_and_results = await asyncio.gather(
             *[self._execute_tool_call(call, cancellation_token) for call in model_result.content]
         )
+        # Collect the execution results in a list.
+        exec_results = [result for _, result in executed_calls_and_results]
+        # Add the execution results to output and model context.
         tool_call_result_msg = ToolCallExecutionEvent(content=exec_results, source=self.name)
         event_logger.debug(tool_call_result_msg)
         await self._model_context.add_message(FunctionExecutionResultMessage(content=exec_results))
         inner_messages.append(tool_call_result_msg)
         yield tool_call_result_msg
 
-        # Correlate tool call results with tool calls.
-        tool_calls = [call for call in model_result.content if call.name not in self._handoffs]
+        # Separate out tool calls and tool call results from handoff requests.
+        tool_calls: List[FunctionCall] = []
         tool_call_results: List[FunctionExecutionResult] = []
-        for tool_call in tool_calls:
-            found = False
-            for exec_result in exec_results:
-                if exec_result.call_id == tool_call.id:
-                    found = True
-                    tool_call_results.append(exec_result)
-                    break
-            if not found:
-                raise RuntimeError(f"Tool call result not found for call id: {tool_call.id}")
+        for exec_call, exec_result in executed_calls_and_results:
+            if exec_call.name not in self._handoffs:
+                tool_calls.append(exec_call)
+                tool_call_results.append(exec_result)
 
         # Detect handoff requests.
         handoff_reqs = [call for call in model_result.content if call.name in self._handoffs]
@@ -464,15 +492,37 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         if self._reflect_on_tool_use:
             # Generate another inference result based on the tool call and result.
-            llm_messages = self._system_messages + await self._model_context.get_messages()
-            model_result = await self._model_client.create(llm_messages, cancellation_token=cancellation_token)
-            assert isinstance(model_result.content, str)
+            llm_messages = self._get_compatible_context(
+                self._system_messages + await self._model_context.get_messages()
+            )
+            reflection_model_result: CreateResult | None = None
+            if self._model_client_stream:
+                # Stream the model client.
+                async for chunk in self._model_client.create_stream(
+                    llm_messages, cancellation_token=cancellation_token
+                ):
+                    if isinstance(chunk, CreateResult):
+                        reflection_model_result = chunk
+                    elif isinstance(chunk, str):
+                        yield ModelClientStreamingChunkEvent(content=chunk, source=self.name)
+                    else:
+                        raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
+                assert isinstance(reflection_model_result, CreateResult)
+            else:
+                reflection_model_result = await self._model_client.create(
+                    llm_messages, cancellation_token=cancellation_token
+                )
+            assert isinstance(reflection_model_result.content, str)
             # Add the response to the model context.
-            await self._model_context.add_message(AssistantMessage(content=model_result.content, source=self.name))
+            await self._model_context.add_message(
+                AssistantMessage(content=reflection_model_result.content, source=self.name)
+            )
             # Yield the response.
             yield Response(
                 chat_message=TextMessage(
-                    content=model_result.content, source=self.name, models_usage=model_result.usage
+                    content=reflection_model_result.content,
+                    source=self.name,
+                    models_usage=reflection_model_result.usage,
                 ),
                 inner_messages=inner_messages,
             )
@@ -495,7 +545,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
     async def _execute_tool_call(
         self, tool_call: FunctionCall, cancellation_token: CancellationToken
-    ) -> FunctionExecutionResult:
+    ) -> Tuple[FunctionCall, FunctionExecutionResult]:
         """Execute a tool call and return the result."""
         try:
             if not self._tools + self._handoff_tools:
@@ -506,9 +556,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             arguments = json.loads(tool_call.arguments)
             result = await tool.run_json(arguments, cancellation_token)
             result_as_str = tool.return_value_as_string(result)
-            return FunctionExecutionResult(content=result_as_str, call_id=tool_call.id)
+            return (tool_call, FunctionExecutionResult(content=result_as_str, call_id=tool_call.id, is_error=False))
         except Exception as e:
-            return FunctionExecutionResult(content=f"Error: {e}", call_id=tool_call.id)
+            return (tool_call, FunctionExecutionResult(content=f"Error: {e}", call_id=tool_call.id, is_error=True))
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Reset the assistant agent to its initialization state."""
@@ -525,6 +575,13 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         # Load the model context state.
         await self._model_context.load_state(assistant_agent_state.llm_context)
 
+    def _get_compatible_context(self, messages: List[LLMMessage]) -> Sequence[LLMMessage]:
+        """Ensure that the messages are compatible with the underlying client, by removing images if needed."""
+        if self._model_client.model_info["vision"]:
+            return messages
+        else:
+            return remove_images(messages)
+
     def _to_config(self) -> AssistantAgentConfig:
         """Convert the assistant agent to a declarative config."""
 
@@ -534,10 +591,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             tools=[tool.dump_component() for tool in self._tools],
             handoffs=list(self._handoffs.values()),
             model_context=self._model_context.dump_component(),
+            memory=[memory.dump_component() for memory in self._memory] if self._memory else None,
             description=self.description,
             system_message=self._system_messages[0].content
             if self._system_messages and isinstance(self._system_messages[0].content, str)
             else None,
+            model_client_stream=self._model_client_stream,
             reflect_on_tool_use=self._reflect_on_tool_use,
             tool_call_summary_format=self._tool_call_summary_format,
         )
@@ -551,8 +610,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             tools=[BaseTool.load_component(tool) for tool in config.tools] if config.tools else None,
             handoffs=config.handoffs,
             model_context=None,
+            memory=[Memory.load_component(memory) for memory in config.memory] if config.memory else None,
             description=config.description,
             system_message=config.system_message,
+            model_client_stream=config.model_client_stream,
             reflect_on_tool_use=config.reflect_on_tool_use,
             tool_call_summary_format=config.tool_call_summary_format,
         )

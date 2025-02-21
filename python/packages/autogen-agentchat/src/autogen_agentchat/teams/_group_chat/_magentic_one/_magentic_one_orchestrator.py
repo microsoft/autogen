@@ -1,8 +1,9 @@
 import json
 import logging
+import re
 from typing import Any, Dict, List, Mapping
 
-from autogen_core import AgentId, CancellationToken, DefaultTopicId, Image, MessageContext, event, rpc
+from autogen_core import AgentId, CancellationToken, DefaultTopicId, MessageContext, event, rpc
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -24,6 +25,7 @@ from ....messages import (
     ToolCallSummaryMessage,
 )
 from ....state import MagenticOneOrchestratorState
+from ....utils import content_to_str, remove_images
 from .._base_group_chat_manager import BaseGroupChatManager
 from .._events import (
     GroupChatAgentResponse,
@@ -79,14 +81,12 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         self._plan = ""
         self._n_rounds = 0
         self._n_stalls = 0
-        self._team_description = "\n".join(
-            [
-                f"{topic_type}: {description}".strip()
-                for topic_type, description in zip(
-                    self._participant_topic_types, self._participant_descriptions, strict=True
-                )
-            ]
-        )
+
+        # Produce a team description. Each agent sould appear on a single line.
+        self._team_description = ""
+        for topic_type, description in zip(self._participant_topic_types, self._participant_descriptions, strict=True):
+            self._team_description += re.sub(r"\s+", " ", f"{topic_type}: {description}").strip() + "\n"
+        self._team_description = self._team_description.strip()
 
     def _get_task_ledger_facts_prompt(self, task: str) -> str:
         return ORCHESTRATOR_TASK_LEDGER_FACTS_PROMPT.format(task=task)
@@ -138,7 +138,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         # Create the initial task ledger
         #################################
         # Combine all message contents for task
-        self._task = " ".join([self._content_to_str(msg.content) for msg in message.messages])
+        self._task = " ".join([content_to_str(msg.content) for msg in message.messages])
         planning_conversation: List[LLMMessage] = []
 
         # 1. GATHER FACTS
@@ -146,7 +146,9 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         planning_conversation.append(
             UserMessage(content=self._get_task_ledger_facts_prompt(self._task), source=self._name)
         )
-        response = await self._model_client.create(planning_conversation, cancellation_token=ctx.cancellation_token)
+        response = await self._model_client.create(
+            self._get_compatible_context(planning_conversation), cancellation_token=ctx.cancellation_token
+        )
 
         assert isinstance(response.content, str)
         self._facts = response.content
@@ -157,7 +159,9 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         planning_conversation.append(
             UserMessage(content=self._get_task_ledger_plan_prompt(self._team_description), source=self._name)
         )
-        response = await self._model_client.create(planning_conversation, cancellation_token=ctx.cancellation_token)
+        response = await self._model_client.create(
+            self._get_compatible_context(planning_conversation), cancellation_token=ctx.cancellation_token
+        )
 
         assert isinstance(response.content, str)
         self._plan = response.content
@@ -281,7 +285,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         assert self._max_json_retries > 0
         key_error: bool = False
         for _ in range(self._max_json_retries):
-            response = await self._model_client.create(context, json_output=True)
+            response = await self._model_client.create(self._get_compatible_context(context), json_output=True)
             ledger_str = response.content
             try:
                 assert isinstance(ledger_str, str)
@@ -397,7 +401,9 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         update_facts_prompt = self._get_task_ledger_facts_update_prompt(self._task, self._facts)
         context.append(UserMessage(content=update_facts_prompt, source=self._name))
 
-        response = await self._model_client.create(context, cancellation_token=cancellation_token)
+        response = await self._model_client.create(
+            self._get_compatible_context(context), cancellation_token=cancellation_token
+        )
 
         assert isinstance(response.content, str)
         self._facts = response.content
@@ -407,7 +413,9 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         update_plan_prompt = self._get_task_ledger_plan_update_prompt(self._team_description)
         context.append(UserMessage(content=update_plan_prompt, source=self._name))
 
-        response = await self._model_client.create(context, cancellation_token=cancellation_token)
+        response = await self._model_client.create(
+            self._get_compatible_context(context), cancellation_token=cancellation_token
+        )
 
         assert isinstance(response.content, str)
         self._plan = response.content
@@ -420,7 +428,9 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         final_answer_prompt = self._get_final_answer_prompt(self._task)
         context.append(UserMessage(content=final_answer_prompt, source=self._name))
 
-        response = await self._model_client.create(context, cancellation_token=cancellation_token)
+        response = await self._model_client.create(
+            self._get_compatible_context(context), cancellation_token=cancellation_token
+        )
         assert isinstance(response.content, str)
         message = TextMessage(content=response.content, source=self._name)
 
@@ -464,15 +474,9 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 context.append(UserMessage(content=m.content, source=m.source))
         return context
 
-    def _content_to_str(self, content: str | List[str | Image]) -> str:
-        """Convert the content to a string."""
-        if isinstance(content, str):
-            return content
+    def _get_compatible_context(self, messages: List[LLMMessage]) -> List[LLMMessage]:
+        """Ensure that the messages are compatible with the underlying client, by removing images if needed."""
+        if self._model_client.model_info["vision"]:
+            return messages
         else:
-            result: List[str] = []
-            for c in content:
-                if isinstance(c, str):
-                    result.append(c)
-                else:
-                    result.append("<image>")
-        return "\n".join(result)
+            return remove_images(messages)

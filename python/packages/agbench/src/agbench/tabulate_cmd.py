@@ -19,6 +19,10 @@ SUCCESS_STRINGS = [
     "ALL TESTS PASSED !#!#",
 ]
 
+COMPLETED_STRINGS = [
+    "SCENARIO.PY COMPLETE !#!#",
+]
+
 EXCLUDE_DIR_NAMES = ["__pycache__"]
 
 
@@ -63,10 +67,19 @@ def default_scorer(instance_dir: str, success_strings: List[str] = SUCCESS_STRIN
     if os.path.isfile(console_log):
         with open(console_log, "rt") as fh:
             content = fh.read()
+
+            # It succeeded
             for s in success_strings:
                 if s in content:
                     return True
-            return False
+
+            # It completed without succeeding
+            for s in COMPLETED_STRINGS:
+                if s in content:
+                    return False
+
+            # Has not, or did not, complete
+            return None
     else:
         return None
 
@@ -187,7 +200,9 @@ def default_tabulate(
             failures = 0
             for row in all_results:
                 if isinstance(row[i + 1], tuple):
-                    failures += row[i + 1][0] != 1
+                    failures += row[i + 1][0] not in [1, None]
+                else:
+                    failures += row[i + 1] not in [1, None]
             footer_row.append(failures)
         footer.append(footer_row)
 

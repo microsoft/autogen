@@ -676,10 +676,20 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
         .. code-block:: python
 
+            import asyncio
             from autogen_core import SingleThreadedAgentRuntime
 
-            runtime = SingleThreadedAgentRuntime()
-            runtime.start()
+
+            async def main() -> None:
+                runtime = SingleThreadedAgentRuntime()
+                runtime.start()
+
+                # ... do other things ...
+
+                await runtime.stop()
+
+
+            asyncio.run(main())
 
         """
         if self._run_context is not None:
@@ -765,7 +775,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             else:
                 agent_instance = maybe_agent_instance
 
-            if type_func_alias(agent_instance) != expected_class:
+            if expected_class is not None and type_func_alias(agent_instance) != expected_class:
                 raise ValueError("Factory registered using the wrong type.")
 
             return agent_instance

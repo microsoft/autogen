@@ -12,10 +12,12 @@ from autogen_core.models import (
     FinishReasons,
     FunctionExecutionResultMessage,
     LLMMessage,
+    ModelFamily,
     ModelInfo,
     RequestUsage,
     SystemMessage,
     UserMessage,
+    validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
 from azure.ai.inference.aio import ChatCompletionsClient
@@ -54,6 +56,8 @@ from autogen_ext.models.azure.config import (
     GITHUB_MODELS_ENDPOINT,
     AzureAIChatCompletionClientConfig,
 )
+
+from .._utils.parse_r1_content import parse_r1_content
 
 create_kwargs = set(getfullargspec(ChatCompletionsClient.complete).kwonlyargs)
 AzureMessage = Union[AzureSystemMessage, AzureUserMessage, AzureAssistantMessage, AzureToolMessage]
@@ -243,6 +247,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             raise ValueError("credential is required for AzureAIChatCompletionClient")
         if "model_info" not in config:
             raise ValueError("model_info is required for AzureAIChatCompletionClient")
+        validate_model_info(config["model_info"])
         if _is_github_model(config["endpoint"]) and "model" not in config:
             raise ValueError("model is required for when using a Github model with AzureAIChatCompletionClient")
         return cast(AzureAIChatCompletionClientConfig, config)
@@ -354,11 +359,17 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                 finish_reason = choice.finish_reason  # type: ignore
             content = choice.message.content or ""
 
+        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
+            thought, content = parse_r1_content(content)
+        else:
+            thought = None
+
         response = CreateResult(
             finish_reason=finish_reason,  # type: ignore
             content=content,
             usage=usage,
             cached=False,
+            thought=thought,
         )
 
         self.add_usage(usage)
@@ -464,11 +475,17 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             prompt_tokens=prompt_tokens,
         )
 
+        if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
+            thought, content = parse_r1_content(content)
+        else:
+            thought = None
+
         result = CreateResult(
             finish_reason=finish_reason,
             content=content,
             usage=usage,
             cached=False,
+            thought=thought,
         )
 
         self.add_usage(usage)
@@ -497,7 +514,8 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
     def __del__(self) -> None:
         # TODO: This is a hack to close the open client
-        try:
-            asyncio.get_running_loop().create_task(self._client.close())
-        except RuntimeError:
-            asyncio.run(self._client.close())
+        if hasattr(self, "_client"):
+            try:
+                asyncio.get_running_loop().create_task(self._client.close())
+            except RuntimeError:
+                asyncio.run(self._client.close())

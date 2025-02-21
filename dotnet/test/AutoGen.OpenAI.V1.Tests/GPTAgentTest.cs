@@ -10,10 +10,12 @@ using AutoGen.OpenAI.V1.Extension;
 using AutoGen.Tests;
 using Azure.AI.OpenAI;
 using FluentAssertions;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace AutoGen.OpenAI.V1.Tests;
 
+[Trait("Category", "UnitV1")]
 public partial class GPTAgentTest
 {
     private ITestOutputHelper _output;

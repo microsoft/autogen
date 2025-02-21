@@ -5,6 +5,7 @@ from autogen_core.models import ModelFamily, ModelInfo
 # Based on: https://platform.openai.com/docs/models/continuous-model-upgrades
 # This is a moving target, so correctness is checked by the model value returned by openai against expected values at runtime``
 _MODEL_POINTERS = {
+    "o3-mini": "o3-mini-2025-01-31",
     "o1": "o1-2024-12-17",
     "o1-preview": "o1-preview-2024-09-12",
     "o1-mini": "o1-mini-2024-09-12",
@@ -19,6 +20,12 @@ _MODEL_POINTERS = {
 }
 
 _MODEL_INFO: Dict[str, ModelInfo] = {
+    "o3-mini-2025-01-31": {
+        "vision": False,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.O3,
+    },
     "o1-2024-12-17": {
         "vision": False,
         "function_calling": False,
@@ -127,9 +134,40 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.GPT_35,
     },
+    "gemini-1.5-flash": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GEMINI_1_5_FLASH,
+    },
+    "gemini-1.5-flash-8b": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GEMINI_1_5_FLASH,
+    },
+    "gemini-1.5-pro": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GEMINI_1_5_PRO,
+    },
+    "gemini-2.0-flash": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GEMINI_2_0_FLASH,
+    },
+    "gemini-2.0-flash-lite-preview-02-05": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.GEMINI_2_0_FLASH,
+    },
 }
 
 _MODEL_TOKEN_LIMITS: Dict[str, int] = {
+    "o3-mini-2025-01-31": 200000,
     "o1-2024-12-17": 200000,
     "o1-preview-2024-09-12": 128000,
     "o1-mini-2024-09-12": 128000,
@@ -148,7 +186,13 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "gpt-3.5-turbo-instruct": 4096,
     "gpt-3.5-turbo-0613": 4096,
     "gpt-3.5-turbo-16k-0613": 16385,
+    "gemini-1.5-flash": 1048576,
+    "gemini-1.5-flash-8b": 1048576,
+    "gemini-1.5-pro": 2097152,
+    "gemini-2.0-flash": 1048576,
 }
+
+GEMINI_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
 
 
 def resolve_model(model: str) -> str:

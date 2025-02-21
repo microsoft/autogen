@@ -6,10 +6,12 @@ using System.IO;
 using System.Threading.Tasks;
 using AutoGen.OpenAI.Sample;
 using AutoGen.Tests;
+using Xunit;
 using Xunit.Abstractions;
 
 namespace AutoGen.OpenAI.Tests;
 
+[Trait("Category", "UnitV1")]
 public class OpenAISampleTest
 {
     private readonly ITestOutputHelper _output;
