@@ -33,8 +33,8 @@ from autogen_ext.task_centric_memory.utils import PageLogger
 
 async def main() -> None:
     client = OpenAIChatCompletionClient(model="gpt-4o")
-    page_logger = PageLogger(config={"level": "DEBUG", "path": "~/pagelogs/quickstart"})  # Optional, but very useful.
-    memory_controller = TaskCentricMemoryController(reset=True, client=client, logger=page_logger)
+    logger = PageLogger(config={"level": "DEBUG", "path": "~/pagelogs/quickstart"})  # Optional, but very useful.
+    memory_controller = TaskCentricMemoryController(reset=True, client=client, logger=logger)
 
     # Add a few task-insight pairs as memories, where an insight can be any string that may help solve the task.
     await memory_controller.add_memo(task="What color do I like?", insight="Deep blue is my favorite color")
@@ -110,8 +110,8 @@ class MemoryEnabledAgent(RoutedAgent):
 
 async def main() -> None:
     client = OpenAIChatCompletionClient(model="gpt-4o")
-    page_logger = PageLogger(config={"level": "DEBUG", "path": "~/pagelogs/quickstart2"})  # Optional, but very useful.
-    memory_controller = TaskCentricMemoryController(reset=True, client=client, logger=page_logger)
+    logger = PageLogger(config={"level": "DEBUG", "path": "~/pagelogs/quickstart2"})  # Optional, but very useful.
+    memory_controller = TaskCentricMemoryController(reset=True, client=client, logger=logger)
 
     # Prepopulate memory to mimic learning from a prior session.
     await memory_controller.add_memo(task="What color do I like?", insight="Deep blue is my favorite color")

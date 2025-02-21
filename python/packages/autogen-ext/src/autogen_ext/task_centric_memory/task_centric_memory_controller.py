@@ -57,10 +57,8 @@ class TaskCentricMemoryController:
 
             async def main() -> None:
                 client = OpenAIChatCompletionClient(model="gpt-4o")
-                page_logger = PageLogger(
-                    config={"level": "DEBUG", "path": "~/pagelogs/quickstart"}
-                )  # Optional, but very useful.
-                memory_controller = TaskCentricMemoryController(reset=True, client=client, logger=page_logger)
+                logger = PageLogger(config={"level": "DEBUG", "path": "~/pagelogs/quickstart"})  # Optional, but very useful.
+                memory_controller = TaskCentricMemoryController(reset=True, client=client, logger=logger)
 
                 # Add a few task-insight pairs as memories, where an insight can be any string that may help solve the task.
                 await memory_controller.add_memo(task="What color do I like?", insight="Deep blue is my favorite color")
@@ -168,7 +166,7 @@ class TaskCentricMemoryController:
         self.logger.leave_function()
         return response, num_successes, num_trials
 
-    async def add_memo(self, insight: str, task: None | str = None) -> None:
+    async def add_memo(self, insight: str, task: None | str = None, index_on_both: bool = True) -> None:
         """
         Adds one insight to the memory bank, using the task (if provided) as context.
         """
@@ -186,12 +184,17 @@ class TaskCentricMemoryController:
 
         # Get a list of topics from the insight and the task (if provided).
         if task is None:
-            task_plus_insight = insight
+            text_to_index = insight
             self.logger.info("\nTOPICS EXTRACTED FROM INSIGHT:")
         else:
-            task_plus_insight = generalized_task.strip() + "\n(Hint:  " + insight + ")"
-            self.logger.info("\nTOPICS EXTRACTED FROM TASK AND INSIGHT COMBINED:")
-        topics = await self.prompter.find_index_topics(task_plus_insight)
+            if index_on_both:
+                text_to_index = generalized_task.strip() + "\n(Hint:  " + insight + ")"
+                self.logger.info("\nTOPICS EXTRACTED FROM TASK AND INSIGHT COMBINED:")
+            else:
+                text_to_index = task
+                self.logger.info("\nTOPICS EXTRACTED FROM TASK:")
+
+        topics = await self.prompter.find_index_topics(text_to_index)
         self.logger.info("\n".join(topics))
         self.logger.info("")
 

@@ -67,6 +67,7 @@ class TaskCentricMemoryBank:
             self.distance_threshold = config.get("distance_threshold", self.distance_threshold)
 
         memory_dir_path = os.path.expanduser(memory_dir_path)
+        self.logger.info("\nMEMORY BANK DIRECTORY  {}".format(memory_dir_path))
         path_to_db_dir = os.path.join(memory_dir_path, "string_map")
         self.path_to_dict = os.path.join(memory_dir_path, "uid_memo_dict.pkl")
 
@@ -76,8 +77,7 @@ class TaskCentricMemoryBank:
         self.uid_memo_dict: Dict[str, Memo] = {}
         self.last_memo_id = 0
         if (not reset) and os.path.exists(self.path_to_dict):
-            self.logger.info("\nLOADING MEMOS FROM DISK  {}".format(self.path_to_dict))
-            self.logger.info("    Location = {}".format(self.path_to_dict))
+            self.logger.info("\nLOADING MEMOS FROM DISK  at {}".format(self.path_to_dict))
             with open(self.path_to_dict, "rb") as f:
                 self.uid_memo_dict = pickle.load(f)
                 self.last_memo_id = len(self.uid_memo_dict)
@@ -100,6 +100,7 @@ class TaskCentricMemoryBank:
         """
         Forces immediate deletion of the memos, in memory and on disk.
         """
+        self.logger.info("\nCLEARING MEMOS")
         self.uid_memo_dict = {}
         self.save_memos()
 
@@ -109,6 +110,7 @@ class TaskCentricMemoryBank:
         """
         self.string_map.save_string_pairs()
         with open(self.path_to_dict, "wb") as file:
+            self.logger.info("\nSAVING MEMOS TO DISK  at {}".format(self.path_to_dict))
             pickle.dump(self.uid_memo_dict, file)
 
     def contains_memos(self) -> bool:
@@ -127,6 +129,7 @@ class TaskCentricMemoryBank:
             self.logger.info("\n TOPIC = {}".format(topic))
             self.string_map.add_input_output_pair(topic, memo_id)
         self.uid_memo_dict[memo_id] = memo
+        self.save_memos()
         self.logger.leave_function()
 
     def add_memo(self, insight_str: str, topics: List[str], task_str: Optional[str] = None) -> None:
@@ -184,6 +187,9 @@ class TaskCentricMemoryBank:
                 details += "\n  TASK: {}\n".format(memo.task)
             details += "\n  INSIGHT: {}\n\n  RELEVANCE: {:.3f}\n".format(memo.insight, relevance)
             self.logger.info(details)
+
+        # Sort the memo-relevance pairs by relevance, in descending order.
+        memo_relevance_dict = dict(sorted(memo_relevance_dict.items(), key=lambda item: item[1], reverse=True))
 
         # Compose the list of sufficiently relevant memos to return.
         memo_list: List[Memo] = []

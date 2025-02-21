@@ -43,8 +43,7 @@ class StringSimilarityMap:
         self.uid_text_dict: Dict[str, Tuple[str, str]] = {}
         self.last_string_pair_id = 0
         if (not reset) and os.path.exists(self.path_to_dict):
-            self.logger.debug("\nLOADING STRING SIMILARITY MAP FROM DISK  {}".format(self.path_to_dict))
-            self.logger.debug("    Location = {}".format(self.path_to_dict))
+            self.logger.debug("\nLOADING STRING SIMILARITY MAP FROM DISK  at {}".format(self.path_to_dict))
             with open(self.path_to_dict, "rb") as f:
                 self.uid_text_dict = pickle.load(f)
                 self.last_string_pair_id = len(self.uid_text_dict)
@@ -69,6 +68,7 @@ class StringSimilarityMap:
         """
         Saves the string-pair dict (self.uid_text_dict) to disk.
         """
+        self.logger.debug("\nSAVING STRING SIMILARITY MAP TO DISK  at {}".format(self.path_to_dict))
         with open(self.path_to_dict, "wb") as file:
             pickle.dump(self.uid_text_dict, file)
 
