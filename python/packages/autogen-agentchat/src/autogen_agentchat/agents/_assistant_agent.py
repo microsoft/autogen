@@ -10,6 +10,7 @@ from typing import (
     Dict,
     List,
     Mapping,
+    Optional,
     Sequence,
     Tuple,
     Union,
@@ -300,9 +301,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             else:
                 raise TypeError(f"Expected Memory, List[Memory], or None, got {type(memory)}")
 
-        self._system_messages: List[
-            SystemMessage | UserMessage | AssistantMessage | FunctionExecutionResultMessage
-        ] = []
+        self._system_messages: List[SystemMessage] = []
         if system_message is None:
             self._system_messages = []
         else:
@@ -488,8 +487,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     events.append(memory_query_event_msg)
         return events
 
-    @staticmethod
+    @classmethod
     async def _call_llm(
+        cls,
         model_client: ChatCompletionClient,
         model_client_stream: bool,
         system_messages: List[SystemMessage],
@@ -503,9 +503,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         Perform a model inference and yield either streaming chunk events or the final CreateResult.
         """
         all_messages = await model_context.get_messages()
-        llm_messages = AssistantAgent._get_compatible_context(
-            model_client=model_client, messages=system_messages + all_messages
-        )
+        llm_messages = cls._get_compatible_context(model_client=model_client, messages=system_messages + all_messages)
 
         all_tools = tools + handoff_tools
 
@@ -529,8 +527,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             )
             yield model_result
 
-    @staticmethod
+    @classmethod
     async def _process_model_result(
+        cls,
         model_result: CreateResult,
         inner_messages: List[AgentEvent | ChatMessage],
         cancellation_token: CancellationToken,
@@ -579,7 +578,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         # STEP 4B: Execute tool calls
         executed_calls_and_results = await asyncio.gather(
             *[
-                AssistantAgent._execute_tool_call(
+                cls._execute_tool_call(
                     tool_call=call,
                     tools=tools,
                     handoff_tools=handoff_tools,
@@ -602,7 +601,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         yield tool_call_result_msg
 
         # STEP 4C: Check for handoff
-        handoff_output = AssistantAgent._check_and_handle_handoff(
+        handoff_output = cls._check_and_handle_handoff(
             model_result=model_result,
             executed_calls_and_results=executed_calls_and_results,
             inner_messages=inner_messages,
@@ -669,7 +668,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     tool_calls.append(exec_call)
                     tool_call_results.append(exec_result)
 
-            handoff_context: List[ChatMessage] = []
+            handoff_context: List[LLMMessage] = []
             if len(tool_calls) > 0:
                 handoff_context.append(AssistantMessage(content=tool_calls, source=agent_name))
                 handoff_context.append(FunctionExecutionResultMessage(content=tool_call_results))
@@ -686,8 +685,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             )
         return None
 
-    @staticmethod
+    @classmethod
     async def _reflect_on_tool_use_flow(
+        cls,
         model_client: ChatCompletionClient,
         model_client_stream: bool,
         model_context: ChatCompletionContext,
@@ -699,7 +699,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         and yield the final text response (or streaming chunks).
         """
         all_messages = await model_context.get_messages()
-        llm_messages = AssistantAgent._get_compatible_context(model_client=model_client, messages=all_messages)
+        llm_messages = cls._get_compatible_context(model_client=model_client, messages=all_messages)
 
         reflection_result: Optional[CreateResult] = None
 
@@ -812,9 +812,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         # Load the model context state.
         await self._model_context.load_state(assistant_agent_state.llm_context)
 
-    def _get_compatible_context(self, messages: List[LLMMessage]) -> Sequence[LLMMessage]:
+    @staticmethod
+    def _get_compatible_context(model_client: ChatCompletionClient, messages: List[LLMMessage]) -> Sequence[LLMMessage]:
         """Ensure that the messages are compatible with the underlying client, by removing images if needed."""
-        if self._model_client.model_info["vision"]:
+        if model_client.model_info["vision"]:
             return messages
         else:
             return remove_images(messages)
