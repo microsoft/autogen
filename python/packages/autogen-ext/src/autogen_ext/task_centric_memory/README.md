@@ -1,4 +1,5 @@
 # Task-Centric Memory
+_(EXPERIMENTAL RESEARCH IN PROGRESS)_
 
 **Task-Centric Memory** is an active research project aimed at giving AI agents the ability to:
 
