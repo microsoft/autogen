@@ -1,12 +1,5 @@
-import React, { useState, memo } from "react";
-import {
-  User,
-  Bot,
-  Maximize2,
-  Minimize2,
-  DraftingCompass,
-  Brain,
-} from "lucide-react";
+import React from "react";
+import { User, Bot, DraftingCompass, Bug } from "lucide-react";
 import {
   AgentMessageConfig,
   FunctionCall,
@@ -176,7 +169,7 @@ export const RenderMessage: React.FC<MessageProps> = ({
           {isUser ? (
             <User size={14} />
           ) : message.source == "llm_call_event" ? (
-            <Brain size={14} />
+            <Bug size={14} />
           ) : (
             <Bot size={14} />
           )}

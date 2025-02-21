@@ -1,6 +1,6 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import { Button, Breadcrumb } from "antd";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Code, FormInput } from "lucide-react";
 import { Component, ComponentConfig } from "../../../../types/datamodel";
 import {
   isTeamComponent,
@@ -14,6 +14,8 @@ import { ModelFields } from "./fields/model-fields";
 import { TeamFields } from "./fields/team-fields";
 import { ToolFields } from "./fields/tool-fields";
 import { TerminationFields } from "./fields/termination-fields";
+import debounce from "lodash.debounce";
+import { MonacoEditor } from "../../../monaco";
 
 export interface EditPath {
   componentType: string;
@@ -34,11 +36,13 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
   onClose,
   navigationDepth = false,
 }) => {
-  // const workingCopy = Object.assign({}, component);
   const [editPath, setEditPath] = useState<EditPath[]>([]);
   const [workingCopy, setWorkingCopy] = useState<Component<ComponentConfig>>(
     Object.assign({}, component)
   );
+  const [isJsonEditing, setIsJsonEditing] = useState(false);
+
+  const editorRef = useRef(null);
 
   // Reset working copy when component changes
   React.useEffect(() => {
@@ -162,6 +166,18 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
     setEditPath((prev) => prev.slice(0, -1));
   }, []);
 
+  const debouncedJsonUpdate = useCallback(
+    debounce((value: string) => {
+      try {
+        const updatedComponent = JSON.parse(value);
+        setWorkingCopy(updatedComponent);
+      } catch (err) {
+        console.error("Invalid JSON", err);
+      }
+    }, 500),
+    []
+  );
+
   const currentComponent = getCurrentComponent(workingCopy) || workingCopy;
 
   const renderFields = useCallback(() => {
@@ -240,8 +256,37 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
         <div className="flex-1">
           <Breadcrumb items={breadcrumbItems} />
         </div>
+        <Button
+          onClick={() => setIsJsonEditing((prev) => !prev)}
+          type="default"
+          className="flex text-accent items-center gap-2 text-xs "
+        >
+          {isJsonEditing ? (
+            <>
+              <FormInput className="w-4 text-accent h-4 mr-1 inline-block" />
+              Switch to Form Editor
+            </>
+          ) : (
+            <>
+              <Code className="w-4 text-accent h-4 mr-1 inline-block" />
+              Switch to JSON Editor
+            </>
+          )}
+        </Button>
       </div>
-      <div className="flex-1 overflow-y-auto">{renderFields()}</div>
+      {isJsonEditing ? (
+        <div className="flex-1 overflow-y-auto">
+          <MonacoEditor
+            editorRef={editorRef}
+            value={JSON.stringify(workingCopy, null, 2)}
+            onChange={debouncedJsonUpdate}
+            language="json"
+            minimap={true}
+          />
+        </div>
+      ) : (
+        <div className="flex-1 overflow-y-auto">{renderFields()}</div>
+      )}
       {onClose && (
         <div className="flex justify-end gap-2 mt-6 pt-4 border-t border-secondary">
           <Button onClick={onClose}>Cancel</Button>

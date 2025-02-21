@@ -44,8 +44,9 @@ const ComponentCard: React.FC<
       <div className="text-xs text-secondary truncate flex-1">
         {item.provider}
       </div>
-      <div className="flex gap-1">
+      <div className="flex gap-0">
         <Button
+          title="Delete"
           type="text"
           className="h-6 w-6 flex items-center justify-center p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600"
           icon={<Trash className="w-3.5 h-3.5" />}
@@ -55,6 +56,7 @@ const ComponentCard: React.FC<
           }}
         />
         <Button
+          title="Duplicate"
           type="text"
           className="h-6 w-6 flex items-center justify-center p-0 opacity-0 group-hover:opacity-100 transition-opacity"
           icon={<Copy className="w-3.5 h-3.5" />}
@@ -64,6 +66,7 @@ const ComponentCard: React.FC<
           }}
         />
         <Button
+          title="Edit"
           type="text"
           className="h-6 w-6 flex items-center justify-center p-0 opacity-0 group-hover:opacity-100 transition-opacity"
           icon={<Edit className="w-3.5 h-3.5" />}
@@ -98,7 +101,7 @@ const ComponentGrid: React.FC<
     <h3 className="text-base font-medium m-0 mb-4">
       {items.length} {items.length === 1 ? title : `${title}s`}
     </h3>
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 auto-rows-fr">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr">
       {items.map((item, idx) => (
         <ComponentCard key={idx} item={item} index={idx} {...actions} />
       ))}
