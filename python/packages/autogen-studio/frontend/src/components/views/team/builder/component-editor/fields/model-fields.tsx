@@ -289,6 +289,16 @@ export const ModelFields: React.FC<ModelFieldsProps> = ({
             </InputWithTooltip>
 
             <InputWithTooltip
+              label="API Key"
+              tooltip="Your Azure OpenAI API key"
+            >
+              <Input.Password
+                value={component.config.api_key}
+                onChange={(e) => handleConfigUpdate("api_key", e.target.value)}
+              />
+            </InputWithTooltip>
+
+            <InputWithTooltip
               label="Azure Deployment"
               tooltip="The name of your Azure OpenAI model deployment"
             >
