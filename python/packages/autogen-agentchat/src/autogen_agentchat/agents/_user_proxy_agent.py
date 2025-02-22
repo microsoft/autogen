@@ -59,7 +59,7 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
         name (str): The name of the agent.
         description (str, optional): A description of the agent.
         input_func (Optional[Callable[[str], str]], Callable[[str, Optional[CancellationToken]], Awaitable[str]]): A function that takes a prompt and returns a user input string.
-    
+
     For examples of integrating with web and UI frameworks, see the following:
 
     * `FastAPI <https://github.com/microsoft/autogen/tree/main/python/samples/agentchat_fastapi>`_
