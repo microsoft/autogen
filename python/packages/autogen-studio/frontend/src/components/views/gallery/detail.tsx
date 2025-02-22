@@ -1,170 +1,228 @@
-import React, { useState, useRef } from "react";
-import { Button, message, Tooltip } from "antd";
+import React, { useState } from "react";
+import { Tabs, Button, Tooltip, Drawer } from "antd";
 import {
   Package,
   Users,
   Bot,
   Globe,
-  RefreshCw,
-  Edit2,
-  X,
   Wrench,
   Brain,
   Timer,
-  Save,
-  ChevronUp,
-  ChevronDown,
   Edit,
+  Copy,
+  Trash,
 } from "lucide-react";
+import { ComponentEditor } from "../team/builder/component-editor/component-editor";
+import { TruncatableText } from "../atoms";
 import type { Gallery } from "./types";
-import { useGalleryStore } from "./store";
-import { MonacoEditor } from "../monaco";
-import { getRelativeTimeString, TruncatableText } from "../atoms";
-import { Component, ComponentConfig } from "../../types/datamodel";
+import {
+  Component,
+  ComponentConfig,
+  ComponentTypes,
+} from "../../types/datamodel";
 
-const ComponentGrid: React.FC<{
-  title: string;
-  icon: React.ReactNode;
-  items: Component<ComponentConfig>[];
-}> = ({ title, icon, items }) => {
-  const [isExpanded, setIsExpanded] = useState(true);
+type CategoryKey = `${ComponentTypes}s`;
 
-  return (
-    <div className="bg-tertiary rounded    p-2">
-      <div
-        className="flex items-center justify-between cursor-pointer mb-2"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div className="flex items-center gap-2">
-          <span className="text-primary">{icon}</span>
-          <span className="text-sm capitalize">
-            {items.length} {items.length === 1 ? title : `${title}s`}
-          </span>
-        </div>
-        {isExpanded ? (
-          <ChevronUp className="w-4 h-4 text-primary" />
-        ) : (
-          <ChevronDown className="w-4 h-4 text-primary" />
-        )}
+interface CardActions {
+  onEdit: (component: Component<ComponentConfig>, index: number) => void;
+  onDuplicate: (component: Component<ComponentConfig>, index: number) => void;
+  onDelete: (component: Component<ComponentConfig>, index: number) => void;
+}
+
+// Component Card
+const ComponentCard: React.FC<
+  CardActions & {
+    item: Component<ComponentConfig>;
+    index: number;
+  }
+> = ({ item, onEdit, onDuplicate, onDelete, index }) => (
+  <div
+    className="bg-secondary rounded overflow-hidden group h-full cursor-pointer"
+    onClick={() => onEdit(item, index)}
+  >
+    <div className="px-4 py-3 flex items-center justify-between border-b border-tertiary">
+      <div className="text-xs text-secondary truncate flex-1">
+        {item.provider}
       </div>
-
-      <div
-        className={`space-y-2 transition-all duration-200 ${
-          isExpanded ? "max-h-[500px]" : "max-h-0"
-        } overflow-hidden`}
-      >
-        {items.map((item, idx) => (
-          <div
-            key={idx}
-            className="bg-secondary rounded p-3 hover:bg-tertiary transition-colors"
-          >
-            <div className="text-xs break-all text-secondary my-1 mb-2">
-              {item.provider}
-            </div>
-            <div className="text-sm font-medium truncate">{item.label}</div>
-            {item.description && (
-              <div className="text-xs text-primary mt-1 ">
-                <TruncatableText
-                  content={item.description}
-                  textThreshold={150}
-                />
-              </div>
-            )}
-          </div>
-        ))}
+      <div className="flex gap-0">
+        <Button
+          title="Delete"
+          type="text"
+          className="h-6 w-6 flex items-center justify-center p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600"
+          icon={<Trash className="w-3.5 h-3.5" />}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDelete(item, index);
+          }}
+        />
+        <Button
+          title="Duplicate"
+          type="text"
+          className="h-6 w-6 flex items-center justify-center p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+          icon={<Copy className="w-3.5 h-3.5" />}
+          onClick={(e) => {
+            e.stopPropagation();
+            onDuplicate(item, index);
+          }}
+        />
+        <Button
+          title="Edit"
+          type="text"
+          className="h-6 w-6 flex items-center justify-center p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+          icon={<Edit className="w-3.5 h-3.5" />}
+          onClick={(e) => {
+            e.stopPropagation();
+            onEdit(item, index);
+          }}
+        />
       </div>
     </div>
-  );
-};
+    <div className="p-4 pb-0 pt-3">
+      <div className="text-base font-medium mb-2">{item.label}</div>
+      <div className="text-sm text-secondary line-clamp-2 mb-3 min-h-[40px]">
+        <TruncatableText
+          content={item.description || ""}
+          showFullscreen={false}
+          textThreshold={70}
+        />
+      </div>
+    </div>
+  </div>
+);
 
-interface GalleryDetailProps {
+// Component Grid
+const ComponentGrid: React.FC<
+  {
+    items: Component<ComponentConfig>[];
+    title: string;
+  } & CardActions
+> = ({ items, title, ...actions }) => (
+  <div>
+    <h3 className="text-base font-medium m-0 mb-4">
+      {items.length} {items.length === 1 ? title : `${title}s`}
+    </h3>
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr">
+      {items.map((item, idx) => (
+        <ComponentCard key={idx} item={item} index={idx} {...actions} />
+      ))}
+    </div>
+  </div>
+);
+
+const iconMap = {
+  team: Users,
+  agent: Bot,
+  tool: Wrench,
+  model: Brain,
+  termination: Timer,
+} as const;
+
+export const GalleryDetail: React.FC<{
   gallery: Gallery;
   onSave: (updates: Partial<Gallery>) => void;
   onDirtyStateChange: (isDirty: boolean) => void;
-}
+}> = ({ gallery, onSave, onDirtyStateChange }) => {
+  const [editingComponent, setEditingComponent] = useState<{
+    component: Component<ComponentConfig>;
+    category: CategoryKey;
+    index: number;
+  } | null>(null);
+  const [activeTab, setActiveTab] = useState<ComponentTypes>("team");
 
-export const GalleryDetail: React.FC<GalleryDetailProps> = ({
-  gallery,
-  onSave,
-  onDirtyStateChange,
-}) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [jsonValue, setJsonValue] = useState(JSON.stringify(gallery, null, 2));
-  const editorRef = useRef(null);
-  const { syncGallery, getLastSyncTime } = useGalleryStore();
-
-  const handleSync = async () => {
-    if (!gallery.url) return;
-
-    setIsSyncing(true);
-    try {
-      await syncGallery(gallery.id);
-      message.success("Gallery synced successfully");
-    } catch (error) {
-      message.error("Failed to sync gallery");
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-
-  const handleJsonChange = (value: string) => {
-    setJsonValue(value);
+  const updateGallery = (
+    category: CategoryKey,
+    updater: (
+      components: Component<ComponentConfig>[]
+    ) => Component<ComponentConfig>[]
+  ) => {
+    const updatedGallery = {
+      ...gallery,
+      components: {
+        ...gallery.components,
+        [category]: updater(gallery.components[category]),
+      },
+    };
+    onSave(updatedGallery);
     onDirtyStateChange(true);
   };
 
-  const handleSave = async () => {
-    try {
-      const parsedGallery = JSON.parse(jsonValue);
-      const updatedGallery = {
-        ...parsedGallery,
-        id: gallery.id,
-        metadata: {
-          ...parsedGallery.metadata,
-          updated_at: new Date().toISOString(),
-        },
-      };
-      await onSave(updatedGallery);
-      onDirtyStateChange(false);
-      setIsEditing(false);
-      message.success("Gallery updated successfully");
-    } catch (error) {
-      message.error("Invalid JSON format");
-    }
+  const handlers = {
+    onEdit: (component: Component<ComponentConfig>, index: number) => {
+      setEditingComponent({
+        component,
+        category: `${activeTab}s` as CategoryKey,
+        index,
+      });
+    },
+
+    onDuplicate: (component: Component<ComponentConfig>, index: number) => {
+      const category = `${activeTab}s` as CategoryKey;
+      const baseLabel = component.label?.replace(/_\d+$/, "");
+      const components = gallery.components[category];
+
+      const nextNumber =
+        Math.max(
+          ...components
+            .map((c) => {
+              const match = c.label?.match(
+                new RegExp(`^${baseLabel}_?(\\d+)?$`)
+              );
+              return match ? parseInt(match[1] || "0") : 0;
+            })
+            .filter((n) => !isNaN(n)),
+          0
+        ) + 1;
+
+      updateGallery(category, (components) => [
+        ...components,
+        { ...component, label: `${baseLabel}_${nextNumber}` },
+      ]);
+    },
+
+    onDelete: (component: Component<ComponentConfig>, index: number) => {
+      const category = `${activeTab}s` as CategoryKey;
+      updateGallery(category, (components) =>
+        components.filter((_, i) => i !== index)
+      );
+    },
   };
 
-  const gridItems = [
-    {
-      icon: <Users className="w-4 h-4" />,
-      title: "team",
-      items: gallery.items.teams,
-    },
-    {
-      icon: <Bot className="w-4 h-4" />,
-      title: "agent",
-      items: gallery.items.components.agents,
-    },
-    {
-      icon: <Wrench className="w-4 h-4" />,
-      title: "tool",
-      items: gallery.items.components.tools,
-    },
-    {
-      icon: <Brain className="w-4 h-4" />,
-      title: "model",
-      items: gallery.items.components.models,
-    },
-    {
-      icon: <Timer className="w-4 h-4" />,
-      title: "termination",
-      items: gallery.items.components.terminations,
-    },
-  ];
+  const handleComponentUpdate = (
+    updatedComponent: Component<ComponentConfig>
+  ) => {
+    if (!editingComponent) return;
+
+    updateGallery(editingComponent.category, (components) =>
+      components.map((c, i) =>
+        i === editingComponent.index ? updatedComponent : c
+      )
+    );
+    setEditingComponent(null);
+  };
+
+  const tabItems = Object.entries(iconMap).map(([key, Icon]) => ({
+    key,
+    label: (
+      <span className="flex items-center gap-2">
+        <Icon className="w-5 h-5" />
+        {key.charAt(0).toUpperCase() + key.slice(1)}s
+        <span className="text-xs font-light text-secondary">
+          ({gallery.components[`${key}s` as CategoryKey].length})
+        </span>
+      </span>
+    ),
+    children: (
+      <ComponentGrid
+        items={gallery.components[`${key}s` as CategoryKey]}
+        title={key}
+        {...handlers}
+      />
+    ),
+  }));
 
   return (
-    <div className="space-y-6">
-      {/* Banner Section - Kept unchanged */}
-      <div className="relative h-72 rounded bg-secondary overflow-hidden">
+    <div className="max-w-7xl mx-auto px-4">
+      <div className="relative h-64 rounded bg-secondary overflow-hidden mb-8">
         <img
           src="/images/bg/layeredbg.svg"
           alt="Gallery Banner"
@@ -182,19 +240,15 @@ export const GalleryDetail: React.FC<GalleryDetailProps> = ({
                 </Tooltip>
               )}
             </div>
-            <p className="text-secondary w-1/2 mt-2 line-clamp-3">
+            <p className="text-secondary w-1/2 mt-2 line-clamp-2">
               {gallery.metadata.description}
             </p>
-            <p className="text-secondary text-sm mt-2">
-              {gallery.metadata.author}
-            </p>
           </div>
-
           <div className="flex gap-2">
             <div className="bg-tertiary backdrop-blur rounded p-2 flex items-center gap-2">
               <Package className="w-4 h-4 text-secondary" />
               <span className="text-sm">
-                {Object.values(gallery.items.components).reduce(
+                {Object.values(gallery.components).reduce(
                   (sum, arr) => sum + arr.length,
                   0
                 )}{" "}
@@ -204,113 +258,36 @@ export const GalleryDetail: React.FC<GalleryDetailProps> = ({
             <div className="bg-tertiary backdrop-blur rounded p-2 text-sm">
               v{gallery.metadata.version}
             </div>
-            {gallery.metadata.tags?.map((tag) => (
-              <div
-                key={tag}
-                className="bg-tertiary backdrop-blur rounded p-2 px-2 text-sm"
-              >
-                {tag}
-              </div>
-            ))}
           </div>
         </div>
       </div>
 
-      {/* Action Buttons */}
-      <div className="flex justify-end gap-2">
-        {gallery.url && (
-          <Tooltip
-            title={
-              getLastSyncTime(gallery.id)
-                ? `Last synced: ${getRelativeTimeString(
-                    getLastSyncTime(gallery.id) || ""
-                  )}`
-                : "Never synced"
-            }
-          >
-            <Button
-              icon={
-                <RefreshCw
-                  className={(isSyncing ? "animate-spin" : "") + " w-4 h-4"}
-                />
-              }
-              loading={isSyncing}
-              onClick={handleSync}
-            >
-              Sync
-            </Button>
-          </Tooltip>
-        )}
-        {!isEditing ? (
-          <Button
-            icon={<Edit className="w-4 h-4" />}
-            onClick={() => setIsEditing(true)}
-          >
-            Edit
-          </Button>
-        ) : (
-          <>
-            <Button
-              icon={<X className="w-4 h-4" />}
-              onClick={() => setIsEditing(false)}
-            >
-              Cancel
-            </Button>
-            <Button type="primary" onClick={handleSave}>
-              Save Changes
-            </Button>
-          </>
-        )}
-      </div>
+      <Tabs
+        items={tabItems}
+        className="gallery-tabs"
+        size="large"
+        onChange={(key) => setActiveTab(key as ComponentTypes)}
+      />
 
-      {/* Grid Layout */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
-        {gridItems.map((item) => (
-          <ComponentGrid
-            key={item.title}
-            title={item.title}
-            icon={item.icon}
-            items={item.items}
+      <Drawer
+        title="Edit Component"
+        placement="right"
+        size="large"
+        onClose={() => setEditingComponent(null)}
+        open={!!editingComponent}
+        className="component-editor-drawer"
+      >
+        {editingComponent && (
+          <ComponentEditor
+            component={editingComponent.component}
+            onChange={handleComponentUpdate}
+            onClose={() => setEditingComponent(null)}
+            navigationDepth={true}
           />
-        ))}
-      </div>
-
-      {/* Editor Section */}
-      {isEditing && (
-        <div
-          className="fixed bottom-0 left-0 right-0 bg-primary z-50 shadow-lg transition-transform duration-300 ease-in-out transform"
-          style={{ height: "70vh" }}
-        >
-          <div className="border-b border-secondary p-4 flex justify-between items-center">
-            <h3 className="text-normal font-medium">
-              Edit Gallery Configuration
-            </h3>
-            <div className="inline-flex gap-2">
-              <Tooltip title="Save Changes">
-                <Button
-                  icon={<Save className="w-4 h-4" />}
-                  onClick={handleSave}
-                />
-              </Tooltip>
-              <Tooltip title="Cancel Editing">
-                <Button
-                  icon={<X className="w-4 h-4" />}
-                  onClick={() => setIsEditing(false)}
-                />
-              </Tooltip>
-            </div>
-          </div>
-          <div className="h-[calc(100%-60px)]">
-            <MonacoEditor
-              value={jsonValue}
-              onChange={handleJsonChange}
-              editorRef={editorRef}
-              language="json"
-              minimap={true}
-            />
-          </div>
-        </div>
-      )}
+        )}
+      </Drawer>
     </div>
   );
 };
+
+export default GalleryDetail;

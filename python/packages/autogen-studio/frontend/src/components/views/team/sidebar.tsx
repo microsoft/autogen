@@ -42,7 +42,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
   const createTeam = () => {
     const newTeam = Object.assign(
       {},
-      { component: defaultGallery?.items.teams[0] }
+      { component: defaultGallery?.components.teams[0] }
     );
     newTeam.component.label =
       "default_team" + new Date().getTime().toString().slice(0, 2);
@@ -231,7 +231,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
             From Gallery
           </div>
           <div key={"gallery_content"} className="scroll overflow-y-auto">
-            {defaultGallery?.items.teams.map((galleryTeam) => (
+            {defaultGallery?.components.teams.map((galleryTeam) => (
               <div
                 key={galleryTeam.label + galleryTeam.component_type}
                 className="relative border-secondary"

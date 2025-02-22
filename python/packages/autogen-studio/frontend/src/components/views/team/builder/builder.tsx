@@ -1,11 +1,5 @@
 //team/builder/builder.tsx
-import React, {
-  useCallback,
-  useContext,
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   DndContext,
   useSensor,
@@ -26,7 +20,7 @@ import {
   MiniMap,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Button, Layout, message, Modal, Switch, Tooltip } from "antd";
+import { Button, Drawer, Layout, message, Switch, Tooltip } from "antd";
 import {
   Cable,
   CheckCircle,
@@ -39,7 +33,7 @@ import {
 } from "lucide-react";
 import { useTeamBuilderStore } from "./store";
 import { ComponentLibrary } from "./library";
-import { ComponentTypes, Team, Session } from "../../../types/datamodel";
+import { ComponentTypes, Team } from "../../../types/datamodel";
 import { CustomNode, CustomEdge, DragItem } from "./types";
 import { edgeTypes, nodeTypes } from "./nodes";
 
@@ -47,14 +41,11 @@ import { edgeTypes, nodeTypes } from "./nodes";
 import "./builder.css";
 import TeamBuilderToolbar from "./toolbar";
 import { MonacoEditor } from "../../monaco";
-import { NodeEditor } from "./node-editor/node-editor";
 import debounce from "lodash.debounce";
-import { appContext } from "../../../../hooks/provider";
-import { sessionAPI } from "../../playground/api";
 import TestDrawer from "./testdrawer";
-import { teamAPI, validationAPI, ValidationResponse } from "../api";
-import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
+import { validationAPI, ValidationResponse } from "../api";
 import { ValidationErrors } from "./validationerrors";
+import ComponentEditor from "./component-editor/component-editor";
 
 const { Sider, Content } = Layout;
 interface DragItemData {
@@ -538,17 +529,35 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
             </Content>
           </Layout>
 
-          <NodeEditor
-            node={nodes.find((n) => n.id === selectedNodeId) || null}
-            onUpdate={(updates) => {
-              if (selectedNodeId) {
-                console.log("updating node", selectedNodeId, updates);
-                updateNode(selectedNodeId, updates);
-                handleSave();
-              }
-            }}
-            onClose={() => setSelectedNode(null)}
-          />
+          {selectedNodeId && (
+            <Drawer
+              title="Edit Component"
+              placement="right"
+              size="large"
+              onClose={() => setSelectedNode(null)}
+              open={!!selectedNodeId}
+              className="component-editor-drawer"
+            >
+              {nodes.find((n) => n.id === selectedNodeId)?.data.component && (
+                <ComponentEditor
+                  component={
+                    nodes.find((n) => n.id === selectedNodeId)!.data.component
+                  }
+                  onChange={(updatedComponent) => {
+                    console.log("builder updating component", updatedComponent);
+                    if (selectedNodeId) {
+                      updateNode(selectedNodeId, {
+                        component: updatedComponent,
+                      });
+                      handleSave();
+                    }
+                  }}
+                  onClose={() => setSelectedNode(null)}
+                  navigationDepth={true}
+                />
+              )}
+            </Drawer>
+          )}
         </Layout>
         <DragOverlay
           dropAnimation={{
