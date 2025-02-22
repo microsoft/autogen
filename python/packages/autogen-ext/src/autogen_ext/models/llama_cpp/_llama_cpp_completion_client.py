@@ -37,7 +37,12 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         """
         self.logger = logging.getLogger(__name__)  # initialize logger
         self.logger.setLevel(logging.DEBUG if verbose else logging.INFO)  # set level based on verbosity
-        self.llm = Llama(model_path=filename, **kwargs)
+        self.llm = (
+            Llama.from_pretrained(filename=filename, repo_id=kwargs.pop("repo_id"), **kwargs) # type: ignore
+            # The partially unknown type is in the `llama_cpp` package
+            if "repo_id" in kwargs
+            else Llama(model_path=filename, **kwargs)
+        )
         self._total_usage = {"prompt_tokens": 0, "completion_tokens": 0}
 
     async def create(
@@ -75,8 +80,8 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
 
         few_shot_example = """
         Example tool usage:
-        User: Validate this request: {"patient_name": "John Doe", "patient_id": "12345", "procedure": "MRI Knee"}
-        Assistant: Calling tool 'validate_request' with arguments: {"patient_name": "John Doe", "patient_id": "12345", "procedure": "MRI Knee"}
+        User: Add two numbers: {"num1": 5, "num2": 10}
+        Assistant: Calling tool 'add' with arguments: {"num1": 5, "num2": 10}
         """
 
         system_message = (
@@ -224,13 +229,17 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
 
         # Add tool descriptions to the system message
         tool_descriptions = "\n".join(
-            [f"Tool: {i+1}. {tool.name} - {tool.description}" for i, tool in enumerate(tools) if isinstance(tool, Tool)]
+            [
+                f"Tool: {i+1}. {tool.name}({tool.schema['parameters'] if 'parameters' in tool.schema else ''}) - {tool.description}"
+                for i, tool in enumerate(tools)
+                if isinstance(tool, Tool)
+            ]
         )
 
         few_shot_example = """
         Example tool usage:
-        User: Validate this request: {"patient_name": "John Doe", "patient_id": "12345", "procedure": "MRI Knee"}
-        Assistant: Calling tool 'validate_request' with arguments: {"patient_name": "John Doe", "patient_id": "12345", "procedure": "MRI Knee"}
+        User: Add two numbers: {"num1": 5, "num2": 10}
+        Assistant: Calling tool 'add' with arguments: {"num1": 5, "num2": 10}
         """
 
         system_message = (
@@ -262,6 +271,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
     @property
     def capabilities(self) -> ModelInfo:
         return self.model_info
+
     def count_tokens(
         self,
         messages: Sequence[SystemMessage | UserMessage | AssistantMessage | FunctionExecutionResultMessage],
