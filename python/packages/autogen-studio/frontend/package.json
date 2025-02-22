@@ -47,6 +47,7 @@
     "react-dom": "^18.2.0",
     "react-markdown": "^9.0.1",
     "react-syntax-highlighter": "^15.6.1",
+    "remark-gfm": "^4.0.1",
     "tailwindcss": "^3.4.14",
     "yarn": "^1.22.22",
     "zustand": "^5.0.1"
