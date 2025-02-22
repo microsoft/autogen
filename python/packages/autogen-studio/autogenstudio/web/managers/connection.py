@@ -94,7 +94,6 @@ class WebSocketManager:
             async for message in team_manager.run_stream(
                 task=task, team_config=team_config, input_func=input_func, cancellation_token=cancellation_token
             ):
- 
                 if cancellation_token.is_cancelled() or run_id in self._closed_connections:
                     logger.info(f"Stream cancelled or connection closed for run {run_id}")
                     break
@@ -340,7 +339,7 @@ class WebSocketManager:
                     HandoffMessage,
                     ToolCallRequestEvent,
                     ToolCallExecutionEvent,
-                    LLMCallEventMessage, 
+                    LLMCallEventMessage,
                 ),
             ):
                 return {"type": "message", "data": message.model_dump()}
