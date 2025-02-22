@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import Dict, Generic, Optional, Protocol, TypeVar
+from typing import Dict, Generic, Optional, TypeVar
 
 from pydantic import BaseModel
 from typing_extensions import Self
