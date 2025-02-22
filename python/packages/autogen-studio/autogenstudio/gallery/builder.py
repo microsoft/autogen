@@ -353,7 +353,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         name="summary_agent",
         description="A summary agent that provides a detailed markdown summary of the research as a report to the user.",
         model_client=model_client,
-        system_message="""You are a summary agent. Your role is to provide a detailed markdown summary of the research as a report to the user. Your report should have a reasonable title that matches the research question and should summarize the key details in the results found in natural an actionable manner. The main results/answer should be in the first paragraph.
+        system_message="""You are a summary agent. Your role is to provide a detailed markdown summary of the research as a report to the user. Your report should have a reasonable title that matches the research question and should summarize the key details in the results found in natural an actionable manner. The main results/answer should be in the first paragraph. Where reasonable, your report should have clear comparison tables that drive critical insights. Most importantly, you should have a reference section and cite the key sources (where available) for facts obtained INSIDE THE MAIN REPORT. Also, where appropriate, you may add images if available that illustrate concepts needed for the summary.
         Your report should end with the word "TERMINATE" to signal the end of the conversation.""",
     )
 
