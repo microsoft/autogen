@@ -26,7 +26,12 @@ from autogen_ext.models.openai._openai_client import calculate_vision_tokens, co
 from openai.resources.beta.chat.completions import AsyncCompletions as BetaAsyncCompletions
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
-from openai.types.chat.chat_completion_chunk import ChatCompletionChunk, ChoiceDelta
+from openai.types.chat.chat_completion_chunk import (
+    ChatCompletionChunk,
+    ChoiceDelta,
+    ChoiceDeltaToolCall,
+    ChoiceDeltaToolCallFunction,
+)
 from openai.types.chat.chat_completion_chunk import Choice as ChunkChoice
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from openai.types.chat.chat_completion_message_tool_call import (
@@ -734,7 +739,7 @@ async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
             object="chat.completion",
             usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
         ),
-        # Warning completion when content is not None.
+        # Thought field is populated when content is not None.
         ChatCompletion(
             id="id4",
             choices=[
@@ -850,13 +855,11 @@ async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
         assert create_result.content == [FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function")]
         assert create_result.finish_reason == "function_calls"
 
-    # Warning completion when content is not None.
-    with pytest.warns(UserWarning, match="Both tool_calls and content are present in the message"):
-        create_result = await model_client.create(
-            messages=[UserMessage(content="Hello", source="user")], tools=[pass_tool]
-        )
-        assert create_result.content == [FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function")]
-        assert create_result.finish_reason == "function_calls"
+    # Thought field is populated when content is not None.
+    create_result = await model_client.create(messages=[UserMessage(content="Hello", source="user")], tools=[pass_tool])
+    assert create_result.content == [FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function")]
+    assert create_result.finish_reason == "function_calls"
+    assert create_result.thought == "I should make a tool call."
 
     # Should not be returning tool calls when the tool_calls are empty
     create_result = await model_client.create(messages=[UserMessage(content="Hello", source="user")], tools=[pass_tool])
@@ -870,6 +873,85 @@ async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
         )
         assert create_result.content == [FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function")]
         assert create_result.finish_reason == "function_calls"
+
+
+@pytest.mark.asyncio
+async def test_tool_calling_with_stream(monkeypatch: pytest.MonkeyPatch) -> None:
+    async def _mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatCompletionChunk, None]:
+        model = resolve_model(kwargs.get("model", "gpt-4o"))
+        mock_chunks_content = ["Hello", " Another Hello", " Yet Another Hello"]
+        mock_chunks = [
+            # generate the list of mock chunk content
+            MockChunkDefinition(
+                chunk_choice=ChunkChoice(
+                    finish_reason=None,
+                    index=0,
+                    delta=ChoiceDelta(
+                        content=mock_chunk_content,
+                        role="assistant",
+                    ),
+                ),
+                usage=None,
+            )
+            for mock_chunk_content in mock_chunks_content
+        ] + [
+            # generate the function call chunk
+            MockChunkDefinition(
+                chunk_choice=ChunkChoice(
+                    finish_reason="tool_calls",
+                    index=0,
+                    delta=ChoiceDelta(
+                        content=None,
+                        role="assistant",
+                        tool_calls=[
+                            ChoiceDeltaToolCall(
+                                index=0,
+                                id="1",
+                                type="function",
+                                function=ChoiceDeltaToolCallFunction(
+                                    name="_pass_function",
+                                    arguments=json.dumps({"input": "task"}),
+                                ),
+                            )
+                        ],
+                    ),
+                ),
+                usage=None,
+            )
+        ]
+        for mock_chunk in mock_chunks:
+            await asyncio.sleep(0.1)
+            yield ChatCompletionChunk(
+                id="id",
+                choices=[mock_chunk.chunk_choice],
+                created=0,
+                model=model,
+                object="chat.completion.chunk",
+                usage=mock_chunk.usage,
+            )
+
+    async def _mock_create(*args: Any, **kwargs: Any) -> ChatCompletion | AsyncGenerator[ChatCompletionChunk, None]:
+        stream = kwargs.get("stream", False)
+        if not stream:
+            raise ValueError("Stream is not False")
+        else:
+            return _mock_create_stream(*args, **kwargs)
+
+    monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
+
+    model_client = OpenAIChatCompletionClient(model="gpt-4o", api_key="")
+    pass_tool = FunctionTool(_pass_function, description="pass tool.")
+    stream = model_client.create_stream(messages=[UserMessage(content="Hello", source="user")], tools=[pass_tool])
+    chunks: List[str | CreateResult] = []
+    async for chunk in stream:
+        chunks.append(chunk)
+    assert chunks[0] == "Hello"
+    assert chunks[1] == " Another Hello"
+    assert chunks[2] == " Yet Another Hello"
+    assert isinstance(chunks[-1], CreateResult)
+    assert chunks[-1].content == [FunctionCall(id="1", arguments=r'{"input": "task"}', name="_pass_function")]
+    assert chunks[-1].finish_reason == "function_calls"
+    assert chunks[-1].thought == "Hello Another Hello Yet Another Hello"
 
 
 async def _test_model_client_basic_completion(model_client: OpenAIChatCompletionClient) -> None:

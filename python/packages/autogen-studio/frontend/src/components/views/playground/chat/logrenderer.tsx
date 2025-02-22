@@ -80,7 +80,6 @@ const FullLogView = ({
               <div className="flex justify-between mb-2">
                 <span className="text-xs font-medium uppercase text-secondary">
                   {(msg.name && `${msg.name}`) || msg.role}{" "}
-                  {Array.isArray(msg.content) + " array "}
                 </span>
               </div>
               {Array.isArray(msg.content) ? (

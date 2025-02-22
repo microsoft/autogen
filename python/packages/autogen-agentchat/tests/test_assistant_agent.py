@@ -17,6 +17,7 @@ from autogen_agentchat.messages import (
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
     ToolCallSummaryMessage,
+    ThoughtEvent,
 )
 from autogen_core import ComponentModel, FunctionCall, Image
 from autogen_core.memory import ListMemory, Memory, MemoryContent, MemoryMimeType, MemoryQueryResult
@@ -89,7 +90,7 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
                     finish_reason="tool_calls",
                     index=0,
                     message=ChatCompletionMessage(
-                        content=None,
+                        content="Calling pass function",
                         tool_calls=[
                             ChatCompletionMessageToolCall(
                                 id="1",
@@ -151,18 +152,20 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     result = await agent.run(task="task")
 
-    assert len(result.messages) == 4
+    assert len(result.messages) == 5
     assert isinstance(result.messages[0], TextMessage)
     assert result.messages[0].models_usage is None
-    assert isinstance(result.messages[1], ToolCallRequestEvent)
-    assert result.messages[1].models_usage is not None
-    assert result.messages[1].models_usage.completion_tokens == 5
-    assert result.messages[1].models_usage.prompt_tokens == 10
-    assert isinstance(result.messages[2], ToolCallExecutionEvent)
-    assert result.messages[2].models_usage is None
-    assert isinstance(result.messages[3], ToolCallSummaryMessage)
-    assert result.messages[3].content == "pass"
+    assert isinstance(result.messages[1], ThoughtEvent)
+    assert result.messages[1].content == "Calling pass function"
+    assert isinstance(result.messages[2], ToolCallRequestEvent)
+    assert result.messages[2].models_usage is not None
+    assert result.messages[2].models_usage.completion_tokens == 5
+    assert result.messages[2].models_usage.prompt_tokens == 10
+    assert isinstance(result.messages[3], ToolCallExecutionEvent)
     assert result.messages[3].models_usage is None
+    assert isinstance(result.messages[4], ToolCallSummaryMessage)
+    assert result.messages[4].content == "pass"
+    assert result.messages[4].models_usage is None
 
     # Test streaming.
     mock.curr_index = 0  # Reset the mock
@@ -302,7 +305,7 @@ async def test_run_with_parallel_tools(monkeypatch: pytest.MonkeyPatch) -> None:
                     finish_reason="tool_calls",
                     index=0,
                     message=ChatCompletionMessage(
-                        content=None,
+                        content="Calling pass and echo functions",
                         tool_calls=[
                             ChatCompletionMessageToolCall(
                                 id="1",
@@ -380,30 +383,32 @@ async def test_run_with_parallel_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     result = await agent.run(task="task")
 
-    assert len(result.messages) == 4
+    assert len(result.messages) == 5
     assert isinstance(result.messages[0], TextMessage)
     assert result.messages[0].models_usage is None
-    assert isinstance(result.messages[1], ToolCallRequestEvent)
-    assert result.messages[1].content == [
+    assert isinstance(result.messages[1], ThoughtEvent)
+    assert result.messages[1].content == "Calling pass and echo functions"
+    assert isinstance(result.messages[2], ToolCallRequestEvent)
+    assert result.messages[2].content == [
         FunctionCall(id="1", arguments=r'{"input": "task1"}', name="_pass_function"),
         FunctionCall(id="2", arguments=r'{"input": "task2"}', name="_pass_function"),
         FunctionCall(id="3", arguments=r'{"input": "task3"}', name="_echo_function"),
     ]
-    assert result.messages[1].models_usage is not None
-    assert result.messages[1].models_usage.completion_tokens == 5
-    assert result.messages[1].models_usage.prompt_tokens == 10
-    assert isinstance(result.messages[2], ToolCallExecutionEvent)
+    assert result.messages[2].models_usage is not None
+    assert result.messages[2].models_usage.completion_tokens == 5
+    assert result.messages[2].models_usage.prompt_tokens == 10
+    assert isinstance(result.messages[3], ToolCallExecutionEvent)
     expected_content = [
         FunctionExecutionResult(call_id="1", content="pass", is_error=False),
         FunctionExecutionResult(call_id="2", content="pass", is_error=False),
         FunctionExecutionResult(call_id="3", content="task3", is_error=False),
     ]
     for expected in expected_content:
-        assert expected in result.messages[2].content
-    assert result.messages[2].models_usage is None
-    assert isinstance(result.messages[3], ToolCallSummaryMessage)
-    assert result.messages[3].content == "pass\npass\ntask3"
+        assert expected in result.messages[3].content
     assert result.messages[3].models_usage is None
+    assert isinstance(result.messages[4], ToolCallSummaryMessage)
+    assert result.messages[4].content == "pass\npass\ntask3"
+    assert result.messages[4].models_usage is None
 
     # Test streaming.
     mock.curr_index = 0  # Reset the mock
