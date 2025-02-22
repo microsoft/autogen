@@ -174,7 +174,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     Examples:
 
         **Example 1: basic agent**
-        
+
         The following example demonstrates how to create an assistant agent with
         a model client and generate a response to a simple task.
 
@@ -201,7 +201,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
 
             asyncio.run(main())
-        
+
         **Example 2: model client token streaming**
 
         This example demonstrates how to create an assistant agent with
@@ -214,28 +214,28 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.messages import TextMessage
             from autogen_core import CancellationToken
-            
-            
+
+
             async def main() -> None:
                 model_client = OpenAIChatCompletionClient(
                     model="gpt-4o",
                     # api_key = "your_openai_api_key"
                 )
                 agent = AssistantAgent(
-                    name="assistant", 
-                    model_client=model_client, 
+                    name="assistant",
+                    model_client=model_client,
                     model_client_stream=True,
                 )
-            
+
                 stream = agent.on_messages_stream(
                     [TextMessage(content="Name two cities in North America.", source="user")], CancellationToken()
                 )
                 async for message in stream:
                     print(message)
-            
-            
+
+
             asyncio.run(main())
-        
+
         .. code-block:: text
 
             source='assistant' models_usage=None content='Two' type='ModelClientStreamingChunkEvent'
@@ -261,8 +261,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             Response(chat_message=TextMessage(source='assistant', models_usage=RequestUsage(prompt_tokens=0, completion_tokens=0), content='Two cities in North America are New York City in the United States and Toronto in Canada. TERMINATE', type='TextMessage'), inner_messages=[])
 
 
-        **Example 3: agent with tools** 
-            
+        **Example 3: agent with tools**
+
         The following example demonstrates how to create an assistant agent with
         a model client and a tool, generate a stream of messages for a task, and
         print the messages to the console using :class:`~autogen_agentchat.ui.Console`.
@@ -302,7 +302,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
 
             asyncio.run(main())
-        
+
         **Example 4: agent with structured output and tool**
 
         The following example demonstrates how to create an assistant agent with
@@ -364,7 +364,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
 
             asyncio.run(main())
-        
+
         .. code-block:: text
 
             ---------- assistant ----------
@@ -373,7 +373,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             [FunctionExecutionResult(content='happy', call_id='call_tIZjAVyKEDuijbBwLY6RHV2p', is_error=False)]
             ---------- assistant ----------
             {"thoughts":"The user expresses a clear positive emotion by stating they are happy today, suggesting an upbeat mood.","response":"happy"}
-        
+
         **Example 5: agent with bounded model context**
 
         The following example shows how to use a
@@ -385,56 +385,56 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         .. code-block:: python
 
             import asyncio
-            
+
             from autogen_agentchat.agents import AssistantAgent
             from autogen_agentchat.messages import TextMessage
             from autogen_core import CancellationToken
             from autogen_core.model_context import BufferedChatCompletionContext
             from autogen_ext.models.openai import OpenAIChatCompletionClient
-            
-            
+
+
             async def main() -> None:
                 # Create a model client.
                 model_client = OpenAIChatCompletionClient(
                     model="gpt-4o-mini",
                     # api_key = "your_openai_api_key"
                 )
-            
+
                 # Create a model context that only keeps the last 2 messages (1 user + 1 assistant).
                 model_context = BufferedChatCompletionContext(buffer_size=2)
-            
+
                 # Create an AssistantAgent instance with the model client and context.
                 agent = AssistantAgent(
-                    name="assistant", 
-                    model_client=model_client, 
+                    name="assistant",
+                    model_client=model_client,
                     model_context=model_context,
                     system_message="You are a helpful assistant.",
                 )
-            
+
                 response = await agent.on_messages(
                     [TextMessage(content="Name two cities in North America.", source="user")], CancellationToken()
                 )
                 print(response.chat_message.content)  # type: ignore
-            
+
                 response = await agent.on_messages(
                     [TextMessage(content="My favorite color is blue.", source="user")], CancellationToken()
                 )
                 print(response.chat_message.content)  # type: ignore
-            
+
                 response = await agent.on_messages(
                     [TextMessage(content="Did I ask you any question?", source="user")], CancellationToken()
                 )
                 print(response.chat_message.content)  # type: ignore
-            
-            
+
+
             asyncio.run(main())
-        
+
         .. code-block:: text
 
             Two cities in North America are New York City and Toronto.
             That's great! Blue is often associated with calmness and serenity. Do you have a specific shade of blue that you like, or any particular reason why it's your favorite?
             No, you didn't ask a question. I apologize for any misunderstanding. If you have something specific you'd like to discuss or ask, feel free to let me know!
-        
+
         **Example 6: agent with memory**
 
         The following example shows how to use a list-based memory with the assistant agent.
@@ -484,7 +484,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         .. code-block:: text
 
             How about making a delicious pizza without cheese? You can create a flavorful veggie pizza with a variety of toppings. Here's a quick idea:
-            
+
             **Veggie Tomato Sauce Pizza**
             - Start with a pizza crust (store-bought or homemade).
             - Spread a layer of marinara or tomato sauce evenly over the crust.
@@ -492,7 +492,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             - Add some protein if you’d like, such as grilled chicken or pepperoni (ensure it's cheese-free).
             - Sprinkle with herbs like oregano and basil, and maybe a drizzle of olive oil.
             - Bake according to the crust instructions until the edges are golden and the veggies are cooked.
-            
+
             Serve it with a side salad or some garlic bread to complete the meal! Enjoy your dinner!
 
         **Example 7: agent with `o1-mini`**
