@@ -46,6 +46,7 @@ from ..messages import (
     MemoryQueryEvent,
     ModelClientStreamingChunkEvent,
     TextMessage,
+    ThoughtEvent,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
     ToolCallSummaryMessage,
@@ -431,8 +432,20 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
         assert model_result is not None, "No model result was produced."
 
-        # Add the assistant message to the model context (final or partial)
-        await model_context.add_message(AssistantMessage(content=model_result.content, source=agent_name))
+        # --- NEW: If the model produced a hidden "thought," yield it as an event ---
+        if model_result.thought:
+            thought_event = ThoughtEvent(content=model_result.thought, source=agent_name)
+            yield thought_event
+            inner_messages.append(thought_event)
+
+        # Add the assistant message to the model context (including thought if present)
+        await model_context.add_message(
+            AssistantMessage(
+                content=model_result.content,
+                source=agent_name,
+                thought=getattr(model_result, "thought", None),
+            )
+        )
 
         # STEP 4: Process the model output
         async for output_event in self._process_model_result(
@@ -670,7 +683,14 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
 
             handoff_context: List[LLMMessage] = []
             if len(tool_calls) > 0:
-                handoff_context.append(AssistantMessage(content=tool_calls, source=agent_name))
+                # Include the thought in the AssistantMessage if model_result has it
+                handoff_context.append(
+                    AssistantMessage(
+                        content=tool_calls,
+                        source=agent_name,
+                        thought=getattr(model_result, "thought", None),
+                    )
+                )
                 handoff_context.append(FunctionExecutionResultMessage(content=tool_call_results))
 
             # Return response for the first handoff
@@ -693,7 +713,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         model_context: ChatCompletionContext,
         agent_name: str,
         inner_messages: List[AgentEvent | ChatMessage],
-    ) -> AsyncGenerator[Response | ModelClientStreamingChunkEvent, None]:
+    ) -> AsyncGenerator[Response | ModelClientStreamingChunkEvent | ThoughtEvent, None]:
         """
         If reflect_on_tool_use=True, we do another inference based on tool results
         and yield the final text response (or streaming chunks).
@@ -717,8 +737,20 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         if not reflection_result or not isinstance(reflection_result.content, str):
             raise RuntimeError("Reflect on tool use produced no valid text response.")
 
-        # Add to context
-        await model_context.add_message(AssistantMessage(content=reflection_result.content, source=agent_name))
+        # --- NEW: If the reflection produced a thought, yield it ---
+        if reflection_result.thought:
+            thought_event = ThoughtEvent(content=reflection_result.thought, source=agent_name)
+            yield thought_event
+            inner_messages.append(thought_event)
+
+        # Add to context (including thought if present)
+        await model_context.add_message(
+            AssistantMessage(
+                content=reflection_result.content,
+                source=agent_name,
+                thought=getattr(reflection_result, "thought", None),
+            )
+        )
 
         yield Response(
             chat_message=TextMessage(
