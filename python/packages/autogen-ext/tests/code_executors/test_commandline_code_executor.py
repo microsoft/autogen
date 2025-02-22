@@ -195,3 +195,11 @@ async def test_local_executor_with_custom_venv_in_local_relative_path() -> None:
     finally:
         if os.path.isdir(relative_folder_path):
             shutil.rmtree(relative_folder_path)
+
+
+def test_serialize_deserialize() -> None:
+    with tempfile.TemporaryDirectory() as temp_dir:
+        executor = LocalCommandLineCodeExecutor(work_dir=temp_dir)
+        executor_config = executor.dump_component()
+        loaded_executor = LocalCommandLineCodeExecutor.load_component(executor_config)
+        assert executor.work_dir == loaded_executor.work_dir

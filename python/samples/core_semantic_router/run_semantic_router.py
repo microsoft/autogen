@@ -80,7 +80,7 @@ async def output_result(
 async def run_workers():
     agent_runtime = GrpcWorkerAgentRuntime(host_address="localhost:50051")
 
-    agent_runtime.start()
+    await agent_runtime.start()
 
     # Create the agents
     await WorkerAgent.register(agent_runtime, "finance", lambda: WorkerAgent("finance_agent"))

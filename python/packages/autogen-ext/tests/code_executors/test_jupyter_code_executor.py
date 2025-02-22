@@ -167,3 +167,12 @@ async def test_execute_code_with_html_output(tmp_path: Path) -> None:
             output_files=code_result.output_files,
         )
         assert code_result.output_files[0].parent == tmp_path
+
+
+@pytest.mark.asyncio
+async def test_jupyter_code_executor_serialization(tmp_path: Path) -> None:
+    executor = JupyterCodeExecutor(output_dir=tmp_path)
+    serialized = executor.dump_component()
+    loaded_executor = JupyterCodeExecutor.load_component(serialized)
+
+    assert isinstance(loaded_executor, JupyterCodeExecutor)

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ISaveState.cs
 
-using StateDict = System.Collections.Generic.IDictionary<string, System.Text.Json.JsonElement>;
+using System.Text.Json;
 
 namespace Microsoft.AutoGen.Contracts;
 
@@ -20,7 +20,7 @@ public interface ISaveState<T>
     /// containing the saved state. The structure of the state is implementation-defined
     /// but must be JSON serializable.
     /// </returns>
-    public ValueTask<StateDict> SaveStateAsync();
+    public ValueTask<JsonElement> SaveStateAsync();
 
     /// <summary>
     /// Loads a previously saved state into the object.
@@ -30,6 +30,6 @@ public interface ISaveState<T>
     /// is implementation-defined but must be JSON serializable.
     /// </param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public ValueTask LoadStateAsync(StateDict state);
+    public ValueTask LoadStateAsync(JsonElement state);
 }
 
