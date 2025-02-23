@@ -64,18 +64,20 @@ class Gallery(BaseModel):
     components: GalleryComponents
 
 
-
 class EnvironmentVariable(BaseModel):
     name: str
     value: str
-    type: Literal["string", "number", "boolean", "secret"] = "string" 
+    type: Literal["string", "number", "boolean", "secret"] = "string"
     description: Optional[str] = None
     required: bool = False
+
 
 class SettingsConfig(BaseModel):
     environment: List[EnvironmentVariable] = []
 
+
 # web request/response data models
+
 
 class Response(BaseModel):
     message: str

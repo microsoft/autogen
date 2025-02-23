@@ -52,8 +52,8 @@ class DatabaseManager:
 
         try:
             inspector = inspect(self.engine)
-            tables_exist = inspector.get_table_names()  
-            if not tables_exist: 
+            tables_exist = inspector.get_table_names()
+            if not tables_exist:
                 logger.info("Creating database tables...")
                 SQLModel.metadata.create_all(self.engine)
 
@@ -64,7 +64,7 @@ class DatabaseManager:
             # Handle existing database
             if auto_upgrade or self._should_auto_upgrade(tables_exist):
                 logger.info("Checking database schema...")
-                if self.schema_manager.ensure_schema_up_to_date():  
+                if self.schema_manager.ensure_schema_up_to_date():
                     return Response(message="Database schema is up to date", status=True)
                 return Response(message="Database upgrade failed", status=False)
 

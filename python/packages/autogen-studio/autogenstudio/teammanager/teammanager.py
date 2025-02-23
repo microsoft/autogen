@@ -66,10 +66,10 @@ class TeamManager:
         return configs
 
     async def _create_team(
-        self, 
-        team_config: Union[str, Path, dict, ComponentModel], 
+        self,
+        team_config: Union[str, Path, dict, ComponentModel],
         input_func: Optional[Callable] = None,
-        env_vars: Optional[List[EnvironmentVariable]] = None
+        env_vars: Optional[List[EnvironmentVariable]] = None,
     ) -> Component:
         """Create team instance from config"""
         if isinstance(team_config, (str, Path)):
@@ -82,7 +82,6 @@ class TeamManager:
         # Load env vars into environment if provided
         if env_vars:
             logger.info("Loading environment variables")
-            print("Loading environment variables", env_vars)
             for var in env_vars:
                 os.environ[var.name] = var.value
 
