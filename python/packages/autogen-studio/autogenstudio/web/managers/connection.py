@@ -95,7 +95,7 @@ class WebSocketManager:
             run = await self._get_run(run_id)
             # get user Settings
             user_settings = await self._get_settings(run.user_id)
-            user_settings = SettingsConfig(**user_settings.config)
+            env_vars = SettingsConfig(**user_settings.config).environment if user_settings else None
             if run:
                 run.task = MessageConfig(content=task, source="user").model_dump()
                 run.status = RunStatus.ACTIVE
@@ -108,7 +108,7 @@ class WebSocketManager:
                 team_config=team_config,
                 input_func=input_func,
                 cancellation_token=cancellation_token,
-                env_vars=user_settings.environment,
+                env_vars=env_vars,
             ):
                 if cancellation_token.is_cancelled() or run_id in self._closed_connections:
                     logger.info(f"Stream cancelled or connection closed for run {run_id}")
