@@ -3,6 +3,23 @@ import { InProcessRuntime } from '../../src/core/InProcessRuntime';
 import { TopicId } from '../../src/contracts/IAgentRuntime';
 import { SubscribedSaveLoadAgent } from './TestAgent';
 import { TextMessage } from './TestAgent';
+import { TypeSubscription, TypeSubscriptionAttribute } from '../../src/core/TypeSubscriptionAttribute';
+import { BaseAgent } from '../../src/core/BaseAgent';
+
+@TypeSubscription("TestTopic")
+class SubscribedAgent extends BaseAgent {
+    // ...existing code...
+}
+
+@TypeSubscription("TestTopic")
+class AnotherSubscribedAgent extends BaseAgent {
+    // ...existing code...
+}
+
+@TypeSubscription("TestTopic")
+class ThirdSubscribedAgent extends BaseAgent {
+    // ...existing code...
+}
 
 describe('InProcessRuntime', () => {
   it('should not deliver to self by default', async () => {
@@ -15,7 +32,7 @@ describe('InProcessRuntime', () => {
     });
 
     const agentId = { type: "MyAgent", key: "default" };
-    await runtime.addSubscriptionAsync(new TypeSubscription("TestTopic", "MyAgent"));
+    await runtime.addSubscriptionAsync(new TypeSubscriptionAttribute("TestTopic").bind("MyAgent"));
 
     const topicId: TopicId = { type: "TestTopic", source: "test" };
     const message: TextMessage = { source: "TestTopic", content: "test" };
@@ -36,7 +53,7 @@ describe('InProcessRuntime', () => {
     });
 
     const agentId = { type: "MyAgent", key: "default" };
-    await runtime.addSubscriptionAsync(new TypeSubscription("TestTopic", "MyAgent"));
+    await runtime.addSubscriptionAsync(new TypeSubscriptionAttribute("TestTopic").bind("MyAgent"));
 
     const topicId: TopicId = { type: "TestTopic", source: "test" };
     const message: TextMessage = { source: "TestTopic", content: "test" };
@@ -58,7 +75,7 @@ describe('InProcessRuntime', () => {
     });
 
     const agentId = { type: "MyAgent", key: "default" };
-    await runtime.addSubscriptionAsync(new TypeSubscription("TestTopic", "MyAgent"));
+    await runtime.addSubscriptionAsync(new TypeSubscriptionAttribute("TestTopic").bind("MyAgent"));
 
     // Send a message to create some state
     const message: TextMessage = { source: "TestTopic", content: "test" };

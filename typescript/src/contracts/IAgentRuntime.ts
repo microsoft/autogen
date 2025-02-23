@@ -12,6 +12,12 @@ export interface TopicId {
   source: string;
 }
 
+// Remove this interface as it's defined in ISubscriptionDefinition.ts
+// export interface ISubscriptionDefinition {
+//   type: string;
+//   agentType: string;
+// }
+
 export interface IAgentRuntime {
   publishMessageAsync(
     message: unknown,
@@ -38,4 +44,6 @@ export interface IAgentRuntime {
   ): Promise<AgentType>;
 
   addSubscriptionAsync(subscription: ISubscriptionDefinition): Promise<void>;
+
+  removeSubscriptionAsync(subscriptionId: string): Promise<void>;  // Add missing method
 }

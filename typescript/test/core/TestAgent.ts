@@ -4,7 +4,7 @@ import { AgentId, IAgentRuntime } from "../../src/contracts/IAgentRuntime";
 import { MessageContext } from "../../src/contracts/MessageContext";
 import { TypeSubscription } from "../../src/core/TypeSubscriptionAttribute";
 
-interface TextMessage {
+export class TextMessage {
   source: string;
   content: string;
 }

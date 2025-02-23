@@ -3,13 +3,13 @@ import { AgentId, TopicId } from "../contracts/IAgentRuntime";
 import { AgentType } from "../contracts/AgentType";
 
 export class TypeSubscription implements ISubscriptionDefinition {
+  public readonly id: string;
   private readonly topicType: string;
   private readonly agentType: AgentType;
-  public readonly id: string;
 
-  constructor(topicType: string, agentType?: AgentType, id?: string) {
+  constructor(topicType: string, agentType: AgentType, id?: string) {
     this.topicType = topicType;
-    this.agentType = agentType || topicType;
+    this.agentType = agentType;
     this.id = id ?? crypto.randomUUID();
   }
 
