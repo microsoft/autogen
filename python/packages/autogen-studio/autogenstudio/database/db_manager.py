@@ -62,7 +62,7 @@ class DatabaseManager:
                 return Response(message="Failed to initialize migrations", status=False)
 
             # Handle existing database
-            if auto_upgrade or self._should_auto_upgrade(tables_exist):
+            if auto_upgrade or self._should_auto_upgrade():
                 logger.info("Checking database schema...")
                 if self.schema_manager.ensure_schema_up_to_date():
                     return Response(message="Database schema is up to date", status=True)
