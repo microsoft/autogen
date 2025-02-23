@@ -7,9 +7,9 @@ export class TypeSubscription implements ISubscriptionDefinition {
   private readonly agentType: AgentType;
   public readonly id: string;
 
-  constructor(topicType: string, agentType: AgentType, id?: string) {
+  constructor(topicType: string, agentType?: AgentType, id?: string) {
     this.topicType = topicType;
-    this.agentType = agentType;
+    this.agentType = agentType || topicType;
     this.id = id ?? crypto.randomUUID();
   }
 

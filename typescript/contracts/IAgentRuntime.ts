@@ -28,5 +28,10 @@ export interface IAgentRuntime {
   loadAgentStateAsync(agentId: AgentId, state: unknown): Promise<void>;
   saveAgentStateAsync(agentId: AgentId): Promise<unknown>;
 
-  // ...additional methods from the .NET interface...
+  registerAgentFactoryAsync(
+    type: AgentType,
+    factoryFunc: (agentId: AgentId, runtime: IAgentRuntime) => Promise<IAgent>
+  ): Promise<AgentType>;
+
+  addSubscriptionAsync(subscription: ISubscriptionDefinition): Promise<void>;
 }

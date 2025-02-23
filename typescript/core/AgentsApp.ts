@@ -31,6 +31,7 @@ export class AgentsAppBuilder {
 
 export class AgentsApp {
   private running = false;
+  private shutdownCallbacks: Array<() => void> = [];
   
   constructor(public readonly runtime: IAgentRuntime) {}
 
@@ -59,5 +60,31 @@ export class AgentsApp {
       await this.start();
     }
     await this.runtime.publishMessageAsync(message, topic, undefined, messageId);
+  }
+
+  async publishMessageAsync<T>(
+    message: T,
+    topic: TopicId,
+    messageId?: string
+  ): Promise<void> {
+    if (!this.running) {
+      await this.start();
+    }
+    await this.runtime.publishMessageAsync(message, topic, undefined, messageId);
+  }
+
+  async waitForShutdown(): Promise<void> {
+    // Wait until shutdown is called
+    return new Promise((resolve) => {
+      if (!this.running) {
+        resolve();
+      } else {
+        const cleanup = () => {
+          this.running = false;
+          resolve();
+        };
+        this.shutdownCallbacks.push(cleanup);
+      }
+    });
   }
 }
