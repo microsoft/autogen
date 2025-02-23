@@ -16,7 +16,6 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_core.tools import Tool, ToolSchema
-from click import prompt
 from llama_cpp import (
     ChatCompletionRequestAssistantMessage,
     ChatCompletionRequestFunctionMessage,
@@ -47,6 +46,7 @@ def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
     }
 
     return KNOWN_STOP_MAPPINGS.get(stop_reason, "unknown")
+
 
 class LlamaCppChatCompletionClient(ChatCompletionClient):
     def __init__(
@@ -90,28 +90,33 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
                 converted_messages.append({"role": "user", "content": msg.content})
             elif isinstance(msg, AssistantMessage) and isinstance(msg.content, str):
                 converted_messages.append({"role": "assistant", "content": msg.content})
+            elif (
+                isinstance(msg, SystemMessage) or isinstance(msg, UserMessage) or isinstance(msg, AssistantMessage)
+            ) and isinstance(msg.content, list):
+                raise ValueError("Image messages are not currently supported.")
             else:
                 raise ValueError(f"Unsupported message type: {type(msg)}")
 
-        # Add tool descriptions to the system message
-        tool_descriptions = "\n".join(
-            [f"Tool: {i+1}. {tool.name} - {tool.description}" for i, tool in enumerate(tools) if isinstance(tool, Tool)]
-        )
+        if self.model_info["function_calling"]:
+            # Add tool descriptions to the system message
+            tool_descriptions = "\n".join(
+                [f"Tool: {i+1}. {tool.name} - {tool.description}" for i, tool in enumerate(tools) if isinstance(tool, Tool)]
+            )
 
-        few_shot_example = """
-        Example tool usage:
-        User: Add two numbers: {"num1": 5, "num2": 10}
-        Assistant: Calling tool 'add' with arguments: {"num1": 5, "num2": 10}
-        """
+            few_shot_example = """
+            Example tool usage:
+            User: Add two numbers: {"num1": 5, "num2": 10}
+            Assistant: Calling tool 'add' with arguments: {"num1": 5, "num2": 10}
+            """
 
-        system_message = (
-            "You are an assistant with access to tools. "
-            "If a user query matches a tool, explicitly invoke it with JSON arguments. "
-            "Here are the tools available:\n"
-            f"{tool_descriptions}\n"
-            f"{few_shot_example}"
-        )
-        converted_messages.insert(0, {"role": "system", "content": system_message})
+            system_message = (
+                "You are an assistant with access to tools. "
+                "If a user query matches a tool, explicitly invoke it with JSON arguments. "
+                "Here are the tools available:\n"
+                f"{tool_descriptions}\n"
+                f"{few_shot_example}"
+            )
+            converted_messages.insert(0, {"role": "system", "content": system_message})
 
         # Debugging outputs
         # print(f"DEBUG: System message: {system_message}")
