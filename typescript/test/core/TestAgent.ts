@@ -4,12 +4,12 @@ import { AgentId, IAgentRuntime } from "../../src/contracts/IAgentRuntime";
 import { MessageContext } from "../../src/contracts/MessageContext";
 import { TypeSubscription } from "../../src/core/TypeSubscriptionAttribute";
 
-export class TextMessage {
+export interface TextMessage {
   source: string;
   content: string;
 }
 
-interface RpcTextMessage {
+export interface RpcTextMessage {
   source: string;
   content: string;
 }

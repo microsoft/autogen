@@ -24,17 +24,21 @@ export class InProcessRuntime implements IAgentRuntime {
     for (const subscription of this.subscriptions.values()) {
       if (subscription.matches(topic)) {
         const sender = envelope.sender;
+        const targetAgentId = subscription.mapToAgent(topic);
+        
+        // Skip if sending to self and deliverToSelf is false
+        if (!this.deliverToSelf && sender && 
+            sender.type === targetAgentId.type && 
+            sender.key === targetAgentId.key) {
+          continue;
+        }
+
         const context = new MessageContext(envelope.messageId, envelope.cancellation);
         context.sender = sender;
         context.topic = topic;
         context.isRpc = false;
 
-        const agentId = subscription.mapToAgent(topic);
-        if (!this.deliverToSelf && sender && sender.type === agentId.type && sender.key === agentId.key) {
-          continue;
-        }
-
-        const agent = await this.ensureAgentAsync(agentId);
+        const agent = await this.ensureAgentAsync(targetAgentId);
         await agent.onMessageAsync(envelope.message, context);
       }
     }

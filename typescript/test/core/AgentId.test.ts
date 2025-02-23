@@ -58,7 +58,13 @@ function validateAgentId(agentId: AgentId): void {
   const keyRegex = /^[\x20-\x7E]+$/;
 
   if (!typeRegex.test(agentId.type)) {
-    throw new Error("Agent type must start with a letter or underscore and contain only alphanumeric characters or underscores");
+    if (/^\d/.test(agentId.type)) {
+      throw new Error("Agent type cannot start with a number");
+    } else if (agentId.type.includes(" ")) {
+      throw new Error("Agent type cannot contain spaces");
+    } else {
+      throw new Error("Agent type cannot contain special characters");
+    }
   }
 
   if (!keyRegex.test(agentId.key)) {

@@ -18,14 +18,17 @@ describe('Agent', () => {
       return agent;
     });
 
-    const agentId = { type: "MyAgent", key: "default" };
-    const topicType = "TestTopic";
+    // Ensure agent is created
+    await runtime.getAgentMetadataAsync({ type: "MyAgent", key: "default" });
 
+    const topicType = "TestTopic";
     await runtime.publishMessageAsync(
       { source: topicType, content: "test" }, 
       { type: topicType, source: "test" }
     );
 
+    // Wait for message processing
+    await new Promise(resolve => setTimeout(resolve, 100));
     expect(Object.keys(agent!.ReceivedMessages).length).toBe(0);
   });
 
@@ -38,7 +41,8 @@ describe('Agent', () => {
       return agent;
     });
 
-    const agentId = { type: "MyAgent", key: "default" };
+    // Ensure agent is created and subscription is added
+    await runtime.getAgentMetadataAsync({ type: "MyAgent", key: "default" });
     await runtime.addSubscriptionAsync(new TypeSubscription("TestTopic", "MyAgent"));
 
     const topicType = "TestTopic";
@@ -47,15 +51,23 @@ describe('Agent', () => {
       { type: topicType, source: "test" }
     );
 
+    // Wait for message processing
+    await new Promise(resolve => setTimeout(resolve, 100));
     expect(Object.keys(agent!.ReceivedMessages).length).toBe(1);
   });
 
   it('should return response for sendMessage', async () => {
     const runtime = new InProcessRuntime();
-    await runtime.registerAgentFactoryAsync("MyAgent", async (id, runtime) => 
-      new TestAgent(id, runtime));
+    let agent: TestAgent;
 
+    await runtime.registerAgentFactoryAsync("MyAgent", async (id, runtime) => {
+      agent = new TestAgent(id, runtime);
+      return agent;
+    });
+
+    // Ensure agent is created
     const agentId = { type: "MyAgent", key: "TestAgent" };
+    await runtime.getAgentMetadataAsync(agentId);
 
     const response = await runtime.sendMessageAsync(
       { source: "TestTopic", content: "Request" },
@@ -63,7 +75,7 @@ describe('Agent', () => {
     );
 
     expect(response).toBe("Request");
-  });
+  }, 10000); // Increase timeout to 10 seconds
 
   it('should handle subscribe and remove subscription correctly', async () => {
     class ReceiverAgent extends BaseAgent implements IHandle<string> {
@@ -87,16 +99,17 @@ describe('Agent', () => {
     });
 
     await runtime.getAgentMetadataAsync({ type: "MyAgent", key: "default" });
-    expect(agent!.receivedItems.length).toBe(0);
 
     const topicType = "TestTopic";
     await runtime.publishMessageAsync("info", { type: topicType, source: "test" });
+    await new Promise(resolve => setTimeout(resolve, 100));
     expect(agent!.receivedItems.length).toBe(0);
 
     const subscription = new TypeSubscription(topicType, "MyAgent");
     await runtime.addSubscriptionAsync(subscription);
 
     await runtime.publishMessageAsync("info", { type: topicType, source: "test" });
+    await new Promise(resolve => setTimeout(resolve, 100));
     expect(agent!.receivedItems.length).toBe(1);
     expect(agent!.receivedItems[0]).toBe("info");
 

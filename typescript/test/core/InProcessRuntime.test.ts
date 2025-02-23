@@ -52,13 +52,16 @@ describe('InProcessRuntime', () => {
       return agent;
     });
 
+    // Ensure agent is created
     const agentId = { type: "MyAgent", key: "default" };
+    await runtime.getAgentMetadataAsync(agentId);
+
     await runtime.addSubscriptionAsync(new TypeSubscriptionAttribute("TestTopic").bind("MyAgent"));
 
     const topicId: TopicId = { type: "TestTopic", source: "test" };
     const message: TextMessage = { source: "TestTopic", content: "test" };
     
-    await runtime.publishMessageAsync(message, topicId);
+    await runtime.publishMessageAsync(message, topicId, agentId); // Add sender to test self-delivery
 
     expect(Object.keys(agent!.ReceivedMessages).length).toBe(1);
   });
