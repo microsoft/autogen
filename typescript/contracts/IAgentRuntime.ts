@@ -23,5 +23,10 @@ export interface IAgentRuntime {
     messageId?: string
   ): Promise<unknown>;
 
+  getAgentMetadataAsync(agentId: AgentId): Promise<unknown>;
+
+  loadAgentStateAsync(agentId: AgentId, state: unknown): Promise<void>;
+  saveAgentStateAsync(agentId: AgentId): Promise<unknown>;
+
   // ...additional methods from the .NET interface...
 }

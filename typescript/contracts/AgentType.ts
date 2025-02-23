@@ -1,0 +1,1 @@
+export type AgentType = string;

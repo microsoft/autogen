@@ -7,6 +7,7 @@ interface SubscriptionDefinition {
 }
 
 export class InProcessRuntime implements IAgentRuntime {
+  public deliverToSelf = false;
   private subscriptions = new Map<string, SubscriptionDefinition>();
   private agentInstances = new Map<string, unknown>();
 
@@ -34,6 +35,31 @@ export class InProcessRuntime implements IAgentRuntime {
     messageId?: string
   ): Promise<unknown> {
     return this.dispatchMessageToAgent(message, recipient, messageId);
+  }
+
+  public async getAgentMetadataAsync(agentId: AgentId): Promise<unknown> {
+    // ...placeholder logic...
+    return Promise.resolve(null);
+  }
+
+  async loadAgentStateAsync(agentId: AgentId, state: unknown): Promise<void> {
+    const agentKey = `${agentId.type}:${agentId.key}`;
+    const agent = this.agentInstances.get(agentKey);
+    if (!agent) {
+      throw new Error(`Agent ${agentKey} not found`);
+    }
+    // TODO: Implement proper state loading
+    return Promise.resolve();
+  }
+
+  async saveAgentStateAsync(agentId: AgentId): Promise<unknown> {
+    const agentKey = `${agentId.type}:${agentId.key}`;
+    const agent = this.agentInstances.get(agentKey);
+    if (!agent) {
+      throw new Error(`Agent ${agentKey} not found`);
+    }
+    // TODO: Implement proper state saving
+    return Promise.resolve({});
   }
 
   private async dispatchMessageToAgent(
