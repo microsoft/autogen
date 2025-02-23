@@ -2,8 +2,8 @@ from .db import Message, Run, RunStatus, Session, Team
 from .types import (
     Gallery,
     GalleryComponents,
-    GalleryItems,
     GalleryMetadata,
+    LLMCallEventMessage,
     MessageConfig,
     MessageMeta,
     Response,
@@ -22,4 +22,8 @@ __all__ = [
     "TeamResult",
     "Response",
     "SocketMessage",
+    "LLMCallEventMessage",
+    "Gallery",
+    "GalleryComponents",
+    "GalleryMetadata",
 ]

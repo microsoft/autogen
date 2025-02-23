@@ -6,7 +6,7 @@ using Microsoft.AutoGen.Contracts;
 namespace Microsoft.AutoGen.Core;
 
 [AttributeUsage(AttributeTargets.All)]
-public class TopicPrefixSubscriptionAttribute(string topic) : Attribute, IUnboundSubscriptionDefinition
+public class TypePrefixSubscriptionAttribute(string topic) : Attribute, IUnboundSubscriptionDefinition
 {
     public string Topic { get; } = topic;
 

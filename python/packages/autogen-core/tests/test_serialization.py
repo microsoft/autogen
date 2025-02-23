@@ -93,7 +93,7 @@ def test_proto() -> None:
     message = ProtoMessage(message="hello")
     name = serde.type_name(message)
     data = serde.serialize(message, type_name=name, data_content_type=PROTOBUF_DATA_CONTENT_TYPE)
-    assert name == "ProtoMessage"
+    assert name == "agents.ProtoMessage"
     deserialized = serde.deserialize(data, type_name=name, data_content_type=PROTOBUF_DATA_CONTENT_TYPE)
     assert deserialized.message == message.message
 
@@ -186,3 +186,17 @@ def test_image_type() -> None:
     assert deserialized.image.image.size == (100, 100)
     assert deserialized.image.image.mode == "RGB"
     assert deserialized.image.image == image.image
+
+
+def test_type_name_for_protos() -> None:
+    type_name = SerializationRegistry().type_name(ProtoMessage())
+    assert type_name == "agents.ProtoMessage"
+
+    type_name = SerializationRegistry().type_name(ProtoMessage)
+    assert type_name == "agents.ProtoMessage"
+
+    type_name = SerializationRegistry().type_name(NestingProtoMessage())
+    assert type_name == "agents.NestingProtoMessage"
+
+    type_name = SerializationRegistry().type_name(NestingProtoMessage)
+    assert type_name == "agents.NestingProtoMessage"

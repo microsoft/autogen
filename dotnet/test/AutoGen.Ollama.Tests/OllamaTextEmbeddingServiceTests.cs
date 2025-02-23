@@ -3,9 +3,11 @@
 
 using AutoGen.Tests;
 using FluentAssertions;
+using Xunit;
 
 namespace AutoGen.Ollama.Tests;
 
+[Trait("Category", "UnitV1")]
 public class OllamaTextEmbeddingServiceTests
 {
     [ApiKeyFact("OLLAMA_HOST", "OLLAMA_EMBEDDING_MODEL_NAME")]

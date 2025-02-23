@@ -3,11 +3,9 @@ import { Button, Tooltip } from "antd";
 import {
   Bot,
   Plus,
-  Edit,
   Trash2,
   PanelLeftClose,
   PanelLeftOpen,
-  Calendar,
   Copy,
   GalleryHorizontalEnd,
   InfoIcon,
@@ -15,7 +13,6 @@ import {
 } from "lucide-react";
 import type { Team } from "../../types/datamodel";
 import { getRelativeTimeString } from "../atoms";
-import { defaultTeam } from "./types";
 import { useGalleryStore } from "../gallery/store";
 
 interface TeamSidebarProps {
@@ -43,8 +40,12 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
 }) => {
   const defaultGallery = useGalleryStore((state) => state.getDefaultGallery());
   const createTeam = () => {
-    const newTeam = Object.assign({}, defaultTeam);
-    newTeam.component.label = "new_team_" + new Date().getTime();
+    const newTeam = Object.assign(
+      {},
+      { component: defaultGallery?.components.teams[0] }
+    );
+    newTeam.component.label =
+      "default_team" + new Date().getTime().toString().slice(0, 2);
     onCreateTeam(newTeam);
   };
 
@@ -102,7 +103,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
 
       <div className="my-4 flex text-sm  ">
         <div className=" mr-2 w-full">
-          <Tooltip title="Create new session">
+          <Tooltip title="Create a new team">
             <Button
               type="primary"
               className="w-full"
@@ -230,7 +231,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
             From Gallery
           </div>
           <div key={"gallery_content"} className="scroll overflow-y-auto">
-            {defaultGallery?.items.teams.map((galleryTeam) => (
+            {defaultGallery?.components.teams.map((galleryTeam) => (
               <div
                 key={galleryTeam.label + galleryTeam.component_type}
                 className="relative border-secondary"
@@ -255,7 +256,9 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                           onClick={(e) => {
                             e.stopPropagation();
                             galleryTeam.label =
-                              galleryTeam.label + "_" + new Date().getTime();
+                              galleryTeam.label +
+                              "_" +
+                              (new Date().getTime() + "").substring(0, 5);
                             onCreateTeam({
                               component: galleryTeam,
                             });
