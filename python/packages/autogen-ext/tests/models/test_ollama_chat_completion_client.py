@@ -1,13 +1,19 @@
 from autogen_ext.models.ollama import OllamaChatCompletionClient
 from autogen_core.models._types import UserMessage
+from ollama import AsyncClient
 
-import asyncio
+from httpx import Response
 import pytest
+from typing import Any
 
-pytest_plugins = ('pytest_asyncio',)
+def _mock_request(*args: Any, **kwargs: Any) -> Response:
+    return Response(status_code=200, content="{'response': 'Hello world!'}")
 
 @pytest.mark.asyncio
-async def test_ollama_chat_completion_client_doesnt_error_with_host_kwarg():
+async def test_ollama_chat_completion_client_doesnt_error_with_host_kwarg(monkeypatch: pytest.MonkeyPatch):
+
+    monkeypatch.setattr(AsyncClient, "_request", _mock_request)
+    
     client = OllamaChatCompletionClient(
         model="llama3.1",
         host="http://testyhostname:11434",
@@ -22,6 +28,3 @@ async def test_ollama_chat_completion_client_doesnt_error_with_host_kwarg():
         await client.create([UserMessage(content="hi", source="user")])
     except TypeError as e:
         assert "AsyncClient.chat() got an unexpected keyword argument" not in e.args[0]
-    except ConnectionError as e:
-        pass
-
