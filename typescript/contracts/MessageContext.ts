@@ -1,10 +1,18 @@
 import { AgentId, TopicId } from "./IAgentRuntime";
 
-// Represents the context of a message in the runtime
-export interface MessageContext {
-  messageId: string;
-  sender?: AgentId;
-  topic?: TopicId;
-  isRpc?: boolean;
-  // ...existing code...
+export class MessageContext {
+  public readonly messageId: string;
+  public readonly cancellation?: AbortSignal;
+  public sender?: AgentId;
+  public topic?: TopicId;
+  public isRpc: boolean = false;
+
+  constructor(messageId: string, cancellation?: AbortSignal) {
+    this.messageId = messageId;
+    this.cancellation = cancellation;
+  }
+
+  static create(cancellation?: AbortSignal): MessageContext {
+    return new MessageContext(crypto.randomUUID(), cancellation);
+  }
 }
