@@ -313,3 +313,27 @@ export type RunStatus =
   | "complete"
   | "error"
   | "stopped";
+
+// Settings
+
+export type EnvironmentVariableType =
+  | "string"
+  | "number"
+  | "boolean"
+  | "secret";
+
+export interface EnvironmentVariable {
+  name: string;
+  value: string;
+  type: EnvironmentVariableType;
+  description?: string;
+  required: boolean;
+}
+
+export interface SettingsConfig {
+  environment: EnvironmentVariable[];
+}
+
+export interface Settings extends DBModel {
+  config: SettingsConfig;
+}

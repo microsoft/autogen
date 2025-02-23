@@ -1,5 +1,6 @@
+from dataclasses import Field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import BaseChatMessage
@@ -63,8 +64,18 @@ class Gallery(BaseModel):
     components: GalleryComponents
 
 
-# web request/response data models
 
+class EnvironmentVariable(BaseModel):
+    name: str
+    value: str
+    type: Literal["string", "number", "boolean", "secret"] = "string" 
+    description: Optional[str] = None
+    required: bool = False
+
+class SettingsConfig(BaseModel):
+    environment: List[EnvironmentVariable] = []
+
+# web request/response data models
 
 class Response(BaseModel):
     message: str

@@ -1,10 +1,11 @@
 import React, { useCallback } from "react";
 import { Input, Switch, Button, Tooltip } from "antd";
-import { Edit, HelpCircle, Trash2 } from "lucide-react";
+import { Edit, HelpCircle, Trash2, PlusCircle } from "lucide-react";
 import {
   Component,
   ComponentConfig,
   AgentConfig,
+  FunctionToolConfig,
 } from "../../../../../types/datamodel";
 import {
   isAssistantAgent,
@@ -19,6 +20,11 @@ interface AgentFieldsProps {
   component: Component<AgentConfig>;
   onChange: (updates: Partial<Component<ComponentConfig>>) => void;
   onNavigate?: (componentType: string, id: string, parentField: string) => void;
+  workingCopy?: Component<ComponentConfig> | null;
+  setWorkingCopy?: (component: Component<ComponentConfig> | null) => void;
+  editPath?: any[];
+  updateComponentAtPath?: any;
+  getCurrentComponent?: any;
 }
 
 const InputWithTooltip: React.FC<{
@@ -44,6 +50,11 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
   component,
   onChange,
   onNavigate,
+  workingCopy,
+  setWorkingCopy,
+  editPath,
+  updateComponentAtPath,
+  getCurrentComponent,
 }) => {
   if (!component) return null;
 
@@ -82,6 +93,58 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
     },
     [component, handleConfigUpdate]
   );
+
+  const handleAddTool = useCallback(() => {
+    if (!isAssistantAgent(component)) return;
+
+    const blankTool: Component<FunctionToolConfig> = {
+      provider: "autogen_core.tools.FunctionTool",
+      component_type: "tool",
+      version: 1,
+      component_version: 1,
+      description: "Create custom tools by wrapping standard Python functions.",
+      label: "New Tool",
+      config: {
+        source_code: "def new_function():\n    pass",
+        name: "new_function",
+        description: "Description of the new function",
+        global_imports: [],
+        has_cancellation_support: false,
+      },
+    };
+
+    // Update both working copy and actual component state
+    const currentTools = component.config.tools || [];
+    const updatedTools = [...currentTools, blankTool];
+
+    // Update the actual component state
+    handleConfigUpdate("tools", updatedTools);
+
+    // If working copy functionality is available, update that too
+    if (
+      workingCopy &&
+      setWorkingCopy &&
+      updateComponentAtPath &&
+      getCurrentComponent &&
+      editPath
+    ) {
+      const updatedCopy = updateComponentAtPath(workingCopy, editPath, {
+        config: {
+          ...getCurrentComponent(workingCopy)?.config,
+          tools: updatedTools,
+        },
+      });
+      setWorkingCopy(updatedCopy);
+    }
+  }, [
+    component,
+    handleConfigUpdate,
+    workingCopy,
+    setWorkingCopy,
+    updateComponentAtPath,
+    getCurrentComponent,
+    editPath,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -129,6 +192,45 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
                 />
               </InputWithTooltip>
 
+              {/* Model Client Section */}
+
+              <div className="space-y-2">
+                <span className="text-sm font-medium text-primary">
+                  Model Client
+                </span>
+                {component.config.model_client ? (
+                  <div className="bg-secondary p-1 px-2 rounded-md">
+                    <div className="flex items-center justify-between">
+                      {" "}
+                      <span className="text-sm">
+                        {component.config.model_client.config.model}
+                      </span>
+                      <div className="flex items-center justify-between">
+                        {component.config.model_client && onNavigate && (
+                          <Button
+                            type="text"
+                            icon={<Edit className="w-4 h-4" />}
+                            onClick={() =>
+                              onNavigate(
+                                "model",
+                                component.config.model_client?.label || "",
+                                "model_client"
+                              )
+                            }
+                          >
+                            Configure Model
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-secondary text-center bg-secondary/50 p-4 rounded-md">
+                    No model configured
+                  </div>
+                )}
+              </div>
+
               <InputWithTooltip
                 label="System Message"
                 tooltip="System message for the agent"
@@ -142,6 +244,64 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
                 />
               </InputWithTooltip>
 
+              {/* Tools Section */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-primary">
+                    Tools
+                  </span>
+                  <Button
+                    type="dashed"
+                    size="small"
+                    onClick={handleAddTool}
+                    icon={<PlusCircle className="w-4 h-4" />}
+                  >
+                    Add Tool
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {component.config.tools?.map((tool, index) => (
+                    <div
+                      key={(tool.label || "") + index}
+                      className="bg-secondary p-1 px-2 rounded-md"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">
+                          {tool.config.name || tool.label || ""}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {onNavigate && (
+                            <Button
+                              type="text"
+                              icon={<Edit className="w-4 h-4" />}
+                              onClick={() =>
+                                onNavigate(
+                                  "tool",
+                                  tool.config.name || tool.label || "",
+                                  "tools"
+                                )
+                              }
+                            />
+                          )}
+                          <Button
+                            type="text"
+                            danger
+                            icon={<Trash2 className="w-4 h-4" />}
+                            onClick={() => handleRemoveTool(index)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {(!component.config.tools ||
+                    component.config.tools.length === 0) && (
+                    <div className="text-sm text-secondary text-center bg-secondary/50 p-4 rounded-md">
+                      No tools configured
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-primary">
                   Reflect on Tool Use
@@ -153,8 +313,6 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
                   }
                 />
               </div>
-
-              {/* model_client_stream bool toggle */}
 
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-primary">

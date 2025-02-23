@@ -22,7 +22,7 @@ from autogen_core import Image as AGImage
 from fastapi import WebSocket, WebSocketDisconnect
 
 from ...database import DatabaseManager
-from ...datamodel import LLMCallEventMessage, Message, MessageConfig, Run, RunStatus, TeamResult
+from ...datamodel import LLMCallEventMessage, Message, MessageConfig, Run, RunStatus, TeamResult, Settings, SettingsConfig
 from ...teammanager import TeamManager
 
 logger = logging.getLogger(__name__)
@@ -76,6 +76,7 @@ class WebSocketManager:
         if run_id not in self._connections or run_id in self._closed_connections:
             raise ValueError(f"No active connection for run {run_id}")
 
+        
         team_manager = TeamManager()
         cancellation_token = CancellationToken()
         self._cancellation_tokens[run_id] = cancellation_token
@@ -84,6 +85,10 @@ class WebSocketManager:
         try:
             # Update run with task and status
             run = await self._get_run(run_id)
+            # get user Settings 
+            user_settings = await self._get_settings(run.user_id)
+            user_settings = SettingsConfig(**user_settings.config)
+            print(" *** user_settings",  user_settings)
             if run:
                 run.task = MessageConfig(content=task, source="user").model_dump()
                 run.status = RunStatus.ACTIVE
@@ -92,7 +97,7 @@ class WebSocketManager:
             input_func = self.create_input_func(run_id)
 
             async for message in team_manager.run_stream(
-                task=task, team_config=team_config, input_func=input_func, cancellation_token=cancellation_token
+                task=task, team_config=team_config, input_func=input_func, cancellation_token=cancellation_token, env_vars=user_settings.environment
             ):
                 if cancellation_token.is_cancelled() or run_id in self._closed_connections:
                     logger.info(f"Stream cancelled or connection closed for run {run_id}")
@@ -360,6 +365,16 @@ class WebSocketManager:
             Optional[Run]: Run object if found, None otherwise
         """
         response = self.db_manager.get(Run, filters={"id": run_id}, return_json=False)
+        return response.data[0] if response.status and response.data else None
+
+    async def _get_settings(self, user_id: str) -> Optional[Settings]:
+        """Get user settings from database
+        Args:
+            user_id: User ID to retrieve settings for
+        Returns:
+            Optional[dict]: User settings if found, None otherwise
+        """
+        response = self.db_manager.get(filters={"user_id": user_id}, model_class=Settings, return_json=False)
         return response.data[0] if response.status and response.data else None
 
     async def _update_run_status(self, run_id: UUID, status: RunStatus, error: Optional[str] = None) -> None:
