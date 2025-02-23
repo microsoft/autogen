@@ -8,9 +8,11 @@
     "forceConsistentCasingInFileNames": true,
     "outDir": "dist",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true
+    "emitDecoratorMetadata": true,
+    "rootDir": "."
   },
   "include": [
-    "."
+    "src/**/*",
+    "samples/**/*"
   ]
 }

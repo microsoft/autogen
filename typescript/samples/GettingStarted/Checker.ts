@@ -1,8 +1,8 @@
-import { BaseAgent } from "../../core/BaseAgent";
-import { IHandle } from "../../contracts/IHandle";
-import { AgentId, IAgentRuntime } from "../../contracts/IAgentRuntime";
-import { MessageContext } from "../../contracts/MessageContext";
-import { TypeSubscription } from "../../core/TypeSubscriptionAttribute";
+import { BaseAgent } from "../../src/core/BaseAgent";
+import { IHandle } from "../../src/contracts/IHandle";
+import { AgentId, IAgentRuntime } from "../../src/contracts/IAgentRuntime";
+import { MessageContext } from "../../src/contracts/MessageContext";
+import { TypeSubscription } from "../../src/core/TypeSubscriptionAttribute";
 import { CountMessage } from "./CountMessage";
 import { CountUpdate } from "./CountUpdate";
 

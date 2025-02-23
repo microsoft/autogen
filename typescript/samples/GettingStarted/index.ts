@@ -1,10 +1,10 @@
 import "reflect-metadata";
-import { AgentsApp, AgentsAppBuilder } from "../../core/AgentsApp";
+import { AgentsApp, AgentsAppBuilder } from "../../src/core/AgentsApp";
 import { Checker } from "./Checker";
 import { Modifier } from "./Modifier";
 import { CountMessage } from "./CountMessage";
-import { TypeSubscription } from "../../core/TypeSubscription";
-import { AgentId, IAgentRuntime } from "../../contracts/IAgentRuntime";
+import { TypeSubscription } from "../../src/core/TypeSubscription";
+import { AgentId, IAgentRuntime } from "../../src/contracts/IAgentRuntime";
 
 async function main() {
   // Define the modification and termination functions
