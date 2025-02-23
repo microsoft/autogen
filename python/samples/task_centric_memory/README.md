@@ -1,5 +1,5 @@
 # Task-Centric Memory Code Samples
-_(EXPERIMENTAL RESEARCH IN PROGRESS)_
+_(EXPERIMENTAL, RESEARCH IN PROGRESS)_
 
 <p align="right">
   <img src="../../packages/autogen-ext/imgs/task_centric_memory.png" alt="Description" width="300" align="right" style="margin-left: 10px;">

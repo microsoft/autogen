@@ -23,7 +23,7 @@ class TaskCentricMemoryControllerConfig(TypedDict, total=False):
 
 class TaskCentricMemoryController:
     """
-    (EXPERIMENTAL RESEARCH IN PROGRESS)
+    (EXPERIMENTAL, RESEARCH IN PROGRESS)
 
     Implements fast, memory-based learning, and manages the flow of information to and from a memory bank.
 
