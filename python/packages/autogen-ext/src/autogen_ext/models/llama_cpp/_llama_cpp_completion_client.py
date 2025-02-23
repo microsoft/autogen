@@ -1,8 +1,8 @@
-import json
 import logging  # added import
+import re
 from typing import Any, AsyncGenerator, Dict, List, Optional, Sequence, cast
 
-from autogen_core import EVENT_LOGGER_NAME, CancellationToken, MessageHandlerContext
+from autogen_core import EVENT_LOGGER_NAME, FunctionCall, MessageHandlerContext
 from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
     AssistantMessage,
@@ -17,12 +17,14 @@ from autogen_core.models import (
 )
 from autogen_core.tools import Tool, ToolSchema
 from llama_cpp import (
+    ChatCompletionFunctionParameters,
     ChatCompletionRequestAssistantMessage,
     ChatCompletionRequestFunctionMessage,
     ChatCompletionRequestSystemMessage,
     ChatCompletionRequestToolMessage,
     ChatCompletionRequestUserMessage,
-    CreateChatCompletionResponse,
+    ChatCompletionTool,
+    ChatCompletionToolFunction,
     Llama,
 )
 
@@ -48,6 +50,59 @@ def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
     return KNOWN_STOP_MAPPINGS.get(stop_reason, "unknown")
 
 
+def normalize_name(name: str) -> str:
+    """
+    LLMs sometimes ask functions while ignoring their own format requirements, this function should be used to replace invalid characters with "_".
+
+    Prefer _assert_valid_name for validating user configuration or input
+    """
+    return re.sub(r"[^a-zA-Z0-9_-]", "_", name)[:64]
+
+
+def assert_valid_name(name: str) -> str:
+    """
+    Ensure that configured names are valid, raises ValueError if not.
+
+    For munging LLM responses use _normalize_name to ensure LLM specified names don't break the API.
+    """
+    if not re.match(r"^[a-zA-Z0-9_-]+$", name):
+        raise ValueError(f"Invalid name: {name}. Only letters, numbers, '_' and '-' are allowed.")
+    if len(name) > 64:
+        raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
+    return name
+
+
+def convert_tools(
+    tools: Sequence[Tool | ToolSchema],
+) -> List[ChatCompletionTool]:
+    result: List[ChatCompletionTool] = []
+    for tool in tools:
+        if isinstance(tool, Tool):
+            tool_schema = tool.schema
+        else:
+            assert isinstance(tool, dict)
+            tool_schema = tool
+
+        result.append(
+            ChatCompletionTool(
+                type="function",
+                function=ChatCompletionToolFunction(
+                    name=tool_schema["name"],
+                    description=(tool_schema["description"] if "description" in tool_schema else ""),
+                    parameters=(
+                        cast(ChatCompletionFunctionParameters, tool_schema["parameters"])
+                        if "parameters" in tool_schema
+                        else {}
+                    ),
+                ),
+            )
+        )
+    # Check if all tools have valid names.
+    for tool_param in result:
+        assert_valid_name(tool_param["function"]["name"])
+    return result
+
+
 class LlamaCppChatCompletionClient(ChatCompletionClient):
     def __init__(
         self,
@@ -57,8 +112,8 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         """
         Initialize the LlamaCpp client.
         """
-        self.llm = (
-            Llama.from_pretrained(filename=filename, repo_id=kwargs.pop("repo_id"), **kwargs)  # type: ignore
+        self.llm: Llama = (
+            Llama.from_pretrained(filename=filename, repo_id=kwargs.pop("repo_id"), **kwargs) # pyright: ignore[reportUnknownMemberType]
             # The partially unknown type is in the `llama_cpp` package
             if "repo_id" in kwargs
             else Llama(model_path=filename, **kwargs)
@@ -93,14 +148,23 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
             elif (
                 isinstance(msg, SystemMessage) or isinstance(msg, UserMessage) or isinstance(msg, AssistantMessage)
             ) and isinstance(msg.content, list):
-                raise ValueError("Image messages are not currently supported.")
+                raise ValueError("Multi-part messages such as those containing images are currently not supported.")
             else:
                 raise ValueError(f"Unsupported message type: {type(msg)}")
 
         if self.model_info["function_calling"]:
+            response = self.llm.create_chat_completion(
+                messages=converted_messages, tools=convert_tools(tools), stream=False
+            )
+
+        else:
             # Add tool descriptions to the system message
             tool_descriptions = "\n".join(
-                [f"Tool: {i+1}. {tool.name} - {tool.description}" for i, tool in enumerate(tools) if isinstance(tool, Tool)]
+                [
+                    f"Tool: {i+1}. {tool.name} - {tool.description}"
+                    for i, tool in enumerate(tools)
+                    if isinstance(tool, Tool)
+                ]
             )
 
             few_shot_example = """
@@ -118,51 +182,76 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
             )
             converted_messages.insert(0, {"role": "system", "content": system_message})
 
-        # Debugging outputs
-        # print(f"DEBUG: System message: {system_message}")
-        # print(f"DEBUG: Converted messages: {converted_messages}")
+            response = self.llm.create_chat_completion(messages=converted_messages, stream=False)
 
-        # Generate the model response
-        response = cast(
-            CreateChatCompletionResponse, self.llm.create_chat_completion(messages=converted_messages, stream=False)
-        )
+        if not isinstance(response, dict):
+            raise ValueError("Unexpected response type from LlamaCpp model.")
 
-        prompt_tokens = response.get("usage", {}).get("prompt_tokens", 0)
-        completion_tokens = response.get("usage", {}).get("completion_tokens", 0)
-
-        self._total_usage["prompt_tokens"] += prompt_tokens
-        self._total_usage["completion_tokens"] += completion_tokens
+        self._total_usage["prompt_tokens"] += response["usage"]["prompt_tokens"]
+        self._total_usage["completion_tokens"] += response["usage"]["completion_tokens"]
 
         # Parse the response
-        response_text = response["choices"][0]["message"]["content"]
-        # print(f"DEBUG: Model response: {response_text}")
+        response_tool_calls: ChatCompletionTool | None = None
+        response_text:str| None = None
+        if "choices" in response and len(response["choices"]) > 0:
+            if "message" in response["choices"][0]:
+                response_text = response["choices"][0]["message"]["content"]
+            if "tool_calls" in response["choices"][0]:
+                response_tool_calls = response["choices"][0]["tool_calls"]  # type: ignore
+
+        content: List[FunctionCall] | str = ""
+        thought: str | None = None
+        if response_tool_calls:
+            content = []
+            for tool_call in response_tool_calls:
+                if not isinstance(tool_call, dict):
+                    raise ValueError("Unexpected tool call type from LlamaCpp model.")
+                content.append(
+                    FunctionCall(
+                        id=tool_call["id"],
+                        arguments=tool_call["function"]["arguments"],
+                        name=normalize_name(tool_call["function"]["name"]),
+                    )
+                )
+            if response_text and len(response_text) > 0:
+                thought = response_text
+        elif response_text:
+            content = await self._detect_tool(response_text, [tool for tool in tools if isinstance(tool, Tool)])
+            if len(content) > 0 and len(response_text) > 0:
+                thought = response_text
+            else:
+                content = response_text
 
         # Detect tool usage in the response
-        if not response_text:
+        if not response_tool_calls and not response_text:
             logger.debug("DEBUG: No response text found. Returning empty response.")
             return CreateResult(
                 content="", usage=RequestUsage(prompt_tokens=0, completion_tokens=0), finish_reason="stop", cached=False
             )
 
-        tool_call = await self._detect_and_execute_tool(
-            response_text, [tool for tool in tools if isinstance(tool, Tool)]
-        )
-        if not tool_call:
-            logger.debug("DEBUG: No tool was invoked. Returning raw model response.")
-        else:
-            logger.debug(f"DEBUG: Tool executed successfully: {tool_call}")
-
         # Create a CreateResult object
-        finish_reason = response["choices"][0].get("finish_reason")
+        # breakpoint()
+        if "finish_reason" in response["choices"][0]:
+            finish_reason = response["choices"][0]["finish_reason"]
+        else:
+            finish_reason = "unknown"
         if finish_reason not in ("stop", "length", "function_calls", "content_filter", "unknown"):
             finish_reason = "unknown"
-        usage = cast(RequestUsage, response.get("usage", {}))
-        create_result = CreateResult(
-            content=tool_call if tool_call else response_text,
-            usage=usage,
-            finish_reason=normalize_stop_reason(finish_reason),  # type: ignore
-            cached=False,
-        )
+        if thought:
+            create_result = CreateResult(
+                content=content,
+                thought=thought,
+                usage=cast(RequestUsage, response["usage"]),
+                finish_reason=normalize_stop_reason(finish_reason),  # type: ignore
+                cached=False,
+            )
+        else:
+            create_result = CreateResult(
+                content=content,
+                usage=cast(RequestUsage, response["usage"]),
+                finish_reason=normalize_stop_reason(finish_reason),  # type: ignore
+                cached=False,
+            )
 
         # If we are running in the context of a handler we can get the agent_id
         try:
@@ -174,14 +263,14 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
             LLMCallEvent(
                 messages=cast(Dict[str, Any], messages),
                 response=create_result.model_dump(),
-                prompt_tokens=prompt_tokens,
-                completion_tokens=completion_tokens,
+                prompt_tokens=response["usage"]["prompt_tokens"],
+                completion_tokens=response["usage"]["completion_tokens"],
                 agent_id=agent_id,
             )
         )
         return create_result
 
-    async def _detect_and_execute_tool(self, response_text: str, tools: List[Tool]) -> Optional[str]:
+    async def _detect_tool(self, response_text: str, tools: List[Tool]) -> List[FunctionCall]:
         """
         Detect if the model is requesting a tool and execute the tool.
 
@@ -189,61 +278,37 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         :param tools: A list of available tools.
         :return: The result of the tool execution or None if no tool is called.
         """
+        content: List[FunctionCall] = []
+        if not tools:
+            return []
         for tool in tools:
-            if tool.name.lower() in response_text.lower():  # Case-insensitive matching
+            if tool.name.lower() + "(" in response_text.lower():  # Case-insensitive matching
                 logger.debug(f"DEBUG: Detected tool '{tool.name}' in response.")
                 # Extract arguments (if any) from the response
                 func_args = self._extract_tool_arguments(response_text)
-                if func_args:
-                    logger.debug(f"DEBUG: Extracted arguments for tool '{tool.name}': {func_args}")
-                else:
-                    logger.debug(f"DEBUG: No arguments found for tool '{tool.name}'.")
-                    return f"Error: No valid arguments provided for tool '{tool.name}'."
+                content.append(
+                    FunctionCall(
+                        id="",
+                        arguments=func_args,
+                        name=normalize_name(tool.name),
+                    )
+                )
 
-                # Ensure arguments match the tool's args_type
-                try:
-                    args_model = tool.args_type()
-                    if "request" in args_model.model_fields:  # Handle nested arguments
-                        func_args = {"request": func_args}
-                    args_instance = args_model(**func_args)
-                except Exception as e:
-                    return f"Error parsing arguments for tool '{tool.name}': {e}"
+        return content
 
-                # Execute the tool
-                try:
-                    if callable(getattr(tool, "run", None)):
-                        result = await cast(Any, tool).run(args=args_instance, cancellation_token=CancellationToken())
-                        if isinstance(result, dict):
-                            return json.dumps(result)
-                        elif callable(getattr(result, "model_dump", None)):  # If it's a Pydantic model
-                            return json.dumps(result.model_dump())
-                        else:
-                            return str(result)
-                except Exception as e:
-                    return f"Error executing tool '{tool.name}': {e}"
-
-        return None
-
-    def _extract_tool_arguments(self, response_text: str) -> Dict[str, Any]:
+    def _extract_tool_arguments(self, response_text: str) -> str:
         """
         Extract tool arguments from the response text.
 
         :param response_text: The raw response text.
         :return: A dictionary of extracted arguments.
         """
-        try:
-            args_start = response_text.find("{")
-            args_end = response_text.find("}")
-            if args_start != -1 and args_end != -1:
-                args_str = response_text[args_start : args_end + 1]
-                args = json.loads(args_str)
-                if isinstance(args, dict):
-                    return cast(Dict[str, Any], args)
-                else:
-                    return {}
-        except json.JSONDecodeError as e:
-            logger.debug(f"DEBUG: Failed to parse arguments: {e}")
-        return {}
+        args_start = response_text.find("{")
+        args_end = response_text.find("}")
+        if args_start != -1 and args_end != -1:
+            return response_text[args_start : args_end + 1]
+
+        return ""
 
     async def create_stream(
         self,

@@ -1,6 +1,6 @@
 import contextlib
 import sys
-from typing import TYPE_CHECKING, Any, ContextManager, Generator, Sequence, Union
+from typing import TYPE_CHECKING, Any, ContextManager, Generator, List, Sequence, Union
 
 import pytest
 import torch
@@ -9,6 +9,7 @@ from autogen_agentchat.messages import TextMessage
 from autogen_core import CancellationToken
 from autogen_core.models import RequestUsage, SystemMessage, UserMessage
 from autogen_core.tools import FunctionTool
+from llama_cpp import ChatCompletionMessageToolCalls
 
 if TYPE_CHECKING:
     from autogen_ext.models.llama_cpp._llama_cpp_completion_client import LlamaCppChatCompletionClient
@@ -28,8 +29,11 @@ class FakeLlama:
     def tokenize(self, b: bytes) -> list[int]:
         return list(b)
 
-    def create_chat_completion(self, messages: Any, stream: bool = False) -> dict[str, Any]:
+    def create_chat_completion(
+        self, messages: Any, tools: List[ChatCompletionMessageToolCalls] | None, stream: bool = False
+    ) -> dict[str, Any]:
         # Return fake non-streaming response.
+
         return {
             "usage": {"prompt_tokens": 1, "completion_tokens": 2},
             "choices": [{"message": {"content": "Fake response"}}],
@@ -69,6 +73,7 @@ async def test_llama_cpp_create(get_completion_client: "ContextManager[type[Llam
         assert usage.prompt_tokens == 1
         assert usage.completion_tokens == 2
         assert result.finish_reason in ("stop", "unknown")
+
 
 # Commmented out due to raising not implemented error will leave in case streaming is supported in the future.
 # @pytest.mark.asyncio
@@ -130,6 +135,7 @@ async def test_llama_cpp_integration_non_streaming() -> None:
     ]
     result = await client.create(messages=messages)
     assert isinstance(result.content, str) and len(result.content.strip()) > 0
+
 
 # Commmented out due to raising not implemented error will leave in case streaming is supported in the future.
 # @pytest.mark.asyncio
