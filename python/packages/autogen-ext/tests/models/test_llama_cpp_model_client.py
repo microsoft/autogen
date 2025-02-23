@@ -70,21 +70,21 @@ async def test_llama_cpp_create(get_completion_client: "ContextManager[type[Llam
         assert usage.completion_tokens == 2
         assert result.finish_reason in ("stop", "unknown")
 
-
-@pytest.mark.asyncio
-async def test_llama_cpp_create_stream(
-    get_completion_client: "ContextManager[type[LlamaCppChatCompletionClient]]",
-) -> None:
-    with get_completion_client as Client:
-        client = Client(filename="dummy")
-        messages: Sequence[Union[SystemMessage, UserMessage]] = [
-            SystemMessage(content="Test system"),
-            UserMessage(content="Test user", source="user"),
-        ]
-        collected = ""
-        async for token in client.create_stream(messages=messages):
-            collected += token
-        assert collected == "Hello World"
+# Commmented out due to raising not implemented error will leave in case streaming is supported in the future.
+# @pytest.mark.asyncio
+# async def test_llama_cpp_create_stream(
+#     get_completion_client: "ContextManager[type[LlamaCppChatCompletionClient]]",
+# ) -> None:
+#     with get_completion_client as Client:
+#         client = Client(filename="dummy")
+#         messages: Sequence[Union[SystemMessage, UserMessage]] = [
+#             SystemMessage(content="Test system"),
+#             UserMessage(content="Test user", source="user"),
+#         ]
+#         collected = ""
+#         async for token in client.create_stream(messages=messages):
+#             collected += token
+#         assert collected == "Hello World"
 
 
 @pytest.mark.asyncio
@@ -131,25 +131,25 @@ async def test_llama_cpp_integration_non_streaming() -> None:
     result = await client.create(messages=messages)
     assert isinstance(result.content, str) and len(result.content.strip()) > 0
 
+# Commmented out due to raising not implemented error will leave in case streaming is supported in the future.
+# @pytest.mark.asyncio
+# async def test_llama_cpp_integration_streaming() -> None:
+#     if not ((hasattr(torch.backends, "mps") and torch.backends.mps.is_available()) or torch.cuda.is_available()):
+#         pytest.skip("Skipping LlamaCpp integration tests: GPU not available not set")
 
-@pytest.mark.asyncio
-async def test_llama_cpp_integration_streaming() -> None:
-    if not ((hasattr(torch.backends, "mps") and torch.backends.mps.is_available()) or torch.cuda.is_available()):
-        pytest.skip("Skipping LlamaCpp integration tests: GPU not available not set")
+#     from autogen_ext.models.llama_cpp._llama_cpp_completion_client import LlamaCppChatCompletionClient
 
-    from autogen_ext.models.llama_cpp._llama_cpp_completion_client import LlamaCppChatCompletionClient
-
-    client = LlamaCppChatCompletionClient(
-        repo_id="unsloth/phi-4-GGUF", filename="phi-4-Q2_K_L.gguf", n_gpu_layers=-1, seed=1337, n_ctx=5000
-    )
-    messages: Sequence[Union[SystemMessage, UserMessage]] = [
-        SystemMessage(content="You are a helpful assistant."),
-        UserMessage(content="Please stream your response.", source="user"),
-    ]
-    collected = ""
-    async for token in client.create_stream(messages=messages):
-        collected += token
-    assert isinstance(collected, str) and len(collected.strip()) > 0
+#     client = LlamaCppChatCompletionClient(
+#         repo_id="unsloth/phi-4-GGUF", filename="phi-4-Q2_K_L.gguf", n_gpu_layers=-1, seed=1337, n_ctx=5000
+#     )
+#     messages: Sequence[Union[SystemMessage, UserMessage]] = [
+#         SystemMessage(content="You are a helpful assistant."),
+#         UserMessage(content="Please stream your response.", source="user"),
+#     ]
+#     collected = ""
+#     async for token in client.create_stream(messages=messages):
+#         collected += token
+#     assert isinstance(collected, str) and len(collected.strip()) > 0
 
 
 # Define tools (functions) for the AssistantAgent

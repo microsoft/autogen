@@ -2,11 +2,13 @@ import json
 import logging  # added import
 from typing import Any, AsyncGenerator, Dict, List, Optional, Sequence, cast
 
-from autogen_core import CancellationToken
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken, MessageHandlerContext
+from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
     CreateResult,
+    FinishReasons,
     FunctionExecutionResultMessage,
     ModelInfo,
     RequestUsage,
@@ -14,6 +16,7 @@ from autogen_core.models import (
     UserMessage,
 )
 from autogen_core.tools import Tool, ToolSchema
+from click import prompt
 from llama_cpp import (
     ChatCompletionRequestAssistantMessage,
     ChatCompletionRequestFunctionMessage,
@@ -24,21 +27,38 @@ from llama_cpp import (
     Llama,
 )
 
+logger = logging.getLogger(EVENT_LOGGER_NAME)  # initialize logger
+
+
+def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
+    if stop_reason is None:
+        return "unknown"
+
+    # Convert to lower case
+    stop_reason = stop_reason.lower()
+
+    KNOWN_STOP_MAPPINGS: Dict[str, FinishReasons] = {
+        "stop": "stop",
+        "length": "length",
+        "content_filter": "content_filter",
+        "function_calls": "function_calls",
+        "end_turn": "stop",
+        "tool_calls": "function_calls",
+    }
+
+    return KNOWN_STOP_MAPPINGS.get(stop_reason, "unknown")
 
 class LlamaCppChatCompletionClient(ChatCompletionClient):
     def __init__(
         self,
         filename: str,
-        verbose: bool = True,
         **kwargs: Any,
     ):
         """
         Initialize the LlamaCpp client.
         """
-        self.logger = logging.getLogger(__name__)  # initialize logger
-        self.logger.setLevel(logging.DEBUG if verbose else logging.INFO)  # set level based on verbosity
         self.llm = (
-            Llama.from_pretrained(filename=filename, repo_id=kwargs.pop("repo_id"), **kwargs) # type: ignore
+            Llama.from_pretrained(filename=filename, repo_id=kwargs.pop("repo_id"), **kwargs)  # type: ignore
             # The partially unknown type is in the `llama_cpp` package
             if "repo_id" in kwargs
             else Llama(model_path=filename, **kwargs)
@@ -101,8 +121,12 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         response = cast(
             CreateChatCompletionResponse, self.llm.create_chat_completion(messages=converted_messages, stream=False)
         )
-        self._total_usage["prompt_tokens"] += response.get("usage", {}).get("prompt_tokens", 0)
-        self._total_usage["completion_tokens"] += response.get("usage", {}).get("completion_tokens", 0)
+
+        prompt_tokens = response.get("usage", {}).get("prompt_tokens", 0)
+        completion_tokens = response.get("usage", {}).get("completion_tokens", 0)
+
+        self._total_usage["prompt_tokens"] += prompt_tokens
+        self._total_usage["completion_tokens"] += completion_tokens
 
         # Parse the response
         response_text = response["choices"][0]["message"]["content"]
@@ -110,7 +134,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
 
         # Detect tool usage in the response
         if not response_text:
-            self.logger.debug("DEBUG: No response text found. Returning empty response.")
+            logger.debug("DEBUG: No response text found. Returning empty response.")
             return CreateResult(
                 content="", usage=RequestUsage(prompt_tokens=0, completion_tokens=0), finish_reason="stop", cached=False
             )
@@ -119,9 +143,9 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
             response_text, [tool for tool in tools if isinstance(tool, Tool)]
         )
         if not tool_call:
-            self.logger.debug("DEBUG: No tool was invoked. Returning raw model response.")
+            logger.debug("DEBUG: No tool was invoked. Returning raw model response.")
         else:
-            self.logger.debug(f"DEBUG: Tool executed successfully: {tool_call}")
+            logger.debug(f"DEBUG: Tool executed successfully: {tool_call}")
 
         # Create a CreateResult object
         finish_reason = response["choices"][0].get("finish_reason")
@@ -131,8 +155,24 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         create_result = CreateResult(
             content=tool_call if tool_call else response_text,
             usage=usage,
-            finish_reason=finish_reason,  # type: ignore
+            finish_reason=normalize_stop_reason(finish_reason),  # type: ignore
             cached=False,
+        )
+
+        # If we are running in the context of a handler we can get the agent_id
+        try:
+            agent_id = MessageHandlerContext.agent_id()
+        except RuntimeError:
+            agent_id = None
+
+        logger.info(
+            LLMCallEvent(
+                messages=cast(Dict[str, Any], messages),
+                response=create_result.model_dump(),
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+                agent_id=agent_id,
+            )
         )
         return create_result
 
@@ -146,13 +186,13 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         """
         for tool in tools:
             if tool.name.lower() in response_text.lower():  # Case-insensitive matching
-                self.logger.debug(f"DEBUG: Detected tool '{tool.name}' in response.")
+                logger.debug(f"DEBUG: Detected tool '{tool.name}' in response.")
                 # Extract arguments (if any) from the response
                 func_args = self._extract_tool_arguments(response_text)
                 if func_args:
-                    self.logger.debug(f"DEBUG: Extracted arguments for tool '{tool.name}': {func_args}")
+                    logger.debug(f"DEBUG: Extracted arguments for tool '{tool.name}': {func_args}")
                 else:
-                    self.logger.debug(f"DEBUG: No arguments found for tool '{tool.name}'.")
+                    logger.debug(f"DEBUG: No arguments found for tool '{tool.name}'.")
                     return f"Error: No valid arguments provided for tool '{tool.name}'."
 
                 # Ensure arguments match the tool's args_type
@@ -197,7 +237,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
                 else:
                     return {}
         except json.JSONDecodeError as e:
-            self.logger.debug(f"DEBUG: Failed to parse arguments: {e}")
+            logger.debug(f"DEBUG: Failed to parse arguments: {e}")
         return {}
 
     async def create_stream(
@@ -206,60 +246,9 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         tools: Optional[Sequence[Tool | ToolSchema]] = None,
         **kwargs: Any,
     ) -> AsyncGenerator[str, None]:
-        tools = tools or []
-
-        # Convert LLMMessage objects to dictionaries with 'role' and 'content'
-        converted_messages: list[
-            ChatCompletionRequestSystemMessage
-            | ChatCompletionRequestUserMessage
-            | ChatCompletionRequestAssistantMessage
-            | ChatCompletionRequestUserMessage
-            | ChatCompletionRequestToolMessage
-            | ChatCompletionRequestFunctionMessage
-        ] = []
-        for msg in messages:
-            if isinstance(msg, SystemMessage):
-                converted_messages.append({"role": "system", "content": msg.content})
-            elif isinstance(msg, UserMessage) and isinstance(msg.content, str):
-                converted_messages.append({"role": "user", "content": msg.content})
-            elif isinstance(msg, AssistantMessage) and isinstance(msg.content, str):
-                converted_messages.append({"role": "assistant", "content": msg.content})
-            else:
-                raise ValueError(f"Unsupported message type: {type(msg)}")
-
-        # Add tool descriptions to the system message
-        tool_descriptions = "\n".join(
-            [
-                f"Tool: {i+1}. {tool.name}({tool.schema['parameters'] if 'parameters' in tool.schema else ''}) - {tool.description}"
-                for i, tool in enumerate(tools)
-                if isinstance(tool, Tool)
-            ]
-        )
-
-        few_shot_example = """
-        Example tool usage:
-        User: Add two numbers: {"num1": 5, "num2": 10}
-        Assistant: Calling tool 'add' with arguments: {"num1": 5, "num2": 10}
-        """
-
-        system_message = (
-            "You are an assistant with access to tools. "
-            "If a user query matches a tool, explicitly invoke it with JSON arguments. "
-            "Here are the tools available:\n"
-            f"{tool_descriptions}\n"
-            f"{few_shot_example}"
-        )
-        converted_messages.insert(0, {"role": "system", "content": system_message})
-        # Convert messages into a plain string prompt
-        prompt = "\n".join(f"{msg['role']}: {msg.get('content', '')}" for msg in converted_messages)
-        # Call the model with streaming enabled
-        response_generator = self.llm(prompt=prompt, stream=True)
-
-        for token in response_generator:
-            if isinstance(token, dict):
-                yield token["choices"][0]["text"]
-            else:
-                yield token
+        raise NotImplementedError("Stream not yet implemented for LlamaCppChatCompletionClient")
+        if False:  # Unreachable code to satisfy the return type.
+            yield ""
 
     # Implement abstract methods
     def actual_usage(self) -> RequestUsage:
