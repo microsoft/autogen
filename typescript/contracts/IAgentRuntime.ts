@@ -1,3 +1,7 @@
+import { AgentType } from "./AgentType";
+import { IAgent } from "./IAgent";
+import { ISubscriptionDefinition } from "./ISubscriptionDefinition";
+
 export interface AgentId {
   type: string;
   key: string;
