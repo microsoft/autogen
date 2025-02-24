@@ -53,14 +53,14 @@ export class TestAgent extends BaseAgent implements IHandle<TextMessage>, IHandl
 @TypeSubscription("TestTopic")
 export class SubscribedAgent extends TestAgent {
   constructor(id: AgentId, runtime: IAgentRuntime) {
-    super(id, runtime);
+    super(id, runtime);  // Remove "Test Agent" as it's handled in TestAgent
   }
 }
 
 @TypeSubscription("TestTopic")
 export class SubscribedSaveLoadAgent extends TestAgent {
   constructor(id: AgentId, runtime: IAgentRuntime) {
-    super(id, runtime);
+    super(id, runtime);  // Remove "Test Agent" as it's handled in TestAgent
   }
 
   async saveStateAsync(): Promise<unknown> {
@@ -74,13 +74,28 @@ export class SubscribedSaveLoadAgent extends TestAgent {
   }
 }
 
-export class SubscribedSelfPublishAgent extends BaseAgent {
-  async handleAsync(item: string, messageContext: MessageContext): Promise<void> {
-    const strToText: TextMessage = {
-      source: "TestTopic",
-      content: item
-    };
-    // Fix method name to match BaseAgent's method
-    await this.runtime.publishMessageAsync(strToText, { type: "TestTopic", source: "test" }, this.id);
+@TypeSubscription("TestTopic")
+export class SubscribedSelfPublishAgent extends BaseAgent implements IHandle<string>, IHandle<TextMessage> {
+  private _text: TextMessage = { source: "DefaultTopic", content: "DefaultContent" };
+
+  constructor(id: AgentId, runtime: IAgentRuntime) {
+    super(id, runtime, "Test Self-Publishing Agent");
+  }
+
+  // Combine the two handleAsync methods using type guards
+  async handleAsync(item: string | TextMessage, messageContext: MessageContext): Promise<void> {
+    if (typeof item === 'string') {
+      const strToText: TextMessage = {
+        source: "TestTopic",
+        content: item
+      };
+      await this.runtime.publishMessageAsync(strToText, { type: "TestTopic", source: "test" }, this.id);
+    } else {
+      this._text = item;
+    }
+  }
+
+  get Text(): TextMessage {
+    return this._text;
   }
 }

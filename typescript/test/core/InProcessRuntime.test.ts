@@ -1,7 +1,7 @@
 import { describe, it, expect } from '@jest/globals';
 import { InProcessRuntime } from '../../src/core/InProcessRuntime';
-import { TopicId } from '../../src/contracts/IAgentRuntime';
-import { SubscribedSaveLoadAgent } from './TestAgent';
+import { TopicId, AgentId, IAgentRuntime } from '../../src/contracts/IAgentRuntime';
+import { SubscribedSaveLoadAgent, SubscribedSelfPublishAgent } from './TestAgent';
 import { TextMessage } from './TestAgent';
 import { TypeSubscription, TypeSubscriptionAttribute } from '../../src/core/TypeSubscriptionAttribute';
 import { BaseAgent } from '../../src/core/BaseAgent';
@@ -9,6 +9,10 @@ import { MessageContext } from '../../src/contracts/MessageContext';
 
 @TypeSubscription("TestTopic")
 class SubscribedAgent extends BaseAgent {
+    constructor(id: AgentId, runtime: IAgentRuntime) {
+        super(id, runtime, "Test Agent");
+    }
+
     async handleAsync(message: unknown, context: MessageContext): Promise<unknown> {
         return null;
     }
@@ -31,64 +35,54 @@ class ThirdSubscribedAgent extends BaseAgent {
 describe('InProcessRuntime', () => {
   it('should not deliver to self by default', async () => {
     const runtime = new InProcessRuntime();
-    let agent: SubscribedSaveLoadAgent | undefined;
+    let agent: SubscribedSelfPublishAgent | undefined;
 
-    // Use "test" as the key to match topic.source
-    const agentId = { type: "MyAgent", key: "test" }; 
+    // Register and create agent with description
+    const agentId = { type: "MyAgent", key: "test" };
     await runtime.registerAgentFactoryAsync("MyAgent", async (id, runtime) => {
-      agent = new SubscribedSaveLoadAgent(id, runtime);
+      agent = new SubscribedSelfPublishAgent(id, runtime);
       return agent;
     });
 
+    // Ensure agent is created
     await runtime.getAgentMetadataAsync(agentId);
     expect(agent).toBeDefined();
     if (!agent) throw new Error("Agent not initialized");
 
+    // Add subscription
     await runtime.addSubscriptionAsync(new TypeSubscriptionAttribute("TestTopic").bind("MyAgent"));
 
-    const topicId: TopicId = { type: "TestTopic", source: "test" };
-    const message: TextMessage = { source: "TestTopic", content: "test" };
-    
-    // Key change: Pass the agent's ID as sender to trigger self-delivery check
-    await runtime.publishMessageAsync(message, topicId, agentId);
+    // Send message that will trigger self-publish
+    await runtime.publishMessageAsync("SelfMessage", { type: "TestTopic", source: "test" });
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    expect(Object.keys(agent!.ReceivedMessages).length).toBe(0);
+    // Verify the text remains default (self-message wasn't delivered)
+    expect(agent.Text.source).toBe("DefaultTopic");
+    expect(agent.Text.content).toBe("DefaultContent");
   });
 
   it('should deliver to self when deliverToSelf is true', async () => {
     const runtime = new InProcessRuntime();
     runtime.deliverToSelf = true;
-    let agent: SubscribedSaveLoadAgent;
+    let agent: SubscribedSelfPublishAgent;
 
     // Create and register agent
-    const agentId = { type: "MyAgent", key: "default" };
+    const agentId = { type: "MyAgent", key: "test" };
     await runtime.registerAgentFactoryAsync("MyAgent", async (id, runtime) => {
-      agent = new SubscribedSaveLoadAgent(id, runtime);
+      agent = new SubscribedSelfPublishAgent(id, runtime);
       return agent;
     });
-    
-    // Ensure agent exists
-    await runtime.getAgentMetadataAsync(agentId);
-    
-    // Add subscription
-    const subscription = new TypeSubscriptionAttribute("TestTopic").bind("MyAgent");
-    await runtime.addSubscriptionAsync(subscription);
 
-    // Send message with explicit sender ID
-    const topicId: TopicId = { type: "TestTopic", source: "test" };
-    const message: TextMessage = { source: "TestTopic", content: "test" };
-    await runtime.publishMessageAsync(message, topicId, agentId);
-    
-    // Wait for message processing and verify
+    // Add subscription
+    await runtime.addSubscriptionAsync(new TypeSubscriptionAttribute("TestTopic").bind("MyAgent"));
+
+    // Send message that will trigger self-publish
+    await runtime.publishMessageAsync("SelfMessage", { type: "TestTopic", source: "test" });
     await new Promise(resolve => setTimeout(resolve, 500));
 
-    console.log('Test verification:', {
-      agentMessages: agent!.ReceivedMessages,
-      messageLength: Object.keys(agent!.ReceivedMessages).length
-    });
-
-    expect(Object.keys(agent!.ReceivedMessages).length).toBe(1);
+    // Verify the text was updated (self-message was delivered)
+    expect(agent!.Text.source).toBe("TestTopic");
+    expect(agent!.Text.content).toBe("SelfMessage");
   });
 
   // Test for save/load state functionality
