@@ -6,7 +6,7 @@ namespace Microsoft.AutoGen.Contracts;
 /// <summary>
 /// Represents an agent within the runtime that can process messages, maintain state, and be closed when no longer needed.
 /// </summary>
-public interface IAgent : ISaveState<IAgent>
+public interface IAgent : ISaveState
 {
     /// <summary>
     /// Gets the unique identifier of the agent.
