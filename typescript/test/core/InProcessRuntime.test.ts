@@ -35,6 +35,9 @@ class ThirdSubscribedAgent extends BaseAgent {
 describe('InProcessRuntime', () => {
   it('should not deliver to self by default', async () => {
     const runtime = new InProcessRuntime();
+    console.log('Starting runtime...');
+    await runtime.start();  // Add explicit start like .NET version
+
     let agent: SubscribedSelfPublishAgent | undefined;
 
     // Register and create agent with description
@@ -44,17 +47,34 @@ describe('InProcessRuntime', () => {
       return agent;
     });
 
-    // Ensure agent is created
+    console.log('Agent registered, ensuring creation...');
     await runtime.getAgentMetadataAsync(agentId);
     expect(agent).toBeDefined();
     if (!agent) throw new Error("Agent not initialized");
 
+    console.log('Agent state before subscription:', {
+      Text: agent.Text,
+      agentId: agent.id
+    });
+
     // Add subscription
-    await runtime.addSubscriptionAsync(new TypeSubscriptionAttribute("TestTopic").bind("MyAgent"));
+    const sub = new TypeSubscriptionAttribute("TestTopic").bind("MyAgent");
+    await runtime.addSubscriptionAsync(sub);
+    console.log('Added subscription:', {
+      id: sub.id,
+      agentType: "MyAgent",
+      topic: "TestTopic"
+    });
 
     // Send message that will trigger self-publish
+    console.log('Sending initial message...');
     await runtime.publishMessageAsync("SelfMessage", { type: "TestTopic", source: "test" });
     await new Promise(resolve => setTimeout(resolve, 100));
+
+    console.log('Final agent state:', {
+      Text: agent.Text,
+      defaultText: { source: "DefaultTopic", content: "DefaultContent" }
+    });
 
     // Verify the text remains default (self-message wasn't delivered)
     expect(agent.Text.source).toBe("DefaultTopic");

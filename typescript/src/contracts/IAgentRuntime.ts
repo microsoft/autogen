@@ -45,5 +45,8 @@ export interface IAgentRuntime {
 
   addSubscriptionAsync(subscription: ISubscriptionDefinition): Promise<void>;
 
-  removeSubscriptionAsync(subscriptionId: string): Promise<void>;  // Add missing method
+  removeSubscriptionAsync(subscriptionId: string): Promise<void>;
+
+  start(): Promise<void>;
+  stop(): Promise<void>;
 }
