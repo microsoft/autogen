@@ -25,7 +25,7 @@ class SpeakMessageAgent extends ChatAgentBase {
     }
 
     get producedMessageTypes(): Array<Function> {
-        return [HandoffMessage];
+        return [ChatMessage];  // Change: Produce ChatMessage instead of HandoffMessage
     }
 
     async handleAsync(messages: ChatMessage[]): Promise<Response> {

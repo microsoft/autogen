@@ -23,46 +23,74 @@ export class RoundRobinGroupChat extends GroupChatManagerBase implements ITeam {
     }
 
     protected async handleStartAsync(message: GroupChatStart, context: MessageContext): Promise<void> {
+        console.log('RoundRobinGroupChat.handleStartAsync:', {
+            hasMessages: !!message.messages,
+            messageCount: message.messages?.length ?? 0
+        });
+
+        // Reset state
+        await this.resetAsync();
+        
+        // Add initial messages
         if (message.messages) {
             this.messages.push(...message.messages);
+            console.log('Added initial messages:', {
+                messages: this.messages.map(m => ({
+                    type: m.constructor.name,
+                    content: 'content' in m ? m.content : undefined
+                }))
+            });
         }
 
+        // Send initial request to first participant
         await this.publishNextAsync();
     }
 
     protected async handleResponseAsync(message: GroupChatAgentResponse, context: MessageContext): Promise<void> {
         const response = message.agentResponse;
         
-        // Add ChatMessage type check
-        if (!(response.message instanceof ChatMessage)) {
-            throw new Error("Response message must be a ChatMessage");
+        // Add response message to collection
+        if (response.message) {
+            this.messages.push(response.message);
+            console.log('Added response message:', {
+                type: response.message.constructor.name,
+                content: 'content' in response.message ? response.message.content : undefined,
+                totalMessages: this.messages.length
+            });
         }
-        
-        this.messages.push(response.message);
 
-        if (response.innerMessages) {
-            this.messages.push(...response.innerMessages);
-        }
-
-        // Check termination condition before continuing
+        // Check termination before continuing
         const stopMessage = await this.checkTerminationConditionAsync(this.messages);
         if (stopMessage) {
+            console.log('Got stop message:', {
+                content: stopMessage.content
+            });
             this.messages.push(stopMessage);
             return;
         }
 
+        // Continue to next participant
         await this.publishNextAsync();
+        
+        // Wait for message processing
+        await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     private async publishNextAsync(): Promise<void> {
-        // Get next participant in round-robin order
         this.lastParticipantIndex = (this.lastParticipantIndex + 1) % this.options.participants.size;
         const participantEntry = Array.from(this.options.participants.entries())[this.lastParticipantIndex];
+        
         if (!participantEntry) {
             throw new Error("No participants available");
         }
 
         const [name, participant] = participantEntry;
+        console.log('Publishing to next participant:', {
+            name,
+            participantIndex: this.lastParticipantIndex,
+            totalParticipants: this.options.participants.size
+        });
+
         await this.publishMessageAsync(
             new GroupChatRequestPublish(),
             participant.topicType
