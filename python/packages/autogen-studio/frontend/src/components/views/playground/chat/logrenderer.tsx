@@ -146,7 +146,7 @@ const LLMLogRenderer: React.FC<LLMLogRendererProps> = ({ content }) => {
     }
   }, [content]);
 
-  console.log(parsedContent);
+  // console.log(parsedContent);
 
   if (!parsedContent) {
     return (

@@ -26,7 +26,51 @@ interface RunViewProps {
   onInputResponse?: (response: string) => void;
   onCancel?: () => void;
   isFirstRun?: boolean;
+  streamingContent?: {
+    runId: string;
+    content: string;
+    source: string;
+  } | null;
 }
+
+interface StreamingMessageProps {
+  content: string;
+  source: string;
+}
+
+const StreamingMessage: React.FC<StreamingMessageProps> = ({
+  content,
+  source,
+}) => {
+  const [showCursor, setShowCursor] = useState(true);
+
+  // Blinking cursor effect
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setShowCursor((prev) => !prev);
+    }, 530);
+    return () => clearInterval(interval);
+  }, []);
+
+  return (
+    <div className="flex items-start gap-2 p-2 rounded bg-tertiary border border-secondary transition-all duration-200 mb-6">
+      <div className="p-1.5 rounded bg-light text-primary">
+        <Bot size={14} />
+      </div>
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-2">
+          <span className="text-sm font-semibold text-primary">{source}</span>
+        </div>
+        <div className="text-sm text-secondary break-all">
+          {content}
+          {showCursor && (
+            <span className="inline-block w-2 h-4 ml-1 bg-accent/70 animate-pulse" />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 export const getAgentMessages = (messages: Message[]): Message[] => {
   return messages.filter((msg) => msg.config.source !== "llm_call_event");
@@ -51,6 +95,7 @@ const RunView: React.FC<RunViewProps> = ({
   onCancel,
   teamConfig,
   isFirstRun = false,
+  streamingContent,
 }) => {
   const [isExpanded, setIsExpanded] = useState(true);
   const threadContainerRef = useRef<HTMLDivElement | null>(null);
@@ -78,8 +123,7 @@ const RunView: React.FC<RunViewProps> = ({
         });
       }
     }, 450);
-  }, [run.messages]); // Only depend on messages changing
-  // console.log("run", run);
+  }, [run.messages, streamingContent]);
   const calculateThreadTokens = (messages: Message[]) => {
     // console.log("messages", messages);
     return messages.reduce((total, msg) => {
@@ -312,6 +356,15 @@ const RunView: React.FC<RunViewProps> = ({
                           />
                         </div>
                       ))}
+                      {streamingContent &&
+                        streamingContent.runId === run.id && (
+                          <div className="mr-2 mb-10">
+                            <StreamingMessage
+                              content={streamingContent.content}
+                              source={streamingContent.source}
+                            />
+                          </div>
+                        )}
 
                       {/* Input Request UI */}
                       {run.status === "awaiting_input" && onInputResponse && (

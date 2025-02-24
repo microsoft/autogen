@@ -147,7 +147,7 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
         editPath,
         updates
       );
-      console.log("updatedComponent", updatedComponent);
+
       setWorkingCopy(updatedComponent);
       //   onChange(updatedComponent);
     },

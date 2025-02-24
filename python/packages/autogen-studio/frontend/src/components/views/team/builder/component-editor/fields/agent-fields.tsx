@@ -1,10 +1,11 @@
 import React, { useCallback } from "react";
 import { Input, Switch, Button, Tooltip } from "antd";
-import { Edit, HelpCircle, Trash2 } from "lucide-react";
+import { Edit, HelpCircle, Trash2, PlusCircle } from "lucide-react";
 import {
   Component,
   ComponentConfig,
   AgentConfig,
+  FunctionToolConfig,
 } from "../../../../../types/datamodel";
 import {
   isAssistantAgent,
@@ -19,6 +20,11 @@ interface AgentFieldsProps {
   component: Component<AgentConfig>;
   onChange: (updates: Partial<Component<ComponentConfig>>) => void;
   onNavigate?: (componentType: string, id: string, parentField: string) => void;
+  workingCopy?: Component<ComponentConfig> | null;
+  setWorkingCopy?: (component: Component<ComponentConfig> | null) => void;
+  editPath?: any[];
+  updateComponentAtPath?: any;
+  getCurrentComponent?: any;
 }
 
 const InputWithTooltip: React.FC<{
@@ -44,6 +50,11 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
   component,
   onChange,
   onNavigate,
+  workingCopy,
+  setWorkingCopy,
+  editPath,
+  updateComponentAtPath,
+  getCurrentComponent,
 }) => {
   if (!component) return null;
 
@@ -83,116 +94,57 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
     [component, handleConfigUpdate]
   );
 
-  const renderNestedComponents = () => {
-    if (isAssistantAgent(component)) {
-      return (
-        <div className="space-y-4">
-          {component.config.model_client && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-primary">Model Client</h3>
-              <div className="bg-secondary p-4 rounded-md">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">
-                    {component.config.model_client.config.model}
-                  </span>
-                  {onNavigate && (
-                    <Button
-                      type="text"
-                      icon={<Edit className="w-4 h-4" />}
-                      onClick={() => {
-                        console.log("model clicked");
-                        onNavigate(
-                          "model",
-                          component.config.model_client?.label || "",
-                          "model_client"
-                        );
-                      }}
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
+  const handleAddTool = useCallback(() => {
+    if (!isAssistantAgent(component)) return;
 
-          {component.config.tools && component.config.tools.length > 0 && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-primary">Tools</h3>
-              <div className="space-y-2">
-                {component.config.tools.map((tool, index) => (
-                  <div key={tool.label} className="bg-secondary p-4 rounded-md">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm">
-                        {tool.label || tool.config.name}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {onNavigate && (
-                          <Button
-                            type="text"
-                            icon={<Edit className="w-4 h-4" />}
-                            onClick={() =>
-                              onNavigate(
-                                "tool",
-                                tool.label || tool.config.name || "",
-                                "tools"
-                              )
-                            }
-                          />
-                        )}
-                        <Button
-                          type="text"
-                          danger
-                          icon={<Trash2 className="w-4 h-4" />}
-                          onClick={() => handleRemoveTool(index)}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      );
+    const blankTool: Component<FunctionToolConfig> = {
+      provider: "autogen_core.tools.FunctionTool",
+      component_type: "tool",
+      version: 1,
+      component_version: 1,
+      description: "Create custom tools by wrapping standard Python functions.",
+      label: "New Tool",
+      config: {
+        source_code: "def new_function():\n    pass",
+        name: "new_function",
+        description: "Description of the new function",
+        global_imports: [],
+        has_cancellation_support: false,
+      },
+    };
+
+    // Update both working copy and actual component state
+    const currentTools = component.config.tools || [];
+    const updatedTools = [...currentTools, blankTool];
+
+    // Update the actual component state
+    handleConfigUpdate("tools", updatedTools);
+
+    // If working copy functionality is available, update that too
+    if (
+      workingCopy &&
+      setWorkingCopy &&
+      updateComponentAtPath &&
+      getCurrentComponent &&
+      editPath
+    ) {
+      const updatedCopy = updateComponentAtPath(workingCopy, editPath, {
+        config: {
+          ...getCurrentComponent(workingCopy)?.config,
+          tools: updatedTools,
+        },
+      });
+      setWorkingCopy(updatedCopy);
     }
-
-    if (isWebSurferAgent(component)) {
-      return (
-        <div className="space-y-4">
-          {component.config.model_client && (
-            <div className="space-y-2">
-              <h3 className="text-sm font-medium text-primary">Model Client</h3>
-              <div className="bg-secondary p-4 rounded-md">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm">
-                    {component.config.model_client.config.model}
-                  </span>
-                  {onNavigate && (
-                    <Button
-                      type="text"
-                      icon={<Edit className="w-4 h-4" />}
-                      onClick={() =>
-                        onNavigate(
-                          "model",
-                          component.config.model_client?.label || "",
-                          "model_client"
-                        )
-                      }
-                    />
-                  )}
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
-      );
-    }
-
-    return (
-      <div className="text-sm text-gray-500 text-center">
-        No nested components
-      </div>
-    );
-  };
+  }, [
+    component,
+    handleConfigUpdate,
+    workingCopy,
+    setWorkingCopy,
+    updateComponentAtPath,
+    getCurrentComponent,
+    editPath,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -225,10 +177,6 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
         </div>
       </DetailGroup>
 
-      <DetailGroup title="Nested Components">
-        {renderNestedComponents()}
-      </DetailGroup>
-
       <DetailGroup title="Configuration">
         <div className="space-y-4">
           {isAssistantAgent(component) && (
@@ -244,6 +192,45 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
                 />
               </InputWithTooltip>
 
+              {/* Model Client Section */}
+
+              <div className="space-y-2">
+                <span className="text-sm font-medium text-primary">
+                  Model Client
+                </span>
+                {component.config.model_client ? (
+                  <div className="bg-secondary p-1 px-2 rounded-md">
+                    <div className="flex items-center justify-between">
+                      {" "}
+                      <span className="text-sm">
+                        {component.config.model_client.config.model}
+                      </span>
+                      <div className="flex items-center justify-between">
+                        {component.config.model_client && onNavigate && (
+                          <Button
+                            type="text"
+                            icon={<Edit className="w-4 h-4" />}
+                            onClick={() =>
+                              onNavigate(
+                                "model",
+                                component.config.model_client?.label || "",
+                                "model_client"
+                              )
+                            }
+                          >
+                            Configure Model
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-secondary text-center bg-secondary/50 p-4 rounded-md">
+                    No model configured
+                  </div>
+                )}
+              </div>
+
               <InputWithTooltip
                 label="System Message"
                 tooltip="System message for the agent"
@@ -257,6 +244,64 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
                 />
               </InputWithTooltip>
 
+              {/* Tools Section */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium text-primary">
+                    Tools
+                  </span>
+                  <Button
+                    type="dashed"
+                    size="small"
+                    onClick={handleAddTool}
+                    icon={<PlusCircle className="w-4 h-4" />}
+                  >
+                    Add Tool
+                  </Button>
+                </div>
+                <div className="space-y-2">
+                  {component.config.tools?.map((tool, index) => (
+                    <div
+                      key={(tool.label || "") + index}
+                      className="bg-secondary p-1 px-2 rounded-md"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm">
+                          {tool.config.name || tool.label || ""}
+                        </span>
+                        <div className="flex items-center gap-2">
+                          {onNavigate && (
+                            <Button
+                              type="text"
+                              icon={<Edit className="w-4 h-4" />}
+                              onClick={() =>
+                                onNavigate(
+                                  "tool",
+                                  tool.config.name || tool.label || "",
+                                  "tools"
+                                )
+                              }
+                            />
+                          )}
+                          <Button
+                            type="text"
+                            danger
+                            icon={<Trash2 className="w-4 h-4" />}
+                            onClick={() => handleRemoveTool(index)}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                  {(!component.config.tools ||
+                    component.config.tools.length === 0) && (
+                    <div className="text-sm text-secondary text-center bg-secondary/50 p-4 rounded-md">
+                      No tools configured
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-primary">
                   Reflect on Tool Use
@@ -265,6 +310,18 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
                   checked={component.config.reflect_on_tool_use}
                   onChange={(checked) =>
                     handleConfigUpdate("reflect_on_tool_use", checked)
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-primary">
+                  Stream Model Client
+                </span>
+                <Switch
+                  checked={component.config.model_client_stream}
+                  onChange={(checked) =>
+                    handleConfigUpdate("model_client_stream", checked)
                   }
                 />
               </div>
@@ -312,7 +369,114 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
                   onChange={(e) => handleConfigUpdate("name", e.target.value)}
                 />
               </InputWithTooltip>
-              {/* Add other web surfer fields here */}
+              <InputWithTooltip
+                label="Start Page"
+                tooltip="URL to start browsing from"
+              >
+                <Input
+                  value={component.config.start_page || ""}
+                  onChange={(e) =>
+                    handleConfigUpdate("start_page", e.target.value)
+                  }
+                />
+              </InputWithTooltip>
+              <InputWithTooltip
+                label="Downloads Folder"
+                tooltip="Folder path to save downloads"
+              >
+                <Input
+                  value={component.config.downloads_folder || ""}
+                  onChange={(e) =>
+                    handleConfigUpdate("downloads_folder", e.target.value)
+                  }
+                />
+              </InputWithTooltip>
+              <InputWithTooltip
+                label="Debug Directory"
+                tooltip="Directory for debugging logs"
+              >
+                <Input
+                  value={component.config.debug_dir || ""}
+                  onChange={(e) =>
+                    handleConfigUpdate("debug_dir", e.target.value)
+                  }
+                />
+              </InputWithTooltip>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-primary">
+                  Headless
+                </span>
+                <Switch
+                  checked={component.config.headless || false}
+                  onChange={(checked) =>
+                    handleConfigUpdate("headless", checked)
+                  }
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-primary">
+                  Animate Actions
+                </span>
+                <Switch
+                  checked={component.config.animate_actions || false}
+                  onChange={(checked) =>
+                    handleConfigUpdate("animate_actions", checked)
+                  }
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-primary">
+                  Save Screenshots
+                </span>
+                <Switch
+                  checked={component.config.to_save_screenshots || false}
+                  onChange={(checked) =>
+                    handleConfigUpdate("to_save_screenshots", checked)
+                  }
+                />
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-primary">
+                  Use OCR
+                </span>
+                <Switch
+                  checked={component.config.use_ocr || false}
+                  onChange={(checked) => handleConfigUpdate("use_ocr", checked)}
+                />
+              </div>
+              <InputWithTooltip
+                label="Browser Channel"
+                tooltip="Channel for the browser (e.g. beta, stable)"
+              >
+                <Input
+                  value={component.config.browser_channel || ""}
+                  onChange={(e) =>
+                    handleConfigUpdate("browser_channel", e.target.value)
+                  }
+                />
+              </InputWithTooltip>
+              <InputWithTooltip
+                label="Browser Data Directory"
+                tooltip="Directory for browser profile data"
+              >
+                <Input
+                  value={component.config.browser_data_dir || ""}
+                  onChange={(e) =>
+                    handleConfigUpdate("browser_data_dir", e.target.value)
+                  }
+                />
+              </InputWithTooltip>
+              <div className="flex items-center justify-between">
+                <span className="text-sm font-medium text-primary">
+                  Resize Viewport
+                </span>
+                <Switch
+                  checked={component.config.to_resize_viewport || false}
+                  onChange={(checked) =>
+                    handleConfigUpdate("to_resize_viewport", checked)
+                  }
+                />
+              </div>
             </>
           )}
         </div>

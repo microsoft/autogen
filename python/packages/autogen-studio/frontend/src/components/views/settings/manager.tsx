@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { ChevronRight, RotateCcw } from "lucide-react";
+import { ChevronRight, RotateCcw, TriangleAlert, Variable } from "lucide-react";
 import { Switch, Button, Tooltip } from "antd";
 import { MessagesSquare } from "lucide-react";
 import { useSettingsStore } from "./store";
 import { SettingsSidebar } from "./sidebar";
 import { SettingsSection } from "./types";
 import { LucideIcon } from "lucide-react";
+import { EnvironmentVariables } from "./environment";
 
 interface SettingToggleProps {
   checked: boolean;
@@ -47,13 +48,13 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
       <Icon className="text-accent" size={20} />
       <h2 className="text-lg font-semibold">{title}</h2>
     </div>
-    <Tooltip title="Reset section settings">
+    {/* <Tooltip title="Reset section settings">
       <Button
         icon={<RotateCcw className="w-4 h-4" />}
         onClick={onReset}
         type="text"
       />
-    </Tooltip>
+    </Tooltip> */}
   </div>
 );
 
@@ -85,7 +86,7 @@ export const SettingsManager: React.FC = () => {
             icon={MessagesSquare}
             onReset={resetPlaygroundSettings}
           />
-          <div className="space-y-2 rounded  border border-secondary">
+          <div className="space-y-2 rounded border border-secondary">
             <SettingToggle
               checked={playground.showLLMEvents}
               onChange={(checked) =>
@@ -94,6 +95,41 @@ export const SettingsManager: React.FC = () => {
               label={"Show LLM Events"}
               description="Display detailed LLM call logs in the message thread"
             />
+          </div>
+          <div className="mt-12 pt-6 border-t border-secondary">
+            <p className="text-xs text-secondary">
+              These settings are automatically saved and synced across browser
+              sessions
+            </p>
+          </div>
+        </>
+      ),
+    },
+    {
+      id: "environment",
+      title: "Environment Variables",
+      icon: Variable,
+      content: () => (
+        <>
+          <SectionHeader
+            title="Environment Variables"
+            icon={Variable}
+            onReset={() => {
+              /* Add reset handler */
+            }}
+          />
+          <div>
+            <EnvironmentVariables />
+            <div className="mt-12 pt-6 border-t border-secondary">
+              <p className="text-xs text-secondary">
+                <TriangleAlert
+                  strokeWidth={1.5}
+                  className="inline-block mr-1 h-4 w-4 "
+                />{" "}
+                Note: Environment variables are currently available to all
+                processes on the server.
+              </p>
+            </div>
           </div>
         </>
       ),
@@ -139,21 +175,6 @@ export const SettingsManager: React.FC = () => {
           </div>
 
           <currentSection.content />
-
-          <div className="mt-12 pt-6 border-t border-secondary flex justify-between items-center">
-            <p className="text-xs text-secondary">
-              Settings are automatically saved and synced across browser
-              sessions
-            </p>
-            <Button
-              type="text"
-              danger
-              icon={<RotateCcw className="w-4 h-4 mr-1" />}
-              onClick={resetAllSettings}
-            >
-              Reset All Settings
-            </Button>
-          </div>
         </div>
       </div>
     </div>

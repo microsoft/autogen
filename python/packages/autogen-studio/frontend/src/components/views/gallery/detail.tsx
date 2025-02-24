@@ -11,6 +11,7 @@ import {
   Edit,
   Copy,
   Trash,
+  Plus,
 } from "lucide-react";
 import { ComponentEditor } from "../team/builder/component-editor/component-editor";
 import { TruncatableText } from "../atoms";
@@ -34,8 +35,9 @@ const ComponentCard: React.FC<
   CardActions & {
     item: Component<ComponentConfig>;
     index: number;
+    allowDelete: boolean;
   }
-> = ({ item, onEdit, onDuplicate, onDelete, index }) => (
+> = ({ item, onEdit, onDuplicate, onDelete, index, allowDelete }) => (
   <div
     className="bg-secondary rounded overflow-hidden group h-full cursor-pointer"
     onClick={() => onEdit(item, index)}
@@ -45,16 +47,18 @@ const ComponentCard: React.FC<
         {item.provider}
       </div>
       <div className="flex gap-0">
-        <Button
-          title="Delete"
-          type="text"
-          className="h-6 w-6 flex items-center justify-center p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600"
-          icon={<Trash className="w-3.5 h-3.5" />}
-          onClick={(e) => {
-            e.stopPropagation();
-            onDelete(item, index);
-          }}
-        />
+        {allowDelete && (
+          <Button
+            title="Delete"
+            type="text"
+            className="h-6 w-6 flex items-center justify-center p-0 opacity-0 group-hover:opacity-100 transition-opacity text-red-500 hover:text-red-600"
+            icon={<Trash className="w-3.5 h-3.5" />}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDelete(item, index);
+            }}
+          />
+        )}
         <Button
           title="Duplicate"
           type="text"
@@ -98,12 +102,15 @@ const ComponentGrid: React.FC<
   } & CardActions
 > = ({ items, title, ...actions }) => (
   <div>
-    <h3 className="text-base font-medium m-0 mb-4">
-      {items.length} {items.length === 1 ? title : `${title}s`}
-    </h3>
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 auto-rows-fr">
       {items.map((item, idx) => (
-        <ComponentCard key={idx} item={item} index={idx} {...actions} />
+        <ComponentCard
+          key={idx}
+          item={item}
+          index={idx}
+          allowDelete={items.length > 1}
+          {...actions}
+        />
       ))}
     </div>
   </div>
@@ -116,6 +123,21 @@ const iconMap = {
   model: Brain,
   termination: Timer,
 } as const;
+
+// Add default configurations for each component type
+const defaultConfigs: Record<ComponentTypes, ComponentConfig> = {
+  team: { selector_prompt: "Default selector prompt", participants: [] } as any,
+  agent: { name: "New Agent", description: "" } as any,
+  model: { model: "gpt-3.5", api_key: "" } as any,
+  tool: {
+    source_code: "",
+    name: "New Tool",
+    description: "A new tool",
+    global_imports: [],
+    has_cancellation_support: false,
+  },
+  termination: { max_messages: 1 },
+};
 
 export const GalleryDetail: React.FC<{
   gallery: Gallery;
@@ -187,6 +209,41 @@ export const GalleryDetail: React.FC<{
     },
   };
 
+  const handleAdd = () => {
+    const category = `${activeTab}s` as CategoryKey;
+    const components = gallery.components[category];
+    let newComponent: Component<ComponentConfig>;
+    const newLabel = `New ${
+      activeTab.charAt(0).toUpperCase() + activeTab.slice(1)
+    }`;
+
+    if (components.length > 0) {
+      // Clone the entire component and just modify the label
+      newComponent = {
+        ...components[0], // This preserves all fields (provider, version, description, etc.)
+        label: newLabel,
+      };
+    } else {
+      // Only for empty categories, use default config
+      newComponent = {
+        provider: "new",
+        component_type: activeTab,
+        config: defaultConfigs[activeTab],
+        label: newLabel,
+      };
+    }
+
+    updateGallery(category, (components) => {
+      const newComponents = [...components, newComponent];
+      setEditingComponent({
+        component: newComponent,
+        category,
+        index: newComponents.length - 1,
+      });
+      return newComponents;
+    });
+  };
+
   const handleComponentUpdate = (
     updatedComponent: Component<ComponentConfig>
   ) => {
@@ -212,11 +269,31 @@ export const GalleryDetail: React.FC<{
       </span>
     ),
     children: (
-      <ComponentGrid
-        items={gallery.components[`${key}s` as CategoryKey]}
-        title={key}
-        {...handlers}
-      />
+      <div>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-base font-medium">
+            {gallery.components[`${key}s` as CategoryKey].length}{" "}
+            {gallery.components[`${key}s` as CategoryKey].length === 1
+              ? key.charAt(0).toUpperCase() + key.slice(1)
+              : key.charAt(0).toUpperCase() + key.slice(1) + "s"}
+          </h3>
+          <Button
+            type="primary"
+            icon={<Plus className="w-4 h-4" />}
+            onClick={() => {
+              setActiveTab(key as ComponentTypes);
+              handleAdd();
+            }}
+          >
+            {`Add ${key.charAt(0).toUpperCase() + key.slice(1)}`}
+          </Button>
+        </div>
+        <ComponentGrid
+          items={gallery.components[`${key}s` as CategoryKey]}
+          title={key}
+          {...handlers}
+        />
+      </div>
     ),
   }));
 

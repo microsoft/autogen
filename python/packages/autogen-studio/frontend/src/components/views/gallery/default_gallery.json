@@ -4,8 +4,8 @@
   "url": null,
   "metadata": {
     "author": "AutoGen Team",
-    "created_at": "2025-02-18T16:52:37.999327",
-    "updated_at": "2025-02-18T16:52:38.055078",
+    "created_at": "2025-02-21T20:43:06.400850",
+    "updated_at": "2025-02-21T20:43:07.501068",
     "version": "1.0.0",
     "description": "A default gallery containing basic components for human-in-loop conversations",
     "tags": ["human-in-loop", "assistant", "web agents"],
@@ -75,8 +75,8 @@
         "component_type": "agent",
         "version": 1,
         "component_version": 1,
-        "description": "MultimodalWebSurfer is a multimodal agent that acts as a web surfer that can search the web and visit web pages.",
-        "label": "MultimodalWebSurfer",
+        "description": "An agent that solves tasks by browsing the web using a headless browser.",
+        "label": "Web Surfer Agent",
         "config": {
           "name": "websurfer_agent",
           "model_client": {
@@ -104,8 +104,8 @@
         "component_type": "agent",
         "version": 1,
         "component_version": 1,
-        "description": "An agent that provides assistance with tool use.",
-        "label": "AssistantAgent",
+        "description": "an agent that verifies and summarizes information",
+        "label": "Verification Assistant",
         "config": {
           "name": "assistant_agent",
           "model_client": {
@@ -414,8 +414,8 @@
         "component_type": "termination",
         "version": 1,
         "component_version": 1,
-        "description": null,
-        "label": "OrTerminationCondition",
+        "description": "Termination condition that ends the conversation when either a message contains 'TERMINATE' or the maximum number of messages is reached.",
+        "label": "OR Termination",
         "config": {
           "conditions": [
             {
@@ -1024,7 +1024,7 @@
                   "config": {}
                 },
                 "description": "A summary agent that provides a detailed markdown summary of the research as a report to the user.",
-                "system_message": "You are a summary agent. Your role is to provide a detailed markdown summary of the research as a report to the user. Your report should have a reasonable title that matches the research question and should summarize the key details in the results found in natural an actionable manner. The main results/answer should be in the first paragraph.\n        Your report should end with the word \"TERMINATE\" to signal the end of the conversation.",
+                "system_message": "You are a summary agent. Your role is to provide a detailed markdown summary of the research as a report to the user. Your report should have a reasonable title that matches the research question and should summarize the key details in the results found in natural an actionable manner. The main results/answer should be in the first paragraph. Where reasonable, your report should have clear comparison tables that drive critical insights. Most importantly, you should have a reference section and cite the key sources (where available) for facts obtained INSIDE THE MAIN REPORT. Also, where appropriate, you may add images if available that illustrate concepts needed for the summary.\n        Your report should end with the word \"TERMINATE\" to signal the end of the conversation.",
                 "model_client_stream": false,
                 "reflect_on_tool_use": false,
                 "tool_call_summary_format": "{result}"
