@@ -75,8 +75,21 @@ def _ollama_client_from_config(config: Mapping[str, Any]) -> AsyncClient:
     return AsyncClient(**ollama_config)
 
 
+OLLAMA_VALID_CHAT_ARGS_KEYS = [
+    "model",
+    "messages",
+    "tools",
+    "stream",
+    "format",
+    "options",
+    "keep_alive"
+]
 def _create_args_from_config(config: Mapping[str, Any]) -> Dict[str, Any]:
-    return dict(config).copy()
+    create_args = {k.lower(): v for k, v in config.items() if k.lower() in OLLAMA_VALID_CHAT_ARGS_KEYS}
+    dropped_keys = [k for k in config.keys() if k.lower() not in OLLAMA_VALID_CHAT_ARGS_KEYS]
+    logger.info(f"Dropped the following unrecognized keys from create_args: {dropped_keys}")
+    
+    return create_args
     # create_args = {k: v for k, v in config.items() if k in create_kwargs}
     # create_args_keys = set(create_args.keys())
     # if not required_create_args.issubset(create_args_keys):
