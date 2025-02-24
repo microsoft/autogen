@@ -129,3 +129,8 @@ async def test_cache_create_stream() -> None:
             assert not original.cached
         else:
             raise ValueError(f"Unexpected types : {type(original)} and {type(cached)}")
+
+    # test serialization
+    # cached_client_config = cached_client.dump_component()
+    # loaded_client = ChatCompletionCache.load_component(cached_client_config)
+    # assert loaded_client.client == cached_client.client
