@@ -11,11 +11,10 @@
   <ItemGroup>
 		<ProjectReference Include="..\Contracts\Microsoft.AutoGen.Contracts.csproj" />
 		<ProjectReference Include="..\Core\Microsoft.AutoGen.Core.csproj" />
-		<ProjectReference Include="..\Extensions\Aspire\Microsoft.AutoGen.Extensions.Aspire.csproj" />
   </ItemGroup>
   <ItemGroup>
-	  <PackageReference Include="Microsoft.SemanticKernel" />
    	<PackageReference Include="Microsoft.Extensions.AI.Abstractions" />
+    <PackageReference Include="Google.Protobuf" />
     <PackageReference Include="Grpc.Tools" PrivateAssets="All" />
   </ItemGroup>
   <ItemGroup>
