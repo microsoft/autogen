@@ -566,7 +566,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             tool = next((t for t in self._tools + self._handoff_tools if t.name == tool_call.name), None)
             if tool is None:
                 raise ValueError(f"The tool '{tool_call.name}' is not available.")
-            arguments = json.loads(tool_call.arguments)
+            arguments: Dict[str, Any] = json.loads(tool_call.arguments) if tool_call.arguments else {}
             result = await tool.run_json(arguments, cancellation_token)
             result_as_str = tool.return_value_as_string(result)
             return (tool_call, FunctionExecutionResult(content=result_as_str, call_id=tool_call.id, is_error=False))
