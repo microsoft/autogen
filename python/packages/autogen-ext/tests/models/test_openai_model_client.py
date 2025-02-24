@@ -1,7 +1,7 @@
 import asyncio
 import json
 import os
-from typing import Annotated, Any, AsyncGenerator, Dict, Generic, List, Literal, Tuple, TypeVar
+from typing import Annotated, Any, AsyncGenerator, Dict, List, Literal, Tuple, TypeVar
 from unittest.mock import MagicMock
 
 import httpx
@@ -23,7 +23,14 @@ from autogen_core.tools import BaseTool, FunctionTool
 from autogen_ext.models.openai import AzureOpenAIChatCompletionClient, OpenAIChatCompletionClient
 from autogen_ext.models.openai._model_info import resolve_model
 from autogen_ext.models.openai._openai_client import calculate_vision_tokens, convert_tools, to_oai_type
-from openai.resources.beta.chat.completions import AsyncCompletions as BetaAsyncCompletions
+from openai.resources.beta.chat.completions import (  # type: ignore
+    AsyncChatCompletionStreamManager as BetaAsyncChatCompletionStreamManager,  # type: ignore
+)
+
+# type: ignore
+from openai.resources.beta.chat.completions import (
+    AsyncCompletions as BetaAsyncCompletions,
+)
 from openai.resources.chat.completions import AsyncCompletions
 from openai.types.chat.chat_completion import ChatCompletion, Choice
 from openai.types.chat.chat_completion_chunk import (
@@ -32,52 +39,20 @@ from openai.types.chat.chat_completion_chunk import (
     ChoiceDeltaToolCall,
     ChoiceDeltaToolCallFunction,
 )
-from openai.types.chat.chat_completion_chunk import Choice as ChunkChoice
+from openai.types.chat.chat_completion_chunk import (
+    Choice as ChunkChoice,
+)
 from openai.types.chat.chat_completion_message import ChatCompletionMessage
 from openai.types.chat.chat_completion_message_tool_call import (
     ChatCompletionMessageToolCall,
     Function,
 )
 from openai.types.chat.parsed_chat_completion import ParsedChatCompletion, ParsedChatCompletionMessage, ParsedChoice
+from openai.types.chat.parsed_function_tool_call import ParsedFunction, ParsedFunctionToolCall
 from openai.types.completion_usage import CompletionUsage
 from pydantic import BaseModel, Field
 
-
-class _MockChatCompletion:
-    def __init__(self, chat_completions: List[ChatCompletion]) -> None:
-        self._saved_chat_completions = chat_completions
-        self.curr_index = 0
-        self.calls: List[Dict[str, Any]] = []
-
-    async def mock_create(
-        self, *args: Any, **kwargs: Any
-    ) -> ChatCompletion | AsyncGenerator[ChatCompletionChunk, None]:
-        self.calls.append(kwargs)  # Save the call
-        await asyncio.sleep(0.1)
-        completion = self._saved_chat_completions[self.curr_index]
-        self.curr_index += 1
-        return completion
-
-
 ResponseFormatT = TypeVar("ResponseFormatT", bound=BaseModel)
-
-
-class _MockBetaChatCompletion(Generic[ResponseFormatT]):
-    def __init__(self, chat_completions: List[ParsedChatCompletion[ResponseFormatT]]) -> None:
-        self._saved_chat_completions = chat_completions
-        self.curr_index = 0
-        self.calls: List[Dict[str, Any]] = []
-
-    async def mock_parse(
-        self,
-        *args: Any,
-        **kwargs: Any,
-    ) -> ParsedChatCompletion[ResponseFormatT]:
-        self.calls.append(kwargs)  # Save the call
-        await asyncio.sleep(0.1)
-        completion = self._saved_chat_completions[self.curr_index]
-        self.curr_index += 1
-        return completion
 
 
 def _pass_function(input: str) -> str:
@@ -104,6 +79,11 @@ class MockChunkDefinition(BaseModel):
     # defining elements for diffentiating mocking chunks
     chunk_choice: ChunkChoice
     usage: CompletionUsage | None
+
+
+class MockChunkEvent(BaseModel):
+    type: Literal["chunk"]
+    chunk: ChatCompletionChunk
 
 
 async def _mock_create_stream(*args: Any, **kwargs: Any) -> AsyncGenerator[ChatCompletionChunk, None]:
@@ -443,8 +423,9 @@ async def test_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:
         response: Literal["happy", "sad", "neutral"]
 
     model = "gpt-4o-2024-11-20"
-    chat_completions: List[ParsedChatCompletion[AgentResponse]] = [
-        ParsedChatCompletion(
+
+    async def _mock_parse(*args: Any, **kwargs: Any) -> ParsedChatCompletion[AgentResponse]:
+        return ParsedChatCompletion(
             id="id1",
             choices=[
                 ParsedChoice(
@@ -465,10 +446,9 @@ async def test_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:
             model=model,
             object="chat.completion",
             usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
-        ),
-    ]
-    mock = _MockBetaChatCompletion(chat_completions)
-    monkeypatch.setattr(BetaAsyncCompletions, "parse", mock.mock_parse)
+        )
+
+    monkeypatch.setattr(BetaAsyncCompletions, "parse", _mock_parse)
 
     model_client = OpenAIChatCompletionClient(
         model=model,
@@ -480,6 +460,258 @@ async def test_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:
     create_result = await model_client.create(messages=[UserMessage(content="I am happy.", source="user")])
     assert isinstance(create_result.content, str)
     response = AgentResponse.model_validate(json.loads(create_result.content))
+    assert (
+        response.thoughts
+        == "The user explicitly states that they are happy without any indication of sadness or neutrality."
+    )
+    assert response.response == "happy"
+
+
+@pytest.mark.asyncio
+async def test_structured_output_with_tool_calls(monkeypatch: pytest.MonkeyPatch) -> None:
+    class AgentResponse(BaseModel):
+        thoughts: str
+        response: Literal["happy", "sad", "neutral"]
+
+    model = "gpt-4o-2024-11-20"
+
+    async def _mock_parse(*args: Any, **kwargs: Any) -> ParsedChatCompletion[AgentResponse]:
+        return ParsedChatCompletion(
+            id="id1",
+            choices=[
+                ParsedChoice(
+                    finish_reason="tool_calls",
+                    index=0,
+                    message=ParsedChatCompletionMessage(
+                        content=json.dumps(
+                            {
+                                "thoughts": "The user explicitly states that they are happy without any indication of sadness or neutrality.",
+                                "response": "happy",
+                            }
+                        ),
+                        role="assistant",
+                        tool_calls=[
+                            ParsedFunctionToolCall(
+                                id="1",
+                                type="function",
+                                function=ParsedFunction(
+                                    name="_pass_function",
+                                    arguments=json.dumps({"input": "happy"}),
+                                ),
+                            )
+                        ],
+                    ),
+                )
+            ],
+            created=0,
+            model=model,
+            object="chat.completion",
+            usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
+        )
+
+    monkeypatch.setattr(BetaAsyncCompletions, "parse", _mock_parse)
+
+    model_client = OpenAIChatCompletionClient(
+        model=model,
+        api_key="",
+        response_format=AgentResponse,  # type: ignore
+    )
+
+    # Test that the openai client was called with the correct response format.
+    create_result = await model_client.create(messages=[UserMessage(content="I am happy.", source="user")])
+    assert isinstance(create_result.content, list)
+    assert len(create_result.content) == 1
+    assert create_result.content[0] == FunctionCall(
+        id="1", name="_pass_function", arguments=json.dumps({"input": "happy"})
+    )
+    assert isinstance(create_result.thought, str)
+    response = AgentResponse.model_validate(json.loads(create_result.thought))
+    assert (
+        response.thoughts
+        == "The user explicitly states that they are happy without any indication of sadness or neutrality."
+    )
+    assert response.response == "happy"
+
+
+@pytest.mark.asyncio
+async def test_structured_output_with_streaming(monkeypatch: pytest.MonkeyPatch) -> None:
+    class AgentResponse(BaseModel):
+        thoughts: str
+        response: Literal["happy", "sad", "neutral"]
+
+    raw_content = json.dumps(
+        {
+            "thoughts": "The user explicitly states that they are happy without any indication of sadness or neutrality.",
+            "response": "happy",
+        }
+    )
+    chunked_content = [raw_content[i : i + 5] for i in range(0, len(raw_content), 5)]
+    assert "".join(chunked_content) == raw_content
+
+    model = "gpt-4o-2024-11-20"
+    mock_chunk_events = [
+        MockChunkEvent(
+            type="chunk",
+            chunk=ChatCompletionChunk(
+                id="id",
+                choices=[
+                    ChunkChoice(
+                        finish_reason=None,
+                        index=0,
+                        delta=ChoiceDelta(
+                            content=mock_chunk_content,
+                            role="assistant",
+                        ),
+                    )
+                ],
+                created=0,
+                model=model,
+                object="chat.completion.chunk",
+                usage=None,
+            ),
+        )
+        for mock_chunk_content in chunked_content
+    ]
+
+    async def _mock_create_stream(*args: Any) -> AsyncGenerator[MockChunkEvent, None]:
+        async def _stream() -> AsyncGenerator[MockChunkEvent, None]:
+            for mock_chunk_event in mock_chunk_events:
+                await asyncio.sleep(0.1)
+                yield mock_chunk_event
+
+        return _stream()
+
+    # Mock the context manager __aenter__ method which returns the stream.
+    monkeypatch.setattr(BetaAsyncChatCompletionStreamManager, "__aenter__", _mock_create_stream)
+
+    model_client = OpenAIChatCompletionClient(
+        model=model,
+        api_key="",
+        response_format=AgentResponse,  # type: ignore
+    )
+
+    # Test that the openai client was called with the correct response format.
+    chunks: List[str | CreateResult] = []
+    async for chunk in model_client.create_stream(messages=[UserMessage(content="I am happy.", source="user")]):
+        chunks.append(chunk)
+    assert len(chunks) > 0
+    assert isinstance(chunks[-1], CreateResult)
+    assert isinstance(chunks[-1].content, str)
+    response = AgentResponse.model_validate(json.loads(chunks[-1].content))
+    assert (
+        response.thoughts
+        == "The user explicitly states that they are happy without any indication of sadness or neutrality."
+    )
+    assert response.response == "happy"
+
+
+@pytest.mark.asyncio
+async def test_structured_output_with_streaming_tool_calls(monkeypatch: pytest.MonkeyPatch) -> None:
+    class AgentResponse(BaseModel):
+        thoughts: str
+        response: Literal["happy", "sad", "neutral"]
+
+    raw_content = json.dumps(
+        {
+            "thoughts": "The user explicitly states that they are happy without any indication of sadness or neutrality.",
+            "response": "happy",
+        }
+    )
+    chunked_content = [raw_content[i : i + 5] for i in range(0, len(raw_content), 5)]
+    assert "".join(chunked_content) == raw_content
+
+    model = "gpt-4o-2024-11-20"
+
+    # generate the list of mock chunk content
+    mock_chunk_events = [
+        MockChunkEvent(
+            type="chunk",
+            chunk=ChatCompletionChunk(
+                id="id",
+                choices=[
+                    ChunkChoice(
+                        finish_reason=None,
+                        index=0,
+                        delta=ChoiceDelta(
+                            content=mock_chunk_content,
+                            role="assistant",
+                        ),
+                    )
+                ],
+                created=0,
+                model=model,
+                object="chat.completion.chunk",
+                usage=None,
+            ),
+        )
+        for mock_chunk_content in chunked_content
+    ]
+
+    # add the tool call chunk.
+    mock_chunk_events += [
+        MockChunkEvent(
+            type="chunk",
+            chunk=ChatCompletionChunk(
+                id="id",
+                choices=[
+                    ChunkChoice(
+                        finish_reason="tool_calls",
+                        index=0,
+                        delta=ChoiceDelta(
+                            content=None,
+                            role="assistant",
+                            tool_calls=[
+                                ChoiceDeltaToolCall(
+                                    id="1",
+                                    index=0,
+                                    type="function",
+                                    function=ChoiceDeltaToolCallFunction(
+                                        name="_pass_function",
+                                        arguments=json.dumps({"input": "happy"}),
+                                    ),
+                                )
+                            ],
+                        ),
+                    )
+                ],
+                created=0,
+                model=model,
+                object="chat.completion.chunk",
+                usage=None,
+            ),
+        )
+    ]
+
+    async def _mock_create_stream(*args: Any) -> AsyncGenerator[MockChunkEvent, None]:
+        async def _stream() -> AsyncGenerator[MockChunkEvent, None]:
+            for mock_chunk_event in mock_chunk_events:
+                await asyncio.sleep(0.1)
+                yield mock_chunk_event
+
+        return _stream()
+
+    # Mock the context manager __aenter__ method which returns the stream.
+    monkeypatch.setattr(BetaAsyncChatCompletionStreamManager, "__aenter__", _mock_create_stream)
+
+    model_client = OpenAIChatCompletionClient(
+        model=model,
+        api_key="",
+        response_format=AgentResponse,  # type: ignore
+    )
+
+    # Test that the openai client was called with the correct response format.
+    chunks: List[str | CreateResult] = []
+    async for chunk in model_client.create_stream(messages=[UserMessage(content="I am happy.", source="user")]):
+        chunks.append(chunk)
+    assert len(chunks) > 0
+    assert isinstance(chunks[-1], CreateResult)
+    assert isinstance(chunks[-1].content, list)
+    assert len(chunks[-1].content) == 1
+    assert chunks[-1].content[0] == FunctionCall(
+        id="1", name="_pass_function", arguments=json.dumps({"input": "happy"})
+    )
+    assert isinstance(chunks[-1].thought, str)
+    response = AgentResponse.model_validate(json.loads(chunks[-1].thought))
     assert (
         response.thoughts
         == "The user explicitly states that they are happy without any indication of sadness or neutrality."
@@ -812,6 +1044,20 @@ async def test_tool_calling(monkeypatch: pytest.MonkeyPatch) -> None:
             usage=CompletionUsage(prompt_tokens=10, completion_tokens=5, total_tokens=0),
         ),
     ]
+
+    class _MockChatCompletion:
+        def __init__(self, completions: List[ChatCompletion]):
+            self.completions = list(completions)
+            self.calls: List[Dict[str, Any]] = []
+
+        async def mock_create(
+            self, *args: Any, **kwargs: Any
+        ) -> ChatCompletion | AsyncGenerator[ChatCompletionChunk, None]:
+            if kwargs.get("stream", False):
+                raise NotImplementedError("Streaming not supported in this test.")
+            self.calls.append(kwargs)
+            return self.completions.pop(0)
+
     mock = _MockChatCompletion(chat_completions)
     monkeypatch.setattr(AsyncCompletions, "create", mock.mock_create)
     pass_tool = FunctionTool(_pass_function, description="pass tool.")
@@ -1063,6 +1309,35 @@ async def test_openai_structured_output() -> None:
 
 
 @pytest.mark.asyncio
+async def test_openai_structured_output_with_streaming() -> None:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        pytest.skip("OPENAI_API_KEY not found in environment variables")
+
+    class AgentResponse(BaseModel):
+        thoughts: str
+        response: Literal["happy", "sad", "neutral"]
+
+    model_client = OpenAIChatCompletionClient(
+        model="gpt-4o-mini",
+        api_key=api_key,
+        response_format=AgentResponse,  # type: ignore
+    )
+
+    # Test that the openai client was called with the correct response format.
+    stream = model_client.create_stream(messages=[UserMessage(content="I am happy.", source="user")])
+    chunks: List[str | CreateResult] = []
+    async for chunk in stream:
+        chunks.append(chunk)
+    assert len(chunks) > 0
+    assert isinstance(chunks[-1], CreateResult)
+    assert isinstance(chunks[-1].content, str)
+    response = AgentResponse.model_validate(json.loads(chunks[-1].content))
+    assert response.thoughts
+    assert response.response in ["happy", "sad", "neutral"]
+
+
+@pytest.mark.asyncio
 async def test_openai_structured_output_with_tool_calls() -> None:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
@@ -1090,6 +1365,7 @@ async def test_openai_structured_output_with_tool_calls() -> None:
             UserMessage(content="I am happy.", source="user"),
         ],
         tools=[tool],
+        extra_create_args={"tool_choice": "required"},
     )
     assert isinstance(response1.content, list)
     assert len(response1.content) == 1
@@ -1110,6 +1386,71 @@ async def test_openai_structured_output_with_tool_calls() -> None:
     )
     assert isinstance(response2.content, str)
     parsed_response = AgentResponse.model_validate(json.loads(response2.content))
+    assert parsed_response.thoughts
+    assert parsed_response.response in ["happy", "sad", "neutral"]
+
+
+@pytest.mark.asyncio
+async def test_openai_structured_output_with_streaming_tool_calls() -> None:
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        pytest.skip("OPENAI_API_KEY not found in environment variables")
+
+    class AgentResponse(BaseModel):
+        thoughts: str
+        response: Literal["happy", "sad", "neutral"]
+
+    def sentiment_analysis(text: str) -> str:
+        """Given a text, return the sentiment."""
+        return "happy" if "happy" in text else "sad" if "sad" in text else "neutral"
+
+    tool = FunctionTool(sentiment_analysis, description="Sentiment Analysis", strict=True)
+
+    model_client = OpenAIChatCompletionClient(
+        model="gpt-4o-mini",
+        api_key=api_key,
+        response_format=AgentResponse,  # type: ignore
+    )
+
+    chunks1: List[str | CreateResult] = []
+    stream1 = model_client.create_stream(
+        messages=[
+            SystemMessage(content="Analyze input text sentiment using the tool provided."),
+            UserMessage(content="I am happy.", source="user"),
+        ],
+        tools=[tool],
+        extra_create_args={"tool_choice": "required"},
+    )
+    async for chunk in stream1:
+        chunks1.append(chunk)
+    assert len(chunks1) > 0
+    create_result1 = chunks1[-1]
+    assert isinstance(create_result1, CreateResult)
+    assert isinstance(create_result1.content, list)
+    assert len(create_result1.content) == 1
+    assert isinstance(create_result1.content[0], FunctionCall)
+    assert create_result1.content[0].name == "sentiment_analysis"
+    assert json.loads(create_result1.content[0].arguments) == {"text": "I am happy."}
+    assert create_result1.finish_reason == "function_calls"
+
+    stream2 = model_client.create_stream(
+        messages=[
+            SystemMessage(content="Analyze input text sentiment using the tool provided."),
+            UserMessage(content="I am happy.", source="user"),
+            AssistantMessage(content=create_result1.content, source="assistant"),
+            FunctionExecutionResultMessage(
+                content=[FunctionExecutionResult(content="happy", call_id=create_result1.content[0].id, is_error=False)]
+            ),
+        ],
+    )
+    chunks2: List[str | CreateResult] = []
+    async for chunk in stream2:
+        chunks2.append(chunk)
+    assert len(chunks2) > 0
+    create_result2 = chunks2[-1]
+    assert isinstance(create_result2, CreateResult)
+    assert isinstance(create_result2.content, str)
+    parsed_response = AgentResponse.model_validate(json.loads(create_result2.content))
     assert parsed_response.thoughts
     assert parsed_response.response in ["happy", "sad", "neutral"]
 
