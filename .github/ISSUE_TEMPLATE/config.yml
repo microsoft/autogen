@@ -1,5 +1,8 @@
-blank_issues_enabled: true
+blank_issues_enabled: false
 contact_links:
-  - name: Questions or general help 💬
+  - name: 💬 Questions or general help
     url: https://github.com/microsoft/autogen/discussions
     about: Please ask and answer questions here.
+  - name: 💡 Suggest a new feature
+    url: https://github.com/microsoft/autogen/discussions/categories/feature-suggestions
+    about: Please suggest new features here and once the feature is accepted a maintainer will create an issue.

@@ -1,6 +1,8 @@
-name: Bug Report
+name: 🐛 Bug Report
 description: Report a bug
 type: "bug"
+labels:
+  - needs-triage
 
 body:
   - type: markdown
@@ -8,7 +10,7 @@ body:
       value: |
         ## Please Read the following before submitting an issue.
 
-        ### Have you read the doc?
+        ### Have you read the docs?
         - [Python AgentChat User Guide and Tutorial](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/index.html)
         - [Python Core API User Guide](https://microsoft.github.io/autogen/stable/user-guide/core-user-guide/index.html)
         - [Python API Doc](https://microsoft.github.io/autogen/stable/reference/index.html)
