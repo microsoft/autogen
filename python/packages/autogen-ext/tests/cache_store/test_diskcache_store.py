@@ -46,3 +46,8 @@ def test_diskcache_with_different_instances() -> None:
 
         store_2.set(test_key, test_value_2)
         assert store_2.get(test_key) == test_value_2
+
+        # test serialization
+        store_1_config = store_1.dump_component()
+        loaded_store_1: DiskCacheStore[int] = DiskCacheStore.load_component(store_1_config)
+        assert loaded_store_1.get(test_key) == test_value_1
