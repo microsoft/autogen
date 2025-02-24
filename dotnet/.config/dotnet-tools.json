@@ -15,13 +15,6 @@
         "docfx"
       ],
       "rollForward": true
-    },
-    "microsoft.autogen.agenthost": {
-      "version": "0.4.0",
-      "commands": [
-        "agenthost"
-      ],
-      "rollForward": false
     }
   }
 }
