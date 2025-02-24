@@ -104,6 +104,20 @@ export interface IAgentRuntime {
    * @throws {Error} If the subscription does not exist
    */
   removeSubscriptionAsync(subscriptionId: string): Promise<void>;
+
+  /**
+   * Starts the agent runtime, initializing all necessary resources and services.
+   * Must be called before any other operations can be performed.
+   * @returns A promise that resolves when the runtime has started successfully
+   * @throws {Error} If the runtime fails to start or is already running
+   */
   start(): Promise<void>;
+
+  /**
+   * Stops the agent runtime, cleaning up resources and shutting down services.
+   * No further operations should be performed after stopping the runtime.
+   * @returns A promise that resolves when the runtime has stopped successfully
+   * @throws {Error} If the runtime fails to stop or is not running
+   */
   stop(): Promise<void>;
 }
