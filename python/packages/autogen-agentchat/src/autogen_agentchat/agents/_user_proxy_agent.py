@@ -39,11 +39,6 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
 
     This agent can be used to represent a human user in a chat system by providing a custom input function.
 
-    Args:
-        name (str): The name of the agent.
-        description (str, optional): A description of the agent.
-        input_func (Optional[Callable[[str], str]], Callable[[str, Optional[CancellationToken]], Awaitable[str]]): A function that takes a prompt and returns a user input string.
-
     .. note::
 
         Using :class:`UserProxyAgent` puts a running team in a temporary blocked
@@ -58,7 +53,17 @@ class UserProxyAgent(BaseChatAgent, Component[UserProxyAgentConfig]):
         You can run the team again with the user input. This way, the state of the team
         can be saved and restored when the user responds.
 
-        See `Human-in-the-loop <https://microsoft.github.io/autogen/dev/user-guide/agentchat-user-guide/tutorial/human-in-the-loop.html>`_ for more information.
+        See `Human-in-the-loop <https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/human-in-the-loop.html>`_ for more information.
+
+    Args:
+        name (str): The name of the agent.
+        description (str, optional): A description of the agent.
+        input_func (Optional[Callable[[str], str]], Callable[[str, Optional[CancellationToken]], Awaitable[str]]): A function that takes a prompt and returns a user input string.
+
+    For examples of integrating with web and UI frameworks, see the following:
+
+    * `FastAPI <https://github.com/microsoft/autogen/tree/main/python/samples/agentchat_fastapi>`_
+    * `ChainLit <https://github.com/microsoft/autogen/tree/main/python/samples/agentchat_chainlit>`_
 
     Example:
         Simple usage case::

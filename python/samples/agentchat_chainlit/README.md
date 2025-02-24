@@ -5,8 +5,6 @@ interacts with an [AgentChat](https://microsoft.github.io/autogen/stable/user-gu
 agent or a team, using [Chainlit](https://github.com/Chainlit/chainlit),
 and support streaming messages.
 
-![AgentChat](docs/chainlit_autogen.png).
-
 ## Installation
 
 To run this sample, you will need to install the following packages:
@@ -54,6 +52,24 @@ There are two agents in the team: one is instructed to be generally helpful
 and the other one is instructed to be a critic and provide feedback. 
 The two agents will respond in round-robin fashion until
 the 'APPROVE' is mentioned by the critic agent.
+
+## Running the Team Sample with UserProxyAgent
+
+The third sample demonstrate how to interact with a team of agents including
+a [UserProxyAgent](https://microsoft.github.io/autogen/stable/reference/python/autogen_agentchat.agents.html#autogen_agentchat.agents.UserProxyAgent)
+for approval or rejection.
+
+```shell
+chainlit run app_team_user_proxy.py -h
+```
+
+You can use one of the starters. For example, ask "Write code to reverse a string.".
+
+By default, the `UserProxyAgent` will request an input action from the user
+to approve or reject the response from the team.
+When the user approves the response, the `UserProxyAgent` will send a message
+to the team containing the text "APPROVE", and the team will stop responding.
+
 
 ## Next Steps
 
