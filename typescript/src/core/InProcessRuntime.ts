@@ -31,13 +31,24 @@ export class InProcessRuntime implements IAgentRuntime {
 
   async stop(): Promise<void> {
     if (!this.isRunning) {
-      throw new Error("Runtime not running");
+      return; // Change from throwing to just returning
     }
+    
     if (this.messageProcessor) {
       clearInterval(this.messageProcessor);
       this.messageProcessor = undefined;
     }
+    
     this.isRunning = false;
+
+    // Process any remaining messages
+    while (this.messageDeliveryQueue.length > 0) {
+      await this.processNextMessage();
+    }
+
+    // Clear queue and subscriptions
+    this.messageDeliveryQueue = [];
+    this.subscriptions.clear();
   }
 
   private async publishMessageServicer(envelope: MessageEnvelope, deliveryToken?: AbortSignal): Promise<void> {

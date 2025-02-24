@@ -31,6 +31,8 @@ describe('Agent', () => {
     // Wait for message processing
     await new Promise(resolve => setTimeout(resolve, 100));
     expect(Object.keys(agent!.ReceivedMessages).length).toBe(0);
+
+    await runtime.stop(); // Add cleanup
   });
 
   it('should receive messages when subscribed', async () => {
