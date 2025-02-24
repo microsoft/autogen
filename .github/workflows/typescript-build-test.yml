@@ -1,0 +1,88 @@
+
+name: typescript-ci
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [ "main", "staging" ]
+  push:
+    branches: [ "main", "staging" ]
+  merge_group:
+    types: [checks_requested]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.head_ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' || github.ref != 'refs/heads/dotnet' }}
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  paths-filter:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      repository-projects: write
+    outputs:
+      hasChanges: ${{ steps.filter.outputs.typescript == 'true'}}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            dotnet:
+              - "typescript/**"
+            workflows:
+              - ".github/workflows/**"
+      - name: typescript has changes
+        run: echo "typescript has changes"
+        if: steps.filter.outputs.dotnet == 'true'
+      - name: workflows has changes
+        run: echo "workflows has changes"
+        if: steps.filter.outputs.workflows == 'true'
+
+  build:
+    name: Typescript Build & Test
+    needs: paths-filter
+    if: needs.paths-filter.outputs.hasChanges == 'true'
+    defaults:
+      run:
+        working-directory: dotnet
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, macos-latest ]
+        python-version: ["3.11"]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        lfs: true
+    - uses: astral-sh/setup-uv@v5
+      with:
+        enable-cache: true
+        version: "0.5.18"
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
+    - run: uv sync --locked --all-extras
+      working-directory: ./python
+    - name: Prepare python venv
+      run: |
+        source ${{ github.workspace }}/python/.venv/bin/activate
+    - name: Setup node and npm
+      uses: actions/setup-node@v4
+      with:
+        node-version: '18'
+    - name: Install dependencies
+      run: npm install
+    - name: Build
+      run: npm run build
+    - name: Test
+      run: npm test
+   
+
