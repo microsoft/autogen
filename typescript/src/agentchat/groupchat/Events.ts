@@ -41,7 +41,16 @@ export class GroupChatAgentResponse extends GroupChatEventBase {
 /**
  * A request to publish a message to a group chat.
  */
-export class GroupChatRequestPublish extends GroupChatEventBase {}
+export class GroupChatRequestPublish extends GroupChatEventBase {
+    messages?: AgentMessage[];
+
+    constructor(options?: { messages?: AgentMessage[] }) {
+        super();
+        if (options?.messages) {
+            this.messages = options.messages;
+        }
+    }
+}
 
 /**
  * A message from a group chat.

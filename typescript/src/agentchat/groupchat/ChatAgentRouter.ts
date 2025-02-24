@@ -50,54 +50,39 @@ export class ChatAgentRouter extends HostableAgentAdapter {
 
         // Handle reset request
         if (message instanceof GroupChatReset) {
-            this.messages = [];
             await this.agent.resetAsync();
+            this.messages = []; // Clear messages on reset
             console.log('Reset agent state');
             return null;
         }
         
         // Handle start request
         if (message instanceof GroupChatStart) {
-            this.messages = message.messages || [];
-            console.log('Started with messages:', {
-                count: this.messages.length,
-                messages: this.messages.map(m => ({
-                    type: m.constructor.name,
-                    content: 'content' in m ? m.content : undefined
-                }))
-            });
+            if (message.messages) {
+                this.messages = [...message.messages];
+            }
             return null;
         }
 
         // Handle publish request
         if (message instanceof GroupChatRequestPublish) {
-            // Use stored messages for agent response
-            const chatMessages = this.messages.filter((m): m is ChatMessage => m instanceof ChatMessage);
-            console.log('Processing messages:', { 
-                count: chatMessages.length,
-                messages: chatMessages.map(m => m.content)
+            // Use provided messages, don't overwrite existing ones
+            const messagesForAgent = message.messages ?? this.messages;
+            
+            console.log('Processing messages for publish:', {
+                messageCount: messagesForAgent.length,
+                messages: messagesForAgent.map(m => ({
+                    type: m.constructor.name,
+                    content: 'content' in m ? m.content : undefined
+                }))
             });
 
+            const chatMessages = messagesForAgent.filter((m): m is ChatMessage => m instanceof ChatMessage);
             const response = await this.chatAgent.handleAsync(chatMessages);
             
             if (response.message) {
-                this.messages.push(response.message);
-                console.log('Got agent response:', {
-                    type: response.message.constructor.name,
-                    content: 'content' in response.message ? response.message.content : undefined,
-                    totalMessages: this.messages.length
-                });
+                return new GroupChatAgentResponse({ agentResponse: response });
             }
-            
-            return new GroupChatAgentResponse({ agentResponse: response });
-        }
-        
-        // For other messages
-        if (message instanceof ChatMessage) {
-            console.log('Adding chat message:', {
-                content: message.content
-            });
-            this.messages.push(message);
         }
         
         return null;

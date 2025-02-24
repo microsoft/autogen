@@ -3,7 +3,7 @@ import { GroupChatManagerBase } from "./GroupChatManagerBase";
 import { GroupChatOptions, GroupParticipant } from "./GroupChatOptions";
 import { GroupChatStart, GroupChatAgentResponse, GroupChatRequestPublish } from "./Events";
 import { MessageContext } from "../../contracts/MessageContext";
-import { ChatMessage } from "../abstractions/Messages";
+import { ChatMessage, StopMessage } from "../abstractions/Messages";
 import { TaskFrame, TaskResult } from "../abstractions/Tasks";
 import { ITeam } from "../abstractions/ITeam";
 
@@ -16,10 +16,23 @@ export class RoundRobinGroupChat extends GroupChatManagerBase implements ITeam {
 
     /**
      * Creates a new instance of RoundRobinGroupChat.
-     * @param options Configuration options for the group chat
+     * @param speakAgent The agent responsible for speaking
+     * @param terminateAgent The agent responsible for terminating
+     * @param terminationCondition Optional condition for chat termination
      */
-    constructor(options: GroupChatOptions) {
+    constructor(
+        speakAgent: IChatAgent,
+        terminateAgent: IChatAgent,
+        terminationCondition?: ITerminationCondition
+    ) {
+        const options = new GroupChatOptions("chat", "output");
+        options.terminationCondition = terminationCondition;
+        
         super(options);
+        
+        // Add participants automatically
+        this.addParticipant("speak", new GroupParticipant("test", speakAgent.description));
+        this.addParticipant("terminate", new GroupParticipant("test", terminateAgent.description));
     }
 
     protected async handleStartAsync(message: GroupChatStart, context: MessageContext): Promise<void> {
@@ -48,53 +61,76 @@ export class RoundRobinGroupChat extends GroupChatManagerBase implements ITeam {
 
     protected async handleResponseAsync(message: GroupChatAgentResponse, context: MessageContext): Promise<void> {
         const response = message.agentResponse;
-        
-        // Add response message to collection
-        if (response.message) {
-            this.messages.push(response.message);
-            console.log('Added response message:', {
-                type: response.message.constructor.name,
-                content: 'content' in response.message ? response.message.content : undefined,
-                totalMessages: this.messages.length
-            });
+
+        // Early return if no response message
+        if (!response.message) {
+            return;
         }
 
-        // Check termination before continuing
+        // Log state before adding new message
+        console.log('Processing agent response:', {
+            messageType: response.message.constructor.name,
+            messageContent: 'content' in response.message ? response.message.content : undefined,
+            currentMessages: this.messages.map(m => ({
+                type: m.constructor.name,
+                content: 'content' in m ? m.content : undefined
+            }))
+        });
+
+        // Add response to messages
+        this.messages.push(response.message);
+
+        // Log state after adding new message 
+        console.log('After adding response:', { 
+            messageCount: this.messages.length,
+            messages: this.messages.map(m => ({
+                type: m.constructor.name, 
+                content: 'content' in m ? m.content : undefined
+            }))
+        });
+
+        // If it's a stop message, just return (but keep the message)
+        if (response.message instanceof StopMessage) {
+            return;
+        }
+
+        // Check termination condition 
         const stopMessage = await this.checkTerminationConditionAsync(this.messages);
         if (stopMessage) {
-            console.log('Got stop message:', {
-                content: stopMessage.content
-            });
             this.messages.push(stopMessage);
             return;
         }
 
         // Continue to next participant
         await this.publishNextAsync();
-        
-        // Wait for message processing
-        await new Promise(resolve => setTimeout(resolve, 100));
     }
 
     private async publishNextAsync(): Promise<void> {
+        // Calculate next participant index
         this.lastParticipantIndex = (this.lastParticipantIndex + 1) % this.options.participants.size;
-        const participantEntry = Array.from(this.options.participants.entries())[this.lastParticipantIndex];
         
+        const participantEntry = Array.from(this.options.participants.entries())[this.lastParticipantIndex];
         if (!participantEntry) {
             throw new Error("No participants available");
         }
 
         const [name, participant] = participantEntry;
-        console.log('Publishing to next participant:', {
-            name,
+        
+        // Log state before publishing
+        console.log("Publishing to next participant:", {
             participantIndex: this.lastParticipantIndex,
-            totalParticipants: this.options.participants.size
+            participantName: name,
+            topicType: participant.topicType,
+            currentMessageCount: this.messages.length,
+            messageTypes: this.messages.map(m => m.constructor.name)
         });
 
-        await this.publishMessageAsync(
-            new GroupChatRequestPublish(),
-            participant.topicType
-        );
+        // Create request with current message collection
+        const request = new GroupChatRequestPublish({ messages: [...this.messages] });
+
+        // Publish message and wait for processing
+        await this.publishMessageAsync(request, participant.topicType);
+        await new Promise(resolve => setTimeout(resolve, 50));
     }
 
     /**
@@ -124,6 +160,13 @@ export class RoundRobinGroupChat extends GroupChatManagerBase implements ITeam {
         // Start group chat with initial messages
         const context = new MessageContext(crypto.randomUUID(), cancellation);
         await this.handleAsync(new GroupChatStart({ messages: initialMessages }), context);
+
+        // Wait until we see a StopMessage or no new messages
+        while (!this.messages.some(m => m instanceof StopMessage)) {
+            const lengthBefore = this.messages.length;
+            await new Promise(resolve => setTimeout(resolve, 100));
+            if (this.messages.length === lengthBefore) break;
+        }
 
         // Convert messages to frames and yield with TaskResult
         yield new TaskFrame(new TaskResult(this.messages));

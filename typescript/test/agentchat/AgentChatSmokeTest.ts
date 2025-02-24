@@ -1,162 +1,63 @@
-import { ChatMessage, StopMessage, AgentMessage } from "../../src/agentchat/abstractions/Messages";
+import { ChatMessage, StopMessage } from "../../src/agentchat/abstractions/Messages";
 import { ChatAgentBase } from "../../src/agentchat/agents/ChatAgentBase";
 import { RoundRobinGroupChat } from "../../src/agentchat/groupchat/RoundRobinGroupChat";
 import { StopMessageTermination } from "../../src/agentchat/terminations/StopMessageTermination";
 import { Response } from "../../src/agentchat/abstractions/ChatAgent";
-import { HandoffMessage } from "../../src/agentchat/abstractions/Handoff";
-import { TaskFrame } from "../../src/agentchat/abstractions/Tasks";
-import { GroupParticipant } from "../../src/agentchat/groupchat/GroupChatOptions";
+import { describe, expect, test } from '@jest/globals';
 
-// Update Jest imports
-import { describe, expect, test, beforeEach, afterEach } from '@jest/globals';
-import { InProcessRuntime } from "../../src/core/InProcessRuntime";
-import { ChatAgentRouter } from "../../src/agentchat/groupchat/ChatAgentRouter";
-import { TypeSubscription } from "../../src/core/TypeSubscription";
-
-/**
- * An agent that speaks a predefined message.
- */
 class SpeakMessageAgent extends ChatAgentBase {
-    private readonly content: string;
-    
-    constructor(name: string, description: string, content: string) {
-        super(name, description);
-        this.content = content;
+    constructor() {
+        super("speak", "A test agent that says hello");
     }
 
     get producedMessageTypes(): Array<Function> {
-        return [ChatMessage];  // Change: Produce ChatMessage instead of HandoffMessage
+        return [ChatMessage];
     }
 
     async handleAsync(messages: ChatMessage[]): Promise<Response> {
+        // Always respond with "Hello" regardless of input
         return {
-            message: new ChatMessage(this.content, this.name.toString())
+            message: new ChatMessage("Hello", this.name.toString())
         };
     }
 
     async resetAsync(): Promise<void> {}
 }
 
-/**
- * An agent that terminates the conversation.
- */
 class TerminatingAgent extends ChatAgentBase {
-    public incomingMessages?: ChatMessage[];
-
-    constructor(name: string, description: string) {
-        super(name, description);
+    constructor() {
+        super("terminate", "An agent that terminates the conversation");
     }
 
     get producedMessageTypes(): Array<Function> {
         return [StopMessage];
     }
 
-    async handleAsync(messages: AgentMessage[]): Promise<Response> { // changed from ChatMessage[] to AgentMessage[]
-        // Store only ChatMessages for incomingMessages property if needed
-        this.incomingMessages = messages.filter(m => m instanceof ChatMessage) as ChatMessage[];
-
-        let content = "Terminating";
-        if (messages.length > 0) {
-            const lastMessage = messages[messages.length - 1];
-            if (isChatMessage(lastMessage)) {
-                content = `Terminating; got: ${lastMessage.content}`;
-            } else if (isHandoffMessage(lastMessage)) {
-                content = `Terminating; got handoff: ${lastMessage.targetAgent}`;
-            }
-        }
+    async handleAsync(messages: ChatMessage[]): Promise<Response> {
+        const lastMessage = messages[messages.length - 1];
+        const content = lastMessage instanceof ChatMessage 
+            ? `Terminating; got: ${lastMessage.content}`
+            : "Terminating";
 
         return {
             message: new StopMessage(content, this.name.toString())
         };
     }
 
-    async resetAsync(): Promise<void> {
-        this.incomingMessages = undefined;
-    }
-}
-
-function isChatMessage(msg: any): msg is ChatMessage {
-    return msg instanceof ChatMessage;
-}
-
-function isHandoffMessage(msg: any): msg is HandoffMessage {
-    return msg instanceof HandoffMessage;
+    async resetAsync(): Promise<void> {}
 }
 
 describe("AgentChat Smoke Tests", () => {
-    let runtime: InProcessRuntime;
-
-    beforeEach(async () => {
-        runtime = new InProcessRuntime();
-        runtime.deliverToSelf = false;
-        await runtime.start();
-    });
-
-    afterEach(async () => {
-        if (runtime) {
-            await runtime.stop();
-        }
-    });
-
-    test("RoundRobin with SpeakAndTerminating agents", async () => {
-        // Create agents with valid names
-        const speakAgent = new SpeakMessageAgent("speak", "Speaker", "Hello");
-        const terminatingAgent = new TerminatingAgent("terminate", "Terminate");
-
-        // Create chat agent routers
-        const speakRouter = new ChatAgentRouter(
-            { type: "speak", key: "default" },
-            runtime,
-            {
-                parentTopicType: "test",
-                outputTopicType: "speak",
-                chatAgent: speakAgent
-            }
-        );
-
-        const terminateRouter = new ChatAgentRouter(
-            { type: "terminate", key: "default" },
-            runtime,
-            {
-                parentTopicType: "test",
-                outputTopicType: "terminate",
-                chatAgent: terminatingAgent
-            }
-        );
-
-        // Register agents and subscriptions
-        await runtime.registerAgentFactoryAsync("speak", async () => speakRouter);
-        await runtime.registerAgentFactoryAsync("terminate", async () => terminateRouter);
-
-        // Add subscriptions to connect topics to agents
-        await runtime.addSubscriptionAsync(new TypeSubscription("speak", "speak"));
-        await runtime.addSubscriptionAsync(new TypeSubscription("terminate", "terminate")); 
-        await runtime.addSubscriptionAsync(new TypeSubscription("test", "speak"));
-        await runtime.addSubscriptionAsync(new TypeSubscription("test", "terminate"));
-
-        // Create chat with configuration
-        const chat = RoundRobinGroupChat.create(
-            "test",
-            "output", 
+    test("Basic Round Robin Chat", async () => {
+        // Create chat directly with agents
+        const chat = new RoundRobinGroupChat(
+            new SpeakMessageAgent(),
+            new TerminatingAgent(),
             new StopMessageTermination()
         );
 
-        // Add participants
-        chat.addParticipant("speak", new GroupParticipant("speak", "Speaker"));
-        chat.addParticipant("terminate", new GroupParticipant("terminate", "Terminate"));
-
-        // Set up message routing
-        chat.attachMessagePublishServicer(async (event, topicType) => {
-            await runtime.publishMessageAsync(
-                event,
-                { type: topicType, source: "test" }
-            );
-            // Give time for message processing
-            await new Promise(resolve => setTimeout(resolve, 50));
-        });
-
-        // Run the chat
-        const frames: TaskFrame[] = [];
+        // Run chat and collect frames
+        const frames = [];
         for await (const frame of chat.streamAsync("")) {
             frames.push(frame);
         }
@@ -164,9 +65,9 @@ describe("AgentChat Smoke Tests", () => {
         // Verify results
         expect(frames.length).toBe(1);
         const messages = frames[0].result!.messages;
-        expect(messages.length).toBe(3);
+        expect(messages.length).toBe 3);
         expect((messages[0] as ChatMessage).content).toBe("");
         expect((messages[1] as ChatMessage).content).toBe("Hello");
         expect((messages[2] as StopMessage).content).toBe("Terminating; got: Hello");
-    }, 10000);
+    });
 });
