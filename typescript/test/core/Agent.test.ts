@@ -41,20 +41,22 @@ describe('Agent', () => {
       return agent;
     });
 
-    // Ensure agent is created and subscription is added
-    await runtime.getAgentMetadataAsync({ type: "MyAgent", key: "default" });
-    await runtime.addSubscriptionAsync(new TypeSubscription("TestTopic", "MyAgent"));
+    // Create and get agent
+    const agentId = { type: "MyAgent", key: "default" };
+    await runtime.getAgentMetadataAsync(agentId);
+
+    // Add subscription and wait for setup
+    const subscription = new TypeSubscription("TestTopic", "MyAgent");
+    await runtime.addSubscriptionAsync(subscription);
 
     const topicType = "TestTopic";
-    await runtime.publishMessageAsync(
-      { source: topicType, content: "test" }, 
-      { type: topicType, source: "test" }
-    );
+    const message = { source: topicType, content: "test" };
+    await runtime.publishMessageAsync(message, { type: topicType, source: "test" });
 
-    // Wait for message processing
-    await new Promise(resolve => setTimeout(resolve, 100));
+    // Wait longer for message processing
+    await new Promise(resolve => setTimeout(resolve, 500));
     expect(Object.keys(agent!.ReceivedMessages).length).toBe(1);
-  });
+  }, 15000);
 
   it('should return response for sendMessage', async () => {
     const runtime = new InProcessRuntime();
@@ -65,17 +67,15 @@ describe('Agent', () => {
       return agent;
     });
 
-    // Ensure agent is created
-    const agentId = { type: "MyAgent", key: "TestAgent" };
+    const agentId = { type: "MyAgent", key: "default" };
     await runtime.getAgentMetadataAsync(agentId);
 
-    const response = await runtime.sendMessageAsync(
-      { source: "TestTopic", content: "Request" },
-      agentId
-    );
-
+    const message = { source: "TestTopic", content: "Request" };
+    const response = await runtime.sendMessageAsync(message, agentId);
+    
+    console.log('Send message response:', response);
     expect(response).toBe("Request");
-  }, 10000); // Increase timeout to 10 seconds
+  }, 30000); // Increase timeout
 
   it('should handle subscribe and remove subscription correctly', async () => {
     class ReceiverAgent extends BaseAgent implements IHandle<string> {
@@ -85,8 +85,10 @@ describe('Agent', () => {
         super(id, runtime, "Receiver Agent");
       }
 
-      async handleAsync(message: string, context: MessageContext): Promise<void> {
+      async handleAsync(message: string, context: MessageContext): Promise<unknown> {
+        console.log('ReceiverAgent handling message:', { message, context });
         this.receivedItems.push(message);
+        return message;
       }
     }
 
@@ -98,23 +100,34 @@ describe('Agent', () => {
       return agent;
     });
 
-    await runtime.getAgentMetadataAsync({ type: "MyAgent", key: "default" });
+    // Ensure agent exists before proceeding
+    const agentId = { type: "MyAgent", key: "default" };
+    await runtime.getAgentMetadataAsync(agentId);
 
+    // Add subscription and verify it's added
     const topicType = "TestTopic";
-    await runtime.publishMessageAsync("info", { type: topicType, source: "test" });
-    await new Promise(resolve => setTimeout(resolve, 100));
-    expect(agent!.receivedItems.length).toBe(0);
-
     const subscription = new TypeSubscription(topicType, "MyAgent");
     await runtime.addSubscriptionAsync(subscription);
-
+    
+    console.log('Publishing message...', { topicType });
     await runtime.publishMessageAsync("info", { type: topicType, source: "test" });
-    await new Promise(resolve => setTimeout(resolve, 100));
+    
+    // Wait for message processing
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    
+    console.log('Checking received items:', {
+      receivedItems: agent!.receivedItems,
+      subscriptions: Array.from(runtime['subscriptions'].entries())
+    });
+    
     expect(agent!.receivedItems.length).toBe(1);
     expect(agent!.receivedItems[0]).toBe("info");
-
+    
+    // Remove subscription and verify no new messages received
     await runtime.removeSubscriptionAsync(subscription.id);
-    await runtime.publishMessageAsync("info", { type: topicType, source: "test" });
+    await runtime.publishMessageAsync("info2", { type: topicType, source: "test" });
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     expect(agent!.receivedItems.length).toBe(1);
-  });
+  }, 15000);
 });

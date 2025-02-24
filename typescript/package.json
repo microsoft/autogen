@@ -2,6 +2,7 @@
   "name": "autogen-typescript",
   "version": "0.1.0",
   "scripts": {
+    "build": "tsc",
     "test": "jest",
     "test:watch": "jest --watch"
   },

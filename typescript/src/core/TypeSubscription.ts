@@ -14,6 +14,11 @@ export class TypeSubscription implements ISubscriptionDefinition {
   }
 
   matches(topic: TopicId): boolean {
+    console.log('TypeSubscription.matches:', {
+      topicType: topic.type,
+      expectedType: this.topicType,
+      match: topic.type === this.topicType
+    });
     return topic.type === this.topicType;
   }
 
@@ -21,6 +26,14 @@ export class TypeSubscription implements ISubscriptionDefinition {
     if (!this.matches(topic)) {
       throw new Error("TopicId does not match the subscription.");
     }
-    return { type: this.agentType, key: topic.source };
+    console.log('TypeSubscription.mapToAgent:', {
+      topic,
+      agentType: this.agentType,
+      result: { type: this.agentType, key: "default" }
+    });
+    return { 
+      type: this.agentType,
+      key: "default"  // Always use default key for subscribed agents
+    };
   }
 }

@@ -21,27 +21,63 @@ export class InProcessRuntime implements IAgentRuntime {
     }
 
     const topic = envelope.topic;
-    for (const subscription of this.subscriptions.values()) {
+    const promises: Promise<void>[] = [];
+    const sender = envelope.sender;
+    
+    console.log('Starting message delivery:', {
+      topic,
+      sender,
+      subscriptionCount: this.subscriptions.size,
+      deliverToSelf: this.deliverToSelf
+    });
+
+    for (const [id, subscription] of this.subscriptions.entries()) {
       if (subscription.matches(topic)) {
-        const sender = envelope.sender;
         const targetAgentId = subscription.mapToAgent(topic);
         
-        // Skip if sending to self and deliverToSelf is false
-        if (!this.deliverToSelf && sender && 
+        // Check if this is a self-delivery scenario
+        const isSelfDelivery = sender && 
             sender.type === targetAgentId.type && 
-            sender.key === targetAgentId.key) {
-          continue;
+            sender.key === targetAgentId.key;
+
+        console.log('Delivery check:', {
+          subscriptionId: id,
+          targetAgentId,
+          isSelfDelivery,
+          deliverToSelf: this.deliverToSelf,
+          sender
+        });
+            
+        // Fix: Only deliver if either:
+        // 1. It's not a self-delivery case (sender undefined or different from target) OR
+        // 2. deliverToSelf is true and it is a self-delivery case
+        if (!isSelfDelivery || (isSelfDelivery && this.deliverToSelf)) {
+          const deliveryPromise = (async () => {
+            try {
+              const agent = await this.ensureAgentAsync(targetAgentId);
+              console.log(`Delivering message to agent ${targetAgentId.type}/${targetAgentId.key}`, {
+                messageType: typeof envelope.message,
+                hasAgent: !!agent
+              });
+
+              const context = new MessageContext(envelope.messageId, envelope.cancellation);
+              context.sender = sender;
+              context.topic = topic;
+              context.isRpc = false;
+              await agent.onMessageAsync(envelope.message, context);
+            } catch (error) {
+              console.error(`Error during onMessageAsync:`, error);
+            }
+          })();
+
+          promises.push(deliveryPromise);
+        } else {
+          console.log('Skipping self delivery');
         }
-
-        const context = new MessageContext(envelope.messageId, envelope.cancellation);
-        context.sender = sender;
-        context.topic = topic;
-        context.isRpc = false;
-
-        const agent = await this.ensureAgentAsync(targetAgentId);
-        await agent.onMessageAsync(envelope.message, context);
       }
     }
+
+    await Promise.all(promises);
   }
 
   private async sendMessageServicer(envelope: MessageEnvelope, deliveryToken?: AbortSignal): Promise<unknown> {
@@ -80,12 +116,15 @@ export class InProcessRuntime implements IAgentRuntime {
     messageId?: string,
     cancellation?: AbortSignal
   ): Promise<void> {
+    console.log('Publishing with:', { message, topic, sender });
     const delivery = new MessageEnvelope(message, messageId, cancellation)
       .withSender(sender)
       .forPublish(topic, (env, cancel) => this.publishMessageServicer(env, cancel));
 
     this.messageDeliveryQueue.push(delivery);
     await this.processNextMessage();
+    // Wait for queue to process
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
 
   async sendMessageAsync(

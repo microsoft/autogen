@@ -23,16 +23,26 @@ export class TestAgent extends BaseAgent implements IHandle<TextMessage>, IHandl
   }
 
   async handleAsync(message: TextMessage | string | RpcTextMessage, context: MessageContext): Promise<unknown> {
+    console.log(`TestAgent.handleAsync:`, {
+      message,
+      context,
+      agentId: this.id,
+      messageType: typeof message
+    });
+    
     if (typeof message === "string") {
+      console.log('Handling string message');
       this.receivedItems.push(message);
-      return;
+      return message;  // Return the string message for RPC
     }
 
-    this.receivedMessages.set(message.source, message.content);
     if ('source' in message && 'content' in message) {
-      return message.content;
+      console.log(`Handling TextMessage: ${message.source} - ${message.content}`);
+      this.receivedMessages.set(message.source, message.content);
+      return message.content;  // Return content for RPC
     }
-    return;
+    console.log('Unknown message type');
+    return null;
   }
 
   get ReceivedMessages(): Record<string, unknown> {
