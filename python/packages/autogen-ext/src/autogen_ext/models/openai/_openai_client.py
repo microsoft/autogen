@@ -50,10 +50,11 @@ from autogen_core.models import (
     validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
-from openai import AsyncAzureOpenAI, AsyncOpenAI
+from openai import NOT_GIVEN, AsyncAzureOpenAI, AsyncOpenAI
 from openai.types.chat import (
     ChatCompletion,
     ChatCompletionAssistantMessageParam,
+    ChatCompletionChunk,
     ChatCompletionContentPartImageParam,
     ChatCompletionContentPartParam,
     ChatCompletionContentPartTextParam,
@@ -693,8 +694,23 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
 
-        oai_messages_nested = [to_oai_type(m, prepend_name=self._add_name_prefixes) for m in messages]
-        oai_messages = [item for sublist in oai_messages_nested for item in sublist]
+        # Declare use_beta_client
+        use_beta_client: bool = False
+        response_format_value: Optional[Type[BaseModel]] = None
+
+        if "response_format" in create_args:
+            value = create_args["response_format"]
+            # If value is a Pydantic model class, use the beta client
+            if isinstance(value, type) and issubclass(value, BaseModel):
+                response_format_value = value
+                use_beta_client = True
+            else:
+                # response_format_value is not a Pydantic model class
+                use_beta_client = False
+                response_format_value = None
+
+        # Remove 'response_format' from create_args to prevent passing it twice
+        create_args_no_response_format = {k: v for k, v in create_args.items() if k != "response_format"}
 
         # TODO: allow custom handling.
         # For now we raise an error if images are present and vision is not supported
@@ -713,23 +729,39 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             else:
                 create_args["response_format"] = {"type": "text"}
 
-        if len(tools) > 0:
-            converted_tools = convert_tools(tools)
-            stream_future = asyncio.ensure_future(
-                self._client.chat.completions.create(
-                    messages=oai_messages,
-                    stream=True,
-                    tools=converted_tools,
-                    **create_args,
-                )
+        oai_messages_nested = [to_oai_type(m, prepend_name=self._add_name_prefixes) for m in messages]
+        oai_messages = [item for sublist in oai_messages_nested for item in sublist]
+
+        if self.model_info["function_calling"] is False and len(tools) > 0:
+            raise ValueError("Model does not support function calling")
+
+        if max_consecutive_empty_chunk_tolerance != 0:
+            warnings.warn(
+                "The 'max_consecutive_empty_chunk_tolerance' parameter is deprecated and will be removed in the future releases. All of empty chunks will be skipped with a warning.",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+
+        tool_params = convert_tools(tools)
+
+        # Get the async generator of chunks.
+        if use_beta_client:
+            chunks = self._create_stream_chunks_beta_client(
+                tool_params=tool_params,
+                oai_messages=oai_messages,
+                response_format=response_format_value,
+                create_args_no_response_format=create_args_no_response_format,
+                cancellation_token=cancellation_token,
             )
         else:
-            stream_future = asyncio.ensure_future(
-                self._client.chat.completions.create(messages=oai_messages, stream=True, **create_args)
+            chunks = self._create_stream_chunks(
+                tool_params=tool_params,
+                oai_messages=oai_messages,
+                create_args=create_args,
+                cancellation_token=cancellation_token,
             )
-        if cancellation_token is not None:
-            cancellation_token.link_future(stream_future)
-        stream = await stream_future
+
+        # Prepare data to process streaming chunks.
         choice: Union[ParsedChoice[Any], ParsedChoice[BaseModel], ChunkChoice] = cast(ChunkChoice, None)
         chunk = None
         stop_reason = None
@@ -739,104 +771,102 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         completion_tokens = 0
         logprobs: Optional[List[ChatCompletionTokenLogprob]] = None
 
-        if max_consecutive_empty_chunk_tolerance != 0:
-            warnings.warn(
-                "The 'max_consecutive_empty_chunk_tolerance' parameter is deprecated and will be removed in the future releases. All of empty chunks will be skipped with a warning.",
-                DeprecationWarning,
-                stacklevel=2,
-            )
         empty_chunk_warning_has_been_issued: bool = False
         empty_chunk_warning_threshold: int = 10
         empty_chunk_count = 0
 
-        while True:
-            try:
-                chunk_future = asyncio.ensure_future(anext(stream))
-                if cancellation_token is not None:
-                    cancellation_token.link_future(chunk_future)
-                chunk = await chunk_future
+        # Process the stream of chunks.
+        async for chunk in chunks:
+            # Empty chunks has been observed when the endpoint is under heavy load.
+            #  https://github.com/microsoft/autogen/issues/4213
+            if len(chunk.choices) == 0:
+                empty_chunk_count += 1
+                if not empty_chunk_warning_has_been_issued and empty_chunk_count >= empty_chunk_warning_threshold:
+                    empty_chunk_warning_has_been_issued = True
+                    warnings.warn(
+                        f"Received more than {empty_chunk_warning_threshold} consecutive empty chunks. Empty chunks are being ignored.",
+                        stacklevel=2,
+                    )
+                continue
+            else:
+                empty_chunk_count = 0
 
-                # Empty chunks has been observed when the endpoint is under heavy load.
-                #  https://github.com/microsoft/autogen/issues/4213
-                if len(chunk.choices) == 0:
-                    empty_chunk_count += 1
-                    if not empty_chunk_warning_has_been_issued and empty_chunk_count >= empty_chunk_warning_threshold:
-                        empty_chunk_warning_has_been_issued = True
-                        warnings.warn(
-                            f"Received more than {empty_chunk_warning_threshold} consecutive empty chunks. Empty chunks are being ignored.",
-                            stacklevel=2,
-                        )
-                    continue
-                else:
-                    empty_chunk_count = 0
+            # to process usage chunk in streaming situations
+            # add    stream_options={"include_usage": True} in the initialization of OpenAIChatCompletionClient(...)
+            # However the different api's
+            # OPENAI api usage chunk produces no choices so need to check if there is a choice
+            # liteLLM api usage chunk does produce choices
+            choice = (
+                chunk.choices[0]
+                if len(chunk.choices) > 0
+                else choice
+                if chunk.usage is not None and stop_reason is not None
+                else cast(ChunkChoice, None)
+            )
 
-                # to process usage chunk in streaming situations
-                # add    stream_options={"include_usage": True} in the initialization of OpenAIChatCompletionClient(...)
-                # However the different api's
-                # OPENAI api usage chunk produces no choices so need to check if there is a choice
-                # liteLLM api usage chunk does produce choices
-                choice = (
-                    chunk.choices[0]
-                    if len(chunk.choices) > 0
-                    else choice
-                    if chunk.usage is not None and stop_reason is not None
-                    else cast(ChunkChoice, None)
-                )
+            # for liteLLM chunk usage, do the following hack keeping the pervious chunk.stop_reason (if set).
+            # set the stop_reason for the usage chunk to the prior stop_reason
+            stop_reason = choice.finish_reason if chunk.usage is None and stop_reason is None else stop_reason
+            maybe_model = chunk.model
+            # First try get content
+            if choice.delta.content:
+                content_deltas.append(choice.delta.content)
+                if len(choice.delta.content) > 0:
+                    yield choice.delta.content
+                # NOTE: for OpenAI, tool_calls and content are mutually exclusive it seems, so we can skip the rest of the loop.
+                # However, this may not be the case for other APIs -- we should expect this may need to be updated.
+                continue
 
-                # for liteLLM chunk usage, do the following hack keeping the pervious chunk.stop_reason (if set).
-                # set the stop_reason for the usage chunk to the prior stop_reason
-                stop_reason = choice.finish_reason if chunk.usage is None and stop_reason is None else stop_reason
-                maybe_model = chunk.model
-                # First try get content
-                if choice.delta.content:
-                    content_deltas.append(choice.delta.content)
-                    if len(choice.delta.content) > 0:
-                        yield choice.delta.content
-                    # NOTE: for OpenAI, tool_calls and content are mutually exclusive it seems, so we can skip the rest of the loop.
-                    # However, this may not be the case for other APIs -- we should expect this may need to be updated.
-                    continue
+            # Otherwise, get tool calls
+            if choice.delta.tool_calls is not None:
+                for tool_call_chunk in choice.delta.tool_calls:
+                    idx = tool_call_chunk.index
+                    if idx not in full_tool_calls:
+                        # We ignore the type hint here because we want to fill in type when the delta provides it
+                        full_tool_calls[idx] = FunctionCall(id="", arguments="", name="")
 
-                # Otherwise, get tool calls
-                if choice.delta.tool_calls is not None:
-                    for tool_call_chunk in choice.delta.tool_calls:
-                        idx = tool_call_chunk.index
-                        if idx not in full_tool_calls:
-                            # We ignore the type hint here because we want to fill in type when the delta provides it
-                            full_tool_calls[idx] = FunctionCall(id="", arguments="", name="")
+                    if tool_call_chunk.id is not None:
+                        full_tool_calls[idx].id += tool_call_chunk.id
 
-                        if tool_call_chunk.id is not None:
-                            full_tool_calls[idx].id += tool_call_chunk.id
+                    if tool_call_chunk.function is not None:
+                        if tool_call_chunk.function.name is not None:
+                            full_tool_calls[idx].name += tool_call_chunk.function.name
+                        if tool_call_chunk.function.arguments is not None:
+                            full_tool_calls[idx].arguments += tool_call_chunk.function.arguments
+            if choice.logprobs and choice.logprobs.content:
+                logprobs = [
+                    ChatCompletionTokenLogprob(
+                        token=x.token,
+                        logprob=x.logprob,
+                        top_logprobs=[TopLogprob(logprob=y.logprob, bytes=y.bytes) for y in x.top_logprobs],
+                        bytes=x.bytes,
+                    )
+                    for x in choice.logprobs.content
+                ]
 
-                        if tool_call_chunk.function is not None:
-                            if tool_call_chunk.function.name is not None:
-                                full_tool_calls[idx].name += tool_call_chunk.function.name
-                            if tool_call_chunk.function.arguments is not None:
-                                full_tool_calls[idx].arguments += tool_call_chunk.function.arguments
-                if choice.logprobs and choice.logprobs.content:
-                    logprobs = [
-                        ChatCompletionTokenLogprob(
-                            token=x.token,
-                            logprob=x.logprob,
-                            top_logprobs=[TopLogprob(logprob=y.logprob, bytes=y.bytes) for y in x.top_logprobs],
-                            bytes=x.bytes,
-                        )
-                        for x in choice.logprobs.content
-                    ]
+        # Finalize the CreateResult.
 
-            except StopAsyncIteration:
-                break
-
-        model = maybe_model or create_args["model"]
-        model = model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
-
-        if chunk and chunk.usage:
-            prompt_tokens = chunk.usage.prompt_tokens
-        else:
-            prompt_tokens = 0
-
+        # TODO: can we remove this?
         if stop_reason == "function_call":
             raise ValueError("Function calls are not supported in this context")
 
+        # We need to get the model from the last chunk, if available.
+        model = maybe_model or create_args["model"]
+        model = model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
+
+        # Because the usage chunk is not guaranteed to be the last chunk, we need to check if it is available.
+        if chunk and chunk.usage:
+            prompt_tokens = chunk.usage.prompt_tokens
+            completion_tokens = chunk.usage.completion_tokens
+        else:
+            prompt_tokens = 0
+            completion_tokens = 0
+        usage = RequestUsage(
+            prompt_tokens=prompt_tokens,
+            completion_tokens=completion_tokens,
+        )
+
+        # Detect whether it is a function call or just text.
         content: Union[str, List[FunctionCall]]
         thought: str | None = None
         if full_tool_calls:
@@ -852,19 +882,11 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             warnings.warn("No text content or tool calls are available. Model returned empty result.", stacklevel=2)
             content = ""
 
-        if chunk and chunk.usage:
-            completion_tokens = chunk.usage.completion_tokens
-        else:
-            completion_tokens = 0
-
-        usage = RequestUsage(
-            prompt_tokens=prompt_tokens,
-            completion_tokens=completion_tokens,
-        )
-
+        # Parse R1 content if needed.
         if isinstance(content, str) and self._model_info["family"] == ModelFamily.R1:
             thought, content = parse_r1_content(content)
 
+        # Create the result.
         result = CreateResult(
             finish_reason=normalize_stop_reason(stop_reason),
             content=content,
@@ -874,10 +896,72 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             thought=thought,
         )
 
+        # Update the total usage.
         self._total_usage = _add_usage(self._total_usage, usage)
         self._actual_usage = _add_usage(self._actual_usage, usage)
 
+        # Yield the CreateResult.
         yield result
+
+    async def _create_stream_chunks(
+        self,
+        tool_params: List[ChatCompletionToolParam],
+        oai_messages: List[ChatCompletionMessageParam],
+        create_args: Dict[str, Any],
+        cancellation_token: Optional[CancellationToken],
+    ) -> AsyncGenerator[ChatCompletionChunk, None]:
+        stream_future = asyncio.ensure_future(
+            self._client.chat.completions.create(
+                messages=oai_messages,
+                stream=True,
+                tools=tool_params if len(tool_params) > 0 else NOT_GIVEN,
+                **create_args,
+            )
+        )
+        if cancellation_token is not None:
+            cancellation_token.link_future(stream_future)
+        stream = await stream_future
+        while True:
+            try:
+                chunk_future = asyncio.ensure_future(anext(stream))
+                if cancellation_token is not None:
+                    cancellation_token.link_future(chunk_future)
+                chunk = await chunk_future
+                yield chunk
+            except StopAsyncIteration:
+                break
+
+    async def _create_stream_chunks_beta_client(
+        self,
+        tool_params: List[ChatCompletionToolParam],
+        oai_messages: List[ChatCompletionMessageParam],
+        create_args_no_response_format: Dict[str, Any],
+        response_format: Optional[Type[BaseModel]],
+        cancellation_token: Optional[CancellationToken],
+    ) -> AsyncGenerator[ChatCompletionChunk, None]:
+        async with self._client.beta.chat.completions.stream(
+            messages=oai_messages,
+            tools=tool_params if len(tool_params) > 0 else NOT_GIVEN,
+            response_format=response_format if response_format is not None else NOT_GIVEN,
+            **create_args_no_response_format,
+        ) as stream:
+            while True:
+                try:
+                    event_future = asyncio.ensure_future(anext(stream))
+                    if cancellation_token is not None:
+                        cancellation_token.link_future(event_future)
+                    event = await event_future
+
+                    if event.type == "chunk":
+                        chunk = event.chunk
+                        yield chunk
+                    # We don't handle other event types from the beta client stream.
+                    # As the other event types are auxiliary to the chunk event.
+                    # See: https://github.com/openai/openai-python/blob/main/helpers.md#chat-completions-events.
+                    # Once the beta client is stable, we can move all the logic to the beta client.
+                    # Then we can consider handling other event types which may simplify the code overall.
+                except StopAsyncIteration:
+                    break
 
     def actual_usage(self) -> RequestUsage:
         return self._actual_usage
