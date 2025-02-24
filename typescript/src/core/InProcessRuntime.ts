@@ -7,7 +7,15 @@ import { IAgent } from "../contracts/IAgent";
 import { MessageContext } from "../contracts/MessageContext";
 import { UndeliverableException } from "../contracts/AgentExceptions";
 
+/**
+ * An in-process implementation of the agent runtime that manages message delivery and agent lifecycle.
+ * This runtime executes all agents in the same process and provides synchronous message delivery.
+ */
 export class InProcessRuntime implements IAgentRuntime {
+  /**
+   * Gets or sets whether agents should receive their own messages.
+   * When false, messages published by an agent will not be delivered to itself.
+   */
   public deliverToSelf = false;
   private agentInstances = new Map<string, IAgent>();
   private subscriptions = new Map<string, ISubscriptionDefinition>();
@@ -16,6 +24,10 @@ export class InProcessRuntime implements IAgentRuntime {
   private isRunning = false;
   private messageProcessor?: ReturnType<typeof setInterval>;
 
+  /**
+   * Starts the runtime, initializing message processing.
+   * @throws Error if the runtime is already running
+   */
   async start(): Promise<void> {
     if (this.isRunning) {
       throw new Error("Runtime is already running");
@@ -29,6 +41,9 @@ export class InProcessRuntime implements IAgentRuntime {
     }, 10);
   }
 
+  /**
+   * Stops the runtime, cleaning up resources and processing any remaining messages.
+   */
   async stop(): Promise<void> {
     if (!this.isRunning) {
       return; // Change from throwing to just returning
@@ -51,6 +66,11 @@ export class InProcessRuntime implements IAgentRuntime {
     this.subscriptions.clear();
   }
 
+  /**
+   * Internal service function for publishing messages.
+   * @param envelope The message envelope to publish
+   * @param deliveryToken Optional cancellation token
+   */
   private async publishMessageServicer(envelope: MessageEnvelope, deliveryToken?: AbortSignal): Promise<void> {
     if (!envelope.topic) {
       throw new Error("Message must have a topic to be published.");
@@ -119,6 +139,11 @@ export class InProcessRuntime implements IAgentRuntime {
     await Promise.all(promises);
   }
 
+  /**
+   * Internal service function for sending direct messages.
+   * @param envelope The message envelope to send
+   * @param deliveryToken Optional cancellation token
+   */
   private async sendMessageServicer(envelope: MessageEnvelope, deliveryToken?: AbortSignal): Promise<unknown> {
     if (!envelope.receiver) {
       throw new Error("Message must have a receiver to be sent.");
@@ -145,6 +170,14 @@ export class InProcessRuntime implements IAgentRuntime {
     return response;
   }
 
+  /**
+   * Publishes a message to all subscribed agents.
+   * @param message The message to publish
+   * @param topic The topic to publish to
+   * @param sender Optional sender information
+   * @param messageId Optional message identifier
+   * @param cancellation Optional cancellation token
+   */
   async publishMessageAsync(
     message: unknown,
     topic: TopicId,
@@ -163,6 +196,15 @@ export class InProcessRuntime implements IAgentRuntime {
     await new Promise(resolve => setTimeout(resolve, 100));
   }
 
+  /**
+   * Sends a message directly to a specific agent.
+   * @param message The message to send
+   * @param recipient The target agent
+   * @param sender Optional sender information
+   * @param messageId Optional message identifier
+   * @param cancellation Optional cancellation token
+   * @returns A promise that resolves with the agent's response
+   */
   async sendMessageAsync(
     message: unknown,
     recipient: AgentId,
@@ -191,6 +233,11 @@ export class InProcessRuntime implements IAgentRuntime {
     return result;
   }
 
+  /**
+   * Gets metadata for an agent.
+   * @param agentId The agent identifier
+   * @returns The agent's metadata
+   */
   async getAgentMetadataAsync(agentId: AgentId): Promise<unknown> {
     const agent = await this.ensureAgentAsync(agentId);
     return {
@@ -200,6 +247,11 @@ export class InProcessRuntime implements IAgentRuntime {
     };
   }
 
+  /**
+   * Adds a new subscription to the runtime.
+   * @param subscription The subscription to add
+   * @throws Error if a subscription with the same ID already exists
+   */
   async addSubscriptionAsync(subscription: ISubscriptionDefinition): Promise<void> {
     if (this.subscriptions.has(subscription.id)) {
       throw new Error(`Subscription with id ${subscription.id} already exists.`);
@@ -207,6 +259,11 @@ export class InProcessRuntime implements IAgentRuntime {
     this.subscriptions.set(subscription.id, subscription);
   }
 
+  /**
+   * Removes a subscription from the runtime.
+   * @param subscriptionId The ID of the subscription to remove
+   * @throws Error if the subscription doesn't exist
+   */
   async removeSubscriptionAsync(subscriptionId: string): Promise<void> {
     if (!this.subscriptions.has(subscriptionId)) {
       throw new Error(`Subscription with id ${subscriptionId} does not exist.`);
@@ -214,6 +271,13 @@ export class InProcessRuntime implements IAgentRuntime {
     this.subscriptions.delete(subscriptionId);
   }
 
+  /**
+   * Registers a factory function for creating agents of a specific type.
+   * @param type The agent type to register
+   * @param factoryFunc The factory function that creates agent instances
+   * @returns The registered agent type
+   * @throws Error if the agent type is already registered
+   */
   async registerAgentFactoryAsync(
     type: AgentType,
     factoryFunc: (agentId: AgentId, runtime: IAgentRuntime) => Promise<IAgent>
@@ -226,6 +290,10 @@ export class InProcessRuntime implements IAgentRuntime {
     return type;
   }
 
+  /**
+   * Processes the next message in the delivery queue.
+   * @param cancellation Optional cancellation token
+   */
   private async processNextMessage(cancellation?: AbortSignal): Promise<void> {
     console.log('Processing message:', {
       queueLength: this.messageDeliveryQueue.length,
@@ -248,20 +316,41 @@ export class InProcessRuntime implements IAgentRuntime {
     }
   }
 
+  /**
+   * Loads a state into a specific agent.
+   * @param agentId The agent to load state into
+   * @param state The state to load
+   */
   async loadAgentStateAsync(agentId: AgentId, state: unknown): Promise<void> {
     const agent = await this.ensureAgentAsync(agentId);
     await agent.loadStateAsync(state);
   }
 
+  /**
+   * Saves the state of a specific agent.
+   * @param agentId The agent whose state to save
+   * @returns The saved state
+   */
   async saveAgentStateAsync(agentId: AgentId): Promise<unknown> {
     const agent = await this.ensureAgentAsync(agentId);
     return await agent.saveStateAsync();
   }
 
+  /**
+   * Creates a proxy for interacting with an agent.
+   * @param agentId The agent to create a proxy for
+   * @returns A new agent proxy instance
+   */
   async tryGetAgentProxyAsync(agentId: AgentId): Promise<AgentProxy> {
     return new AgentProxy(agentId, this);
   }
 
+  /**
+   * Gets or creates an agent instance.
+   * @param agentId The agent identifier
+   * @returns The agent instance
+   * @throws UndeliverableException if the agent type is not registered
+   */
   private async ensureAgentAsync(agentId: AgentId): Promise<IAgent> {
     const key = `${agentId.type}:${agentId.key}`;
     let agent = this.agentInstances.get(key);

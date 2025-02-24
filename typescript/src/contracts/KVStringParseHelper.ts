@@ -23,6 +23,10 @@ export class KVStringParseHelper {
    * ```
    */
   public static toKVPair(kvString: string, keyName: string, valueName: string): [string, string] {
-    // ...existing code...
+    const match = this.KV_PAIR_PATTERN.exec(kvString);
+    if (match?.groups) {
+      return [match.groups['key'], match.groups['value']];
+    }
+    throw new Error(`Invalid key-value pair format: ${kvString}; expecting "${keyName}/${valueName}"`);
   }
 }
