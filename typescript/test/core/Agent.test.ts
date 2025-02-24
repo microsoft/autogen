@@ -4,13 +4,14 @@ import { BaseAgent } from '../../src/core/BaseAgent';
 import { AgentId, IAgentRuntime } from '../../src/contracts/IAgentRuntime';
 import { MessageContext } from '../../src/contracts/MessageContext';
 import { IHandle } from '../../src/contracts/IHandle';
-import { TextMessage } from './TestAgent';
+import { TextMessage, RpcTextMessage } from './TestAgent';
 import { TypeSubscription } from '../../src/core/TypeSubscription';
 import { TestAgent, SubscribedAgent } from './TestAgent';
 
 describe('Agent', () => {
   it('should not receive messages when not subscribed', async () => {
     const runtime = new InProcessRuntime();
+    await runtime.start();
     let agent: TestAgent;
 
     await runtime.registerAgentFactoryAsync("MyAgent", async (id, runtime) => {
@@ -30,10 +31,13 @@ describe('Agent', () => {
     // Wait for message processing
     await new Promise(resolve => setTimeout(resolve, 100));
     expect(Object.keys(agent!.ReceivedMessages).length).toBe(0);
+
+    await runtime.stop(); // Add cleanup
   });
 
   it('should receive messages when subscribed', async () => {
     const runtime = new InProcessRuntime();
+    await runtime.start();
     let agent: SubscribedAgent;
 
     await runtime.registerAgentFactoryAsync("MyAgent", async (id, runtime) => {
@@ -56,26 +60,36 @@ describe('Agent', () => {
     // Wait longer for message processing
     await new Promise(resolve => setTimeout(resolve, 500));
     expect(Object.keys(agent!.ReceivedMessages).length).toBe(1);
+
+    await runtime.stop();
   }, 15000);
 
   it('should return response for sendMessage', async () => {
     const runtime = new InProcessRuntime();
-    let agent: TestAgent;
+    await runtime.start();
+    console.log('Runtime started');
 
+    let agent: TestAgent;
     await runtime.registerAgentFactoryAsync("MyAgent", async (id, runtime) => {
       agent = new TestAgent(id, runtime);
+      console.log('Created test agent:', { id, agentType: agent.constructor.name });
       return agent;
     });
 
-    const agentId = { type: "MyAgent", key: "default" };
+    const agentId = { type: "MyAgent", key: "test" };
     await runtime.getAgentMetadataAsync(agentId);
+    console.log('Agent metadata retrieved');
 
-    const message = { source: "TestTopic", content: "Request" };
+    const message: RpcTextMessage = { source: "TestTopic", content: "Request" };
+    console.log('Sending RPC message:', message);
+
     const response = await runtime.sendMessageAsync(message, agentId);
-    
-    console.log('Send message response:', response);
+    console.log('RPC response received:', response);
+
     expect(response).toBe("Request");
-  }, 30000); // Increase timeout
+
+    await runtime.stop();
+  }, 15000);
 
   it('should handle subscribe and remove subscription correctly', async () => {
     class ReceiverAgent extends BaseAgent implements IHandle<string> {
@@ -93,6 +107,7 @@ describe('Agent', () => {
     }
 
     const runtime = new InProcessRuntime();
+    await runtime.start();
     let agent: ReceiverAgent;
 
     await runtime.registerAgentFactoryAsync("MyAgent", async (id, runtime) => {
@@ -129,5 +144,7 @@ describe('Agent', () => {
     await new Promise(resolve => setTimeout(resolve, 500));
     
     expect(agent!.receivedItems.length).toBe(1);
+
+    await runtime.stop();
   }, 15000);
 });

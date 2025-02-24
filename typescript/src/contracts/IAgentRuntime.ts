@@ -104,4 +104,6 @@ export interface IAgentRuntime {
    * @throws {Error} If the subscription does not exist
    */
   removeSubscriptionAsync(subscriptionId: string): Promise<void>;
+  start(): Promise<void>;
+  stop(): Promise<void>;
 }
