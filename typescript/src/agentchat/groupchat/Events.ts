@@ -1,4 +1,4 @@
-import { AgentMessage, ChatMessage, StopMessage } from "../messages/Messages";
+import { AgentMessage, ChatMessage, StopMessage } from "../abstractions/Messages";
 import { Response } from "../abstractions/ChatAgent";
 
 /**

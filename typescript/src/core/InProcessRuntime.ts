@@ -295,7 +295,7 @@ export class InProcessRuntime implements IAgentRuntime {
    * @param cancellation Optional cancellation token
    */
   private async processNextMessage(cancellation?: AbortSignal): Promise<void> {
-    console.log('Processing message:', {
+    console.debug('Processing next message:', {
       queueLength: this.messageDeliveryQueue.length,
       isRunning: this.isRunning
     });
@@ -308,7 +308,18 @@ export class InProcessRuntime implements IAgentRuntime {
     const delivery = this.messageDeliveryQueue.shift();
     if (delivery) {
       try {
+        console.debug('Invoking delivery:', {
+          messageType: delivery.message.message 
+            ? typeof delivery.message.message === 'object' && delivery.message.message !== null
+                ? delivery.message.message.constructor.name
+                : typeof delivery.message.message
+            : 'undefined',
+          topic: delivery.message.topic,
+          sender: delivery.message.sender
+        });
         await delivery.invokeAsync(cancellation);
+        // Add small delay to ensure message processing order
+        await new Promise(resolve => setTimeout(resolve, 10));
       } catch (error) {
         console.error("Error processing message:", error);
         throw error; // Re-throw to ensure errors propagate

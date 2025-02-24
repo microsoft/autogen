@@ -9,14 +9,14 @@
   },
   "devDependencies": {
     "@jest/globals": "^29.7.0",
-    "@types/jest": "^29.5.11",
+    "@types/jest": "^29.5.14",
     "@types/node": "^20.10.0",
     "jest": "^29.7.0",
-    "ts-jest": "^29.1.1",
-    "typescript": "^5.3.0",
     "reflect-metadata": "^0.2.1",
+    "ts-jest": "^29.2.6",
     "typedoc": "^0.25.4",
-    "typedoc-plugin-markdown": "^3.17.1"
+    "typedoc-plugin-markdown": "^3.17.1",
+    "typescript": "^5.3.0"
   },
   "dependencies": {
     "reflect-metadata": "^0.2.1"

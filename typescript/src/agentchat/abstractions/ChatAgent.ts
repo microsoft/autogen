@@ -1,20 +1,19 @@
-import { AgentMessage, ChatMessage } from '../messages/Messages';
+import { AgentMessage, ChatMessage } from './Messages';
 
 /**
  * A valid name for an agent.
  * To ensure parity with Python, we require agent names to be Python identifiers.
  */
 export class AgentName {
-    private static readonly ID_START_CLASS = /[\p{Lu}\p{Ll}\p{Lt}\p{Lm}\p{Lo}\p{Nl}_\u1185-\u1186\u2118\u212E\u309B-\u309C]/u;
-    private static readonly ID_CONTINUE_CLASS = /[\w\p{Nl}\p{Mc}_\u1185-\u1186\u2118\u212E\u309B-\u309C\u00B7\u0387\u1369-\u1371\u19DA\u200C\u200D\u30FB\uFF65]/u;
-    private static readonly AGENT_NAME_REGEX = new RegExp(`^${AgentName.ID_START_CLASS.source}${AgentName.ID_CONTINUE_CLASS.source}*$`);
+    // Update regex to be more permissive like C# implementation
+    private static readonly NAME_REGEX = /^[\w\s-]+$/;
 
     constructor(private readonly value: string) {
         AgentName.checkValid(value);
     }
 
     public static isValid(name: string): boolean {
-        return AgentName.AGENT_NAME_REGEX.test(name);
+        return name.length > 0 && this.NAME_REGEX.test(name);
     }
 
     public static checkValid(name: string): void {

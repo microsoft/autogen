@@ -1,5 +1,5 @@
 import { AgentName, IChatAgent, Response, ChatStreamFrame } from "../abstractions/ChatAgent";
-import { ChatMessage } from "../messages/Messages";
+import { ChatMessage } from "../abstractions/Messages";
 
 /**
  * Base class for a chat agent.

@@ -1,14 +1,17 @@
 import { ITerminationCondition } from "../abstractions/Termination";
 import { GroupChatManagerBase } from "./GroupChatManagerBase";
-import { GroupChatOptions } from "./GroupChatOptions";
+import { GroupChatOptions, GroupParticipant } from "./GroupChatOptions";
 import { GroupChatStart, GroupChatAgentResponse, GroupChatRequestPublish } from "./Events";
 import { MessageContext } from "../../contracts/MessageContext";
 import { ChatMessage } from "../abstractions/Messages";
+import { TaskFrame, TaskResult } from "../abstractions/Tasks";
+import { ITeam } from "../abstractions/ITeam";
 
 /**
  * A group chat implementation that sends messages to participants in round-robin order.
  */
-export class RoundRobinGroupChat extends GroupChatManagerBase {
+export class RoundRobinGroupChat extends GroupChatManagerBase implements ITeam {
+    public readonly teamId: string = crypto.randomUUID();
     private lastParticipantIndex = -1;
 
     /**
@@ -64,6 +67,46 @@ export class RoundRobinGroupChat extends GroupChatManagerBase {
             new GroupChatRequestPublish(),
             participant.topicType
         );
+    }
+
+    /**
+     * Adds a participant to the group chat.
+     * @param name The name of the participant
+     * @param participant The participant configuration
+     */
+    public addParticipant(name: string, participant: GroupParticipant): void {
+        this.options.participants.set(name, participant);
+    }
+
+    /**
+     * Execute the group chat with a starting message.
+     * @param startMessage The message to start with
+     */
+    public async *streamAsync(task: string | unknown, cancellation?: AbortSignal): AsyncIterableIterator<TaskFrame> {
+        // Convert task to initial messages if it's a string
+        const initialMessages = typeof task === 'string' 
+            ? [new ChatMessage(task)]
+            : task instanceof ChatMessage 
+                ? [task]
+                : [];
+
+        // Reset state before starting
+        await this.resetAsync();
+
+        // Start group chat with initial messages
+        const context = new MessageContext(crypto.randomUUID(), cancellation);
+        await this.handleAsync(new GroupChatStart({ messages: initialMessages }), context);
+
+        // Convert messages to frames and yield with TaskResult
+        yield new TaskFrame(new TaskResult(this.messages));
+    }
+
+    /**
+     * Reset the team to its initial state.
+     * Made public to implement ITeam interface.
+     */
+    public override async resetAsync(cancellation?: AbortSignal): Promise<void> {
+        await super.resetAsync();
     }
 
     /**
