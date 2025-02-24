@@ -9,8 +9,9 @@ from autogen_core.models import ModelInfo
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.openai._openai_client import AzureOpenAIChatCompletionClient
-
-from autogenstudio.datamodel import Gallery, GalleryComponents, GalleryMetadata
+from autogen_ext.tools.code_execution import PythonCodeExecutionTool
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+from autogenstudio.datamodel import GalleryConfig, GalleryComponents, GalleryMetadata
 
 from . import tools as tools
 
@@ -109,12 +110,12 @@ class GalleryBuilder:
         self.terminations.append(self._update_component_metadata(termination, label, description))
         return self
 
-    def build(self) -> Gallery:
+    def build(self) -> GalleryConfig:
         """Build and return the complete gallery."""
         # Update timestamps
         self.metadata.updated_at = datetime.now()
 
-        return Gallery(
+        return GalleryConfig(
             id=self.id,
             name=self.name,
             url=self.url,
@@ -129,7 +130,7 @@ class GalleryBuilder:
         )
 
 
-def create_default_gallery() -> Gallery:
+def create_default_gallery() -> GalleryConfig:
     """Create a default gallery with all components including calculator and web surfer teams."""
 
     # url = "https://raw.githubusercontent.com/microsoft/autogen/refs/heads/main/python/packages/autogen-studio/autogenstudio/gallery/default.json"
@@ -314,6 +315,14 @@ Read the above conversation. Then select the next role from {participants} to pl
         tools.google_search_tool.dump_component(),
         label="Google Search Tool",
         description="A tool that performs Google searches using the Google Custom Search API. Requires the requests library, [GOOGLE_API_KEY, GOOGLE_CSE_ID] to be set,  env variable to function.",
+    )
+
+    code_executor = LocalCommandLineCodeExecutor(work_dir=".coding", timeout=360)
+    code_execution_tool = PythonCodeExecutionTool(code_executor)
+    builder.add_tool(
+        code_execution_tool.dump_component(),
+        label="Python Code Execution Tool",
+        description="A tool that executes Python code in a local environment.",
     )
 
     # Create deep research agent
