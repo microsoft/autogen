@@ -25,14 +25,12 @@ export interface Gallery {
   name: string;
   url?: string;
   metadata: GalleryMetadata;
-  items: {
+  components: {
     teams: Component<TeamConfig>[];
-    components: {
-      agents: Component<AgentConfig>[];
-      models: Component<ModelConfig>[];
-      tools: Component<ToolConfig>[];
-      terminations: Component<TerminationConfig>[];
-    };
+    agents: Component<AgentConfig>[];
+    models: Component<ModelConfig>[];
+    tools: Component<ToolConfig>[];
+    terminations: Component<TerminationConfig>[];
   };
 }
 

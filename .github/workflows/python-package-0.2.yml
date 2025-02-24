@@ -6,10 +6,9 @@ on:
       - "0.2.*"
   workflow_dispatch:
     inputs:
-      branch:
-        description: 'Branch to deploy the package'
+      tag:
+        description: 'Tag to deploy the package'
         required: true
-        default: '0.2'
 permissions: {}
 jobs:
   deploy:
@@ -27,7 +26,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.branch }}
+          ref: ${{ github.event.inputs.tag }}
       - name: Build
         shell: pwsh
         run: |

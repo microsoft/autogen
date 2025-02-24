@@ -54,7 +54,7 @@ class GreeterAgent(RoutedAgent):
 
 async def main() -> None:
     runtime = GrpcWorkerAgentRuntime(host_address="localhost:50051")
-    runtime.start()
+    await runtime.start()
 
     await ReceiveAgent.register(
         runtime,

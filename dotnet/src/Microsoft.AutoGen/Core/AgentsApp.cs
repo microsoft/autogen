@@ -4,6 +4,7 @@
 using System.Diagnostics;
 using System.Reflection;
 using Microsoft.AutoGen.Contracts;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
@@ -21,6 +22,7 @@ public class AgentsAppBuilder
     }
 
     public IServiceCollection Services => this.builder.Services;
+    public IConfiguration Configuration => this.builder.Configuration;
 
     public void AddAgentsFromAssemblies()
     {

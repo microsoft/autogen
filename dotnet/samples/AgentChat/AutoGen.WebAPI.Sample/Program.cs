@@ -40,6 +40,6 @@ public class DummyAgent : IStreamingAgent
         foreach (var c in reply)
         {
             yield return new TextMessageUpdate(Role.Assistant, c.ToString(), this.Name);
-        };
+        }
     }
 }

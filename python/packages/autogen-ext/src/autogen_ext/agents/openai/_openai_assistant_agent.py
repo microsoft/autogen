@@ -381,17 +381,14 @@ class OpenAIAssistantAgent(BaseChatAgent):
 
     async def _execute_tool_call(self, tool_call: FunctionCall, cancellation_token: CancellationToken) -> str:
         """Execute a tool call and return the result."""
-        try:
-            if not self._original_tools:
-                raise ValueError("No tools are available.")
-            tool = next((t for t in self._original_tools if t.name == tool_call.name), None)
-            if tool is None:
-                raise ValueError(f"The tool '{tool_call.name}' is not available.")
-            arguments = json.loads(tool_call.arguments)
-            result = await tool.run_json(arguments, cancellation_token)
-            return tool.return_value_as_string(result)
-        except Exception as e:
-            return f"Error: {e}"
+        if not self._original_tools:
+            raise ValueError("No tools are available.")
+        tool = next((t for t in self._original_tools if t.name == tool_call.name), None)
+        if tool is None:
+            raise ValueError(f"The tool '{tool_call.name}' is not available.")
+        arguments = json.loads(tool_call.arguments)
+        result = await tool.run_json(arguments, cancellation_token)
+        return tool.return_value_as_string(result)
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
         """Handle incoming messages and return a response."""
@@ -463,8 +460,15 @@ class OpenAIAssistantAgent(BaseChatAgent):
                 # Execute tool calls and get results
                 tool_outputs: List[FunctionExecutionResult] = []
                 for tool_call in tool_calls:
-                    result = await self._execute_tool_call(tool_call, cancellation_token)
-                    tool_outputs.append(FunctionExecutionResult(content=result, call_id=tool_call.id))
+                    try:
+                        result = await self._execute_tool_call(tool_call, cancellation_token)
+                        is_error = False
+                    except Exception as e:
+                        result = f"Error: {e}"
+                        is_error = True
+                    tool_outputs.append(
+                        FunctionExecutionResult(content=result, call_id=tool_call.id, is_error=is_error)
+                    )
 
                 # Add tool result message to inner messages
                 tool_result_msg = ToolCallExecutionEvent(source=self.name, content=tool_outputs)

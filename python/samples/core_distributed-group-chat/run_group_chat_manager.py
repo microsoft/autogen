@@ -23,7 +23,7 @@ async def main(config: AppConfig):
     group_chat_manager_runtime.add_message_serializer(get_serializers([RequestToSpeak, GroupChatMessage, MessageChunk]))  # type: ignore[arg-type]
     await asyncio.sleep(1)
     Console().print(Markdown("Starting **`Group Chat Manager`**"))
-    group_chat_manager_runtime.start()
+    await group_chat_manager_runtime.start()
     set_all_log_levels(logging.ERROR)
 
     group_chat_manager_type = await GroupChatManager.register(

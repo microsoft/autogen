@@ -107,6 +107,11 @@ jobs:
       with:
         dotnet-version: '8.0.x'
     - if: matrix.build-mode == 'manual'
+      name: Setup .NET 9.0
+      uses: actions/setup-dotnet@v4
+      with:
+        dotnet-version: '9.0.x'
+    - if: matrix.build-mode == 'manual'
       shell: bash
       working-directory: dotnet
       run: |

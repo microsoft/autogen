@@ -1,8 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // DistributedApplicationExtension.cs
 
+using System.Diagnostics;
 using System.Security.Cryptography;
-using Aspire.Hosting;
 using Aspire.Hosting.Python;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -186,6 +186,19 @@ public static partial class DistributedApplicationExtensions
     }
 
     /// <summary>
+    /// Gets the logs for the specified resource.
+    /// </summary>
+    /// <param name="app">The DistributedApplication</param>
+    /// <param name="resourceName">The name of the resource</param>
+    /// <returns>List<FakeLogRecord></returns>
+    public static IReadOnlyList<FakeLogRecord> GetResourceLogs(this DistributedApplication app, string resourceName)
+    {
+        var environment = app.Services.GetRequiredService<IHostEnvironment>();
+        var logCollector = app.Services.GetFakeLogCollector();
+        return logCollector.GetSnapshot().Where(l => l.Category == $"{environment.ApplicationName}.Resources.{resourceName}").ToList();
+    }
+
+    /// <summary>
     /// Get all logs from the whole test run.
     /// </summary>
     /// <param name="app"></param>
@@ -238,6 +251,58 @@ public static partial class DistributedApplicationExtensions
     {
         var resourceLogs = app.GetAllLogs();
         Assert.Contains(resourceLogs, log => log.Message.Contains(message));
+    }
+
+    /// <summary>
+    /// WaitForExpectedMessageInLogs
+    /// </summary>
+    /// <param name="app">DistributedApplication</param>
+    /// <param name="expectedMessage">string</param>
+    /// <param name="timeout">TimeSpan</param>
+    public static async Task<bool> WaitForExpectedMessageInResourceLogs(this DistributedApplication app, string resourceName, string expectedMessage, TimeSpan timeout)
+    {
+        var containsExpectedMessage = false;
+        var logWatchCancellation = new CancellationTokenSource();
+        var logWatchTask = Task.Run(async () =>
+        {
+            while (!containsExpectedMessage)
+            {
+                var logs = app.GetResourceLogs(resourceName);
+                if (logs != null && logs.Any(log => log.Message.Contains(expectedMessage)))
+                {
+                    containsExpectedMessage = true;
+                    logWatchCancellation.Cancel();
+                }
+            }
+        }, logWatchCancellation.Token).WaitAsync(timeout);
+        try
+        {
+            await logWatchTask.ConfigureAwait(true);
+        }
+        catch (OperationCanceledException)
+        {
+            // Task was cancelled, which means the expected message was found
+        }
+        catch (Exception ex)
+        {
+            if (Debugger.IsAttached)
+            {
+                var logs = app.GetResourceLogs(resourceName);
+                foreach (var log in logs)
+                {
+                    Console.WriteLine(log.Message);
+                }
+                var environment = app.Services.GetRequiredService<IHostEnvironment>();
+                var logCollector = app.Services.GetFakeLogCollector();
+                var allLogs = logCollector.GetSnapshot();
+            }
+            throw new Exception($"Failed to find expected message '{expectedMessage}' in logs for resource '{resourceName}' within the timeout period.", ex);
+        }
+        finally
+        {
+            logWatchCancellation.Cancel();
+        }
+        return containsExpectedMessage;
     }
 
     /// <summary>

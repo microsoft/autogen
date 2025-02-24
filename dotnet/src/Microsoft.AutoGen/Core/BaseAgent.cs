@@ -92,15 +92,6 @@ public abstract class BaseAgent : IAgent, IHostableAgent
         return null;
     }
 
-    public virtual ValueTask<IDictionary<string, object>> SaveStateAsync()
-    {
-        return ValueTask.FromResult<IDictionary<string, object>>(new Dictionary<string, object>());
-    }
-    public virtual ValueTask LoadStateAsync(IDictionary<string, object> state)
-    {
-        return ValueTask.CompletedTask;
-    }
-
     public ValueTask<object?> SendMessageAsync(object message, AgentId recepient, string? messageId = null, CancellationToken cancellationToken = default)
     {
         return this.Runtime.SendMessageAsync(message, recepient, sender: this.Id, messageId: messageId, cancellationToken: cancellationToken);

@@ -12,9 +12,10 @@ from string import Template
 from types import SimpleNamespace
 from typing import Any, Callable, ClassVar, List, Optional, Sequence, Union
 
-from autogen_core import CancellationToken
+from autogen_core import CancellationToken, Component
 from autogen_core.code_executor import CodeBlock, CodeExecutor, FunctionWithRequirements, FunctionWithRequirementsStr
-from typing_extensions import ParamSpec
+from pydantic import BaseModel
+from typing_extensions import ParamSpec, Self
 
 from .._common import (
     PYTHON_VARIANTS,
@@ -31,7 +32,15 @@ __all__ = ("LocalCommandLineCodeExecutor",)
 A = ParamSpec("A")
 
 
-class LocalCommandLineCodeExecutor(CodeExecutor):
+class LocalCommandLineCodeExecutorConfig(BaseModel):
+    """Configuration for LocalCommandLineCodeExecutor"""
+
+    timeout: int = 60
+    work_dir: str = "."  # Stored as string, converted to Path in _from_config
+    functions_module: str = "functions"
+
+
+class LocalCommandLineCodeExecutor(CodeExecutor, Component[LocalCommandLineCodeExecutorConfig]):
     """A code executor class that executes code through a local command line
     environment.
 
@@ -49,6 +58,18 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
     For Python code, use the language "python" for the code block.
     For shell scripts, use the language "bash", "shell", or "sh" for the code
     block.
+
+    .. note::
+
+        On Windows, the event loop policy must be set to `WindowsProactorEventLoopPolicy` to avoid issues with subprocesses.
+
+        .. code-block:: python
+
+            import sys
+            import asyncio
+
+            if sys.platform == "win32":
+                asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
 
     Args:
         timeout (int): The timeout for the execution of any single code block. Default is 60.
@@ -96,6 +117,9 @@ class LocalCommandLineCodeExecutor(CodeExecutor):
             asyncio.run(example())
 
     """
+
+    component_config_schema = LocalCommandLineCodeExecutorConfig
+    component_provider_override = "autogen_ext.code_executors.local.LocalCommandLineCodeExecutor"
 
     SUPPORTED_LANGUAGES: ClassVar[List[str]] = [
         "bash",
@@ -152,6 +176,21 @@ $functions"""
             self._setup_functions_complete = True
 
         self._virtual_env_context: Optional[SimpleNamespace] = virtual_env_context
+
+        # Check the current event loop policy if on windows.
+        if sys.platform == "win32":
+            current_policy = asyncio.get_event_loop_policy()
+            if hasattr(asyncio, "WindowsProactorEventLoopPolicy") and not isinstance(
+                current_policy, asyncio.WindowsProactorEventLoopPolicy
+            ):
+                warnings.warn(
+                    "The current event loop policy is not WindowsProactorEventLoopPolicy. "
+                    "This may cause issues with subprocesses. "
+                    "Try setting the event loop policy to WindowsProactorEventLoopPolicy. "
+                    "For example: `asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())`. "
+                    "See https://docs.python.org/3/library/asyncio-eventloop.html#asyncio.ProactorEventLoop.",
+                    stacklevel=2,
+                )
 
     def format_functions_for_prompt(self, prompt_template: str = FUNCTION_PROMPT_TEMPLATE) -> str:
         """(Experimental) Format the functions for a prompt.
@@ -356,4 +395,24 @@ $functions"""
         warnings.warn(
             "Restarting local command line code executor is not supported. No action is taken.",
             stacklevel=2,
+        )
+
+    def _to_config(self) -> LocalCommandLineCodeExecutorConfig:
+        if self._functions:
+            logging.info("Functions will not be included in serialized configuration")
+        if self._virtual_env_context:
+            logging.info("Virtual environment context will not be included in serialized configuration")
+
+        return LocalCommandLineCodeExecutorConfig(
+            timeout=self._timeout,
+            work_dir=str(self._work_dir),
+            functions_module=self._functions_module,
+        )
+
+    @classmethod
+    def _from_config(cls, config: LocalCommandLineCodeExecutorConfig) -> Self:
+        return cls(
+            timeout=config.timeout,
+            work_dir=Path(config.work_dir),
+            functions_module=config.functions_module,
         )

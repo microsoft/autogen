@@ -7,6 +7,8 @@ import {
   PointerSensor,
   DragEndEvent,
   DragOverEvent,
+  DragOverlay, // Add this
+  DragStartEvent, // Add this
 } from "@dnd-kit/core";
 import {
   ReactFlow,
@@ -18,8 +20,17 @@ import {
   MiniMap,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import { Button, Layout, message, Modal, Switch, Tooltip } from "antd";
-import { Cable, Code2, Download, Save } from "lucide-react";
+import { Button, Drawer, Layout, message, Switch, Tooltip } from "antd";
+import {
+  Cable,
+  CheckCircle,
+  CircleX,
+  Code2,
+  Download,
+  ListCheck,
+  PlayCircle,
+  Save,
+} from "lucide-react";
 import { useTeamBuilderStore } from "./store";
 import { ComponentLibrary } from "./library";
 import { ComponentTypes, Team } from "../../../types/datamodel";
@@ -30,10 +41,19 @@ import { edgeTypes, nodeTypes } from "./nodes";
 import "./builder.css";
 import TeamBuilderToolbar from "./toolbar";
 import { MonacoEditor } from "../../monaco";
-import { NodeEditor } from "./node-editor/node-editor";
 import debounce from "lodash.debounce";
+import TestDrawer from "./testdrawer";
+import { validationAPI, ValidationResponse } from "../api";
+import { ValidationErrors } from "./validationerrors";
+import ComponentEditor from "./component-editor/component-editor";
 
 const { Sider, Content } = Layout;
+interface DragItemData {
+  type: ComponentTypes;
+  config: any;
+  label: string;
+  icon: React.ReactNode;
+}
 
 interface TeamBuilderProps {
   team: Team;
@@ -56,6 +76,15 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
   // const [isDirty, setIsDirty] = useState(false);
   const editorRef = useRef(null);
   const [messageApi, contextHolder] = message.useMessage();
+  const [activeDragItem, setActiveDragItem] = useState<DragItemData | null>(
+    null
+  );
+  const [validationResults, setValidationResults] =
+    useState<ValidationResponse | null>(null);
+
+  const [validationLoading, setValidationLoading] = useState(false);
+
+  const [testDrawerVisible, setTestDrawerVisible] = useState(false);
 
   const {
     undo,
@@ -123,6 +152,12 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
       setNodes(initialNodes);
       setEdges(initialEdges);
     }
+    handleValidate();
+
+    return () => {
+      console.log("cleanup component");
+      setValidationResults(null);
+    };
   }, [team, setNodes, setEdges]);
 
   // Handle JSON changes
@@ -145,8 +180,31 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
   useEffect(() => {
     return () => {
       handleJsonChange.cancel();
+      setValidationResults(null);
     };
   }, [handleJsonChange]);
+
+  const handleValidate = useCallback(async () => {
+    const component = syncToJson();
+    if (!component) {
+      throw new Error("Unable to generate valid configuration");
+    }
+
+    try {
+      setValidationLoading(true);
+      const validationResult = await validationAPI.validateComponent(component);
+
+      setValidationResults(validationResult);
+      // if (validationResult.is_valid) {
+      //   messageApi.success("Validation successful");
+      // }
+    } catch (error) {
+      console.error("Validation error:", error);
+      messageApi.error("Validation failed");
+    } finally {
+      setValidationLoading(false);
+    }
+  }, [syncToJson]);
 
   // Handle save
   const handleSave = useCallback(async () => {
@@ -157,7 +215,6 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
       }
 
       if (onChange) {
-        console.log("Saving team configuration", component);
         const teamData: Partial<Team> = team
           ? {
               ...team,
@@ -262,14 +319,29 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
 
     // Pass both new node data AND target node id
     addNode(position, draggedItem.config, nodeId);
+    setActiveDragItem(null);
   };
+
+  const handleTestDrawerClose = () => {
+    // console.log("TestDrawer closed");
+    setTestDrawerVisible(false);
+  };
+
+  const teamValidated = validationResults && validationResults.is_valid;
 
   const onDragStart = (item: DragItem) => {
     // We can add any drag start logic here if needed
   };
+  const handleDragStart = (event: DragStartEvent) => {
+    const { active } = event;
+    if (active.data.current) {
+      setActiveDragItem(active.data.current as DragItemData);
+    }
+  };
   return (
     <div>
       {contextHolder}
+
       <div className="flex gap-2 text-xs rounded border-dashed border p-2 mb-2 items-center">
         <div className="flex-1">
           <Switch
@@ -286,24 +358,16 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
               <Code2 className="w-3 h-3 mt-1 inline-block mr-1" />
             </div>
           />
-          {isJsonMode ? (
-            "JSON "
-          ) : (
-            <>
-              Visual builder{" "}
-              {/* <span className="text-xs text-orange-500  border border-orange-400 rounded-lg px-2 mx-1">
-              {" "}
-              experimental{" "}
-            </span> */}
-            </>
-          )}{" "}
-          mode{" "}
-          <span className="text-xs text-orange-500 ml-1 underline">
-            {" "}
-            (experimental)
-          </span>
+          {isJsonMode ? "View JSON" : <>Visual Builder</>}{" "}
         </div>
+
         <div>
+          {validationResults && !validationResults.is_valid && (
+            <div className="inline-block mr-2">
+              {" "}
+              <ValidationErrors validation={validationResults} />
+            </div>
+          )}
           <Tooltip title="Download Team">
             <Button
               type="text"
@@ -338,12 +402,66 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
               // disabled={!isDirty}
             />
           </Tooltip>
+
+          <Tooltip
+            title=<div>
+              Validate Team
+              {validationResults && (
+                <div className="text-xs text-center my-1">
+                  {teamValidated ? (
+                    <span>
+                      <CheckCircle className="w-3 h-3 text-green-500 inline-block mr-1" />
+                      success
+                    </span>
+                  ) : (
+                    <div className="">
+                      <CircleX className="w-3 h-3 text-red-500 inline-block mr-1" />
+                      errors
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          >
+            <Button
+              type="text"
+              loading={validationLoading}
+              icon={
+                <div className="relative">
+                  <ListCheck size={18} />
+                  {validationResults && (
+                    <div
+                      className={` ${
+                        teamValidated ? "bg-green-500" : "bg-red-500"
+                      } absolute top-0 right-0 w-2 h-2  rounded-full`}
+                    ></div>
+                  )}
+                </div>
+              }
+              className="p-1.5 hover:bg-primary/10 rounded-md text-primary/75 hover:text-primary disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleValidate}
+            />
+          </Tooltip>
+
+          <Tooltip title="Run Team">
+            <Button
+              type="primary"
+              icon={<PlayCircle size={18} />}
+              className="p-1.5 ml-2 px-2.5 hover:bg-primary/10 rounded-md text-primary/75 hover:text-primary"
+              onClick={() => {
+                setTestDrawerVisible(true);
+              }}
+            >
+              Run
+            </Button>
+          </Tooltip>
         </div>
       </div>
       <DndContext
         sensors={sensors}
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
+        onDragStart={handleDragStart}
       >
         <Layout className=" relative bg-primary  h-[calc(100vh-239px)] rounded">
           {!isJsonMode && <ComponentLibrary />}
@@ -411,19 +529,60 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
             </Content>
           </Layout>
 
-          <NodeEditor
-            node={nodes.find((n) => n.id === selectedNodeId) || null}
-            onUpdate={(updates) => {
-              if (selectedNodeId) {
-                console.log("updating node", selectedNodeId, updates);
-                updateNode(selectedNodeId, updates);
-                handleSave();
-              }
-            }}
-            onClose={() => setSelectedNode(null)}
-          />
+          {selectedNodeId && (
+            <Drawer
+              title="Edit Component"
+              placement="right"
+              size="large"
+              onClose={() => setSelectedNode(null)}
+              open={!!selectedNodeId}
+              className="component-editor-drawer"
+            >
+              {nodes.find((n) => n.id === selectedNodeId)?.data.component && (
+                <ComponentEditor
+                  component={
+                    nodes.find((n) => n.id === selectedNodeId)!.data.component
+                  }
+                  onChange={(updatedComponent) => {
+                    console.log("builder updating component", updatedComponent);
+                    if (selectedNodeId) {
+                      updateNode(selectedNodeId, {
+                        component: updatedComponent,
+                      });
+                      handleSave();
+                    }
+                  }}
+                  onClose={() => setSelectedNode(null)}
+                  navigationDepth={true}
+                />
+              )}
+            </Drawer>
+          )}
         </Layout>
+        <DragOverlay
+          dropAnimation={{
+            duration: 250,
+            easing: "cubic-bezier(0.18, 0.67, 0.6, 1.22)",
+          }}
+        >
+          {activeDragItem ? (
+            <div className="p-2 text-primary h-full     rounded    ">
+              <div className="flex items-center gap-2">
+                {activeDragItem.icon}
+                <span className="text-sm">{activeDragItem.label}</span>
+              </div>
+            </div>
+          ) : null}
+        </DragOverlay>
       </DndContext>
+
+      {testDrawerVisible && (
+        <TestDrawer
+          isVisble={testDrawerVisible}
+          team={team}
+          onClose={() => handleTestDrawerClose()}
+        />
+      )}
     </div>
   );
 };

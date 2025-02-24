@@ -3,10 +3,14 @@
 
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from typing import List, Protocol, runtime_checkable
+from typing import List
+
+from pydantic import BaseModel
 
 from .._cancellation_token import CancellationToken
+from .._component_config import ComponentBase
 
 
 @dataclass
@@ -25,10 +29,12 @@ class CodeResult:
     output: str
 
 
-@runtime_checkable
-class CodeExecutor(Protocol):
+class CodeExecutor(ABC, ComponentBase[BaseModel]):
     """Executes code blocks and returns the result."""
 
+    component_type = "code_executor"
+
+    @abstractmethod
     async def execute_code_blocks(
         self, code_blocks: List[CodeBlock], cancellation_token: CancellationToken
     ) -> CodeResult:
@@ -49,6 +55,7 @@ class CodeExecutor(Protocol):
         """
         ...
 
+    @abstractmethod
     async def restart(self) -> None:
         """Restart the code executor.
 
