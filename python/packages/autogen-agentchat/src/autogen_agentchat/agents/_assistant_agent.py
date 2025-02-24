@@ -44,6 +44,7 @@ from ..messages import (
     MemoryQueryEvent,
     ModelClientStreamingChunkEvent,
     TextMessage,
+    ThoughtEvent,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
     ToolCallSummaryMessage,
@@ -418,7 +419,15 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             )
 
         # Add the response to the model context.
-        await self._model_context.add_message(AssistantMessage(content=model_result.content, source=self.name))
+        await self._model_context.add_message(
+            AssistantMessage(content=model_result.content, source=self.name, thought=model_result.thought)
+        )
+
+        # Add thought to the inner messages.
+        if model_result.thought:
+            thought_event = ThoughtEvent(content=model_result.thought, source=self.name)
+            inner_messages.append(thought_event)
+            yield thought_event
 
         # Check if the response is a string and return it.
         if isinstance(model_result.content, str):
@@ -479,7 +488,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             # Current context for handoff.
             handoff_context: List[LLMMessage] = []
             if len(tool_calls) > 0:
-                handoff_context.append(AssistantMessage(content=tool_calls, source=self.name))
+                handoff_context.append(
+                    AssistantMessage(content=tool_calls, source=self.name, thought=model_result.thought)
+                )
                 handoff_context.append(FunctionExecutionResultMessage(content=tool_call_results))
             # Return the output messages to signal the handoff.
             yield Response(
@@ -515,7 +526,9 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             assert isinstance(reflection_model_result.content, str)
             # Add the response to the model context.
             await self._model_context.add_message(
-                AssistantMessage(content=reflection_model_result.content, source=self.name)
+                AssistantMessage(
+                    content=reflection_model_result.content, source=self.name, thought=reflection_model_result.thought
+                )
             )
             # Yield the response.
             yield Response(
@@ -553,7 +566,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             tool = next((t for t in self._tools + self._handoff_tools if t.name == tool_call.name), None)
             if tool is None:
                 raise ValueError(f"The tool '{tool_call.name}' is not available.")
-            arguments = json.loads(tool_call.arguments)
+            arguments: Dict[str, Any] = json.loads(tool_call.arguments) if tool_call.arguments else {}
             result = await tool.run_json(arguments, cancellation_token)
             result_as_str = tool.return_value_as_string(result)
             return (tool_call, FunctionExecutionResult(content=result_as_str, call_id=tool_call.id, is_error=False))
