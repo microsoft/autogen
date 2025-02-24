@@ -57,17 +57,17 @@ describe("AgentChat Smoke Tests", () => {
         );
 
         // Run chat and collect frames
-        const frames = [];
+        const frames: Array<any> = []; // Add type annotation here
         for await (const frame of chat.streamAsync("")) {
             frames.push(frame);
         }
 
         // Verify results
         expect(frames.length).toBe(1);
-        const messages = frames[0].result!.messages;
-        expect(messages.length).toBe 3);
-        expect((messages[0] as ChatMessage).content).toBe("");
-        expect((messages[1] as ChatMessage).content).toBe("Hello");
-        expect((messages[2] as StopMessage).content).toBe("Terminating; got: Hello");
+        const messages = frames[0].result?.messages;
+        expect(messages?.length).toBe(3);
+        expect((messages?.[0] as ChatMessage).content).toBe("");
+        expect((messages?.[1] as ChatMessage).content).toBe("Hello");
+        expect((messages?.[2] as StopMessage).content).toBe("Terminating; got: Hello");
     });
 });

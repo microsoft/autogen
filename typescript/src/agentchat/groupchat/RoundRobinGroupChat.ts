@@ -1,4 +1,5 @@
 import { ITerminationCondition } from "../abstractions/Termination";
+import { IChatAgent } from "../abstractions/ChatAgent"; // Add this import
 import { GroupChatManagerBase } from "./GroupChatManagerBase";
 import { GroupChatOptions, GroupParticipant } from "./GroupChatOptions";
 import { GroupChatStart, GroupChatAgentResponse, GroupChatRequestPublish } from "./Events";
@@ -11,6 +12,8 @@ import { ITeam } from "../abstractions/ITeam";
  * A group chat implementation that sends messages to participants in round-robin order.
  */
 export class RoundRobinGroupChat extends GroupChatManagerBase implements ITeam {
+    private readonly speakAgent: IChatAgent;
+    private readonly terminateAgent: IChatAgent;
     public readonly teamId: string = crypto.randomUUID();
     private lastParticipantIndex = -1;
 
@@ -27,10 +30,12 @@ export class RoundRobinGroupChat extends GroupChatManagerBase implements ITeam {
     ) {
         const options = new GroupChatOptions("chat", "output");
         options.terminationCondition = terminationCondition;
-        
         super(options);
         
-        // Add participants automatically
+        this.speakAgent = speakAgent;
+        this.terminateAgent = terminateAgent;
+        
+        // Add participants for tracking order
         this.addParticipant("speak", new GroupParticipant("test", speakAgent.description));
         this.addParticipant("terminate", new GroupParticipant("test", terminateAgent.description));
     }
@@ -106,31 +111,36 @@ export class RoundRobinGroupChat extends GroupChatManagerBase implements ITeam {
     }
 
     private async publishNextAsync(): Promise<void> {
-        // Calculate next participant index
         this.lastParticipantIndex = (this.lastParticipantIndex + 1) % this.options.participants.size;
         
-        const participantEntry = Array.from(this.options.participants.entries())[this.lastParticipantIndex];
-        if (!participantEntry) {
-            throw new Error("No participants available");
-        }
-
-        const [name, participant] = participantEntry;
+        // Get current agent
+        const currentAgent = this.lastParticipantIndex === 0 ? this.speakAgent : this.terminateAgent;
         
-        // Log state before publishing
-        console.log("Publishing to next participant:", {
-            participantIndex: this.lastParticipantIndex,
-            participantName: name,
-            topicType: participant.topicType,
-            currentMessageCount: this.messages.length,
-            messageTypes: this.messages.map(m => m.constructor.name)
-        });
-
-        // Create request with current message collection
-        const request = new GroupChatRequestPublish({ messages: [...this.messages] });
-
-        // Publish message and wait for processing
-        await this.publishMessageAsync(request, participant.topicType);
-        await new Promise(resolve => setTimeout(resolve, 50));
+        // Get chat messages only
+        const chatMessages = this.messages.filter((m): m is ChatMessage => m instanceof ChatMessage);
+        
+        // Call agent directly
+        const response = await currentAgent.handleAsync(chatMessages);
+        
+        // Add response message
+        if (response.message) {
+            this.messages.push(response.message);
+            
+            // If it's a stop message, we're done
+            if (response.message instanceof StopMessage) {
+                return;
+            }
+            
+            // Check termination
+            const stopMessage = await this.checkTerminationConditionAsync(this.messages);
+            if (stopMessage) {
+                this.messages.push(stopMessage);
+                return;
+            }
+            
+            // Continue to next agent
+            await this.publishNextAsync();
+        }
     }
 
     /**
@@ -181,22 +191,17 @@ export class RoundRobinGroupChat extends GroupChatManagerBase implements ITeam {
     }
 
     /**
-     * Creates a new RoundRobinGroupChat with specified options.
-     * @param groupChatTopicType Topic type for group chat messages
-     * @param outputTopicType Topic type for output messages
+     * Creates a new RoundRobinGroupChat with specified agents and termination condition.
+     * @param speakAgent The agent that speaks in the conversation
+     * @param terminateAgent The agent that can terminate the conversation
      * @param terminationCondition Optional condition for chat termination
-     * @param maxTurns Optional maximum number of turns
      * @returns A configured RoundRobinGroupChat instance
      */
     static create(
-        groupChatTopicType: string,
-        outputTopicType: string,
-        terminationCondition?: ITerminationCondition,
-        maxTurns?: number
+        speakAgent: IChatAgent,
+        terminateAgent: IChatAgent,
+        terminationCondition?: ITerminationCondition
     ): RoundRobinGroupChat {
-        const options = new GroupChatOptions(groupChatTopicType, outputTopicType);
-        options.terminationCondition = terminationCondition;
-        options.maxTurns = maxTurns;
-        return new RoundRobinGroupChat(options);
+        return new RoundRobinGroupChat(speakAgent, terminateAgent, terminationCondition);
     }
 }
