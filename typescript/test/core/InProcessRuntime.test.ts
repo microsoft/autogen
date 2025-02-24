@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach, jest } from '@jest/globals';
 import { InProcessRuntime } from '../../src/core/InProcessRuntime';
 import { TopicId, AgentId, IAgentRuntime } from '../../src/contracts/IAgentRuntime';
-import { SubscribedSaveLoadAgent, SubscribedSelfPublishAgent } from './TestAgent';
-import { TextMessage } from './TestAgent';
+import { SubscribedSaveLoadAgent, SubscribedSelfPublishAgent } from './helpers/TestAgent';
+import { TextMessage } from './helpers/TestAgent';
 import { TypeSubscription, TypeSubscriptionAttribute } from '../../src/core/TypeSubscriptionAttribute';
 import { BaseAgent } from '../../src/core/BaseAgent';
 import { MessageContext } from '../../src/contracts/MessageContext';

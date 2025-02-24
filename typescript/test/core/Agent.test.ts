@@ -4,9 +4,9 @@ import { BaseAgent } from '../../src/core/BaseAgent';
 import { AgentId, IAgentRuntime } from '../../src/contracts/IAgentRuntime';
 import { MessageContext } from '../../src/contracts/MessageContext';
 import { IHandle } from '../../src/contracts/IHandle';
-import { TextMessage, RpcTextMessage } from './TestAgent';
+import { TextMessage, RpcTextMessage } from './helpers/TestAgent';
 import { TypeSubscription } from '../../src/core/TypeSubscription';
-import { TestAgent, SubscribedAgent } from './TestAgent';
+import { TestAgent, SubscribedAgent } from './helpers/TestAgent';
 
 describe('Agent', () => {
   it('should not receive messages when not subscribed', async () => {

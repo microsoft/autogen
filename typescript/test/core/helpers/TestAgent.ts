@@ -1,8 +1,8 @@
-import { BaseAgent } from "../../src/core/BaseAgent";
-import { IHandle } from "../../src/contracts/IHandle";
-import { AgentId, IAgentRuntime, TopicId } from "../../src/contracts/IAgentRuntime"; // Add TopicId
-import { MessageContext } from "../../src/contracts/MessageContext";
-import { TypeSubscription } from "../../src/core/TypeSubscriptionAttribute";
+import { BaseAgent } from "../../../src/core/BaseAgent";
+import { IHandle } from "../../../src/contracts/IHandle";
+import { AgentId, IAgentRuntime, TopicId } from "../../../src/contracts/IAgentRuntime"; // Add TopicId
+import { MessageContext } from "../../../src/contracts/MessageContext";
+import { TypeSubscription } from "../../../src/core/TypeSubscriptionAttribute";
 
 export interface TextMessage {
   source: string;
