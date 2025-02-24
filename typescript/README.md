@@ -31,6 +31,16 @@ Run all tests:
 npm test
 ```
 
+Run specific test file(s):
+```bash
+npm test test/core/InProcessRuntime.test.ts
+```
+
+Run tests matching a pattern:
+```bash
+npm test -- -t "should not deliver to self"
+```
+
 Run tests in watch mode during development:
 
 ```bash

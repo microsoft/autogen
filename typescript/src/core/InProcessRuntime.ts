@@ -35,7 +35,7 @@ export class InProcessRuntime implements IAgentRuntime {
       if (subscription.matches(topic)) {
         const targetAgentId = subscription.mapToAgent(topic);
         
-        // Check if this is a self-delivery scenario
+        // Determine whether this is a self-delivery attempt
         const isSelfDelivery = sender && 
             sender.type === targetAgentId.type && 
             sender.key === targetAgentId.key;
@@ -45,13 +45,15 @@ export class InProcessRuntime implements IAgentRuntime {
           targetAgentId,
           isSelfDelivery,
           deliverToSelf: this.deliverToSelf,
-          sender
+          sender,
+          shouldDeliver: sender === undefined || !isSelfDelivery || this.deliverToSelf
         });
-            
-        // Fix: Only deliver if either:
-        // 1. It's not a self-delivery case (sender undefined or different from target) OR
-        // 2. deliverToSelf is true and it is a self-delivery case
-        if (!isSelfDelivery || (isSelfDelivery && this.deliverToSelf)) {
+
+        // Key fix: Deliver message if:
+        // 1. There is no sender (external message) OR
+        // 2. It's not a self-delivery scenario OR
+        // 3. It is a self-delivery scenario AND deliverToSelf is true
+        if (sender === undefined || !isSelfDelivery || (isSelfDelivery && this.deliverToSelf)) {
           const deliveryPromise = (async () => {
             try {
               const agent = await this.ensureAgentAsync(targetAgentId);

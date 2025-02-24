@@ -29,11 +29,11 @@ export class TypeSubscription implements ISubscriptionDefinition {
     console.log('TypeSubscription.mapToAgent:', {
       topic,
       agentType: this.agentType,
-      result: { type: this.agentType, key: "default" }
+      result: { type: this.agentType, key: topic.source } // Use topic.source instead of "default"
     });
     return { 
       type: this.agentType,
-      key: "default"  // Always use default key for subscribed agents
+      key: topic.source  // Key change: use topic.source instead of hardcoding "default"
     };
   }
 }

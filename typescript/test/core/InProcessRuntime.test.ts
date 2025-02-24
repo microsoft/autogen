@@ -31,31 +31,28 @@ class ThirdSubscribedAgent extends BaseAgent {
 describe('InProcessRuntime', () => {
   it('should not deliver to self by default', async () => {
     const runtime = new InProcessRuntime();
-    let agent: SubscribedSaveLoadAgent | undefined;  // Change to allow undefined
+    let agent: SubscribedSaveLoadAgent | undefined;
 
-    // Register and create agent
-    const agentId = { type: "MyAgent", key: "default" };
+    // Use "test" as the key to match topic.source
+    const agentId = { type: "MyAgent", key: "test" }; 
     await runtime.registerAgentFactoryAsync("MyAgent", async (id, runtime) => {
       agent = new SubscribedSaveLoadAgent(id, runtime);
       return agent;
     });
 
-    // Ensure agent is created before proceeding
     await runtime.getAgentMetadataAsync(agentId);
     expect(agent).toBeDefined();
-    if (!agent) throw new Error("Agent not initialized"); // Type guard for TypeScript
+    if (!agent) throw new Error("Agent not initialized");
 
-    // Add subscription and verify it's added
     await runtime.addSubscriptionAsync(new TypeSubscriptionAttribute("TestTopic").bind("MyAgent"));
 
     const topicId: TopicId = { type: "TestTopic", source: "test" };
     const message: TextMessage = { source: "TestTopic", content: "test" };
     
-    // Send message and wait for processing
-    await runtime.publishMessageAsync(message, topicId);
+    // Key change: Pass the agent's ID as sender to trigger self-delivery check
+    await runtime.publishMessageAsync(message, topicId, agentId);
     await new Promise(resolve => setTimeout(resolve, 100));
 
-    // Verify no messages were delivered
     expect(Object.keys(agent!.ReceivedMessages).length).toBe(0);
   });
 

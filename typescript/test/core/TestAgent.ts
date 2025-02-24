@@ -1,6 +1,6 @@
 import { BaseAgent } from "../../src/core/BaseAgent";
 import { IHandle } from "../../src/contracts/IHandle";
-import { AgentId, IAgentRuntime } from "../../src/contracts/IAgentRuntime";
+import { AgentId, IAgentRuntime, TopicId } from "../../src/contracts/IAgentRuntime"; // Add TopicId
 import { MessageContext } from "../../src/contracts/MessageContext";
 import { TypeSubscription } from "../../src/core/TypeSubscriptionAttribute";
 
@@ -71,5 +71,16 @@ export class SubscribedSaveLoadAgent extends TestAgent {
     if (typeof state === "object" && state !== null) {
       this.receivedMessages = new Map(Object.entries(state));
     }
+  }
+}
+
+export class SubscribedSelfPublishAgent extends BaseAgent {
+  async handleAsync(item: string, messageContext: MessageContext): Promise<void> {
+    const strToText: TextMessage = {
+      source: "TestTopic",
+      content: item
+    };
+    // Fix method name to match BaseAgent's method
+    await this.runtime.publishMessageAsync(strToText, { type: "TestTopic", source: "test" }, this.id);
   }
 }
