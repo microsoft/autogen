@@ -35,10 +35,6 @@ async function main() {
   await app.runtime.addSubscriptionAsync(
     new TypeSubscription("default")
   );
-  await app.runtime.addSubscriptionAsync(
-    new TypeSubscription("default")
-  );
-
   // Start the app
   await app.start();
 
