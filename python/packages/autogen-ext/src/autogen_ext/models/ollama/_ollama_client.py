@@ -405,9 +405,6 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
                 # TODO: Should this be an warning/error?
                 response_format_value = None
 
-        # Remove 'response_format' from create_args to prevent passing it twice
-        create_args_no_response_format = {k: v for k, v in create_args.items() if k != "response_format"}
-
         # TODO: allow custom handling.
         # For now we raise an error if images are present and vision is not supported
         if self.model_info["vision"] is False:
@@ -438,22 +435,20 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             converted_tools = convert_tools(tools)
             future = asyncio.ensure_future(
                 self._client.chat(  # type: ignore
-                    # model=self._model_name,
+                    model=self._model_name,
                     messages=ollama_messages,
                     tools=converted_tools,
                     stream=False,
                     format=response_format_value,
-                    **create_args_no_response_format,
                 )
             )
         else:
             future = asyncio.ensure_future(
                 self._client.chat(  # type: ignore
-                    # model=self._model_name,
+                    model=self._model_name,
                     messages=ollama_messages,
                     stream=False,
                     format=response_format_value,
-                    **create_args_no_response_format,
                 )
             )
         if cancellation_token is not None:
@@ -607,9 +602,6 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
                 # response_format_value is not a Pydantic model class
                 response_format_value = None
 
-        # Remove 'response_format' from create_args to prevent passing it twice
-        create_args_no_response_format = {k: v for k, v in create_args.items() if k != "response_format"}
-
         # TODO: allow custom handling.
         # For now we raise an error if images are present and vision is not supported
         if self.model_info["vision"] is False:
@@ -640,22 +632,20 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             converted_tools = convert_tools(tools)
             stream_future = asyncio.ensure_future(
                 self._client.chat(  # type: ignore
-                    # model=self._model_name,
+                    model=self._model_name,
                     messages=ollama_messages,
                     tools=converted_tools,
                     stream=True,
                     format=response_format_value,
-                    **create_args_no_response_format,
                 )
             )
         else:
             stream_future = asyncio.ensure_future(
                 self._client.chat(  # type: ignore
-                    # model=self._model_name,
+                    model=self._model_name,
                     messages=ollama_messages,
                     stream=True,
                     format=response_format_value,
-                    **create_args_no_response_format,
                 )
             )
         if cancellation_token is not None:
