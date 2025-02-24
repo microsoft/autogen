@@ -1,16 +1,15 @@
 import "reflect-metadata";
 import { AgentsApp, AgentsAppBuilder } from "../../src/core/AgentsApp";
-import { Checker } from "./Checker";
-import { Modifier } from "./Modifier";
+import { CheckerAgent } from "./CheckerAgent"; // Ensure file is named exactly "CheckerAgent.ts"
+import { ModifierAgent } from "./ModifierAgent";
 import { CountMessage } from "./CountMessage";
 import { TypeSubscription } from "../../src/core/TypeSubscription";
 import { AgentId, IAgentRuntime } from "../../src/contracts/IAgentRuntime";
 
-async function main() {
-  // Define the modification and termination functions
-  const modifyFunc = (x: number) => x - 1;
-  const runUntilFunc = (x: number) => x <= 1;
+export { CountMessage } from "./CountMessage";
+export { CountUpdate } from "./CountUpdate";
 
+async function main() {
   // Create and configure the app
   const appBuilder = new AgentsAppBuilder()
     .useInProcessRuntime(false); // Set deliverToSelf to false
@@ -25,23 +24,27 @@ async function main() {
   // Register agents
   await app.runtime.registerAgentFactoryAsync("Checker", 
     async (id: AgentId, runtime: IAgentRuntime) => 
-      new Checker(id, runtime, runUntilFunc, shutdown));
+      new CheckerAgent(id, runtime));
   
   await app.runtime.registerAgentFactoryAsync("Modifier", 
     async (id: AgentId, runtime: IAgentRuntime) => 
-      new Modifier(id, runtime, modifyFunc));
+      new ModifierAgent(id, runtime));
 
   // Add subscriptions
   await app.runtime.addSubscriptionAsync(
-    new TypeSubscription("default")
+    new TypeSubscription("CountTopic", "Modifier")
   );
+  await app.runtime.addSubscriptionAsync(
+    new TypeSubscription("UpdateTopic", "Checker")
+  );
+
   // Start the app
   await app.start();
 
   // Send initial message
-  await app.publishMessageAsync<CountMessage>(
-    { content: 10 },
-    { type: "default", source: "main" }
+  await app.publishMessage(
+    { count: 10 },
+    { type: "CountTopic", source: "start" }
   );
 
   // Wait for shutdown

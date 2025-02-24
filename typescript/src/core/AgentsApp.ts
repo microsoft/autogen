@@ -62,6 +62,7 @@ export class AgentsApp {
     if (this.running) {
       throw new Error("Application is already running.");
     }
+    await this.runtime.start(); // <== Added: start the underlying runtime
     this.running = true;
     // Initialize runtime
   }

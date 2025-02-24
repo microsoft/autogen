@@ -39,3 +39,9 @@ npm start
 ## Expected Output
 You should see output similar to this:
 
+```
+Counting complete!
+```
+
+
+
