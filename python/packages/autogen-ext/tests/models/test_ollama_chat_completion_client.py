@@ -1,5 +1,5 @@
 from autogen_ext.models.ollama import OllamaChatCompletionClient
-from autogen_ext.models.ollama._ollama_client import OLLAMA_VALID_CHAT_ARGS_KEYS
+from autogen_ext.models.ollama._ollama_client import OLLAMA_VALID_CREATE_KWARGS_KEYS
 from autogen_core.models._types import UserMessage
 from ollama import AsyncClient
 
@@ -33,7 +33,7 @@ def test_create_args_from_config_drops_unexpected_kwargs():
 
     test_config = {
         k: "foobar"
-        for k in OLLAMA_VALID_CHAT_ARGS_KEYS + ["a_random_kwarg_to_be_dropped", "another_random_kwarg_to_be_dropped"]
+        for k in OLLAMA_VALID_CREATE_KWARGS_KEYS | {"a_random_kwarg_to_be_dropped", "another_random_kwarg_to_be_dropped"}
     }
     test_config["model"] = "llama3.1"
 
@@ -44,4 +44,4 @@ def test_create_args_from_config_drops_unexpected_kwargs():
     final_create_args = client._create_args
 
     for arg in final_create_args:
-        assert arg in OLLAMA_VALID_CHAT_ARGS_KEYS
+        assert arg in OLLAMA_VALID_CREATE_KWARGS_KEYS
