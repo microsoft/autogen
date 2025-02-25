@@ -36,7 +36,6 @@ from ._constants import (
 )
 from ._default_subscription import DefaultSubscription, default_subscription, type_subscription
 from ._default_topic import DefaultTopicId
-from ._exception_handling_policy import ExceptionHandlingPolicy
 from ._image import Image
 from ._intervention import (
     DefaultInterventionHandler,
@@ -133,5 +132,4 @@ __all__ = [
     "DropMessage",
     "InterventionHandler",
     "DefaultInterventionHandler",
-    "ExceptionHandlingPolicy",
 ]

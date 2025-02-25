@@ -29,7 +29,7 @@ from autogen_agentchat.teams._group_chat._round_robin_group_chat import RoundRob
 from autogen_agentchat.teams._group_chat._selector_group_chat import SelectorGroupChatManager
 from autogen_agentchat.teams._group_chat._swarm_group_chat import SwarmGroupChatManager
 from autogen_agentchat.ui import Console
-from autogen_core import AgentId, CancellationToken, ExceptionHandlingPolicy, FunctionCall
+from autogen_core import AgentId, CancellationToken, FunctionCall
 from autogen_core.models import (
     AssistantMessage,
     FunctionExecutionResult,
@@ -430,8 +430,9 @@ async def test_round_robin_group_chat_with_exception_handling_policy_raise() -> 
     team = RoundRobinGroupChat(
         participants=[agent_1, agent_2, agent_3],
         termination_condition=termination,
-        exception_handling_policy=ExceptionHandlingPolicy.RAISE,
     )
+    # TODO: change once runtime is configurable
+    team._runtime._ignore_unhandled_handler_exceptions = False
 
     with pytest.raises(BaseException) as exc_info:
         await team.run(
@@ -450,8 +451,9 @@ async def test_round_robin_group_chat_with_exception_handling_policy_ignore_and_
     team = RoundRobinGroupChat(
         participants=[agent_1, agent_2, agent_3],
         termination_condition=termination,
-        exception_handling_policy=ExceptionHandlingPolicy.IGNORE_AND_LOG,
     )
+    # TODO: change once runtime is configurable
+    team._runtime._ignore_unhandled_handler_exceptions = False
 
     result = await team.run(
         task="Write a program that prints 'Hello, world!'",
