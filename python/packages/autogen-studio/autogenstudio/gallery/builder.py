@@ -31,9 +31,7 @@ class GalleryBuilder:
 
         # Default metadata
         self.metadata = GalleryMetadata(
-            author="AutoGen Team",
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
+            author="AutoGen Team", 
             version="1.0.0",
             description="",
             tags=[],
@@ -113,7 +111,7 @@ class GalleryBuilder:
     def build(self) -> GalleryConfig:
         """Build and return the complete gallery."""
         # Update timestamps
-        self.metadata.updated_at = datetime.now()
+        # self.metadata.updated_at = datetime.now()
 
         return GalleryConfig(
             id=self.id,
@@ -292,12 +290,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         label="Image Generation Tool",
         description="A tool that generates images based on a text description using OpenAI's DALL-E model. Note: Requires OpenAI API key to function.",
     )
-
-    builder.add_tool(
-        tools.generate_pdf_tool.dump_component(),
-        label="PDF Generation Tool",
-        description="A tool that generates a PDF file from a list of images.Requires the PyFPDF and pillow library to function.",
-    )
+ 
 
     builder.add_tool(
         tools.fetch_webpage_tool.dump_component(),

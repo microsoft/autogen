@@ -1,7 +1,6 @@
-from .db import Message, Run, RunStatus, Session, Settings, Team
+from .db import Run, RunStatus, Session, Team, Message, Settings, Gallery
 from .types import (
-    EnvironmentVariable,
-    Gallery,
+    GalleryConfig,
     GalleryComponents,
     GalleryMetadata,
     LLMCallEventMessage,
@@ -11,6 +10,8 @@ from .types import (
     SettingsConfig,
     SocketMessage,
     TeamResult,
+    EnvironmentVariable,
+
 )
 
 __all__ = [
@@ -19,15 +20,18 @@ __all__ = [
     "RunStatus",
     "Session",
     "Team",
+    "Message",
     "MessageConfig",
     "MessageMeta",
     "TeamResult",
     "Response",
     "SocketMessage",
     "LLMCallEventMessage",
-    "Gallery",
+    "GalleryConfig",
     "GalleryComponents",
     "GalleryMetadata",
     "SettingsConfig",
-    "Settings" "EnvironmentVariable",
+    "Settings",
+    "EnvironmentVariable",
+    "Gallery",
 ]

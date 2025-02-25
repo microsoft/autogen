@@ -27,7 +27,7 @@ export const SessionManager: React.FC = () => {
   const { user } = useContext(appContext);
   const { session, setSession, sessions, setSessions } = useConfigStore();
 
-  const defaultGallery = useGalleryStore((state) => state.getDefaultGallery());
+  const defaultGallery = useGalleryStore((state) => state.getSelectedGallery());
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -196,7 +196,7 @@ export const SessionManager: React.FC = () => {
       if (teamsData.length > 0) {
         setTeams(teamsData);
       } else {
-        const sampleTeam = defaultGallery.components.teams[0];
+        const sampleTeam = defaultGallery?.config.components.teams[0];
         // If no teams, create a default team
         const defaultTeam = await teamAPI.createTeam(
           {

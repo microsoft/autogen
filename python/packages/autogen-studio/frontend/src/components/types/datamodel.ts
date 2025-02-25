@@ -337,3 +337,34 @@ export interface SettingsConfig {
 export interface Settings extends DBModel {
   config: SettingsConfig;
 }
+
+export interface GalleryMetadata {
+  author: string;
+  created_at: string;
+  updated_at: string;
+  version: string;
+  description?: string;
+  tags?: string[];
+  license?: string;
+  homepage?: string;
+  category?: string;
+  lastSynced?: string;
+}
+
+export interface GalleryConfig {
+  id: string;
+  name: string;
+  url?: string;
+  metadata: GalleryMetadata;
+  components: {
+    teams: Component<TeamConfig>[];
+    agents: Component<AgentConfig>[];
+    models: Component<ModelConfig>[];
+    tools: Component<ToolConfig>[];
+    terminations: Component<TerminationConfig>[];
+  };
+}
+
+export interface Gallery extends DBModel {
+  config: GalleryConfig;
+}

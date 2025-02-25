@@ -15,11 +15,11 @@ import {
 } from "lucide-react";
 import { ComponentEditor } from "../team/builder/component-editor/component-editor";
 import { TruncatableText } from "../atoms";
-import type { Gallery } from "./types";
 import {
   Component,
   ComponentConfig,
   ComponentTypes,
+  Gallery,
 } from "../../types/datamodel";
 
 type CategoryKey = `${ComponentTypes}s`;
@@ -144,6 +144,9 @@ export const GalleryDetail: React.FC<{
   onSave: (updates: Partial<Gallery>) => void;
   onDirtyStateChange: (isDirty: boolean) => void;
 }> = ({ gallery, onSave, onDirtyStateChange }) => {
+  if (!gallery.config.components) {
+    return <div className="text-secondary">No components found</div>;
+  }
   const [editingComponent, setEditingComponent] = useState<{
     component: Component<ComponentConfig>;
     category: CategoryKey;
@@ -159,9 +162,12 @@ export const GalleryDetail: React.FC<{
   ) => {
     const updatedGallery = {
       ...gallery,
-      components: {
-        ...gallery.components,
-        [category]: updater(gallery.components[category]),
+      config: {
+        ...gallery.config,
+        components: {
+          ...gallery.config.components,
+          [category]: updater(gallery.config.components[category]),
+        },
       },
     };
     onSave(updatedGallery);
@@ -180,7 +186,7 @@ export const GalleryDetail: React.FC<{
     onDuplicate: (component: Component<ComponentConfig>, index: number) => {
       const category = `${activeTab}s` as CategoryKey;
       const baseLabel = component.label?.replace(/_\d+$/, "");
-      const components = gallery.components[category];
+      const components = gallery.config.components[category];
 
       const nextNumber =
         Math.max(
@@ -211,7 +217,7 @@ export const GalleryDetail: React.FC<{
 
   const handleAdd = () => {
     const category = `${activeTab}s` as CategoryKey;
-    const components = gallery.components[category];
+    const components = gallery.config.components[category];
     let newComponent: Component<ComponentConfig>;
     const newLabel = `New ${
       activeTab.charAt(0).toUpperCase() + activeTab.slice(1)
@@ -264,7 +270,7 @@ export const GalleryDetail: React.FC<{
         <Icon className="w-5 h-5" />
         {key.charAt(0).toUpperCase() + key.slice(1)}s
         <span className="text-xs font-light text-secondary">
-          ({gallery.components[`${key}s` as CategoryKey].length})
+          ({gallery.config.components[`${key}s` as CategoryKey].length})
         </span>
       </span>
     ),
@@ -272,8 +278,8 @@ export const GalleryDetail: React.FC<{
       <div>
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-base font-medium">
-            {gallery.components[`${key}s` as CategoryKey].length}{" "}
-            {gallery.components[`${key}s` as CategoryKey].length === 1
+            {gallery.config.components[`${key}s` as CategoryKey].length}{" "}
+            {gallery.config.components[`${key}s` as CategoryKey].length === 1
               ? key.charAt(0).toUpperCase() + key.slice(1)
               : key.charAt(0).toUpperCase() + key.slice(1) + "s"}
           </h3>
@@ -289,7 +295,7 @@ export const GalleryDetail: React.FC<{
           </Button>
         </div>
         <ComponentGrid
-          items={gallery.components[`${key}s` as CategoryKey]}
+          items={gallery.config.components[`${key}s` as CategoryKey]}
           title={key}
           {...handlers}
         />
@@ -309,23 +315,23 @@ export const GalleryDetail: React.FC<{
           <div>
             <div className="flex items-center gap-2">
               <h1 className="text-2xl font-medium text-primary">
-                {gallery.name}
+                {gallery.config.name}
               </h1>
-              {gallery.url && (
+              {gallery.config.url && (
                 <Tooltip title="Remote Gallery">
                   <Globe className="w-5 h-5 text-secondary" />
                 </Tooltip>
               )}
             </div>
             <p className="text-secondary w-1/2 mt-2 line-clamp-2">
-              {gallery.metadata.description}
+              {gallery.config.metadata.description}
             </p>
           </div>
           <div className="flex gap-2">
             <div className="bg-tertiary backdrop-blur rounded p-2 flex items-center gap-2">
               <Package className="w-4 h-4 text-secondary" />
               <span className="text-sm">
-                {Object.values(gallery.components).reduce(
+                {Object.values(gallery.config.components).reduce(
                   (sum, arr) => sum + arr.length,
                   0
                 )}{" "}
@@ -333,7 +339,7 @@ export const GalleryDetail: React.FC<{
               </span>
             </div>
             <div className="bg-tertiary backdrop-blur rounded p-2 text-sm">
-              v{gallery.metadata.version}
+              v{gallery.config.metadata.version}
             </div>
           </div>
         </div>

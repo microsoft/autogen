@@ -10,7 +10,7 @@ from pydantic import ConfigDict
 from sqlalchemy import ForeignKey, Integer
 from sqlmodel import JSON, Column, DateTime, Field, SQLModel, func
 
-from .types import Gallery, MessageConfig, MessageMeta, SettingsConfig, TeamResult
+from .types import GalleryConfig, MessageConfig, MessageMeta, SettingsConfig, TeamResult
 
 
 class Team(SQLModel, table=True):
@@ -47,8 +47,8 @@ class Message(SQLModel, table=True):
         default=None, sa_column=Column(Integer, ForeignKey("session.id", ondelete="CASCADE"))
     )
     run_id: Optional[UUID] = Field(default=None, foreign_key="run.id")
-    message_meta: Optional[Union[MessageMeta, dict]] = Field(default={}, sa_column=Column(JSON))
 
+    message_meta: Optional[Union[MessageMeta, dict]] = Field(default={}, sa_column=Column(JSON))
 
 class Session(SQLModel, table=True):
     __table_args__ = {"sqlite_autoincrement": True}
@@ -119,7 +119,16 @@ class Gallery(SQLModel, table=True):
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
     version: Optional[str] = "0.0.1"
-    config: Union[Gallery, dict] = Field(default_factory=Gallery, sa_column=Column(JSON))
+    config: Union[GalleryConfig, dict] = Field(default_factory=GalleryConfig, sa_column=Column(JSON))
+    
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.isoformat(),
+            UUID: str
+        }
+    )
+
+
 
 
 class Settings(SQLModel, table=True):
