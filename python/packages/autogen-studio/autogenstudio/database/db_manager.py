@@ -1,6 +1,6 @@
 import threading
 from datetime import datetime
-from pathlib import Path
+from pathlib import Path 
 from typing import Optional, Union
 
 from loguru import logger
@@ -134,7 +134,7 @@ class DatabaseManager:
                 self._init_lock.release()
                 logger.info("Database reset lock released")
 
-    def upsert(self, model: SQLModel, return_json: bool = True):
+    def upsert(self, model: SQLModel, return_json: bool = True) -> Response:
         """Create or update an entity
 
         Args:
@@ -162,7 +162,7 @@ class DatabaseManager:
                     session.add(model)
                 session.commit()
                 session.refresh(model)
-            except Exception as e:
+            except Exception as e: 
                 session.rollback()
                 logger.error("Error while updating/creating " + str(model_class.__name__) + ": " + str(e))
                 status = False
@@ -214,7 +214,7 @@ class DatabaseManager:
 
             return Response(message=status_message, status=status, data=result)
 
-    def delete(self, model_class: SQLModel, filters: dict = None):
+    def delete(self, model_class: SQLModel, filters: dict = None) -> Response:
         """Delete an entity"""
         status_message = ""
         status = True
