@@ -10,8 +10,10 @@ from typing import (
     Dict,
     List,
     Mapping,
+    Optional,
     Sequence,
     Tuple,
+    Union,
 )
 
 from autogen_core import CancellationToken, Component, ComponentModel, FunctionCall
@@ -561,9 +563,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             else:
                 raise TypeError(f"Expected Memory, List[Memory], or None, got {type(memory)}")
 
-        self._system_messages: List[
-            SystemMessage | UserMessage | AssistantMessage | FunctionExecutionResultMessage
-        ] = []
+        self._system_messages: List[SystemMessage] = []
         if system_message is None:
             self._system_messages = []
         else:
@@ -587,6 +587,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         tool_names = [tool.name for tool in self._tools]
         if len(tool_names) != len(set(tool_names)):
             raise ValueError(f"Tool names must be unique: {tool_names}")
+
         # Handoff tools.
         self._handoff_tools: List[BaseTool[Any, Any]] = []
         self._handoffs: Dict[str, HandoffBase] = {}
@@ -608,19 +609,21 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         # Check if handoff tool names not in tool names.
         if any(name in tool_names for name in handoff_tool_names):
             raise ValueError(
-                f"Handoff names must be unique from tool names. Handoff names: {handoff_tool_names}; tool names: {tool_names}"
+                f"Handoff names must be unique from tool names. "
+                f"Handoff names: {handoff_tool_names}; tool names: {tool_names}"
             )
+
         if model_context is not None:
             self._model_context = model_context
         else:
             self._model_context = UnboundedChatCompletionContext()
+
         self._reflect_on_tool_use = reflect_on_tool_use
         self._tool_call_summary_format = tool_call_summary_format
         self._is_running = False
 
     @property
     def produced_message_types(self) -> Sequence[type[ChatMessage]]:
-        """The types of final response messages that the assistant agent produces."""
         message_types: List[type[ChatMessage]] = [TextMessage]
         if self._handoffs:
             message_types.append(HandoffMessage)
@@ -637,202 +640,455 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     async def on_messages_stream(
         self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken
     ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
-        # Add messages to the model context.
+        """
+        Process the incoming messages with the assistant agent and yield events/responses as they happen.
+        """
+
+        # Gather all relevant state here
+        agent_name = self.name
+        model_context = self._model_context
+        memory = self._memory
+        system_messages = self._system_messages
+        tools = self._tools
+        handoff_tools = self._handoff_tools
+        handoffs = self._handoffs
+        model_client = self._model_client
+        model_client_stream = self._model_client_stream
+        reflect_on_tool_use = self._reflect_on_tool_use
+        tool_call_summary_format = self._tool_call_summary_format
+
+        # STEP 1: Add new user/handoff messages to the model context
+        await self._add_messages_to_context(
+            model_context=model_context,
+            messages=messages,
+        )
+
+        # STEP 2: Update model context with any relevant memory
+        inner_messages: List[AgentEvent | ChatMessage] = []
+        for event_msg in await self._update_model_context_with_memory(
+            memory=memory,
+            model_context=model_context,
+            agent_name=agent_name,
+        ):
+            inner_messages.append(event_msg)
+            yield event_msg
+
+        # STEP 3: Run the first inference
+        model_result = None
+        async for inference_output in self._call_llm(
+            model_client=model_client,
+            model_client_stream=model_client_stream,
+            system_messages=system_messages,
+            model_context=model_context,
+            tools=tools,
+            handoff_tools=handoff_tools,
+            agent_name=agent_name,
+            cancellation_token=cancellation_token,
+        ):
+            if isinstance(inference_output, CreateResult):
+                model_result = inference_output
+            else:
+                # Streaming chunk event
+                yield inference_output
+
+        assert model_result is not None, "No model result was produced."
+
+        # --- NEW: If the model produced a hidden "thought," yield it as an event ---
+        if model_result.thought:
+            thought_event = ThoughtEvent(content=model_result.thought, source=agent_name)
+            yield thought_event
+            inner_messages.append(thought_event)
+
+        # Add the assistant message to the model context (including thought if present)
+        await model_context.add_message(
+            AssistantMessage(
+                content=model_result.content,
+                source=agent_name,
+                thought=getattr(model_result, "thought", None),
+            )
+        )
+
+        # STEP 4: Process the model output
+        async for output_event in self._process_model_result(
+            model_result=model_result,
+            inner_messages=inner_messages,
+            cancellation_token=cancellation_token,
+            agent_name=agent_name,
+            model_context=model_context,
+            tools=tools,
+            handoff_tools=handoff_tools,
+            handoffs=handoffs,
+            model_client=model_client,
+            model_client_stream=model_client_stream,
+            reflect_on_tool_use=reflect_on_tool_use,
+            tool_call_summary_format=tool_call_summary_format,
+        ):
+            yield output_event
+
+    @staticmethod
+    async def _add_messages_to_context(
+        model_context: ChatCompletionContext,
+        messages: Sequence[ChatMessage],
+    ) -> None:
+        """
+        Add incoming user (and possibly handoff) messages to the model context.
+        """
         for msg in messages:
             if isinstance(msg, HandoffMessage):
                 # Add handoff context to the model context.
                 for context_msg in msg.context:
-                    await self._model_context.add_message(context_msg)
-            await self._model_context.add_message(UserMessage(content=msg.content, source=msg.source))
+                    await model_context.add_message(context_msg)
+            await model_context.add_message(UserMessage(content=msg.content, source=msg.source))
 
-        # Inner messages.
-        inner_messages: List[AgentEvent | ChatMessage] = []
-
-        # Update the model context with memory content.
-        if self._memory:
-            for memory in self._memory:
-                update_context_result = await memory.update_context(self._model_context)
+    @staticmethod
+    async def _update_model_context_with_memory(
+        memory: Optional[Sequence[Memory]],
+        model_context: ChatCompletionContext,
+        agent_name: str,
+    ) -> List[MemoryQueryEvent]:
+        """
+        If memory modules are present, update the model context and return the events produced.
+        """
+        events: List[MemoryQueryEvent] = []
+        if memory:
+            for mem in memory:
+                update_context_result = await mem.update_context(model_context)
                 if update_context_result and len(update_context_result.memories.results) > 0:
                     memory_query_event_msg = MemoryQueryEvent(
-                        content=update_context_result.memories.results, source=self.name
+                        content=update_context_result.memories.results,
+                        source=agent_name,
                     )
-                    inner_messages.append(memory_query_event_msg)
-                    yield memory_query_event_msg
+                    events.append(memory_query_event_msg)
+        return events
 
-        # Generate an inference result based on the current model context.
-        llm_messages = self._get_compatible_context(self._system_messages + await self._model_context.get_messages())
-        model_result: CreateResult | None = None
-        if self._model_client_stream:
-            # Stream the model client.
-            async for chunk in self._model_client.create_stream(
-                llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
+    @classmethod
+    async def _call_llm(
+        cls,
+        model_client: ChatCompletionClient,
+        model_client_stream: bool,
+        system_messages: List[SystemMessage],
+        model_context: ChatCompletionContext,
+        tools: List[BaseTool[Any, Any]],
+        handoff_tools: List[BaseTool[Any, Any]],
+        agent_name: str,
+        cancellation_token: CancellationToken,
+    ) -> AsyncGenerator[Union[CreateResult, ModelClientStreamingChunkEvent], None]:
+        """
+        Perform a model inference and yield either streaming chunk events or the final CreateResult.
+        """
+        all_messages = await model_context.get_messages()
+        llm_messages = cls._get_compatible_context(model_client=model_client, messages=system_messages + all_messages)
+
+        all_tools = tools + handoff_tools
+
+        if model_client_stream:
+            model_result: Optional[CreateResult] = None
+            async for chunk in model_client.create_stream(
+                llm_messages, tools=all_tools, cancellation_token=cancellation_token
             ):
                 if isinstance(chunk, CreateResult):
                     model_result = chunk
                 elif isinstance(chunk, str):
-                    yield ModelClientStreamingChunkEvent(content=chunk, source=self.name)
+                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
-            assert isinstance(model_result, CreateResult)
+            if model_result is None:
+                raise RuntimeError("No final model result in streaming mode.")
+            yield model_result
         else:
-            model_result = await self._model_client.create(
-                llm_messages, tools=self._tools + self._handoff_tools, cancellation_token=cancellation_token
+            model_result = await model_client.create(
+                llm_messages, tools=all_tools, cancellation_token=cancellation_token
             )
+            yield model_result
 
-        # Add the response to the model context.
-        await self._model_context.add_message(
-            AssistantMessage(content=model_result.content, source=self.name, thought=model_result.thought)
-        )
+    @classmethod
+    async def _process_model_result(
+        cls,
+        model_result: CreateResult,
+        inner_messages: List[AgentEvent | ChatMessage],
+        cancellation_token: CancellationToken,
+        agent_name: str,
+        model_context: ChatCompletionContext,
+        tools: List[BaseTool[Any, Any]],
+        handoff_tools: List[BaseTool[Any, Any]],
+        handoffs: Dict[str, HandoffBase],
+        model_client: ChatCompletionClient,
+        model_client_stream: bool,
+        reflect_on_tool_use: bool,
+        tool_call_summary_format: str,
+    ) -> AsyncGenerator[AgentEvent | ChatMessage | Response, None]:
+        """
+        Handle final or partial responses from model_result, including tool calls, handoffs,
+        and reflection if needed.
+        """
 
-        # Add thought to the inner messages.
-        if model_result.thought:
-            thought_event = ThoughtEvent(content=model_result.thought, source=self.name)
-            inner_messages.append(thought_event)
-            yield thought_event
-
-        # Check if the response is a string and return it.
+        # If direct text response (string)
         if isinstance(model_result.content, str):
             yield Response(
                 chat_message=TextMessage(
-                    content=model_result.content, source=self.name, models_usage=model_result.usage
+                    content=model_result.content,
+                    source=agent_name,
+                    models_usage=model_result.usage,
                 ),
                 inner_messages=inner_messages,
             )
             return
 
-        # Process tool calls.
+        # Otherwise, we have function calls
         assert isinstance(model_result.content, list) and all(
             isinstance(item, FunctionCall) for item in model_result.content
         )
+
+        # STEP 4A: Yield ToolCallRequestEvent
         tool_call_msg = ToolCallRequestEvent(
-            content=model_result.content, source=self.name, models_usage=model_result.usage
+            content=model_result.content,
+            source=agent_name,
+            models_usage=model_result.usage,
         )
         event_logger.debug(tool_call_msg)
-        # Add the tool call message to the output.
         inner_messages.append(tool_call_msg)
         yield tool_call_msg
 
-        # Execute the tool calls and hanoff calls.
+        # STEP 4B: Execute tool calls
         executed_calls_and_results = await asyncio.gather(
-            *[self._execute_tool_call(call, cancellation_token) for call in model_result.content]
+            *[
+                cls._execute_tool_call(
+                    tool_call=call,
+                    tools=tools,
+                    handoff_tools=handoff_tools,
+                    agent_name=agent_name,
+                    cancellation_token=cancellation_token,
+                )
+                for call in model_result.content
+            ]
         )
-        # Collect the execution results in a list.
         exec_results = [result for _, result in executed_calls_and_results]
-        # Add the execution results to output and model context.
-        tool_call_result_msg = ToolCallExecutionEvent(content=exec_results, source=self.name)
+
+        # Yield ToolCallExecutionEvent
+        tool_call_result_msg = ToolCallExecutionEvent(
+            content=exec_results,
+            source=agent_name,
+        )
         event_logger.debug(tool_call_result_msg)
-        await self._model_context.add_message(FunctionExecutionResultMessage(content=exec_results))
+        await model_context.add_message(FunctionExecutionResultMessage(content=exec_results))
         inner_messages.append(tool_call_result_msg)
         yield tool_call_result_msg
 
-        # Separate out tool calls and tool call results from handoff requests.
-        tool_calls: List[FunctionCall] = []
-        tool_call_results: List[FunctionExecutionResult] = []
-        for exec_call, exec_result in executed_calls_and_results:
-            if exec_call.name not in self._handoffs:
-                tool_calls.append(exec_call)
-                tool_call_results.append(exec_result)
+        # STEP 4C: Check for handoff
+        handoff_output = cls._check_and_handle_handoff(
+            model_result=model_result,
+            executed_calls_and_results=executed_calls_and_results,
+            inner_messages=inner_messages,
+            handoffs=handoffs,
+            agent_name=agent_name,
+        )
+        if handoff_output:
+            yield handoff_output
+            return
 
-        # Detect handoff requests.
-        handoff_reqs = [call for call in model_result.content if call.name in self._handoffs]
+        # STEP 4D: Reflect or summarize tool results
+        if reflect_on_tool_use:
+            async for reflection_response in AssistantAgent._reflect_on_tool_use_flow(
+                model_client=model_client,
+                model_client_stream=model_client_stream,
+                model_context=model_context,
+                agent_name=agent_name,
+                inner_messages=inner_messages,
+            ):
+                yield reflection_response
+        else:
+            yield AssistantAgent._summarize_tool_use(
+                executed_calls_and_results=executed_calls_and_results,
+                inner_messages=inner_messages,
+                handoffs=handoffs,
+                tool_call_summary_format=tool_call_summary_format,
+                agent_name=agent_name,
+            )
+
+    @staticmethod
+    def _check_and_handle_handoff(
+        model_result: CreateResult,
+        executed_calls_and_results: List[Tuple[FunctionCall, FunctionExecutionResult]],
+        inner_messages: List[AgentEvent | ChatMessage],
+        handoffs: Dict[str, HandoffBase],
+        agent_name: str,
+    ) -> Optional[Response]:
+        """
+        Detect handoff calls, generate the HandoffMessage if needed, and return a Response.
+        If multiple handoffs exist, only the first is used.
+        """
+        handoff_reqs = [
+            call for call in model_result.content if isinstance(call, FunctionCall) and call.name in handoffs
+        ]
         if len(handoff_reqs) > 0:
-            handoffs = [self._handoffs[call.name] for call in handoff_reqs]
-            if len(handoffs) > 1:
-                # show warning if multiple handoffs detected
+            # We have at least one handoff function call
+            selected_handoff = handoffs[handoff_reqs[0].name]
+
+            if len(handoff_reqs) > 1:
                 warnings.warn(
                     (
-                        f"Multiple handoffs detected only the first is executed: {[handoff.name for handoff in handoffs]}. "
-                        "Disable parallel tool call in the model client to avoid this warning."
+                        f"Multiple handoffs detected. Only the first is executed: "
+                        f"{[handoffs[c.name].name for c in handoff_reqs]}. "
+                        "Disable parallel tool calls in the model client to avoid this warning."
                     ),
                     stacklevel=2,
                 )
-            # Current context for handoff.
+
+            # Collect normal tool calls (not handoff) into the handoff context
+            tool_calls: List[FunctionCall] = []
+            tool_call_results: List[FunctionExecutionResult] = []
+            for exec_call, exec_result in executed_calls_and_results:
+                if exec_call.name not in handoffs:
+                    tool_calls.append(exec_call)
+                    tool_call_results.append(exec_result)
+
             handoff_context: List[LLMMessage] = []
             if len(tool_calls) > 0:
+                # Include the thought in the AssistantMessage if model_result has it
                 handoff_context.append(
-                    AssistantMessage(content=tool_calls, source=self.name, thought=model_result.thought)
+                    AssistantMessage(
+                        content=tool_calls,
+                        source=agent_name,
+                        thought=getattr(model_result, "thought", None),
+                    )
                 )
                 handoff_context.append(FunctionExecutionResultMessage(content=tool_call_results))
-            # Return the output messages to signal the handoff.
-            yield Response(
+
+            # Return response for the first handoff
+            return Response(
                 chat_message=HandoffMessage(
-                    content=handoffs[0].message, target=handoffs[0].target, source=self.name, context=handoff_context
+                    content=selected_handoff.message,
+                    target=selected_handoff.target,
+                    source=agent_name,
+                    context=handoff_context,
                 ),
                 inner_messages=inner_messages,
             )
-            return
+        return None
 
-        if self._reflect_on_tool_use:
-            # Generate another inference result based on the tool call and result.
-            llm_messages = self._get_compatible_context(
-                self._system_messages + await self._model_context.get_messages()
-            )
-            reflection_model_result: CreateResult | None = None
-            if self._model_client_stream:
-                # Stream the model client.
-                async for chunk in self._model_client.create_stream(
-                    llm_messages, cancellation_token=cancellation_token
-                ):
-                    if isinstance(chunk, CreateResult):
-                        reflection_model_result = chunk
-                    elif isinstance(chunk, str):
-                        yield ModelClientStreamingChunkEvent(content=chunk, source=self.name)
-                    else:
-                        raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
-                assert isinstance(reflection_model_result, CreateResult)
-            else:
-                reflection_model_result = await self._model_client.create(
-                    llm_messages, cancellation_token=cancellation_token
-                )
-            assert isinstance(reflection_model_result.content, str)
-            # Add the response to the model context.
-            await self._model_context.add_message(
-                AssistantMessage(
-                    content=reflection_model_result.content, source=self.name, thought=reflection_model_result.thought
-                )
-            )
-            # Yield the response.
-            yield Response(
-                chat_message=TextMessage(
-                    content=reflection_model_result.content,
-                    source=self.name,
-                    models_usage=reflection_model_result.usage,
-                ),
-                inner_messages=inner_messages,
-            )
+    @classmethod
+    async def _reflect_on_tool_use_flow(
+        cls,
+        model_client: ChatCompletionClient,
+        model_client_stream: bool,
+        model_context: ChatCompletionContext,
+        agent_name: str,
+        inner_messages: List[AgentEvent | ChatMessage],
+    ) -> AsyncGenerator[Response | ModelClientStreamingChunkEvent | ThoughtEvent, None]:
+        """
+        If reflect_on_tool_use=True, we do another inference based on tool results
+        and yield the final text response (or streaming chunks).
+        """
+        all_messages = await model_context.get_messages()
+        llm_messages = cls._get_compatible_context(model_client=model_client, messages=all_messages)
+
+        reflection_result: Optional[CreateResult] = None
+
+        if model_client_stream:
+            async for chunk in model_client.create_stream(llm_messages):
+                if isinstance(chunk, CreateResult):
+                    reflection_result = chunk
+                elif isinstance(chunk, str):
+                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
+                else:
+                    raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
         else:
-            # Return tool call result as the response.
-            tool_call_summaries: List[str] = []
-            for tool_call, tool_call_result in zip(tool_calls, tool_call_results, strict=False):
-                tool_call_summaries.append(
-                    self._tool_call_summary_format.format(
-                        tool_name=tool_call.name,
-                        arguments=tool_call.arguments,
-                        result=tool_call_result.content,
-                    ),
-                )
-            tool_call_summary = "\n".join(tool_call_summaries)
-            yield Response(
-                chat_message=ToolCallSummaryMessage(content=tool_call_summary, source=self.name),
-                inner_messages=inner_messages,
-            )
+            reflection_result = await model_client.create(llm_messages)
 
+        if not reflection_result or not isinstance(reflection_result.content, str):
+            raise RuntimeError("Reflect on tool use produced no valid text response.")
+
+        # --- NEW: If the reflection produced a thought, yield it ---
+        if reflection_result.thought:
+            thought_event = ThoughtEvent(content=reflection_result.thought, source=agent_name)
+            yield thought_event
+            inner_messages.append(thought_event)
+
+        # Add to context (including thought if present)
+        await model_context.add_message(
+            AssistantMessage(
+                content=reflection_result.content,
+                source=agent_name,
+                thought=getattr(reflection_result, "thought", None),
+            )
+        )
+
+        yield Response(
+            chat_message=TextMessage(
+                content=reflection_result.content,
+                source=agent_name,
+                models_usage=reflection_result.usage,
+            ),
+            inner_messages=inner_messages,
+        )
+
+    @staticmethod
+    def _summarize_tool_use(
+        executed_calls_and_results: List[Tuple[FunctionCall, FunctionExecutionResult]],
+        inner_messages: List[AgentEvent | ChatMessage],
+        handoffs: Dict[str, HandoffBase],
+        tool_call_summary_format: str,
+        agent_name: str,
+    ) -> Response:
+        """
+        If reflect_on_tool_use=False, create a summary message of all tool calls.
+        """
+        # Filter out calls which were actually handoffs
+        normal_tool_calls = [(call, result) for call, result in executed_calls_and_results if call.name not in handoffs]
+        tool_call_summaries: List[str] = []
+        for tool_call, tool_call_result in normal_tool_calls:
+            tool_call_summaries.append(
+                tool_call_summary_format.format(
+                    tool_name=tool_call.name,
+                    arguments=tool_call.arguments,
+                    result=tool_call_result.content,
+                )
+            )
+        tool_call_summary = "\n".join(tool_call_summaries)
+        return Response(
+            chat_message=ToolCallSummaryMessage(
+                content=tool_call_summary,
+                source=agent_name,
+            ),
+            inner_messages=inner_messages,
+        )
+
+    @staticmethod
     async def _execute_tool_call(
-        self, tool_call: FunctionCall, cancellation_token: CancellationToken
+        tool_call: FunctionCall,
+        tools: List[BaseTool[Any, Any]],
+        handoff_tools: List[BaseTool[Any, Any]],
+        agent_name: str,
+        cancellation_token: CancellationToken,
     ) -> Tuple[FunctionCall, FunctionExecutionResult]:
-        """Execute a tool call and return the result."""
+        """Execute a single tool call and return the result."""
         try:
-            if not self._tools + self._handoff_tools:
+            all_tools = tools + handoff_tools
+            if not all_tools:
                 raise ValueError("No tools are available.")
-            tool = next((t for t in self._tools + self._handoff_tools if t.name == tool_call.name), None)
+            tool = next((t for t in all_tools if t.name == tool_call.name), None)
             if tool is None:
                 raise ValueError(f"The tool '{tool_call.name}' is not available.")
             arguments: Dict[str, Any] = json.loads(tool_call.arguments) if tool_call.arguments else {}
             result = await tool.run_json(arguments, cancellation_token)
             result_as_str = tool.return_value_as_string(result)
-            return (tool_call, FunctionExecutionResult(content=result_as_str, call_id=tool_call.id, is_error=False))
+            return (
+                tool_call,
+                FunctionExecutionResult(
+                    content=result_as_str,
+                    call_id=tool_call.id,
+                    is_error=False,
+                ),
+            )
         except Exception as e:
-            return (tool_call, FunctionExecutionResult(content=f"Error: {e}", call_id=tool_call.id, is_error=True))
+            return (
+                tool_call,
+                FunctionExecutionResult(
+                    content=f"Error: {e}",
+                    call_id=tool_call.id,
+                    is_error=True,
+                ),
+            )
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         """Reset the assistant agent to its initialization state."""
@@ -849,9 +1105,10 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         # Load the model context state.
         await self._model_context.load_state(assistant_agent_state.llm_context)
 
-    def _get_compatible_context(self, messages: List[LLMMessage]) -> Sequence[LLMMessage]:
+    @staticmethod
+    def _get_compatible_context(model_client: ChatCompletionClient, messages: List[LLMMessage]) -> Sequence[LLMMessage]:
         """Ensure that the messages are compatible with the underlying client, by removing images if needed."""
-        if self._model_client.model_info["vision"]:
+        if model_client.model_info["vision"]:
             return messages
         else:
             return remove_images(messages)
