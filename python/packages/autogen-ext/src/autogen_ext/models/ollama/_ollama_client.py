@@ -76,22 +76,20 @@ def _ollama_client_from_config(config: Mapping[str, Any]) -> AsyncClient:
     ollama_config = {k: v for k, v in copied_config.items() if k in ollama_init_kwargs}
     return AsyncClient(**ollama_config)
 
-ollama_chat_request_fields: dict[str, Any] = [m for m in inspect.getmembers(ChatRequest) if m[0] == "model_fields"][0][1]
+
+ollama_chat_request_fields: dict[str, Any] = [m for m in inspect.getmembers(ChatRequest) if m[0] == "model_fields"][0][
+    1
+]
 OLLAMA_VALID_CREATE_KWARGS_KEYS = set(ollama_chat_request_fields.keys()) | set(
-    ("model",
-    "messages",
-    "tools",
-    "stream",
-    "format",
-    "options",
-    "keep_alive")
+    ("model", "messages", "tools", "stream", "format", "options", "keep_alive")
 )
+
 
 def _create_args_from_config(config: Mapping[str, Any]) -> Dict[str, Any]:
     create_args = {k.lower(): v for k, v in config.items() if k.lower() in OLLAMA_VALID_CREATE_KWARGS_KEYS}
     dropped_keys = [k for k in config.keys() if k.lower() not in OLLAMA_VALID_CREATE_KWARGS_KEYS]
     logger.info(f"Dropped the following unrecognized keys from create_args: {dropped_keys}")
-    
+
     return create_args
     # create_args = {k: v for k, v in config.items() if k in create_kwargs}
     # create_args_keys = set(create_args.keys())
@@ -389,6 +387,9 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
     @classmethod
     def create_from_config(cls, config: Dict[str, Any]) -> ChatCompletionClient:
         return OllamaChatCompletionClient(**config)
+
+    def get_create_args(self) -> Mapping[str, Any]:
+        return self._create_args
 
     async def create(
         self,
