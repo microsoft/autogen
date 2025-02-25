@@ -13,7 +13,7 @@ from ..version import VERSION
 from .config import settings
 from .deps import cleanup_managers, init_managers
 from .initialization import AppInitializer
-from .routes import runs, sessions, teams, validation, ws
+from .routes import gallery, runs, sessions, settingsroute, teams, validation, ws
 
 # Initialize application
 app_file_path = os.path.dirname(os.path.abspath(__file__))
@@ -111,6 +111,20 @@ api.include_router(
     validation.router,
     prefix="/validate",
     tags=["validation"],
+    responses={404: {"description": "Not found"}},
+)
+
+api.include_router(
+    settingsroute.router,
+    prefix="/settings",
+    tags=["settings"],
+    responses={404: {"description": "Not found"}},
+)
+
+api.include_router(
+    gallery.router,
+    prefix="/gallery",
+    tags=["gallery"],
     responses={404: {"description": "Not found"}},
 )
 
