@@ -5,10 +5,12 @@ import json
 import logging
 import re
 import warnings
-from asyncio import Task
+
+# from asyncio import Task
 from typing import (
     Any,
     AsyncGenerator,
+    Coroutine,
     Dict,
     List,
     Literal,
@@ -21,12 +23,17 @@ from typing import (
 )
 
 import tiktoken
-from anthropic import AsyncAnthropic
+from anthropic import AsyncAnthropic, AsyncStream
 from anthropic.types import (
     ContentBlock,
     ImageBlockParam,
+    Message,
     MessageParam,
+    RawMessageStreamEvent,  # type: ignore
+    TextBlock,
     TextBlockParam,
+    ToolParam,
+    ToolResultBlockParam,
     ToolUseBlock,
 )
 from anthropic.types.image_block_param import Source
@@ -82,6 +89,7 @@ required_create_args: Set[str] = {"model"}
 
 anthropic_init_kwargs = set(inspect.getfullargspec(AsyncAnthropic.__init__).kwonlyargs)
 
+
 def _anthropic_client_from_config(config: Mapping[str, Any]) -> AsyncAnthropic:
     # Filter config to only include valid parameters
     client_config = {k: v for k, v in config.items() if k in anthropic_init_kwargs}
@@ -112,26 +120,27 @@ def type_to_role(message: LLMMessage) -> str:
         return "tool"
 
 
-def get_mime_type_from_image(image: Image) -> Literal['image/jpeg', 'image/png', 'image/gif', 'image/webp']:
+def get_mime_type_from_image(image: Image) -> Literal["image/jpeg", "image/png", "image/gif", "image/webp"]:
     """Get a valid Anthropic media type from an Image object."""
     # Get base64 data first
     base64_data = image.to_base64()
-    
+
     # Decode the base64 string
     image_data = base64.b64decode(base64_data)
-    
+
     # Check the first few bytes for known signatures
     if image_data.startswith(b"\xff\xd8\xff"):
-        return 'image/jpeg'
+        return "image/jpeg"
     elif image_data.startswith(b"\x89PNG\r\n\x1a\n"):
-        return 'image/png'
+        return "image/png"
     elif image_data.startswith(b"GIF87a") or image_data.startswith(b"GIF89a"):
-        return 'image/gif'
+        return "image/gif"
     elif image_data.startswith(b"RIFF") and image_data[8:12] == b"WEBP":
-        return 'image/webp'
+        return "image/webp"
     else:
         # Default to JPEG as a fallback
-        return 'image/jpeg'
+        return "image/jpeg"
+
 
 def user_message_to_anthropic(message: UserMessage) -> MessageParam:
     assert_valid_name(message.source)
@@ -150,7 +159,7 @@ def user_message_to_anthropic(message: UserMessage) -> MessageParam:
             elif isinstance(part, Image):
                 blocks.append(
                     ImageBlockParam(
-                        type="image", 
+                        type="image",
                         source=Source(
                             type="base64",
                             media_type=get_mime_type_from_image(part),
@@ -190,18 +199,18 @@ def assistant_message_to_anthropic(message: AssistantMessage) -> MessageParam:
                 args_dict = args
 
             tool_use_blocks.append(
-                {
-                    "type": "tool_use",
-                    "id": func_call.id,
-                    "name": func_call.name,
-                    "input": args_dict,
-                }
+                ToolUseBlock(
+                    type="tool_use",
+                    id=func_call.id,
+                    name=func_call.name,
+                    input=args_dict,
+                )
             )
 
         # Include thought if available
         content_blocks: List[ContentBlock] = []
         if hasattr(message, "thought") and message.thought is not None:
-            content_blocks.append({"type": "text", "text": message.thought})
+            content_blocks.append(TextBlock(type="text", text=message.thought))
 
         content_blocks.extend(tool_use_blocks)
 
@@ -219,15 +228,15 @@ def assistant_message_to_anthropic(message: AssistantMessage) -> MessageParam:
 
 def tool_message_to_anthropic(message: FunctionExecutionResultMessage) -> List[MessageParam]:
     # Create a single user message containing all tool results
-    content_blocks = []
+    content_blocks: List[ToolResultBlockParam] = []
 
     for result in message.content:
         content_blocks.append(
-            {
-                "type": "tool_result",
-                "tool_use_id": result.call_id,
-                "content": result.content,
-            }
+            ToolResultBlockParam(
+                type="tool_result",
+                tool_use_id=result.call_id,
+                content=result.content,
+            )
         )
 
     return [
@@ -249,8 +258,8 @@ def to_anthropic_type(message: LLMMessage) -> Union[str, List[MessageParam], Mes
         return tool_message_to_anthropic(message)
 
 
-def convert_tools(tools: Sequence[Tool | ToolSchema]) -> List[Tool]:
-    result: List[Tool] = []
+def convert_tools(tools: Sequence[Tool | ToolSchema]) -> List[ToolParam]:
+    result: List[ToolParam] = []
 
     for tool in tools:
         if isinstance(tool, Tool):
@@ -260,7 +269,7 @@ def convert_tools(tools: Sequence[Tool | ToolSchema]) -> List[Tool]:
             tool_schema = tool
 
         # Convert parameters to match Anthropic's schema format
-        tool_params = {}
+        tool_params: Dict[str, Any] = {}
         if "parameters" in tool_schema:
             params = tool_schema["parameters"]
 
@@ -279,11 +288,11 @@ def convert_tools(tools: Sequence[Tool | ToolSchema]) -> List[Tool]:
                 tool_params["type"] = "object"
 
         result.append(
-            {
-                "name": tool_schema["name"],
-                "description": tool_schema.get("description", ""),
-                "input_schema": tool_params,
-            }
+            ToolParam(
+                name=tool_schema["name"],
+                input_schema=tool_params,
+                description=tool_schema.get("description", ""),
+            )
         )
 
         # Check if the tool has a valid name
@@ -402,7 +411,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         elif model_capabilities is not None and model_info is None:
             warnings.warn("model_capabilities is deprecated, use model_info instead", DeprecationWarning, stacklevel=2)
             info = cast(ModelInfo, model_capabilities)
-            info["family"] = ModelFamily.CLAUDE
+            info["family"] = ModelFamily.CLAUDE_3_5_SONNET
             self._model_info = info
         elif model_capabilities is None and model_info is not None:
             self._model_info = model_info
@@ -445,7 +454,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
         # Process system message separately
         system_message = None
-        anthropic_messages = []
+        anthropic_messages: List[MessageParam] = []
 
         for message in messages:
             if isinstance(message, SystemMessage):
@@ -456,6 +465,11 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
                 anthropic_message = to_anthropic_type(message)
                 if isinstance(anthropic_message, list):
                     anthropic_messages.extend(anthropic_message)
+                elif isinstance(anthropic_message, str):
+                    msg = MessageParam(
+                        role="user" if isinstance(message, UserMessage) else "assistant", content=anthropic_message
+                    )
+                    anthropic_messages.append(msg)
                 else:
                     anthropic_messages.append(anthropic_message)
 
@@ -464,7 +478,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             raise ValueError("Model does not support function calling")
 
         # Set up the request
-        request_args = {
+        request_args: Dict[str, Any] = {
             "model": create_args["model"],
             "messages": anthropic_messages,
             "max_tokens": create_args.get("max_tokens", 4096),
@@ -492,17 +506,17 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
                 request_args[param] = create_args[param]
 
         # Execute the request
-        future: Task = asyncio.ensure_future(self._client.messages.create(**request_args))
+        future: asyncio.Task[Message] = asyncio.ensure_future(self._client.messages.create(**request_args))  # type: ignore
 
         if cancellation_token is not None:
-            cancellation_token.link_future(future)
+            cancellation_token.link_future(future)  # type: ignore
 
-        result = await future
+        result: Message = cast(Message, await future)  # type: ignore
 
         # Extract usage statistics
         usage = RequestUsage(
-            prompt_tokens=result.usage.input_tokens if result.usage is not None else 0,
-            completion_tokens=result.usage.output_tokens if result.usage is not None else 0,
+            prompt_tokens=result.usage.input_tokens,
+            completion_tokens=result.usage.output_tokens,
         )
 
         # Log the event if in a handler context
@@ -533,27 +547,29 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             content = []
 
             # Check for text content that should be treated as thought
-            text_blocks = [block for block in result.content if getattr(block, "type", None) == "text"]
+            text_blocks: List[TextBlock] = [block for block in result.content if isinstance(block, TextBlock)]
             if text_blocks:
                 thought = "".join([block.text for block in text_blocks])
 
             # Process tool use blocks
             for tool_use in tool_uses:
-                # Convert tool input to string if it's a dict
-                tool_input = tool_use.input
-                if isinstance(tool_input, dict):
-                    tool_input = json.dumps(tool_input)
+                if isinstance(tool_use, ToolUseBlock):
+                    tool_input = tool_use.input
+                    if isinstance(tool_input, dict):
+                        tool_input = json.dumps(tool_input)
+                    else:
+                        tool_input = str(tool_input) if tool_input is not None else ""
 
-                content.append(
-                    FunctionCall(
-                        id=tool_use.id,
-                        name=normalize_name(tool_use.name),
-                        arguments=tool_input,
+                    content.append(
+                        FunctionCall(
+                            id=tool_use.id,
+                            name=normalize_name(tool_use.name),
+                            arguments=tool_input,
+                        )
                     )
-                )
         else:
             # Handle text response
-            content = "".join([block.text for block in result.content])
+            content = "".join([block.text if isinstance(block, TextBlock) else "" for block in result.content])
 
         # Create the final result
         response = CreateResult(
@@ -604,7 +620,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
         # Process system message separately
         system_message = None
-        anthropic_messages = []
+        anthropic_messages: List[MessageParam] = []
 
         for message in messages:
             if isinstance(message, SystemMessage):
@@ -615,6 +631,11 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
                 anthropic_message = to_anthropic_type(message)
                 if isinstance(anthropic_message, list):
                     anthropic_messages.extend(anthropic_message)
+                elif isinstance(anthropic_message, str):
+                    msg = MessageParam(
+                        role="user" if isinstance(message, UserMessage) else "assistant", content=anthropic_message
+                    )
+                    anthropic_messages.append(msg)
                 else:
                     anthropic_messages.append(anthropic_message)
 
@@ -623,7 +644,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             raise ValueError("Model does not support function calling")
 
         # Set up the request
-        request_args = {
+        request_args: Dict[str, Any] = {
             "model": create_args["model"],
             "messages": anthropic_messages,
             "max_tokens": create_args.get("max_tokens", 4096),
@@ -646,19 +667,21 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
                 request_args[param] = create_args[param]
 
         # Stream the response
-        stream_future = asyncio.ensure_future(self._client.messages.create(**request_args))
+        stream_future: asyncio.Task[AsyncStream[RawMessageStreamEvent]] = asyncio.ensure_future(
+            cast(Coroutine[Any, Any, AsyncStream[RawMessageStreamEvent]], self._client.messages.create(**request_args))
+        )
 
         if cancellation_token is not None:
-            cancellation_token.link_future(stream_future)
+            cancellation_token.link_future(stream_future)  # type: ignore
 
-        stream = await stream_future
+        stream: AsyncStream[RawMessageStreamEvent] = cast(AsyncStream[RawMessageStreamEvent], await stream_future)  # type: ignore
 
         # Prepare variables for accumulating the response
-        text_content = []
-        tool_calls = {}
-        input_tokens = 0
-        output_tokens = 0
-        stop_reason = None
+        text_content: List[str] = []
+        tool_calls: Dict[str, Dict[str, str]] = {}
+        input_tokens: int = 0
+        output_tokens: int = 0
+        stop_reason: Optional[str] = None
 
         # Process the stream
         async for chunk in stream:
@@ -671,33 +694,20 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
                     if delta_text:
                         yield delta_text
 
-            elif chunk.type == "tool_use":
-                # Tool use
-                tool_id = chunk.id
-                if tool_id not in tool_calls:
-                    tool_calls[tool_id] = {"id": tool_id, "name": chunk.name, "input": ""}
-
-                # Update the tool input if present
-                if hasattr(chunk, "input") and chunk.input:
-                    if isinstance(chunk.input, dict):
-                        tool_calls[tool_id]["input"] = json.dumps(chunk.input)
-                    else:
-                        tool_calls[tool_id]["input"] = chunk.input
-
             elif chunk.type == "message_delta":
+                if hasattr(chunk, "usage") and hasattr(chunk.usage, "output_tokens"):
+                    output_tokens = chunk.usage.output_tokens
                 # End of message with stop reason
                 if hasattr(chunk.delta, "stop_reason") and chunk.delta.stop_reason:
                     stop_reason = chunk.delta.stop_reason
 
             elif chunk.type == "message_start":
-                # Beginning of message
-                pass
+                if hasattr(chunk, "message") and hasattr(chunk.message, "usage"):
+                    input_tokens = chunk.message.usage.input_tokens
+                    output_tokens = chunk.message.usage.output_tokens
 
             elif chunk.type == "message_stop":
-                # End of message with usage data
-                if hasattr(chunk, "usage"):
-                    input_tokens = chunk.usage.input_tokens
-                    output_tokens = chunk.usage.output_tokens
+                pass
 
         # Prepare the final result
         usage = RequestUsage(
