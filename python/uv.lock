@@ -623,6 +623,10 @@ mcp = [
     { name = "json-schema-to-pydantic" },
     { name = "mcp" },
 ]
+ollama = [
+    { name = "ollama" },
+    { name = "tiktoken" },
+]
 openai = [
     { name = "aiofiles" },
     { name = "openai" },
@@ -716,6 +720,7 @@ requires-dist = [
     { name = "markitdown", marker = "extra == 'web-surfer'", specifier = ">=0.0.1a2" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.1.3" },
     { name = "nbclient", marker = "extra == 'jupyter-executor'", specifier = ">=0.10.2" },
+    { name = "ollama", marker = "extra == 'ollama'", specifier = ">=0.4.7" },
     { name = "openai", marker = "extra == 'openai'", specifier = ">=1.52.2" },
     { name = "openai-whisper", marker = "extra == 'video-surfer'" },
     { name = "opencv-python", marker = "extra == 'video-surfer'", specifier = ">=4.5" },
@@ -736,6 +741,7 @@ requires-dist = [
     { name = "semantic-kernel", extras = ["ollama"], marker = "extra == 'semantic-kernel-ollama'", specifier = ">=1.17.1" },
     { name = "semantic-kernel", extras = ["onnx"], marker = "extra == 'semantic-kernel-onnx'", specifier = ">=1.17.1" },
     { name = "semantic-kernel", extras = ["pandas"], marker = "extra == 'semantic-kernel-pandas'", specifier = ">=1.17.1" },
+    { name = "tiktoken", marker = "extra == 'ollama'", specifier = ">=0.8.0" },
     { name = "tiktoken", marker = "extra == 'openai'", specifier = ">=0.8.0" },
 ]
 
