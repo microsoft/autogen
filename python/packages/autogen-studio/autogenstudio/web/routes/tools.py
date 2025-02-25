@@ -44,6 +44,11 @@ async def create_tool(tool: Tool, db=Depends(get_db)) -> Dict:
         raise HTTPException(status_code=400, detail=response.message)
     return {"status": True, "data": response.data}
 
+@router.post("/bulk")
+async def create_tools(tools: list[Tool], db=Depends(get_db)) -> Dict:
+    for tool in tools:
+        db.upsert(tool)
+    return {"status": True, "message": "Tools created successfully"}
 
 @router.delete("/{tool_id}")
 async def delete_tool(tool_id: int, user_id: str, db=Depends(get_db)) -> Dict:
