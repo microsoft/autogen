@@ -7,11 +7,12 @@ from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
 from autogen_core import ComponentModel
 from autogen_core.models import ModelInfo
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.openai._openai_client import AzureOpenAIChatCompletionClient
 from autogen_ext.tools.code_execution import PythonCodeExecutionTool
-from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
-from autogenstudio.datamodel import GalleryConfig, GalleryComponents, GalleryMetadata
+
+from autogenstudio.datamodel import GalleryComponents, GalleryConfig, GalleryMetadata
 
 from . import tools as tools
 
@@ -31,7 +32,7 @@ class GalleryBuilder:
 
         # Default metadata
         self.metadata = GalleryMetadata(
-            author="AutoGen Team", 
+            author="AutoGen Team",
             version="1.0.0",
             description="",
             tags=[],
@@ -290,7 +291,6 @@ Read the above conversation. Then select the next role from {participants} to pl
         label="Image Generation Tool",
         description="A tool that generates images based on a text description using OpenAI's DALL-E model. Note: Requires OpenAI API key to function.",
     )
- 
 
     builder.add_tool(
         tools.fetch_webpage_tool.dump_component(),

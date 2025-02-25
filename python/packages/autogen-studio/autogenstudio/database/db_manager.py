@@ -1,6 +1,6 @@
 import threading
 from datetime import datetime
-from pathlib import Path 
+from pathlib import Path
 from typing import Optional, Union
 
 from loguru import logger
@@ -162,7 +162,7 @@ class DatabaseManager:
                     session.add(model)
                 session.commit()
                 session.refresh(model)
-            except Exception as e: 
+            except Exception as e:
                 session.rollback()
                 logger.error("Error while updating/creating " + str(model_class.__name__) + ": " + str(e))
                 status = False

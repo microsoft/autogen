@@ -49,7 +49,7 @@ class GalleryMetadata(BaseModel):
 
     model_config = ConfigDict(
         json_encoders={
-            datetime: lambda v: v.isoformat(), 
+            datetime: lambda v: v.isoformat(),
         }
     )
 
@@ -71,7 +71,7 @@ class GalleryConfig(BaseModel):
 
     model_config = ConfigDict(
         json_encoders={
-            datetime: lambda v: v.isoformat(), 
+            datetime: lambda v: v.isoformat(),
         }
     )
 

@@ -50,6 +50,7 @@ class Message(SQLModel, table=True):
 
     message_meta: Optional[Union[MessageMeta, dict]] = Field(default={}, sa_column=Column(JSON))
 
+
 class Session(SQLModel, table=True):
     __table_args__ = {"sqlite_autoincrement": True}
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -120,15 +121,8 @@ class Gallery(SQLModel, table=True):
     user_id: Optional[str] = None
     version: Optional[str] = "0.0.1"
     config: Union[GalleryConfig, dict] = Field(default_factory=GalleryConfig, sa_column=Column(JSON))
-    
-    model_config = ConfigDict(
-        json_encoders={
-            datetime: lambda v: v.isoformat(),
-            UUID: str
-        }
-    )
 
-
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat(), UUID: str})
 
 
 class Settings(SQLModel, table=True):
