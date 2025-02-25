@@ -13,7 +13,6 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.CLAUDE_3_5_SONNET,
     },
-    
     # Claude 3 Sonnet (balanced)
     "claude-3-sonnet-20240229": {
         "vision": True,
@@ -21,7 +20,6 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.CLAUDE_3_5_SONNET,
     },
-    
     # Claude 3 Haiku (fastest)
     "claude-3-haiku-20240307": {
         "vision": True,
@@ -29,7 +27,6 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.CLAUDE_3_5_SONNET,
     },
-    
     # Claude 3.5 Sonnet
     "claude-3-5-sonnet-20240620": {
         "vision": True,
@@ -37,7 +34,6 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.CLAUDE_3_5_SONNET,
     },
-    
     # Claude 3.7 Sonnet
     "claude-3-7-sonnet-20250219": {
         "vision": True,
@@ -45,7 +41,6 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.CLAUDE_3_5_SONNET,
     },
-    
     # Claude Instant v1 (legacy)
     "claude-instant-1.2": {
         "vision": False,
@@ -53,7 +48,6 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.CLAUDE_3_5_SONNET,
     },
-    
     # Claude 2 (legacy)
     "claude-2.0": {
         "vision": False,
@@ -61,7 +55,6 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.CLAUDE_3_5_SONNET,
     },
-    
     # Claude 2.1 (legacy)
     "claude-2.1": {
         "vision": False,
@@ -83,29 +76,31 @@ _MODEL_TOKEN_LIMITS: Dict[str, int] = {
     "claude-2.1": 200000,
 }
 
+
 def get_info(model: str) -> ModelInfo:
     """Get the model information for a specific model."""
     # Check for exact match first
     if model in _MODEL_INFO:
         return _MODEL_INFO[model]
-    
+
     # Check for partial match (for handling model variants)
     for model_id in _MODEL_INFO:
         if model.startswith(model_id.split("-2")[0]):  # Match base name
             return _MODEL_INFO[model_id]
-            
+
     raise KeyError(f"Model '{model}' not found in model info")
+
 
 def get_token_limit(model: str) -> int:
     """Get the token limit for a specific model."""
     # Check for exact match first
     if model in _MODEL_TOKEN_LIMITS:
         return _MODEL_TOKEN_LIMITS[model]
-    
+
     # Check for partial match (for handling model variants)
     for model_id in _MODEL_TOKEN_LIMITS:
         if model.startswith(model_id.split("-2")[0]):  # Match base name
             return _MODEL_TOKEN_LIMITS[model_id]
-            
+
     # Default to a reasonable limit if model not found
     return 100000

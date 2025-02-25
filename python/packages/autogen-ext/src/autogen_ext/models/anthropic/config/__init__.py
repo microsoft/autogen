@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Literal, Optional, Union, Mapping
+from typing import Any, Dict, List, Literal, Optional, Union
 
 from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
 from pydantic import BaseModel
