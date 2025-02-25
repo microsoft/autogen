@@ -1,4 +1,5 @@
 from autogen_ext.models.ollama import OllamaChatCompletionClient
+from autogen_ext.models.ollama._ollama_client import OLLAMA_VALID_CHAT_ARGS_KEYS
 from autogen_core.models._types import UserMessage
 from ollama import AsyncClient
 
@@ -16,8 +17,7 @@ async def test_ollama_chat_completion_client_doesnt_error_with_host_kwarg(monkey
     
     client = OllamaChatCompletionClient(
         model="llama3.1",
-        host="http://testyhostname:11434",
-        some_other_random_kwarg_that_should_be_automatically_removed_from_create_args="foobar"
+        host="http://testyhostname:11434"
     )
 
     ## Call to client.create will throw a ConnectionError, 
@@ -28,3 +28,20 @@ async def test_ollama_chat_completion_client_doesnt_error_with_host_kwarg(monkey
         await client.create([UserMessage(content="hi", source="user")])
     except TypeError as e:
         assert "AsyncClient.chat() got an unexpected keyword argument" not in e.args[0]
+
+def test_create_args_from_config_drops_unexpected_kwargs():
+
+    test_config = {
+        k: "foobar"
+        for k in OLLAMA_VALID_CHAT_ARGS_KEYS + ["a_random_kwarg_to_be_dropped", "another_random_kwarg_to_be_dropped"]
+    }
+    test_config["model"] = "llama3.1"
+
+    client = OllamaChatCompletionClient(
+        **test_config
+    )
+
+    final_create_args = client._create_args
+
+    for arg in final_create_args:
+        assert arg in OLLAMA_VALID_CHAT_ARGS_KEYS
