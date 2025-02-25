@@ -196,7 +196,7 @@ export const SessionManager: React.FC = () => {
       if (teamsData.length > 0) {
         setTeams(teamsData);
       } else {
-        const sampleTeam = defaultGallery.items.teams[0];
+        const sampleTeam = defaultGallery.components.teams[0];
         // If no teams, create a default team
         const defaultTeam = await teamAPI.createTeam(
           {

@@ -51,3 +51,8 @@ def test_redis_with_different_instances() -> None:
     redis_instance_2.set.assert_called_with(test_key, test_value_2)
     redis_instance_2.get.return_value = test_value_2
     assert store_2.get(test_key) == test_value_2
+
+    # test serialization
+    store_1_config = store_1.dump_component()
+    assert store_1_config.component_type == "cache_store"
+    assert store_1_config.component_version == 1

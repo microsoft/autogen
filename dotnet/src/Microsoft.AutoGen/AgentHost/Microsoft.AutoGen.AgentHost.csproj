@@ -6,7 +6,16 @@
     <ContainerRepository>autogen-host</ContainerRepository>
     <ContainerFamily>alpine</ContainerFamily>
     <EnableSdkContainerSupport>true</EnableSdkContainerSupport>
-     </PropertyGroup>
+
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>agenthost</ToolCommandName>
+    <PackageOutputPath>./nupkg</PackageOutputPath>
+  </PropertyGroup>
+  
+
+
+  <Import Project="$(RepoRoot)/nuget/nuget-package.props" />
+
   <ItemGroup>
     <ContainerEnvironmentVariable Include="ASPNETCORE_HTTP_PORTS" Value="5001" />
     <ContainerPort Include="5001" Type="tcp" />

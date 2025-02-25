@@ -237,7 +237,7 @@ export const GallerySidebar: React.FC<GallerySidebarProps> = ({
                     <div className="flex items-center gap-1">
                       <Package className="w-3 h-3" />
                       <span>
-                        {Object.values(gallery.items.components).reduce(
+                        {Object.values(gallery.components).reduce(
                           (sum, arr) => sum + arr.length,
                           0
                         )}{" "}

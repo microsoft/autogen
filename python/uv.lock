@@ -440,7 +440,7 @@ wheels = [
 
 [[package]]
 name = "autogen-agentchat"
-version = "0.4.7"
+version = "0.4.8"
 source = { editable = "packages/autogen-agentchat" }
 dependencies = [
     { name = "autogen-core" },
@@ -451,7 +451,7 @@ requires-dist = [{ name = "autogen-core", editable = "packages/autogen-core" }]
 
 [[package]]
 name = "autogen-core"
-version = "0.4.7"
+version = "0.4.8"
 source = { editable = "packages/autogen-core" }
 dependencies = [
     { name = "jsonref" },
@@ -570,7 +570,7 @@ dev = [
 
 [[package]]
 name = "autogen-ext"
-version = "0.4.7"
+version = "0.4.8"
 source = { editable = "packages/autogen-ext" }
 dependencies = [
     { name = "autogen-core" },
@@ -778,7 +778,6 @@ dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "html2text" },
     { name = "loguru" },
-    { name = "numpy" },
     { name = "psycopg" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
@@ -810,7 +809,6 @@ requires-dist = [
     { name = "fastapi", extras = ["standard"] },
     { name = "html2text" },
     { name = "loguru" },
-    { name = "numpy", specifier = "<2.0.0" },
     { name = "psycopg" },
     { name = "psycopg", marker = "extra == 'database'" },
     { name = "pydantic" },

@@ -8,7 +8,7 @@ namespace Microsoft.AutoGen.Contracts;
 /// <summary>
 /// Defines the runtime environment for agents, managing message sending, subscriptions, agent resolution, and state persistence.
 /// </summary>
-public interface IAgentRuntime : ISaveState<IAgentRuntime>
+public interface IAgentRuntime : ISaveState
 {
     /// <summary>
     /// Sends a message to an agent and gets a response.

@@ -85,7 +85,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
       {
         title: "Agents",
         type: "agent" as ComponentTypes,
-        items: defaultGallery.items.components.agents.map((agent) => ({
+        items: defaultGallery.components.agents.map((agent) => ({
           label: agent.label,
           config: agent,
         })),
@@ -94,7 +94,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
       {
         title: "Models",
         type: "model" as ComponentTypes,
-        items: defaultGallery.items.components.models.map((model) => ({
+        items: defaultGallery.components.models.map((model) => ({
           label: `${model.label || model.config.model}`,
           config: model,
         })),
@@ -103,7 +103,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
       {
         title: "Tools",
         type: "tool" as ComponentTypes,
-        items: defaultGallery.items.components.tools.map((tool) => ({
+        items: defaultGallery.components.tools.map((tool) => ({
           label: tool.config.name,
           config: tool,
         })),
@@ -112,12 +112,10 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
       {
         title: "Terminations",
         type: "termination" as ComponentTypes,
-        items: defaultGallery.items.components.terminations.map(
-          (termination) => ({
-            label: `${termination.label}`,
-            config: termination,
-          })
-        ),
+        items: defaultGallery.components.terminations.map((termination) => ({
+          label: `${termination.label}`,
+          config: termination,
+        })),
         icon: <Timer className="w-4 h-4" />,
       },
     ],
@@ -205,6 +203,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
         </div>
 
         <Collapse
+          accordion
           items={items}
           defaultActiveKey={["Agents"]}
           bordered={false}

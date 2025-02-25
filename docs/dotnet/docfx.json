@@ -5,7 +5,11 @@
         {
           "files": [
             "src/Microsoft.AutoGen/Core/**/*.csproj",
-            "src/Microsoft.AutoGen/Contracts/**/*.csproj"
+            "src/Microsoft.AutoGen/Contracts/**/*.csproj",
+            "src/Microsoft.AutoGen/Core.Grpc/**/*.csproj",
+            "src/Microsoft.AutoGen/AgentHost/**/*.csproj",
+            "src/Microsoft.AutoGen/RuntimeGateway.Grpc/**/*.csproj",
+            "src/Microsoft.AutoGen/Extensions/**/*.csproj"
           ],
           "src": "../../dotnet/"
         }
