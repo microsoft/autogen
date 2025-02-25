@@ -155,7 +155,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
     handleValidate();
 
     return () => {
-      console.log("cleanup component");
+      // console.log("cleanup component");
       setValidationResults(null);
     };
   }, [team, setNodes, setEdges]);
@@ -544,7 +544,7 @@ export const TeamBuilder: React.FC<TeamBuilderProps> = ({
                     nodes.find((n) => n.id === selectedNodeId)!.data.component
                   }
                   onChange={(updatedComponent) => {
-                    console.log("builder updating component", updatedComponent);
+                    // console.log("builder updating component", updatedComponent);
                     if (selectedNodeId) {
                       updateNode(selectedNodeId, {
                         component: updatedComponent,
