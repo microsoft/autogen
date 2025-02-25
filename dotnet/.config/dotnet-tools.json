@@ -6,13 +6,15 @@
       "version": "0.1.205",
       "commands": [
         "dotnet-repl"
-      ]
+      ],
+      "rollForward": true
     },
     "docfx": {
       "version": "2.67.5",
       "commands": [
         "docfx"
-      ]
+      ],
+      "rollForward": true
     }
   }
 }

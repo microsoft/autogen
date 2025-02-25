@@ -81,7 +81,6 @@ class ModelFamily:
             ModelFamily.O3,
             ModelFamily.GPT_4,
             ModelFamily.GPT_35,
-            ModelFamily.R1,
         )
 
 
