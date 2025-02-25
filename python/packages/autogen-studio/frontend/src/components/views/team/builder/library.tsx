@@ -74,7 +74,7 @@ const PresetItem: React.FC<PresetItemProps> = ({
 export const ComponentLibrary: React.FC<LibraryProps> = () => {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isMinimized, setIsMinimized] = React.useState(false);
-  const defaultGallery = useGalleryStore((state) => state.getDefaultGallery());
+  const defaultGallery = useGalleryStore((state) => state.getSelectedGallery());
 
   if (!defaultGallery) {
     return null;
@@ -85,7 +85,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
       {
         title: "Agents",
         type: "agent" as ComponentTypes,
-        items: defaultGallery.components.agents.map((agent) => ({
+        items: defaultGallery.config.components.agents.map((agent) => ({
           label: agent.label,
           config: agent,
         })),
@@ -94,7 +94,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
       {
         title: "Models",
         type: "model" as ComponentTypes,
-        items: defaultGallery.components.models.map((model) => ({
+        items: defaultGallery.config.components.models.map((model) => ({
           label: `${model.label || model.config.model}`,
           config: model,
         })),
@@ -103,7 +103,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
       {
         title: "Tools",
         type: "tool" as ComponentTypes,
-        items: defaultGallery.components.tools.map((tool) => ({
+        items: defaultGallery.config.components.tools.map((tool) => ({
           label: tool.config.name,
           config: tool,
         })),
@@ -112,10 +112,12 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
       {
         title: "Terminations",
         type: "termination" as ComponentTypes,
-        items: defaultGallery.components.terminations.map((termination) => ({
-          label: `${termination.label}`,
-          config: termination,
-        })),
+        items: defaultGallery.config.components.terminations.map(
+          (termination) => ({
+            label: `${termination.label}`,
+            config: termination,
+          })
+        ),
         icon: <Timer className="w-4 h-4" />,
       },
     ],
