@@ -1,9 +1,12 @@
-from typing import Literal
+from typing import Dict, Literal
+
 from autogen_ext.tools.mcp._config import SseServerParams, StdioServerParams
 from autogen_ext.tools.mcp._factory import mcp_server_tools
-
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
+
+from ...datamodel import Tool
+from ..deps import get_db
 
 router = APIRouter()
 
@@ -18,3 +21,31 @@ async def resolve_mcp_tool(params: McpToolParams):
     if not tools:
         raise HTTPException(status_code=400, detail="Failed to retrieve tools")
     return [tool.dump_component() for tool in tools]
+
+
+@router.get("/")
+async def list_tools(user_id: str, db=Depends(get_db)) -> Dict:
+    response = db.get(Tool, filters={"user_id": user_id})
+    return {"status": True, "data": response.data}
+
+
+@router.get("/{tool_id}")
+async def get_tool(tool_id: int, user_id: str, db=Depends(get_db)) -> Dict:
+    response = db.get(Tool, filters={"id": tool_id, "user_id": user_id})
+    if not response.status or not response.data:
+        raise HTTPException(status_code=404, detail="Tool not found")
+    return {"status": True, "data": response.data[0]}
+
+
+@router.post("/")
+async def create_tool(tool: Tool, db=Depends(get_db)) -> Dict:
+    response = db.upsert(tool)
+    if not response.status:
+        raise HTTPException(status_code=400, detail=response.message)
+    return {"status": True, "data": response.data}
+
+
+@router.delete("/{tool_id}")
+async def delete_tool(tool_id: int, user_id: str, db=Depends(get_db)) -> Dict:
+    db.delete(filters={"id": tool_id, "user_id": user_id}, model_class=Tool)
+    return {"status": True, "message": "Tool deleted successfully"}

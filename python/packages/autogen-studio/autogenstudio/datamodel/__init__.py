@@ -1,4 +1,4 @@
-from .db import Message, Run, RunStatus, Session, Team
+from .db import Message, Run, RunStatus, Session, Team, Tool
 from .types import (
     Gallery,
     GalleryComponents,
@@ -24,4 +24,5 @@ __all__ = [
     "Response",
     "SocketMessage",
     "LLMCallEventMessage",
+    "Tool"
 ]
