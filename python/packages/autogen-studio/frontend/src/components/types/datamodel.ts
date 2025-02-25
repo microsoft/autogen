@@ -48,6 +48,13 @@ export interface TextMessageConfig extends BaseMessageConfig {
   content: string;
 }
 
+export interface BaseAgentEvent extends BaseMessageConfig {}
+
+export interface ModelClientStreamingChunkEvent extends BaseAgentEvent {
+  content: string;
+  type: "ModelClientStreamingChunkEvent";
+}
+
 export interface MultiModalMessageConfig extends BaseMessageConfig {
   content: (string | ImageContent)[];
 }
@@ -75,7 +82,8 @@ export type AgentMessageConfig =
   | StopMessageConfig
   | HandoffMessageConfig
   | ToolCallMessageConfig
-  | ToolCallResultMessageConfig;
+  | ToolCallResultMessageConfig
+  | ModelClientStreamingChunkEvent;
 
 export interface FromModuleImport {
   module: string;
@@ -136,6 +144,7 @@ export interface AssistantAgentConfig {
   system_message?: string;
   reflect_on_tool_use: boolean;
   tool_call_summary_format: string;
+  model_client_stream: boolean;
 }
 
 export interface UserProxyAgentConfig {
@@ -266,7 +275,8 @@ export interface WebSocketMessage {
     | "completion"
     | "input_request"
     | "error"
-    | "llm_call_event";
+    | "llm_call_event"
+    | "message_chunk";
   data?: AgentMessageConfig | TaskResult;
   status?: RunStatus;
   error?: string;
@@ -303,3 +313,58 @@ export type RunStatus =
   | "complete"
   | "error"
   | "stopped";
+
+// Settings
+
+export type EnvironmentVariableType =
+  | "string"
+  | "number"
+  | "boolean"
+  | "secret";
+
+export interface EnvironmentVariable {
+  name: string;
+  value: string;
+  type: EnvironmentVariableType;
+  description?: string;
+  required: boolean;
+}
+
+export interface SettingsConfig {
+  environment: EnvironmentVariable[];
+}
+
+export interface Settings extends DBModel {
+  config: SettingsConfig;
+}
+
+export interface GalleryMetadata {
+  author: string;
+  created_at: string;
+  updated_at: string;
+  version: string;
+  description?: string;
+  tags?: string[];
+  license?: string;
+  homepage?: string;
+  category?: string;
+  lastSynced?: string;
+}
+
+export interface GalleryConfig {
+  id: string;
+  name: string;
+  url?: string;
+  metadata: GalleryMetadata;
+  components: {
+    teams: Component<TeamConfig>[];
+    agents: Component<AgentConfig>[];
+    models: Component<ModelConfig>[];
+    tools: Component<ToolConfig>[];
+    terminations: Component<TerminationConfig>[];
+  };
+}
+
+export interface Gallery extends DBModel {
+  config: GalleryConfig;
+}
