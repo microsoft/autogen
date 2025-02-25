@@ -4,18 +4,18 @@
 
 html[data-theme="light"] {
   --pst-color-primary: hsl(222.2 47.4% 11.2%);
-  --pst-color-secondary: #007bff;
-  --pst-color-secondary-bg: #007bff;
-  --pst-color-accent: #007bff;
+  --pst-color-secondary: #1774E5;
+  --pst-color-secondary-bg: #1774E5;
+  --pst-color-accent: #1774E5;
   --sd-color-secondary-highlight: #0062cc;
   --pst-color-shadow: rgba(0, 0, 0, 0.0);
 }
 
 html[data-theme="dark"] {
   --pst-color-primary: hsl(213 31% 91%);
-  --pst-color-secondary: #007bff;
-  --pst-color-secondary-bg: #007bff;
-  --pst-color-accent: #007bff;
+  --pst-color-secondary: #017FFF;
+  --pst-color-secondary-bg: #017FFF;
+  --pst-color-accent: #017FFF;
   --sd-color-secondary-highlight: #0062cc;
   --pst-color-shadow: rgba(0, 0, 0, 0.0);
 }
