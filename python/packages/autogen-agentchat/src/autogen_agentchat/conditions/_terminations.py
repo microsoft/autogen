@@ -113,7 +113,7 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
     component_provider_override = "autogen_agentchat.conditions.TextMentionTermination"
 
     def __init__(self, text: str, sources: Sequence[str] | None = None) -> None:
-        self._text = text
+        self._termination_text = text
         self._terminated = False
         self._sources = sources
 
@@ -128,21 +128,25 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
             if self._sources is not None and message.source not in self._sources:
                 continue
 
-            if isinstance(message.content, str) and self._text in message.content:
+            if isinstance(message.content, str) and self._termination_text in message.content:
                 self._terminated = True
-                return StopMessage(content=f"Text '{self._text}' mentioned", source="TextMentionTermination")
+                return StopMessage(
+                    content=f"Text '{self._termination_text}' mentioned", source="TextMentionTermination"
+                )
             elif isinstance(message, MultiModalMessage):
                 for item in message.content:
-                    if isinstance(item, str) and self._text in item:
+                    if isinstance(item, str) and self._termination_text in item:
                         self._terminated = True
-                        return StopMessage(content=f"Text '{self._text}' mentioned", source="TextMentionTermination")
+                        return StopMessage(
+                            content=f"Text '{self._termination_text}' mentioned", source="TextMentionTermination"
+                        )
         return None
 
     async def reset(self) -> None:
         self._terminated = False
 
     def _to_config(self) -> TextMentionTerminationConfig:
-        return TextMentionTerminationConfig(text=self._text)
+        return TextMentionTerminationConfig(text=self._termination_text)
 
     @classmethod
     def _from_config(cls, config: TextMentionTerminationConfig) -> Self:

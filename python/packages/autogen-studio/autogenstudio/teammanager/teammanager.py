@@ -1,6 +1,7 @@
 import asyncio
 import json
 import logging
+import os
 import time
 from pathlib import Path
 from typing import AsyncGenerator, Callable, List, Optional, Union
@@ -12,7 +13,7 @@ from autogen_agentchat.messages import AgentEvent, ChatMessage
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, ComponentModel
 from autogen_core.logging import LLMCallEvent
 
-from ..datamodel.types import LLMCallEventMessage, TeamResult
+from ..datamodel.types import EnvironmentVariable, LLMCallEventMessage, TeamResult
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +66,10 @@ class TeamManager:
         return configs
 
     async def _create_team(
-        self, team_config: Union[str, Path, dict, ComponentModel], input_func: Optional[Callable] = None
+        self,
+        team_config: Union[str, Path, dict, ComponentModel],
+        input_func: Optional[Callable] = None,
+        env_vars: Optional[List[EnvironmentVariable]] = None,
     ) -> Component:
         """Create team instance from config"""
         if isinstance(team_config, (str, Path)):
@@ -74,6 +78,12 @@ class TeamManager:
             config = team_config
         else:
             config = team_config.model_dump()
+
+        # Load env vars into environment if provided
+        if env_vars:
+            logger.info("Loading environment variables")
+            for var in env_vars:
+                os.environ[var.name] = var.value
 
         team = Team.load_component(config)
 
@@ -89,6 +99,7 @@ class TeamManager:
         team_config: Union[str, Path, dict, ComponentModel],
         input_func: Optional[Callable] = None,
         cancellation_token: Optional[CancellationToken] = None,
+        env_vars: Optional[List[EnvironmentVariable]] = None,
     ) -> AsyncGenerator[Union[AgentEvent | ChatMessage | LLMCallEvent, ChatMessage, TeamResult], None]:
         """Stream team execution results"""
         start_time = time.time()
@@ -101,7 +112,7 @@ class TeamManager:
         logger.handlers = [llm_event_logger]  # Replace all handlers
 
         try:
-            team = await self._create_team(team_config, input_func)
+            team = await self._create_team(team_config, input_func, env_vars)
 
             async for message in team.run_stream(task=task, cancellation_token=cancellation_token):
                 if cancellation_token and cancellation_token.is_cancelled():
@@ -133,13 +144,14 @@ class TeamManager:
         team_config: Union[str, Path, dict, ComponentModel],
         input_func: Optional[Callable] = None,
         cancellation_token: Optional[CancellationToken] = None,
+        env_vars: Optional[List[EnvironmentVariable]] = None,
     ) -> TeamResult:
         """Run team synchronously"""
         start_time = time.time()
         team = None
 
         try:
-            team = await self._create_team(team_config, input_func)
+            team = await self._create_team(team_config, input_func, env_vars)
             result = await team.run(task=task, cancellation_token=cancellation_token)
 
             return TeamResult(task_result=result, usage="", duration=time.time() - start_time)
