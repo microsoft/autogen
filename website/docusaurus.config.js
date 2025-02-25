@@ -137,7 +137,7 @@ module.exports = {
         },
         {
           to: "blog",
-          label: "Old Blog",
+          label: "Old Blog (Archived)",
           position: "left",
         },
         {
