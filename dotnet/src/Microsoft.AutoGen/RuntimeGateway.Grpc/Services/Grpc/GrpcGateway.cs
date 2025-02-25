@@ -2,6 +2,9 @@
 // GrpcGateway.cs
 
 using System.Collections.Concurrent;
+using Google.Protobuf;
+
+//using System.Collections.Generic;
 using Grpc.Core;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Protobuf;
@@ -10,7 +13,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
-
+#pragma warning disable IDE0059, IDE0060
 /// <summary>
 /// Represents the gRPC gateway service that handles communication between the agent worker and the cluster.
 /// </summary>
@@ -344,12 +347,59 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                 }
                 break;
 
-            //case ControlMessage controlMsg:
-            //    //await HandleControlMessageAsync(connection, controlMsg, cancellationToken);
-            //    break;
-
-            default:
-                await RespondBadRequestAsync(connection, $"Unknown message type for message '{message}'.");
+            case ControlMessage controlMsg:
+                if (controlMsg.RpcMessage.TryUnpack(out SaveStateRequest saveReq))
+                {
+                    var rpcRequest = new RpcRequest
+                    {
+                        RequestId = controlMsg.RpcId,  // Ensure request ID is mapped
+                        Source = new Microsoft.AutoGen.Protobuf.AgentId { Type = "control", Key = controlMsg.Destination }, // Set source agent
+                        Target = saveReq.AgentId,  // Target stays the same
+                        Method = "SaveState",
+                        Payload = new Payload
+                        {
+                            DataContentType = "application/x-protobuf",
+                            Data = saveReq.ToByteString() // Properly encode request data
+                        }
+                    };
+                    await DispatchRequestAsync(connection, rpcRequest);
+                }
+                else if (controlMsg.RpcMessage.TryUnpack(out LoadStateRequest loadReq))
+                {
+                    var rpcRequest = new RpcRequest
+                    {
+                        Target = loadReq.AgentId,
+                        Method = "LoadState",
+                        Payload = new Payload { DataContentType = "application/x-protobuf" }
+                    };
+                    await DispatchRequestAsync(connection, rpcRequest);
+                }
+                /*else if (controlMsg.RpcMessage.TryUnpack(out SaveStateResponse saveResp))
+                {
+                    if (_pendingControlRequests.TryRemove((connection, controlMsg.RpcId), out var completion))
+                    {
+                        completion.SetResult(new RpcResponse
+                        {
+                            RequestId = controlMsg.RpcId,
+                            Payload = new Payload { DataContentType = "application/x-protobuf" }
+                        });
+                    }
+                }
+                else if (controlMsg.RpcMessage.TryUnpack(out LoadStateResponse loadResp))
+                {
+                    if (_pendingControlRequests.TryRemove((connection, controlMsg.RpcId), out var completion))
+                    {
+                        completion.SetResult(new RpcResponse
+                        {
+                            RequestId = controlMsg.RpcId,
+                            Payload = new Payload { DataContentType = "application/x-protobuf" }
+                        });
+                    }
+                }*/
+                else
+                {
+                    await RespondBadRequestAsync(connection, "Unsupported ControlMessage type.");
+                }
                 break;
         }
     }
@@ -460,6 +510,95 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }).ConfigureAwait(false);
     }
 
+    private async ValueTask DispatchSaveStateRequestAsync(
+        GrpcWorkerConnection<ControlMessage> connection,
+        ControlMessage controlMsg)
+    {
+        if (controlMsg.RpcMessage.TryUnpack(out SaveStateRequest request))
+        {
+            _logger.LogInformation("Received SaveStateRequest for AgentId {AgentId}", request.AgentId);
+
+            // Find the agent connection
+            var agentId = (request.AgentId.Type, request.AgentId.Key);
+            if (!_agentDirectory.TryGetValue(agentId, out var agentConnection) || agentConnection == null || agentConnection.Completion.IsCompleted)
+            {
+                _logger.LogWarning("No active agent found for AgentId {AgentId}", request.AgentId);
+
+                // Send error response directly
+                await connection.ResponseStream.WriteAsync(new ControlMessage
+                {
+                    RpcId = controlMsg.RpcId,
+                    RespondTo = controlMsg.RpcId,
+                    RpcMessage = Google.Protobuf.WellKnownTypes.Any.Pack(new SaveStateResponse { Error = "Agent not found." })
+                });
+                return;
+            }
+
+            // Ensure agentConnection is valid before using it
+            /*if (!_pendingControlRequests.ContainsKey((agentConnection, controlMsg.RpcId)))
+            {
+                var newRequestId = Guid.NewGuid().ToString();
+                var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
+                _pendingControlRequests.TryAdd((agentConnection, newRequestId), completion);
+
+                // Forward the SaveStateRequest to the agent
+                var forwardMessage = new ControlMessage
+                {
+                    RpcId = newRequestId,
+                    Destination = controlMsg.Destination,
+                    RpcMessage = Google.Protobuf.WellKnownTypes.Any.Pack(request)
+                };
+
+                await agentConnection.ResponseStream.WriteAsync(forwardMessage);
+
+                // Wait for the agent's response
+                var response = await completion.Task.WaitAsync(s_agentResponseTimeout);
+                response.RpcId = controlMsg.RpcId;
+
+                // Send the response back to the original sender
+                await connection.ResponseStream.WriteAsync(new ControlMessage
+                {
+                    RpcId = controlMsg.RpcId,
+                    RespondTo = controlMsg.RpcId,
+                    RpcMessage = Google.Protobuf.WellKnownTypes.Any.Pack(response)
+                });
+
+                _logger.LogInformation("SaveStateRequest processed for AgentId {AgentId}", request.AgentId);
+            }
+            else
+            {
+                _logger.LogWarning("Duplicate request detected for AgentId {AgentId}, ignoring.", request.AgentId);
+            }*/
+        }
+    }
+
+    private void DispatchSaveStateResponse<TMessage>(GrpcWorkerConnection<TMessage> connection, ControlMessage controlMsg)
+    where TMessage : class
+    {
+        if (controlMsg.RpcMessage.TryUnpack(out SaveStateResponse response))
+        {
+            //HandleSaveStateResponse(connection as GrpcWorkerConnection<ControlMessage>, response, default);
+        }
+    }
+
+    private async ValueTask DispatchLoadStateRequestAsync<TMessage>(GrpcWorkerConnection<TMessage> connection, ControlMessage controlMsg)
+    where TMessage : class
+    {
+        if (controlMsg.RpcMessage.TryUnpack(out LoadStateRequest request))
+        {
+            //await HandleLoadStateRequestAsync(connection as GrpcWorkerConnection<ControlMessage>, request, default);
+        }
+    }
+
+    private void DispatchLoadStateResponse<TMessage>(GrpcWorkerConnection<TMessage> connection, ControlMessage controlMsg)
+    where TMessage : class
+    {
+        if (controlMsg.RpcMessage.TryUnpack(out LoadStateResponse response))
+        {
+            //HandleLoadStateResponse(connection as GrpcWorkerConnection<ControlMessage>, response, default);
+        }
+    }
+
     /// <summary>
     /// Invokes a request delegate.
     /// </summary>
@@ -548,4 +687,81 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         await connection.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);
     }
+
+    private async Task HandleSaveStateRequestAsync(GrpcWorkerConnection<ControlMessage> connection, SaveStateRequest request, CancellationToken cancellationToken)
+    {
+        // Log the received request
+        _logger.LogInformation("Received SaveStateRequest: {Request}", request);
+
+        // Process the save state request (e.g., save the state of the specified agent)
+        // This could involve calling a method to save the state in your agent runtime
+        //var result = await SaveAgentStateAsync(request.AgentId, cancellationToken);
+
+        // Create a response message
+        var response = new SaveStateResponse
+        {
+            //State = result.State, // Assuming SaveAgentStateAsync returns an object with a State property
+            //Error = result.Error // Handle any errors that occurred during the save
+        };
+
+        // Send the response back to the agent
+        await connection.ResponseStream.WriteAsync(new ControlMessage
+        {
+            //RpcMessage = Any.Pack(response) // Pack the response into an Any message
+        }, cancellationToken);
+    }
+
+    private async Task HandleSaveStateResponseAsync(GrpcWorkerConnection<ControlMessage> connection, SaveStateResponse response, CancellationToken cancellationToken)
+    {
+        // Log the received response
+        _logger.LogInformation("Received SaveStateResponse: {Response}", response);
+
+        // Handle the response (e.g., log success or error)
+        if (!string.IsNullOrEmpty(response.Error))
+        {
+            _logger.LogError("Error saving state: {Error}", response.Error);
+        }
+        else
+        {
+            _logger.LogInformation("State saved successfully.");
+        }
+    }
+
+    private async Task HandleLoadStateRequestAsync(GrpcWorkerConnection<ControlMessage> connection, LoadStateRequest request, CancellationToken cancellationToken)
+    {
+        // Log the received request
+        _logger.LogInformation("Received LoadStateRequest: {Request}", request);
+
+        // Process the load state request (e.g., load the state of the specified agent)
+        //var result = await LoadAgentStateAsync(request.AgentId, cancellationToken);
+
+        // Create a response message
+        var response = new LoadStateResponse
+        {
+            //Error = result.Error // Handle any errors that occurred during the load
+        };
+
+        // Send the response back to the agent
+        await connection.ResponseStream.WriteAsync(new ControlMessage
+        {
+            //RpcMessage = Any.Pack(response) // Pack the response into an Any message
+        }, cancellationToken);
+    }
+
+    private async Task HandleLoadStateResponseAsync(GrpcWorkerConnection<ControlMessage> connection, LoadStateResponse response, CancellationToken cancellationToken)
+    {
+        // Log the received response
+        _logger.LogInformation("Received LoadStateResponse: {Response}", response);
+
+        // Handle the response (e.g., log success or error)
+        if (!string.IsNullOrEmpty(response.Error))
+        {
+            _logger.LogError("Error loading state: {Error}", response.Error);
+        }
+        else
+        {
+            _logger.LogInformation("State loaded successfully.");
+        }
+    }
 }
+#pragma warning disable IDE0059, IDE0060
