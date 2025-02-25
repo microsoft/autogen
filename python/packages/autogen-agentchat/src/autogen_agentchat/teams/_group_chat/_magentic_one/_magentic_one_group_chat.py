@@ -1,7 +1,7 @@
 import logging
 from typing import Callable, List
 
-from autogen_core import Component, ComponentModel, ExceptionHandlingPolicy
+from autogen_core import Component, ComponentModel
 from autogen_core.models import ChatCompletionClient
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -99,14 +99,12 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         max_turns: int | None = 20,
         max_stalls: int = 3,
         final_answer_prompt: str = ORCHESTRATOR_FINAL_ANSWER_PROMPT,
-        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ):
         super().__init__(
             participants,
             group_chat_manager_class=MagenticOneOrchestrator,
             termination_condition=termination_condition,
             max_turns=max_turns,
-            exception_handling_policy=exception_handling_policy,
         )
 
         # Validate the participants.
@@ -124,7 +122,6 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
-        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ) -> Callable[[], MagenticOneOrchestrator]:
         return lambda: MagenticOneOrchestrator(
             group_topic_type,
@@ -136,7 +133,6 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             self._max_stalls,
             self._final_answer_prompt,
             termination_condition,
-            exception_handling_policy=exception_handling_policy,
         )
 
     def _to_config(self) -> MagenticOneGroupChatConfig:

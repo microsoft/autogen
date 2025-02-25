@@ -12,7 +12,6 @@ from autogen_core import (
     CancellationToken,
     ClosureAgent,
     ComponentBase,
-    ExceptionHandlingPolicy,
     MessageContext,
     SingleThreadedAgentRuntime,
     TypeSubscription,
@@ -46,7 +45,6 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         group_chat_manager_class: type[SequentialRoutedAgent],
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
-        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
@@ -72,7 +70,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
 
         # Create a runtime for the team.
         # TODO: The runtime should be created by a managed context.
-        self._runtime = SingleThreadedAgentRuntime(exception_handling_policy=exception_handling_policy)
+        self._runtime = SingleThreadedAgentRuntime()
 
         # Flag to track if the group chat has been initialized.
         self._initialized = False
@@ -89,7 +87,6 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
-        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ) -> Callable[[], SequentialRoutedAgent]: ...
 
     def _create_participant_factory(
@@ -497,7 +494,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         """
 
         if not self._initialized:
-            raise RuntimeError("The group chat has not been initialized. It must be run before it can be reset.")
+            await self._init(self._runtime)
 
         if self._is_running:
             raise RuntimeError("The group chat is currently running. It must be stopped before it can be reset.")

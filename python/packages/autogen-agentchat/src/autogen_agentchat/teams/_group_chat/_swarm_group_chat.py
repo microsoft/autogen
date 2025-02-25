@@ -1,6 +1,6 @@
 from typing import Any, Callable, List, Mapping
 
-from autogen_core import Component, ComponentModel, ExceptionHandlingPolicy
+from autogen_core import Component, ComponentModel
 from pydantic import BaseModel
 
 from ...base import ChatAgent, TerminationCondition
@@ -21,7 +21,6 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
-        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ) -> None:
         super().__init__(
             group_topic_type,
@@ -30,7 +29,6 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             participant_descriptions,
             termination_condition,
             max_turns,
-            exception_handling_policy=exception_handling_policy,
         )
         self._current_speaker = participant_topic_types[0]
 
@@ -201,14 +199,12 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         participants: List[ChatAgent],
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
-        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ) -> None:
         super().__init__(
             participants,
             group_chat_manager_class=SwarmGroupChatManager,
             termination_condition=termination_condition,
             max_turns=max_turns,
-            exception_handling_policy=exception_handling_policy,
         )
         # The first participant must be able to produce handoff messages.
         first_participant = self._participants[0]
@@ -223,7 +219,6 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
-        exception_handling_policy: ExceptionHandlingPolicy | None = ExceptionHandlingPolicy.IGNORE_AND_LOG,
     ) -> Callable[[], SwarmGroupChatManager]:
         def _factory() -> SwarmGroupChatManager:
             return SwarmGroupChatManager(
@@ -233,7 +228,6 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
                 participant_descriptions,
                 termination_condition,
                 max_turns,
-                exception_handling_policy=exception_handling_policy,
             )
 
         return _factory
