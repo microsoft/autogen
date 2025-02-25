@@ -1,16 +1,19 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState, useContext } from "react";
 import { message, Modal } from "antd";
 import { ChevronRight } from "lucide-react";
-import { useGalleryStore } from "./store";
+import { appContext } from "../../../hooks/provider";
+import { galleryAPI } from "./api";
 import { GallerySidebar } from "./sidebar";
 import { GalleryDetail } from "./detail";
 import { GalleryCreateModal } from "./create-modal";
-import type { Gallery } from "./types";
+import type { Gallery } from "../../types/datamodel";
 
 export const GalleryManager: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [galleries, setGalleries] = useState<Gallery[]>([]);
+  const [currentGallery, setCurrentGallery] = useState<Gallery | null>(null);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
     if (typeof window !== "undefined") {
       const stored = localStorage.getItem("gallerySidebar");
@@ -19,20 +22,8 @@ export const GalleryManager: React.FC = () => {
     return true;
   });
 
-  const {
-    galleries,
-    selectedGalleryId,
-    selectGallery,
-    addGallery,
-    updateGallery,
-    removeGallery,
-    setDefaultGallery,
-    getSelectedGallery,
-    getDefaultGallery,
-  } = useGalleryStore();
-
+  const { user } = useContext(appContext);
   const [messageApi, contextHolder] = message.useMessage();
-  const currentGallery = getSelectedGallery();
 
   // Persist sidebar state
   useEffect(() => {
@@ -41,24 +32,55 @@ export const GalleryManager: React.FC = () => {
     }
   }, [isSidebarOpen]);
 
+  const fetchGalleries = useCallback(async () => {
+    if (!user?.email) return;
+
+    try {
+      setIsLoading(true);
+      const data = await galleryAPI.listGalleries(user.email);
+      setGalleries(data);
+      if (!currentGallery && data.length > 0) {
+        setCurrentGallery(data[0]);
+      }
+    } catch (error) {
+      console.error("Error fetching galleries:", error);
+      messageApi.error("Failed to fetch galleries");
+    } finally {
+      setIsLoading(false);
+    }
+  }, [user?.email, currentGallery, messageApi]);
+
+  useEffect(() => {
+    fetchGalleries();
+  }, [fetchGalleries]);
+
   // Handle URL params
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const galleryId = params.get("galleryId");
 
-    if (galleryId && !selectedGalleryId) {
-      handleSelectGallery(galleryId);
+    if (galleryId && !currentGallery) {
+      const numericId = parseInt(galleryId, 10);
+      if (!isNaN(numericId)) {
+        handleSelectGallery(numericId);
+      }
     }
   }, []);
 
   // Update URL when gallery changes
   useEffect(() => {
-    if (selectedGalleryId) {
-      window.history.pushState({}, "", `?galleryId=${selectedGalleryId}`);
+    if (currentGallery?.id) {
+      window.history.pushState(
+        {},
+        "",
+        `?galleryId=${currentGallery.id.toString()}`
+      );
     }
-  }, [selectedGalleryId]);
+  }, [currentGallery?.id]);
 
-  const handleSelectGallery = async (galleryId: string) => {
+  const handleSelectGallery = async (galleryId: number) => {
+    if (!user?.email) return;
+
     if (hasUnsavedChanges) {
       Modal.confirm({
         title: "Unsaved Changes",
@@ -66,70 +88,128 @@ export const GalleryManager: React.FC = () => {
         okText: "Discard",
         cancelText: "Go Back",
         onOk: () => {
-          selectGallery(galleryId);
+          switchToGallery(galleryId);
           setHasUnsavedChanges(false);
         },
       });
     } else {
-      selectGallery(galleryId);
+      await switchToGallery(galleryId);
     }
   };
 
-  const handleCreateGallery = async (galleryData: Gallery) => {
-    const newGallery: Gallery = {
-      id: `gallery_${Date.now()}`,
-      name: galleryData.name || "New Gallery",
-      url: galleryData.url,
-      metadata: {
-        ...galleryData.metadata,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      },
-      components: galleryData.components || {
-        teams: [],
-        agents: [],
-        models: [],
-        tools: [],
-        terminations: [],
-      },
-    };
+  const switchToGallery = async (galleryId: number) => {
+    if (!user?.email) return;
 
+    setIsLoading(true);
     try {
-      setIsLoading(true);
-      await addGallery(newGallery);
-      messageApi.success("Gallery created successfully");
-      selectGallery(newGallery.id);
+      const data = await galleryAPI.getGallery(galleryId, user.email);
+      setCurrentGallery(data);
     } catch (error) {
-      messageApi.error("Failed to create gallery");
-      console.error(error);
+      console.error("Error loading gallery:", error);
+      messageApi.error("Failed to load gallery");
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleDeleteGallery = async (galleryId: string) => {
+  const handleCreateGallery = async (galleryData: Gallery) => {
+    if (!user?.email) return;
+
+    galleryData.user_id = user.email;
     try {
-      await removeGallery(galleryId);
-      messageApi.success("Gallery deleted successfully");
+      const savedGallery = await galleryAPI.createGallery(
+        galleryData,
+        user.email
+      );
+      setGalleries([savedGallery, ...galleries]);
+      setCurrentGallery(savedGallery);
+      setIsCreateModalOpen(false);
+      messageApi.success("Gallery created successfully");
     } catch (error) {
-      messageApi.error("Failed to delete gallery");
-      console.error(error);
+      console.error("Error creating gallery:", error);
+      messageApi.error("Failed to create gallery");
     }
   };
 
-  const handleUpdateGallery = async (
-    galleryId: string,
-    updates: Partial<Gallery>
-  ) => {
+  const handleUpdateGallery = async (updates: Partial<Gallery>) => {
+    if (!user?.email || !currentGallery?.id) return;
+
     try {
-      await updateGallery(galleryId, updates);
+      const sanitizedUpdates = {
+        ...updates,
+        created_at: undefined,
+        updated_at: undefined,
+      };
+      const updatedGallery = await galleryAPI.updateGallery(
+        currentGallery.id,
+        sanitizedUpdates,
+        user.email
+      );
+      setGalleries(
+        galleries.map((g) => (g.id === updatedGallery.id ? updatedGallery : g))
+      );
+      setCurrentGallery(updatedGallery);
       setHasUnsavedChanges(false);
       messageApi.success("Gallery updated successfully");
     } catch (error) {
+      console.error("Error updating gallery:", error);
       messageApi.error("Failed to update gallery");
-      console.error(error);
     }
   };
+
+  const handleDeleteGallery = async (galleryId: number) => {
+    if (!user?.email) return;
+
+    try {
+      await galleryAPI.deleteGallery(galleryId, user.email);
+      setGalleries(galleries.filter((g) => g.id !== galleryId));
+      if (currentGallery?.id === galleryId) {
+        setCurrentGallery(null);
+      }
+      messageApi.success("Gallery deleted successfully");
+    } catch (error) {
+      console.error("Error deleting gallery:", error);
+      messageApi.error("Failed to delete gallery");
+    }
+  };
+
+  const handleSyncGallery = async (galleryId: number) => {
+    if (!user?.email) return;
+
+    try {
+      setIsLoading(true);
+      const gallery = galleries.find((g) => g.id === galleryId);
+      if (!gallery?.config.url) return;
+
+      const remoteGallery = await galleryAPI.syncGallery(gallery.config.url);
+      await handleUpdateGallery({
+        ...remoteGallery,
+        id: galleryId,
+        config: {
+          ...remoteGallery.config,
+          metadata: {
+            ...remoteGallery.config.metadata,
+            lastSynced: new Date().toISOString(),
+          },
+        },
+      });
+
+      messageApi.success("Gallery synced successfully");
+    } catch (error) {
+      console.error("Error syncing gallery:", error);
+      messageApi.error("Failed to sync gallery");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  if (!user?.email) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-120px)] text-secondary">
+        Please log in to view galleries
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex h-full w-full">
@@ -153,18 +233,17 @@ export const GalleryManager: React.FC = () => {
           galleries={galleries}
           currentGallery={currentGallery}
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-          onSelectGallery={(gallery) => handleSelectGallery(gallery.id)}
+          onSelectGallery={(gallery) => handleSelectGallery(gallery.id!)}
           onCreateGallery={() => setIsCreateModalOpen(true)}
           onDeleteGallery={handleDeleteGallery}
-          defaultGalleryId={getDefaultGallery()?.id}
-          onSetDefault={setDefaultGallery}
+          onSyncGallery={handleSyncGallery}
           isLoading={isLoading}
         />
       </div>
 
       {/* Main Content */}
       <div
-        className={`flex-1 transition-all max-w-5xl -mr-6 duration-200 ${
+        className={`flex-1 transition-all -mr-6 duration-200 ${
           isSidebarOpen ? "ml-64" : "ml-12"
         }`}
       >
@@ -175,18 +254,22 @@ export const GalleryManager: React.FC = () => {
             {currentGallery && (
               <>
                 <ChevronRight className="w-4 h-4 text-secondary" />
-                <span className="text-secondary">{currentGallery.name}</span>
+                <span className="text-secondary">
+                  {currentGallery.config.name}
+                </span>
               </>
             )}
           </div>
 
           {/* Content Area */}
-          {currentGallery ? (
+          {isLoading && !currentGallery ? (
+            <div className="flex items-center justify-center h-[calc(100vh-120px)] text-secondary">
+              Loading galleries...
+            </div>
+          ) : currentGallery ? (
             <GalleryDetail
               gallery={currentGallery}
-              onSave={(updates) =>
-                handleUpdateGallery(currentGallery.id, updates)
-              }
+              onSave={handleUpdateGallery}
               onDirtyStateChange={setHasUnsavedChanges}
             />
           ) : (

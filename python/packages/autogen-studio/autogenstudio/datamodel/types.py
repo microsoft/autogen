@@ -1,10 +1,11 @@
+# from dataclasses import Field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import BaseChatMessage
 from autogen_core import ComponentModel
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
 
 
 class MessageConfig(BaseModel):
@@ -36,8 +37,8 @@ class MessageMeta(BaseModel):
 
 class GalleryMetadata(BaseModel):
     author: str
-    created_at: datetime
-    updated_at: datetime
+    # created_at: datetime = Field(default_factory=datetime.now)
+    # updated_at: datetime = Field(default_factory=datetime.now)
     version: str
     description: Optional[str] = None
     tags: Optional[List[str]] = None
@@ -45,6 +46,12 @@ class GalleryMetadata(BaseModel):
     homepage: Optional[str] = None
     category: Optional[str] = None
     last_synced: Optional[datetime] = None
+
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.isoformat(),
+        }
+    )
 
 
 class GalleryComponents(BaseModel):
@@ -55,12 +62,30 @@ class GalleryComponents(BaseModel):
     teams: List[ComponentModel]
 
 
-class Gallery(BaseModel):
+class GalleryConfig(BaseModel):
     id: str
     name: str
     url: Optional[str] = None
     metadata: GalleryMetadata
     components: GalleryComponents
+
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.isoformat(),
+        }
+    )
+
+
+class EnvironmentVariable(BaseModel):
+    name: str
+    value: str
+    type: Literal["string", "number", "boolean", "secret"] = "string"
+    description: Optional[str] = None
+    required: bool = False
+
+
+class SettingsConfig(BaseModel):
+    environment: List[EnvironmentVariable] = []
 
 
 # web request/response data models
