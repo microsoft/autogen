@@ -14,10 +14,10 @@ from autogen_agentchat.messages import (
     ModelClientStreamingChunkEvent,
     MultiModalMessage,
     TextMessage,
+    ThoughtEvent,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
     ToolCallSummaryMessage,
-    ThoughtEvent,
 )
 from autogen_core import ComponentModel, FunctionCall, Image
 from autogen_core.memory import ListMemory, Memory, MemoryContent, MemoryMimeType, MemoryQueryResult
