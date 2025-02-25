@@ -1,5 +1,18 @@
 import React, { memo, useState } from "react";
-import { Loader2, Maximize2, Minimize2, X } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ChevronDown,
+  ChevronUp,
+  Fullscreen,
+  Loader2,
+  Maximize2,
+  Minimize2,
+  X,
+} from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { Tooltip } from "antd";
+import remarkGfm from "remark-gfm";
 
 export const LoadingIndicator = ({ size = 16 }: { size: number }) => (
   <div className="inline-flex items-center gap-2 text-accent   mr-2">
@@ -40,38 +53,56 @@ export const LoadingDots = ({ size = 8 }) => {
   );
 };
 
+// import { memo, useState } from 'react';
+// import ReactMarkdown from 'react-markdown';
+// import { Minimize2, Maximize2, ArrowsMaximize, X } from 'lucide-react';
+// import { Tooltip } from 'antd';
+
+function safeJsonStringify(input: any): string {
+  if (typeof input === "object" && input !== null) {
+    return JSON.stringify(input);
+  }
+  return input;
+}
+
 export const TruncatableText = memo(
   ({
-    content,
+    content = "",
     isJson = false,
     className = "",
     jsonThreshold = 1000,
     textThreshold = 500,
+    showFullscreen = true,
   }: {
     content: string;
     isJson?: boolean;
     className?: string;
     jsonThreshold?: number;
     textThreshold?: number;
+    showFullscreen?: boolean;
   }) => {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const threshold = isJson ? jsonThreshold : textThreshold;
+    content = safeJsonStringify(content) + "";
     const shouldTruncate = content.length > threshold;
 
-    const toggleExpand = () => {
+    const toggleExpand = (e: React.MouseEvent) => {
       setIsExpanded(!isExpanded);
+      e.stopPropagation();
     };
 
     const displayContent =
       shouldTruncate && !isExpanded
         ? content.slice(0, threshold) + "..."
         : content;
-
+    const proseClassName =
+      " dark:prose-invert prose-table:border-hidden prose-td:border-t prose-th:border-b prose-ul:list-disc prose-sm prose-ol:list-decimal ";
     return (
       <div className="relative">
         <div
           className={`
-            transition-[max-height,opacity] duration-500 ease-in-out
+            transition-[max-height,opacity] overflow-auto scroll  duration-500 ease-in-out
             ${
               shouldTruncate && !isExpanded
                 ? "max-h-[300px]"
@@ -80,31 +111,83 @@ export const TruncatableText = memo(
             ${className}
           `}
         >
-          {displayContent}
+          <ReactMarkdown
+            className={
+              isExpanded ? `mt-4 text-sm text-primary ${proseClassName}` : ""
+            }
+            remarkPlugins={[remarkGfm]}
+          >
+            {displayContent}
+          </ReactMarkdown>
           {shouldTruncate && !isExpanded && (
-            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-secondary/20 to-transparent" />
+            <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-secondary to-transparent opacity-20" />
           )}
         </div>
 
         {shouldTruncate && (
-          <div className="mt-2 flex items-center justify-end">
-            <button
-              type="button"
-              onClick={toggleExpand}
-              className={`
-                inline-flex items-center gap-2 px-3 py-1.5 
-                rounded bg-secondary/80 
-                text-xs font-medium
-                transition-all duration-300
-                 hover:text-accent
-                hover:scale-105
-                z-10
-              `}
-              aria-label={isExpanded ? "less" : "more"}
+          <div className="mt-2 flex items-center justify-end gap-2">
+            <Tooltip title={isExpanded ? "Show less" : "Show more"}>
+              <button
+                type="button"
+                onClick={toggleExpand}
+                className="inline-flex items-center justify-center p-2 rounded bg-secondary text-primary hover:text-accent hover:scale-105 transition-all duration-300 z-10"
+                aria-label={isExpanded ? "Show less" : "Show more"}
+              >
+                {isExpanded ? (
+                  <ChevronUp size={18} />
+                ) : (
+                  <ChevronDown size={18} />
+                )}
+              </button>
+            </Tooltip>
+
+            {showFullscreen && (
+              <Tooltip title="Fullscreen">
+                <button
+                  type="button"
+                  onClick={() => setIsFullscreen(true)}
+                  className="inline-flex items-center justify-center p-2 rounded bg-secondary text-primary hover:text-accent hover:scale-105 transition-all duration-300 z-10"
+                  aria-label="Toggle fullscreen"
+                >
+                  <Maximize2 size={18} />
+                </button>
+              </Tooltip>
+            )}
+          </div>
+        )}
+
+        {isFullscreen && (
+          <div
+            className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center"
+            onClick={() => setIsFullscreen(false)}
+          >
+            <div
+              className="relative bg-secondary scroll w-full h-full md:w-4/5 md:h-4/5 md:rounded-lg p-8 overflow-auto"
+              style={{ opacity: 0.95 }}
+              onClick={(e) => e.stopPropagation()}
             >
-              <span>{isExpanded ? "Show less" : "Show more"}</span>
-              {isExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-            </button>
+              <Tooltip title="Close">
+                <button
+                  onClick={() => setIsFullscreen(false)}
+                  className="absolute top-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/70 text-primary transition-colors"
+                  aria-label="Close fullscreen view"
+                >
+                  <X size={24} />
+                </button>
+              </Tooltip>
+              <div className={`mt-8 text-base text-primary ${proseClassName}`}>
+                {isJson ? (
+                  <pre className="whitespace-pre-wrap">{content}</pre>
+                ) : (
+                  <ReactMarkdown
+                    className="text-primary"
+                    remarkPlugins={[remarkGfm]}
+                  >
+                    {content}
+                  </ReactMarkdown>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </div>

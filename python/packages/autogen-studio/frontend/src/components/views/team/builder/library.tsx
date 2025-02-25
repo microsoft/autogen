@@ -10,21 +10,15 @@ import {
   Timer,
   Maximize2,
   Minimize2,
+  GripVertical,
 } from "lucide-react";
-import type {
-  AgentConfig,
-  ModelConfig,
-  TerminationConfig,
-  ToolConfig,
-} from "../../../types/datamodel";
 import Sider from "antd/es/layout/Sider";
 import { useGalleryStore } from "../../gallery/store";
+import { ComponentTypes } from "../../../types/datamodel";
 
 interface ComponentConfigTypes {
   [key: string]: any;
 }
-
-type ComponentTypes = "agent" | "model" | "tool" | "termination";
 
 interface LibraryProps {}
 
@@ -57,7 +51,7 @@ const PresetItem: React.FC<PresetItemProps> = ({
 
   const style = {
     transform: CSS.Transform.toString(transform),
-    opacity: isDragging ? 0.5 : undefined,
+    opacity: isDragging ? 0.8 : undefined,
   };
 
   return (
@@ -66,11 +60,12 @@ const PresetItem: React.FC<PresetItemProps> = ({
       style={style}
       {...attributes}
       {...listeners}
-      className="p-2 text-primary mb-2 border border-secondary rounded cursor-move hover:bg-secondary transition-colors"
+      className={`p-2 text-primary mb-2 border  rounded cursor-move  bg-secondary transition-colors`}
     >
       <div className="flex items-center gap-2">
+        <GripVertical className="w-4 h-4 inline-block" />
         {icon}
-        <span>{label}</span>
+        <span className=" text-sm">{label}</span>
       </div>
     </div>
   );
@@ -79,7 +74,7 @@ const PresetItem: React.FC<PresetItemProps> = ({
 export const ComponentLibrary: React.FC<LibraryProps> = () => {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isMinimized, setIsMinimized] = React.useState(false);
-  const defaultGallery = useGalleryStore((state) => state.getDefaultGallery());
+  const defaultGallery = useGalleryStore((state) => state.getSelectedGallery());
 
   if (!defaultGallery) {
     return null;
@@ -90,8 +85,8 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
       {
         title: "Agents",
         type: "agent" as ComponentTypes,
-        items: defaultGallery.items.components.agents.map((agent) => ({
-          label: agent.name,
+        items: defaultGallery.config.components.agents.map((agent) => ({
+          label: agent.label,
           config: agent,
         })),
         icon: <Bot className="w-4 h-4" />,
@@ -99,8 +94,8 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
       {
         title: "Models",
         type: "model" as ComponentTypes,
-        items: defaultGallery.items.components.models.map((model) => ({
-          label: `${model.model_type} - ${model.model}`,
+        items: defaultGallery.config.components.models.map((model) => ({
+          label: `${model.label || model.config.model}`,
           config: model,
         })),
         icon: <Brain className="w-4 h-4" />,
@@ -108,8 +103,8 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
       {
         title: "Tools",
         type: "tool" as ComponentTypes,
-        items: defaultGallery.items.components.tools.map((tool) => ({
-          label: tool.name,
+        items: defaultGallery.config.components.tools.map((tool) => ({
+          label: tool.config.name,
           config: tool,
         })),
         icon: <Wrench className="w-4 h-4" />,
@@ -117,9 +112,9 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
       {
         title: "Terminations",
         type: "termination" as ComponentTypes,
-        items: defaultGallery.items.components.terminations.map(
+        items: defaultGallery.config.components.terminations.map(
           (termination) => ({
-            label: `${termination.termination_type}`,
+            label: `${termination.label}`,
             config: termination,
           })
         ),
@@ -131,7 +126,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
 
   const items: CollapseProps["items"] = sections.map((section) => {
     const filteredItems = section.items.filter((item) =>
-      item.label.toLowerCase().includes(searchTerm.toLowerCase())
+      item.label?.toLowerCase().includes(searchTerm.toLowerCase())
     );
 
     return {
@@ -153,7 +148,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
               id={`${section.title.toLowerCase()}-${itemIndex}`}
               type={section.type}
               config={item.config}
-              label={item.label}
+              label={item.label || ""}
               icon={section.icon}
             />
           ))}
@@ -183,7 +178,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
   return (
     <Sider
       width={300}
-      className="bg-primary z-10 mr-2 border-r border-secondary"
+      className="bg-primary border z-10 mr-2 border-r border-secondary"
     >
       <div className="rounded p-2 pt-2">
         <div className="flex justify-between items-center mb-2">
@@ -210,6 +205,7 @@ export const ComponentLibrary: React.FC<LibraryProps> = () => {
         </div>
 
         <Collapse
+          accordion
           items={items}
           defaultActiveKey={["Agents"]}
           bordered={false}

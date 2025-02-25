@@ -3,6 +3,8 @@
 
 using System.Reflection;
 
+using Microsoft.AutoGen.Contracts;
+
 namespace Microsoft.AutoGen.Core;
 
 /// <summary>

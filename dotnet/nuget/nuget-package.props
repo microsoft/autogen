@@ -3,8 +3,7 @@
     <IsPackable>true</IsPackable>
 
     <!-- Default description and tags. Packages can override. -->
-    <Authors>AutoGen</Authors>
-    <Company>Microsoft</Company>
+    <Authors>Microsoft</Authors>
     <Product>AutoGen</Product>
     <Description>A programming framework for agentic AI</Description>
     <PackageTags>AI, Artificial Intelligence, Agents, Multiagent, SDK</PackageTags>
@@ -13,7 +12,7 @@
     <!-- Required license, copyright, and repo information. Packages can override. -->
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <Copyright>© Microsoft Corporation. All rights reserved.</Copyright>
-    <PackageProjectUrl>https://microsoft.github.io/autogen-for-net</PackageProjectUrl>
+    <PackageProjectUrl>https://aka.ms/autogen</PackageProjectUrl>
     <RepositoryUrl>https://github.com/microsoft/autogen</RepositoryUrl>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
 
@@ -28,7 +27,7 @@
 
     <!-- Optional: Publish the repository URL in the built .nupkg (in the NuSpec <Repository> element) -->
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
- 
+
     <!-- Optional: Embed source files that are not tracked by the source control manager in the PDB -->
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>

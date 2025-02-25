@@ -37,7 +37,7 @@ class AppInitializer:
         self._paths = self._init_paths()
         self._create_directories()
         self._load_environment()
-        logger.info(f"Initialized application data folder: {self.app_root}")
+        logger.info(f"Initializing application data folder: {self.app_root} ")
 
     def _get_app_root(self) -> Path:
         """Determine application root directory"""
@@ -74,7 +74,7 @@ class AppInitializer:
         """Load environment variables from .env file if it exists"""
         env_file = self.app_root / ".env"
         if env_file.exists():
-            logger.info(f"Loading environment variables from {env_file}")
+            # logger.info(f"Loading environment variables from {env_file}")
             load_dotenv(str(env_file))
 
     # Properties for accessing paths

@@ -16,6 +16,8 @@ using Microsoft.Extensions.AI;
 using Xunit;
 
 namespace AutoGen.Tests.Function;
+
+[Trait("Category", "UnitV1")]
 public class FunctionTests
 {
     private readonly JsonSerializerOptions _jsonSerializerOptions = new() { WriteIndented = true, DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull };

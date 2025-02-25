@@ -7,7 +7,11 @@ This example runs a gRPC server using [GrpcWorkerAgentRuntimeHost](../../src/aut
 ### Setup Python Environment
 
 1. Create a virtual environment and activate it. (e.g. `python3.12 -m venv .venv && source .venv/bin/activate`)
-2. Run `uv pip install -r requirements.txt` to install compiled set of dependencies.
+2. Install dependencies.
+
+```bash
+pip install "autogen-ext[openai,azure,chainlit,rich,pyyaml]"
+```
 
 ### General Configuration
 
@@ -39,8 +43,8 @@ If you prefer to run Python files individually, follow these steps. Note that ea
 
 1. `python run_host.py`: Starts the host and listens for agent connections.
 2. `chainlit run run_ui.py  --port 8001`: Starts the Chainlit app and UI agent and listens on UI topic to display messages. We're using port 8001 as the default port 8000 is used to run host (assuming using same machine to run all of the agents)
-3. `python run_editor.py`: Starts the <img src="./public/avatars/editor.png" width="20" height="20" style="vertical-align:middle"> editor agent and connects it to the host.
-4. `python run_writer.py`: Starts the <img src="./public/avatars/writer.png" width="20" height="20" style="vertical-align:middle"> writer agent and connects it to the host.
+3. `python run_editor_agent.py`: Starts the <img src="./public/avatars/editor.png" width="20" height="20" style="vertical-align:middle"> editor agent and connects it to the host.
+4. `python run_writer_agent.py`: Starts the <img src="./public/avatars/writer.png" width="20" height="20" style="vertical-align:middle"> writer agent and connects it to the host.
 5. `python run_group_chat_manager.py`: Run chainlit app which starts <img src="./public/avatars/group_chat_manager.png" width="20" height="20" style="vertical-align:middle"> group chat manager agent and sends the initial message to start the conversation.
 
 ## What's Going On?

@@ -34,7 +34,9 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     max_retries: int
     model_capabilities: ModelCapabilities  # type: ignore
     model_info: ModelInfo
+    add_name_prefixes: bool
     """What functionality the model supports, determined by default from model name but is overriden if value passed."""
+    default_headers: Dict[str, str] | None
 
 
 # See OpenAI docs for explanation of these parameters
@@ -74,6 +76,8 @@ class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
     max_retries: int | None = None
     model_capabilities: ModelCapabilities | None = None  # type: ignore
     model_info: ModelInfo | None = None
+    add_name_prefixes: bool | None = None
+    default_headers: Dict[str, str] | None = None
 
 
 # See OpenAI docs for explanation of these parameters

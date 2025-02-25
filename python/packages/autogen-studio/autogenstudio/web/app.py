@@ -13,12 +13,7 @@ from ..version import VERSION
 from .config import settings
 from .deps import cleanup_managers, init_managers
 from .initialization import AppInitializer
-from .routes import agents, models, runs, sessions, teams, tools, ws
-
-# Configure logging
-# logger = logging.getLogger(__name__)
-# logging.basicConfig(level=logging.INFO)
-
+from .routes import gallery, runs, sessions, settingsroute, teams, validation, ws
 
 # Initialize application
 app_file_path = os.path.dirname(os.path.abspath(__file__))
@@ -31,15 +26,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Lifecycle manager for the FastAPI application.
     Handles initialization and cleanup of application resources.
     """
-    # Startup
-    logger.info("Initializing application...")
+
     try:
         # Initialize managers (DB, Connection, Team)
         await init_managers(initializer.database_uri, initializer.config_dir, initializer.app_root)
-        logger.info("Managers initialized successfully")
 
         # Any other initialization code
-        logger.info("Application startup complete")
+        logger.info(
+            f"Application startup complete. Navigate to http://{os.environ.get('AUTOGENSTUDIO_HOST', '127.0.0.1')}:{os.environ.get('AUTOGENSTUDIO_PORT', '8081')}"
+        )
 
     except Exception as e:
         logger.error(f"Failed to initialize application: {str(e)}")
@@ -104,26 +99,6 @@ api.include_router(
     responses={404: {"description": "Not found"}},
 )
 
-api.include_router(
-    agents.router,
-    prefix="/agents",
-    tags=["agents"],
-    responses={404: {"description": "Not found"}},
-)
-
-api.include_router(
-    models.router,
-    prefix="/models",
-    tags=["models"],
-    responses={404: {"description": "Not found"}},
-)
-
-api.include_router(
-    tools.router,
-    prefix="/tools",
-    tags=["tools"],
-    responses={404: {"description": "Not found"}},
-)
 
 api.include_router(
     ws.router,
@@ -132,6 +107,26 @@ api.include_router(
     responses={404: {"description": "Not found"}},
 )
 
+api.include_router(
+    validation.router,
+    prefix="/validate",
+    tags=["validation"],
+    responses={404: {"description": "Not found"}},
+)
+
+api.include_router(
+    settingsroute.router,
+    prefix="/settings",
+    tags=["settings"],
+    responses={404: {"description": "Not found"}},
+)
+
+api.include_router(
+    gallery.router,
+    prefix="/gallery",
+    tags=["gallery"],
+    responses={404: {"description": "Not found"}},
+)
 
 # Version endpoint
 

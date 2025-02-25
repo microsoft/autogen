@@ -1,21 +1,19 @@
-import React from "react";
-import { Button, Tooltip } from "antd";
+import React, { useState } from "react";
+import { Button, Tooltip, Select } from "antd";
 import {
   Bot,
   Plus,
-  Edit,
   Trash2,
   PanelLeftClose,
   PanelLeftOpen,
-  Calendar,
   Copy,
   GalleryHorizontalEnd,
   InfoIcon,
   RefreshCcw,
+  History,
 } from "lucide-react";
 import type { Team } from "../../types/datamodel";
 import { getRelativeTimeString } from "../atoms";
-import { defaultTeam } from "./types";
 import { useGalleryStore } from "../gallery/store";
 
 interface TeamSidebarProps {
@@ -41,13 +39,17 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
   onDeleteTeam,
   isLoading = false,
 }) => {
-  const defaultGallery = useGalleryStore((state) => state.getDefaultGallery());
+  // Tab state - "recent" or "gallery"
+  const [activeTab, setActiveTab] = useState<"recent" | "gallery">("recent");
 
-  const createTeam = () => {
-    const newTeam = Object.assign({}, defaultTeam);
-    newTeam.config.name = "new_team_" + new Date().getTime();
-    onCreateTeam(newTeam);
-  };
+  // Gallery store
+  const {
+    galleries,
+    selectedGallery,
+    selectGallery,
+    isLoading: isLoadingGalleries,
+  } = useGalleryStore();
+
   // Render collapsed state
   if (!isOpen) {
     return (
@@ -68,7 +70,7 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
             <Button
               type="text"
               className="w-full p-2 flex justify-center"
-              onClick={createTeam}
+              onClick={() => createTeam()}
               icon={<Plus className="w-4 h-4" />}
             />
           </Tooltip>
@@ -76,6 +78,19 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
       </div>
     );
   }
+
+  const createTeam = () => {
+    if (!selectedGallery?.config.components?.teams?.length) {
+      return;
+    }
+    const newTeam = Object.assign(
+      {},
+      { component: selectedGallery.config.components.teams[0] }
+    );
+    newTeam.component.label =
+      "default_team" + new Date().getTime().toString().slice(0, 2);
+    onCreateTeam(newTeam);
+  };
 
   // Render expanded state
   return (
@@ -99,15 +114,15 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
       </div>
 
       {/* Create Team Button */}
-
-      <div className="my-4 flex text-sm  ">
-        <div className=" mr-2 w-full">
-          <Tooltip title="Create new session">
+      <div className="my-4 flex text-sm">
+        <div className="mr-2 w-full">
+          <Tooltip title="Create a new team">
             <Button
               type="primary"
               className="w-full"
               icon={<Plus className="w-4 h-4" />}
               onClick={createTeam}
+              disabled={!selectedGallery?.config.components?.teams?.length}
             >
               New Team
             </Button>
@@ -115,135 +130,156 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
         </div>
       </div>
 
-      {/* Section Label */}
-      <div className="py-2 flex   text-sm text-secondary">
-        <div className="flex"> Recents</div>
-        {isLoading && <RefreshCcw className="w-4 h-4 ml-2 animate-spin" />}
+      {/* Tab Navigation */}
+      <div className="flex border-b border-secondary">
+        <button
+          className={`flex items-center px-2 py-1 text-sm font-medium ${
+            activeTab === "recent"
+              ? "text-accent border-b-2 border-accent"
+              : "text-secondary hover:text-primary"
+          }`}
+          onClick={() => setActiveTab("recent")}
+        >
+          <History className="w-4 h-4 mr-1.5" />
+          Recents
+          <span className="ml-1 text-xs">({teams.length})</span>
+          {isLoading && activeTab === "recent" && (
+            <RefreshCcw className="w-4 h-4 ml-2 animate-spin" />
+          )}
+        </button>
+        <button
+          className={`flex items-center px-4 py-2 text-sm font-medium ${
+            activeTab === "gallery"
+              ? "text-accent border-b-2 border-accent"
+              : "text-secondary hover:text-primary"
+          }`}
+          onClick={() => setActiveTab("gallery")}
+        >
+          <GalleryHorizontalEnd className="w-4 h-4 mr-1.5" />
+          Gallery
+          {isLoadingGalleries && activeTab === "gallery" && (
+            <RefreshCcw className="w-4 h-4 ml-2 animate-spin" />
+          )}
+        </button>
       </div>
 
-      {/* Teams List */}
+      <div className="scroll overflow-y-auto h-[calc(100%-200px)]">
+        {/* Recents Tab Content */}
+        {activeTab === "recent" && (
+          <div className="pt-2">
+            {!isLoading && teams.length === 0 && (
+              <div className="p-2 mr-2 text-center text-secondary text-sm border border-dashed rounded">
+                <InfoIcon className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
+                No recent teams found
+              </div>
+            )}
 
-      {!isLoading && teams.length === 0 && (
-        <div className="p-2 mr-2 text-center text-secondary text-sm border border-dashed rounded ">
-          <InfoIcon className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
-          No recent teams found
-        </div>
-      )}
-
-      <div className="scroll overflow-y-auto h-[calc(100%-170px)]">
-        <>
-          {teams.length > 0 && (
-            <div
-              key={"teams_title"}
-              className={` ${isLoading ? "  pointer-events-none" : ""}`}
-            >
-              {" "}
-              {teams.map((team) => (
-                <div key={team.id} className="relative   border-secondary">
-                  {
+            {teams.length > 0 && (
+              <div className={isLoading ? "pointer-events-none" : ""}>
+                {teams.map((team) => (
+                  <div key={team.id} className="relative border-secondary">
                     <div
-                      className={` absolute top-1 left-0.5 z-50 h-[calc(100%-8px)]
-               w-1 bg-opacity-80  rounded ${
-                 currentTeam?.id === team.id ? "bg-accent" : "bg-tertiary"
-               }`}
-                    >
-                      {" "}
-                    </div>
-                  }
-                  <div
-                    className={`group ml-1 flex flex-col p-3 rounded-l cursor-pointer hover:bg-secondary   ${
-                      currentTeam?.id === team.id
-                        ? "border-accent bg-secondary"
-                        : "border-transparent"
-                    }`}
-                    onClick={() => onSelectTeam(team)}
-                  >
-                    {/* Team Name and Actions Row */}
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium truncate">
-                        {team.config.name}
-                      </span>
-                      <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                        {/* <Tooltip title="Edit team">
-                    <Button
-                      type="text"
-                      size="small"
-                      className="p-0 min-w-[24px] h-6"
-                      icon={<Edit className="w-4 h-4" />}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onEditTeam(team);
-                      }}
+                      className={`absolute top-1 left-0.5 z-50 h-[calc(100%-8px)]
+                        w-1 bg-opacity-80 rounded ${
+                          currentTeam?.id === team.id
+                            ? "bg-accent"
+                            : "bg-tertiary"
+                        }`}
                     />
-                  </Tooltip> */}
-                        <Tooltip title="Delete team">
-                          <Button
-                            type="text"
-                            size="small"
-                            className="p-0 min-w-[24px] h-6"
-                            danger
-                            icon={<Trash2 className="w-4 h-4 text-red-500" />}
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              if (team.id) onDeleteTeam(team.id);
-                            }}
-                          />
-                        </Tooltip>
-                      </div>
-                    </div>
-
-                    {/* Team Metadata Row */}
-                    <div className="mt-1 flex items-center gap-2 text-xs text-secondary">
-                      <span className="bg-secondary/20  truncate   rounded">
-                        {team.config.team_type}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <Bot className="w-3 h-3" />
-                        <span>
-                          {team.config.participants.length}{" "}
-                          {team.config.participants.length === 1
-                            ? "agent"
-                            : "agents"}
+                    <div
+                      className={`group ml-1 flex flex-col p-3 rounded-l cursor-pointer hover:bg-secondary ${
+                        currentTeam?.id === team.id
+                          ? "border-accent bg-secondary"
+                          : "border-transparent"
+                      }`}
+                      onClick={() => onSelectTeam(team)}
+                    >
+                      {/* Team Name and Actions Row */}
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium truncate">
+                          {team.component?.label}
                         </span>
+                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <Tooltip title="Delete team">
+                            <Button
+                              type="text"
+                              size="small"
+                              className="p-0 min-w-[24px] h-6"
+                              danger
+                              icon={<Trash2 className="w-4 h-4 text-red-500" />}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (team.id) onDeleteTeam(team.id);
+                              }}
+                            />
+                          </Tooltip>
+                        </div>
                       </div>
+
+                      {/* Team Metadata Row */}
+                      <div className="mt-1 flex items-center gap-2 text-xs text-secondary">
+                        <span className="bg-secondary/20 truncate rounded">
+                          {team.component.component_type}
+                        </span>
+                        <div className="flex items-center gap-1">
+                          <Bot className="w-3 h-3" />
+                          <span>
+                            {team.component.config.participants.length}{" "}
+                            {team.component.config.participants.length === 1
+                              ? "agent"
+                              : "agents"}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Updated Timestamp */}
+                      {team.updated_at && (
+                        <div className="mt-1 flex items-center gap-1 text-xs text-secondary">
+                          <span>{getRelativeTimeString(team.updated_at)}</span>
+                        </div>
+                      )}
                     </div>
-
-                    {/* Updated Timestamp */}
-                    {team.updated_at && (
-                      <div className="mt-1 flex items-center gap-1 text-xs text-secondary">
-                        {/* <Calendar className="w-3 h-3" /> */}
-                        <span>{getRelativeTimeString(team.updated_at)}</span>
-                      </div>
-                    )}
                   </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Gallery Teams Section */}
-          <div
-            key={"gallery_title"}
-            className="py-2 text-sm text-secondary mt-4"
-          >
-            <GalleryHorizontalEnd className="w-4 h-4 inline-block mr-1.5" />
-            From Gallery
+                ))}
+              </div>
+            )}
           </div>
-          <div key={"gallery_content"} className="scroll overflow-y-auto">
-            {defaultGallery?.items.teams.map((galleryTeam) => (
+        )}
+
+        {/* Gallery Tab Content */}
+        {activeTab === "gallery" && (
+          <div className="p-2">
+            {/* Gallery Selector */}
+            <Select
+              className="w-full mb-4"
+              placeholder="Select gallery"
+              value={selectedGallery?.id}
+              onChange={(value) => {
+                const gallery = galleries.find((g) => g.id === value);
+                if (gallery) selectGallery(gallery);
+              }}
+              options={galleries.map((gallery) => ({
+                value: gallery.id,
+                label: gallery.config.name,
+              }))}
+              loading={isLoadingGalleries}
+            />
+
+            {/* Gallery Templates */}
+            {selectedGallery?.config.components?.teams.map((galleryTeam) => (
               <div
-                key={galleryTeam.name + galleryTeam.team_type}
+                key={galleryTeam.label + galleryTeam.component_type}
                 className="relative border-secondary"
               >
                 <div
                   className={`absolute top-1 left-0.5 z-50 h-[calc(100%-8px)]
-              w-1 bg-opacity-80 rounded bg-tertiary`}
+                  w-1 bg-opacity-80 rounded bg-tertiary`}
                 />
                 <div className="group ml-1 flex flex-col p-3 rounded-l cursor-pointer hover:bg-secondary">
                   {/* Team Name and Use Template Action */}
                   <div className="flex items-center justify-between">
                     <span className="font-medium truncate">
-                      {galleryTeam.name}
+                      {galleryTeam.label}
                     </span>
                     <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Tooltip title="Use as template">
@@ -254,11 +290,15 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                           icon={<Copy className="w-4 h-4" />}
                           onClick={(e) => {
                             e.stopPropagation();
-                            galleryTeam.name =
-                              galleryTeam.name + "_" + new Date().getTime();
-                            onCreateTeam({
-                              config: galleryTeam,
-                            });
+                            const newTeam = {
+                              component: {
+                                ...galleryTeam,
+                                label: `${galleryTeam.label}_${(
+                                  new Date().getTime() + ""
+                                ).substring(0, 5)}`,
+                              },
+                            };
+                            onCreateTeam(newTeam);
                           }}
                         />
                       </Tooltip>
@@ -268,13 +308,13 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                   {/* Team Metadata Row */}
                   <div className="mt-1 flex items-center gap-2 text-xs text-secondary">
                     <span className="bg-secondary/20 truncate rounded">
-                      {galleryTeam.team_type}
+                      {galleryTeam.component_type}
                     </span>
                     <div className="flex items-center gap-1">
                       <Bot className="w-3 h-3" />
                       <span>
-                        {galleryTeam.participants.length}{" "}
-                        {galleryTeam.participants.length === 1
+                        {galleryTeam.config.participants.length}{" "}
+                        {galleryTeam.config.participants.length === 1
                           ? "agent"
                           : "agents"}
                       </span>
@@ -283,9 +323,18 @@ export const TeamSidebar: React.FC<TeamSidebarProps> = ({
                 </div>
               </div>
             ))}
+
+            {!selectedGallery && (
+              <div className="p-2 mr-2 text-center text-secondary text-sm border border-dashed rounded">
+                <InfoIcon className="w-4 h-4 inline-block mr-1.5 -mt-0.5" />
+                Select a gallery to view templates
+              </div>
+            )}
           </div>
-        </>
+        )}
       </div>
     </div>
   );
 };
+
+export default TeamSidebar;
