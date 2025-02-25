@@ -137,7 +137,12 @@ module.exports = {
         },
         {
           to: "blog",
-          label: "Blog",
+          label: "Old Blog (Archived)",
+          position: "left",
+        },
+        {
+          href: "https://devblogs.microsoft.com/autogen/",
+          label: "New Blog",
           position: "left",
         },
         {
@@ -187,7 +192,7 @@ module.exports = {
     announcementBar: {
       id: "newdocs",
       content:
-        '<a href="https://microsoft.github.io/autogen/stable/">AutoGen 0.4</a> has been released. Read the migration guide <a href="https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/migration-guide.html">here</a>.',
+        '<a href="https://microsoft.github.io/autogen/stable/">AutoGen 0.4</a> has been released. Read the migration guide <a href="https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/migration-guide.html">here</a>. This is the official project. We are not affiliated with any forks or startups. See our <a href="https://aka.ms/autogen-statement">statement</a>.',
       backgroundColor: "#fafbfc",
       textColor: "#091E42",
       isCloseable: true,
