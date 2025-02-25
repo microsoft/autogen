@@ -130,12 +130,16 @@ class TextMentionTermination(TerminationCondition, Component[TextMentionTerminat
 
             if isinstance(message.content, str) and self._termination_text in message.content:
                 self._terminated = True
-                return StopMessage(content=f"Text '{self._termination_text}' mentioned", source="TextMentionTermination")
+                return StopMessage(
+                    content=f"Text '{self._termination_text}' mentioned", source="TextMentionTermination"
+                )
             elif isinstance(message, MultiModalMessage):
                 for item in message.content:
                     if isinstance(item, str) and self._termination_text in item:
                         self._terminated = True
-                        return StopMessage(content=f"Text '{self._termination_text}' mentioned", source="TextMentionTermination")
+                        return StopMessage(
+                            content=f"Text '{self._termination_text}' mentioned", source="TextMentionTermination"
+                        )
         return None
 
     async def reset(self) -> None:
