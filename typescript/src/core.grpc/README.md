@@ -46,26 +46,15 @@ This will:
 - Generate TypeScript code in `src/core.grpc/generated/`
 - Format the generated code using prettier
 
-## Usage
+## Running the tests
 
-The main components are:
-
-1. `RuntimeGatewayClientOptions` - Configuration for gRPC client connections
-2. `GrpcAgentWorkerService` - Service implementation for agent workers
-3. `GrpcAgentWorkerClient` - Client for interacting with agent workers
-4. `RuntimeGatewayAgent` - Agent implementation that uses gRPC for communication
-
-Example usage:
-
-```typescript
-import { RuntimeGatewayClientOptions, createDefaultOptions } from './RuntimeGatewayClientOptions';
-
-// Create client options
-const options = createDefaultOptions();
-// Customize if needed
-options.host = 'my-server';
-options.port = 50052;
+```
+# from the repo /typescript directory
+npm install
+npm test
 ```
 
-## Directory Structure
+## Usage
+
+
 

@@ -1,6 +1,7 @@
 import { Message } from 'google-protobuf';
 import { ProtobufSerializationRegistry } from '../../../src/core.grpc/ProtobufSerializationRegistry';
 import { TestMessage } from './TestMessage';
+import { GrpcAgentRuntimeClientOptions } from '../../../src/core.grpc/GrpcAgentRuntimeClientOptions';
 
 /**
  * Helper class for setting up and verifying test messages in gRPC tests.

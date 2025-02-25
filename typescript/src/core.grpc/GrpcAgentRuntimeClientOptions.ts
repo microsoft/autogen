@@ -2,7 +2,21 @@
  * Configuration options for the GrpcAgentRuntime client.
  */
 export interface GrpcAgentRuntimeClientOptions {
-    // ...existing code...
+    /**
+     * The host address of the gRPC server.
+     */
+    host: string;
+
+    /**
+     * The port number of the gRPC server.
+     */
+    port: number;
+
+    /**
+     * Whether to use TLS/SSL for the connection.
+     * Defaults to false.
+     */
+    useTls?: boolean;
 }
 
 /**
@@ -10,5 +24,9 @@ export interface GrpcAgentRuntimeClientOptions {
  * @returns Default configuration for the GrpcAgentRuntime client
  */
 export function createDefaultOptions(): GrpcAgentRuntimeClientOptions {
-    // ...existing code...
+    return {
+        host: 'localhost',
+        port: 50051,
+        useTls: false
+    };
 }

@@ -1,0 +1,11 @@
+syntax = "proto3";
+
+package messages;
+
+message CountMessage {
+  int32 count = 1;
+}
+
+message CountUpdate {
+  int32 new_count = 1;
+}
