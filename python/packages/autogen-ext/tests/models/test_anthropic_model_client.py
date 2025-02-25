@@ -37,6 +37,8 @@ async def test_anthropic_basic_completion() -> None:
     client = AnthropicChatCompletionClient(
         model="claude-3-haiku-20240307",  # Use haiku for faster/cheaper testing
         api_key=api_key,
+        temperature=0.0,  # Added temperature param to test
+        stop_sequences=["STOP"],  # Added stop sequence
     )
 
     # Test basic completion
@@ -50,6 +52,21 @@ async def test_anthropic_basic_completion() -> None:
     assert isinstance(result.content, str)
     assert "4" in result.content
     assert result.finish_reason == "stop"
+
+    # Test JSON output - add to existing test
+    json_result = await client.create(
+        messages=[
+            UserMessage(content="Return a JSON with key 'value' set to 42", source="user"),
+        ],
+        json_output=True,
+    )
+    assert isinstance(json_result.content, str)
+    assert "42" in json_result.content
+
+    # Check usage tracking
+    usage = client.total_usage()
+    assert usage.prompt_tokens > 0
+    assert usage.completion_tokens > 0
 
 
 @pytest.mark.asyncio
@@ -137,6 +154,19 @@ async def test_anthropic_tool_calling() -> None:
     # Check we got a text response
     assert isinstance(after_tool_result.content, str)
 
+    # Test multiple tool use
+    multi_tool_prompt: List[LLMMessage] = [
+        SystemMessage(content="Use the tools as needed to help the user."),
+        UserMessage(content="First process the text 'test' and then add 2 and 3.", source="user"),
+    ]
+
+    multi_tool_result = await client.create(messages=multi_tool_prompt, tools=[pass_tool, add_tool])
+
+    # We just need to verify we get at least one tool call
+    assert isinstance(multi_tool_result.content, list)
+    assert len(multi_tool_result.content) > 0
+    assert isinstance(multi_tool_result.content[0], FunctionCall)
+
 
 @pytest.mark.asyncio
 async def test_anthropic_token_counting() -> None:
@@ -163,6 +193,14 @@ async def test_anthropic_token_counting() -> None:
     remaining = client.remaining_tokens(messages)
     assert remaining > 0
     assert remaining < 200000  # Claude's max context
+
+    # Test token counting with tools
+    tools = [
+        FunctionTool(_pass_function, description="Process input text", name="process_text"),
+        FunctionTool(_add_numbers, description="Add two numbers together", name="add_numbers"),
+    ]
+    tokens_with_tools = client.count_tokens(messages, tools=tools)
+    assert tokens_with_tools > num_tokens  # Should be more tokens with tools
 
 
 @pytest.mark.asyncio
@@ -238,3 +276,26 @@ async def test_anthropic_multimodal() -> None:
     assert len(result.content) > 0
     assert "red" in result.content.lower()
     assert result.finish_reason == "stop"
+
+
+@pytest.mark.asyncio
+async def test_anthropic_serialization() -> None:
+    """Test serialization and deserialization of component."""
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        pytest.skip("ANTHROPIC_API_KEY not found in environment variables")
+
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",
+        api_key=api_key,
+    )
+
+    # Serialize and deserialize
+    model_client_config = client.dump_component()
+    assert model_client_config is not None
+    assert model_client_config.config is not None
+
+    loaded_model_client = AnthropicChatCompletionClient.load_component(model_client_config)
+    assert loaded_model_client is not None
+    assert isinstance(loaded_model_client, AnthropicChatCompletionClient)
