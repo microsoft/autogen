@@ -97,7 +97,6 @@ async def run_example(config_filepath: str) -> None:
     results = await eval_learning_from_demonstration(apprentice, client, logger, config["test"])
 
     # Finish up.
-    logger.flush(finished=True)
     print(results)
 
 

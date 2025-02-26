@@ -43,6 +43,44 @@ The following samples are listed in order of increasing complexity.
 Execute the corresponding commands from this (autogen_ext/task_centric_memory) directory.
 
 
+### Making AssistantAgent teachable
+
+This short, interactive code sample shows how to make the AssistantAgent teachable.
+The following steps show the agent learning a user teaching from one chat session to the next,
+starting with an empty memory bank.
+    
+```bash
+rm -r memory_bank
+python chat_with_teachable_agent.py
+Now chatting with a teachable agent. Please enter your first message. Type 'exit' or 'quit' to quit.
+
+You: How many items should be put in research summaries?
+---------- user ----------
+How many items should be put in research summaries?
+---------- teachable_agent ----------
+<generates a long discussion>
+
+You: Whenever asked to prepare a research summary, try to cover just the 5 top items.
+---------- user ----------
+Whenever asked to prepare a research summary, try to cover just the 5 top items.
+---------- teachable_agent ----------
+<discusses the advice>
+
+You: quit
+
+python chat_with_teachable_agent.py`
+Now chatting with a teachable agent. Please enter your first message. Type 'exit' or 'quit' to quit.
+
+You: How many items should be put in research summaries?
+---------- user ----------
+How many items should be put in research summaries?
+---------- teachable_agent ----------
+[MemoryContent(content='Whenever asked to prepare a research summary, try to cover just the 5 top items.', mime_type='MemoryMimeType.TEXT', metadata={})]
+---------- teachable_agent ----------
+<generates a more appropriate answer> 
+```
+
+
 ### Direct Memory Storage and Retrieval
 
 This sample shows how an app can access the `TaskCentricMemoryController` directly

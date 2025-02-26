@@ -54,7 +54,7 @@ class TaskCentricMemoryBank:
         self.logger.enter_function()
 
         # Apply default settings and any config overrides.
-        memory_dir_path = "~/task_centric_memory/temp"
+        memory_dir_path = "./memory_bank/default"
         self.relevance_conversion_threshold = 1.7
         self.n_results = 25
         self.distance_threshold = 100

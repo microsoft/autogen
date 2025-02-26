@@ -77,7 +77,7 @@ class PageLogger:
 
         # Apply default settings and any config overrides.
         level_str = "NONE"  # Default to no logging at all.
-        self.log_dir = "~/pagelogs/temp"
+        self.log_dir = "./pagelogs/default"
         if config is not None:
             level_str = config.get("level", level_str)
             self.log_dir = config.get("path", self.log_dir)
@@ -113,6 +113,8 @@ class PageLogger:
             f.write("\n")
             f.write("{} files\n".format(num_files))
             f.write("{} subdirectories\n".format(num_subdirs))
+
+        self.flush(finished=True)
 
     @staticmethod
     def _decorate_text(text: str, color: str, weight: str = "bold", demarcate: bool = False) -> str:

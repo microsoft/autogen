@@ -376,6 +376,23 @@ class TaskCentricMemoryController:
         self.logger.leave_function()
         return final_response, successful_insight
 
+    async def _append_any_relevant_memories(self, task: str) -> str:
+        """
+        Appends any relevant memories to the task description.
+        """
+        self.logger.enter_function()
+
+        filtered_memos = await self.retrieve_relevant_memos(task)
+        filtered_insights = [memo.insight for memo in filtered_memos]
+        if len(filtered_insights) > 0:
+            self.logger.info("Relevant insights were retrieved from memory.\n")
+            memory_section = self._format_memory_section(filtered_insights)
+            if len(memory_section) > 0:
+                task = task + "\n\n" + memory_section
+
+        self.logger.leave_function()
+        return task
+
     async def assign_task(self, task: str, use_memory: bool = True, should_await: bool = True) -> str:
         """
         Assigns a task to some agent through the task_assignment_callback, along with any relevant memories.
@@ -385,15 +402,7 @@ class TaskCentricMemoryController:
         assert self.task_assignment_callback is not None
 
         if use_memory:
-            # Try to retrieve any relevant memories from the DB.
-            filtered_memos = await self.retrieve_relevant_memos(task)
-            filtered_insights = [memo.insight for memo in filtered_memos]
-            if len(filtered_insights) > 0:
-                self.logger.info("Relevant insights were retrieved from memory.\n")
-                memory_section = self._format_memory_section(filtered_insights)
-                task = task + "\n\n" + memory_section
-                # if len(memory_section) > 0:  # Best to include this condition at some point, with new recordings.
-                #     task = task + '\n\n' + memory_section
+            task = await self._append_any_relevant_memories(task)
 
         # Attempt to solve the task.
         self.logger.info("Try to solve the task.\n")
@@ -403,19 +412,47 @@ class TaskCentricMemoryController:
         self.logger.leave_function()
         return response
 
+    async def consider_memo_storage(self, text: str) -> str | None:
+        """
+        Tries to extract any advice from the given text and add it to memory.
+        """
+        self.logger.enter_function()
+
+        advice = await self.prompter.extract_advice(text)
+        self.logger.info("Advice:  {}".format(advice))
+        if advice is not None:
+            await self.add_memo(insight=advice)
+
+        self.logger.leave_function()
+        return advice
+
     async def handle_user_message(self, text: str, should_await: bool = True) -> str:
         """
         Handles a user message by extracting any advice as an insight to be stored in memory, and then calling assign_task().
         """
         self.logger.enter_function()
 
-        advice = await self.prompter.extract_advice(text)
-        self.logger.info("Advice:  {}".format(advice))
+        # Check for advice.
+        advice = await self.consider_memo_storage(text)
 
-        if advice is not None:
-            await self.add_memo(insight=advice)
-
+        # Assign the task through the task_assignment_callback, using memory only if no advice was just provided.
         response = await self.assign_task(text, use_memory=(advice is None), should_await=should_await)
 
         self.logger.leave_function()
         return response
+
+    async def process_user_message(self, text: str) -> str:
+        """
+        Processes a user message by extracting any advice as an insight to be stored in memory,
+        and returns the original user message with any other relevant memories appended.
+        """
+        self.logger.enter_function()
+
+        # Append any relevant memories to the user message.
+        expanded_text = await self._append_any_relevant_memories(text)
+
+        # Check for advice to add to memory for later turns.
+        await self.consider_memo_storage(text)
+
+        self.logger.leave_function()
+        return expanded_text
