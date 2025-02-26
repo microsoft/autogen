@@ -32,6 +32,7 @@ class ModelFamily:
     CLAUDE_3_OPUS = "claude-3-opus"
     CLAUDE_3_5_HAIKU = "claude-3.5-haiku"
     CLAUDE_3_5_SONNET = "claude-3.5-sonnet"
+    CLAUDE_3_7_SONNET = "claude-3.7-sonnet"
     UNKNOWN = "unknown"
 
     ANY: TypeAlias = Literal[
@@ -49,6 +50,7 @@ class ModelFamily:
         "claude-3-opus",
         "claude-3.5-haiku",
         "claude-3.5-sonnet",
+        "claude-3.7-sonnet",
         "unknown",
     ]
 
@@ -63,6 +65,7 @@ class ModelFamily:
             ModelFamily.CLAUDE_3_OPUS,
             ModelFamily.CLAUDE_3_5_HAIKU,
             ModelFamily.CLAUDE_3_5_SONNET,
+            ModelFamily.CLAUDE_3_7_SONNET,
         )
 
     @staticmethod
@@ -81,6 +84,7 @@ class ModelFamily:
             ModelFamily.O3,
             ModelFamily.GPT_4,
             ModelFamily.GPT_35,
+            ModelFamily.R1,
         )
 
 
