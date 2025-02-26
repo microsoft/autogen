@@ -260,12 +260,15 @@ class DatabaseManager:
             config = await ToolManager.load_from_file(tool_file)
 
             for cfg in config:
-                if (self._check_tool_exists(cfg, user_id)):
+                exists = await self._check_tool_exists(cfg, user_id)
+                if exists:
                     logger.debug(f"Tool already exists: {cfg.get('label')}. Skipping")
                     continue
+
                 try:
                     tool_db = Tool(user_id=user_id, component=cfg)
-                    self.upsert(tool_db)
+                    r = self.upsert(tool_db)
+                    logger.debug(f"Tool imported: {cfg.get('label')}")
                 except Exception as e:
                     logger.error(f"Failed to import tool: {str(e)}")
                     return Response(message=str(e), status=False)
