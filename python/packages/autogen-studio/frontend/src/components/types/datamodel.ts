@@ -196,6 +196,29 @@ export interface AzureOpenAIClientConfig extends BaseOpenAIClientConfig {
   azure_ad_token_provider?: Component<any>;
 }
 
+export interface BaseAnthropicClientConfig extends CreateArgumentsConfig {
+  model: string;
+  api_key?: string;
+  base_url?: string;
+  model_capabilities?: any; // ModelCapabilities equivalent
+  model_info?: ModelInfo;
+  timeout?: number;
+  max_retries?: number;
+  default_headers?: Record<string, string>;
+  max_tokens?: number;
+  temperature?: number;
+  top_p?: number;
+  top_k?: number;
+  stop_sequences?: string | string[];
+  response_format?: any; // ResponseFormat equivalent
+  metadata?: Record<string, string>;
+}
+
+export interface AnthropicClientConfig extends BaseAnthropicClientConfig {
+  tools?: Array<Record<string, any>>;
+  tool_choice?: "auto" | "any" | "none" | Record<string, any>;
+}
+
 export interface UnboundedChatCompletionContextConfig {
   // Empty in example but could have props
 }
@@ -220,7 +243,10 @@ export type AgentConfig =
   | AssistantAgentConfig
   | UserProxyAgentConfig;
 
-export type ModelConfig = OpenAIClientConfig | AzureOpenAIClientConfig;
+export type ModelConfig =
+  | OpenAIClientConfig
+  | AzureOpenAIClientConfig
+  | AnthropicClientConfig;
 
 export type ToolConfig = FunctionToolConfig;
 
