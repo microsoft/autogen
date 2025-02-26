@@ -95,6 +95,7 @@ async def init_managers(database_uri: str, config_dir: str, app_root: str) -> No
 
         # init default team config
         await _db_manager.import_teams_from_directory(config_dir, settings.DEFAULT_USER_ID, check_exists=True)
+        await _db_manager.import_tools_from_directory(config_dir, settings.DEFAULT_USER_ID)
 
         # Initialize connection manager
         _websocket_manager = WebSocketManager(db_manager=_db_manager)
