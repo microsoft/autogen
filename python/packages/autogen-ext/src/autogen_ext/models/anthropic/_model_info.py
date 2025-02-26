@@ -48,7 +48,6 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.CLAUDE_3_5_SONNET,
     },
-
     # Claude Instant v1 (legacy)
     "claude-instant-1.2": {
         "vision": False,
