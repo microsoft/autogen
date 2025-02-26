@@ -720,12 +720,12 @@ async def test_remove_images(monkeypatch: pytest.MonkeyPatch) -> None:
     ]
 
     agent_1 = AssistantAgent(name="assistant_1", model_client=model_client_1)
-    result = agent_1._get_compatible_context(messages)  # type: ignore
+    result = agent_1._get_compatible_context(model_client_1, messages)  # type: ignore
     assert len(result) == 4
     assert isinstance(result[1].content, str)
 
     agent_2 = AssistantAgent(name="assistant_2", model_client=model_client_2)
-    result = agent_2._get_compatible_context(messages)  # type: ignore
+    result = agent_2._get_compatible_context(model_client_2, messages)  # type: ignore
     assert len(result) == 4
     assert isinstance(result[1].content, list)
 
