@@ -1,52 +1,67 @@
 import logging
 import uuid
-from typing import Any, Dict
+from typing import Any, Dict, List, Literal
 
-from autogen_core import CancellationToken, Image
+from autogen_core import CancellationToken, Component, Image
 from autogen_core.memory import Memory, MemoryContent, MemoryMimeType, MemoryQueryResult, UpdateContextResult
 from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import SystemMessage
-from chromadb import Client, PersistentClient
+from chromadb import HttpClient, PersistentClient
 from chromadb.api import ClientAPI
 from chromadb.api.models.Collection import Collection
+from chromadb.api.types import Document, IncludeEnum, Metadata
 from pydantic import BaseModel, Field
-
+from typing_extensions import Self
 
 logger = logging.getLogger(__name__)
 
 
-class ChromaMemoryContent(MemoryContent):
-    """Memory content with additional ChromaDB-specific fields."""
-    
-    score: float | None = None
-    """Similarity score from vector search"""
+class BaseChromaMemoryConfig(BaseModel):
+    """Base configuration for ChromaDB-based memory implementation."""
 
-
-class ChromaMemoryConfig(BaseModel):
-    """Configuration for ChromaDB-based memory implementation."""
-
+    client_type: Literal["persistent", "http"]
     collection_name: str = Field(default="memory_store", description="Name of the ChromaDB collection")
-    persistence_path: str | None = Field(default=None, description="Path for persistent storage. None for in-memory.")
     distance_metric: str = Field(default="cosine", description="Distance metric for similarity search")
     k: int = Field(default=3, description="Number of results to return in queries")
     score_threshold: float | None = Field(default=None, description="Minimum similarity score threshold")
     allow_reset: bool = Field(default=False, description="Whether to allow resetting the ChromaDB client")
+    tenant: str = Field(default="default_tenant", description="Tenant to use")
+    database: str = Field(default="default_database", description="Database to use")
 
 
-class ChromaMemory(Memory):
+class ChromaPersistentMemoryConfig(BaseChromaMemoryConfig):
+    """Configuration for persistent ChromaDB memory."""
+
+    client_type: Literal["persistent", "http"] = "persistent"
+    persistence_path: str = Field(default="./chroma_db", description="Path for persistent storage")
+
+
+class ChromaHttpMemoryConfig(BaseChromaMemoryConfig):
+    """Configuration for HTTP ChromaDB memory."""
+
+    client_type: Literal["persistent", "http"] = "http"
+    host: str = Field(default="localhost", description="Host of the remote server")
+    port: int = Field(default=8000, description="Port of the remote server")
+    ssl: bool = Field(default=False, description="Whether to use HTTPS")
+    headers: Dict[str, str] | None = Field(default=None, description="Headers to send to the server")
+
+
+class ChromaMemory(Memory, Component[BaseChromaMemoryConfig]):
     """ChromaDB-based vector memory implementation with similarity search."""
 
-    def __init__(self, name: str | None = None, config: ChromaMemoryConfig | None = None) -> None:
+    component_config_schema = ChromaPersistentMemoryConfig
+    component_provider_override = "autogen_ext.memory.chromadb.ChromaMemory"
+
+    def __init__(self, config: BaseChromaMemoryConfig | None = None) -> None:
         """Initialize ChromaMemory."""
-        self._name = name or "default_chroma_memory"
-        self._config = config or ChromaMemoryConfig()
+        self._config = config or ChromaPersistentMemoryConfig()
         self._client: ClientAPI | None = None
         self._collection: Collection | None = None
 
     @property
-    def name(self) -> str:
-        """Get the memory instance identifier."""
-        return self._name
+    def collection_name(self) -> str:
+        """Get the name of the ChromaDB collection."""
+        return self._config.collection_name
 
     def _ensure_initialized(self) -> None:
         """Ensure ChromaDB client and collection are initialized."""
@@ -56,20 +71,33 @@ class ChromaMemory(Memory):
 
                 settings = Settings(allow_reset=self._config.allow_reset)
 
-                self._client = (
-                    PersistentClient(path=self._config.persistence_path, settings=settings)
-                    if self._config.persistence_path
-                    else Client(settings=settings)
-                )
+                if isinstance(self._config, ChromaPersistentMemoryConfig):
+                    self._client = PersistentClient(
+                        path=self._config.persistence_path,
+                        settings=settings,
+                        tenant=self._config.tenant,
+                        database=self._config.database,
+                    )
+                elif isinstance(self._config, ChromaHttpMemoryConfig):
+                    self._client = HttpClient(
+                        host=self._config.host,
+                        port=self._config.port,
+                        ssl=self._config.ssl,
+                        headers=self._config.headers,
+                        settings=settings,
+                        tenant=self._config.tenant,
+                        database=self._config.database,
+                    )
+                else:
+                    raise ValueError(f"Unsupported config type: {type(self._config)}")
             except Exception as e:
                 logger.error(f"Failed to initialize ChromaDB client: {e}")
                 raise
 
-        if self._collection is None and self._client is not None:
+        if self._collection is None:
             try:
                 self._collection = self._client.get_or_create_collection(
-                    name=self._config.collection_name, 
-                    metadata={"distance_metric": self._config.distance_metric}
+                    name=self._config.collection_name, metadata={"distance_metric": self._config.distance_metric}
                 )
             except Exception as e:
                 logger.error(f"Failed to get/create collection: {e}")
@@ -167,12 +195,12 @@ class ChromaMemory(Memory):
             results = self._collection.query(
                 query_texts=[query_text],
                 n_results=self._config.k,
-                include=["documents", "metadatas", "distances"],
+                include=[IncludeEnum.documents, IncludeEnum.metadatas, IncludeEnum.distances],
                 **kwargs,
             )
 
-            # Convert results to ChromaMemoryContent list
-            memory_results: list[ChromaMemoryContent] = []
+            # Convert results to MemoryContent list
+            memory_results: List[MemoryContent] = []
 
             if (
                 not results
@@ -182,26 +210,28 @@ class ChromaMemory(Memory):
             ):
                 return MemoryQueryResult(results=memory_results)
 
-            documents = results["documents"][0] if results["documents"] else []
-            metadatas = results["metadatas"][0] if results["metadatas"] else []
-            distances = results["distances"][0] if results["distances"] else []
+            documents: List[Document] = results["documents"][0] if results["documents"] else []
+            metadatas: List[Metadata] = results["metadatas"][0] if results["metadatas"] else []
+            distances: List[float] = results["distances"][0] if results["distances"] else []
+            ids: List[str] = results["ids"][0] if results["ids"] else []
 
-            for doc, metadata_dict, distance in zip(documents, metadatas, distances, strict=False):
+            for doc, metadata_dict, distance, doc_id in zip(documents, metadatas, distances, ids, strict=False):
                 # Calculate score
                 score = self._calculate_score(distance)
-
+                metadata = dict(metadata_dict)
+                metadata["score"] = score
+                metadata["id"] = doc_id
                 if self._config.score_threshold is not None and score < self._config.score_threshold:
                     continue
 
                 # Extract mime_type from metadata
-                mime_type = metadata_dict.pop("mime_type")
-                
-                # Create ChromaMemoryContent
-                content = ChromaMemoryContent(
+                mime_type = str(metadata_dict.get("mime_type", MemoryMimeType.TEXT.value))
+
+                # Create MemoryContent
+                content = MemoryContent(
                     content=doc,
                     mime_type=mime_type,
-                    metadata=metadata_dict,
-                    score=score
+                    metadata=metadata,
                 )
                 memory_results.append(content)
 
@@ -243,3 +273,14 @@ class ChromaMemory(Memory):
                 logger.error(f"Error during ChromaDB reset: {e}")
             finally:
                 self._collection = None
+
+    def _to_config(self) -> BaseChromaMemoryConfig:
+        """Serialize the memory configuration."""
+
+        return self._config
+
+    @classmethod
+    def _from_config(cls, config: BaseChromaMemoryConfig) -> Self:
+        """Deserialize the memory configuration."""
+
+        return cls(config=config)
