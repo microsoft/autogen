@@ -357,7 +357,6 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
           )}
 
           {isWebSurferAgent(component) && (
-            // Web surfer specific configuration fields...
             <>
               <InputWithTooltip
                 label="Name"
@@ -402,6 +401,44 @@ export const AgentFields: React.FC<AgentFieldsProps> = ({
                   }
                 />
               </InputWithTooltip>
+
+              {/* Added Model Client Section for WebSurferAgent */}
+              <div className="space-y-2">
+                <span className="text-sm font-medium text-primary">
+                  Model Client
+                </span>
+                {component.config.model_client ? (
+                  <div className="bg-secondary p-1 px-2 rounded-md">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm">
+                        {component.config.model_client.config.model}
+                      </span>
+                      <div className="flex items-center justify-between">
+                        {onNavigate && (
+                          <Button
+                            type="text"
+                            icon={<Edit className="w-4 h-4" />}
+                            onClick={() =>
+                              onNavigate(
+                                "model",
+                                component.config.model_client?.label || "",
+                                "model_client"
+                              )
+                            }
+                          >
+                            Configure Model
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm text-secondary text-center bg-secondary/50 p-4 rounded-md">
+                    No model configured
+                  </div>
+                )}
+              </div>
+
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium text-primary">
                   Headless
