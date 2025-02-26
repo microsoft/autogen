@@ -100,6 +100,27 @@ class _EchoAgent(BaseChatAgent):
         self._last_message = None
 
 
+class _FlakyAgent(BaseChatAgent):
+    def __init__(self, name: str, description: str) -> None:
+        super().__init__(name, description)
+        self._last_message: str | None = None
+        self._total_messages = 0
+
+    @property
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+        return (TextMessage,)
+
+    @property
+    def total_messages(self) -> int:
+        return self._total_messages
+
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+        raise ValueError("I am a flaky agent...")
+
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
+        self._last_message = None
+
+
 class _StopAgent(_EchoAgent):
     def __init__(self, name: str, description: str, *, stop_at: int = 1) -> None:
         super().__init__(name, description)
@@ -398,6 +419,23 @@ async def test_round_robin_group_chat_with_resume_and_reset() -> None:
     assert result.messages[1].source == "agent_1"
     assert result.messages[2].source == "agent_2"
     assert result.stop_reason is not None
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_with_exception_raised() -> None:
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+    agent_2 = _FlakyAgent("agent_2", description="echo agent 2")
+    agent_3 = _EchoAgent("agent_3", description="echo agent 3")
+    termination = MaxMessageTermination(3)
+    team = RoundRobinGroupChat(
+        participants=[agent_1, agent_2, agent_3],
+        termination_condition=termination,
+    )
+
+    with pytest.raises(ValueError, match="I am a flaky agent..."):
+        await team.run(
+            task="Write a program that prints 'Hello, world!'",
+        )
 
 
 @pytest.mark.asyncio

@@ -70,7 +70,8 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
 
         # Create a runtime for the team.
         # TODO: The runtime should be created by a managed context.
-        self._runtime = SingleThreadedAgentRuntime()
+        # Background exceptions must not be ignored as it results in non-surfaced exceptions and early team termination.
+        self._runtime = SingleThreadedAgentRuntime(ignore_unhandled_exceptions=False)
 
         # Flag to track if the group chat has been initialized.
         self._initialized = False
@@ -408,8 +409,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
 
         # Start a coroutine to stop the runtime and signal the output message queue is complete.
         async def stop_runtime() -> None:
-            await self._runtime.stop_when_idle()
-            await self._output_message_queue.put(None)
+            try:
+                await self._runtime.stop_when_idle()
+            finally:
+                await self._output_message_queue.put(None)
 
         shutdown_task = asyncio.create_task(stop_runtime())
 
@@ -444,14 +447,17 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
 
         finally:
             # Wait for the shutdown task to finish.
-            await shutdown_task
+            try:
+                # This will propagate any exceptions raised in the shutdown task.
+                # We need to ensure we cleanup though.
+                await shutdown_task
+            finally:
+                # Clear the output message queue.
+                while not self._output_message_queue.empty():
+                    self._output_message_queue.get_nowait()
 
-            # Clear the output message queue.
-            while not self._output_message_queue.empty():
-                self._output_message_queue.get_nowait()
-
-            # Indicate that the team is no longer running.
-            self._is_running = False
+                # Indicate that the team is no longer running.
+                self._is_running = False
 
     async def reset(self) -> None:
         """Reset the team and its participants to their initial state.
