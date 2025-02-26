@@ -7,8 +7,9 @@ from loguru import logger
 from sqlalchemy import exc, inspect, text
 from sqlmodel import Session, SQLModel, and_, create_engine, select
 
-from ..datamodel import Response, Team
+from ..datamodel import Response, Team, Tool
 from ..teammanager import TeamManager
+from ..toolmanager import ToolManager
 from .schema_manager import SchemaManager
 
 
@@ -246,11 +247,42 @@ class DatabaseManager:
 
         return Response(message=status_message, status=status, data=None)
 
+    async def import_tools_from_directory(
+        self, dir: Union[str, Path], user_id: str) -> Response:
+        DEFAULT_TOOL_FILE = "tools.json"
+        tool_file = Path(dir) / DEFAULT_TOOL_FILE
+
+        # Just return if the file doesn't exist
+        if not tool_file.exists():
+            return Response(message="Tools file not found. Skipping import.", status=True)
+
+        try:
+            config = await ToolManager.load_from_file(tool_file)
+
+            for cfg in config:
+                if (self._check_tool_exists(cfg, user_id)):
+                    logger.debug(f"Tool already exists: {cfg.label}. Skipping")
+                    continue
+
+                try:
+                    tool_db = Tool(user_id=user_id, component=cfg)
+                    result = self.upsert(tool_db)
+                    if not result.status:
+                        return result
+                except Exception as e:
+                    logger.error(f"Failed to import tool: {str(e)}")
+                    return Response(message=str(e), status=False)
+            return result
+
+        except Exception as e:
+            logger.error(f"Failed to import tools: {str(e)}")
+            return Response(message=str(e), status=False)
+
     async def import_team(
         self, team_config: Union[str, Path, dict], user_id: str, check_exists: bool = False
     ) -> Response:
         try:
-            # Load config if path provided
+            # Load config if path provided -- but ignore the tools.json file.
             if isinstance(team_config, (str, Path)):
                 config = await TeamManager.load_from_file(team_config)
             else:
@@ -315,6 +347,16 @@ class DatabaseManager:
         except Exception as e:
             logger.error(f"Failed to import directory: {str(e)}")
             return Response(message=str(e), status=False)
+
+    async def _check_tool_exists(self, config: dict, user_id: str) -> Optional[Tool]:
+        """Check if identical tool config already exists"""
+        tools = self.get(Tool, {"user_id": user_id}).data
+
+        for tool in tools:
+            if tool.component == config:
+                return tool
+
+        return None
 
     async def _check_team_exists(self, config: dict, user_id: str) -> Optional[Team]:
         """Check if identical team config already exists"""

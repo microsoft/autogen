@@ -53,9 +53,10 @@ class TeamManager:
         directory = Path(directory)
         configs = []
         valid_extensions = {".json", ".yaml", ".yml"}
+        excluded_files = {"tools.json"}
 
         for path in directory.iterdir():
-            if path.is_file() and path.suffix.lower() in valid_extensions:
+            if path.is_file() and path.suffix.lower() in valid_extensions and path.name.lower() not in excluded_files:
                 try:
                     config = await TeamManager.load_from_file(path)
                     configs.append(config)

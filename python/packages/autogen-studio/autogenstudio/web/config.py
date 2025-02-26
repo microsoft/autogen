@@ -9,7 +9,7 @@ class Settings(BaseSettings):
     CLEANUP_INTERVAL: int = 300  # 5 minutes
     SESSION_TIMEOUT: int = 3600  # 1 hour
     CONFIG_DIR: str = "configs"  # Default config directory relative to app_root
-    DEFAULT_USER_ID: str = "guestuser@gmail.com"
+    DEFAULT_USER_ID: str = "kagent.dev"
     UPGRADE_DATABASE: bool = False
 
     model_config = {"env_prefix": "AUTOGENSTUDIO_"}
