@@ -3,6 +3,7 @@ import { message, Modal } from "antd";
 import { ChevronRight } from "lucide-react";
 import { appContext } from "../../../hooks/provider";
 import { teamAPI } from "./api";
+import { useGalleryStore } from "../gallery/store";
 import { TeamSidebar } from "./sidebar";
 import type { Team } from "../../types/datamodel";
 import { TeamBuilder } from "./builder/builder";
@@ -22,6 +23,14 @@ export const TeamManager: React.FC = () => {
   const [messageApi, contextHolder] = message.useMessage();
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
+  // Initialize galleries
+  const fetchGalleries = useGalleryStore((state) => state.fetchGalleries);
+  useEffect(() => {
+    if (user?.email) {
+      fetchGalleries(user.email);
+    }
+  }, [user?.email, fetchGalleries]);
+
   // Persist sidebar state
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -36,7 +45,6 @@ export const TeamManager: React.FC = () => {
       setIsLoading(true);
       const data = await teamAPI.listTeams(user.email);
       setTeams(data);
-      // console.log("team data", data);
       if (!currentTeam && data.length > 0) {
         setCurrentTeam(data[0]);
       }
@@ -45,7 +53,7 @@ export const TeamManager: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [user?.email]);
+  }, [user?.email, currentTeam]);
 
   useEffect(() => {
     fetchTeams();
@@ -61,20 +69,6 @@ export const TeamManager: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    const handleLocationChange = () => {
-      const params = new URLSearchParams(window.location.search);
-      const teamId = params.get("teamId");
-
-      if (!teamId && currentTeam) {
-        setCurrentTeam(null);
-      }
-    };
-
-    window.addEventListener("popstate", handleLocationChange);
-    return () => window.removeEventListener("popstate", handleLocationChange);
-  }, [currentTeam]);
-
   const handleSelectTeam = async (selectedTeam: Team) => {
     if (!user?.email || !selectedTeam.id) return;
 
@@ -87,14 +81,12 @@ export const TeamManager: React.FC = () => {
         onOk: () => {
           switchToTeam(selectedTeam.id);
         },
-        // onCancel - do nothing, user stays on current team
       });
     } else {
       await switchToTeam(selectedTeam.id);
     }
   };
 
-  // Modify switchToTeam to take the id directly
   const switchToTeam = async (teamId: number | undefined) => {
     if (!teamId || !user?.email) return;
     setIsLoading(true);
@@ -128,8 +120,6 @@ export const TeamManager: React.FC = () => {
 
   const handleCreateTeam = (newTeam: Team) => {
     setCurrentTeam(newTeam);
-    // also save it to db
-
     handleSaveTeam(newTeam);
   };
 
@@ -139,18 +129,15 @@ export const TeamManager: React.FC = () => {
     try {
       const sanitizedTeamData = {
         ...teamData,
-        created_at: undefined, // Remove these fields
-        updated_at: undefined, // Let server handle timestamps
+        created_at: undefined,
+        updated_at: undefined,
       };
 
-      // console.log("teamData", sanitizedTeamData);
       const savedTeam = await teamAPI.createTeam(sanitizedTeamData, user.email);
-
       messageApi.success(
         `Team ${teamData.id ? "updated" : "created"} successfully`
       );
 
-      // Update teams list
       if (teamData.id) {
         setTeams(teams.map((t) => (t.id === savedTeam.id ? savedTeam : t)));
         if (currentTeam?.id === savedTeam.id) {
@@ -196,7 +183,7 @@ export const TeamManager: React.FC = () => {
         <div className="p-4 pt-2">
           {/* Breadcrumb */}
           <div className="flex items-center gap-2 mb-4 text-sm">
-            <span className="text-primary font-medium"> Teams</span>
+            <span className="text-primary font-medium">Teams</span>
             {currentTeam && (
               <>
                 <ChevronRight className="w-4 h-4 text-secondary" />
@@ -220,7 +207,7 @@ export const TeamManager: React.FC = () => {
               onDirtyStateChange={setHasUnsavedChanges}
             />
           ) : (
-            <div className="flex items-center   justify-center h-[calc(100vh-190px)] text-secondary">
+            <div className="flex items-center justify-center h-[calc(100vh-190px)] text-secondary">
               Select a team from the sidebar or create a new one
             </div>
           )}

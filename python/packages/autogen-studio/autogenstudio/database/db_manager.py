@@ -32,6 +32,13 @@ class DatabaseManager:
             base_dir=base_dir,
         )
 
+    def _should_auto_upgrade(self) -> bool:
+        """
+        Check if auto upgrade should run based on schema differences
+        """
+        needs_upgrade, _ = self.schema_manager.check_schema_status()
+        return needs_upgrade
+
     def initialize_database(self, auto_upgrade: bool = False, force_init_alembic: bool = True) -> Response:
         """
         Initialize database and migrations in the correct order.
@@ -46,9 +53,7 @@ class DatabaseManager:
         try:
             inspector = inspect(self.engine)
             tables_exist = inspector.get_table_names()
-
             if not tables_exist:
-                # Fresh install - create tables and initialize migrations
                 logger.info("Creating database tables...")
                 SQLModel.metadata.create_all(self.engine)
 
@@ -57,9 +62,9 @@ class DatabaseManager:
                 return Response(message="Failed to initialize migrations", status=False)
 
             # Handle existing database
-            if auto_upgrade:
+            if auto_upgrade or self._should_auto_upgrade():
                 logger.info("Checking database schema...")
-                if self.schema_manager.ensure_schema_up_to_date():  # <-- Use this instead
+                if self.schema_manager.ensure_schema_up_to_date():
                     return Response(message="Database schema is up to date", status=True)
                 return Response(message="Database upgrade failed", status=False)
 
@@ -129,7 +134,7 @@ class DatabaseManager:
                 self._init_lock.release()
                 logger.info("Database reset lock released")
 
-    def upsert(self, model: SQLModel, return_json: bool = True):
+    def upsert(self, model: SQLModel, return_json: bool = True) -> Response:
         """Create or update an entity
 
         Args:
@@ -209,7 +214,7 @@ class DatabaseManager:
 
             return Response(message=status_message, status=status, data=result)
 
-    def delete(self, model_class: SQLModel, filters: dict = None):
+    def delete(self, model_class: SQLModel, filters: dict = None) -> Response:
         """Delete an entity"""
         status_message = ""
         status = True
