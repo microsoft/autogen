@@ -38,7 +38,8 @@ class MemoryContent(BaseModel):
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
     @field_serializer("mime_type")
-    def serialize_mime_type(self, mime_type: MemoryMimeType | str):
+    def serialize_mime_type(self, mime_type: MemoryMimeType | str) -> str:
+        """Serialize the MIME type to a string."""
         if isinstance(mime_type, MemoryMimeType):
             return mime_type.value
         return mime_type
