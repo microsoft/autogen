@@ -261,18 +261,15 @@ class DatabaseManager:
 
             for cfg in config:
                 if (self._check_tool_exists(cfg, user_id)):
-                    logger.debug(f"Tool already exists: {cfg.label}. Skipping")
+                    logger.debug(f"Tool already exists: {cfg.get('label')}. Skipping")
                     continue
-
                 try:
                     tool_db = Tool(user_id=user_id, component=cfg)
-                    result = self.upsert(tool_db)
-                    if not result.status:
-                        return result
+                    self.upsert(tool_db)
                 except Exception as e:
                     logger.error(f"Failed to import tool: {str(e)}")
                     return Response(message=str(e), status=False)
-            return result
+            return Response(message="Tools imported successfully", status=True)
 
         except Exception as e:
             logger.error(f"Failed to import tools: {str(e)}")
