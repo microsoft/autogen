@@ -13,7 +13,7 @@ import {
   Trash,
   Plus,
 } from "lucide-react";
-import { ComponentEditor } from "../team/builder/component-editor/component-editor";
+import { ComponentEditor } from "../teambuilder/builder/component-editor/component-editor";
 import { TruncatableText } from "../atoms";
 import {
   Component,

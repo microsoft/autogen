@@ -127,7 +127,6 @@ class TeamManager:
                 while not llm_event_logger.events.empty():
                     event = await llm_event_logger.events.get()
                     yield event
-
         finally:
             # Cleanup - remove our handler
             logger.handlers.remove(llm_event_logger)

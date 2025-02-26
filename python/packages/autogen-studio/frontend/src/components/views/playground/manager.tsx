@@ -7,7 +7,7 @@ import { SessionEditor } from "./editor";
 import type { Session, Team } from "../../types/datamodel";
 import ChatView from "./chat/chat";
 import { Sidebar } from "./sidebar";
-import { teamAPI } from "../team/api";
+import { teamAPI } from "../teambuilder/api";
 import { useGalleryStore } from "../gallery/store";
 
 export const SessionManager: React.FC = () => {
