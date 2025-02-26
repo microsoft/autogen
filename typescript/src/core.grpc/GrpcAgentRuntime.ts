@@ -4,12 +4,15 @@
 import * as grpc from '@grpc/grpc-js';
 import { IAgentRuntime, AgentId, TopicId } from '../contracts/IAgentRuntime';
 import { IAgent } from '../contracts/IAgent';
+import { ISubscriptionDefinition } from '../contracts/ISubscriptionDefinition';
 import { MessageContext } from '../contracts/MessageContext';
 import { IAgentMessageSerializer } from './IAgentMessageSerializer';
 import { RuntimeGatewayClientOptions } from './RuntimeGatewayClientOptions';
 import { Message } from 'google-protobuf';
 import { UndeliverableException } from '../contracts/AgentExceptions';
 import { GrpcAgentRuntimeClientOptions } from './GrpcAgentRuntimeClientOptions';
+import { AgentType } from '../contracts/AgentType';
+import { GrpcMessage } from './generated/messages';
 
 /**
  * An implementation of IAgentRuntime that uses gRPC to communicate with agents.
@@ -62,6 +65,30 @@ export class GrpcAgentRuntime implements IAgentRuntime {
         });
     }
 
+    async registerAgentFactoryAsync(
+        type: AgentType,
+        factoryFunc: (agentId: AgentId, runtime: IAgentRuntime) => Promise<IAgent>
+    ): Promise<AgentType> {
+        const request = this.createRequest({ type });
+        await this.makeGrpcCall('/agent.Runtime/RegisterAgentFactory', request);
+        return type;
+    }
+
+    async addSubscriptionAsync(subscription: ISubscriptionDefinition): Promise<void> {
+        const request = this.createRequest({ subscriptionId: subscription.id });
+        await this.makeGrpcCall('/agent.Runtime/AddSubscription', request);
+    }
+
+    async removeSubscriptionAsync(subscriptionId: string): Promise<void> {
+        const request = this.createRequest({ subscriptionId });
+        await this.makeGrpcCall('/agent.Runtime/RemoveSubscription', request);
+    }
+
+    // Helper method to create protobuf messages
+    private createRequest(data: any): Message {
+        return Object.assign(new Message(), data);
+    }
+
     private async makeGrpcCall<T extends Message>(
         method: string, 
         request: T
@@ -74,8 +101,8 @@ export class GrpcAgentRuntime implements IAgentRuntime {
             return await new Promise((resolve, reject) => {
                 this.client.makeUnaryRequest(
                     method,
-                    (arg) => arg,
-                    (arg) => arg,
+                    (arg) => Buffer.from(arg.serializeBinary()),
+                    (buf) => Message.deserializeBinary(Buffer.from(buf)),
                     request,
                     (error, response) => {
                         if (error) {
