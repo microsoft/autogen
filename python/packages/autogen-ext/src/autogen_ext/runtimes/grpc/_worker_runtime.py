@@ -711,24 +711,24 @@ class GrpcWorkerAgentRuntime(AgentRuntime):
         if isinstance(type, str):
             type = AgentType(type)
 
-        if type.type in self._agent_factories:
-            raise ValueError(f"Agent with type {type} already exists.")
         if self._host_connection is None:
             raise RuntimeError("Host connection is not set.")
 
-        async def factory_wrapper() -> T:
-            maybe_agent_instance = agent_factory()
-            if inspect.isawaitable(maybe_agent_instance):
-                agent_instance = await maybe_agent_instance
-            else:
-                agent_instance = maybe_agent_instance
+        if type.type not in self._agent_factories:
 
-            if expected_class is not None and type_func_alias(agent_instance) != expected_class:
-                raise ValueError("Factory registered using the wrong type.")
+            async def factory_wrapper() -> T:
+                maybe_agent_instance = agent_factory()
+                if inspect.isawaitable(maybe_agent_instance):
+                    agent_instance = await maybe_agent_instance
+                else:
+                    agent_instance = maybe_agent_instance
 
-            return agent_instance
+                if expected_class is not None and type_func_alias(agent_instance) != expected_class:
+                    raise ValueError("Factory registered using the wrong type.")
 
-        self._agent_factories[type.type] = factory_wrapper
+                return agent_instance
+
+            self._agent_factories[type.type] = factory_wrapper
 
         # Send the registration request message to the host.
         message = agent_worker_pb2.RegisterAgentTypeRequest(type=type.type)

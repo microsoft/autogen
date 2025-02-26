@@ -36,7 +36,7 @@ from .protos.serialization_test_pb2 import ProtoMessage
 
 @pytest.mark.grpc
 @pytest.mark.asyncio
-async def test_agent_types_must_be_unique_single_worker() -> None:
+async def test_agent_types_uniqueness_allows_reregistration() -> None:
     host_address = "localhost:50051"
     host = GrpcWorkerAgentRuntimeHost(address=host_address)
     host.start()
@@ -46,10 +46,8 @@ async def test_agent_types_must_be_unique_single_worker() -> None:
 
     await worker.register_factory(type=AgentType("name1"), agent_factory=lambda: NoopAgent(), expected_class=NoopAgent)
 
-    with pytest.raises(ValueError):
-        await worker.register_factory(
-            type=AgentType("name1"), agent_factory=lambda: NoopAgent(), expected_class=NoopAgent
-        )
+    # re-registration of the same agent type should be allowed (if agent_type and client_id match)
+    await worker.register_factory(type=AgentType("name1"), agent_factory=lambda: NoopAgent(), expected_class=NoopAgent)
 
     await worker.register_factory(type=AgentType("name4"), agent_factory=lambda: NoopAgent(), expected_class=NoopAgent)
     await worker.register_factory(type=AgentType("name5"), agent_factory=lambda: NoopAgent())
