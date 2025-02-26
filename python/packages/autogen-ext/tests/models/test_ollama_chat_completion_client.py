@@ -13,7 +13,7 @@ def _mock_request(*args: Any, **kwargs: Any) -> Response:
 
 
 @pytest.mark.asyncio
-async def test_ollama_chat_completion_client_doesnt_error_with_host_kwarg(monkeypatch: pytest.MonkeyPatch):
+async def test_ollama_chat_completion_client_doesnt_error_with_host_kwarg(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(AsyncClient, "_request", _mock_request)
 
     client = OllamaChatCompletionClient(model="llama3.1", host="http://testyhostname:11434")
@@ -28,7 +28,7 @@ async def test_ollama_chat_completion_client_doesnt_error_with_host_kwarg(monkey
         assert "AsyncClient.chat() got an unexpected keyword argument" not in e.args[0]
 
 
-def test_create_args_from_config_drops_unexpected_kwargs():
+def test_create_args_from_config_drops_unexpected_kwargs() -> None:
     test_config: Mapping[str, Any] = {
         "model": "llama3.1",
         "messages": [],
@@ -40,7 +40,6 @@ def test_create_args_from_config_drops_unexpected_kwargs():
         "extra_unexpected_kwarg": "value",
         "another_extra_unexpected_kwarg": "another_value",
     }
-    test_config["model"] = "llama3.1"
 
     client = OllamaChatCompletionClient(**test_config)
 
