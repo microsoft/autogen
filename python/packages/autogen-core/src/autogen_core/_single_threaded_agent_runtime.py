@@ -655,17 +655,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
 
                         message_envelope.message = temp_message
 
-                def handle_process_exception(task: Task[Any]) -> None:
-                    """Handle exceptions raised during message processing.
-
-                    Args:
-                        task: The task that has finished and has potentially raised an exception.
-                    """
-                    self._background_tasks.discard(task)
-
                 task = asyncio.create_task(self._process_publish(message_envelope))
                 self._background_tasks.add(task)
-                task.add_done_callback(handle_process_exception)
+                task.add_done_callback(self._background_tasks.discard)
             case ResponseMessageEnvelope(message=message, sender=sender, recipient=recipient, future=future):
                 if self._intervention_handlers is not None:
                     for handler in self._intervention_handlers:
