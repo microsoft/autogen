@@ -66,13 +66,16 @@ html[data-theme="light"] .bd-header {
 .bd-content .sd-tab-set>input:checked+label {
   border: none;
   transform: translateY(0);
-  font-weight: 600;
-  border-bottom: 2px solid var(--pst-color-secondary);
-
+  font-weight: 700;
+  border-bottom: 4px solid var(--pst-color-secondary);
+}
+.bd-content .sd-tab-set>input:focus-visible+label {
+  border: 2px outset var(--pst-color-secondary);
+  transform: translateY(0);
 }
 .bd-content .sd-tab-set>label {
   background-color: transparent;
-  border: none;
+  font-weight: 500;
 }
 
 .card-title {
