@@ -100,6 +100,27 @@ class _EchoAgent(BaseChatAgent):
         self._last_message = None
 
 
+class _FlakyAgent(BaseChatAgent):
+    def __init__(self, name: str, description: str) -> None:
+        super().__init__(name, description)
+        self._last_message: str | None = None
+        self._total_messages = 0
+
+    @property
+    def produced_message_types(self) -> Sequence[type[ChatMessage]]:
+        return (TextMessage,)
+
+    @property
+    def total_messages(self) -> int:
+        return self._total_messages
+
+    async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
+        raise ValueError("I am a flaky agent...")
+
+    async def on_reset(self, cancellation_token: CancellationToken) -> None:
+        self._last_message = None
+
+
 class _StopAgent(_EchoAgent):
     def __init__(self, name: str, description: str, *, stop_at: int = 1) -> None:
         super().__init__(name, description)
@@ -398,6 +419,23 @@ async def test_round_robin_group_chat_with_resume_and_reset() -> None:
     assert result.messages[1].source == "agent_1"
     assert result.messages[2].source == "agent_2"
     assert result.stop_reason is not None
+
+
+@pytest.mark.asyncio
+async def test_round_robin_group_chat_with_exception_raised() -> None:
+    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
+    agent_2 = _FlakyAgent("agent_2", description="echo agent 2")
+    agent_3 = _EchoAgent("agent_3", description="echo agent 3")
+    termination = MaxMessageTermination(3)
+    team = RoundRobinGroupChat(
+        participants=[agent_1, agent_2, agent_3],
+        termination_condition=termination,
+    )
+
+    with pytest.raises(ValueError, match="I am a flaky agent..."):
+        await team.run(
+            task="Write a program that prints 'Hello, world!'",
+        )
 
 
 @pytest.mark.asyncio
@@ -741,6 +779,68 @@ async def test_selector_group_chat_two_speakers_allow_repeated(monkeypatch: pyte
 
 
 @pytest.mark.asyncio
+async def test_selector_group_chat_succcess_after_2_attempts() -> None:
+    model_client = ReplayChatCompletionClient(
+        ["agent2, agent3", "agent2"],
+    )
+    agent1 = _StopAgent("agent1", description="echo agent 1", stop_at=1)
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    agent3 = _EchoAgent("agent3", description="echo agent 3")
+    team = SelectorGroupChat(
+        participants=[agent1, agent2, agent3],
+        model_client=model_client,
+        max_turns=1,
+    )
+    result = await team.run(task="Write a program that prints 'Hello, world!'")
+    assert len(result.messages) == 2
+    assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
+    assert result.messages[1].source == "agent2"
+
+
+@pytest.mark.asyncio
+async def test_selector_group_chat_fall_back_to_first_after_3_attempts() -> None:
+    model_client = ReplayChatCompletionClient(
+        [
+            "agent2, agent3",  # Multiple speakers
+            "agent5",  # Non-existent speaker
+            "agent3, agent1",  # Multiple speakers
+        ]
+    )
+    agent1 = _StopAgent("agent1", description="echo agent 1", stop_at=1)
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    agent3 = _EchoAgent("agent3", description="echo agent 3")
+    team = SelectorGroupChat(
+        participants=[agent1, agent2, agent3],
+        model_client=model_client,
+        max_turns=1,
+    )
+    result = await team.run(task="Write a program that prints 'Hello, world!'")
+    assert len(result.messages) == 2
+    assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
+    assert result.messages[1].source == "agent1"
+
+
+@pytest.mark.asyncio
+async def test_selector_group_chat_fall_back_to_previous_after_3_attempts() -> None:
+    model_client = ReplayChatCompletionClient(
+        ["agent2", "agent2", "agent2", "agent2"],
+    )
+    agent1 = _StopAgent("agent1", description="echo agent 1", stop_at=1)
+    agent2 = _EchoAgent("agent2", description="echo agent 2")
+    agent3 = _EchoAgent("agent3", description="echo agent 3")
+    team = SelectorGroupChat(
+        participants=[agent1, agent2, agent3],
+        model_client=model_client,
+        max_turns=2,
+    )
+    result = await team.run(task="Write a program that prints 'Hello, world!'")
+    assert len(result.messages) == 3
+    assert result.messages[0].content == "Write a program that prints 'Hello, world!'"
+    assert result.messages[1].source == "agent2"
+    assert result.messages[2].source == "agent2"
+
+
+@pytest.mark.asyncio
 async def test_selector_group_chat_custom_selector(monkeypatch: pytest.MonkeyPatch) -> None:
     model = "gpt-4o-2024-05-13"
     chat_completions = [
@@ -1072,8 +1172,8 @@ async def test_swarm_with_parallel_tool_calls(monkeypatch: pytest.MonkeyPatch) -
         ),
         FunctionExecutionResultMessage(
             content=[
-                FunctionExecutionResult(content="tool1", call_id="1"),
-                FunctionExecutionResult(content="tool2", call_id="2"),
+                FunctionExecutionResult(content="tool1", call_id="1", is_error=False),
+                FunctionExecutionResult(content="tool2", call_id="2", is_error=False),
             ]
         ),
     ]

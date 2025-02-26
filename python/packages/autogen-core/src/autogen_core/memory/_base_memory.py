@@ -2,9 +2,10 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Dict, List, Union
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
 
 from .._cancellation_token import CancellationToken
+from .._component_config import ComponentBase
 from .._image import Image
 from ..model_context import ChatCompletionContext
 
@@ -36,6 +37,13 @@ class MemoryContent(BaseModel):
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
+    @field_serializer("mime_type")
+    def serialize_mime_type(self, mime_type: MemoryMimeType | str) -> str:
+        """Serialize the MIME type to a string."""
+        if isinstance(mime_type, MemoryMimeType):
+            return mime_type.value
+        return mime_type
+
 
 class MemoryQueryResult(BaseModel):
     """Result of a memory :meth:`~autogen_core.memory.Memory.query` operation."""
@@ -49,7 +57,7 @@ class UpdateContextResult(BaseModel):
     memories: MemoryQueryResult
 
 
-class Memory(ABC):
+class Memory(ABC, ComponentBase[BaseModel]):
     """Protocol defining the interface for memory implementations.
 
     A memory is the storage for data that can be used to enrich or modify the model context.
@@ -63,6 +71,8 @@ class Memory(ABC):
 
     See :class:`~autogen_core.memory.ListMemory` for an example implementation.
     """
+
+    component_type = "memory"
 
     @abstractmethod
     async def update_context(

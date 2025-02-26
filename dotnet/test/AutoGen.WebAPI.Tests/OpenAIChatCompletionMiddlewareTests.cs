@@ -15,6 +15,7 @@ using OpenAI;
 
 namespace AutoGen.WebAPI.Tests;
 
+[Trait("Category", "UnitV1")]
 public class OpenAIChatCompletionMiddlewareTests
 {
     [Fact]

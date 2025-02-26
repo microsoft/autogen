@@ -88,4 +88,4 @@ class ToolAgent(RoutedAgent):
                 ) from e
             except Exception as e:
                 raise ToolExecutionException(call_id=message.id, content=f"Error: {e}") from e
-        return FunctionExecutionResult(content=result_as_str, call_id=message.id)
+        return FunctionExecutionResult(content=result_as_str, call_id=message.id, is_error=False)

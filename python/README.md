@@ -25,6 +25,13 @@ poe check
 
 - [Install `uv`](https://docs.astral.sh/uv/getting-started/installation/).
 
+**Note:** To prevent incompatibilities between versions the same UV version as is running in CI should be used. Check the version in CI by looking the `setup-uv` action, [here](https://github.com/microsoft/autogen/blob/main/.github/workflows/checks.yml#L40) for example.
+
+For example, to change your version to `0.5.18`, run:
+```sh
+uv self update 0.5.18
+```
+
 ### Virtual Environment
 
 During development, you may need to test changes made to any of the packages.\
@@ -50,11 +57,23 @@ To create a pull request (PR), ensure the following checks are met. You can run 
 - Pyright: `poe pyright`
 - Build docs: `poe --directory ./packages/autogen-core/ docs-build`
 - Auto rebuild+serve docs: `poe --directory ./packages/autogen-core/ docs-serve`
+- Check samples in `python/samples`: `poe samples-code-check`
 Alternatively, you can run all the checks with:
 - `poe check`
 
 > [!NOTE]
 > These need to be run in the virtual environment.
+
+### Syncing Dependencies
+
+When you pull new changes, you may need to update the dependencies.
+To do so, first make sure you are in the virtual environment, and then in the `python` directory, run:
+
+```sh
+uv sync --all-extras
+```
+
+This will update the dependencies in the virtual environment.
 
 ### Creating a New Package
 
