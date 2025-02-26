@@ -115,7 +115,7 @@ class _FlakyAgent(BaseChatAgent):
         return self._total_messages
 
     async def on_messages(self, messages: Sequence[ChatMessage], cancellation_token: CancellationToken) -> Response:
-        raise Exception("I am a flaky agent...")
+        raise ValueError("I am a flaky agent...")
 
     async def on_reset(self, cancellation_token: CancellationToken) -> None:
         self._last_message = None
@@ -422,7 +422,7 @@ async def test_round_robin_group_chat_with_resume_and_reset() -> None:
 
 
 @pytest.mark.asyncio
-async def test_round_robin_group_chat_with_exception_handling_policy_raise() -> None:
+async def test_round_robin_group_chat_with_exception_raised() -> None:
     agent_1 = _EchoAgent("agent_1", description="echo agent 1")
     agent_2 = _FlakyAgent("agent_2", description="echo agent 2")
     agent_3 = _EchoAgent("agent_3", description="echo agent 3")
@@ -431,38 +431,11 @@ async def test_round_robin_group_chat_with_exception_handling_policy_raise() -> 
         participants=[agent_1, agent_2, agent_3],
         termination_condition=termination,
     )
-    # TODO: change once runtime is configurable
-    team._runtime._ignore_unhandled_handler_exceptions = False
 
-    with pytest.raises(BaseException) as exc_info:
+    with pytest.raises(ValueError, match="I am a flaky agent..."):
         await team.run(
             task="Write a program that prints 'Hello, world!'",
         )
-
-    assert str(exc_info.value.__cause__) == "I am a flaky agent..."
-
-
-@pytest.mark.asyncio
-async def test_round_robin_group_chat_with_exception_handling_policy_ignore_and_log() -> None:
-    agent_1 = _EchoAgent("agent_1", description="echo agent 1")
-    agent_2 = _FlakyAgent("agent_2", description="echo agent 2")
-    agent_3 = _EchoAgent("agent_3", description="echo agent 3")
-    termination = MaxMessageTermination(3)
-    team = RoundRobinGroupChat(
-        participants=[agent_1, agent_2, agent_3],
-        termination_condition=termination,
-    )
-    # TODO: change once runtime is configurable
-    team._runtime._ignore_unhandled_handler_exceptions = False
-
-    result = await team.run(
-        task="Write a program that prints 'Hello, world!'",
-    )
-
-    assert len(result.messages) == 2
-    assert result.messages[1].source == "agent_1"
-    assert result.messages[2].source == "agent_3"
-    assert result.stop_reason is not None
 
 
 @pytest.mark.asyncio

@@ -15,6 +15,7 @@ from autogen_core import (
     try_get_known_serializers_for_type,
     type_subscription,
 )
+from autogen_core._default_subscription import default_subscription
 from autogen_test_utils import (
     CascadingAgent,
     CascadingMessageType,
@@ -25,8 +26,6 @@ from autogen_test_utils import (
 )
 from autogen_test_utils.telemetry_test_utils import MyTestExporter, get_test_tracer_provider
 from opentelemetry.sdk.trace import TracerProvider
-
-from autogen_core._default_subscription import default_subscription
 
 test_exporter = MyTestExporter()
 
@@ -281,9 +280,7 @@ class FailingAgent(RoutedAgent):
         super().__init__("A failing agent.")
 
     @event
-    async def on_new_message_event(
-        self, message: MessageType, ctx: MessageContext
-    ) -> None:
+    async def on_new_message_event(self, message: MessageType, ctx: MessageContext) -> None:
         raise ValueError("Test exception")
 
 
@@ -291,7 +288,6 @@ class FailingAgent(RoutedAgent):
 async def test_event_handler_exception_propogates() -> None:
     runtime = SingleThreadedAgentRuntime(ignore_unhandled_exceptions=False)
     await FailingAgent.register(runtime, "name", FailingAgent)
-
 
     with pytest.raises(ValueError, match="Test exception"):
         runtime.start()

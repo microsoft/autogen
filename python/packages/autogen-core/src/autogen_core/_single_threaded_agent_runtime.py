@@ -568,7 +568,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         if self._background_exception is not None:
             e = self._background_exception
             self._background_exception = None
-            self._message_queue.shutdown(immediate=True) # type: ignore
+            self._message_queue.shutdown(immediate=True)  # type: ignore
             raise e
 
         try:
@@ -577,7 +577,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             if self._background_exception is not None:
                 e = self._background_exception
                 self._background_exception = None
-                raise e
+                raise e from None
             return
 
         match message_envelope:
