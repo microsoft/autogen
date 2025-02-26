@@ -28,6 +28,7 @@ import {
   isModelComponent,
   isSelectorTeam,
   isAssistantAgent,
+  isWebSurferAgent,
 } from "../../../types/guards";
 
 const MAX_HISTORY = 50;
@@ -137,7 +138,8 @@ export const useTeamBuilderStore = create<TeamBuilderState>((set, get) => ({
             };
           } else if (
             isAgentComponent(targetNode.data.component) &&
-            isAssistantAgent(targetNode.data.component)
+            (isAssistantAgent(targetNode.data.component) ||
+              isWebSurferAgent(targetNode.data.component))
           ) {
             targetNode.data.component.config.model_client = clonedComponent;
             return {
