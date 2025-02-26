@@ -6,6 +6,20 @@ from autogen_core.models import ModelFamily, ModelInfo
 # For Anthropic's Claude models based on:
 # https://docs.anthropic.com/claude/docs/models-overview
 _MODEL_INFO: Dict[str, ModelInfo] = {
+    # Claude 3.7 Sonnet
+    "claude-3-7-sonnet-20250219": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.CLAUDE_3_7_SONNET,
+    },
+    # Claude 3.7 Sonnet latest alias
+    "claude-3-7-sonnet-latest": {
+        "vision": True,
+        "function_calling": True,
+        "json_output": True,
+        "family": ModelFamily.CLAUDE_3_7_SONNET,
+    },
     # Claude 3 Opus (most powerful)
     "claude-3-opus-20240229": {
         "vision": True,
@@ -29,13 +43,6 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
     },
     # Claude 3.5 Sonnet
     "claude-3-5-sonnet-20240620": {
-        "vision": True,
-        "function_calling": True,
-        "json_output": True,
-        "family": ModelFamily.CLAUDE_3_5_SONNET,
-    },
-    # Claude 3.7 Sonnet
-    "claude-3-7-sonnet-20250219": {
         "vision": True,
         "function_calling": True,
         "json_output": True,

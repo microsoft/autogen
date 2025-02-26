@@ -55,11 +55,11 @@ from autogen_core.models import (
     FunctionExecutionResultMessage,
     LLMMessage,
     ModelCapabilities,  # type: ignore
-    ModelFamily,
     ModelInfo,
     RequestUsage,
     SystemMessage,
     UserMessage,
+    validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
 from typing_extensions import Self, Unpack
@@ -308,13 +308,8 @@ def normalize_name(name: str) -> str:
         if "model" not in kwargs:
             raise ValueError("model is required for AnthropicChatCompletionClient")
 
-        model_capabilities: Optional[ModelCapabilities] = None  # type: ignore
         self._raw_config: Dict[str, Any] = dict(kwargs).copy()
         copied_args = dict(kwargs).copy()
-
-        if "model_capabilities" in kwargs:
-            model_capabilities = kwargs["model_capabilities"]
-            del copied_args["model_capabilities"]
 
         model_info: Optional[ModelInfo] = None
         if "model_info" in kwargs:
@@ -327,7 +322,6 @@ def normalize_name(name: str) -> str:
         super().__init__(
             client=client,
             create_args=create_args,
-            model_capabilities=model_capabilities,
             model_info=model_info,
         )
 
@@ -395,30 +389,20 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         client: AsyncAnthropic,
         *,
         create_args: Dict[str, Any],
-        model_capabilities: Optional[ModelCapabilities] = None,  # type: ignore
         model_info: Optional[ModelInfo] = None,
     ):
         self._client = client
 
-        # Handle model info and capabilities
-        if model_capabilities is None and model_info is None:
+        if model_info is None:
             try:
                 self._model_info = _model_info.get_info(create_args["model"])
             except KeyError as err:
                 raise ValueError("model_info is required when model name is not recognized") from err
-        elif model_capabilities is not None and model_info is not None:
-            raise ValueError("model_capabilities and model_info are mutually exclusive")
-        elif model_capabilities is not None and model_info is None:
-            warnings.warn("model_capabilities is deprecated, use model_info instead", DeprecationWarning, stacklevel=2)
-            info = cast(ModelInfo, model_capabilities)
-            info["family"] = ModelFamily.CLAUDE_3_5_SONNET
-            self._model_info = info
-        elif model_capabilities is None and model_info is not None:
+        else:
             self._model_info = model_info
 
         # Validate model_info
-        if not all(key in self._model_info for key in ["vision", "function_calling", "json_output", "family"]):
-            raise ValueError("model_info must contain 'vision', 'function_calling', 'json_output', and 'family' keys")
+        validate_model_info(self._model_info)
 
         self._create_args = create_args
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
@@ -656,10 +640,16 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         if system_message is not None:
             request_args["system"] = system_message
 
+        # Check if any message is a tool result
+        has_tool_results = any(isinstance(msg, FunctionExecutionResultMessage) for msg in messages)
+
         # Add tools if present
         if len(tools) > 0:
             converted_tools = convert_tools(tools)
+            self._last_used_tools = converted_tools
             request_args["tools"] = converted_tools
+        elif has_tool_results:
+            request_args["tools"] = self._last_used_tools
 
         # Optional parameters
         for param in ["top_p", "top_k", "stop_sequences", "metadata"]:
@@ -676,9 +666,9 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
         stream: AsyncStream[RawMessageStreamEvent] = cast(AsyncStream[RawMessageStreamEvent], await stream_future)  # type: ignore
 
-        # Prepare variables for accumulating the response
         text_content: List[str] = []
-        tool_calls: Dict[str, Dict[str, str]] = {}
+        tool_calls: Dict[str, Dict[str, Any]] = {}  # Track tool calls by ID
+        current_tool_id: Optional[str] = None
         input_tokens: int = 0
         output_tokens: int = 0
         stop_reason: Optional[str] = None
@@ -686,30 +676,50 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         # Process the stream
         async for chunk in stream:
             # Handle different event types
-            if chunk.type == "content_block_delta":
-                # Text content
-                if chunk.delta.type == "text_delta":
+            if chunk.type == "content_block_start":
+                if chunk.content_block.type == "tool_use":
+                    # Start of a tool use block
+                    current_tool_id = chunk.content_block.id
+                    tool_calls[current_tool_id] = {
+                        "id": chunk.content_block.id,
+                        "name": chunk.content_block.name,
+                        "input": "",  # Will be populated from deltas
+                    }
+
+            elif chunk.type == "content_block_delta":
+                if hasattr(chunk.delta, "type") and chunk.delta.type == "text_delta":
+                    # Handle text content
                     delta_text = chunk.delta.text
                     text_content.append(delta_text)
                     if delta_text:
                         yield delta_text
 
+                # Handle tool input deltas - they come as InputJSONDelta
+                elif hasattr(chunk.delta, "type") and chunk.delta.type == "input_json_delta":
+                    if current_tool_id is not None and hasattr(chunk.delta, "partial_json"):
+                        # Accumulate partial JSON for the current tool
+                        tool_calls[current_tool_id]["input"] += chunk.delta.partial_json
+
+            elif chunk.type == "content_block_stop":
+                # End of a content block (could be text or tool)
+                current_tool_id = None
+
             elif chunk.type == "message_delta":
-                if hasattr(chunk, "usage") and hasattr(chunk.usage, "output_tokens"):
-                    output_tokens = chunk.usage.output_tokens
-                # End of message with stop reason
                 if hasattr(chunk.delta, "stop_reason") and chunk.delta.stop_reason:
                     stop_reason = chunk.delta.stop_reason
 
+                # Get usage info if available
+                if hasattr(chunk, "usage") and hasattr(chunk.usage, "output_tokens"):
+                    output_tokens = chunk.usage.output_tokens
+
             elif chunk.type == "message_start":
                 if hasattr(chunk, "message") and hasattr(chunk.message, "usage"):
-                    input_tokens = chunk.message.usage.input_tokens
-                    output_tokens = chunk.message.usage.output_tokens
+                    if hasattr(chunk.message.usage, "input_tokens"):
+                        input_tokens = chunk.message.usage.input_tokens
+                    if hasattr(chunk.message.usage, "output_tokens"):
+                        output_tokens = chunk.message.usage.output_tokens
 
-            elif chunk.type == "message_stop":
-                pass
-
-        # Prepare the final result
+        # Prepare the final response
         usage = RequestUsage(
             prompt_tokens=input_tokens,
             completion_tokens=output_tokens,
@@ -726,19 +736,31 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
                 thought = "".join(text_content)
 
             # Convert tool calls to FunctionCall objects
-            content = [
-                FunctionCall(
-                    id=call_data["id"],
-                    name=normalize_name(call_data["name"]),
-                    arguments=call_data["input"],
+            content = []
+            for _, tool_data in tool_calls.items():
+                # Parse the JSON input if needed
+                input_str = tool_data["input"]
+                try:
+                    # If it's valid JSON, parse it; otherwise use as-is
+                    if input_str.strip().startswith("{") and input_str.strip().endswith("}"):
+                        parsed_input = json.loads(input_str)
+                        input_str = json.dumps(parsed_input)  # Re-serialize to ensure valid JSON
+                except json.JSONDecodeError:
+                    # Keep as string if not valid JSON
+                    pass
+
+                content.append(
+                    FunctionCall(
+                        id=tool_data["id"],
+                        name=normalize_name(tool_data["name"]),
+                        arguments=input_str,
+                    )
                 )
-                for call_data in tool_calls.values()
-            ]
         else:
             # Just text content
             content = "".join(text_content)
 
-        # Create final result
+        # Create the final result
         result = CreateResult(
             finish_reason=normalize_stop_reason(stop_reason),
             content=content,
@@ -945,13 +967,8 @@ class AnthropicChatCompletionClient(
         if "model" not in kwargs:
             raise ValueError("model is required for AnthropicChatCompletionClient")
 
-        model_capabilities: Optional[ModelCapabilities] = None  # type: ignore
         self._raw_config: Dict[str, Any] = dict(kwargs).copy()
         copied_args = dict(kwargs).copy()
-
-        if "model_capabilities" in kwargs:
-            model_capabilities = kwargs["model_capabilities"]
-            del copied_args["model_capabilities"]
 
         model_info: Optional[ModelInfo] = None
         if "model_info" in kwargs:
@@ -964,7 +981,6 @@ class AnthropicChatCompletionClient(
         super().__init__(
             client=client,
             create_args=create_args,
-            model_capabilities=model_capabilities,
             model_info=model_info,
         )
 
