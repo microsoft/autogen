@@ -159,6 +159,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         intervention_handlers (List[InterventionHandler], optional): A list of intervention
             handlers that can intercept messages before they are sent or published. Defaults to None.
         tracer_provider (TracerProvider, optional): The tracer provider to use for tracing. Defaults to None.
+        ignore_unhandled_exceptions (bool, optional): Whether to ignore unhandled exceptions in that occur in agent event handlers. Any background exceptions will be raised on the next call to `process_next` or from an awaited `stop`, `stop_when_idle` or `stop_when`. Note, this does not apply to RPC handlers. Defaults to True.
 
     Examples:
 
@@ -248,7 +249,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         *,
         intervention_handlers: List[InterventionHandler] | None = None,
         tracer_provider: TracerProvider | None = None,
-        ignore_unhandled_handler_exceptions: bool = True,
+        ignore_unhandled_exceptions: bool = True,
     ) -> None:
         self._tracer_helper = TraceHelper(tracer_provider, MessageRuntimeTracingConfig("SingleThreadedAgentRuntime"))
         self._message_queue: Queue[PublishMessageEnvelope | SendMessageEnvelope | ResponseMessageEnvelope] = Queue()
@@ -262,7 +263,8 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         self._subscription_manager = SubscriptionManager()
         self._run_context: RunContext | None = None
         self._serialization_registry = SerializationRegistry()
-        self._ignore_unhandled_handler_exceptions = ignore_unhandled_handler_exceptions
+        self._ignore_unhandled_handler_exceptions = ignore_unhandled_exceptions
+        self._background_exception: BaseException | None = None
 
     @property
     def unprocessed_messages_count(
@@ -523,9 +525,9 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     responses.append(future)
 
                 await asyncio.gather(*responses)
-            except BaseException:
+            except BaseException as e:
                 if not self._ignore_unhandled_handler_exceptions:
-                    raise
+                    self._background_exception = e
             finally:
                 self._message_queue.task_done()
             # TODO if responses are given for a publish
@@ -554,15 +556,28 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             self._message_queue.task_done()
 
     async def process_next(self) -> None:
-        """Process the next message in the queue."""
+        """Process the next message in the queue.
+
+        If there is an unhandled exception in the background task, it will be raised here. `process_next` cannot be called again after an unhandled exception is raised.
+        """
         await self._process_next()
 
     async def _process_next(self) -> None:
         """Process the next message in the queue."""
 
+        if self._background_exception is not None:
+            e = self._background_exception
+            self._background_exception = None
+            self._message_queue.shutdown(immediate=True) # type: ignore
+            raise e
+
         try:
             message_envelope = await self._message_queue.get()
         except QueueShutDown:
+            if self._background_exception is not None:
+                e = self._background_exception
+                self._background_exception = None
+                raise e
             return
 
         match message_envelope:
@@ -646,10 +661,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     Args:
                         task: The task that has finished and has potentially raised an exception.
                     """
-                    try:
-                        task.result()
-                    finally:
-                        self._background_tasks.discard(task)
+                    self._background_tasks.discard(task)
 
                 task = asyncio.create_task(self._process_publish(message_envelope))
                 self._background_tasks.add(task)
@@ -725,19 +737,23 @@ class SingleThreadedAgentRuntime(AgentRuntime):
         if self._run_context is None:
             raise RuntimeError("Runtime is not started")
 
-        await self._run_context.stop()
-        self._run_context = None
-        self._message_queue = Queue()
+        try:
+            await self._run_context.stop()
+        finally:
+            self._run_context = None
+            self._message_queue = Queue()
 
     async def stop_when_idle(self) -> None:
         """Stop the runtime message processing loop when there is
         no outstanding message being processed or queued. This is the most common way to stop the runtime."""
         if self._run_context is None:
             raise RuntimeError("Runtime is not started")
-        await self._run_context.stop_when_idle()
 
-        self._run_context = None
-        self._message_queue = Queue()
+        try:
+            await self._run_context.stop_when_idle()
+        finally:
+            self._run_context = None
+            self._message_queue = Queue()
 
     async def stop_when(self, condition: Callable[[], bool]) -> None:
         """Stop the runtime message processing loop when the condition is met.
