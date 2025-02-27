@@ -175,6 +175,7 @@ def with_requirements(
         .. code-block:: python
 
             import tempfile
+            import asyncio
             from autogen_core import CancellationToken
             from autogen_core.code_executor import with_requirements, CodeBlock
             from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
@@ -194,20 +195,24 @@ def with_requirements(
                 }
                 return pandas.DataFrame(data)
 
-            # The decorated function can be used in executed code
-            with tempfile.TemporaryDirectory() as temp_dir:
-                executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[load_data])
-                code = f\"\"\"from {executor.functions_module} import load_data
+            async def run_example():
+                # The decorated function can be used in executed code
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[load_data])
+                    code = f\"\"\"from {executor.functions_module} import load_data
 
-                # Use the imported function
-                data = load_data()
-                print(data['name'][0])\"\"\"
+                    # Use the imported function
+                    data = load_data()
+                    print(data['name'][0])\"\"\"
 
-                result = await executor.execute_code_blocks(
-                    code_blocks=[CodeBlock(language="python", code=code)],
-                    cancellation_token=CancellationToken(),
-                )
-                print(result.output)  # Output: John
+                    result = await executor.execute_code_blocks(
+                        code_blocks=[CodeBlock(language="python", code=code)],
+                        cancellation_token=CancellationToken(),
+                    )
+                    print(result.output)  # Output: John
+
+            # Run the async example
+            asyncio.run(run_example())
     """
 
     def wrapper(func: Callable[P, T]) -> FunctionWithRequirements[T, P]:
