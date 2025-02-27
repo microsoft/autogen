@@ -3,7 +3,7 @@ import json
 import warnings
 from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union, cast
 
-from autogen_core import CacheStore, CancellationToken, InMemoryStore
+from autogen_core import CacheStore, CancellationToken, Component, ComponentModel, InMemoryStore
 from autogen_core.models import (
     ChatCompletionClient,
     CreateResult,
@@ -13,11 +13,20 @@ from autogen_core.models import (
     RequestUsage,
 )
 from autogen_core.tools import Tool, ToolSchema
+from pydantic import BaseModel
+from typing_extensions import Self
 
 CHAT_CACHE_VALUE_TYPE = Union[CreateResult, List[Union[str, CreateResult]]]
 
 
-class ChatCompletionCache(ChatCompletionClient):
+class ChatCompletionCacheConfig(BaseModel):
+    """ """
+
+    client: ComponentModel
+    store: Optional[ComponentModel] = None
+
+
+class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheConfig]):
     """
     A wrapper around a :class:`~autogen_ext.models.cache.ChatCompletionClient` that caches
     creation results from an underlying client.
@@ -76,6 +85,10 @@ class ChatCompletionCache(ChatCompletionClient):
             The user is responsible for managing the store's lifecycle & clearing it (if needed).
             Defaults to using in-memory cache.
     """
+
+    component_type = "chat_completion_cache"
+    component_provider_override = "autogen_ext.models.cache.ChatCompletionCache"
+    component_config_schema = ChatCompletionCacheConfig
 
     def __init__(
         self,
@@ -213,3 +226,17 @@ class ChatCompletionCache(ChatCompletionClient):
 
     def total_usage(self) -> RequestUsage:
         return self.client.total_usage()
+
+    def _to_config(self) -> ChatCompletionCacheConfig:
+        return ChatCompletionCacheConfig(
+            client=self.client.dump_component(),
+            store=self.store.dump_component() if not isinstance(self.store, InMemoryStore) else None,
+        )
+
+    @classmethod
+    def _from_config(cls, config: ChatCompletionCacheConfig) -> Self:
+        client = ChatCompletionClient.load_component(config.client)
+        store: Optional[CacheStore[CHAT_CACHE_VALUE_TYPE]] = (
+            CacheStore.load_component(config.store) if config.store else InMemoryStore()
+        )
+        return cls(client=client, store=store)

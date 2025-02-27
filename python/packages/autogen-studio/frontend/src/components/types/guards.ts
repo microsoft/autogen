@@ -19,6 +19,7 @@ import type {
   MaxMessageTerminationConfig,
   TextMentionTerminationConfig,
   UnboundedChatCompletionContextConfig,
+  AnthropicClientConfig,
 } from "./datamodel";
 
 // Provider constants
@@ -35,6 +36,7 @@ const PROVIDERS = {
   // Models
   OPENAI: "autogen_ext.models.openai.OpenAIChatCompletionClient",
   AZURE_OPENAI: "autogen_ext.models.openai.AzureOpenAIChatCompletionClient",
+  ANTHROPIC: "autogen_ext.models.anthropic.AnthropicChatCompletionClient",
 
   // Tools
   FUNCTION_TOOL: "autogen_core.tools.FunctionTool",
@@ -56,6 +58,7 @@ type ProviderToConfig = {
   // Teams
   [PROVIDERS.SELECTOR_TEAM]: SelectorGroupChatConfig;
   [PROVIDERS.ROUND_ROBIN_TEAM]: RoundRobinGroupChatConfig;
+  [PROVIDERS.ANTHROPIC]: AnthropicClientConfig;
 
   // Agents
   [PROVIDERS.ASSISTANT_AGENT]: AssistantAgentConfig;
@@ -180,6 +183,11 @@ export function isAzureOpenAIModel(
   component: Component<ComponentConfig>
 ): component is Component<AzureOpenAIClientConfig> {
   return isComponentOfType(component, PROVIDERS.AZURE_OPENAI);
+}
+export function isAnthropicModel(
+  component: Component<ComponentConfig>
+): component is Component<AnthropicClientConfig> {
+  return component.provider === PROVIDERS.ANTHROPIC;
 }
 
 // Tool provider guards with proper type narrowing

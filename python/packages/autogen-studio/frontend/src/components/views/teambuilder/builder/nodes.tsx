@@ -45,7 +45,7 @@ import {
 } from "../../../types/guards";
 
 // Icon mapping for different node types
-const iconMap: Record<
+export const iconMap: Record<
   Component<ComponentConfig>["component_type"],
   LucideIcon
 > = {

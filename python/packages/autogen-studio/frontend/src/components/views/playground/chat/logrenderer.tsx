@@ -57,7 +57,7 @@ const FullLogView = ({
       <Tooltip title="Close">
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-2 rounded-full bg-black/50 hover:bg-black/70 text-primary transition-colors"
+          className="absolute top-4 right-4 p-2 rounded-full bg-tertiary hover:bg-secondary text-primary transition-colors"
         >
           <X size={24} />
         </button>
@@ -79,27 +79,33 @@ const FullLogView = ({
             <div key={idx} className="p-4 bg-tertiary rounded-lg">
               <div className="flex justify-between mb-2">
                 <span className="text-xs font-medium uppercase text-secondary">
-                  {msg.role} {msg.name && `(${msg.name})`}
+                  {(msg.name && `${msg.name}`) || msg.role}{" "}
                 </span>
               </div>
-              <TruncatableText
-                content={msg.content}
-                textThreshold={1000}
-                showFullscreen={false}
-              />
+              {Array.isArray(msg.content) ? (
+                msg.content.map((item, index) => (
+                  <div key={index} className="text-sm text-secondary">
+                    <TruncatableText content={item} showFullscreen={false} />
+                  </div>
+                ))
+              ) : (
+                <TruncatableText content={msg.content} showFullscreen={false} />
+              )}
             </div>
           ))}
         </div>
 
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium">Response</h4>
-          <div className="p-4 bg-tertiary rounded-lg">
-            <TruncatableText
-              content={event.response.choices[0]?.message.content}
-              textThreshold={1000}
-            />
+        {event.response.choices && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">Response</h4>
+            <div className="p-4 bg-tertiary rounded-lg">
+              <TruncatableText
+                content={event.response?.choices[0]?.message.content}
+                textThreshold={1000}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
           <div className="p-3 bg-tertiary rounded-lg">
@@ -142,6 +148,8 @@ const LLMLogRenderer: React.FC<LLMLogRendererProps> = ({ content }) => {
     }
   }, [content]);
 
+  // console.log(parsedContent);
+
   if (!parsedContent) {
     return (
       <div className="flex items-center gap-2 text-red-500 p-2 bg-red-500/10 rounded">
@@ -155,6 +163,8 @@ const LLMLogRenderer: React.FC<LLMLogRendererProps> = ({ content }) => {
   const agentName = messages[0]?.name || "Agent";
   const totalTokens = response.usage.total_tokens;
   const shortAgentId = agent_id ? `${agent_id.split("/")[0]}` : "";
+
+  console.log("log event full", content);
 
   return (
     <>
