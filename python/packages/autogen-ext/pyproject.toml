@@ -33,6 +33,7 @@ file-surfer = [
     "markitdown>=0.0.1a2",
 ]
 graphrag = ["graphrag>=1.0.1"]
+chromadb = ["chromadb"]
 web-surfer = [
     "autogen-agentchat==0.4.8",
     "playwright>=1.48.0",
