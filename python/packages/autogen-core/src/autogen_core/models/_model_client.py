@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import warnings
 from abc import ABC, abstractmethod
-from typing import Literal, Mapping, Optional, Sequence, TypeAlias
+from typing import Dict, Literal, Mapping, Optional, Sequence, TypeAlias
 
 from pydantic import BaseModel
 from typing_extensions import Any, AsyncGenerator, Required, TypedDict, Union, deprecated
@@ -10,7 +10,7 @@ from typing_extensions import Any, AsyncGenerator, Required, TypedDict, Union, d
 from .. import CancellationToken
 from .._component_config import ComponentBase
 from ..tools import Tool, ToolSchema
-from ._types import CreateResult, LLMMessage, RequestUsage
+from ._types import CreateResult, FinishReasons, LLMMessage, RequestUsage
 
 
 class ModelFamily:
@@ -122,6 +122,25 @@ def validate_model_info(model_info: ModelInfo) -> None:
                 f"Missing required field '{field}' in ModelInfo. "
                 "Starting in v0.4.7, the required fields are enforced."
             )
+
+
+def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
+    if stop_reason is None:
+        return "unknown"
+
+    # Convert to lower case
+    stop_reason = stop_reason.lower()
+
+    KNOWN_STOP_MAPPINGS: Dict[str, FinishReasons] = {
+        "stop": "stop",
+        "length": "length",
+        "content_filter": "content_filter",
+        "function_calls": "function_calls",
+        "end_turn": "stop",
+        "tool_calls": "function_calls",
+    }
+
+    return KNOWN_STOP_MAPPINGS.get(stop_reason, "unknown")
 
 
 class ChatCompletionClient(ComponentBase[BaseModel], ABC):

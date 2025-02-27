@@ -3,6 +3,7 @@ from ._model_client import (
     ModelCapabilities,  # type: ignore
     ModelFamily,
     ModelInfo,
+    normalize_stop_reason,
     validate_model_info,
 )
 from ._types import (
@@ -35,5 +36,6 @@ __all__ = [
     "ChatCompletionTokenLogprob",
     "ModelFamily",
     "ModelInfo",
+    "normalize_stop_reason",
     "validate_model_info",
 ]

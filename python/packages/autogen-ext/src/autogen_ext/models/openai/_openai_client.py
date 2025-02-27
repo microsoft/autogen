@@ -37,7 +37,6 @@ from autogen_core.models import (
     ChatCompletionClient,
     ChatCompletionTokenLogprob,
     CreateResult,
-    FinishReasons,
     FunctionExecutionResultMessage,
     LLMMessage,
     ModelCapabilities,  # type: ignore
@@ -47,6 +46,7 @@ from autogen_core.models import (
     SystemMessage,
     TopLogprob,
     UserMessage,
+    normalize_stop_reason,
     validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
@@ -347,25 +347,6 @@ def assert_valid_name(name: str) -> str:
     if len(name) > 64:
         raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
     return name
-
-
-def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
-    if stop_reason is None:
-        return "unknown"
-
-    # Convert to lower case
-    stop_reason = stop_reason.lower()
-
-    KNOWN_STOP_MAPPINGS: Dict[str, FinishReasons] = {
-        "stop": "stop",
-        "length": "length",
-        "content_filter": "content_filter",
-        "function_calls": "function_calls",
-        "end_turn": "stop",
-        "tool_calls": "function_calls",
-    }
-
-    return KNOWN_STOP_MAPPINGS.get(stop_reason, "unknown")
 
 
 class BaseOpenAIChatCompletionClient(ChatCompletionClient):
