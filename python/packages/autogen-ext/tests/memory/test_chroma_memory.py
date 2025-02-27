@@ -4,21 +4,21 @@ import pytest
 from autogen_core.memory import MemoryContent, MemoryMimeType
 from autogen_core.model_context import BufferedChatCompletionContext
 from autogen_core.models import UserMessage
-from autogen_ext.memory.chromadb import ChromaMemory, ChromaPersistentMemoryConfig
+from autogen_ext.memory.chromadb import ChromaDBVectorMemory, PersistentChromaDBVectorMemoryConfig
 
 
 @pytest.fixture
-def base_config(tmp_path: Path) -> ChromaPersistentMemoryConfig:
+def base_config(tmp_path: Path) -> PersistentChromaDBVectorMemoryConfig:
     """Create base configuration without score threshold."""
-    return ChromaPersistentMemoryConfig(
+    return PersistentChromaDBVectorMemoryConfig(
         collection_name="test_collection", allow_reset=True, k=3, persistence_path=str(tmp_path / "chroma_db")
     )
 
 
 @pytest.fixture
-def strict_config(tmp_path: Path) -> ChromaPersistentMemoryConfig:
+def strict_config(tmp_path: Path) -> PersistentChromaDBVectorMemoryConfig:
     """Create configuration with strict score threshold."""
-    return ChromaPersistentMemoryConfig(
+    return PersistentChromaDBVectorMemoryConfig(
         collection_name="test_collection",
         allow_reset=True,
         k=3,
@@ -28,9 +28,9 @@ def strict_config(tmp_path: Path) -> ChromaPersistentMemoryConfig:
 
 
 @pytest.fixture
-def lenient_config(tmp_path: Path) -> ChromaPersistentMemoryConfig:
+def lenient_config(tmp_path: Path) -> PersistentChromaDBVectorMemoryConfig:
     """Create configuration with lenient score threshold."""
-    return ChromaPersistentMemoryConfig(
+    return PersistentChromaDBVectorMemoryConfig(
         collection_name="test_collection",
         allow_reset=True,
         k=3,
@@ -40,9 +40,9 @@ def lenient_config(tmp_path: Path) -> ChromaPersistentMemoryConfig:
 
 
 @pytest.mark.asyncio
-async def test_basic_workflow(base_config: ChromaPersistentMemoryConfig) -> None:
+async def test_basic_workflow(base_config: PersistentChromaDBVectorMemoryConfig) -> None:
     """Test basic memory operations with default threshold."""
-    memory = ChromaMemory(config=base_config)
+    memory = ChromaDBVectorMemory(config=base_config)
     await memory.clear()
 
     await memory.add(
@@ -62,9 +62,9 @@ async def test_basic_workflow(base_config: ChromaPersistentMemoryConfig) -> None
 
 
 @pytest.mark.asyncio
-async def test_content_types(lenient_config: ChromaPersistentMemoryConfig) -> None:
+async def test_content_types(lenient_config: PersistentChromaDBVectorMemoryConfig) -> None:
     """Test different content types with lenient matching."""
-    memory = ChromaMemory(config=lenient_config)
+    memory = ChromaDBVectorMemory(config=lenient_config)
     await memory.clear()
 
     # Test text content
@@ -90,9 +90,9 @@ async def test_content_types(lenient_config: ChromaPersistentMemoryConfig) -> No
 
 
 @pytest.mark.asyncio
-async def test_strict_matching(strict_config: ChromaPersistentMemoryConfig) -> None:
+async def test_strict_matching(strict_config: PersistentChromaDBVectorMemoryConfig) -> None:
     """Test matching behavior with high score threshold."""
-    memory = ChromaMemory(config=strict_config)
+    memory = ChromaDBVectorMemory(config=strict_config)
     await memory.clear()
 
     await memory.add(
@@ -115,9 +115,9 @@ async def test_strict_matching(strict_config: ChromaPersistentMemoryConfig) -> N
 
 
 @pytest.mark.asyncio
-async def test_metadata_handling(base_config: ChromaPersistentMemoryConfig) -> None:
+async def test_metadata_handling(base_config: PersistentChromaDBVectorMemoryConfig) -> None:
     """Test metadata handling with default threshold."""
-    memory = ChromaMemory(config=base_config)
+    memory = ChromaDBVectorMemory(config=base_config)
     await memory.clear()
 
     test_content = "Test content with specific metadata"
@@ -142,9 +142,9 @@ async def test_metadata_handling(base_config: ChromaPersistentMemoryConfig) -> N
 
 
 @pytest.mark.asyncio
-async def test_error_handling(base_config: ChromaPersistentMemoryConfig) -> None:
+async def test_error_handling(base_config: PersistentChromaDBVectorMemoryConfig) -> None:
     """Test error cases with default threshold."""
-    memory = ChromaMemory(config=base_config)
+    memory = ChromaDBVectorMemory(config=base_config)
     await memory.clear()
 
     with pytest.raises(ValueError, match="Unsupported content type"):
@@ -157,9 +157,9 @@ async def test_error_handling(base_config: ChromaPersistentMemoryConfig) -> None
 
 
 @pytest.mark.asyncio
-async def test_initialization(base_config: ChromaPersistentMemoryConfig) -> None:
+async def test_initialization(base_config: PersistentChromaDBVectorMemoryConfig) -> None:
     """Test initialization with default threshold."""
-    memory = ChromaMemory(config=base_config)
+    memory = ChromaDBVectorMemory(config=base_config)
 
     # Test that the collection_name property returns the expected value
     # This implicitly tests that initialization succeeds
@@ -192,9 +192,9 @@ async def test_initialization(base_config: ChromaPersistentMemoryConfig) -> None
 
 
 @pytest.mark.asyncio
-async def test_model_context_update(base_config: ChromaPersistentMemoryConfig) -> None:
+async def test_model_context_update(base_config: PersistentChromaDBVectorMemoryConfig) -> None:
     """Test updating model context with retrieved memories."""
-    memory = ChromaMemory(config=base_config)
+    memory = ChromaDBVectorMemory(config=base_config)
     await memory.clear()
 
     # Add content to memory
@@ -225,18 +225,18 @@ async def test_model_context_update(base_config: ChromaPersistentMemoryConfig) -
 
 
 @pytest.mark.asyncio
-async def test_component_serialization(base_config: ChromaPersistentMemoryConfig) -> None:
+async def test_component_serialization(base_config: PersistentChromaDBVectorMemoryConfig) -> None:
     """Test serialization and deserialization of the component."""
-    memory = ChromaMemory(config=base_config)
+    memory = ChromaDBVectorMemory(config=base_config)
 
     # Serialize
     memory_config = memory.dump_component()
     assert memory_config.config["collection_name"] == base_config.collection_name
 
     # Deserialize
-    loaded_memory = ChromaMemory.load_component(memory_config)
+    loaded_memory = ChromaDBVectorMemory.load_component(memory_config)
 
-    assert isinstance(loaded_memory, ChromaMemory)
+    assert isinstance(loaded_memory, ChromaDBVectorMemory)
 
     await memory.close()
     await loaded_memory.close()

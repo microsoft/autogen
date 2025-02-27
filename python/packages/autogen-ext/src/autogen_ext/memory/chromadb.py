@@ -16,7 +16,7 @@ from typing_extensions import Self
 logger = logging.getLogger(__name__)
 
 
-class BaseChromaMemoryConfig(BaseModel):
+class ChromaDBVectorMemoryConfig(BaseModel):
     """Base configuration for ChromaDB-based memory implementation."""
 
     client_type: Literal["persistent", "http"]
@@ -29,14 +29,14 @@ class BaseChromaMemoryConfig(BaseModel):
     database: str = Field(default="default_database", description="Database to use")
 
 
-class ChromaPersistentMemoryConfig(BaseChromaMemoryConfig):
+class PersistentChromaDBVectorMemoryConfig(ChromaDBVectorMemoryConfig):
     """Configuration for persistent ChromaDB memory."""
 
     client_type: Literal["persistent", "http"] = "persistent"
     persistence_path: str = Field(default="./chroma_db", description="Path for persistent storage")
 
 
-class ChromaHttpMemoryConfig(BaseChromaMemoryConfig):
+class HttpChromaDBVectorMemoryConfig(ChromaDBVectorMemoryConfig):
     """Configuration for HTTP ChromaDB memory."""
 
     client_type: Literal["persistent", "http"] = "http"
@@ -46,15 +46,15 @@ class ChromaHttpMemoryConfig(BaseChromaMemoryConfig):
     headers: Dict[str, str] | None = Field(default=None, description="Headers to send to the server")
 
 
-class ChromaMemory(Memory, Component[BaseChromaMemoryConfig]):
+class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
     """ChromaDB-based vector memory implementation with similarity search."""
 
-    component_config_schema = ChromaPersistentMemoryConfig
-    component_provider_override = "autogen_ext.memory.chromadb.ChromaMemory"
+    component_config_schema = ChromaDBVectorMemoryConfig
+    component_provider_override = "autogen_ext.memory.chromadb.ChromaDBVectorMemory"
 
-    def __init__(self, config: BaseChromaMemoryConfig | None = None) -> None:
-        """Initialize ChromaMemory."""
-        self._config = config or ChromaPersistentMemoryConfig()
+    def __init__(self, config: ChromaDBVectorMemoryConfig | None = None) -> None:
+        """Initialize ChromaDBVectorMemory."""
+        self._config = config or PersistentChromaDBVectorMemoryConfig()
         self._client: ClientAPI | None = None
         self._collection: Collection | None = None
 
@@ -71,14 +71,14 @@ class ChromaMemory(Memory, Component[BaseChromaMemoryConfig]):
 
                 settings = Settings(allow_reset=self._config.allow_reset)
 
-                if isinstance(self._config, ChromaPersistentMemoryConfig):
+                if isinstance(self._config, PersistentChromaDBVectorMemoryConfig):
                     self._client = PersistentClient(
                         path=self._config.persistence_path,
                         settings=settings,
                         tenant=self._config.tenant,
                         database=self._config.database,
                     )
-                elif isinstance(self._config, ChromaHttpMemoryConfig):
+                elif isinstance(self._config, HttpChromaDBVectorMemoryConfig):
                     self._client = HttpClient(
                         host=self._config.host,
                         port=self._config.port,
@@ -274,13 +274,13 @@ class ChromaMemory(Memory, Component[BaseChromaMemoryConfig]):
             finally:
                 self._collection = None
 
-    def _to_config(self) -> BaseChromaMemoryConfig:
+    def _to_config(self) -> ChromaDBVectorMemoryConfig:
         """Serialize the memory configuration."""
 
         return self._config
 
     @classmethod
-    def _from_config(cls, config: BaseChromaMemoryConfig) -> Self:
+    def _from_config(cls, config: ChromaDBVectorMemoryConfig) -> Self:
         """Deserialize the memory configuration."""
 
         return cls(config=config)
