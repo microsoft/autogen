@@ -107,15 +107,10 @@ class WebSocketManager:
                     break
 
                 if isinstance(message, ModelClientStreamingChunkEvent):
-                    # Accumulate and send chunk
                     current_message += message.content
-                    await self._send_message(run_id, {
-                        "type": "message",
-                        "data": {
-                            "content": message.content,
-                            "source": message.source
-                        }
-                    })
+                    formatted = self._format_message(message)
+                    if formatted:
+                        await self._send_message(run_id, formatted)
                 else:
                     formatted_message = self._format_message(message)
                     if formatted_message:
@@ -328,8 +323,16 @@ class WebSocketManager:
         Returns:
             Optional[dict]: Formatted message or None if formatting fails
         """
-
         try:
+            if isinstance(message, ModelClientStreamingChunkEvent):
+                return {
+                    "type": "message",
+                    "data": {
+                        "content": message.content,
+                        "source": message.source
+                    }
+                }
+
             if isinstance(message, MultiModalMessage):
                 message_dump = message.model_dump()
                 message_dump["content"] = [
