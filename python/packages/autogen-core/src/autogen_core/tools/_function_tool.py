@@ -1,10 +1,12 @@
 import asyncio
 import functools
+import inspect
 import warnings
+from dataclasses import is_dataclass
 from textwrap import dedent
 from typing import Any, Callable, Sequence
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 from typing_extensions import Self
 
 from .. import CancellationToken
@@ -103,25 +105,56 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
         super().__init__(args_model, return_type, func_name, description, strict)
 
     async def run(self, args: BaseModel, cancellation_token: CancellationToken) -> Any:
+        # Get the function signature.
+        sig = inspect.signature(self._func)
+        # Dump the validated args into a raw dict.
+        raw_kwargs = args.model_dump()
+        kwargs = {}
+
+        # Iterate over the parameters expected by the function.
+        for name, param in sig.parameters.items():
+            if name in raw_kwargs:
+                expected_type = param.annotation
+                value = raw_kwargs[name]
+                # If expected type is a subclass of BaseModel, perform conversion.
+                if inspect.isclass(expected_type) and issubclass(expected_type, BaseModel):
+                    try:
+                        kwargs[name] = expected_type.model_validate(value)
+                    except ValidationError as e:
+                        raise ValueError(
+                            f"Error validating parameter '{name}' for function '{self._func.__name__}': {e}"
+                        ) from e
+                # If it's a dataclass, instantiate it.
+                elif is_dataclass(expected_type):
+                    try:
+                        # If expected_type is not a class, retrieve its type.
+                        cls = expected_type if isinstance(expected_type, type) else type(expected_type)
+                        kwargs[name] = cls(**value)
+                    except Exception as e:
+                        raise ValueError(
+                            f"Error instantiating dataclass parameter '{name}' for function '{self._func.__name__}': {e}"
+                        ) from e
+                else:
+                    # Otherwise, pass the value as is.
+                    kwargs[name] = value
+
         if asyncio.iscoroutinefunction(self._func):
             if self._has_cancellation_support:
-                result = await self._func(**args.model_dump(), cancellation_token=cancellation_token)
+                result = await self._func(**kwargs, cancellation_token=cancellation_token)
             else:
-                result = await self._func(**args.model_dump())
+                result = await self._func(**kwargs)
         else:
             if self._has_cancellation_support:
                 result = await asyncio.get_event_loop().run_in_executor(
                     None,
                     functools.partial(
                         self._func,
-                        **args.model_dump(),
+                        **kwargs,
                         cancellation_token=cancellation_token,
                     ),
                 )
             else:
-                future = asyncio.get_event_loop().run_in_executor(
-                    None, functools.partial(self._func, **args.model_dump())
-                )
+                future = asyncio.get_event_loop().run_in_executor(None, functools.partial(self._func, **kwargs))
                 cancellation_token.link_future(future)
                 result = await future
 
