@@ -1,0 +1,9 @@
+# Similar to the cell_towers_1 task.
+
+task_description: You are a telecommunications engineer who wants to build cell phone towers on a stretch of road.
+                  Houses are located at mile markers 17, 20, 19, 10, 11, 12, 3, 6.
+                  Each cell phone tower can cover houses located next to the road within a 4-mile radius.
+                  Find the minimum number of cell phone towers needed to cover all houses next to the road.
+                  Your answer should be a positive numerical integer value.
+
+expected_answer: '2'
