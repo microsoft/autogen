@@ -441,7 +441,7 @@ class SourceMatchTermination(TerminationCondition, Component[SourceMatchTerminat
 class TextMessageTerminationConfig(BaseModel):
     """Configuration for the TextMessageTermination termination condition."""
     source: str | None = None
-    """List of sources to exclude from the termination condition."""
+    """The source of the text message to terminate the conversation."""
 
 
 class TextMessageTermination(TerminationCondition, Component[TextMessageTerminationConfig]):
