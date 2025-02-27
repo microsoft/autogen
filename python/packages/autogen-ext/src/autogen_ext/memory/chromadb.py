@@ -55,7 +55,75 @@ class HttpChromaDBVectorMemoryConfig(ChromaDBVectorMemoryConfig):
 
 
 class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
-    """ChromaDB-based vector memory implementation with similarity search."""
+    """
+    Store and retrieve memory using vector similarity search powered by ChromaDB.
+
+    `ChromaDBVectorMemory` provides a vector-based memory implementation that uses ChromaDB for
+    storing and retrieving content based on semantic similarity. It enhances agents with the ability
+    to recall contextually relevant information during conversations by leveraging vector embeddings
+    to find similar content.
+
+    This implementation serves as a reference for more complex memory systems using vector embeddings.
+    For advanced use cases requiring specialized formatting of retrieved content, users should extend
+    this class and override the `update_context()` method.
+
+    .. note::
+
+        This implementation requires the ChromaDB extra to be installed. Install with:
+        `pip install autogen-ext[chromadb]`
+
+    Args:
+        config (ChromaDBVectorMemoryConfig | None): Configuration for the ChromaDB memory.
+            If None, defaults to a PersistentChromaDBVectorMemoryConfig with default values.
+            Two config types are supported:
+            - PersistentChromaDBVectorMemoryConfig: For local storage
+            - HttpChromaDBVectorMemoryConfig: For connecting to a remote ChromaDB server
+
+    Example:
+
+        .. code-block:: python
+
+            import os
+            from pathlib import Path
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_core.memory import MemoryContent, MemoryMimeType
+            from autogen_ext.memory.chromadb import ChromaDBVectorMemory, PersistentChromaDBVectorMemoryConfig
+            from autogen_ext.models.openai import OpenAIChatCompletionClient
+
+            # Initialize ChromaDB memory with custom config
+            memory = ChromaDBVectorMemory(
+                config=PersistentChromaDBVectorMemoryConfig(
+                    collection_name="user_preferences",
+                    persistence_path=os.path.join(str(Path.home()), ".chromadb_autogen"),
+                    k=3,  # Return top 3 results
+                    score_threshold=0.5,  # Minimum similarity score
+                )
+            )
+
+            # Add user preferences to memory
+            await memory.add(
+                MemoryContent(
+                    content="The user prefers temperatures in Celsius",
+                    mime_type=MemoryMimeType.TEXT,
+                    metadata={"category": "preferences", "type": "units"},
+                )
+            )
+
+            # Create assistant agent with ChromaDB memory
+            assistant = AssistantAgent(
+                name="assistant",
+                model_client=OpenAIChatCompletionClient(
+                    model="gpt-4o",
+                ),
+                memory=[memory],
+            )
+
+            # The memory will automatically retrieve relevant content during conversations
+            stream = assistant.run_stream(task="What's the weather in New York?")
+
+            # Remember to close the memory when finished
+            await memory.close()
+    """
 
     component_config_schema = ChromaDBVectorMemoryConfig
     component_provider_override = "autogen_ext.memory.chromadb.ChromaDBVectorMemory"
@@ -141,7 +209,67 @@ class ChromaDBVectorMemory(Memory, Component[ChromaDBVectorMemoryConfig]):
         self,
         model_context: ChatCompletionContext,
     ) -> UpdateContextResult:
-        """Update the model context with relevant memory content."""
+        """
+        Update the model context with relevant memory content.
+
+        This method retrieves memory content relevant to the last message in the context
+        and adds it as a system message. It serves as the primary customization point for
+        how retrieved memories are incorporated into the conversation.
+
+        By default, this implementation:
+        1. Uses the last message as a query to find semantically similar memories
+        2. Formats retrieved memories as a numbered list
+        3. Adds them to the context as a system message
+
+        For custom memory formatting, extend this class and override this method.
+
+        Args:
+            model_context (ChatCompletionContext): The model context to update with relevant memories.
+
+        Returns:
+            UpdateContextResult: Object containing the memories that were used to update the context.
+
+        Example:
+
+            .. code-block:: python
+
+                from autogen_core.memory import Memory, MemoryContent, MemoryQueryResult, UpdateContextResult
+                from autogen_core.model_context import ChatCompletionContext
+                from autogen_core.models import SystemMessage
+                from autogen_ext.memory.chromadb import ChromaDBVectorMemory, PersistentChromaDBVectorMemoryConfig
+
+
+                class CustomVectorMemory(ChromaDBVectorMemory):
+                    async def update_context(
+                        self,
+                        model_context: ChatCompletionContext,
+                    ) -> UpdateContextResult:
+                        # Get the last message to use as query
+                        messages = await model_context.get_messages()
+                        if not messages:
+                            return UpdateContextResult(memories=MemoryQueryResult(results=[]))
+
+                        # Get query results
+                        last_message = messages[-1]
+                        query_text = last_message.content if isinstance(last_message.content, str) else str(last_message)
+                        query_results = await self.query(query_text)
+
+                        if query_results.results:
+                            # Custom formatting based on memory category
+                            memory_strings = []
+                            for memory in query_results.results:
+                                category = memory.metadata.get("category", "general")
+                                if category == "preferences":
+                                    memory_strings.append(f"User Preference: {memory.content}")
+                                else:
+                                    memory_strings.append(f"Memory: {memory.content}")
+
+                            # Add to context with custom header
+                            memory_context = "IMPORTANT USER INFORMATION:\n" + "\n".join(memory_strings)
+                            await model_context.add_message(SystemMessage(content=memory_context))
+
+                        return UpdateContextResult(memories=query_results)
+        """
         messages = await model_context.get_messages()
         if not messages:
             return UpdateContextResult(memories=MemoryQueryResult(results=[]))
