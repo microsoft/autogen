@@ -81,6 +81,14 @@ async def test_text_message_termination() -> None:
     with pytest.raises(TerminatedException):
         await termination([TextMessage(content="Hello", source="user")])
 
+    termination = TextMessageTermination(exclude_sources=["user"])
+    assert await termination([]) is None
+    await termination.reset()
+    assert await termination([TextMessage(content="Hello", source="user")]) is None
+    await termination.reset()
+    assert await termination([TextMessage(content="Hello", source="agent")]) is not None
+    assert termination.terminated
+
 
 @pytest.mark.asyncio
 async def test_max_message_termination() -> None:

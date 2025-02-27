@@ -439,7 +439,9 @@ class SourceMatchTermination(TerminationCondition, Component[SourceMatchTerminat
 
 
 class TextMessageTerminationConfig(BaseModel):
-    pass
+    """Configuration for the TextMessageTermination termination condition."""
+    exclude_sources: list[str] | None = None
+    """List of sources to exclude from the termination condition."""
 
 
 class TextMessageTermination(TerminationCondition, Component[TextMessageTerminationConfig]):
@@ -448,8 +450,9 @@ class TextMessageTermination(TerminationCondition, Component[TextMessageTerminat
     component_config_schema = TextMessageTerminationConfig
     component_provider_override = "autogen_agentchat.conditions.TextMessageTermination"
 
-    def __init__(self) -> None:
+    def __init__(self, exclude_sources: list[str] | None = None) -> None:
         self._terminated = False
+        self._exclude_sources = exclude_sources
 
     @property
     def terminated(self) -> bool:
@@ -459,7 +462,7 @@ class TextMessageTermination(TerminationCondition, Component[TextMessageTerminat
         if self._terminated:
             raise TerminatedException("Termination condition has already been reached")
         for message in messages:
-            if isinstance(message, TextMessage):
+            if isinstance(message, TextMessage) and (self._exclude_sources is None or message.source not in self._exclude_sources):
                 self._terminated = True
                 return StopMessage(content="Stop message received", source="TextMessageTermination")
         return None
@@ -468,8 +471,8 @@ class TextMessageTermination(TerminationCondition, Component[TextMessageTerminat
         self._terminated = False
 
     def _to_config(self) -> TextMessageTerminationConfig:
-        return TextMessageTerminationConfig()
+        return TextMessageTerminationConfig(exclude_sources=self._exclude_sources)
 
     @classmethod
     def _from_config(cls, config: TextMessageTerminationConfig) -> Self:
-        return cls()
+        return cls(exclude_sources=config.exclude_sources)
