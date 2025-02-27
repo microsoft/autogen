@@ -15,6 +15,7 @@ from autogen_agentchat.messages import (
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
+    ModelClientStreamingChunkEvent,
 )
 from autogen_core import CancellationToken
 from autogen_core import Image as AGImage
@@ -97,6 +98,7 @@ class WebSocketManager:
 
             input_func = self.create_input_func(run_id)
 
+            current_message = ""
             async for message in team_manager.run_stream(tool_context=tool_context,
                 task=task, team_config=team_config, input_func=input_func, cancellation_token=cancellation_token
             ):
@@ -104,27 +106,38 @@ class WebSocketManager:
                     logger.info(f"Stream cancelled or connection closed for run {run_id}")
                     break
 
-                formatted_message = self._format_message(message)
-                if formatted_message:
-                    await self._send_message(run_id, formatted_message)
+                if isinstance(message, ModelClientStreamingChunkEvent):
+                    # Accumulate and send chunk
+                    current_message += message.content
+                    await self._send_message(run_id, {
+                        "type": "message",
+                        "data": {
+                            "content": message.content,
+                            "source": message.source
+                        }
+                    })
+                else:
+                    formatted_message = self._format_message(message)
+                    if formatted_message:
+                        await self._send_message(run_id, formatted_message)
 
-                    # Save messages by concrete type
-                    if isinstance(
-                        message,
-                        (
-                            TextMessage,
-                            MultiModalMessage,
-                            StopMessage,
-                            HandoffMessage,
-                            ToolCallRequestEvent,
-                            ToolCallExecutionEvent,
-                            LLMCallEventMessage,
-                        ),
-                    ):
-                        await self._save_message(run_id, message)
-                    # Capture final result if it's a TeamResult
-                    elif isinstance(message, TeamResult):
-                        final_result = message.model_dump()
+                        # Save messages by concrete type
+                        if isinstance(
+                            message,
+                            (
+                                TextMessage,
+                                MultiModalMessage,
+                                StopMessage,
+                                HandoffMessage,
+                                ToolCallRequestEvent,
+                                ToolCallExecutionEvent,
+                                LLMCallEventMessage,
+                            ),
+                        ):
+                            await self._save_message(run_id, message)
+                        # Capture final result if it's a TeamResult
+                        elif isinstance(message, TeamResult):
+                            final_result = message.model_dump()
             if not cancellation_token.is_cancelled() and run_id not in self._closed_connections:
                 if final_result:
                     await self._update_run(run_id, RunStatus.COMPLETE, team_result=final_result)
