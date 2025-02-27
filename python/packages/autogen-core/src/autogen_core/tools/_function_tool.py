@@ -100,52 +100,28 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
         args_model = args_base_model_from_signature(func_name + "args", signature)
         return_type = signature.return_annotation
         self._has_cancellation_support = "cancellation_token" in signature.parameters
-        self._has_context_support = "context" in signature.parameters
         super().__init__(args_model, return_type, func_name, description, strict)
 
-    async def run(self, args: BaseModel, context: dict, cancellation_token: CancellationToken) -> Any:
+    async def run(self, args: BaseModel, cancellation_token: CancellationToken) -> Any:
         if asyncio.iscoroutinefunction(self._func):
             if self._has_cancellation_support:
-                if self._has_context_support:
-                    result = await self._func(**args.model_dump(), cancellation_token=cancellation_token, context=context)
-                else:
-                    result = await self._func(**args.model_dump(), cancellation_token=cancellation_token)
+                result = await self._func(**args.model_dump(), cancellation_token=cancellation_token)
             else:
-                if self._has_context_support:
-                    result = await self._func(**args.model_dump(), context=context)
-                else:
-                    result = await self._func(**args.model_dump())
-
+                result = await self._func(**args.model_dump())
         else:
             if self._has_cancellation_support:
-                if self._has_context_support:
-                    result = await asyncio.get_event_loop().run_in_executor(
-                        None,
-                        functools.partial(
-                            self._func,
-                            **args.model_dump(),
-                            cancellation_token=cancellation_token,
-                            context=context,
-                        ),
-                    )
-                else:
-                    result = await asyncio.get_event_loop().run_in_executor(
-                        None,
-                        functools.partial(
-                            self._func,
-                            **args.model_dump(),
-                            cancellation_token=cancellation_token,
-                        ),
-                    )
+                result = await asyncio.get_event_loop().run_in_executor(
+                    None,
+                    functools.partial(
+                        self._func,
+                        **args.model_dump(),
+                        cancellation_token=cancellation_token,
+                    ),
+                )
             else:
-                if self._has_context_support:
-                    future = asyncio.get_event_loop().run_in_executor(
-                        None, functools.partial(self._func, **args.model_dump(), context=context)
-                    )
-                else:
-                    future = asyncio.get_event_loop().run_in_executor(
-                        None, functools.partial(self._func, **args.model_dump())
-                    )
+                future = asyncio.get_event_loop().run_in_executor(
+                    None, functools.partial(self._func, **args.model_dump())
+                )
                 cancellation_token.link_future(future)
                 result = await future
 

@@ -293,7 +293,6 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         self._model_client = model_client
         self._model_client_stream = model_client_stream
         self._memory = None
-        self.tool_context = None
         if memory is not None:
             if isinstance(memory, list):
                 self._memory = memory
@@ -555,7 +554,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             if tool is None:
                 raise ValueError(f"The tool '{tool_call.name}' is not available.")
             arguments = json.loads(tool_call.arguments)
-            result = await tool.run_json(arguments, self.tool_context, cancellation_token)
+            result = await tool.run_json(arguments, cancellation_token)
             result_as_str = tool.return_value_as_string(result)
             return (tool_call, FunctionExecutionResult(content=result_as_str, call_id=tool_call.id, is_error=False))
         except Exception as e:

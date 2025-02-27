@@ -66,8 +66,7 @@ class TeamManager:
         return configs
 
     async def _create_team(
-        self, tool_context: dict, 
-        team_config: Union[str, Path, dict, ComponentModel], input_func: Optional[Callable] = None
+        self, team_config: Union[str, Path, dict, ComponentModel], input_func: Optional[Callable] = None
     ) -> Component:
         """Create team instance from config"""
         if isinstance(team_config, (str, Path)):
@@ -83,16 +82,12 @@ class TeamManager:
             if hasattr(agent, "input_func"):
                 agent.input_func = input_func
 
-            if hasattr(agent, "tool_context"):
-                agent.tool_context = tool_context
-
         return team
 
     async def run_stream(
         self,
         task: str,
         team_config: Union[str, Path, dict, ComponentModel],
-        tool_context: dict,
         input_func: Optional[Callable] = None,
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[AgentEvent | ChatMessage | LLMCallEvent, ChatMessage, TeamResult], None]:
@@ -107,7 +102,7 @@ class TeamManager:
         logger.handlers = [llm_event_logger]  # Replace all handlers
 
         try:
-            team = await self._create_team(tool_context, team_config, input_func)
+            team = await self._create_team(team_config, input_func)
 
             async for message in team.run_stream(task=task, cancellation_token=cancellation_token):
                 if cancellation_token and cancellation_token.is_cancelled():

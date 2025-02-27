@@ -140,10 +140,10 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
         return str(value)
 
     @abstractmethod
-    async def run(self, args: ArgsT, context: dict, cancellation_token: CancellationToken) -> ReturnT: ...
+    async def run(self, args: ArgsT, cancellation_token: CancellationToken) -> ReturnT: ...
 
-    async def run_json(self, args: Mapping[str, Any], context: dict, cancellation_token: CancellationToken) -> Any:
-        return_value = await self.run(self._args_type.model_validate(args), context, cancellation_token)
+    async def run_json(self, args: Mapping[str, Any], cancellation_token: CancellationToken) -> Any:
+        return_value = await self.run(self._args_type.model_validate(args), cancellation_token)
         return return_value
 
     def save_state_json(self) -> Mapping[str, Any]:
