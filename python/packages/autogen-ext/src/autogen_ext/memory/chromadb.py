@@ -16,6 +16,14 @@ from typing_extensions import Self
 logger = logging.getLogger(__name__)
 
 
+try:
+    from chromadb.api import ClientAPI
+except ImportError as e:
+    raise ImportError(
+        "To use the ChromaDBVectorMemory the chromadb extra must be installed. Run `pip install autogen-ext[chromadb]`"
+    ) from e
+
+
 class ChromaDBVectorMemoryConfig(BaseModel):
     """Base configuration for ChromaDB-based memory implementation."""
 

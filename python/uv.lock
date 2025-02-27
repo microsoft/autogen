@@ -594,6 +594,9 @@ azure = [
     { name = "azure-core" },
     { name = "azure-identity" },
 ]
+chromadb = [
+    { name = "chromadb" },
+]
 diskcache = [
     { name = "diskcache" },
 ]
@@ -634,9 +637,6 @@ magentic-one = [
 mcp = [
     { name = "json-schema-to-pydantic" },
     { name = "mcp" },
-]
-memory = [
-    { name = "chromadb" },
 ]
 ollama = [
     { name = "ollama" },
@@ -719,7 +719,7 @@ requires-dist = [
     { name = "azure-ai-inference", marker = "extra == 'azure'", specifier = ">=1.0.0b7" },
     { name = "azure-core", marker = "extra == 'azure'" },
     { name = "azure-identity", marker = "extra == 'azure'" },
-    { name = "chromadb", marker = "extra == 'memory'" },
+    { name = "chromadb", marker = "extra == 'chromadb'" },
     { name = "diskcache", marker = "extra == 'diskcache'", specifier = ">=5.6.3" },
     { name = "docker", marker = "extra == 'docker'", specifier = "~=7.0" },
     { name = "ffmpeg-python", marker = "extra == 'video-surfer'" },
