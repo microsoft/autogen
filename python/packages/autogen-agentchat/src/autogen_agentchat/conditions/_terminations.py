@@ -6,7 +6,15 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from ..base import TerminatedException, TerminationCondition
-from ..messages import AgentEvent, BaseChatMessage, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage
+from ..messages import (
+    AgentEvent,
+    BaseChatMessage,
+    ChatMessage,
+    HandoffMessage,
+    MultiModalMessage,
+    StopMessage,
+    TextMessage,
+)
 
 
 class StopMessageTerminationConfig(BaseModel):
@@ -428,3 +436,40 @@ class SourceMatchTermination(TerminationCondition, Component[SourceMatchTerminat
     @classmethod
     def _from_config(cls, config: SourceMatchTerminationConfig) -> Self:
         return cls(sources=config.sources)
+
+
+class TextMessageTerminationConfig(BaseModel):
+    pass
+
+
+class TextMessageTermination(TerminationCondition, Component[TextMessageTerminationConfig]):
+    """Terminate the conversation if a TextMessage is received."""
+
+    component_config_schema = TextMessageTerminationConfig
+    component_provider_override = "autogen_agentchat.conditions.TextMessageTermination"
+
+    def __init__(self) -> None:
+        self._terminated = False
+
+    @property
+    def terminated(self) -> bool:
+        return self._terminated
+
+    async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
+        if self._terminated:
+            raise TerminatedException("Termination condition has already been reached")
+        for message in messages:
+            if isinstance(message, TextMessage):
+                self._terminated = True
+                return StopMessage(content="Stop message received", source="TextMessageTermination")
+        return None
+
+    async def reset(self) -> None:
+        self._terminated = False
+
+    def _to_config(self) -> TextMessageTerminationConfig:
+        return TextMessageTerminationConfig()
+
+    @classmethod
+    def _from_config(cls, config: TextMessageTerminationConfig) -> Self:
+        return cls()
