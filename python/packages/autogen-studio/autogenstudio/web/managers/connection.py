@@ -316,6 +316,7 @@ class WebSocketManager:
         Returns:
             Optional[dict]: Formatted message or None if formatting fails
         """
+
         try:
             if isinstance(message, MultiModalMessage):
                 message_dump = message.model_dump()
