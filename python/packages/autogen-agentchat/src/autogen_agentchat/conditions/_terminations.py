@@ -440,7 +440,7 @@ class SourceMatchTermination(TerminationCondition, Component[SourceMatchTerminat
 
 class TextMessageTerminationConfig(BaseModel):
     """Configuration for the TextMessageTermination termination condition."""
-    exclude_sources: list[str] | None = None
+    source: str | None = None
     """List of sources to exclude from the termination condition."""
 
 
@@ -450,9 +450,9 @@ class TextMessageTermination(TerminationCondition, Component[TextMessageTerminat
     component_config_schema = TextMessageTerminationConfig
     component_provider_override = "autogen_agentchat.conditions.TextMessageTermination"
 
-    def __init__(self, exclude_sources: list[str] | None = None) -> None:
+    def __init__(self, source: str | None = None) -> None:
         self._terminated = False
-        self._exclude_sources = exclude_sources
+        self._source = source
 
     @property
     def terminated(self) -> bool:
@@ -462,7 +462,7 @@ class TextMessageTermination(TerminationCondition, Component[TextMessageTerminat
         if self._terminated:
             raise TerminatedException("Termination condition has already been reached")
         for message in messages:
-            if isinstance(message, TextMessage) and (self._exclude_sources is None or message.source not in self._exclude_sources):
+            if isinstance(message, TextMessage) and (self._source is None or message.source == self._source):
                 self._terminated = True
                 return StopMessage(content="Stop message received", source="TextMessageTermination")
         return None
@@ -471,8 +471,8 @@ class TextMessageTermination(TerminationCondition, Component[TextMessageTerminat
         self._terminated = False
 
     def _to_config(self) -> TextMessageTerminationConfig:
-        return TextMessageTerminationConfig(exclude_sources=self._exclude_sources)
+        return TextMessageTerminationConfig(source=self._source)
 
     @classmethod
     def _from_config(cls, config: TextMessageTerminationConfig) -> Self:
-        return cls(exclude_sources=config.exclude_sources)
+        return cls(source=config.source)
