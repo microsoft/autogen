@@ -1,7 +1,7 @@
 
 PageLogger:
   level: DEBUG  # DEBUG, INFO, WARNING, ERROR, CRITICAL, or NONE.
-  path: ~/pagelogs/retrieval
+  path: ./pagelogs/retrieval
 
 client:
   model: gpt-4o-2024-08-06
@@ -12,9 +12,9 @@ client:
   top_p: 1.0
   max_retries: 65535
 
-TaskCentricMemoryController:
-  TaskCentricMemoryBank:
-    path: ~/task_centric_memory_bank/retrieval
+MemoryController:
+  MemoryBank:
+    path: ./memory_bank/retrieval
     relevance_conversion_threshold: 1.7
     n_results: 25
     distance_threshold: 100

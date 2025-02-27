@@ -4,24 +4,24 @@ from autogen_core.models import (
     ChatCompletionClient,
 )
 
+from ._memory_bank import Memo, MemoryBank
 from ._prompter import Prompter
-from ._task_centric_memory_bank import Memo, TaskCentricMemoryBank
 
 if TYPE_CHECKING:
-    from ._task_centric_memory_bank import TaskCentricMemoryBankConfig
+    from ._memory_bank import MemoryBankConfig
 from .utils.grader import Grader
 from .utils.page_logger import PageLogger
 
 
 # Following the nested-config pattern, this TypedDict minimizes code changes by encapsulating
 # the settings that change frequently, as when loading many settings from a single YAML file.
-class TaskCentricMemoryControllerConfig(TypedDict, total=False):
+class MemoryControllerConfig(TypedDict, total=False):
     max_train_trials: int
     max_test_trials: int
-    TaskCentricMemoryBank: "TaskCentricMemoryBankConfig"
+    MemoryBank: "MemoryBankConfig"
 
 
-class TaskCentricMemoryController:
+class MemoryController:
     """
     (EXPERIMENTAL, RESEARCH IN PROGRESS)
 
@@ -35,7 +35,7 @@ class TaskCentricMemoryController:
 
             - max_train_trials: The maximum number of learning iterations to attempt when training on a task.
             - max_test_trials: The total number of attempts made when testing for failure on a task.
-            - TaskCentricMemoryBank: A config dict passed to TaskCentricMemoryBank.
+            - MemoryBank: A config dict passed to MemoryBank.
 
         logger: An optional logger. If None, a default logger will be created.
 
@@ -53,14 +53,14 @@ class TaskCentricMemoryController:
 
             import asyncio
             from autogen_ext.models.openai import OpenAIChatCompletionClient
-            from autogen_ext.task_centric_memory import TaskCentricMemoryController
-            from autogen_ext.task_centric_memory.utils import PageLogger
+            from autogen_ext.experimental.task_centric_memory import MemoryController
+            from autogen_ext.experimental.task_centric_memory.utils import PageLogger
 
 
             async def main() -> None:
                 client = OpenAIChatCompletionClient(model="gpt-4o")
-                logger = PageLogger(config={"level": "DEBUG", "path": "~/pagelogs/quickstart"})  # Optional, but very useful.
-                memory_controller = TaskCentricMemoryController(reset=True, client=client, logger=logger)
+                logger = PageLogger(config={"level": "DEBUG", "path": "./pagelogs/quickstart"})  # Optional, but very useful.
+                memory_controller = MemoryController(reset=True, client=client, logger=logger)
 
                 # Add a few task-insight pairs as memories, where an insight can be any string that may help solve the task.
                 await memory_controller.add_memo(task="What color do I like?", insight="Deep blue is my favorite color")
@@ -82,7 +82,7 @@ class TaskCentricMemoryController:
         reset: bool,
         client: ChatCompletionClient,
         task_assignment_callback: Callable[[str], Awaitable[Tuple[str, str]]] | None = None,
-        config: TaskCentricMemoryControllerConfig | None = None,
+        config: MemoryControllerConfig | None = None,
         logger: PageLogger | None = None,
     ) -> None:
         if logger is None:
@@ -97,12 +97,12 @@ class TaskCentricMemoryController:
         if config is not None:
             self.max_train_trials = config.get("max_train_trials", self.max_train_trials)
             self.max_test_trials = config.get("max_test_trials", self.max_test_trials)
-            memory_bank_config = config.get("TaskCentricMemoryBank", memory_bank_config)
+            memory_bank_config = config.get("MemoryBank", memory_bank_config)
 
         self.client = client
         self.task_assignment_callback = task_assignment_callback
         self.prompter = Prompter(client, logger)
-        self.memory_bank = TaskCentricMemoryBank(reset=reset, config=memory_bank_config, logger=logger)
+        self.memory_bank = MemoryBank(reset=reset, config=memory_bank_config, logger=logger)
         self.grader = Grader(client, logger)
         self.logger.leave_function()
 

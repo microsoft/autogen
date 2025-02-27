@@ -1,8 +1,8 @@
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.ui import Console
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from autogen_ext.task_centric_memory import TaskCentricMemoryController
-from autogen_ext.task_centric_memory.utils.teachability import Teachability
+from autogen_ext.experimental.task_centric_memory import MemoryController
+from autogen_ext.experimental.task_centric_memory.utils import Teachability
 
 
 async def main():
@@ -10,7 +10,7 @@ async def main():
     client = OpenAIChatCompletionClient(model="gpt-4o-2024-08-06", )
 
     # Create an instance of Task-Centric Memory, passing minimal parameters for this simple example
-    memory_controller = TaskCentricMemoryController(reset=False, client=client)
+    memory_controller = MemoryController(reset=False, client=client)
 
     # Wrap the memory controller in a Teachability instance
     teachability = Teachability(memory_controller=memory_controller)

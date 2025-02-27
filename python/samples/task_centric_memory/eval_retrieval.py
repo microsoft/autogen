@@ -5,8 +5,8 @@ from typing import Any, Dict, Set
 from autogen_core.models import (
     ChatCompletionClient,
 )
-from autogen_ext.task_centric_memory import TaskCentricMemoryController
-from autogen_ext.task_centric_memory.utils import PageLogger
+from autogen_ext.experimental.task_centric_memory import MemoryController
+from autogen_ext.experimental.task_centric_memory.utils import PageLogger
 from utils import create_oai_client, load_yaml_file
 
 
@@ -18,7 +18,7 @@ as well as the data files used for the test.
 Execute the sample with this command:
     python eval_retrieval.py configs/retrieval.yaml
 
-This sample shows how an app can access the `TaskCentricMemoryController` directly
+This sample shows how an app can access the `MemoryController` directly
 to retrieve previously stored task-insight pairs as potentially useful examplars when solving some new task.
 A task is any text instruction that the app may give to an agent.
 An insight is any text (like a hint, advice, a demonstration or plan) that might help the agent perform such tasks.
@@ -26,7 +26,7 @@ An insight is any text (like a hint, advice, a demonstration or plan) that might
 
 
 async def eval_retrieval(
-    memory_controller: TaskCentricMemoryController, client: ChatCompletionClient, logger: PageLogger, config: Dict[str, Any]
+    memory_controller: MemoryController, client: ChatCompletionClient, logger: PageLogger, config: Dict[str, Any]
 ) -> str:
     """
     Evaluates precision and recall of task-centric memory retrieval.
@@ -93,11 +93,11 @@ async def run_example(config_filepath: str) -> None:
     # Create the necessary components.
     logger = PageLogger(config["PageLogger"])
     client = create_oai_client(config["client"])
-    memory_controller = TaskCentricMemoryController(
+    memory_controller = MemoryController(
         reset=True,
         client=client,
         task_assignment_callback=None,
-        config=config["TaskCentricMemoryController"],
+        config=config["MemoryController"],
         logger=logger,
     )
 

@@ -1,7 +1,7 @@
 
 PageLogger:
   level: DEBUG  # DEBUG, INFO, WARNING, ERROR, CRITICAL, or NONE.
-  path: ~/pagelogs/teachability
+  path: ./pagelogs/teachability
 
 client:
   model: gpt-4o-2024-08-06
@@ -15,11 +15,11 @@ client:
 Apprentice:
   name_of_agent_or_team: AssistantAgent  # AssistantAgent or MagenticOneGroupChat
   disable_prefix_caching: 1  # If true, prepends a small random string to the context, to decorrelate repeated runs.
-  TaskCentricMemoryController:
+  MemoryController:
     max_train_trials: 10
     max_test_trials: 3
-    TaskCentricMemoryBank:
-      path: ~/task_centric_memory_bank/temp
+    MemoryBank:
+      path: ./memory_bank/teachability
       relevance_conversion_threshold: 1.7
       n_results: 25
       distance_threshold: 100

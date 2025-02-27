@@ -15,7 +15,7 @@ from autogen_core.models import (
 from .page_logger import PageLogger
 
 if TYPE_CHECKING:
-    from ..task_centric_memory_controller import TaskCentricMemoryControllerConfig
+    from ..memory_controller import MemoryControllerConfig
 
 
 # Following the nested-config pattern, this TypedDict minimizes code changes by encapsulating
@@ -23,14 +23,14 @@ if TYPE_CHECKING:
 class ApprenticeConfig(TypedDict, total=False):
     name_of_agent_or_team: str
     disable_prefix_caching: bool
-    TaskCentricMemoryController: "TaskCentricMemoryControllerConfig"
+    MemoryController: "MemoryControllerConfig"
 
 
 class Apprentice:
     """
     A minimal wrapper combining task-centric memory with an agent or team.
     Applications may use the Apprentice class, or they may directly instantiate
-    and call the Task Centric Memory Controller using this class as an example.
+    and call the Memory Controller using this class as an example.
 
     Args:
         client: The client to call the model.
@@ -38,7 +38,7 @@ class Apprentice:
 
             - name_of_agent_or_team: The name of the target agent or team for assigning tasks to.
             - disable_prefix_caching: True to disable prefix caching by prepending random ints to the first message.
-            - TaskCentricMemoryController: A config dict passed to TaskCentricMemoryController.
+            - MemoryController: A config dict passed to MemoryController.
 
         logger: An optional logger. If None, a default logger will be created.
     """
@@ -60,17 +60,17 @@ class Apprentice:
         if config is not None:
             self.name_of_agent_or_team = config.get("name_of_agent_or_team", self.name_of_agent_or_team)
             self.disable_prefix_caching = config.get("disable_prefix_caching", self.disable_prefix_caching)
-            memory_controller_config = config.get("TaskCentricMemoryController", memory_controller_config)
+            memory_controller_config = config.get("MemoryController", memory_controller_config)
 
         self.client = client
         if self.disable_prefix_caching:
             self.rand = random.Random()
             self.rand.seed(int(time.time() * 1000))
 
-        # Create the TaskCentricMemoryController, which creates the TaskCentricMemoryBank.
-        from ..task_centric_memory_controller import TaskCentricMemoryController
+        # Create the MemoryController, which creates the MemoryBank.
+        from ..memory_controller import MemoryController
 
-        self.memory_controller = TaskCentricMemoryController(
+        self.memory_controller = MemoryController(
             reset=True,
             client=self.client,
             task_assignment_callback=self.assign_task_to_agent_or_team,

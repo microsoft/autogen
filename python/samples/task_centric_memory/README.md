@@ -19,7 +19,8 @@ Note that since agent behavior is non-deterministic, results will vary between r
 
 To watch operations live in a browser and see how task-centric memory works,
 open the HTML page at the location specified at the top of the config file,
-such as: `~/pagelogs/teachability/0  Call Tree.html`
+such as: `./pagelogs/teachability/0  Call Tree.html`
+To turn off logging entirely, set logging level to NONE in the config file.
 
 The config files specify an _AssistantAgent_ by default, which uses a fixed, multi-step system prompt.
 To use _MagenticOneGroupChat_ instead, specify that in the yaml file where indicated.
@@ -43,11 +44,12 @@ The following samples are listed in order of increasing complexity.
 Execute the corresponding commands from this (autogen_ext/task_centric_memory) directory.
 
 
-### Making AssistantAgent teachable
+### Making AssistantAgent Teachable
 
 This short, interactive code sample shows how to make the AssistantAgent teachable.
 The following steps show the agent learning a user teaching from one chat session to the next,
 starting with an empty memory bank.
+The memory bank can be cleared manually by deleting the memory_bank directory (if it exists from a prior run), as shown below.
     
 ```bash
 rm -r memory_bank
@@ -83,14 +85,14 @@ How many items should be put in research summaries?
 
 ### Direct Memory Storage and Retrieval
 
-This sample shows how an app can access the `TaskCentricMemoryController` directly
+This sample shows how an app can access the `MemoryController` directly
 to retrieve previously stored task-insight pairs as potentially useful examplars when solving some new task.
 A task is any text instruction that the app may give to an agent.
 An insight is any text (like a hint, advice, a demonstration or plan) that might help the agent perform such tasks.
 
 A typical app will perform the following steps in some interleaved order:
-1. Call the `TaskCentricMemoryController` repeatedly to store a set of memories (task-insight pairs).
-2. Call the `TaskCentricMemoryController` repeatedly to retrieve any memories related to a new task.
+1. Call the `MemoryController` repeatedly to store a set of memories (task-insight pairs).
+2. Call the `MemoryController` repeatedly to retrieve any memories related to a new task.
 3. Use the retrieved insights, typically by adding them to the agent's context window. (This step is not illustrated by this code sample.)
 
 This sample code adds several task-insight pairs to memory, retrieves memories for a set of new tasks,

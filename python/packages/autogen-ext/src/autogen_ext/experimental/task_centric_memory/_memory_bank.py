@@ -19,14 +19,14 @@ class Memo:
 
 # Following the nested-config pattern, this TypedDict minimizes code changes by encapsulating
 # the settings that change frequently, as when loading many settings from a single YAML file.
-class TaskCentricMemoryBankConfig(TypedDict, total=False):
+class MemoryBankConfig(TypedDict, total=False):
     path: str
     relevance_conversion_threshold: float
     n_results: int
     distance_threshold: int
 
 
-class TaskCentricMemoryBank:
+class MemoryBank:
     """
     Stores task-completion insights as memories in a vector DB for later retrieval.
 
@@ -45,7 +45,7 @@ class TaskCentricMemoryBank:
     def __init__(
         self,
         reset: bool,
-        config: TaskCentricMemoryBankConfig | None = None,
+        config: MemoryBankConfig | None = None,
         logger: PageLogger | None = None,
     ) -> None:
         if logger is None:
