@@ -46,7 +46,6 @@ from autogen_core.models import (
     SystemMessage,
     TopLogprob,
     UserMessage,
-    normalize_stop_reason,
     validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
@@ -75,6 +74,7 @@ from openai.types.shared_params import FunctionDefinition, FunctionParameters
 from pydantic import BaseModel
 from typing_extensions import Self, Unpack
 
+from .._utils.normalize_stop_reason import normalize_stop_reason
 from .._utils.parse_r1_content import parse_r1_content
 from . import _model_info
 from .config import (
