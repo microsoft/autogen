@@ -2,12 +2,14 @@
 // GrpcGatewayServiceTests.cs
 
 using FluentAssertions;
+using Grpc.Core;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 using Microsoft.AutoGen.Protobuf;
 using Microsoft.AutoGen.RuntimeGateway.Grpc.Tests.Helpers.Grpc;
 using Microsoft.AutoGen.RuntimeGateway.Grpc.Tests.Helpers.Orleans;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using Moq;
 using NewMessageReceived = Tests.Events.NewMessageReceived;
 
@@ -26,7 +28,9 @@ public class GrpcGatewayServiceTests
     public async Task Test_OpenChannel()
     {
         var logger = Mock.Of<ILogger<GrpcGateway>>();
-        var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
+        var options = Mock.Of<IOptions<GrpcGatewayOptions>>();
+
+        var gateway = new GrpcGateway(_fixture.Cluster.Client, logger, options);
         var service = new GrpcGatewayService(gateway);
         var client = new TestGrpcClient();
 
@@ -41,7 +45,11 @@ public class GrpcGatewayServiceTests
     public async Task Test_Message_Exchange_Through_Gateway()
     {
         var logger = Mock.Of<ILogger<GrpcGateway>>();
-        var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
+        var options = Mock.Of<IOptions<GrpcGatewayOptions>>(
+                o => o.Value == new GrpcGatewayOptions() { SupportAgentTypeMultiplexing = false }
+            );
+
+        var gateway = new GrpcGateway(_fixture.Cluster.Client, logger, options);
         var service = new GrpcGatewayService(gateway);
         var client = new TestGrpcClient();
         var task = OpenChannel(service: service, client);
@@ -88,14 +96,80 @@ public class GrpcGatewayServiceTests
     public async Task Test_RegisterAgent_Should_Succeed()
     {
         var logger = Mock.Of<ILogger<GrpcGateway>>();
-        var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
+        var options = Mock.Of<IOptions<GrpcGatewayOptions>>(
+            o => o.Value == new GrpcGatewayOptions() { SupportAgentTypeMultiplexing = false }
+        );
+
+        var gateway = new GrpcGateway(_fixture.Cluster.Client, logger, options);
         var service = new GrpcGatewayService(gateway);
+
         var client = new TestGrpcClient();
+
         var task = OpenChannel(service: service, client);
+
         var response = await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(PBAgent)), client.CallContext);
         response.GetType().Should().Be(typeof(RegisterAgentTypeResponse));
+
         client.Dispose();
         await task;
+    }
+
+    [Fact]
+    public async Task Test_RegisterAgent_Duplicate_Should_Fail()
+    {
+        var logger = Mock.Of<ILogger<GrpcGateway>>();
+        var options = Mock.Of<IOptions<GrpcGatewayOptions>>(
+            o => o.Value == new GrpcGatewayOptions() { SupportAgentTypeMultiplexing = false }
+        );
+
+        var gateway = new GrpcGateway(_fixture.Cluster.Client, logger, options);
+        var service = new GrpcGatewayService(gateway);
+
+        var client1 = new TestGrpcClient();
+        var client2 = new TestGrpcClient();
+
+        var task1 = OpenChannel(service: service, client1);
+        var task2 = OpenChannel(service: service, client2);
+
+        var response1 = await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(PBAgent)), client1.CallContext);
+        response1.GetType().Should().Be(typeof(RegisterAgentTypeResponse));
+
+        Func<Task> act = async () => await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(PBAgent)), client2.CallContext);
+        await act.Should().ThrowAsync<RpcException>();
+
+        client1.Dispose();
+        client2.Dispose();
+
+        await Task.WhenAll(task1, task2);
+    }
+
+    [Fact]
+    public async Task Test_RegisterAgent_Multiplexing_Should_Succeed()
+    {
+        var logger = Mock.Of<ILogger<GrpcGateway>>();
+        var options = Mock.Of<IOptions<GrpcGatewayOptions>>(
+                o => o.Value == new GrpcGatewayOptions() { SupportAgentTypeMultiplexing = true }
+            );
+
+        var gateway = new GrpcGateway(_fixture.Cluster.Client, logger, options);
+        var service = new GrpcGatewayService(gateway);
+
+        var client1 = new TestGrpcClient();
+        var client2 = new TestGrpcClient();
+
+        var task1 = OpenChannel(service: service, client1);
+        var task2 = OpenChannel(service: service, client2);
+
+        var response1 = await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(PBAgent)), client1.CallContext);
+        response1.GetType().Should().Be(typeof(RegisterAgentTypeResponse));
+
+        var response2 = await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(PBAgent)), client2.CallContext);
+        response2.GetType().Should().Be(typeof(RegisterAgentTypeResponse));
+
+        client1.Dispose();
+        client2.Dispose();
+
+        await Task.WhenAll(task1, task2);
     }
 
     private async Task<RegisterAgentTypeRequest> CreateRegistrationRequest(GrpcGatewayService service, Type type)
