@@ -1194,7 +1194,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                         UserMessage(content="I am happy.", source="user"),
                         AssistantMessage(content=response1.content, source="assistant"),
                         FunctionExecutionResultMessage(
-                            content=[FunctionExecutionResult(content="happy", call_id=response1.content[0].id, is_error=False)]
+                            content=[FunctionExecutionResult(content="happy", call_id=response1.content[0].id, is_error=False, name="sentiment_analysis")]
                         ),
                     ],
                 )
