@@ -318,10 +318,6 @@ def args_base_model_from_signature(name: str, sig: inspect.Signature) -> Type[Ba
         description = type2description(param_name, param.annotation)
         default_value = param.default if param.default is not inspect.Parameter.empty else PydanticUndefined
 
-        # For BaseModel types, preserve the type directly
-        if inspect.isclass(type) and issubclass(type, BaseModel):
-            fields[param_name] = (type, Field(default=default_value, description=description))
-        else:
-            fields[param_name] = (type, Field(default=default_value, description=description))
+        fields[param_name] = (type, Field(default=default_value, description=description))
 
     return cast(BaseModel, create_model(name, **fields))  # type: ignore

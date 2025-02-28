@@ -1,6 +1,5 @@
 import asyncio
 import functools
-import inspect
 import warnings
 from textwrap import dedent
 from typing import Any, Callable, Sequence
@@ -96,23 +95,19 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
     ) -> None:
         self._func = func
         self._global_imports = global_imports
-        signature = get_typed_signature(func)
+        self._signature = get_typed_signature(func)
         func_name = name or func.func.__name__ if isinstance(func, functools.partial) else name or func.__name__
-        args_model = args_base_model_from_signature(func_name + "args", signature)
-        return_type = signature.return_annotation
-        self._has_cancellation_support = "cancellation_token" in signature.parameters
+        args_model = args_base_model_from_signature(func_name + "args", self._signature)
+        self._has_cancellation_support = "cancellation_token" in self._signature.parameters
+        return_type = self._signature.return_annotation
         super().__init__(args_model, return_type, func_name, description, strict)
 
     async def run(self, args: BaseModel, cancellation_token: CancellationToken) -> Any:
-        # Get the function signature to know what types we expect
-        sig = inspect.signature(self._func)
         kwargs = {}
 
-        # Get values directly from args, preserving all types
-        for name in sig.parameters.keys():
+        for name in self._signature.parameters.keys():
             if hasattr(args, name):
                 kwargs[name] = getattr(args, name)
-            # Could add: else if parameter is required: raise error
 
         if asyncio.iscoroutinefunction(self._func):
             if self._has_cancellation_support:
