@@ -269,7 +269,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         validate_model_info(self._model_info)
         self._total_prompt_tokens = 0
         self._total_completion_tokens = 0
-        self._tools_plugin: Optional[KernelPlugin] = None
+        self._tools_plugin: KernelPlugin = KernelPlugin(name="autogen_tools")
 
     def _convert_to_chat_history(self, messages: Sequence[LLMMessage]) -> ChatHistory:
         """Convert Autogen LLMMessages to SK ChatHistory"""
@@ -294,7 +294,6 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                         chat_history.add_assistant_message(msg.thought)
 
                     function_call_contents: list[FunctionCallContent] = []
-                    assert self._tools_plugin is not None
                     for fc in msg.content:
                         function_call_contents.append(
                             FunctionCallContent(
@@ -318,7 +317,6 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             elif msg.type == "FunctionExecutionResultMessage":
                 # Add each function result as a separate tool message
                 tool_results: list[FunctionResultContent] = []
-                assert self._tools_plugin is not None
                 for result in msg.content:
                     tool_results.append(
                         FunctionResultContent(
@@ -361,11 +359,6 @@ class SKChatCompletionAdapter(ChatCompletionClient):
 
     def _sync_tools_with_kernel(self, kernel: Kernel, tools: Sequence[Tool | ToolSchema]) -> None:
         """Sync tools with kernel by updating the plugin"""
-        # Create new plugin if none exists
-        if not self._tools_plugin:
-            self._tools_plugin = KernelPlugin(name="autogen_tools")
-            kernel.add_plugin(self._tools_plugin)
-
         # Get current tool names in plugin
         current_tool_names = set(self._tools_plugin.functions.keys())
 
