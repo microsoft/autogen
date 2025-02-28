@@ -17,7 +17,13 @@ from autogen_core.tools import BaseTool, Tool, ToolSchema
 from semantic_kernel.connectors.ai.chat_completion_client_base import ChatCompletionClientBase
 from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
 from semantic_kernel.connectors.ai.prompt_execution_settings import PromptExecutionSettings
-from semantic_kernel.contents import ChatHistory, ChatMessageContent, FinishReason, FunctionCallContent, FunctionResultContent
+from semantic_kernel.contents import (
+    ChatHistory,
+    ChatMessageContent,
+    FinishReason,
+    FunctionCallContent,
+    FunctionResultContent,
+)
 from semantic_kernel.functions.kernel_plugin import KernelPlugin
 from semantic_kernel.kernel import Kernel
 from typing_extensions import AsyncGenerator, Union
@@ -282,15 +288,13 @@ class SKChatCompletionAdapter(ChatCompletionClient):
 
             elif msg.type == "AssistantMessage":
                 # Check if it's a function-call style message
-                if (
-                    isinstance(msg.content, list)
-                    and all(isinstance(fc, FunctionCall) for fc in msg.content)
-                ):
+                if isinstance(msg.content, list) and all(isinstance(fc, FunctionCall) for fc in msg.content):
                     # If there's a 'thought' field, you can add that as plain assistant text
                     if msg.thought:
                         chat_history.add_assistant_message(msg.thought)
 
-                    function_call_contents = []
+                    function_call_contents: list[FunctionCallContent] = []
+                    assert self._tools_plugin is not None
                     for fc in msg.content:
                         function_call_contents.append(
                             FunctionCallContent(
@@ -313,7 +317,8 @@ class SKChatCompletionAdapter(ChatCompletionClient):
 
             elif msg.type == "FunctionExecutionResultMessage":
                 # Add each function result as a separate tool message
-                tool_results = []
+                tool_results: list[FunctionResultContent] = []
+                assert self._tools_plugin is not None
                 for result in msg.content:
                     tool_results.append(
                         FunctionResultContent(
@@ -467,8 +472,6 @@ class SKChatCompletionAdapter(ChatCompletionClient):
 
         self._total_prompt_tokens += prompt_tokens
         self._total_completion_tokens += completion_tokens
-
-        
 
         # Process content based on whether there are tool calls
         content: Union[str, list[FunctionCall]]

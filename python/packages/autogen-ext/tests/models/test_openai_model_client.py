@@ -1456,7 +1456,11 @@ async def test_openai_structured_output_with_streaming_tool_calls() -> None:
             UserMessage(content="I am happy.", source="user"),
             AssistantMessage(content=create_result1.content, source="assistant"),
             FunctionExecutionResultMessage(
-                content=[FunctionExecutionResult(content="happy", call_id=create_result1.content[0].id, is_error=False)]
+                content=[
+                    FunctionExecutionResult(
+                        content="happy", call_id=create_result1.content[0].id, is_error=False, name=tool.name
+                    )
+                ]
             ),
         ],
     )
