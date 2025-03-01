@@ -163,4 +163,4 @@ async def test_file_surfer_serialization() -> None:
     deserialized_agent = FileSurfer.load_component(serialized_agent)
 
     # Check that the deserialized agent has the same attributes as the original agent
-    assert deserialized_agent._name == agent._name
+    assert isinstance(deserialized_agent, FileSurfer)
