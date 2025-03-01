@@ -67,4 +67,6 @@ python/autogen_ext.cache_store.diskcache
 python/autogen_ext.cache_store.redis
 python/autogen_ext.runtimes.grpc
 python/autogen_ext.auth.azure
+python/autogen_ext.experimental.task_centric_memory
+python/autogen_ext.experimental.task_centric_memory.utils
 ```
