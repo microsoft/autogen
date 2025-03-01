@@ -84,14 +84,16 @@ class EnvironmentVariable(BaseModel):
     description: Optional[str] = None
     required: bool = False
 
+
 class UISettings(BaseModel):
     show_llm_call_events: bool = False
     expanded_messages_by_default: bool = True
     show_agent_flow_by_default: bool = True
 
+
 class SettingsConfig(BaseModel):
     environment: List[EnvironmentVariable] = []
-    default_model_client: Optional[ComponentModel] = OpenAIChatCompletionClient(model="gpt-4o-mini").dump_component()  
+    default_model_client: Optional[ComponentModel] = OpenAIChatCompletionClient(model="gpt-4o-mini").dump_component()
     ui: UISettings = UISettings()
 
 
