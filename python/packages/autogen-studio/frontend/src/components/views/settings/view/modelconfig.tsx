@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Button, Tooltip, Drawer } from "antd";
-import { Settings } from "lucide-react";
+import { Edit2, Settings } from "lucide-react";
 import { truncateText } from "../../../utils";
 import {
   Component,
@@ -43,11 +43,11 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
           <Tooltip title="Edit Default Model Settings">
             <Button
               type="primary"
-              icon={<Settings className="w-4 h-4 mr-1" />}
+              icon={<Edit2 className="w-4 h-4 mr-1" />}
               onClick={handleOpenModelEditor}
               className="flex items-center"
             >
-              Configure Model
+              Edit Model
             </Button>
           </Tooltip>
         </div>
@@ -59,17 +59,17 @@ export const ModelConfigPanel: React.FC<ModelConfigPanelProps> = ({
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-sm font-medium text-primary">Model</p>
+              <p className="text-sm">
+                {modelComponent.label || "" || "Not set"}
+              </p>
               <p className="text-base">
                 {modelComponent.config?.model || "Not set"}
-              </p>
-              <p className="text-sm">
-                {truncateText(modelComponent.label || "", 20) || "Not set"}
               </p>
             </div>
             <div>
               <p className="text-sm font-medium text-primary">Model Provider</p>
-              <p className="text-base">
-                {truncateText(modelComponent.provider || "", 20) || "Not set"}
+              <p className="  break-all text-sm">
+                {modelComponent.provider || "Not set"}
               </p>
             </div>
             {modelComponent.config?.temperature && (
