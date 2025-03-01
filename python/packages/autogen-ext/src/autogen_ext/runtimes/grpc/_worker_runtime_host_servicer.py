@@ -296,10 +296,16 @@ class GrpcWorkerAgentRuntimeHostServicer(agent_worker_pb2_grpc.AgentRpcServicer)
         async with self._agent_type_to_client_id_lock:
             if request.type in self._agent_type_to_client_id:
                 existing_client_id = self._agent_type_to_client_id[request.type]
-                await context.abort(
-                    grpc.StatusCode.INVALID_ARGUMENT,
-                    f"Agent type {request.type} already registered with client {existing_client_id}.",
-                )
+
+                # If the client_id is the same, we presume that the client is reconnecting.
+                # TODO: Is there some way to make the check more precise?
+                if (existing_client_id != client_id):
+                    await context.abort(
+                        grpc.StatusCode.INVALID_ARGUMENT,
+                        f"Agent type {request.type} already registered with client {existing_client_id} (vs new runtime client {client_id}).",
+                    )
+                else:
+                    logger.info(f"Agent type {request.type} re-registered with matching client {client_id}.")
             else:
                 self._agent_type_to_client_id[request.type] = client_id
 

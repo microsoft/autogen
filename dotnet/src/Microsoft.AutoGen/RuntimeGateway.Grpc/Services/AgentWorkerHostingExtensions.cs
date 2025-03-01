@@ -6,13 +6,31 @@ using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
 public static class AgentWorkerHostingExtensions
 {
-    public static WebApplicationBuilder AddAgentService(this WebApplicationBuilder builder)
+    /// <summary>
+    /// Adds the Agent Runtime Gateway Service to the web application.
+    /// </summary>
+    /// <param name="builder">The builder for the application.</param>
+    /// <param name="supportAgentTypeMultiplexing">
+    /// Whether the gateway should be configured to support multiple runtime clients registering a new agent. The behaviour
+    /// defaults to <c>false</c> which is consistent with the Python Agent Runtime Gateway. This flag should be thought of
+    /// as experimental and possibly obsolete capability.
+    /// </param>
+    /// <returns>The builder for the application</returns>
+    public static WebApplicationBuilder AddAgentService(this WebApplicationBuilder builder, bool supportAgentTypeMultiplexing = false)
     {
         builder.AddOrleans();
+
+        OptionsBuilder<GrpcGatewayOptions> optionsBuilder = builder.Services.AddOptions<GrpcGatewayOptions>();
+
+        if (supportAgentTypeMultiplexing)
+        {
+            optionsBuilder.Configure(options => options.SupportAgentTypeMultiplexing = supportAgentTypeMultiplexing );
+        }
 
         builder.Services.TryAddSingleton(DistributedContextPropagator.Current);
 
