@@ -25,9 +25,9 @@ class SocietyOfMindAgentConfig(BaseModel):
     name: str
     team: ComponentModel
     model_client: ComponentModel
-    description: str
-    instruction: str
-    response_prompt: str
+    description: str | None = None
+    instruction: str | None = None
+    response_prompt: str | None = None
 
 
 class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
@@ -103,13 +103,16 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
     """str: The default response prompt to use when generating a response using
     the inner team's messages. It assumes the role of 'system'."""
 
+    DEFAULT_DESCRIPTION = "An agent that uses an inner team of agents to generate responses."
+    """str: The default description for a SocietyOfMindAgent."""
+
     def __init__(
         self,
         name: str,
         team: Team,
         model_client: ChatCompletionClient,
         *,
-        description: str = "An agent that uses an inner team of agents to generate responses.",
+        description: str = DEFAULT_DESCRIPTION,
         instruction: str = DEFAULT_INSTRUCTION,
         response_prompt: str = DEFAULT_RESPONSE_PROMPT,
     ) -> None:
@@ -212,7 +215,7 @@ class SocietyOfMindAgent(BaseChatAgent, Component[SocietyOfMindAgentConfig]):
             name=config.name,
             team=team,
             model_client=model_client,
-            description=config.description,
-            instruction=config.instruction,
-            response_prompt=config.response_prompt,
+            description=config.description or cls.DEFAULT_DESCRIPTION,
+            instruction=config.instruction or cls.DEFAULT_INSTRUCTION,
+            response_prompt=config.response_prompt or cls.DEFAULT_RESPONSE_PROMPT,
         )
