@@ -5,7 +5,8 @@ from typing import Any, Dict, List, Literal, Optional
 from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import BaseChatMessage
 from autogen_core import ComponentModel
-from pydantic import BaseModel, ConfigDict, Field
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from pydantic import BaseModel, ConfigDict
 
 
 class MessageConfig(BaseModel):
@@ -84,8 +85,16 @@ class EnvironmentVariable(BaseModel):
     required: bool = False
 
 
+class UISettings(BaseModel):
+    show_llm_call_events: bool = False
+    expanded_messages_by_default: bool = True
+    show_agent_flow_by_default: bool = True
+
+
 class SettingsConfig(BaseModel):
     environment: List[EnvironmentVariable] = []
+    default_model_client: Optional[ComponentModel] = OpenAIChatCompletionClient(model="gpt-4o-mini").dump_component()
+    ui: UISettings = UISettings()
 
 
 # web request/response data models
