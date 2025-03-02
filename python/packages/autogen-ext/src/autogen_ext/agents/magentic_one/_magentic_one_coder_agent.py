@@ -1,4 +1,5 @@
 from autogen_agentchat.agents import AssistantAgent
+from autogen_core.model_context import ChatCompletionContext
 from autogen_core.models import (
     ChatCompletionClient,
 )
@@ -27,10 +28,13 @@ class MagenticOneCoderAgent(AssistantAgent):
         self,
         name: str,
         model_client: ChatCompletionClient,
+        *,
+        model_context: ChatCompletionContext | None = None,
     ):
         super().__init__(
             name,
             model_client,
             description=MAGENTIC_ONE_CODER_DESCRIPTION,
             system_message=MAGENTIC_ONE_CODER_SYSTEM_MESSAGE,
+            model_context=model_context,
         )

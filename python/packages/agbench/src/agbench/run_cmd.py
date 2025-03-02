@@ -621,7 +621,7 @@ echo RUN.SH COMPLETE !#!#
         auto_remove=True,
         # Type hint of docker is wrong here
         volumes=volumes,  # type: ignore
-        network="host", # Use the host network to avoid issues with localhost.
+        network="host",  # Use the host network to avoid issues with localhost.
     )
 
     # Read the logs in a streaming fashion. Keep an eye on the time to make sure we don't need to stop.

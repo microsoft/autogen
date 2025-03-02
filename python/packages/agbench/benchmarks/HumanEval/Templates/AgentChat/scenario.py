@@ -5,9 +5,11 @@ from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_agentchat.ui import Console
 from autogen_core.models import ModelFamily
+from autogen_core.model_context import UnboundedChatCompletionContext, ChatCompletionContext
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_agentchat.conditions import TextMentionTermination
 from custom_code_executor import CustomCodeExecutorAgent
+from reasoning_model_context import ReasoningModelContext
 from autogen_core.models import ChatCompletionClient
 
 async def main() -> None:
@@ -17,10 +19,18 @@ async def main() -> None:
         config = yaml.safe_load(f)
     model_client = ChatCompletionClient.load_component(config["model_config"])
 
+    # Model context
+    model_context : ChatCompletionContext
+    if model_client.model_info["family"] == ModelFamily.R1:
+        model_context = ReasoningModelContext()
+    else:
+        model_context = UnboundedChatCompletionContext()
+
     # Coder
     coder_agent = MagenticOneCoderAgent(
         name="coder",
         model_client=model_client,
+        model_context=model_context,
     )
 
     # Executor
