@@ -164,8 +164,6 @@ const LLMLogRenderer: React.FC<LLMLogRendererProps> = ({ content }) => {
   const totalTokens = response.usage.total_tokens;
   const shortAgentId = agent_id ? `${agent_id.split("/")[0]}` : "";
 
-  console.log("log event full", content);
-
   return (
     <>
       <div className="flex items-center gap-2 py-2   bg-secondary/20 rounded-lg text-sm text-secondary hover:text-primary transition-colors group">
