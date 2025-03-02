@@ -445,7 +445,7 @@ class TextMessageTerminationConfig(BaseModel):
 
 
 class TextMessageTermination(TerminationCondition, Component[TextMessageTerminationConfig]):
-    """Terminate the conversation if a TextMessage is received."""
+    """Terminate the conversation if a :class:`~autogen_agentchat.messages.TextMessage` is received."""
 
     component_config_schema = TextMessageTerminationConfig
     component_provider_override = "autogen_agentchat.conditions.TextMessageTermination"
