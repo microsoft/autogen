@@ -160,22 +160,28 @@ def default_tabulate(
         # Collect the results vector
         results: Dict[str, Any] = {"Task Id": task_id}
 
-        instance = 0
-        instance_dir = os.path.join(task_path, str(instance))
-        while os.path.isdir(instance_dir):
+        # Collect the results for each instance.
+        instance_dirs = sorted(
+            os.listdir(task_path),
+            key=lambda s: os.path.getmtime(os.path.join(task_path, s)),
+        )
+        instances = [int(d) for d in instance_dirs if d.isdigit()]
+
+        for instance in instances:
+            instance_dir = os.path.join(task_path, str(instance))
             results[f"Trial {instance} Success"] = scorer(instance_dir)
             results[f"Trial {instance} Time"] = timer(instance_dir)
-            instance += 1
-            instance_dir = os.path.join(task_path, str(instance))
 
-        max_instances = max(max_instances, instance)
+        max_instances = max(instances)
 
         # Buffer the results
         all_results.append(results)
 
+    num_instances = max_instances + 1
+
     # Pad the results to max_instances
     for result in all_results:
-        for i in range(max_instances):
+        for i in range(num_instances):
             if f"Trial {i} Success" not in result:
                 result[f"Trial {i} Success"] = None
             if f"Trial {i} Time" not in result:
@@ -193,40 +199,57 @@ def default_tabulate(
         # Tabulate the results.
         print(tb.tabulate(df, headers="keys", tablefmt="simple"))  # type: ignore
 
-        # Print summary statistics.
+        # Aggregate statistics for all tasks for each trials.
         print("\nSummary Statistics\n")
-        score_columns = ["Trial " + str(i) + " Success" for i in range(max_instances)]
+        score_columns = ["Trial " + str(i) + " Success" for i in range(num_instances)]
         # Count the number of successes when the value is True.
-        successes = df[score_columns].apply(lambda x: x == True).sum(axis=0) # type: ignore
+        successes = df[score_columns].apply(lambda x: x == True).sum(axis=0)  # type: ignore
         # Count the number of failures when the value is False.
-        failures: pd.Series = df[score_columns].apply(lambda x: x == False).sum(axis=0) # type: ignore
+        failures: pd.Series = df[score_columns].apply(lambda x: x == False).sum(axis=0)  # type: ignore
         # Count the number of missing
-        missings = df[score_columns].isna().sum(axis=0) # type: ignore
+        missings = df[score_columns].isna().sum(axis=0)  # type: ignore
         # Count the total number of instances
-        totals = successes + failures + missings # type: ignore
+        totals = successes + failures + missings  # type: ignore
         # Calculate the average success rates
-        avg_success_rates = successes / totals # type: ignore
-        time_columns = ["Trial " + str(i) + " Time" for i in range(max_instances)] # type: ignore
+        avg_success_rates = successes / (successes + failures)  # type: ignore
+        time_columns = ["Trial " + str(i) + " Time" for i in range(num_instances)]  # type: ignore
         # Count the total time of non-null values
-        total_times = df[time_columns].sum(axis=0, skipna=True) # type: ignore
+        total_times = df[time_columns].sum(axis=0, skipna=True)  # type: ignore
         # Calculate the average time of non-null values
-        avg_times = df[time_columns].mean(axis=0, skipna=True) # type: ignore
+        avg_times = df[time_columns].mean(axis=0, skipna=True)  # type: ignore
 
-        # Create a summary dataframe
-        summary_df = pd.DataFrame(
+        # Create a per-trial summary dataframe
+        trial_df = pd.DataFrame(
             {
                 "Successes": list(successes),  # type: ignore
-                "Failures": list(failures), # type: ignore
-                "Missing": list(missings), # type: ignore
-                "Total": list(totals), # type: ignore
-                "Average Success Rate": list(avg_success_rates), # type: ignore
-                "Average Time": list(avg_times), # type: ignore
-                "Total Time": list(total_times), # type: ignore 
+                "Failures": list(failures),  # type: ignore
+                "Missing": list(missings),  # type: ignore
+                "Total": list(totals),  # type: ignore
+                "Average Success Rate": list(avg_success_rates),  # type: ignore
+                "Average Time": list(avg_times),  # type: ignore
+                "Total Time": list(total_times),  # type: ignore
             },
-            index=[f"Trial {i}" for i in range(max_instances)],
+            index=[f"Trial {i}" for i in range(num_instances)],
         )
-        # Print out the summary dataframe.
-        print(tb.tabulate(summary_df, headers="keys", tablefmt="simple"))  # type: ignore
+        # Print out the per-trial summary dataframe.
+        print(tb.tabulate(trial_df, headers="keys", tablefmt="simple"))  # type: ignore
+
+        # Aggregate statistics across tasks for all trials.
+        # At least one success for each trial, averaged across tasks.
+        average_at_least_one_success = df[score_columns].any(axis=1).mean(skipna=True) # type: ignore
+        # All successes for each trial
+        average_all_successes = df[score_columns].all(axis=1).mean(skipna=True) # type: ignore
+
+        # Create a dataframe
+        trial_aggregated_df = pd.DataFrame(
+            {
+                "At Least One Success": [average_at_least_one_success],  # type: ignore
+                "All Successes": [average_all_successes],  # type: ignore
+            },
+            index=["Trial Aggregated"],
+        )
+        # Print out the trial-aggregated dataframe.
+        print(tb.tabulate(trial_aggregated_df, headers="keys", tablefmt="simple"))  # type: ignore
 
         # Print out alpha-version warning
         sys.stderr.write("\n" + warning + "\n\n")
