@@ -34,9 +34,6 @@ class Grader:
         self.logger = logger
         self.client = client
 
-        # Check whether to report results to the client.
-        self.report_results = hasattr(self.client, "report_result")
-
         # Create the chat history
         self._chat_history: List[LLMMessage] = []
 

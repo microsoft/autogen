@@ -2,7 +2,7 @@ import inspect
 import json
 import os
 import shutil
-from typing import Dict, List, Optional, Sequence, TypedDict
+from typing import Any, Dict, List, Mapping, Optional, Sequence, TypedDict
 
 from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import AgentEvent, ChatMessage
@@ -97,6 +97,8 @@ class PageLogger:
 
     def __del__(self) -> None:
         # Writes a hash of the log directory to a file for change detection.
+        if self.level >= self.levels["NONE"]:
+            return
 
         # Do nothing if the app is being forced to exit early.
         if self.page_stack.size() > 0:
@@ -272,6 +274,21 @@ class PageLogger:
         page = self._add_page(summary=summary, show_in_call_tree=False)
         self.page_stack.write_stack_to_page(page)
         page.add_lines(self._format_message_content(message_content=message_content))
+        page.flush()
+
+    def log_dict_list(self, content: List[Mapping[str, Any]], summary: str) -> None:
+        """
+        Adds a page containing a list of dicts.
+        """
+        if self.level > self.levels["INFO"]:
+            return None
+        page = self._add_page(summary=summary, show_in_call_tree=False)
+        self.page_stack.write_stack_to_page(page)
+
+        for item in content:
+            json_str = json.dumps(item, indent=4)
+            page.add_lines(json_str)
+
         page.flush()
 
     def _log_model_messages(
