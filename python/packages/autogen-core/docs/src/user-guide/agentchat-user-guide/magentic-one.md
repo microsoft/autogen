@@ -38,7 +38,7 @@ Be aware that agents may occasionally attempt risky actions, such as recruiting 
 Install the required packages:
 
 ```bash
-pip install autogen-agentchat autogen-ext[magentic-one,openai]
+pip install "autogen-agentchat" "autogen-ext[magentic-one,openai]"
 
 # If using the MultimodalWebSurfer, you also need to install playwright dependencies:
 playwright install --with-deps chromium
