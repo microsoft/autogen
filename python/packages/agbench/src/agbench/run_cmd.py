@@ -426,13 +426,17 @@ fi
 # Run the scenario
 pip install -r requirements.txt
 echo SCENARIO.PY STARTING !#!#
+start_time=$(date +%s)
 timeout --preserve-status --kill-after {timeout  + 30}s {timeout}s python scenario.py
+end_time=$(date +%s)
 EXIT_CODE=$?
 if [ $EXIT_CODE -ne 0 ]; then
     echo SCENARIO.PY EXITED WITH CODE: $EXIT_CODE !#!#
 else
     echo SCENARIO.PY COMPLETE !#!#
 fi
+elapsed_time=$((end_time - start_time))
+echo "SCENARIO.PY RUNTIME: $elapsed_time !#!#"
 
 # Clean up
 if [ -d .cache ] ; then
@@ -543,13 +547,17 @@ fi
 # Run the scenario
 pip install -r requirements.txt
 echo SCENARIO.PY STARTING !#!#
+start_time=$(date +%s)
 timeout --preserve-status --kill-after {timeout  + 30}s {timeout}s python scenario.py
+end_time=$(date +%s)
 EXIT_CODE=$?
 if [ $EXIT_CODE -ne 0 ]; then
     echo SCENARIO.PY EXITED WITH CODE: $EXIT_CODE !#!#
 else
     echo SCENARIO.PY COMPLETE !#!#
 fi
+elapsed_time=$((end_time - start_time))
+echo "SCENARIO.PY RUNTIME: $elapsed_time !#!#"
 
 # Clean up
 if [ -d .cache ] ; then
