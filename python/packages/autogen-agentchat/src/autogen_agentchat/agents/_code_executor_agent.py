@@ -42,7 +42,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         The code executor only processes code that is properly formatted in markdown code blocks using triple backticks.
         For example:
 
-        .. code-block:: python
+        .. code-block:: text
 
             ```python
             print("Hello World")
