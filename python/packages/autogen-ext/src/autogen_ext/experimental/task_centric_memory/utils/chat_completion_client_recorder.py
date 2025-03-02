@@ -44,24 +44,6 @@ class ChatCompletionClientRecorder(ChatCompletionClient):
     without recording anything or checking the messages sent to the client.
     - ChatCompletionCache caches responses and replays them for messages that have been seen before,
     regardless of order, and calls the base client for any uncached messages.
-
-    Examples:
-
-    # Recording a session.
-
-        .. code-block:: python
-
-            client = ChatCompletionClientRecorder(base_client, "record", "./session1.json")
-            response = await client.create(messages)  # Call the client any number of times.
-            client.finalize()  # Save the recorded session to disk.
-
-    # Replaying and checking against a recorded session.
-
-        .. code-block:: python
-
-            client = ChatCompletionClientRecorder(base_client, "replay", "./session1.json")
-            response = await client.create(messages)  # Call the client any number of times.
-            client.finalize()  # Ensure all the recorded turns were checked.
     """
 
     def __init__(
