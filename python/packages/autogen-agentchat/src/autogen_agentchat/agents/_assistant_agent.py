@@ -1078,6 +1078,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     content=result_as_str,
                     call_id=tool_call.id,
                     is_error=False,
+                    name=tool_call.name,
                 ),
             )
         except Exception as e:
@@ -1087,6 +1088,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                     content=f"Error: {e}",
                     call_id=tool_call.id,
                     is_error=True,
+                    name=tool_call.name,
                 ),
             )
 

@@ -63,7 +63,9 @@ async def tool_agent_caller_loop(
                 function_results.append(result)
             elif isinstance(result, ToolException):
                 function_results.append(
-                    FunctionExecutionResult(content=f"Error: {result}", call_id=result.call_id, is_error=True)
+                    FunctionExecutionResult(
+                        content=f"Error: {result}", call_id=result.call_id, is_error=True, name=result.name
+                    )
                 )
             elif isinstance(result, BaseException):
                 raise result  # Unexpected exception.
