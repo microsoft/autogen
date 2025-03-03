@@ -445,7 +445,17 @@ class TextMessageTerminationConfig(BaseModel):
 
 
 class TextMessageTermination(TerminationCondition, Component[TextMessageTerminationConfig]):
-    """Terminate the conversation if a TextMessage is received."""
+    """Terminate the conversation when a TextMessage is received.
+
+    This termination condition checks for TextMessage instances in the message sequence. When a TextMessage is found,
+    it terminates the conversation if either:
+    - No source was specified (terminates on any TextMessage)
+    - The message source matches the specified source
+
+    Args:
+        source (str | None, optional): The source name to match against incoming messages. If None, matches any source.
+            Defaults to None.
+    """
 
     component_config_schema = TextMessageTerminationConfig
     component_provider_override = "autogen_agentchat.conditions.TextMessageTermination"
