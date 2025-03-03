@@ -32,7 +32,9 @@ html[data-theme="dark"] {
   color: white;
   text-shadow: 0.5px 0 0 currentColor;
 }
-
+nav.bd-links .current>a  {
+  box-shadow: inset 1px 0 0 var(--pst-color-primary);
+}
 @media (forced-colors: active) {
   /* Top breadcrumbs navigation (ie: Home > Core > ...) */
   .bd-breadcrumbs .breadcrumb-item > a:focus-visible{
