@@ -694,7 +694,6 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
 
                 # set the stop_reason for the usage chunk to the prior stop_reason
                 stop_reason = chunk.done_reason if chunk.done and stop_reason is None else stop_reason
-                maybe_model = chunk.model
                 # First try get content
                 if chunk.message.content is not None:
                     content_chunks.append(chunk.message.content)
@@ -851,6 +850,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
     @property
     def model_info(self) -> ModelInfo:
         return self._model_info
+
 
 # TODO: see if response_format can just be a json blob instead of a BaseModel
 class OllamaChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseOllamaClientConfigurationConfigModel]):

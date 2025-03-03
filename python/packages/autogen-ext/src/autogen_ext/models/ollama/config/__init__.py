@@ -1,9 +1,9 @@
 from typing import Any, Mapping, Optional, Union
 
 from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
+from ollama import Options
 from pydantic import BaseModel
 from typing_extensions import TypedDict
-from ollama import Options
 
 
 # response_format MUST be a pydantic.BaseModel type or None
