@@ -37,6 +37,23 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         It is recommended that the `CodeExecutorAgent` agent uses a Docker container to execute code. This ensures that model-generated code is executed in an isolated environment. To use Docker, your environment must have Docker installed and running.
         Follow the installation instructions for `Docker <https://docs.docker.com/get-docker/>`_.
 
+    .. note::
+
+        The code executor only processes code that is properly formatted in markdown code blocks using triple backticks.
+        For example:
+
+        .. code-block:: text
+
+            ```python
+            print("Hello World")
+            ```
+
+            # or
+
+            ```sh
+            echo "Hello World"
+            ```
+
     In this example, we show how to set up a `CodeExecutorAgent` agent that uses the
     :py:class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor`
     to execute code snippets in a Docker container. The `work_dir` parameter indicates where all executed files are first saved locally before being executed in the Docker container.
