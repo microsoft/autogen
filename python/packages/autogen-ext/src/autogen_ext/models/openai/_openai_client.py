@@ -1112,6 +1112,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             "this is content" becomes "Reviewer said: this is content."
             This can be useful for models that do not support the `name` field in
             message. Defaults to False.
+        stream_options (optional, dict): Additional options for streaming. Currently only `include_usage` is supported.
 
     Examples:
 
