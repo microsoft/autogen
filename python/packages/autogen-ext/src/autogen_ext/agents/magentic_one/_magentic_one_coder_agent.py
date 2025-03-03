@@ -1,3 +1,5 @@
+from typing import Any
+
 from autogen_agentchat.agents import AssistantAgent
 from autogen_core.models import (
     ChatCompletionClient,
@@ -23,10 +25,13 @@ class MagenticOneCoderAgent(AssistantAgent):
     The prompts and description are sealed, to replicate the original MagenticOne configuration. See AssistantAgent if you wish to modify these values.
     """
 
+    component_provider_override = "autogen_ext.agents.magentic_one.MagenticOneCoderAgent"
+
     def __init__(
         self,
         name: str,
         model_client: ChatCompletionClient,
+        **kwargs: Any,
     ):
         super().__init__(
             name,

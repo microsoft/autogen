@@ -270,7 +270,7 @@ class DatabaseManager:
                     )
 
             # Store in database
-            team_db = Team(user_id=user_id, config=config)
+            team_db = Team(user_id=user_id, component=config)
 
             result = self.upsert(team_db)
             return result
@@ -326,7 +326,7 @@ class DatabaseManager:
         teams = self.get(Team, {"user_id": user_id}).data
 
         for team in teams:
-            if team.config == config:
+            if team.component == config:
                 return team
 
         return None
