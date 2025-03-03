@@ -474,7 +474,7 @@ class TextMessageTermination(TerminationCondition, Component[TextMessageTerminat
         for message in messages:
             if isinstance(message, TextMessage) and (self._source is None or message.source == self._source):
                 self._terminated = True
-                return StopMessage(content="Stop message received", source="TextMessageTermination")
+                return StopMessage(content=f"Text message received from '{message.source}'", source="TextMessageTermination")
         return None
 
     async def reset(self) -> None:
