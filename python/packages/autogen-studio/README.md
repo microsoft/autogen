@@ -39,6 +39,14 @@ pip install -U autogenstudio
 
 _Note: This approach requires some familiarity with building interfaces in React._
 
+> Note: The AutoGen repo uses git-lfs. please ensure you have install git lfs and then run `git lfs checkout` in the repo to load all image files and any other large file.
+
+```
+apt-get install git-lfs
+git lfs fetch --all
+git lfs checkout # this command downloads all missing image files to the working dir
+```
+
 You have two options for installing from source: manually or using a dev container.
 
 #### A) Install from source manually
