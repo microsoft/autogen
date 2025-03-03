@@ -1172,8 +1172,8 @@ async def test_swarm_with_parallel_tool_calls(monkeypatch: pytest.MonkeyPatch) -
         ),
         FunctionExecutionResultMessage(
             content=[
-                FunctionExecutionResult(content="tool1", call_id="1", is_error=False),
-                FunctionExecutionResult(content="tool2", call_id="2", is_error=False),
+                FunctionExecutionResult(content="tool1", call_id="1", is_error=False, name="tool1"),
+                FunctionExecutionResult(content="tool2", call_id="2", is_error=False, name="tool2"),
             ]
         ),
     ]
