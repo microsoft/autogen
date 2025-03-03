@@ -7,7 +7,8 @@ from uuid import UUID, uuid4
 
 from autogen_core import ComponentModel
 from pydantic import ConfigDict
-from sqlalchemy import ForeignKey, Integer
+from sqlalchemy import UUID as SQLAlchemyUUID
+from sqlalchemy import ForeignKey, Integer, String
 from sqlmodel import JSON, Column, DateTime, Field, SQLModel, func
 
 from .types import GalleryConfig, MessageConfig, MessageMeta, SettingsConfig, TeamResult
@@ -46,7 +47,9 @@ class Message(SQLModel, table=True):
     session_id: Optional[int] = Field(
         default=None, sa_column=Column(Integer, ForeignKey("session.id", ondelete="CASCADE"))
     )
-    run_id: Optional[UUID] = Field(default=None, foreign_key="run.id")
+    run_id: Optional[UUID] = Field(
+        default=None, sa_column=Column(SQLAlchemyUUID, ForeignKey("run.id", ondelete="CASCADE"))
+    )
 
     message_meta: Optional[Union[MessageMeta, dict]] = Field(default={}, sa_column=Column(JSON))
 
@@ -81,7 +84,7 @@ class Run(SQLModel, table=True):
 
     __table_args__ = {"sqlite_autoincrement": True}
 
-    id: UUID = Field(default_factory=uuid4, primary_key=True, index=True)
+    id: UUID = Field(default_factory=uuid4, sa_column=Column(SQLAlchemyUUID, primary_key=True, index=True, unique=True))
     created_at: datetime = Field(
         default_factory=datetime.now, sa_column=Column(DateTime(timezone=True), server_default=func.now())
     )
