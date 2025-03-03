@@ -440,6 +440,7 @@ class SourceMatchTermination(TerminationCondition, Component[SourceMatchTerminat
 
 class TextMessageTerminationConfig(BaseModel):
     """Configuration for the TextMessageTermination termination condition."""
+
     source: str | None = None
     """The source of the text message to terminate the conversation."""
 
@@ -474,7 +475,9 @@ class TextMessageTermination(TerminationCondition, Component[TextMessageTerminat
         for message in messages:
             if isinstance(message, TextMessage) and (self._source is None or message.source == self._source):
                 self._terminated = True
-                return StopMessage(content=f"Text message received from '{message.source}'", source="TextMessageTermination")
+                return StopMessage(
+                    content=f"Text message received from '{message.source}'", source="TextMessageTermination"
+                )
         return None
 
     async def reset(self) -> None:
