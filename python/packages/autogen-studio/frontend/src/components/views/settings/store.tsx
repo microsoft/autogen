@@ -1,121 +1,97 @@
-//settings/store.tsx
+// store.tsx
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import { settingsAPI } from "./api";
+import { Settings, UISettings } from "../../types/datamodel";
 
-interface PlaygroundSettings {
-  showLLMEvents: boolean;
-  // Future playground settings
-  expandedMessagesByDefault?: boolean;
-  showAgentFlowByDefault?: boolean;
-}
-
-interface TeamBuilderSettings {
-  // Future teambuilder settings
-  showAdvancedOptions?: boolean;
-  defaultAgentLayout?: "grid" | "list";
-}
-
-interface GallerySettings {
-  // Future gallery settings
-  viewMode?: "grid" | "list";
-  sortBy?: "date" | "popularity";
-}
+// Default UI settings that match the backend defaults
+const DEFAULT_UI_SETTINGS: UISettings = {
+  show_llm_call_events: false,
+  expanded_messages_by_default: false,
+  show_agent_flow_by_default: false,
+};
 
 interface SettingsState {
-  playground: PlaygroundSettings;
-  teamBuilder: TeamBuilderSettings;
-  gallery: GallerySettings;
-  // Actions to update settings
-  updatePlaygroundSettings: (settings: Partial<PlaygroundSettings>) => void;
-  updateTeamBuilderSettings: (settings: Partial<TeamBuilderSettings>) => void;
-  updateGallerySettings: (settings: Partial<GallerySettings>) => void;
-  // Reset functions
-  resetPlaygroundSettings: () => void;
-  resetTeamBuilderSettings: () => void;
-  resetGallerySettings: () => void;
-  resetAllSettings: () => void;
+  // Server-synced settings
+  serverSettings: Settings | null;
+  isLoading: boolean;
+  error: string | null;
+
+  // UI settings - these will be synced with server but kept in local state for performance
+  uiSettings: UISettings;
+
+  // Actions
+  initializeSettings: (userId: string) => Promise<void>;
+  updateUISettings: (settings: Partial<UISettings>) => void; // Simplified to avoid async issues
+  resetUISettings: () => Promise<void>;
 }
 
-const DEFAULT_PLAYGROUND_SETTINGS: PlaygroundSettings = {
-  showLLMEvents: true, // Default to hiding LLM events
-};
-
-const DEFAULT_TEAMBUILDER_SETTINGS: TeamBuilderSettings = {
-  showAdvancedOptions: false,
-  defaultAgentLayout: "grid",
-};
-
-const DEFAULT_GALLERY_SETTINGS: GallerySettings = {
-  viewMode: "grid",
-  sortBy: "date",
+// Helper function to safely access nested properties
+const getUISettings = (settings: Settings | null): UISettings => {
+  if (!settings || !settings.config || !settings.config.ui) {
+    return DEFAULT_UI_SETTINGS;
+  }
+  return settings.config.ui;
 };
 
 export const useSettingsStore = create<SettingsState>()(
   persist(
-    (set) => ({
+    (set, get) => ({
       // Initial state
-      playground: DEFAULT_PLAYGROUND_SETTINGS,
-      teamBuilder: DEFAULT_TEAMBUILDER_SETTINGS,
-      gallery: DEFAULT_GALLERY_SETTINGS,
+      serverSettings: null,
+      isLoading: false,
+      error: null,
+      uiSettings: DEFAULT_UI_SETTINGS,
 
-      // Update functions
-      updatePlaygroundSettings: (settings) =>
-        set((state) => ({
-          playground: { ...state.playground, ...settings },
-        })),
+      // Load settings from server
+      initializeSettings: async (userId: string) => {
+        // Skip if already loading
+        if (get().isLoading) return;
 
-      updateTeamBuilderSettings: (settings) =>
-        set((state) => ({
-          teamBuilder: { ...state.teamBuilder, ...settings },
-        })),
+        try {
+          set({ isLoading: true, error: null });
+          const settings = await settingsAPI.getSettings(userId);
 
-      updateGallerySettings: (settings) =>
-        set((state) => ({
-          gallery: { ...state.gallery, ...settings },
-        })),
+          // Extract UI settings from server response
+          const uiSettings = getUISettings(settings);
 
-      // Reset functions
-      resetPlaygroundSettings: () =>
-        set((state) => ({
-          playground: DEFAULT_PLAYGROUND_SETTINGS,
-        })),
+          set({
+            serverSettings: settings,
+            uiSettings,
+            isLoading: false,
+          });
+        } catch (error) {
+          console.error("Failed to load settings:", error);
+          set({
+            error: "Failed to load settings",
+            isLoading: false,
+            // Use defaults if server fails
+            uiSettings: DEFAULT_UI_SETTINGS,
+          });
+        }
+      },
 
-      resetTeamBuilderSettings: () =>
-        set((state) => ({
-          teamBuilder: DEFAULT_TEAMBUILDER_SETTINGS,
-        })),
+      // Update UI settings locally only
+      // The UISettingsPanel component will handle server syncing
+      updateUISettings: (partialSettings: Partial<UISettings>) => {
+        const { uiSettings } = get();
+        const newUISettings = { ...uiSettings, ...partialSettings };
+        set({ uiSettings: newUISettings });
+      },
 
-      resetGallerySettings: () =>
-        set((state) => ({
-          gallery: DEFAULT_GALLERY_SETTINGS,
-        })),
-
-      resetAllSettings: () =>
-        set({
-          playground: DEFAULT_PLAYGROUND_SETTINGS,
-          teamBuilder: DEFAULT_TEAMBUILDER_SETTINGS,
-          gallery: DEFAULT_GALLERY_SETTINGS,
-        }),
+      // Reset UI settings to defaults - now just resets local state
+      // The UISettingsPanel component will handle actual server resets
+      resetUISettings: async () => {
+        set({ uiSettings: DEFAULT_UI_SETTINGS });
+        return Promise.resolve();
+      },
     }),
     {
-      name: "ags-app-settings",
+      name: "ags-app-settings-0",
       partialize: (state) => ({
-        playground: state.playground,
-        teamBuilder: state.teamBuilder,
-        gallery: state.gallery,
+        // Only persist UI settings locally for performance
+        uiSettings: state.uiSettings,
       }),
     }
   )
 );
-
-// Example usage:
-/*
-import { useSettingsStore } from './stores/settings';
-
-// In a component:
-const { showLLMEvents } = useSettingsStore((state) => state.playground);
-const updatePlaygroundSettings = useSettingsStore((state) => state.updatePlaygroundSettings);
-
-// Toggle LLM events
-updatePlaygroundSettings({ showLLMEvents: !showLLMEvents });
-*/

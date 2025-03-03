@@ -445,7 +445,7 @@ class TextMessageTerminationConfig(BaseModel):
 
 
 class TextMessageTermination(TerminationCondition, Component[TextMessageTerminationConfig]):
-    """Terminate the conversation when a TextMessage is received.
+    """Terminate the conversation if a :class:`~autogen_agentchat.messages.TextMessage` is received.
 
     This termination condition checks for TextMessage instances in the message sequence. When a TextMessage is found,
     it terminates the conversation if either:
