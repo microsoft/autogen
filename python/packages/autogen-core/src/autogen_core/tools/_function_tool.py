@@ -1,6 +1,7 @@
 import asyncio
 import functools
 import warnings
+import typing
 from textwrap import dedent
 from typing import Any, Callable, Sequence
 
@@ -95,6 +96,12 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
     ) -> None:
         self._func = func
         self._global_imports = global_imports
+
+        # Validate type hints exist
+        hints = typing.get_type_hints(func)
+        if not hints:
+            raise TypeError(f"Function '{func.__name__}' has no type hints. All parameters must be annotated.")
+        
         signature = get_typed_signature(func)
         func_name = name or func.func.__name__ if isinstance(func, functools.partial) else name or func.__name__
         args_model = args_base_model_from_signature(func_name + "args", signature)
