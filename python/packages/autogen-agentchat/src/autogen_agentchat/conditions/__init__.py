@@ -10,6 +10,7 @@ from ._terminations import (
     SourceMatchTermination,
     StopMessageTermination,
     TextMentionTermination,
+    TextMessageTermination,
     TimeoutTermination,
     TokenUsageTermination,
 )
@@ -23,4 +24,5 @@ __all__ = [
     "TimeoutTermination",
     "ExternalTermination",
     "SourceMatchTermination",
+    "TextMessageTermination",
 ]
