@@ -86,7 +86,10 @@ from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_agentchat.teams import MagenticOneGroupChat
 from autogen_agentchat.ui import Console
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
-
+# from autogen_ext.agents.file_surfer import FileSurfer
+# from autogen_ext.agents.magentic_one import MagenticOneCoderAgent
+# from autogen_agentchat.agents import CodeExecutorAgent
+# from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 
 async def main() -> None:
     model_client = OpenAIChatCompletionClient(model="gpt-4o")
@@ -95,8 +98,15 @@ async def main() -> None:
         "WebSurfer",
         model_client=model_client,
     )
+
     team = MagenticOneGroupChat([surfer], model_client=model_client)
     await Console(team.run_stream(task="What is the UV index in Melbourne today?"))
+
+    # # Note: you can also use  other agents in the team
+    # team = MagenticOneGroupChat([surfer, file_surfer, coder, terminal], model_client=model_client)
+    # file_surfer = FileSurfer( "FileSurfer",model_client=model_client)
+    # coder = MagenticOneCoderAgent("Coder",model_client=model_client)
+    # terminal = CodeExecutorAgent("ComputerTerminal",code_executor=LocalCommandLineCodeExecutor())
 
 
 asyncio.run(main())
@@ -133,7 +143,7 @@ Magentic-One work is based on a multi-agent architecture where a lead Orchestrat
 Overall, Magentic-One consists of the following agents:
 
 - Orchestrator: the lead agent responsible for task decomposition and planning, directing other agents in executing subtasks, tracking overall progress, and taking corrective actions as needed
-- WebSurfer: This is an LLM-based agent that is proficient in commanding and managing the state of a Chromium-based web browser. With each incoming request, the WebSurfer performs an action on the browser then reports on the new state of the web page   The action space of the WebSurfer includes navigation (e.g. visiting a URL, performing a web search);  web page actions (e.g., clicking and typing); and reading actions (e.g., summarizing or answering questions). The WebSurfer relies on the accessibility tree of the browser and on set-of-marks prompting to perform its actions.
+- WebSurfer: This is an LLM-based agent that is proficient in commanding and managing the state of a Chromium-based web browser. With each incoming request, the WebSurfer performs an action on the browser then reports on the new state of the web page The action space of the WebSurfer includes navigation (e.g. visiting a URL, performing a web search); web page actions (e.g., clicking and typing); and reading actions (e.g., summarizing or answering questions). The WebSurfer relies on the accessibility tree of the browser and on set-of-marks prompting to perform its actions.
 - FileSurfer: This is an LLM-based agent that commands a markdown-based file preview application to read local files of most types. The FileSurfer can also perform common navigation tasks such as listing the contents of directories and navigating a folder structure.
 - Coder: This is an LLM-based agent specialized through its system prompt for writing code, analyzing information collected from the other agents, or creating new artifacts.
 - ComputerTerminal: Finally, ComputerTerminal provides the team with access to a console shell where the Coder’s programs can be executed, and where new programming libraries can be installed.
