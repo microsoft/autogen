@@ -770,6 +770,7 @@ def convert_to_v04_message(message: Dict[str, Any]) -> AgentEvent | ChatMessage:
                     call_id=tool_response["tool_call_id"],
                     content=tool_response["content"],
                     is_error=False,
+                    name=tool_response["name"],
                 )
             )
         return ToolCallExecutionEvent(source="tools", content=tool_results)

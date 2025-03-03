@@ -61,7 +61,7 @@ async def test_tool_agent() -> None:
     result = await runtime.send_message(
         FunctionCall(id="1", arguments=json.dumps({"input": "pass"}), name="pass"), agent
     )
-    assert result == FunctionExecutionResult(call_id="1", content="pass", is_error=False)
+    assert result == FunctionExecutionResult(call_id="1", content="pass", is_error=False, name="pass")
 
     # Test raise function
     with pytest.raises(ToolExecutionException):
