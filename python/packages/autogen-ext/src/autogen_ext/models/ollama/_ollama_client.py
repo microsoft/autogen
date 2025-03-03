@@ -681,7 +681,6 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
 
         chunk = None
         stop_reason = None
-        maybe_model = None
         content_chunks: List[str] = []
         full_tool_calls: List[FunctionCall] = []
         completion_tokens = 0
@@ -695,7 +694,6 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
 
                 # set the stop_reason for the usage chunk to the prior stop_reason
                 stop_reason = chunk.done_reason if chunk.done and stop_reason is None else stop_reason
-                maybe_model = chunk.model
                 # First try get content
                 if chunk.message.content is not None:
                     content_chunks.append(chunk.message.content)
@@ -731,9 +729,6 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
 
             except StopAsyncIteration:
                 break
-
-        model = maybe_model or create_args["model"]
-        model = model.replace("gpt-35", "gpt-3.5")  # hack for Azure API
 
         if chunk and chunk.prompt_eval_count:
             prompt_tokens = chunk.prompt_eval_count
@@ -857,6 +852,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         return self._model_info
 
 
+# TODO: see if response_format can just be a json blob instead of a BaseModel
 class OllamaChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseOllamaClientConfigurationConfigModel]):
     """Chat completion client for Ollama hosted models.
 
@@ -866,6 +862,7 @@ class OllamaChatCompletionClient(BaseOllamaChatCompletionClient, Component[BaseO
         model (str): Which Ollama model to use.
         host (optional, str): Model host url.
         response_format (optional, pydantic.BaseModel): The format of the response. If provided, the response will be parsed into this format as json.
+        options (optional, Mapping[str, Any] | Options): Additional options to pass to the Ollama client.
         model_info (optional, ModelInfo): The capabilities of the model. **Required if the model is not listed in the ollama model info.**
 
     Note:

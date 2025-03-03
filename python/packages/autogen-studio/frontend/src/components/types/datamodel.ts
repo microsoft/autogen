@@ -356,8 +356,17 @@ export interface EnvironmentVariable {
   required: boolean;
 }
 
+export interface UISettings {
+  show_llm_call_events: boolean;
+  expanded_messages_by_default?: boolean;
+  show_agent_flow_by_default?: boolean;
+  // You can add more UI settings here as needed
+}
+
 export interface SettingsConfig {
   environment: EnvironmentVariable[];
+  default_model_client?: Component<ModelConfig>;
+  ui: UISettings;
 }
 
 export interface Settings extends DBModel {

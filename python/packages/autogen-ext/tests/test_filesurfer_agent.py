@@ -145,3 +145,22 @@ async def test_run_filesurfer(monkeypatch: pytest.MonkeyPatch) -> None:
     result = await agent.run(task="Please read the test directory")
     assert "# Index of " in result.messages[1].content
     assert "test_filesurfer_agent.html" in result.messages[1].content
+
+
+@pytest.mark.asyncio
+async def test_file_surfer_serialization() -> None:
+    """Test that FileSurfer can be serialized and deserialized properly."""
+    model = "gpt-4o-2024-05-13"
+    agent = FileSurfer(
+        "FileSurfer",
+        model_client=OpenAIChatCompletionClient(model=model, api_key=""),
+    )
+
+    # Serialize the agent
+    serialized_agent = agent.dump_component()
+
+    # Deserialize the agent
+    deserialized_agent = FileSurfer.load_component(serialized_agent)
+
+    # Check that the deserialized agent has the same attributes as the original agent
+    assert isinstance(deserialized_agent, FileSurfer)

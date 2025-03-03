@@ -467,7 +467,9 @@ class OpenAIAssistantAgent(BaseChatAgent):
                         result = f"Error: {e}"
                         is_error = True
                     tool_outputs.append(
-                        FunctionExecutionResult(content=result, call_id=tool_call.id, is_error=is_error)
+                        FunctionExecutionResult(
+                            content=result, call_id=tool_call.id, is_error=is_error, name=tool_call.name
+                        )
                     )
 
                 # Add tool result message to inner messages
