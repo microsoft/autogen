@@ -6,7 +6,15 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from ..base import TerminatedException, TerminationCondition
-from ..messages import AgentEvent, BaseChatMessage, ChatMessage, HandoffMessage, MultiModalMessage, StopMessage
+from ..messages import (
+    AgentEvent,
+    BaseChatMessage,
+    ChatMessage,
+    HandoffMessage,
+    MultiModalMessage,
+    StopMessage,
+    TextMessage,
+)
 
 
 class StopMessageTerminationConfig(BaseModel):
@@ -428,3 +436,56 @@ class SourceMatchTermination(TerminationCondition, Component[SourceMatchTerminat
     @classmethod
     def _from_config(cls, config: SourceMatchTerminationConfig) -> Self:
         return cls(sources=config.sources)
+
+
+class TextMessageTerminationConfig(BaseModel):
+    """Configuration for the TextMessageTermination termination condition."""
+
+    source: str | None = None
+    """The source of the text message to terminate the conversation."""
+
+
+class TextMessageTermination(TerminationCondition, Component[TextMessageTerminationConfig]):
+    """Terminate the conversation if a :class:`~autogen_agentchat.messages.TextMessage` is received.
+
+    This termination condition checks for TextMessage instances in the message sequence. When a TextMessage is found,
+    it terminates the conversation if either:
+    - No source was specified (terminates on any TextMessage)
+    - The message source matches the specified source
+
+    Args:
+        source (str | None, optional): The source name to match against incoming messages. If None, matches any source.
+            Defaults to None.
+    """
+
+    component_config_schema = TextMessageTerminationConfig
+    component_provider_override = "autogen_agentchat.conditions.TextMessageTermination"
+
+    def __init__(self, source: str | None = None) -> None:
+        self._terminated = False
+        self._source = source
+
+    @property
+    def terminated(self) -> bool:
+        return self._terminated
+
+    async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
+        if self._terminated:
+            raise TerminatedException("Termination condition has already been reached")
+        for message in messages:
+            if isinstance(message, TextMessage) and (self._source is None or message.source == self._source):
+                self._terminated = True
+                return StopMessage(
+                    content=f"Text message received from '{message.source}'", source="TextMessageTermination"
+                )
+        return None
+
+    async def reset(self) -> None:
+        self._terminated = False
+
+    def _to_config(self) -> TextMessageTerminationConfig:
+        return TextMessageTerminationConfig(source=self._source)
+
+    @classmethod
+    def _from_config(cls, config: TextMessageTerminationConfig) -> Self:
+        return cls(source=config.source)
