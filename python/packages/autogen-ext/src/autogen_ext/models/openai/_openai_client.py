@@ -37,7 +37,6 @@ from autogen_core.models import (
     ChatCompletionClient,
     ChatCompletionTokenLogprob,
     CreateResult,
-    FinishReasons,
     FunctionExecutionResultMessage,
     LLMMessage,
     ModelCapabilities,  # type: ignore
@@ -75,6 +74,7 @@ from openai.types.shared_params import FunctionDefinition, FunctionParameters
 from pydantic import BaseModel
 from typing_extensions import Self, Unpack
 
+from .._utils.normalize_stop_reason import normalize_stop_reason
 from .._utils.parse_r1_content import parse_r1_content
 from . import _model_info
 from .config import (
@@ -347,25 +347,6 @@ def assert_valid_name(name: str) -> str:
     if len(name) > 64:
         raise ValueError(f"Invalid name: {name}. Name must be less than 64 characters.")
     return name
-
-
-def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
-    if stop_reason is None:
-        return "unknown"
-
-    # Convert to lower case
-    stop_reason = stop_reason.lower()
-
-    KNOWN_STOP_MAPPINGS: Dict[str, FinishReasons] = {
-        "stop": "stop",
-        "length": "length",
-        "content_filter": "content_filter",
-        "function_calls": "function_calls",
-        "end_turn": "stop",
-        "tool_calls": "function_calls",
-    }
-
-    return KNOWN_STOP_MAPPINGS.get(stop_reason, "unknown")
 
 
 class BaseOpenAIChatCompletionClient(ChatCompletionClient):
@@ -1214,7 +1195,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                         UserMessage(content="I am happy.", source="user"),
                         AssistantMessage(content=response1.content, source="assistant"),
                         FunctionExecutionResultMessage(
-                            content=[FunctionExecutionResult(content="happy", call_id=response1.content[0].id, is_error=False)]
+                            content=[FunctionExecutionResult(content="happy", call_id=response1.content[0].id, is_error=False, name="sentiment_analysis")]
                         ),
                     ],
                 )

@@ -143,7 +143,12 @@ async def test_anthropic_tool_calling() -> None:
     messages.append(
         FunctionExecutionResultMessage(
             content=[
-                FunctionExecutionResult(content="Processed: hello world", call_id=result.content[0].id, is_error=False)
+                FunctionExecutionResult(
+                    content="Processed: hello world",
+                    call_id=result.content[0].id,
+                    is_error=False,
+                    name=result.content[0].name,
+                )
             ]
         )
     )
