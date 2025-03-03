@@ -51,6 +51,10 @@ class DatabaseManager:
             return Response(message="Database initialization already in progress", status=False)
 
         try:
+            # Enable foreign key constraints for SQLite
+            if "sqlite" in str(self.engine.url):
+                with self.engine.connect() as conn:
+                    conn.execute(text("PRAGMA foreign_keys=ON"))
             inspector = inspect(self.engine)
             tables_exist = inspector.get_table_names()
             if not tables_exist:
@@ -221,6 +225,8 @@ class DatabaseManager:
 
         with Session(self.engine) as session:
             try:
+                if "sqlite" in str(self.engine.url):
+                    session.exec(text("PRAGMA foreign_keys=ON"))
                 statement = select(model_class)
                 if filters:
                     conditions = [getattr(model_class, col) == value for col, value in filters.items()]
