@@ -33,6 +33,11 @@ html[data-theme="dark"] {
   text-shadow: 0.5px 0 0 currentColor;
 }
 
+/* Top breadcrumbs navigation (ie: Home > Core > ...) */
+.bd-breadcrumbs .breadcrumb-item > a:focus-visible{
+  border: 2px solid var(--pst-color-primary);
+}
+
 /* Left sidebar */
 nav.bd-links .navbar-nav .toctree-l1>a:focus-visible {
   border: 2px solid var(--pst-color-primary);
