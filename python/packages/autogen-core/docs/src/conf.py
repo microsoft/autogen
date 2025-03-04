@@ -122,8 +122,8 @@ html_theme_options = {
     "footer_start": ["copyright"],
     "footer_center": ["footer-middle-links"],
     "footer_end": ["theme-version", "version-banner-override"],
-    # "pygments_light_style": "xcode",
-    # "pygments_dark_style": "monokai",
+    "pygments_light_style": "xcode",
+    "pygments_dark_style": "monokai",
     "navbar_start": ["navbar-logo", "version-switcher"],
     "switcher": {
         "json_url": "https://raw.githubusercontent.com/microsoft/autogen/refs/heads/main/docs/switcher.json",
