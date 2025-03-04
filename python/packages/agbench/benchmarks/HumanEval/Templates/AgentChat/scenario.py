@@ -13,7 +13,7 @@ from autogen_core.models import ChatCompletionClient
 async def main() -> None:
 
     # Load model configuration and create the model client.
-    with open("config.yaml", "r") as f:
+    with open("config.yaml", "r",encoding='utf-8') as f:
         config = yaml.safe_load(f)
     model_client = ChatCompletionClient.load_component(config["model_config"])
 
@@ -37,7 +37,7 @@ async def main() -> None:
     agent_team = RoundRobinGroupChat([coder_agent, executor], max_turns=12, termination_condition=termination)
 
     prompt = ""
-    with open("prompt.txt", "rt") as fh:
+    with open("prompt.txt", "rt",encoding='utf-8') as fh:
         prompt = fh.read()
 
     task = f"""Complete the following python function. Format your output as Markdown python code block containing the entire function definition:

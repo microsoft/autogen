@@ -17,7 +17,7 @@ class CustomCodeExecutorAgent(CodeExecutorAgent):
     ) -> None:
         super().__init__(name=name, description=description, code_executor=code_executor, sources=sources)
         self._test_code = ""
-        with open("test.txt", "rt") as fh:
+        with open("test.txt", "rt",encoding='utf-8') as fh:
             self._test_code = fh.read()
 
 

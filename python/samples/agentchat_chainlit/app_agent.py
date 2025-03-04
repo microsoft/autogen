@@ -31,7 +31,7 @@ async def get_weather(city: str) -> str:
 @cl.on_chat_start  # type: ignore
 async def start_chat() -> None:
     # Load model configuration and create the model client.
-    with open("model_config.yaml", "r") as f:
+    with open("model_config.yaml", "r",encoding='utf-8') as f:
         model_config = yaml.safe_load(f)
     model_client = ChatCompletionClient.load_component(model_config)
 

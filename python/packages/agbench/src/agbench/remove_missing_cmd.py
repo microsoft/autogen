@@ -11,7 +11,7 @@ def default_scorer(instance_dir: str) -> bool:
     """
     console_log = os.path.join(instance_dir, "console_log.txt")
     if os.path.isfile(console_log):
-        with open(console_log, "rt") as fh:
+        with open(console_log, "rt",encoding='utf-8') as fh:
             content = fh.read()
             # Use a regular expression to match the expected ending pattern
             has_final_answer = "FINAL ANSWER:" in content

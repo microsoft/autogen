@@ -101,12 +101,12 @@ def main() -> None:
 
     if args.config is None:
         if os.path.isfile(DEFAULT_CONFIG_FILE):
-            with open(DEFAULT_CONFIG_FILE, "r") as f:
+            with open(DEFAULT_CONFIG_FILE, "r",encoding='utf-8') as f:
                 config = yaml.safe_load(f)
         else:
             config = yaml.safe_load(DEFAULT_CONFIG_CONTENTS)
     else:
-        with open(args.config if isinstance(args.config, str) else args.config[0], "r") as f:
+        with open(args.config if isinstance(args.config, str) else args.config[0], "r",encoding='utf-8') as f:
             config = yaml.safe_load(f)
 
     client = ChatCompletionClient.load_component(config["client"])

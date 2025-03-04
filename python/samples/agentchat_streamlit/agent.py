@@ -8,7 +8,7 @@ from autogen_core.models import ChatCompletionClient
 class Agent:
     def __init__(self) -> None:
         # Load the model client from config.
-        with open("model_config.yml", "r") as f:
+        with open("model_config.yml", "r",encoding='utf-8') as f:
             model_config = yaml.safe_load(f)
         model_client = ChatCompletionClient.load_component(model_config)
         self.agent = AssistantAgent(

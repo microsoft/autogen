@@ -24,12 +24,12 @@ substitutions: Dict[str, str] = {
 
 def main():
     for file in files:
-        with open(file, "r") as f:
+        with open(file, "r",encoding='utf-8') as f:
             content = f.read()
 
         print("Fixing imports in file:", file)
         for old, new in substitutions.items():
             content = content.replace(old, new)
 
-        with open(file, "w") as f:
+        with open(file, "w",encoding='utf-8') as f:
             f.write(content)

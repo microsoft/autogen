@@ -39,7 +39,7 @@ def sample_config():
 def config_file(sample_config, tmp_path):
     """Create a temporary config file"""
     config_path = tmp_path / "test_config.json"
-    with open(config_path, "w") as f:
+    with open(config_path, "w",encoding='utf-8') as f:
         json.dump(sample_config, f)
     return config_path
 
@@ -49,7 +49,7 @@ def config_dir(sample_config, tmp_path):
     """Create a temporary directory with multiple config files"""
     # Create JSON config
     json_path = tmp_path / "team1.json"
-    with open(json_path, "w") as f:
+    with open(json_path, "w",encoding='utf-8') as f:
         json.dump(sample_config, f)
     
     # Create YAML config from the same dict
@@ -58,7 +58,7 @@ def config_dir(sample_config, tmp_path):
     # Create a modified copy to verify we can distinguish between them
     yaml_config = sample_config.copy()
     yaml_config["label"] = "YamlTeam"  # Change a field to identify this as the YAML version
-    with open(yaml_path, "w") as f:
+    with open(yaml_path, "w",encoding='utf-8') as f:
         yaml.dump(yaml_config, f)
     
     return tmp_path

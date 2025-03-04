@@ -240,13 +240,13 @@ def expand_scenario(
     for templated_file in substitutions.keys():  # Keys are relative file paths
         # Read the templated file into memory
         template_contents: List[str] = list()
-        with open(os.path.join(output_dir, templated_file), "rt") as fh:
+        with open(os.path.join(output_dir, templated_file), "rt",encoding='utf-8') as fh:
             for line in fh:
                 template_contents.append(line)
 
         # Rewrite the templated file with substitutions
         values = substitutions[templated_file]
-        with open(os.path.join(output_dir, templated_file), "wt") as fh:
+        with open(os.path.join(output_dir, templated_file), "wt",encoding='utf-8') as fh:
             for line in template_contents:
                 for k, v in values.items():
                     line = line.replace(k, v)
@@ -300,10 +300,10 @@ def get_scenario_env(token_provider: Optional[Callable[[], str]] = None, env_fil
     if env_file is None:
         # Env file was not specified, so read the default, or warn if the default file is missing.
         if os.path.isfile(DEFAULT_ENV_FILE_YAML):
-            with open(DEFAULT_ENV_FILE_YAML, "r") as fh:
+            with open(DEFAULT_ENV_FILE_YAML, "r",encoding='utf-8') as fh:
                 env_file_contents = yaml.safe_load(fh)
         elif os.path.isfile(DEFAULT_ENV_FILE_JSON):
-            with open(DEFAULT_ENV_FILE_JSON, "rt") as fh:
+            with open(DEFAULT_ENV_FILE_JSON, "rt",encoding='utf-8') as fh:
                 env_file_contents = json.loads(fh.read())
             logging.warning(f"JSON environment files are deprecated. Migrate to '{DEFAULT_ENV_FILE_YAML}'")
         else:
@@ -312,7 +312,7 @@ def get_scenario_env(token_provider: Optional[Callable[[], str]] = None, env_fil
             )
     else:
         # Env file was specified. Throw an error if the file can't be read.
-        with open(env_file, "rt") as fh:
+        with open(env_file, "rt",encoding='utf-8') as fh:
             if env_file.endswith(".json"):
                 logging.warning("JSON environment files are deprecated. Migrate to YAML")
                 env_file_contents = json.loads(fh.read())
@@ -401,7 +401,7 @@ def run_scenario_natively(work_dir: str, env: Mapping[str, str], timeout: int = 
     print("\n\n" + os.getcwd() + "\n===================================================================")
 
     # Prepare the run script
-    with open(os.path.join("run.sh"), "wt") as f:
+    with open(os.path.join("run.sh"), "wt",encoding='utf-8') as f:
         f.write(
             f"""#
 echo RUN.SH STARTING !#!#
@@ -464,7 +464,7 @@ echo RUN.SH COMPLETE !#!#
         )
 
     # Run the script and log the output
-    with open("console_log.txt", "wb") as f:
+    with open("console_log.txt", "wb",encoding='utf-8') as f:
         process = subprocess.Popen(
             ["sh", "run.sh"],
             env=full_env,
@@ -521,7 +521,7 @@ def run_scenario_in_docker(
                 print(f"Failed to pull image '{docker_image}'")
 
     # Prepare the run script
-    with open(os.path.join(work_dir, "run.sh"), "wt", newline="\n") as f:
+    with open(os.path.join(work_dir, "run.sh"), "wt", newline="\n",encoding='utf-8') as f:
         f.write(
             f"""#
 echo RUN.SH STARTING !#!#
@@ -715,7 +715,7 @@ def split_jsonl(file_path: str, num_parts: int) -> List[List[Dict[str, Any]]]:
     """
     Split a JSONL file into num_parts approximately equal parts.
     """
-    with open(file_path, "r") as f:
+    with open(file_path, "r",encoding='utf-8') as f:
         data = [json.loads(line) for line in f]
 
     random.shuffle(data)  # Shuffle the data for better distribution
@@ -914,7 +914,7 @@ def run_cli(args: Sequence[str]) -> None:
 
     if parsed_args.config is not None:
         # Make sure the config file is readable, so that we fail early
-        with open(parsed_args.config, "r"):
+        with open(parsed_args.config, "r",encoding='utf-8'):
             pass
 
     # don't support parallel and subsample together

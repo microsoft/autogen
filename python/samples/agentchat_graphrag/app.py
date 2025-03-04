@@ -56,6 +56,6 @@ if __name__ == "__main__":
         handler = logging.FileHandler("graphrag_search.log")
         logging.getLogger("autogen_core").addHandler(handler)
 
-    with open(args.model_config, "r") as f:
+    with open(args.model_config, "r",encoding='utf-8') as f:
         model_config = yaml.safe_load(f)
     asyncio.run(main(model_config))
