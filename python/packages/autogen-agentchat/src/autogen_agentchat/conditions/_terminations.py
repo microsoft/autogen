@@ -499,7 +499,7 @@ class FunctionCallTerminationConfig(BaseModel):
 
 
 class FunctionCallTermination(TerminationCondition, Component[FunctionCallTerminationConfig]):
-    """Terminate the conversation if a :class:`~autogen_core.models.FunctionExecutionResult` 
+    """Terminate the conversation if a :class:`~autogen_core.models.FunctionExecutionResult`
     with a specific name was received.
 
     Args:
