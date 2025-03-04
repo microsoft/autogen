@@ -94,29 +94,36 @@ class PageLogger:
         self.name = "0  Call Tree"
         self._create_run_dir()
         self.flush()
+        self.finalized = False
 
     def __del__(self) -> None:
+        self.finalize()
+
+    def finalize(self) -> None:
         # Writes a hash of the log directory to a file for change detection.
         if self.level >= self.levels["NONE"]:
+            return
+
+        # Don't finalize the log if it has already been finalized.
+        if self.finalized:
             return
 
         # Do nothing if the app is being forced to exit early.
         if self.page_stack.size() > 0:
             return
 
-        # Compute the hash.
-        hash_str, num_files, num_subdirs = hash_directory(self.log_dir)
-        filename = "00 hash-{}.txt".format(hash_str[-5:])
-        hash_path = os.path.join(self.log_dir, filename)
+        self.flush(finished=True)
 
-        # Write the hash to a file.
+        # Write the hash and other details to a file.
+        hash_str, num_files, num_subdirs = hash_directory(self.log_dir)
+        hash_path = os.path.join(self.log_dir, "hash.txt")
         with open(hash_path, "w") as f:
             f.write(hash_str)
             f.write("\n")
             f.write("{} files\n".format(num_files))
             f.write("{} subdirectories\n".format(num_subdirs))
 
-        self.flush(finished=True)
+        self.finalized = True
 
     @staticmethod
     def _decorate_text(text: str, color: str, weight: str = "bold", demarcate: bool = False) -> str:

@@ -201,11 +201,16 @@ class ChatCompletionClientRecorder(ChatCompletionClient):
         self.logger.enter_function()
         if self.mode == "record":
             try:
+                # Create the directory if it doesn't exist.
+                os.makedirs(os.path.dirname(self.session_file_path), exist_ok=True)
+                # Write the records to disk.
                 with open(self.session_file_path, "w") as f:
                     json.dump(self.records, f, indent=2)
                     self.logger.info("\nRecorded session was saved to: " + self.session_file_path)
             except Exception as e:
-                raise IOError(f"Failed to write records to '{self.session_file_path}': {e}") from e
+                error_str = f"Failed to write records to '{self.session_file_path}': {e}"
+                self.logger.error(error_str)
+                raise ValueError(error_str) from e
         elif self.mode == "replay":
             if self._num_checked_records < len(self.records):
                 error_str = f"\nEarly termination. Only {self._num_checked_records} of the {len(self.records)} recorded turns were checked."
