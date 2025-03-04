@@ -208,7 +208,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         if "repo_id" in kwargs and "filename" in kwargs and kwargs["repo_id"] and kwargs["filename"]:
             repo_id: str = cast(str, kwargs.pop("repo_id"))
             filename: str = cast(str, kwargs.pop("filename"))
-            pretrained = Llama.from_pretrained(repo_id=repo_id, filename=filename, **kwargs) # type: ignore
+            pretrained = Llama.from_pretrained(repo_id=repo_id, filename=filename, **kwargs)  # type: ignore
             assert isinstance(pretrained, Llama)
             self.llm = pretrained
 

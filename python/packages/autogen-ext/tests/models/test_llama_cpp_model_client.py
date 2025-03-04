@@ -158,7 +158,7 @@ async def test_llama_cpp_integration_non_streaming() -> None:
 #         collected += token
 #     assert isinstance(collected, str) and len(collected.strip()) > 0
 
-#Commented out tool use as this functionality is not yet implemented for Phi-4.
+# Commented out tool use as this functionality is not yet implemented for Phi-4.
 # Define tools (functions) for the AssistantAgent
 # def add(num1: int, num2: int) -> int:
 #     """Add two numbers together"""
