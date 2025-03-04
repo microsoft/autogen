@@ -97,7 +97,7 @@ async def test_memory(mode: Literal["record", "replay"] = "replay") -> None:
     If mode is "record", a new session file is generated for future replay.
     """
     test = "teachability"
-    config = load_yaml_file(f"./configs/{test}.yaml")
+    config = load_yaml_file(f"./tests/task_centric_memory/configs/{test}.yaml")
 
     # Create the necessary components.
     logger = PageLogger(config["PageLogger"])
@@ -111,7 +111,7 @@ async def test_memory(mode: Literal["record", "replay"] = "replay") -> None:
                 "not used",
             ]
         )
-    client = ChatCompletionClientRecorder(base_client, mode, f"./sessions/{test}/session.json", logger)
+    client = ChatCompletionClientRecorder(base_client, mode, f"./tests/task_centric_memory/sessions/{test}/session.json", logger)
     apprentice = Apprentice(client, config["Apprentice"], logger)
 
     # Call the example function.
