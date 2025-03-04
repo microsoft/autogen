@@ -2,6 +2,7 @@ import asyncio
 import sys
 from typing import Any, Dict, Literal
 
+import pytest
 from autogen_core.models import (
     ChatCompletionClient,
 )
@@ -11,6 +12,7 @@ from autogen_ext.experimental.task_centric_memory.utils import (
     Grader,
     PageLogger,
 )
+from autogen_ext.models.replay import ReplayChatCompletionClient
 from utils import create_oai_client, load_yaml_file
 
 """
@@ -87,6 +89,7 @@ async def eval_teachability(
     return "\neval_teachability\n" + results_str_1 + "\n" + results_str_2
 
 
+@pytest.mark.asyncio
 async def test_memory(mode: Literal["record", "replay"] = "replay") -> None:
     """
     Tests memory using the components specified in the config file.
@@ -98,7 +101,16 @@ async def test_memory(mode: Literal["record", "replay"] = "replay") -> None:
 
     # Create the necessary components.
     logger = PageLogger(config["PageLogger"])
-    base_client = create_oai_client(config["client"])
+    if mode == "record":
+        # To record a session, we need a real client.
+        base_client = create_oai_client(config["client"])
+    else:
+        # To replay a session (as in pytest), we can use a mock client.
+        base_client = ReplayChatCompletionClient(
+            [
+                "not used",
+            ]
+        )
     client = ChatCompletionClientRecorder(base_client, mode, f"./sessions/{test}/session.json", logger)
     apprentice = Apprentice(client, config["Apprentice"], logger)
 
