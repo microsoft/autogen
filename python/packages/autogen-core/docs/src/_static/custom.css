@@ -112,6 +112,10 @@ html[data-theme="light"] .bd-header {
   margin-right: 5px;
 }
 
+/* This is gross, but necessary to meet accessibility requirements */
+.headerlink {
+  visibility: visible !important;
+}
 /* jupyter notebook output cells */
 .bd-article .docutils .cell_output .output .highlight > pre:focus-visible{
   border: 2px outset var(--pst-color-secondary);
