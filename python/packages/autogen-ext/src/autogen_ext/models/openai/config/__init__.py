@@ -4,6 +4,7 @@ from autogen_core import ComponentModel
 from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
 from pydantic import BaseModel
 from typing_extensions import Required, TypedDict
+import httpx
 
 
 class ResponseFormat(TypedDict):
@@ -42,7 +43,7 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     add_name_prefixes: bool
     """What functionality the model supports, determined by default from model name but is overriden if value passed."""
     default_headers: Dict[str, str] | None
-    http_client: str
+    http_client: httpx.AsyncClient
 
 
 # See OpenAI docs for explanation of these parameters
