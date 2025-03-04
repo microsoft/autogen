@@ -133,6 +133,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
     the `model_context` parameter to a :class:`~autogen_core.model_context.BufferedChatCompletionContext`.
     This will limit the number of recent messages sent to the model and can be useful
     when the model has a limit on the number of tokens it can process.
+    You can also create your own model context by subclassing
+    :class:`~autogen_core.model_context.ChatCompletionContext`.
 
     Streaming mode:
 
@@ -531,6 +533,63 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             The `o1-preview` and `o1-mini` models do not support system message and function calling.
             So the `system_message` should be set to `None` and the `tools` and `handoffs` should not be set.
             See `o1 beta limitations <https://platform.openai.com/docs/guides/reasoning#beta-limitations>`_ for more details.
+
+
+        **Example 8: agent using reasoning model with custom model context.**
+
+        The following example shows how to use a reasoning model (DeepSeek R1) with the assistant agent.
+        The model context is used to filter out the thought field from the assistant message.
+
+        .. code-block:: python
+
+            import asyncio
+            from typing import List
+
+            from autogen_agentchat.agents import AssistantAgent
+            from autogen_core.model_context import UnboundedChatCompletionContext
+            from autogen_core.models import AssistantMessage, LLMMessage, ModelFamily
+            from autogen_ext.models.ollama import OllamaChatCompletionClient
+
+
+            class ReasoningModelContext(UnboundedChatCompletionContext):
+                \"\"\"A model context for reasoning models.\"\"\"
+
+                async def get_messages(self) -> List[LLMMessage]:
+                    messages = await super().get_messages()
+                    # Filter out thought field from AssistantMessage.
+                    messages_out: List[LLMMessage] = []
+                    for message in messages:
+                        if isinstance(message, AssistantMessage):
+                            message.thought = None
+                        messages_out.append(message)
+                    return messages_out
+
+
+            # Create an instance of the model client for DeepSeek R1 hosted locally on Ollama.
+            model_client = OllamaChatCompletionClient(
+                model="deepseek-r1:8b",
+                model_info={
+                    "vision": False,
+                    "function_calling": False,
+                    "json_output": False,
+                    "family": ModelFamily.R1,
+                },
+            )
+
+            agent = AssistantAgent(
+                "reasoning_agent",
+                model_client=model_client,
+                model_context=ReasoningModelContext(),  # Use the custom model context.
+            )
+
+
+            async def run_reasoning_agent() -> None:
+                result = await agent.run(task="What is the capital of France?")
+                print(result)
+
+
+            asyncio.run(run_reasoning_agent())
+
     """
 
     component_config_schema = AssistantAgentConfig
