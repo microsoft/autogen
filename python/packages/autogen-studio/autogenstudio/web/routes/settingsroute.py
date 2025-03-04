@@ -15,10 +15,11 @@ async def get_settings(user_id: str, db=Depends(get_db)) -> Dict:
         response = db.get(Settings, filters={"user_id": user_id})
         if not response.status or not response.data:
             # create a default settings
-            config = SettingsConfig(environment=[])
+            config = SettingsConfig()
             default_settings = Settings(user_id=user_id, config=config.model_dump())
             db.upsert(default_settings)
             response = db.get(Settings, filters={"user_id": user_id})
+        # print(response.data[0])
         return {"status": True, "data": response.data[0]}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e

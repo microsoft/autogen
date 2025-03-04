@@ -4,7 +4,7 @@ import { TriangleAlertIcon } from "lucide-react";
 import type { FormProps } from "antd";
 import { SessionEditorProps } from "./types";
 import { Team } from "../../types/datamodel";
-import { teamAPI } from "../team/api";
+import { teamAPI } from "../teambuilder/api";
 import { appContext } from "../../../hooks/provider";
 import { Link } from "gatsby";
 

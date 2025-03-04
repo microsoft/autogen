@@ -95,15 +95,17 @@ const FullLogView = ({
           ))}
         </div>
 
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium">Response</h4>
-          <div className="p-4 bg-tertiary rounded-lg">
-            <TruncatableText
-              content={event.response.choices[0]?.message.content}
-              textThreshold={1000}
-            />
+        {event.response.choices && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">Response</h4>
+            <div className="p-4 bg-tertiary rounded-lg">
+              <TruncatableText
+                content={event.response?.choices[0]?.message.content}
+                textThreshold={1000}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
           <div className="p-3 bg-tertiary rounded-lg">

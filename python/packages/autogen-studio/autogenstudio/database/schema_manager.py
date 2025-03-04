@@ -466,7 +466,10 @@ datefmt = %H:%M:%S
             if self.upgrade_schema():
                 return True, "Schema was automatically upgraded"
             else:
-                return False, "Automatic schema upgrade failed"
+                return (
+                    False,
+                    "Automatic schema upgrade failed. You are seeing this message because there were differences in your current database schema and the most recent version of the Autogen Studio app database. You can ignore the error, or specifically, you can install AutoGen Studio in a new path `autogenstudio ui --appdir <new path>`.",
+                )
 
         return False, status
 

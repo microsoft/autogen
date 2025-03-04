@@ -1,18 +1,37 @@
 import re
 from typing import List, Sequence
 
-from autogen_core import CancellationToken
+from autogen_core import CancellationToken, Component, ComponentModel
 from autogen_core.code_executor import CodeBlock, CodeExecutor
+from pydantic import BaseModel
+from typing_extensions import Self
 
 from ..base import Response
 from ..messages import ChatMessage, TextMessage
 from ._base_chat_agent import BaseChatAgent
 
 
-class CodeExecutorAgent(BaseChatAgent):
+class CodeExecutorAgentConfig(BaseModel):
+    """Configuration for CodeExecutorAgent"""
+
+    name: str
+    code_executor: ComponentModel
+    description: str = "A computer terminal that performs no other action than running Python scripts (provided to it quoted in ```python code blocks), or sh shell scripts (provided to it quoted in ```sh code blocks)."
+    sources: List[str] | None = None
+
+
+class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
     """An agent that extracts and executes code snippets found in received messages and returns the output.
 
     It is typically used within a team with another agent that generates code snippets to be executed.
+
+    .. note::
+
+        Consider :class:`~autogen_ext.tools.code_execution.PythonCodeExecutionTool`
+        as an alternative to this agent. The tool allows for executing Python code
+        within a single agent, rather than sending it to a separate agent for execution.
+        However, the model for the agent will have to generate properly escaped code
+        string as a parameter to the tool.
 
     Args:
         name: The name of the agent.
@@ -25,6 +44,23 @@ class CodeExecutorAgent(BaseChatAgent):
 
         It is recommended that the `CodeExecutorAgent` agent uses a Docker container to execute code. This ensures that model-generated code is executed in an isolated environment. To use Docker, your environment must have Docker installed and running.
         Follow the installation instructions for `Docker <https://docs.docker.com/get-docker/>`_.
+
+    .. note::
+
+        The code executor only processes code that is properly formatted in markdown code blocks using triple backticks.
+        For example:
+
+        .. code-block:: text
+
+            ```python
+            print("Hello World")
+            ```
+
+            # or
+
+            ```sh
+            echo "Hello World"
+            ```
 
     In this example, we show how to set up a `CodeExecutorAgent` agent that uses the
     :py:class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor`
@@ -64,6 +100,9 @@ class CodeExecutorAgent(BaseChatAgent):
             asyncio.run(run_code_executor_agent())
 
     """
+
+    component_config_schema = CodeExecutorAgentConfig
+    component_provider_override = "autogen_agentchat.agents.CodeExecutorAgent"
 
     def __init__(
         self,
@@ -123,3 +162,20 @@ class CodeExecutorAgent(BaseChatAgent):
             code_content = match[1]
             code_blocks.append(CodeBlock(code=code_content, language=language))
         return code_blocks
+
+    def _to_config(self) -> CodeExecutorAgentConfig:
+        return CodeExecutorAgentConfig(
+            name=self.name,
+            code_executor=self._code_executor.dump_component(),
+            description=self.description,
+            sources=list(self._sources) if self._sources is not None else None,
+        )
+
+    @classmethod
+    def _from_config(cls, config: CodeExecutorAgentConfig) -> Self:
+        return cls(
+            name=config.name,
+            code_executor=CodeExecutor.load_component(config.code_executor),
+            description=config.description,
+            sources=config.sources,
+        )

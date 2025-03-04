@@ -1,62 +1,19 @@
-import React, { useState, useEffect } from "react";
-import { ChevronRight, RotateCcw, TriangleAlert, Variable } from "lucide-react";
-import { Switch, Button, Tooltip } from "antd";
-import { MessagesSquare } from "lucide-react";
+import React, { useState, useEffect, useContext } from "react";
+import { Tabs, TabsProps } from "antd";
+import {
+  ChevronRight,
+  RotateCcw,
+  Variable,
+  Settings,
+  Palette,
+  Brain,
+} from "lucide-react";
 import { useSettingsStore } from "./store";
 import { SettingsSidebar } from "./sidebar";
-import { SettingsSection } from "./types";
-import { LucideIcon } from "lucide-react";
-import { EnvironmentVariables } from "./environment";
-
-interface SettingToggleProps {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  label: string;
-  description?: string;
-}
-
-interface SectionHeaderProps {
-  title: string;
-  icon: LucideIcon;
-  onReset: () => void;
-}
-
-const SettingToggle: React.FC<SettingToggleProps> = ({
-  checked,
-  onChange,
-  label,
-  description,
-}) => (
-  <div className="flex justify-between items-start p-4 hover:bg-secondary/5 rounded transition-colors">
-    <div className="flex flex-col gap-1">
-      <label className="font-medium">{label}</label>
-      {description && (
-        <span className="text-sm text-secondary">{description}</span>
-      )}
-    </div>
-    <Switch defaultValue={checked} onChange={onChange} />
-  </div>
-);
-
-const SectionHeader: React.FC<SectionHeaderProps> = ({
-  title,
-  icon: Icon,
-  onReset,
-}) => (
-  <div className="flex items-center justify-between mb-6">
-    <div className="flex items-center gap-2">
-      <Icon className="text-accent" size={20} />
-      <h2 className="text-lg font-semibold">{title}</h2>
-    </div>
-    {/* <Tooltip title="Reset section settings">
-      <Button
-        icon={<RotateCcw className="w-4 h-4" />}
-        onClick={onReset}
-        type="text"
-      />
-    </Tooltip> */}
-  </div>
-);
+import { appContext } from "../../../hooks/provider";
+import UISettingsPanel from "./view/ui";
+import { ModelConfigPanel } from "./view/modelconfig";
+import { EnvironmentVariablesPanel } from "./view/environment";
 
 export const SettingsManager: React.FC = () => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
@@ -67,84 +24,90 @@ export const SettingsManager: React.FC = () => {
     return true;
   });
 
-  const {
-    playground,
-    updatePlaygroundSettings,
-    resetPlaygroundSettings,
-    resetAllSettings,
-  } = useSettingsStore();
+  const { user } = useContext(appContext);
+  const userId = user?.email || "";
 
-  const sections: SettingsSection[] = [
-    {
-      id: "playground",
-      title: "Playground",
-      icon: MessagesSquare,
-      content: () => (
-        <>
-          <SectionHeader
-            title="Playground"
-            icon={MessagesSquare}
-            onReset={resetPlaygroundSettings}
-          />
-          <div className="space-y-2 rounded border border-secondary">
-            <SettingToggle
-              checked={playground.showLLMEvents}
-              onChange={(checked) =>
-                updatePlaygroundSettings({ showLLMEvents: checked })
-              }
-              label={"Show LLM Events"}
-              description="Display detailed LLM call logs in the message thread"
-            />
-          </div>
-          <div className="mt-12 pt-6 border-t border-secondary">
-            <p className="text-xs text-secondary">
-              These settings are automatically saved and synced across browser
-              sessions
-            </p>
-          </div>
-        </>
-      ),
-    },
-    {
-      id: "environment",
-      title: "Environment Variables",
-      icon: Variable,
-      content: () => (
-        <>
-          <SectionHeader
-            title="Environment Variables"
-            icon={Variable}
-            onReset={() => {
-              /* Add reset handler */
-            }}
-          />
-          <div>
-            <EnvironmentVariables />
-            <div className="mt-12 pt-6 border-t border-secondary">
-              <p className="text-xs text-secondary">
-                <TriangleAlert
-                  strokeWidth={1.5}
-                  className="inline-block mr-1 h-4 w-4 "
-                />{" "}
-                Note: Environment variables are currently available to all
-                processes on the server.
-              </p>
-            </div>
-          </div>
-        </>
-      ),
-    },
-  ];
+  const { serverSettings, resetUISettings, initializeSettings, isLoading } =
+    useSettingsStore();
 
-  const [currentSection, setCurrentSection] = useState<SettingsSection>(
-    sections[0]
-  );
+  // Initialize settings when component mounts
+  useEffect(() => {
+    if (userId) {
+      initializeSettings(userId);
+    }
+  }, [userId, initializeSettings]);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
       localStorage.setItem("settingsSidebar", JSON.stringify(isSidebarOpen));
     }
   }, [isSidebarOpen]);
+
+  if (isLoading) {
+    return <div className="p-8 text-center">Loading settings...</div>;
+  }
+
+  // Get model component for the model config panel
+  const modelComponent = serverSettings?.config.default_model_client || {
+    provider: "openai",
+    component_type: "model",
+    label: "Default Model Client",
+    description: "Default model client for this environment",
+    config: {
+      model: "gpt-3.5-turbo",
+      temperature: 0.7,
+      max_tokens: 1000,
+    },
+  };
+
+  const tabItems: TabsProps["items"] = [
+    {
+      key: "ui",
+      label: (
+        <span className="flex items-center gap-2">
+          <Palette className="w-4 h-4" />
+          UI Settings
+        </span>
+      ),
+      children: <UISettingsPanel userId={userId} />,
+    },
+    {
+      key: "model",
+      label: (
+        <span className="flex items-center gap-2">
+          <Brain className="w-4 h-4" />
+          Default Model
+        </span>
+      ),
+      children: (
+        <div className="mt-4">
+          <ModelConfigPanel
+            modelComponent={modelComponent}
+            onModelUpdate={async () => {}}
+          />
+        </div>
+      ),
+    },
+    {
+      key: "environment",
+      label: (
+        <span className="flex items-center gap-2">
+          <Variable className="w-4 h-4" />
+          Environment Variables
+        </span>
+      ),
+      children: (
+        <div className="mt-4">
+          <EnvironmentVariablesPanel
+            serverSettings={serverSettings}
+            loading={false}
+            userId={userId}
+            initializeSettings={initializeSettings}
+          />
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="relative flex h-full w-full">
@@ -155,10 +118,22 @@ export const SettingsManager: React.FC = () => {
       >
         <SettingsSidebar
           isOpen={isSidebarOpen}
-          sections={sections}
-          currentSection={currentSection}
+          sections={[
+            {
+              id: "settings",
+              title: "Settings",
+              icon: Variable,
+              content: () => <></>,
+            },
+          ]}
+          currentSection={{
+            id: "settings",
+            title: "Settings",
+            icon: Variable,
+            content: () => <></>,
+          }}
           onToggle={() => setIsSidebarOpen(!isSidebarOpen)}
-          onSelectSection={setCurrentSection}
+          onSelectSection={() => {}}
         />
       </div>
 
@@ -170,11 +145,23 @@ export const SettingsManager: React.FC = () => {
         <div className="p-4 pt-2">
           <div className="flex items-center gap-2 mb-4 text-sm">
             <span className="text-primary font-medium">Settings</span>
-            <ChevronRight className="w-4 h-4 text-secondary" />
-            <span className="text-secondary">{currentSection.title}</span>
           </div>
 
-          <currentSection.content />
+          <div className="flex items-center gap-2 mb-8 text-sm">
+            <span className="text-secondary">
+              Manage your settings and preferences
+            </span>
+          </div>
+
+          <div className="  rounded-lg shadow-sm">
+            <Tabs
+              defaultActiveKey="ui"
+              items={tabItems}
+              // type="card"
+              size="large"
+              className="settings-tabs"
+            />
+          </div>
         </div>
       </div>
     </div>
