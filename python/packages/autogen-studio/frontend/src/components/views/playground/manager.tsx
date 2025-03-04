@@ -7,7 +7,7 @@ import { SessionEditor } from "./editor";
 import type { Session, Team } from "../../types/datamodel";
 import ChatView from "./chat/chat";
 import { Sidebar } from "./sidebar";
-import { teamAPI } from "../team/api";
+import { teamAPI } from "../teambuilder/api";
 import { useGalleryStore } from "../gallery/store";
 
 export const SessionManager: React.FC = () => {
@@ -27,7 +27,7 @@ export const SessionManager: React.FC = () => {
   const { user } = useContext(appContext);
   const { session, setSession, sessions, setSessions } = useConfigStore();
 
-  const defaultGallery = useGalleryStore((state) => state.getDefaultGallery());
+  const galleryStore = useGalleryStore();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -196,7 +196,9 @@ export const SessionManager: React.FC = () => {
       if (teamsData.length > 0) {
         setTeams(teamsData);
       } else {
-        const sampleTeam = defaultGallery.components.teams[0];
+        await galleryStore.fetchGalleries(user.email);
+        const defaultGallery = galleryStore.getSelectedGallery();
+        const sampleTeam = defaultGallery?.config.components.teams[0];
         // If no teams, create a default team
         const defaultTeam = await teamAPI.createTeam(
           {

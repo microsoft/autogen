@@ -127,15 +127,16 @@ result_stream =  tm.run(task="What is the weather in New York?", team_config="te
 
 ```
 
-<!-- ## Q: Can I deploy my agent workflows as APIs?
+You can also load the team specification as an AgentChat object using the `load_component` method.
 
-Yes. You can launch the workflow as an API endpoint from the command line using the `autogenstudio` commandline tool. For example:
+```python
 
-```bash
-autogenstudio serve --workflow=workflow.json --port=5000
+import json
+from autogen_agentchat.teams import BaseGroupChat
+team_config = json.load(open("team.json"))
+team = BaseGroupChat.load_component(team_config)
+
 ```
-
-Similarly, the workflow launch command above can be wrapped into a Dockerfile that can be deployed on cloud services like Azure Container Apps or Azure Web Apps. -->
 
 ## Q: Can I run AutoGen Studio in a Docker container?
 
