@@ -152,14 +152,67 @@ class FunctionWithRequirements(Generic[T, P]):
 def with_requirements(
     python_packages: Sequence[str] = [], global_imports: Sequence[Import] = []
 ) -> Callable[[Callable[P, T]], FunctionWithRequirements[T, P]]:
-    """Decorate a function with package and import requirements
+    """
+    Decorate a function with package and import requirements for code execution environments.
+
+    This decorator makes a function available for reference in dynamically executed code blocks
+    by wrapping it in a `FunctionWithRequirements` object that tracks its dependencies. When the
+    decorated function is passed to a code executor, it can be imported by name in the executed
+    code, with all dependencies automatically handled.
 
     Args:
-        python_packages (List[str], optional): Packages required to function. Can include version info.. Defaults to [].
-        global_imports (List[Import], optional): Required imports. Defaults to [].
+        python_packages (Sequence[str], optional): Python packages required by the function.
+            Can include version specifications (e.g., ["pandas>=1.0.0"]). Defaults to [].
+        global_imports (Sequence[Import], optional): Import statements required by the function.
+            Can be strings ("numpy"), ImportFromModule objects, or Alias objects. Defaults to [].
 
     Returns:
-        Callable[[Callable[P, T]], FunctionWithRequirements[T, P]]: The decorated function
+        Callable[[Callable[P, T]], FunctionWithRequirements[T, P]]: A decorator that wraps
+            the target function, preserving its functionality while registering its dependencies.
+
+    Example:
+
+        .. code-block:: python
+
+            import tempfile
+            import asyncio
+            from autogen_core import CancellationToken
+            from autogen_core.code_executor import with_requirements, CodeBlock
+            from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
+            import pandas
+
+            @with_requirements(python_packages=["pandas"], global_imports=["pandas"])
+            def load_data() -> pandas.DataFrame:
+                \"\"\"Load some sample data.
+
+                Returns:
+                    pandas.DataFrame: A DataFrame with sample data
+                \"\"\"
+                data = {
+                    "name": ["John", "Anna", "Peter", "Linda"],
+                    "location": ["New York", "Paris", "Berlin", "London"],
+                    "age": [24, 13, 53, 33],
+                }
+                return pandas.DataFrame(data)
+
+            async def run_example():
+                # The decorated function can be used in executed code
+                with tempfile.TemporaryDirectory() as temp_dir:
+                    executor = LocalCommandLineCodeExecutor(work_dir=temp_dir, functions=[load_data])
+                    code = f\"\"\"from {executor.functions_module} import load_data
+
+                    # Use the imported function
+                    data = load_data()
+                    print(data['name'][0])\"\"\"
+
+                    result = await executor.execute_code_blocks(
+                        code_blocks=[CodeBlock(language="python", code=code)],
+                        cancellation_token=CancellationToken(),
+                    )
+                    print(result.output)  # Output: John
+
+            # Run the async example
+            asyncio.run(run_example())
     """
 
     def wrapper(func: Callable[P, T]) -> FunctionWithRequirements[T, P]:

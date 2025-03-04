@@ -88,3 +88,8 @@ html[data-theme="light"] .bd-header {
   vertical-align: bottom;
   margin-right: 5px;
 }
+
+/* jupyter notebook output cells */
+.bd-article .docutils .cell_output .output .highlight > pre:focus-visible{
+  border: 2px outset var(--pst-color-secondary);
+}

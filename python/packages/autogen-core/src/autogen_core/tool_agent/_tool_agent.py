@@ -19,6 +19,7 @@ __all__ = [
 class ToolException(BaseException):
     call_id: str
     content: str
+    name: str
 
 
 @dataclass
@@ -76,7 +77,9 @@ class ToolAgent(RoutedAgent):
         """
         tool = next((tool for tool in self._tools if tool.name == message.name), None)
         if tool is None:
-            raise ToolNotFoundException(call_id=message.id, content=f"Error: Tool not found: {message.name}")
+            raise ToolNotFoundException(
+                call_id=message.id, content=f"Error: Tool not found: {message.name}", name=message.name
+            )
         else:
             try:
                 arguments = json.loads(message.arguments)
@@ -84,8 +87,8 @@ class ToolAgent(RoutedAgent):
                 result_as_str = tool.return_value_as_string(result)
             except json.JSONDecodeError as e:
                 raise InvalidToolArgumentsException(
-                    call_id=message.id, content=f"Error: Invalid arguments: {message.arguments}"
+                    call_id=message.id, content=f"Error: Invalid arguments: {message.arguments}", name=message.name
                 ) from e
             except Exception as e:
-                raise ToolExecutionException(call_id=message.id, content=f"Error: {e}") from e
-        return FunctionExecutionResult(content=result_as_str, call_id=message.id, is_error=False)
+                raise ToolExecutionException(call_id=message.id, content=f"Error: {e}", name=message.name) from e
+        return FunctionExecutionResult(content=result_as_str, call_id=message.id, is_error=False, name=message.name)
