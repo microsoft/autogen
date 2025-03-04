@@ -3,8 +3,8 @@ import { Modal, Tabs, Input, Button, Alert, Upload } from "antd";
 import { Globe, Upload as UploadIcon, Code } from "lucide-react";
 import { MonacoEditor } from "../monaco";
 import type { InputRef, UploadFile, UploadProps } from "antd";
-import { Gallery } from "./types";
 import { defaultGallery } from "./utils";
+import { Gallery, GalleryConfig } from "../../types/datamodel";
 
 interface GalleryCreateModalProps {
   open: boolean;
@@ -31,9 +31,11 @@ export const GalleryCreateModal: React.FC<GalleryCreateModalProps> = ({
     setError("");
     try {
       const response = await fetch(url);
-      const data = await response.json();
+      const data = (await response.json()) as GalleryConfig;
       // TODO: Validate against Gallery schema
-      onCreateGallery(data);
+      onCreateGallery({
+        config: data,
+      });
       onCancel();
     } catch (err) {
       setError("Failed to fetch or parse gallery from URL");
@@ -48,9 +50,14 @@ export const GalleryCreateModal: React.FC<GalleryCreateModalProps> = ({
       const reader = new FileReader();
       reader.onload = (e: ProgressEvent<FileReader>) => {
         try {
-          const content = JSON.parse(e.target?.result as string);
+          const content = JSON.parse(
+            e.target?.result as string
+          ) as GalleryConfig;
+
           // TODO: Validate against Gallery schema
-          onCreateGallery(content);
+          onCreateGallery({
+            config: content,
+          });
           onCancel();
         } catch (err) {
           setError("Invalid JSON file");
@@ -64,9 +71,11 @@ export const GalleryCreateModal: React.FC<GalleryCreateModalProps> = ({
 
   const handlePasteImport = () => {
     try {
-      const content = JSON.parse(jsonContent);
+      const content = JSON.parse(jsonContent) as GalleryConfig;
       // TODO: Validate against Gallery schema
-      onCreateGallery(content);
+      onCreateGallery({
+        config: content,
+      });
       onCancel();
     } catch (err) {
       setError("Invalid JSON format");

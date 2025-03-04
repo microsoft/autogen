@@ -140,6 +140,17 @@ To understand the full configuration of an model clients, you can refer to the [
 
 Note that you can similarly define your model client in Python and call `dump_component()` on it to get the JSON configuration and use it to update the model client section of your team or agent configuration.
 
+Finally, you can use the `load_component()` method to load a team configuration from a JSON file:
+
+```python
+
+import json
+from autogen_agentchat.teams import BaseGroupChat
+team_config = json.load(open("team.json"))
+team = BaseGroupChat.load_component(team_config)
+
+```
+
 ## Gallery - Sharing and Reusing Components
 
 AGS provides a Gallery view, where a gallery is a collection of components - teams, agents, models, tools, and terminations - that can be shared and reused across projects.
