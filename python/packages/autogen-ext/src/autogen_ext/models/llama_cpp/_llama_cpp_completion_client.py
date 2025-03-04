@@ -163,9 +163,9 @@ class LlamaCppParams(TypedDict, total=False):
 
 class LlamaCppChatCompletionClient(ChatCompletionClient):
     """Chat completion client for LlamaCpp models.
-    To use this client, you must install the `llama-cpp-python` package:
+    To use this client, you must install the `llama-cpp` extra:
     .. code-block:: bash
-        pip install llama-cpp-python
+        pip install "autogen-ext[llama-cpp]"
     This client allows you to interact with LlamaCpp models, either by specifying a local model path or by downloading a model from Hugging Face Hub.
     Args:
         model_path (optional, str): The path to the LlamaCpp model file. Required if repo_id and filename are not provided.
@@ -201,18 +201,19 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         """
         Initialize the LlamaCpp client.
         """
-        params: LlamaCppParams = LlamaCppParams(**kwargs)
 
         if model_info:
             validate_model_info(model_info)
 
-        if "repo_id" in params and "filename" in params and params["repo_id"] and params["filename"]:
-            repo_id: str = cast(str, params.pop("repo_id"))
-            filename: str = cast(str, params.pop("filename"))
-            self.llm: Llama = Llama.from_pretrained(repo_id=repo_id, filename=filename, **params)
+        if "repo_id" in kwargs and "filename" in kwargs and kwargs["repo_id"] and kwargs["filename"]:
+            repo_id: str = cast(str, kwargs.pop("repo_id"))
+            filename: str = cast(str, kwargs.pop("filename"))
+            pretrained = Llama.from_pretrained(repo_id=repo_id, filename=filename, **kwargs) # type: ignore
+            assert isinstance(pretrained, Llama)
+            self.llm = pretrained
 
-        elif "model_path" in params:
-            self.llm = Llama(**params)  # pyright: ignore[reportUnknownMemberType]
+        elif "model_path" in kwargs:
+            self.llm = Llama(**kwargs)  # pyright: ignore[reportUnknownMemberType]
         else:
             raise ValueError("Please provide model_path if ... or provide repo_id and filename if ....")
         self._total_usage = {"prompt_tokens": 0, "completion_tokens": 0}
