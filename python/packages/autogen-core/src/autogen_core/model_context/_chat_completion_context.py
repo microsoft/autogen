@@ -14,6 +14,34 @@ class ChatCompletionContext(ABC, ComponentBase[BaseModel]):
 
     Args:
         initial_messages (List[LLMMessage] | None): The initial messages.
+
+    Example:
+
+        To create a custom model context that filters out the thought field from AssistantMessage.
+        This is useful for reasoning models like DeepSeek R1, which produces
+        very long thought that is not needed for subsequent completions.
+
+        .. code-block:: python
+
+            from typing import List
+
+            from autogen_core.model_context import UnboundedChatCompletionContext
+            from autogen_core.models import AssistantMessage, LLMMessage
+
+
+            class ReasoningModelContext(UnboundedChatCompletionContext):
+                \"\"\"A model context for reasoning models.\"\"\"
+
+                async def get_messages(self) -> List[LLMMessage]:
+                    messages = await super().get_messages()
+                    # Filter out thought field from AssistantMessage.
+                    messages_out: List[LLMMessage] = []
+                    for message in messages:
+                        if isinstance(message, AssistantMessage):
+                            message.thought = None
+                        messages_out.append(message)
+                    return messages_out
+
     """
 
     component_type = "chat_completion_context"

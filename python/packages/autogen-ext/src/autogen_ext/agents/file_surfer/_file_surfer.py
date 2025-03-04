@@ -10,7 +10,7 @@ from autogen_agentchat.messages import (
     TextMessage,
 )
 from autogen_agentchat.utils import remove_images
-from autogen_core import CancellationToken, FunctionCall
+from autogen_core import CancellationToken, Component, ComponentModel, FunctionCall
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -18,6 +18,8 @@ from autogen_core.models import (
     SystemMessage,
     UserMessage,
 )
+from pydantic import BaseModel
+from typing_extensions import Self
 
 from ._markdown_file_browser import MarkdownFileBrowser
 
@@ -31,7 +33,15 @@ from ._tool_definitions import (
 )
 
 
-class FileSurfer(BaseChatAgent):
+class FileSurferConfig(BaseModel):
+    """Configuration for FileSurfer agent"""
+
+    name: str
+    model_client: ComponentModel
+    description: str | None = None
+
+
+class FileSurfer(BaseChatAgent, Component[FileSurferConfig]):
     """An agent, used by MagenticOne, that acts as a local file previewer. FileSurfer can open and read a variety of common file types, and can navigate the local file hierarchy.
 
     Installation:
@@ -46,6 +56,9 @@ class FileSurfer(BaseChatAgent):
         description (str): The agent's description used by the team. Defaults to DEFAULT_DESCRIPTION
 
     """
+
+    component_config_schema = FileSurferConfig
+    component_provider_override = "autogen_ext.agents.file_surfer.FileSurfer"
 
     DEFAULT_DESCRIPTION = "An agent that can handle local files."
 
@@ -180,3 +193,18 @@ class FileSurfer(BaseChatAgent):
             return messages
         else:
             return remove_images(messages)
+
+    def _to_config(self) -> FileSurferConfig:
+        return FileSurferConfig(
+            name=self.name,
+            model_client=self._model_client.dump_component(),
+            description=self.description,
+        )
+
+    @classmethod
+    def _from_config(cls, config: FileSurferConfig) -> Self:
+        return cls(
+            name=config.name,
+            model_client=ChatCompletionClient.load_component(config.model_client),
+            description=config.description or cls.DEFAULT_DESCRIPTION,
+        )

@@ -5,7 +5,7 @@ class and includes specific fields relevant to the type of message being sent.
 """
 
 from abc import ABC
-from typing import List, Literal
+from typing import Dict, List, Literal
 
 from autogen_core import FunctionCall, Image
 from autogen_core.memory import MemoryContent
@@ -22,6 +22,9 @@ class BaseMessage(BaseModel, ABC):
 
     models_usage: RequestUsage | None = None
     """The model client usage incurred when producing this message."""
+
+    metadata: Dict[str, str] = {}
+    """Additional metadata about the message."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
 
