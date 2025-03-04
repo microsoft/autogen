@@ -88,3 +88,8 @@ html[data-theme="light"] .bd-header {
   vertical-align: bottom;
   margin-right: 5px;
 }
+
+/* This is gross, but necessary to meet accessibility requirements */
+.headerlink {
+  visibility: visible !important;
+}

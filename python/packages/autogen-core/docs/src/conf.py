@@ -122,8 +122,8 @@ html_theme_options = {
     "footer_start": ["copyright"],
     "footer_center": ["footer-middle-links"],
     "footer_end": ["theme-version", "version-banner-override"],
-    "pygments_light_style": "xcode",
-    "pygments_dark_style": "monokai",
+    # "pygments_light_style": "xcode",
+    # "pygments_dark_style": "monokai",
     "navbar_start": ["navbar-logo", "version-switcher"],
     "switcher": {
         "json_url": "https://raw.githubusercontent.com/microsoft/autogen/refs/heads/main/docs/switcher.json",
@@ -136,7 +136,7 @@ html_theme_options = {
     ]
 }
 
-html_js_files = ["custom-icon.js", "banner-override.js"]
+html_js_files = ["custom-icon.js", "banner-override.js", "custom.js"]
 html_sidebars = {
     "packages/index": [],
     "user-guide/core-user-guide/**": ["sidebar-nav-bs-core"],
