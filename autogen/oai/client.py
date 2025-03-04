@@ -475,8 +475,11 @@ class OpenAIWrapper:
         if openai_config.get("azure_ad_token_provider") == "DEFAULT":
             import azure.identity
 
+            azure_ad_token_provider_scope = openai_config.get(
+                "azure_ad_token_provider_scope", "https://cognitiveservices.azure.com/.default"
+            )
             openai_config["azure_ad_token_provider"] = azure.identity.get_bearer_token_provider(
-                azure.identity.DefaultAzureCredential(), "https://cognitiveservices.azure.com/.default"
+                azure.identity.DefaultAzureCredential(), azure_ad_token_provider_scope
             )
 
     def _configure_openai_config_for_bedrock(self, config: Dict[str, Any], openai_config: Dict[str, Any]) -> None:

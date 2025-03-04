@@ -137,7 +137,12 @@ module.exports = {
         },
         {
           to: "blog",
-          label: "Blog",
+          label: "Old Blog (Archived)",
+          position: "left",
+        },
+        {
+          href: "https://devblogs.microsoft.com/autogen/",
+          label: "New Blog",
           position: "left",
         },
         {
