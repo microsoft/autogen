@@ -136,7 +136,7 @@ html_theme_options = {
     ]
 }
 
-html_js_files = ["custom-icon.js", "banner-override.js"]
+html_js_files = ["custom-icon.js", "banner-override.js", "custom.js"]
 html_sidebars = {
     "packages/index": [],
     "user-guide/core-user-guide/**": ["sidebar-nav-bs-core"],
