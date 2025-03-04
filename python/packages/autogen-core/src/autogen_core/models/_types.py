@@ -60,7 +60,7 @@ class FunctionExecutionResult(BaseModel):
     """The output of the function call."""
 
     name: str
-    """The name of the function that was called."""
+    """(New in v0.4.8) The name of the function that was called."""
 
     call_id: str
     """The ID of the function call. Note this ID may be empty for some models."""
