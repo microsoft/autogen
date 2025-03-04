@@ -1,7 +1,7 @@
 import * as React from "react";
 import Layout from "../components/layout";
 import { graphql } from "gatsby";
-import TeamManager from "../components/views/team/manager";
+import TeamManager from "../components/views/teambuilder/manager";
 
 // markup
 const IndexPage = ({ data }: any) => {

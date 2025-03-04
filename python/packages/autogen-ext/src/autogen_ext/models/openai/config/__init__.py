@@ -9,8 +9,14 @@ from typing_extensions import Required, TypedDict
 class ResponseFormat(TypedDict):
     type: Literal["text", "json_object"]
 
+
 class StreamOptions(TypedDict):
     include_usage: bool
+
+
+class StreamOptions(TypedDict):
+    include_usage: bool
+
 
 class CreateArguments(TypedDict, total=False):
     frequency_penalty: Optional[float]

@@ -18,7 +18,9 @@ When installing AgentChat locally, we recommend using a virtual environment for 
 Create and activate:
 
 ```bash
+# On Windows, change `python3` to `python` (if `python` is Python 3).
 python3 -m venv .venv
+# On Windows, change `bin` to `scripts`.
 source .venv/bin/activate
 ```
 
