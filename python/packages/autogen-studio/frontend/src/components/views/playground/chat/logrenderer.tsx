@@ -80,7 +80,6 @@ const FullLogView = ({
               <div className="flex justify-between mb-2">
                 <span className="text-xs font-medium uppercase text-secondary">
                   {(msg.name && `${msg.name}`) || msg.role}{" "}
-                  {Array.isArray(msg.content) + " array "}
                 </span>
               </div>
               {Array.isArray(msg.content) ? (
@@ -96,15 +95,17 @@ const FullLogView = ({
           ))}
         </div>
 
-        <div className="space-y-2">
-          <h4 className="text-sm font-medium">Response</h4>
-          <div className="p-4 bg-tertiary rounded-lg">
-            <TruncatableText
-              content={event.response.choices[0]?.message.content}
-              textThreshold={1000}
-            />
+        {event.response.choices && (
+          <div className="space-y-2">
+            <h4 className="text-sm font-medium">Response</h4>
+            <div className="p-4 bg-tertiary rounded-lg">
+              <TruncatableText
+                content={event.response?.choices[0]?.message.content}
+                textThreshold={1000}
+              />
+            </div>
           </div>
-        </div>
+        )}
 
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
           <div className="p-3 bg-tertiary rounded-lg">
@@ -147,7 +148,7 @@ const LLMLogRenderer: React.FC<LLMLogRendererProps> = ({ content }) => {
     }
   }, [content]);
 
-  console.log(parsedContent);
+  // console.log(parsedContent);
 
   if (!parsedContent) {
     return (

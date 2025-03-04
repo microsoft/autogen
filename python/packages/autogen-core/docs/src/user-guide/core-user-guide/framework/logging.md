@@ -22,7 +22,21 @@ from autogen_core import TRACE_LOGGER_NAME
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(TRACE_LOGGER_NAME)
+logger.addHandler(logging.StreamHandler())
 logger.setLevel(logging.DEBUG)
+```
+
+To enable structured logging, you can use the following code:
+
+```python
+import logging
+
+from autogen_core import EVENT_LOGGER_NAME
+
+logging.basicConfig(level=logging.WARNING)
+logger = logging.getLogger(EVENT_LOGGER_NAME)
+logger.addHandler(logging.StreamHandler())
+logger.setLevel(logging.INFO)
 ```
 
 ### Structured logging

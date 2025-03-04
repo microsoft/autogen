@@ -1,0 +1,6 @@
+# Advice created automatically for solving the 10_liars task.
+
+insight: 'When solving logic puzzles, carefully consider all possible scenarios,
+  including the simplest ones, and remember that if everyone is lying,
+  their statements should naturally align with the known conditions without needing a truth-teller.
+  Always double-check that your conclusions don''t inadvertently introduce contradictions.'

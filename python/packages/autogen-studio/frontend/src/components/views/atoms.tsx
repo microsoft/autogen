@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import { Tooltip } from "antd";
+import remarkGfm from "remark-gfm";
 
 export const LoadingIndicator = ({ size = 16 }: { size: number }) => (
   <div className="inline-flex items-center gap-2 text-accent   mr-2">
@@ -95,7 +96,8 @@ export const TruncatableText = memo(
       shouldTruncate && !isExpanded
         ? content.slice(0, threshold) + "..."
         : content;
-
+    const proseClassName =
+      " dark:prose-invert prose-table:border-hidden prose-td:border-t prose-th:border-b prose-ul:list-disc prose-sm prose-ol:list-decimal ";
     return (
       <div className="relative">
         <div
@@ -109,7 +111,14 @@ export const TruncatableText = memo(
             ${className}
           `}
         >
-          <ReactMarkdown>{displayContent}</ReactMarkdown>
+          <ReactMarkdown
+            className={
+              isExpanded ? `mt-4 text-sm text-primary ${proseClassName}` : ""
+            }
+            remarkPlugins={[remarkGfm]}
+          >
+            {displayContent}
+          </ReactMarkdown>
           {shouldTruncate && !isExpanded && (
             <div className="absolute bottom-0 left-0 right-0 h-24 bg-gradient-to-t from-secondary to-transparent opacity-20" />
           )}
@@ -153,7 +162,7 @@ export const TruncatableText = memo(
             onClick={() => setIsFullscreen(false)}
           >
             <div
-              className="relative bg-secondary w-full h-full md:w-4/5 md:h-4/5 md:rounded-lg p-8 overflow-auto"
+              className="relative bg-secondary scroll w-full h-full md:w-4/5 md:h-4/5 md:rounded-lg p-8 overflow-auto"
               style={{ opacity: 0.95 }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -166,11 +175,16 @@ export const TruncatableText = memo(
                   <X size={24} />
                 </button>
               </Tooltip>
-              <div className="mt-8 text-base text-primary">
+              <div className={`mt-8 text-base text-primary ${proseClassName}`}>
                 {isJson ? (
                   <pre className="whitespace-pre-wrap">{content}</pre>
                 ) : (
-                  <ReactMarkdown>{content}</ReactMarkdown>
+                  <ReactMarkdown
+                    className="text-primary"
+                    remarkPlugins={[remarkGfm]}
+                  >
+                    {content}
+                  </ReactMarkdown>
                 )}
               </div>
             </div>
