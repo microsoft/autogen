@@ -39,35 +39,69 @@ pip install -U autogenstudio
 
 _Note: This approach requires some familiarity with building interfaces in React._
 
+### Important: Git LFS Requirement
+
+AutoGen Studio uses Git Large File Storage (LFS) for managing image and other large files. If you clone the repository without git-lfs, you'll encounter build errors related to image formats.
+
+**Before cloning the repository:**
+
+1. Install git-lfs:
+
+   ```bash
+   # On Debian/Ubuntu
+   apt-get install git-lfs
+
+   # On macOS with Homebrew
+   brew install git-lfs
+
+   # On Windows with Chocolatey
+   choco install git-lfs
+   ```
+
+2. Set up git-lfs:
+   ```bash
+   git lfs install
+   ```
+
+**If you've already cloned the repository:**
+
+```bash
+git lfs install
+git lfs fetch --all
+git lfs checkout  # downloads all missing image files to the working directory
+```
+
+This setup is handled automatically if you use the dev container method of installation.
+
 You have two options for installing from source: manually or using a dev container.
 
 #### A) Install from source manually
 
-  1. Ensure you have Python 3.10+ and Node.js (version above 14.15.0) installed.
-  2. Clone the AutoGen Studio repository and install its Python dependencies using `pip install -e .`
-  3. Navigate to the `python/packages/autogen-studio/frontend` directory, install the dependencies, and build the UI:
+1. Ensure you have Python 3.10+ and Node.js (version above 14.15.0) installed.
+2. Clone the AutoGen Studio repository and install its Python dependencies using `pip install -e .`
+3. Navigate to the `python/packages/autogen-studio/frontend` directory, install the dependencies, and build the UI:
 
-      ```bash
-      npm install -g gatsby-cli
-      npm install --global yarn
-      cd frontend
-      yarn install
-      yarn build
-      # Windows users may need alternative commands to build the frontend:
-      gatsby clean && rmdir /s /q ..\\autogenstudio\\web\\ui 2>nul & (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenstudio\\web\\ui
-      ```
+   ```bash
+   npm install -g gatsby-cli
+   npm install --global yarn
+   cd frontend
+   yarn install
+   yarn build
+   # Windows users may need alternative commands to build the frontend:
+   gatsby clean && rmdir /s /q ..\\autogenstudio\\web\\ui 2>nul & (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenstudio\\web\\ui
+   ```
 
-#### B)  Install from source using a dev container
+#### B) Install from source using a dev container
 
-  1. Follow the [Dev Containers tutorial](https://code.visualstudio.com/docs/devcontainers/tutorial) to install VS Code, Docker and relevant extensions.
-  2. Clone the AutoGen Studio repository.
-  3. Open `python/packages/autogen-studio/`in VS Code. Click the blue button in bottom the corner or press F1 and select _"Dev Containers: Reopen in Container"_.
-  4. Build the UI:
+1. Follow the [Dev Containers tutorial](https://code.visualstudio.com/docs/devcontainers/tutorial) to install VS Code, Docker and relevant extensions.
+2. Clone the AutoGen Studio repository.
+3. Open `python/packages/autogen-studio/`in VS Code. Click the blue button in bottom the corner or press F1 and select _"Dev Containers: Reopen in Container"_.
+4. Build the UI:
 
-      ```bash
-      cd frontend
-      yarn build
-      ```
+   ```bash
+   cd frontend
+   yarn build
+   ```
 
 ### Running the Application
 

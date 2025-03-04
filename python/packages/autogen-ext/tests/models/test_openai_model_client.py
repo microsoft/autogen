@@ -334,7 +334,9 @@ async def test_openai_chat_completion_client_count_tokens(monkeypatch: pytest.Mo
             ],
             source="user",
         ),
-        FunctionExecutionResultMessage(content=[FunctionExecutionResult(content="Hello", call_id="1", is_error=False)]),
+        FunctionExecutionResultMessage(
+            content=[FunctionExecutionResult(content="Hello", call_id="1", is_error=False, name="tool1")]
+        ),
     ]
 
     def tool1(test: str, test2: str) -> str:
@@ -1230,7 +1232,14 @@ async def _test_model_client_with_function_calling(model_client: OpenAIChatCompl
     messages.append(AssistantMessage(content=create_result.content, source="assistant"))
     messages.append(
         FunctionExecutionResultMessage(
-            content=[FunctionExecutionResult(content="passed", call_id=create_result.content[0].id, is_error=False)]
+            content=[
+                FunctionExecutionResult(
+                    content="passed",
+                    call_id=create_result.content[0].id,
+                    is_error=False,
+                    name=create_result.content[0].name,
+                )
+            ]
         )
     )
     create_result = await model_client.create(messages=messages)
@@ -1260,8 +1269,12 @@ async def _test_model_client_with_function_calling(model_client: OpenAIChatCompl
     messages.append(
         FunctionExecutionResultMessage(
             content=[
-                FunctionExecutionResult(content="passed", call_id=create_result.content[0].id, is_error=False),
-                FunctionExecutionResult(content="failed", call_id=create_result.content[1].id, is_error=True),
+                FunctionExecutionResult(
+                    content="passed", call_id=create_result.content[0].id, is_error=False, name="pass_tool"
+                ),
+                FunctionExecutionResult(
+                    content="failed", call_id=create_result.content[1].id, is_error=True, name="fail_tool"
+                ),
             ]
         )
     )
@@ -1380,7 +1393,11 @@ async def test_openai_structured_output_with_tool_calls() -> None:
             UserMessage(content="I am happy.", source="user"),
             AssistantMessage(content=response1.content, source="assistant"),
             FunctionExecutionResultMessage(
-                content=[FunctionExecutionResult(content="happy", call_id=response1.content[0].id, is_error=False)]
+                content=[
+                    FunctionExecutionResult(
+                        content="happy", call_id=response1.content[0].id, is_error=False, name=tool.name
+                    )
+                ]
             ),
         ],
     )
@@ -1439,7 +1456,11 @@ async def test_openai_structured_output_with_streaming_tool_calls() -> None:
             UserMessage(content="I am happy.", source="user"),
             AssistantMessage(content=create_result1.content, source="assistant"),
             FunctionExecutionResultMessage(
-                content=[FunctionExecutionResult(content="happy", call_id=create_result1.content[0].id, is_error=False)]
+                content=[
+                    FunctionExecutionResult(
+                        content="happy", call_id=create_result1.content[0].id, is_error=False, name=tool.name
+                    )
+                ]
             ),
         ],
     )
