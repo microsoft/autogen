@@ -11,7 +11,7 @@ from loguru import logger
 
 from ..version import VERSION
 from .config import settings
-from .deps import cleanup_managers, init_managers
+from .deps import cleanup_managers, init_managers, register_auth_dependencies
 from .initialization import AppInitializer
 from .routes import gallery, runs, sessions, settingsroute, teams, validation, ws
 
@@ -30,6 +30,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         # Initialize managers (DB, Connection, Team)
         await init_managers(initializer.database_uri, initializer.config_dir, initializer.app_root)
+
+        await register_auth_dependencies(app, initializer.config_dir)
+
 
         # Any other initialization code
         logger.info(

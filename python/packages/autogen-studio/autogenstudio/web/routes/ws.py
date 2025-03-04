@@ -29,6 +29,7 @@ async def run_websocket(
         await websocket.close(code=4004, reason="Run not found")
         return
 
+    print(f"*** Run found: {run_response.data[0]}")
     run = run_response.data[0]
     if run.status not in [RunStatus.CREATED, RunStatus.ACTIVE]:
         await websocket.close(code=4003, reason="Run not in valid state")

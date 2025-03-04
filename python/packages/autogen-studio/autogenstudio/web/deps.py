@@ -1,14 +1,17 @@
 # api/deps.py
 import logging
+import os
 from contextlib import contextmanager
 from typing import Optional
-
+from pathlib import Path
+from fastapi import FastAPI, Request, WebSocket
 from fastapi import Depends, HTTPException, status
 
 from ..database import DatabaseManager
 from ..teammanager import TeamManager
 from .config import settings
 from .managers.connection import WebSocketManager
+from .auth import AuthManager, AuthMiddleware, AuthConfig
 
 logger = logging.getLogger(__name__)
 
@@ -16,7 +19,7 @@ logger = logging.getLogger(__name__)
 _db_manager: Optional[DatabaseManager] = None
 _websocket_manager: Optional[WebSocketManager] = None
 _team_manager: Optional[TeamManager] = None
-
+_auth_manager: Optional[AuthManager] = None 
 # Context manager for database sessions
 
 
@@ -37,7 +40,24 @@ def get_db_context():
 
 
 # Dependency providers
+async def get_auth_manager(request: Request) -> AuthManager:
+    """Dependency provider for auth manager"""
+    if hasattr(request.app.state, "auth_manager"):
+        return request.app.state.auth_manager
+    if not _auth_manager:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+            detail="Auth manager not initialized"
+        )
+    return _auth_manager
 
+def get_ws_auth_manager(websocket: WebSocket) -> AuthManager:
+    """Get the auth manager from app state for WebSocket connections."""
+    if not hasattr(websocket.app.state, "auth_manager"):
+        # Can't raise HTTPException in WebSockets, so we'll have to handle this differently
+        logger.error("Authentication system not initialized")
+        return None
+    return websocket.app.state.auth_manager
 
 async def get_db() -> DatabaseManager:
     """Dependency provider for database manager"""
@@ -67,17 +87,47 @@ async def get_team_manager() -> TeamManager:
 # Authentication dependency
 
 
-async def get_current_user(
-    # Add your authentication logic here
-    # For example: token: str = Depends(oauth2_scheme)
-) -> str:
-    """
-    Dependency for getting the current authenticated user.
-    Replace with your actual authentication logic.
-    """
-    # Implement your user authentication here
-    return "user_id"  # Replace with actual user identification
+async def get_current_user(request: Request) -> str:
+    """Get the current authenticated user."""
+    if hasattr(request.state, "user"):
+        return request.state.user.id
+    
+    # Fallback for routes not protected by auth middleware
+    auth_manager = await get_auth_manager(request)
+    if auth_manager.config.type == "none":
+        return settings.DEFAULT_USER_ID
+    
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Authentication required"
+    )
 
+async def register_auth_dependencies(app: FastAPI, config_dir: Path):
+    """Initialize and register authentication system."""
+    global _auth_manager
+    
+    # Check for auth configuration file
+    auth_config_path = os.environ.get("AUTOGENSTUDIO_AUTH_CONFIG")
+    
+    if auth_config_path and os.path.exists(auth_config_path):
+        # Load auth config from YAML file
+        try:
+            _auth_manager = AuthManager.from_yaml(auth_config_path)
+            app.state.auth_manager = _auth_manager
+            app.add_middleware(AuthMiddleware, auth_manager=_auth_manager)
+            logger.info(f"Authentication initialized with provider: {_auth_manager.config.type}")
+        except Exception as e:
+            logger.error(f"Failed to initialize authentication from config file: {str(e)}")
+            logger.warning("Falling back to no authentication")
+            config = AuthConfig(type="none")
+            _auth_manager = AuthManager(config)
+            app.state.auth_manager = _auth_manager
+    else:
+        # No auth config provided
+        config = AuthConfig(type="none")
+        _auth_manager = AuthManager(config)
+        app.state.auth_manager = _auth_manager
+        logger.info("Authentication disabled (no config provided)")
 
 # Manager initialization and cleanup
 
@@ -112,7 +162,7 @@ async def init_managers(database_uri: str, config_dir: str, app_root: str) -> No
 
 async def cleanup_managers() -> None:
     """Cleanup and shutdown all manager instances"""
-    global _db_manager, _websocket_manager, _team_manager
+    global _db_manager, _websocket_manager, _team_manager, _auth_manager
 
     logger.info("Cleaning up managers...")
 
@@ -127,6 +177,8 @@ async def cleanup_managers() -> None:
 
     # TeamManager doesn't need explicit cleanup since WebSocketManager handles it
     _team_manager = None
+
+    _auth_manager = None  
 
     # Cleanup database manager last
     if _db_manager:
@@ -149,6 +201,7 @@ def get_manager_status() -> dict:
         "database_manager": _db_manager is not None,
         "websocket_manager": _websocket_manager is not None,
         "team_manager": _team_manager is not None,
+        "auth_manager": _auth_manager is not None,
     }
 
 
