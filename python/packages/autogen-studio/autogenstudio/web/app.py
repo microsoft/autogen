@@ -11,9 +11,10 @@ from loguru import logger
 
 from ..version import VERSION
 from .config import settings
-from .deps import cleanup_managers, init_managers, register_auth_dependencies
+from .deps import cleanup_managers, init_auth_manager, init_managers, register_auth_dependencies
 from .initialization import AppInitializer
 from .routes import gallery, runs, sessions, settingsroute, teams, validation, ws
+from .auth.middleware import AuthMiddleware
 
 # Initialize application
 app_file_path = os.path.dirname(os.path.abspath(__file__))
@@ -31,7 +32,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # Initialize managers (DB, Connection, Team)
         await init_managers(initializer.database_uri, initializer.config_dir, initializer.app_root)
 
-        await register_auth_dependencies(app, initializer.config_dir)
+        await register_auth_dependencies(app, auth_manager)
 
 
         # Any other initialization code
@@ -54,6 +55,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.error(f"Error during shutdown: {str(e)}")
 
 
+auth_manager = init_auth_manager(initializer.config_dir)
 # Create FastAPI application
 app = FastAPI(lifespan=lifespan, debug=True)
 
@@ -70,6 +72,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(AuthMiddleware, auth_manager=auth_manager)
 
 # Create API router with version and documentation
 api = FastAPI(

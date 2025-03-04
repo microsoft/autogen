@@ -70,6 +70,7 @@ class AuthManager:
     async def authenticate_request(self, request: Request) -> User:
         """Authenticate a request and return user information."""
         # Check if path should be excluded from auth
+        print("************ authenticating request ************", request.url.path)
         if request.url.path in self.config.exclude_paths:
             return User(id="anonymous", name="Anonymous User")
             

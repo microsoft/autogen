@@ -53,11 +53,12 @@ async def get_auth_manager(request: Request) -> AuthManager:
 
 def get_ws_auth_manager(websocket: WebSocket) -> AuthManager:
     """Get the auth manager from app state for WebSocket connections."""
-    if not hasattr(websocket.app.state, "auth_manager"):
-        # Can't raise HTTPException in WebSockets, so we'll have to handle this differently
+    if hasattr(websocket.app.state, "auth_manager"):
+        return websocket.app.state.auth_manager
+    if not _auth_manager:
         logger.error("Authentication system not initialized")
         return None
-    return websocket.app.state.auth_manager
+    return _auth_manager
 
 async def get_db() -> DatabaseManager:
     """Dependency provider for database manager"""
@@ -102,32 +103,30 @@ async def get_current_user(request: Request) -> str:
         detail="Authentication required"
     )
 
-async def register_auth_dependencies(app: FastAPI, config_dir: Path):
-    """Initialize and register authentication system."""
-    global _auth_manager
-    
-    # Check for auth configuration file
+def init_auth_manager(config_dir: Path) -> AuthManager:
+    """Initialize authentication manager"""
     auth_config_path = os.environ.get("AUTOGENSTUDIO_AUTH_CONFIG")
     
     if auth_config_path and os.path.exists(auth_config_path):
-        # Load auth config from YAML file
         try:
-            _auth_manager = AuthManager.from_yaml(auth_config_path)
-            app.state.auth_manager = _auth_manager
-            app.add_middleware(AuthMiddleware, auth_manager=_auth_manager)
-            logger.info(f"Authentication initialized with provider: {_auth_manager.config.type}")
+            auth_manager = AuthManager.from_yaml(auth_config_path)
+            logger.info(f"Authentication initialized with provider: {auth_manager.config.type}")
+            return auth_manager
         except Exception as e:
             logger.error(f"Failed to initialize authentication from config file: {str(e)}")
             logger.warning("Falling back to no authentication")
-            config = AuthConfig(type="none")
-            _auth_manager = AuthManager(config)
-            app.state.auth_manager = _auth_manager
-    else:
-        # No auth config provided
-        config = AuthConfig(type="none")
-        _auth_manager = AuthManager(config)
-        app.state.auth_manager = _auth_manager
-        logger.info("Authentication disabled (no config provided)")
+    
+    # Default or fallback
+    config = AuthConfig(type="none")
+    auth_manager = AuthManager(config)
+    logger.info("Authentication disabled (no config provided)")
+    return auth_manager
+
+async def register_auth_dependencies(app: FastAPI, auth_manager: AuthManager) -> None:
+    """Register authentication manager with application"""
+    global _auth_manager
+    _auth_manager = auth_manager
+    app.state.auth_manager = auth_manager
 
 # Manager initialization and cleanup
 

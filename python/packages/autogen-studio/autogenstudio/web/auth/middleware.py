@@ -1,4 +1,4 @@
-from fastapi import Request, Response
+from fastapi import Request, Response, WebSocket
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.status import HTTP_401_UNAUTHORIZED
 import json
@@ -74,7 +74,7 @@ class WebSocketAuthMiddleware:
     def __init__(self, auth_manager: AuthManager):
         self.auth_manager = auth_manager
     
-    async def authenticate(self, websocket: 'WebSocket') -> bool:
+    async def authenticate(self, websocket: WebSocket) -> bool:
         """
         Authenticate a WebSocket connection.
         Returns True if authenticated, False otherwise.
