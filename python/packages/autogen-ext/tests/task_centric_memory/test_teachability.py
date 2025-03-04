@@ -111,7 +111,9 @@ async def test_memory(mode: Literal["record", "replay"] = "replay") -> None:
                 "not used",
             ]
         )
-    client = ChatCompletionClientRecorder(base_client, mode, f"./tests/task_centric_memory/sessions/{test}/session.json", logger)
+    client = ChatCompletionClientRecorder(
+        base_client, mode, f"./tests/task_centric_memory/sessions/{test}/session.json", logger
+    )
     apprentice = Apprentice(client, config["Apprentice"], logger)
 
     # Call the example function.
