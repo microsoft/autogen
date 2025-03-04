@@ -3,6 +3,7 @@ from typing import Dict
 from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException
+from loguru import logger
 from pydantic import BaseModel
 
 from ...datamodel import Message, MessageConfig, Run, RunStatus, Session, Team
@@ -53,6 +54,12 @@ async def get_run(run_id: UUID, db=Depends(get_db)) -> Dict:
     run = db.get(Run, filters={"id": run_id}, return_json=False)
     if not run.status or not run.data:
         raise HTTPException(status_code=404, detail="Run not found")
+    messages = db.get(Message, filters={"run_id": run_id}, order="asc", return_json=False)
+    if not messages.status:
+        logger.error(f"Failed to fetch messages for run {run_id}")
+        # Continue processing other runs even if one fails
+        messages.data = []
+    run.data[0].messages = messages.data
 
     return {"status": True, "data": run.data[0]}
 

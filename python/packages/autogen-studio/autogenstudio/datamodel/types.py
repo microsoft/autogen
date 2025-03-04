@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import BaseChatMessage
@@ -21,7 +21,10 @@ class TeamResult(BaseModel):
 
 class LLMCallEventMessage(BaseChatMessage):
     source: str = "llm_call_event"
+
     content: str
+
+    type: Literal["LLMCallEventMessage"] = "LLMCallEventMessage"
 
 
 class MessageMeta(BaseModel):
