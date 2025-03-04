@@ -30,7 +30,7 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
         Consider :class:`~autogen_ext.tools.code_execution.PythonCodeExecutionTool`
         as an alternative to this agent. The tool allows for executing Python code
         within a single agent, rather than sending it to a separate agent for execution.
-        However, the model for the agent will have to generate properly escapted code
+        However, the model for the agent will have to generate properly escaped code
         string as a parameter to the tool.
 
     Args:
