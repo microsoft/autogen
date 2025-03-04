@@ -37,25 +37,25 @@ public partial class SemanticKernelAgentTest
             .AddAzureOpenAIChatCompletion(deploymentName, endpoint, key);
 
         var kernel = builder.Build();
-
-        kernel.GetRequiredService<IChatCompletionService>();
-
         var skAgent = new SemanticKernelAgent(kernel, "assistant");
 
-        var chatMessageContent = MessageEnvelope.Create(new ChatMessageContent(AuthorRole.Assistant, "Hello"));
-        var reply = await skAgent.SendAsync(chatMessageContent);
+        await TestBasicConversationAsync(skAgent);
+    }
 
-        reply.Should().BeOfType<MessageEnvelope<ChatMessageContent>>();
-        reply.As<MessageEnvelope<ChatMessageContent>>().From.Should().Be("assistant");
+    [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
+    public async Task BasicConversationTestWithKeyedServiceAsync()
+    {
+        var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT") ?? throw new Exception("Please set AZURE_OPENAI_ENDPOINT environment variable.");
+        var key = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY") ?? throw new Exception("Please set AZURE_OPENAI_API_KEY environment variable.");
+        var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOY_NAME") ?? throw new Exception("Please set AZURE_OPENAI_DEPLOY_NAME environment variable.");
+        var modelServiceId = "my-service-id";
+        var builder = Kernel.CreateBuilder()
+            .AddAzureOpenAIChatCompletion(deploymentName, endpoint, key, modelServiceId);
 
-        // test streaming
-        var streamingReply = skAgent.GenerateStreamingReplyAsync(new[] { chatMessageContent });
+        var kernel = builder.Build();
+        var skAgent = new SemanticKernelAgent(kernel, "assistant", modelServiceId: modelServiceId);
 
-        await foreach (var streamingMessage in streamingReply)
-        {
-            streamingMessage.Should().BeOfType<MessageEnvelope<StreamingChatMessageContent>>();
-            streamingMessage.As<MessageEnvelope<StreamingChatMessageContent>>().From.Should().Be("assistant");
-        }
+        await TestBasicConversationAsync(skAgent);
     }
 
     [ApiKeyFact("AZURE_OPENAI_API_KEY", "AZURE_OPENAI_ENDPOINT", "AZURE_OPENAI_DEPLOY_NAME")]
@@ -240,5 +240,23 @@ public partial class SemanticKernelAgentTest
 
         reply.GetContent()!.ToLower().Should().Contain("seattle");
         reply.GetContent()!.ToLower().Should().Contain("sunny");
+    }
+
+    private static async Task TestBasicConversationAsync(SemanticKernelAgent agent)
+    {
+        var chatMessageContent = MessageEnvelope.Create(new ChatMessageContent(AuthorRole.Assistant, "Hello"));
+        var reply = await agent.SendAsync(chatMessageContent);
+
+        reply.Should().BeOfType<MessageEnvelope<ChatMessageContent>>();
+        reply.As<MessageEnvelope<ChatMessageContent>>().From.Should().Be("assistant");
+
+        // test streaming
+        var streamingReply = agent.GenerateStreamingReplyAsync(new[] { chatMessageContent });
+
+        await foreach (var streamingMessage in streamingReply)
+        {
+            streamingMessage.Should().BeOfType<MessageEnvelope<StreamingChatMessageContent>>();
+            streamingMessage.As<MessageEnvelope<StreamingChatMessageContent>>().From.Should().Be("assistant");
+        }
     }
 }

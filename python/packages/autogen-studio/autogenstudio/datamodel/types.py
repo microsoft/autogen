@@ -1,10 +1,12 @@
+# from dataclasses import Field
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 
 from autogen_agentchat.base import TaskResult
 from autogen_agentchat.messages import BaseChatMessage
 from autogen_core import ComponentModel
-from pydantic import BaseModel
+from autogen_ext.models.openai import OpenAIChatCompletionClient
+from pydantic import BaseModel, ConfigDict
 
 
 class MessageConfig(BaseModel):
@@ -36,8 +38,8 @@ class MessageMeta(BaseModel):
 
 class GalleryMetadata(BaseModel):
     author: str
-    created_at: datetime
-    updated_at: datetime
+    # created_at: datetime = Field(default_factory=datetime.now)
+    # updated_at: datetime = Field(default_factory=datetime.now)
     version: str
     description: Optional[str] = None
     tags: Optional[List[str]] = None
@@ -46,25 +48,53 @@ class GalleryMetadata(BaseModel):
     category: Optional[str] = None
     last_synced: Optional[datetime] = None
 
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.isoformat(),
+        }
+    )
+
 
 class GalleryComponents(BaseModel):
     agents: List[ComponentModel]
     models: List[ComponentModel]
     tools: List[ComponentModel]
     terminations: List[ComponentModel]
-
-
-class GalleryItems(BaseModel):
     teams: List[ComponentModel]
-    components: GalleryComponents
 
 
-class Gallery(BaseModel):
+class GalleryConfig(BaseModel):
     id: str
     name: str
     url: Optional[str] = None
     metadata: GalleryMetadata
-    items: GalleryItems
+    components: GalleryComponents
+
+    model_config = ConfigDict(
+        json_encoders={
+            datetime: lambda v: v.isoformat(),
+        }
+    )
+
+
+class EnvironmentVariable(BaseModel):
+    name: str
+    value: str
+    type: Literal["string", "number", "boolean", "secret"] = "string"
+    description: Optional[str] = None
+    required: bool = False
+
+
+class UISettings(BaseModel):
+    show_llm_call_events: bool = False
+    expanded_messages_by_default: bool = True
+    show_agent_flow_by_default: bool = True
+
+
+class SettingsConfig(BaseModel):
+    environment: List[EnvironmentVariable] = []
+    default_model_client: Optional[ComponentModel] = OpenAIChatCompletionClient(model="gpt-4o-mini").dump_component()
+    ui: UISettings = UISettings()
 
 
 # web request/response data models

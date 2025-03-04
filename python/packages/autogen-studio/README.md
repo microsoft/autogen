@@ -18,18 +18,18 @@ Code for AutoGen Studio is on GitHub at [microsoft/autogen](https://github.com/m
 - **2024-04-17:** April 17: AutoGen Studio database layer is now rewritten to use [SQLModel](https://sqlmodel.tiangolo.com/) (Pydantic + SQLAlchemy). This provides entity linking (skills, models, agents and workflows are linked via association tables) and supports multiple [database backend dialects](https://docs.sqlalchemy.org/en/20/dialects/) supported in SQLAlchemy (SQLite, PostgreSQL, MySQL, Oracle, Microsoft SQL Server). The backend database can be specified a `--database-uri` argument when running the application. For example, `autogenstudio ui --database-uri sqlite:///database.sqlite` for SQLite and `autogenstudio ui --database-uri postgresql+psycopg://user:password@localhost/dbname` for PostgreSQL.
 - **2024-03-12:** Default directory for AutoGen Studio is now /home/\<USER\>/.autogenstudio. You can also specify this directory using the `--appdir` argument when running the application. For example, `autogenstudio ui --appdir /path/to/folder`. This will store the database and other files in the specified directory e.g. `/path/to/folder/database.sqlite`. `.env` files in that directory will be used to set environment variables for the app.
 
-Project Structure:
+## Project Structure:
 
-- _autogenstudio/_ code for the backend classes and web api (FastAPI)
-- _frontend/_ code for the webui, built with Gatsby and TailwindCSS
+- `autogenstudio/` contains code for the backend classes and web api (FastAPI)
+- `frontend/` contains code for the webui, built with Gatsby and TailwindCSS
 
 ## Installation
 
-There are two ways to install AutoGen Studio - from PyPi or from source. We **recommend installing from PyPi** unless you plan to modify the source code.
+There are two ways to install AutoGen Studio - from PyPi or from the source. We **recommend installing from PyPi** unless you plan to modify the source code.
 
 ### Install from PyPi (Recommended)
 
-We recommend using a virtual environment (e.g., conda) to avoid conflicts with existing Python packages. With Python 3.10 or newer active in your virtual environment, use pip to install AutoGen Studio:
+We recommend using a virtual environment (e.g., venv) to avoid conflicts with existing Python packages. With Python 3.10 or newer active in your virtual environment, use pip to install AutoGen Studio:
 
 ```bash
 pip install -U autogenstudio
@@ -39,6 +39,40 @@ pip install -U autogenstudio
 
 _Note: This approach requires some familiarity with building interfaces in React._
 
+### Important: Git LFS Requirement
+
+AutoGen Studio uses Git Large File Storage (LFS) for managing image and other large files. If you clone the repository without git-lfs, you'll encounter build errors related to image formats.
+
+**Before cloning the repository:**
+
+1. Install git-lfs:
+
+   ```bash
+   # On Debian/Ubuntu
+   apt-get install git-lfs
+
+   # On macOS with Homebrew
+   brew install git-lfs
+
+   # On Windows with Chocolatey
+   choco install git-lfs
+   ```
+
+2. Set up git-lfs:
+   ```bash
+   git lfs install
+   ```
+
+**If you've already cloned the repository:**
+
+```bash
+git lfs install
+git lfs fetch --all
+git lfs checkout  # downloads all missing image files to the working directory
+```
+
+This setup is handled automatically if you use the dev container method of installation.
+
 You have two options for installing from source: manually or using a dev container.
 
 #### A) Install from source manually
@@ -47,27 +81,27 @@ You have two options for installing from source: manually or using a dev contain
 2. Clone the AutoGen Studio repository and install its Python dependencies using `pip install -e .`
 3. Navigate to the `python/packages/autogen-studio/frontend` directory, install the dependencies, and build the UI:
 
-  ```bash
-  npm install -g gatsby-cli
-  npm install --global yarn
-  cd frontend
-  yarn install
-  yarn build
-  # Windows users may need alternative commands to build the frontend:
-  gatsby clean && rmdir /s /q ..\\autogenstudio\\web\\ui 2>nul & (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenstudio\\web\\ui
-  ```
+   ```bash
+   npm install -g gatsby-cli
+   npm install --global yarn
+   cd frontend
+   yarn install
+   yarn build
+   # Windows users may need alternative commands to build the frontend:
+   gatsby clean && rmdir /s /q ..\\autogenstudio\\web\\ui 2>nul & (set \"PREFIX_PATH_VALUE=\" || ver>nul) && gatsby build --prefix-paths && xcopy /E /I /Y public ..\\autogenstudio\\web\\ui
+   ```
 
-#### B)  Install from source using a dev container
+#### B) Install from source using a dev container
 
 1. Follow the [Dev Containers tutorial](https://code.visualstudio.com/docs/devcontainers/tutorial) to install VS Code, Docker and relevant extensions.
 2. Clone the AutoGen Studio repository.
 3. Open `python/packages/autogen-studio/`in VS Code. Click the blue button in bottom the corner or press F1 and select _"Dev Containers: Reopen in Container"_.
 4. Build the UI:
 
-  ```bash
-  cd frontend
-  yarn build
-  ```
+   ```bash
+   cd frontend
+   yarn build
+   ```
 
 ### Running the Application
 

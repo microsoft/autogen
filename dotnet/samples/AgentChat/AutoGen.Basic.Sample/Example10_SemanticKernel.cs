@@ -50,7 +50,7 @@ public class Example10_SemanticKernel
 
         kernel.Plugins.AddFromObject(new LightPlugin());
         var skAgent = kernel
-            .ToSemanticKernelAgent(name: "assistant", systemMessage: "You control the light", settings);
+            .ToSemanticKernelAgent(name: "assistant", systemMessage: "You control the light", settings: settings);
 
         // Send a message to the skAgent, the skAgent supports the following message types:
         // - IMessage<ChatMessageContent>

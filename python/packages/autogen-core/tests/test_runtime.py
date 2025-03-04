@@ -6,12 +6,16 @@ from autogen_core import (
     AgentInstantiationContext,
     AgentType,
     DefaultTopicId,
+    MessageContext,
+    RoutedAgent,
     SingleThreadedAgentRuntime,
     TopicId,
     TypeSubscription,
+    event,
     try_get_known_serializers_for_type,
     type_subscription,
 )
+from autogen_core._default_subscription import default_subscription
 from autogen_test_utils import (
     CascadingAgent,
     CascadingMessageType,
@@ -266,5 +270,43 @@ async def test_default_subscription_publish_to_other_source() -> None:
         AgentId("name", key="other"), type=LoopbackAgentWithDefaultSubscription
     )
     assert other_long_running_agent.num_calls == 1
+
+    await runtime.close()
+
+
+@default_subscription
+class FailingAgent(RoutedAgent):
+    def __init__(self) -> None:
+        super().__init__("A failing agent.")
+
+    @event
+    async def on_new_message_event(self, message: MessageType, ctx: MessageContext) -> None:
+        raise ValueError("Test exception")
+
+
+@pytest.mark.asyncio
+async def test_event_handler_exception_propogates() -> None:
+    runtime = SingleThreadedAgentRuntime(ignore_unhandled_exceptions=False)
+    await FailingAgent.register(runtime, "name", FailingAgent)
+
+    with pytest.raises(ValueError, match="Test exception"):
+        runtime.start()
+        await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
+        await runtime.stop_when_idle()
+
+    await runtime.close()
+
+
+@pytest.mark.asyncio
+async def test_event_handler_exception_multi_message() -> None:
+    runtime = SingleThreadedAgentRuntime(ignore_unhandled_exceptions=False)
+    await FailingAgent.register(runtime, "name", FailingAgent)
+
+    with pytest.raises(ValueError, match="Test exception"):
+        runtime.start()
+        await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
+        await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
+        await runtime.publish_message(MessageType(), topic_id=DefaultTopicId())
+        await runtime.stop_when_idle()
 
     await runtime.close()

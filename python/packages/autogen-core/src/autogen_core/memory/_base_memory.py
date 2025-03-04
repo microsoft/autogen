@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from typing import Any, Dict, List, Union
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, field_serializer
 
 from .._cancellation_token import CancellationToken
 from .._component_config import ComponentBase
@@ -36,6 +36,13 @@ class MemoryContent(BaseModel):
     """Metadata associated with the memory item."""
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    @field_serializer("mime_type")
+    def serialize_mime_type(self, mime_type: MemoryMimeType | str) -> str:
+        """Serialize the MIME type to a string."""
+        if isinstance(mime_type, MemoryMimeType):
+            return mime_type.value
+        return mime_type
 
 
 class MemoryQueryResult(BaseModel):
