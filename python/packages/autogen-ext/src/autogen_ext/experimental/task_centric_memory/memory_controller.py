@@ -440,19 +440,3 @@ class MemoryController:
 
         self.logger.leave_function()
         return response
-
-    async def process_user_message(self, text: str) -> str:
-        """
-        Processes a user message by extracting any advice as an insight to be stored in memory,
-        and returns the original user message with any other relevant memories appended.
-        """
-        self.logger.enter_function()
-
-        # Append any relevant memories to the user message.
-        expanded_text = await self._append_any_relevant_memories(text)
-
-        # Check for advice to add to memory for later turns.
-        await self.consider_memo_storage(text)
-
-        self.logger.leave_function()
-        return expanded_text
