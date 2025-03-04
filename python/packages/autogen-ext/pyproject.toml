@@ -68,6 +68,8 @@ jupyter-executor = [
     "nbclient>=0.10.2",
 ]
 
+task-centric-memory = ["chromadb>=0.6.3"]
+
 semantic-kernel-core = [
     "semantic-kernel>=1.17.1",
 ]
@@ -142,7 +144,7 @@ dev = [
 [tool.ruff]
 extend = "../../pyproject.toml"
 include = ["src/**", "tests/*.py"]
-exclude = ["src/autogen_ext/agents/web_surfer/*.js", "src/autogen_ext/runtimes/grpc/protos", "tests/protos"]
+exclude = ["src/autogen_ext/agents/web_surfer/*.js", "src/autogen_ext/runtimes/grpc/protos", "tests/protos", "README.md"]
 
 [tool.pyright]
 extends = "../../pyproject.toml"
