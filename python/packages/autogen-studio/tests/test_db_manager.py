@@ -1,22 +1,24 @@
 import os
 import asyncio
+import uuid
 import pytest
 from sqlmodel import Session, text, select
 from typing import Generator
+from pathlib import Path
 
 from autogenstudio.database import DatabaseManager
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.teams import RoundRobinGroupChat
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_agentchat.conditions import TextMentionTermination
-from autogenstudio.datamodel.db import Team
+from autogenstudio.datamodel.db import Team, Session as SessionModel, Run, Message, RunStatus, MessageConfig
 
 
 @pytest.fixture
-def test_db() -> Generator[DatabaseManager, None, None]:
-    """Fixture for test database"""
-    db_path = "test.db"
-    db = DatabaseManager(f"sqlite:///{db_path}")
+def test_db(tmp_path) -> Generator[DatabaseManager, None, None]:
+    """Fixture for test database using temporary paths"""
+    db_path = tmp_path / "test.db"
+    db = DatabaseManager(f"sqlite:///{db_path}", base_dir=tmp_path)
     db.reset_db()
     # Initialize database instead of create_db_and_tables
     db.initialize_database(auto_upgrade=False)
@@ -24,11 +26,7 @@ def test_db() -> Generator[DatabaseManager, None, None]:
     # Clean up
     asyncio.run(db.close())
     db.reset_db()
-    try:
-        if os.path.exists(db_path):
-            os.remove(db_path)
-    except Exception as e:
-        print(f"Warning: Failed to remove test database file: {e}")
+    # No need to manually remove files - tmp_path is cleaned up automatically
 
 
 @pytest.fixture
@@ -109,11 +107,70 @@ class TestDatabaseOperations:
         # Verify deletion
         result = test_db.get(Team, {"id": team_id})
         assert len(result.data) == 0
+        
+    def test_cascade_delete(self, test_db: DatabaseManager, test_user: str):
+        """Test all levels of cascade delete"""
+        # Enable foreign keys for SQLite (crucial for cascade delete)
+        with Session(test_db.engine) as session:
+            session.execute(text("PRAGMA foreign_keys=ON"))
+            session.commit()
 
-    def test_initialize_database_scenarios(self):
+        # Test Run -> Message cascade
+        team1 = Team(user_id=test_user, component={"name": "Team1", "type": "team"})
+        test_db.upsert(team1)
+        session1 = SessionModel(user_id=test_user, team_id=team1.id, name="Session1")
+        test_db.upsert(session1)
+        run1_id = uuid.uuid4()
+        test_db.upsert(Run(
+            id=run1_id, 
+            user_id=test_user, 
+            session_id=session1.id, 
+            status=RunStatus.COMPLETE, 
+            task=MessageConfig(content="Task1", source="user").model_dump()
+        ))
+        test_db.upsert(Message(
+            user_id=test_user, 
+            session_id=session1.id, 
+            run_id=run1_id, 
+            config=MessageConfig(content="Message1", source="assistant").model_dump()
+        ))
+        
+        test_db.delete(Run, {"id": run1_id})
+        assert len(test_db.get(Message, {"run_id": run1_id}).data) == 0, "Run->Message cascade failed"
+
+        # Test Session -> Run -> Message cascade
+        session2 = SessionModel(user_id=test_user, team_id=team1.id, name="Session2")
+        test_db.upsert(session2)
+        run2_id = uuid.uuid4()
+        test_db.upsert(Run(
+            id=run2_id, 
+            user_id=test_user, 
+            session_id=session2.id, 
+            status=RunStatus.COMPLETE, 
+            task=MessageConfig(content="Task2", source="user").model_dump()
+        ))
+        test_db.upsert(Message(
+            user_id=test_user, 
+            session_id=session2.id, 
+            run_id=run2_id, 
+            config=MessageConfig(content="Message2", source="assistant").model_dump()
+        ))
+        
+        test_db.delete(SessionModel, {"id": session2.id})
+        assert len(test_db.get(Run, {"session_id": session2.id}).data) == 0, "Session->Run cascade failed"
+        assert len(test_db.get(Message, {"run_id": run2_id}).data) == 0, "Session->Run->Message cascade failed"
+
+        # Clean up
+        test_db.delete(Team, {"id": team1.id})
+
+    def test_initialize_database_scenarios(self, tmp_path, monkeypatch):
         """Test different initialize_database parameters"""
-        db_path = "test_init.db"
-        db = DatabaseManager(f"sqlite:///{db_path}")
+        db_path = tmp_path / "test_init.db"
+        db = DatabaseManager(f"sqlite:///{db_path}", base_dir=tmp_path)
+        
+        # Mock the schema manager's check_schema_status to avoid migration issues
+        monkeypatch.setattr(db.schema_manager, "check_schema_status", lambda: (False, None))
+        monkeypatch.setattr(db.schema_manager, "ensure_schema_up_to_date", lambda: True)
 
         try:
             # Test basic initialization
@@ -126,6 +183,4 @@ class TestDatabaseOperations:
 
         finally:
             asyncio.run(db.close())
-            db.reset_db()
-            if os.path.exists(db_path):
-                os.remove(db_path)
+            db.reset_db() 
