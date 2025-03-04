@@ -14,6 +14,7 @@ from ..messages import (
     MultiModalMessage,
     StopMessage,
     TextMessage,
+    ToolCallExecutionEvent,
 )
 
 
@@ -489,3 +490,60 @@ class TextMessageTermination(TerminationCondition, Component[TextMessageTerminat
     @classmethod
     def _from_config(cls, config: TextMessageTerminationConfig) -> Self:
         return cls(source=config.source)
+
+
+class FunctionCallTerminationConfig(BaseModel):
+    """Configuration for the :class:`FunctionCallTermination` termination condition."""
+
+    function_name: str
+
+
+class FunctionCallTermination(TerminationCondition, Component[FunctionCallTerminationConfig]):
+    """Terminate the conversation if a :class:`~autogen_core.models.FunctionExecutionResult`
+    with a specific name was received.
+
+    Args:
+        function_name (str): The name of the function to look for in the messages.
+
+    Raises:
+        TerminatedException: If the termination condition has already been reached.
+    """
+
+    component_config_schema = FunctionCallTerminationConfig
+    """The schema for the component configuration."""
+
+    def __init__(self, function_name: str) -> None:
+        self._terminated = False
+        self._function_name = function_name
+
+    @property
+    def terminated(self) -> bool:
+        return self._terminated
+
+    async def __call__(self, messages: Sequence[AgentEvent | ChatMessage]) -> StopMessage | None:
+        if self._terminated:
+            raise TerminatedException("Termination condition has already been reached")
+        for message in messages:
+            if isinstance(message, ToolCallExecutionEvent):
+                for execution in message.content:
+                    if execution.name == self._function_name:
+                        self._terminated = True
+                        return StopMessage(
+                            content=f"Function '{self._function_name}' was executed.",
+                            source="FunctionCallTermination",
+                        )
+        return None
+
+    async def reset(self) -> None:
+        self._terminated = False
+
+    def _to_config(self) -> FunctionCallTerminationConfig:
+        return FunctionCallTerminationConfig(
+            function_name=self._function_name,
+        )
+
+    @classmethod
+    def _from_config(cls, config: FunctionCallTerminationConfig) -> Self:
+        return cls(
+            function_name=config.function_name,
+        )
