@@ -10,6 +10,10 @@ class ResponseFormat(TypedDict):
     type: Literal["text", "json_object"]
 
 
+class StreamOptions(TypedDict):
+    include_usage: bool
+
+
 class CreateArguments(TypedDict, total=False):
     frequency_penalty: Optional[float]
     logit_bias: Optional[Dict[str, int]]
@@ -22,6 +26,7 @@ class CreateArguments(TypedDict, total=False):
     temperature: Optional[float]
     top_p: Optional[float]
     user: str
+    stream_options: Optional[StreamOptions]
 
 
 AsyncAzureADTokenProvider = Callable[[], Union[str, Awaitable[str]]]
@@ -34,6 +39,7 @@ class BaseOpenAIClientConfiguration(CreateArguments, total=False):
     max_retries: int
     model_capabilities: ModelCapabilities  # type: ignore
     model_info: ModelInfo
+    add_name_prefixes: bool
     """What functionality the model supports, determined by default from model name but is overriden if value passed."""
     default_headers: Dict[str, str] | None
 
@@ -66,6 +72,7 @@ class CreateArgumentsConfigModel(BaseModel):
     temperature: float | None = None
     top_p: float | None = None
     user: str | None = None
+    stream_options: StreamOptions | None = None
 
 
 class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
@@ -75,6 +82,7 @@ class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
     max_retries: int | None = None
     model_capabilities: ModelCapabilities | None = None  # type: ignore
     model_info: ModelInfo | None = None
+    add_name_prefixes: bool | None = None
     default_headers: Dict[str, str] | None = None
 
 

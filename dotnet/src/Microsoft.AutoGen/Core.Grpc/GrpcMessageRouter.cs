@@ -34,6 +34,8 @@ internal sealed class AutoRestartChannel : IDisposable
         _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellation);
     }
 
+    public bool Connected { get => _channel is not null; }
+
     public void EnsureConnected()
     {
         _logger.LogInformation("Connecting to gRPC endpoint " + Environment.GetEnvironmentVariable("AGENT_HOST"));
@@ -41,7 +43,7 @@ internal sealed class AutoRestartChannel : IDisposable
         if (this.RecreateChannel(null) == null)
         {
             throw new Exception("Failed to connect to gRPC endpoint.");
-        };
+        }
     }
 
     public AsyncDuplexStreamingCall<Message, Message> StreamingCall
@@ -115,8 +117,9 @@ internal sealed class GrpcMessageRouter(AgentRpc.AgentRpcClient client,
     private readonly CancellationTokenSource _shutdownCts = CancellationTokenSource.CreateLinkedTokenSource(shutdownCancellation);
 
     private readonly IMessageSink<Message> _incomingMessageSink = incomingMessageSink;
+
+    // TODO: Enable a way to configure the channel options
     private readonly Channel<(Message Message, TaskCompletionSource WriteCompletionSource)> _outboundMessagesChannel
-        // TODO: Enable a way to configure the channel options
         = Channel.CreateBounded<(Message, TaskCompletionSource)>(DefaultChannelOptions);
 
     private readonly AutoRestartChannel _incomingMessageChannel = new AutoRestartChannel(client, clientId, logger, shutdownCancellation);
@@ -286,6 +289,8 @@ internal sealed class GrpcMessageRouter(AgentRpc.AgentRpcClient client,
 
         this._incomingMessageChannel.Dispose();
     }
+
+    public bool IsChannelOpen => this._incomingMessageChannel.Connected;
 
     public void Dispose()
     {

@@ -164,3 +164,17 @@ print("%0.3f" % (square_root,))
     assert "The current time is:" in response.chat_message.content
     assert "The script ran, then exited with an error (POSIX exit code: 1)" in response.chat_message.content
     assert "ValueError: math domain error" in response.chat_message.content
+
+
+@pytest.mark.asyncio
+async def test_code_execution_agent_serialization() -> None:
+    """Test agent config serialization"""
+
+    agent = CodeExecutorAgent(name="code_executor", code_executor=LocalCommandLineCodeExecutor())
+
+    # Serialize and deserialize the agent
+    serialized_agent = agent.dump_component()
+    deserialized_agent = CodeExecutorAgent.load_component(serialized_agent)
+
+    assert isinstance(deserialized_agent, CodeExecutorAgent)
+    assert deserialized_agent.name == "code_executor"
