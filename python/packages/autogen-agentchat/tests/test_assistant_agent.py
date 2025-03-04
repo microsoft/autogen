@@ -14,10 +14,10 @@ from autogen_agentchat.messages import (
     ModelClientStreamingChunkEvent,
     MultiModalMessage,
     TextMessage,
+    ThoughtEvent,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
     ToolCallSummaryMessage,
-    ThoughtEvent,
 )
 from autogen_core import ComponentModel, FunctionCall, Image
 from autogen_core.memory import ListMemory, Memory, MemoryContent, MemoryMimeType, MemoryQueryResult
@@ -399,9 +399,9 @@ async def test_run_with_parallel_tools(monkeypatch: pytest.MonkeyPatch) -> None:
     assert result.messages[2].models_usage.prompt_tokens == 10
     assert isinstance(result.messages[3], ToolCallExecutionEvent)
     expected_content = [
-        FunctionExecutionResult(call_id="1", content="pass", is_error=False),
-        FunctionExecutionResult(call_id="2", content="pass", is_error=False),
-        FunctionExecutionResult(call_id="3", content="task3", is_error=False),
+        FunctionExecutionResult(call_id="1", content="pass", is_error=False, name="_pass_function"),
+        FunctionExecutionResult(call_id="2", content="pass", is_error=False, name="_pass_function"),
+        FunctionExecutionResult(call_id="3", content="task3", is_error=False, name="_echo_function"),
     ]
     for expected in expected_content:
         assert expected in result.messages[3].content
@@ -535,9 +535,9 @@ async def test_run_with_parallel_tools_with_empty_call_ids(monkeypatch: pytest.M
     assert result.messages[1].models_usage.prompt_tokens == 10
     assert isinstance(result.messages[2], ToolCallExecutionEvent)
     expected_content = [
-        FunctionExecutionResult(call_id="", content="pass", is_error=False),
-        FunctionExecutionResult(call_id="", content="pass", is_error=False),
-        FunctionExecutionResult(call_id="", content="task3", is_error=False),
+        FunctionExecutionResult(call_id="", content="pass", is_error=False, name="_pass_function"),
+        FunctionExecutionResult(call_id="", content="pass", is_error=False, name="_pass_function"),
+        FunctionExecutionResult(call_id="", content="task3", is_error=False, name="_echo_function"),
     ]
     for expected in expected_content:
         assert expected in result.messages[2].content
@@ -720,12 +720,12 @@ async def test_remove_images(monkeypatch: pytest.MonkeyPatch) -> None:
     ]
 
     agent_1 = AssistantAgent(name="assistant_1", model_client=model_client_1)
-    result = agent_1._get_compatible_context(messages)  # type: ignore
+    result = agent_1._get_compatible_context(model_client_1, messages)  # type: ignore
     assert len(result) == 4
     assert isinstance(result[1].content, str)
 
     agent_2 = AssistantAgent(name="assistant_2", model_client=model_client_2)
-    result = agent_2._get_compatible_context(messages)  # type: ignore
+    result = agent_2._get_compatible_context(model_client_2, messages)  # type: ignore
     assert len(result) == 4
     assert isinstance(result[1].content, list)
 
@@ -1018,8 +1018,8 @@ async def test_model_client_stream_with_tool_calls() -> None:
                 FunctionCall(id="3", name="_echo_function", arguments=r'{"input": "task"}'),
             ]
             assert message.messages[2].content == [
-                FunctionExecutionResult(call_id="1", content="pass", is_error=False),
-                FunctionExecutionResult(call_id="3", content="task", is_error=False),
+                FunctionExecutionResult(call_id="1", content="pass", is_error=False, name="_pass_function"),
+                FunctionExecutionResult(call_id="3", content="task", is_error=False, name="_echo_function"),
             ]
         elif isinstance(message, ModelClientStreamingChunkEvent):
             chunks.append(message.content)
