@@ -34,6 +34,7 @@ async def create_run(
             Run(
                 session_id=request.session_id,
                 status=RunStatus.CREATED,
+                user_id=request.user_id,
                 task=None,  # Will be set when run starts
                 team_result=None,
             ),

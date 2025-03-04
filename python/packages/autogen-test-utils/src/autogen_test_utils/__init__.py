@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from asyncio import Event
 from dataclasses import dataclass
 from typing import Any
 
@@ -36,6 +37,7 @@ class LoopbackAgent(RoutedAgent):
         super().__init__("A loop back agent.")
         self.num_calls = 0
         self.received_messages: list[Any] = []
+        self.event = Event()
 
     @message_handler
     async def on_new_message(
@@ -43,6 +45,7 @@ class LoopbackAgent(RoutedAgent):
     ) -> MessageType | ContentMessage:
         self.num_calls += 1
         self.received_messages.append(message)
+        self.event.set()
         return message
 
 

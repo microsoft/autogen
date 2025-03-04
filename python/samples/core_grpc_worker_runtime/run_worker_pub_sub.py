@@ -73,7 +73,7 @@ class GreeterAgent(RoutedAgent):
 
 async def main() -> None:
     runtime = GrpcWorkerAgentRuntime(host_address="localhost:50051")
-    runtime.start()
+    await runtime.start()
     for t in [AskToGreet, Greeting, ReturnedGreeting, Feedback, ReturnedFeedback]:
         runtime.add_message_serializer(try_get_known_serializers_for_type(t))
 
