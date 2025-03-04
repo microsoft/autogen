@@ -7,10 +7,12 @@ from autogen_agentchat.teams import RoundRobinGroupChat, SelectorGroupChat
 from autogen_core import ComponentModel
 from autogen_core.models import ModelInfo
 from autogen_ext.agents.web_surfer import MultimodalWebSurfer
+from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 from autogen_ext.models.openai._openai_client import AzureOpenAIChatCompletionClient
+from autogen_ext.tools.code_execution import PythonCodeExecutionTool
 
-from autogenstudio.datamodel import Gallery, GalleryComponents, GalleryItems, GalleryMetadata
+from autogenstudio.datamodel import GalleryComponents, GalleryConfig, GalleryMetadata
 
 from . import tools as tools
 
@@ -31,8 +33,6 @@ class GalleryBuilder:
         # Default metadata
         self.metadata = GalleryMetadata(
             author="AutoGen Team",
-            created_at=datetime.now(),
-            updated_at=datetime.now(),
             version="1.0.0",
             description="",
             tags=[],
@@ -109,26 +109,27 @@ class GalleryBuilder:
         self.terminations.append(self._update_component_metadata(termination, label, description))
         return self
 
-    def build(self) -> Gallery:
+    def build(self) -> GalleryConfig:
         """Build and return the complete gallery."""
         # Update timestamps
-        self.metadata.updated_at = datetime.now()
+        # self.metadata.updated_at = datetime.now()
 
-        return Gallery(
+        return GalleryConfig(
             id=self.id,
             name=self.name,
             url=self.url,
             metadata=self.metadata,
-            items=GalleryItems(
+            components=GalleryComponents(
                 teams=self.teams,
-                components=GalleryComponents(
-                    agents=self.agents, models=self.models, tools=self.tools, terminations=self.terminations
-                ),
+                agents=self.agents,
+                models=self.models,
+                tools=self.tools,
+                terminations=self.terminations,
             ),
         )
 
 
-def create_default_gallery() -> Gallery:
+def create_default_gallery() -> GalleryConfig:
     """Create a default gallery with all components including calculator and web surfer teams."""
 
     # url = "https://raw.githubusercontent.com/microsoft/autogen/refs/heads/main/python/packages/autogen-studio/autogenstudio/gallery/default.json"
@@ -195,7 +196,11 @@ def create_default_gallery() -> Gallery:
 
     builder.add_termination(calc_text_term.dump_component())
     builder.add_termination(calc_max_term.dump_component())
-    builder.add_termination(calc_or_term.dump_component())
+    builder.add_termination(
+        calc_or_term.dump_component(),
+        label="OR Termination",
+        description="Termination condition that ends the conversation when either a message contains 'TERMINATE' or the maximum number of messages is reached.",
+    )
 
     # Create calculator team
     calc_team = RoundRobinGroupChat(participants=[calc_assistant], termination_condition=calc_or_term)
@@ -227,7 +232,11 @@ def create_default_gallery() -> Gallery:
         model_client=base_model,
         headless=True,
     )
-    builder.add_agent(websurfer_agent.dump_component())
+    builder.add_agent(
+        websurfer_agent.dump_component(),
+        label="Web Surfer Agent",
+        description="An agent that solves tasks by browsing the web using a headless browser.",
+    )
 
     # Create verification assistant
     verification_assistant = AssistantAgent(
@@ -236,7 +245,11 @@ def create_default_gallery() -> Gallery:
         system_message="You are a task verification assistant who is working with a web surfer agent to solve tasks. At each point, check if the task has been completed as requested by the user. If the websurfer_agent responds and the task has not yet been completed, respond with what is left to do and then say 'keep going'. If and only when the task has been completed, summarize and present a final answer that directly addresses the user task in detail and then respond with TERMINATE.",
         model_client=base_model,
     )
-    builder.add_agent(verification_assistant.dump_component())
+    builder.add_agent(
+        verification_assistant.dump_component(),
+        label="Verification Assistant",
+        description="an agent that verifies and summarizes information",
+    )
 
     # Create user proxy
     web_user_proxy = UserProxyAgent(
@@ -280,12 +293,6 @@ Read the above conversation. Then select the next role from {participants} to pl
     )
 
     builder.add_tool(
-        tools.generate_pdf_tool.dump_component(),
-        label="PDF Generation Tool",
-        description="A tool that generates a PDF file from a list of images.Requires the PyFPDF and pillow library to function.",
-    )
-
-    builder.add_tool(
         tools.fetch_webpage_tool.dump_component(),
         label="Fetch Webpage Tool",
         description="A tool that fetches the content of a webpage and converts it to markdown. Requires the requests and beautifulsoup4 library to function.",
@@ -301,6 +308,14 @@ Read the above conversation. Then select the next role from {participants} to pl
         tools.google_search_tool.dump_component(),
         label="Google Search Tool",
         description="A tool that performs Google searches using the Google Custom Search API. Requires the requests library, [GOOGLE_API_KEY, GOOGLE_CSE_ID] to be set,  env variable to function.",
+    )
+
+    code_executor = LocalCommandLineCodeExecutor(work_dir=".coding", timeout=360)
+    code_execution_tool = PythonCodeExecutionTool(code_executor)
+    builder.add_tool(
+        code_execution_tool.dump_component(),
+        label="Python Code Execution Tool",
+        description="A tool that executes Python code in a local environment.",
     )
 
     # Create deep research agent
@@ -340,7 +355,7 @@ Read the above conversation. Then select the next role from {participants} to pl
         name="summary_agent",
         description="A summary agent that provides a detailed markdown summary of the research as a report to the user.",
         model_client=model_client,
-        system_message="""You are a summary agent. Your role is to provide a detailed markdown summary of the research as a report to the user. Your report should have a reasonable title that matches the research question and should summarize the key details in the results found in natural an actionable manner. The main results/answer should be in the first paragraph.
+        system_message="""You are a summary agent. Your role is to provide a detailed markdown summary of the research as a report to the user. Your report should have a reasonable title that matches the research question and should summarize the key details in the results found in natural an actionable manner. The main results/answer should be in the first paragraph. Where reasonable, your report should have clear comparison tables that drive critical insights. Most importantly, you should have a reference section and cite the key sources (where available) for facts obtained INSIDE THE MAIN REPORT. Also, where appropriate, you may add images if available that illustrate concepts needed for the summary.
         Your report should end with the word "TERMINATE" to signal the end of the conversation.""",
     )
 

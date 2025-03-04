@@ -1,12 +1,14 @@
-from typing import Any, Mapping, Optional
+from typing import Any, Mapping, Optional, Union
 
 from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
+from ollama import Options
 from pydantic import BaseModel
 from typing_extensions import TypedDict
 
 
 # response_format MUST be a pydantic.BaseModel type or None
 # TODO: check if we can extend response_format to support json and/or dict
+# TODO: extend arguments to all AsyncClient supported args
 class CreateArguments(TypedDict, total=False):
     model: str
     host: Optional[str]
@@ -20,6 +22,7 @@ class BaseOllamaClientConfiguration(CreateArguments, total=False):
     model_capabilities: ModelCapabilities  # type: ignore
     model_info: ModelInfo
     """What functionality the model supports, determined by default from model name but is overriden if value passed."""
+    options: Optional[Union[Mapping[str, Any], Options]]
 
 
 # Pydantic equivalents of the above TypedDicts
@@ -37,3 +40,4 @@ class BaseOllamaClientConfigurationConfigModel(CreateArgumentsConfigModel):
     headers: Mapping[str, str] | None = None
     model_capabilities: ModelCapabilities | None = None  # type: ignore
     model_info: ModelInfo | None = None
+    options: Mapping[str, Any] | Options | None = None

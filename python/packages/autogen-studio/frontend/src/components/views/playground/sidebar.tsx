@@ -8,6 +8,7 @@ import {
   PanelLeftOpen,
   InfoIcon,
   RefreshCcw,
+  History,
 } from "lucide-react";
 import type { Session, Team } from "../../types/datamodel";
 import { getRelativeTimeString } from "../atoms";
@@ -102,11 +103,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
 
       <div className="py-2 flex text-sm text-secondary">
-        Recents{" "}
-        <span className="text-accent text-xs mx-1 mt-0.5">
-          {" "}
-          ({sessions.length}){" "}
-        </span>{" "}
+        <History className="w-4 h-4 inline-block mr-1.5" />
+        <div className="inline-block -mt-0.5">
+          Recents{" "}
+          <span className="text-accent text-xs mx-1 mt-0.5">
+            {" "}
+            ({sessions.length}){" "}
+          </span>{" "}
+        </div>
+
         {isLoading && (
           <RefreshCcw className="w-4 h-4 inline-block ml-2 animate-spin" />
         )}
