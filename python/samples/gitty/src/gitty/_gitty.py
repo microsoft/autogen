@@ -392,6 +392,14 @@ def check_gh_cli():
         console.print("Please install it from: https://cli.github.com")
         sys.exit(1)
 
+def check_openai_key():
+    """Check if OpenAI API key is set in environment variables."""
+    if not os.getenv("OPENAI_API_KEY"):
+        console.print("[error]Error: OPENAI_API_KEY environment variable is not set.[/error]")
+        console.print("Please set your OpenAI API key using:")
+        console.print("  export OPENAI_API_KEY='your-api-key'")
+        sys.exit(1)
+
 def main():
     parser = argparse.ArgumentParser(
         description="Gitty: A GitHub Issue/PR Assistant.\n\n"
@@ -415,6 +423,10 @@ def main():
     # Check for gh CLI installation before processing commands that need it
     if command in ["issue", "pr", "fetch"]:
         check_gh_cli()
+    
+    # Check for OpenAI API key before processing commands that need it
+    if command in ["issue", "pr"]:
+        check_openai_key()
 
     if command in ["issue", "pr"]:
         # Always auto-detect repository
