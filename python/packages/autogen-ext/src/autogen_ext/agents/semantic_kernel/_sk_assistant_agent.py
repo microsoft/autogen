@@ -426,6 +426,7 @@ class SKAssistantAgent(BaseChatAgent):
                                 content=exec_results,
                                 call_id=last_function_call_id,
                                 is_error=False,
+                                name=item.function_name,
                             )
                             tool_call_result_msg = ToolCallExecutionEvent(content=[tool_call_result], source=self.name)
                             inner_messages.append(tool_call_result_msg)
