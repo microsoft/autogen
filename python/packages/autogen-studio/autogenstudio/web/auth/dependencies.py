@@ -1,4 +1,4 @@
-from fastapi import Depends, Request, HTTPException
+from fastapi import Depends, Request, HTTPException, status, WebSocket
 from typing import List
 
 from .manager import AuthManager
@@ -6,14 +6,26 @@ from .models import User
 from .exceptions import ForbiddenException
 
 
-def get_auth_manager(request: Request) -> AuthManager:
-    """Get the auth manager from app state."""
-    if not hasattr(request.app.state, "auth_manager"):
-        raise HTTPException(
-            status_code=500, 
-            detail="Authentication system not initialized"
-        )
-    return request.app.state.auth_manager
+async def get_auth_manager(request: Request) -> AuthManager:
+    """Dependency provider for auth manager"""
+    if hasattr(request.app.state, "auth_manager"):
+        return request.app.state.auth_manager
+    # We can remove this part since it depends on the global in deps.py
+    # It's better to throw the error directly
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+        detail="Auth manager not initialized"
+    )
+
+def get_ws_auth_manager(websocket: WebSocket) -> AuthManager:
+    """Get the auth manager from app state for WebSocket connections."""
+    if hasattr(websocket.app.state, "auth_manager"):
+        return websocket.app.state.auth_manager
+    # Similar to above, remove the global reference
+    raise HTTPException(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        detail="Authentication system not initialized"
+    )
 
 
 def get_current_user(request: Request) -> User:

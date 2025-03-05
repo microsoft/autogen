@@ -12,7 +12,7 @@ from ..teammanager import TeamManager
 from .config import settings
 from .managers.connection import WebSocketManager
 from .auth import AuthManager, AuthMiddleware, AuthConfig
-
+from .auth.dependencies import get_auth_manager
 logger = logging.getLogger(__name__)
 
 # Global manager instances
@@ -39,26 +39,26 @@ def get_db_context():
         ) from e
 
 
-# Dependency providers
-async def get_auth_manager(request: Request) -> AuthManager:
-    """Dependency provider for auth manager"""
-    if hasattr(request.app.state, "auth_manager"):
-        return request.app.state.auth_manager
-    if not _auth_manager:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
-            detail="Auth manager not initialized"
-        )
-    return _auth_manager
+# # Dependency providers
+# async def get_auth_manager(request: Request) -> AuthManager:
+#     """Dependency provider for auth manager"""
+#     if hasattr(request.app.state, "auth_manager"):
+#         return request.app.state.auth_manager
+#     if not _auth_manager:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+#             detail="Auth manager not initialized"
+#         )
+#     return _auth_manager
 
-def get_ws_auth_manager(websocket: WebSocket) -> AuthManager:
-    """Get the auth manager from app state for WebSocket connections."""
-    if hasattr(websocket.app.state, "auth_manager"):
-        return websocket.app.state.auth_manager
-    if not _auth_manager:
-        logger.error("Authentication system not initialized")
-        return None
-    return _auth_manager
+# def get_ws_auth_manager(websocket: WebSocket) -> AuthManager:
+#     """Get the auth manager from app state for WebSocket connections."""
+#     if hasattr(websocket.app.state, "auth_manager"):
+#         return websocket.app.state.auth_manager
+#     if not _auth_manager:
+#         logger.error("Authentication system not initialized")
+#         return None
+#     return _auth_manager
 
 async def get_db() -> DatabaseManager:
     """Dependency provider for database manager"""
@@ -127,6 +127,11 @@ async def register_auth_dependencies(app: FastAPI, auth_manager: AuthManager) ->
     global _auth_manager
     _auth_manager = auth_manager
     app.state.auth_manager = auth_manager
+
+    for route in app.routes:
+        print(" *** Route: ", route.path)
+        if hasattr(route, "app") and isinstance(route.app, FastAPI):
+            route.app.state.auth_manager = auth_manager
 
 # Manager initialization and cleanup
 

@@ -1,5 +1,5 @@
 import { Team, Component, ComponentConfig } from "../../types/datamodel";
-import { getServerUrl } from "../../utils";
+import { getServerUrl } from "../../utils/utils";
 
 interface ValidationError {
   field: string;

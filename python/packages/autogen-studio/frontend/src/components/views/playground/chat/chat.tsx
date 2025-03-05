@@ -1,6 +1,6 @@
 import * as React from "react";
 import { message } from "antd";
-import { getServerUrl } from "../../../utils";
+import { getServerUrl } from "../../../utils/utils";
 import { IStatus } from "../../../types/app";
 import {
   Run,
@@ -153,6 +153,7 @@ export default function ChatView({ session }: ChatViewProps) {
   const handleWebSocketMessage = (message: WebSocketMessage) => {
     setCurrentRun((current) => {
       if (!current || !session?.id) return null;
+      console.log("WebSocket message:", message);
 
       switch (message.type) {
         case "error":
@@ -166,6 +167,16 @@ export default function ChatView({ session }: ChatViewProps) {
             activeSocketRef.current = null;
           }
           console.log("Error: ", message.error);
+
+          const updatedErrorRun = {
+            ...current,
+            status: "error" as RunStatus,
+            error_message: message.error || "An error occurred",
+          };
+
+          // Add to existing runs
+          setExistingRuns((prev) => [...prev, updatedErrorRun]);
+          return null; // Clear current run
 
         case "message_chunk":
           if (!message.data) return current;

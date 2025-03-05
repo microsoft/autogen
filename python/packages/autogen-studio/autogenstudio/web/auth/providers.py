@@ -33,9 +33,9 @@ class NoAuthProvider(AuthProvider):
     
     def __init__(self):
         self.default_user = User(
-            id="default_user",
+            id="guestuser@gmail.com",
             name="Default User",
-            email="default@example.com",
+            email="guestuser@gmail.com",
             provider="none"
         )
     

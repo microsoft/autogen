@@ -198,3 +198,13 @@ async def get_user_info(
         "provider": current_user.provider,
         "roles": current_user.roles
     }
+
+@router.get("/type")
+async def get_auth_type(
+    auth_manager: AuthManager = Depends(get_auth_manager)
+):
+    """Get the configured authentication type."""
+    return {
+        "type": auth_manager.config.type,
+        "exclude_paths": auth_manager.config.exclude_paths
+    }    

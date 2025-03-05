@@ -21,7 +21,7 @@ class WebSocketAuthHandler:
         """
         if self.auth_manager.config.type == "none":
             # No authentication required
-            return True, User(id="default_user", name="Default User", provider="none")
+            return True, User(id="guestuser@gmail.com", name="Default User", provider="none")
             
         try:
             # Extract token from query params or headers
@@ -40,7 +40,7 @@ class WebSocketAuthHandler:
             # Validate token
             if not self.auth_manager.jwt_secret:
                 # Development mode with no JWT secret
-                return True, User(id="default_user", name="Default User", provider="none")
+                return True, User(id="guestuser@gmail.com", name="Default User", provider="none")
             
             try:
                 # Decode and validate JWT

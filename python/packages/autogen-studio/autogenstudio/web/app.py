@@ -15,6 +15,7 @@ from .deps import cleanup_managers, init_auth_manager, init_managers, register_a
 from .initialization import AppInitializer
 from .routes import gallery, runs, sessions, settingsroute, teams, validation, ws
 from .auth.middleware import AuthMiddleware
+from .auth import authroutes
 
 # Initialize application
 app_file_path = os.path.dirname(os.path.abspath(__file__))
@@ -133,6 +134,13 @@ api.include_router(
     tags=["gallery"],
     responses={404: {"description": "Not found"}},
 )
+# Include authentication routes
+api.include_router(
+    authroutes.router,
+    prefix="/auth",
+    tags=["auth"],
+    responses={404: {"description": "Not found"}},
+)
 
 # Version endpoint
 
@@ -157,6 +165,7 @@ async def health_check():
         "status": True,
         "message": "Service is healthy",
     }
+
 
 
 # Mount static file directories

@@ -76,7 +76,7 @@ class AuthManager:
             
         if self.config.type == "none":
             # No auth mode - return default user
-            return User(id="default_user", name="Default User", provider="none")
+            return User(id="guestuser@gmail.com", name="Default User", provider="none")
             
         # Extract token from Authorization header
         auth_header = request.headers.get("Authorization")
@@ -89,7 +89,7 @@ class AuthManager:
             if not self.config.jwt_secret:
                 # For development with no JWT secret
                 logger.warning("JWT secret not configured, accepting all tokens")
-                return User(id="default_user", name="Default User", provider="none")
+                return User(id="guestuser@gmail.com", name="Default User", provider="none")
                 
             # Decode and validate JWT
             payload = jwt.decode(token, self.config.jwt_secret, algorithms=["HS256"])

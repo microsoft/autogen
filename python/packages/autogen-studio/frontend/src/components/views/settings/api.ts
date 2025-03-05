@@ -1,5 +1,5 @@
 import { Settings } from "../../types/datamodel";
-import { getServerUrl } from "../../utils";
+import { getServerUrl } from "../../utils/utils";
 
 export class SettingsAPI {
   private getBaseUrl(): string {

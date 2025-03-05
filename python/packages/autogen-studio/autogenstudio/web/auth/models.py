@@ -38,6 +38,7 @@ class AuthConfig(BaseModel):
         "/api/auth/login-url", 
         "/api/auth/callback-handler",
         "/api/auth/callback"
+        "/api/auth/type"
     ]
 
     @field_validator('github')
