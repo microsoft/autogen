@@ -29,6 +29,7 @@ from autogen_core.models import (
     FunctionExecutionResult,
     FunctionExecutionResultMessage,
     LLMMessage,
+    ModelFamily,
     SystemMessage,
     UserMessage,
 )
@@ -613,6 +614,16 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         memory: Sequence[Memory] | None = None,
     ):
         super().__init__(name=name, description=description)
+        if reflect_on_tool_use and ModelFamily.is_claude(model_client.model_info["family"]):
+            warnings.warn(
+                "Claude models may not work with reflection on tool use because Claude requires that any requests including a previous tool use or tool result must include the original tools definition."
+                "Consider setting reflect_on_tool_use to False. "
+                "As an alternative, consider calling the agent in a loop until it stops producing tool calls. "
+                "See [Single-Agent Team](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/teams.html#single-agent-team) "
+                "for more details.",
+                UserWarning,
+                stacklevel=2,
+            )
         self._model_client = model_client
         self._model_client_stream = model_client_stream
         self._memory = None
