@@ -25,6 +25,11 @@ public abstract class AgentMessage
     /// </summary>
     public required string Source { get; set; }
 
+    /// <summary>
+    /// The <see cref="IChatClient"/> usage incurred when producing this message.
+    /// </summary>
+    public RequestUsage? ModelUsage { get; set; }
+
     // IMPORTANT NOTE: Unlike the ITypeMarshal<AgentMessage, WireProtocol.AgentMessage> implementation in ProtobufTypeMarshal,
     // the .ToWire() call on this is intended to be used for directly converting a concrete message type to its leaf representation.
     // In the context of Protobuf these may not be the same due to discriminated union types being real types, as opposed to
