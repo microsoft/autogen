@@ -382,6 +382,16 @@ def fetch_and_update_issues(owner: str, repo: str, db_path: Optional[str] = None
         )
     print("Chroma DB update complete.")
 
+def check_gh_cli():
+    """Check if GitHub CLI is installed and accessible."""
+    try:
+        subprocess.run(["gh", "--version"], capture_output=True, check=True)
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        console.print("[error]Error: GitHub CLI (gh) is not installed or not found in PATH.[/error]")
+        console.print("Please install it from: https://cli.github.com")
+        sys.exit(1)
+
 def main():
     parser = argparse.ArgumentParser(
         description="Gitty: A GitHub Issue/PR Assistant.\n\n"
@@ -401,6 +411,10 @@ def main():
 
     args = parser.parse_args()
     command = args.command
+
+    # Check for gh CLI installation before processing commands that need it
+    if command in ["issue", "pr", "fetch"]:
+        check_gh_cli()
 
     if command in ["issue", "pr"]:
         # Always auto-detect repository
