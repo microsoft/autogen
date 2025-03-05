@@ -616,7 +616,8 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         super().__init__(name=name, description=description)
         if reflect_on_tool_use and ModelFamily.is_claude(model_client.model_info["family"]):
             warnings.warn(
-                "Claude models may not work with reflection on tool use. Consider setting reflect_on_tool_use to False. "
+                "Claude models may not work with reflection on tool use as it does not support disabling tools when there are tool use in messages. "
+                "Consider setting reflect_on_tool_use to False. "
                 "As an alternative, consider calling the agent in a loop until it stops producing tool calls. "
                 "See [Single-Agent Team](https://microsoft.github.io/autogen/stable/user-guide/agentchat-user-guide/tutorial/teams.html#single-agent-team) "
                 "for more details.",
