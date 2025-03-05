@@ -1,6 +1,6 @@
 from typing import Any, Callable, List, Mapping
 
-from autogen_core import Component, ComponentModel
+from autogen_core import Component, ComponentModel, AgentRuntime
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -151,14 +151,17 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
     def __init__(
         self,
         participants: List[ChatAgent],
+        *,
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
+        runtime: AgentRuntime | None = None,
     ) -> None:
         super().__init__(
             participants,
             group_chat_manager_class=RoundRobinGroupChatManager,
             termination_condition=termination_condition,
             max_turns=max_turns,
+            runtime=runtime,
         )
 
     def _create_group_chat_manager_factory(

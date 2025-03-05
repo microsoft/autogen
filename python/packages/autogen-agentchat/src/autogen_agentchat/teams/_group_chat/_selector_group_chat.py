@@ -2,7 +2,7 @@ import logging
 import re
 from typing import Any, Callable, Dict, List, Mapping, Sequence
 
-from autogen_core import Component, ComponentModel
+from autogen_core import Component, ComponentModel, AgentRuntime
 from autogen_core.models import AssistantMessage, ChatCompletionClient, ModelFamily, SystemMessage, UserMessage
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -391,6 +391,7 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
         *,
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
+        runtime: AgentRuntime | None = None,
         selector_prompt: str = """You are in a role play game. The following roles are available:
 {roles}.
 Read the following conversation. Then select the next role from {participants} to play. Only return the role.
@@ -408,6 +409,7 @@ Read the above conversation. Then select the next role from {participants} to pl
             group_chat_manager_class=SelectorGroupChatManager,
             termination_condition=termination_condition,
             max_turns=max_turns,
+            runtime=runtime,
         )
         # Validate the participants.
         if len(participants) < 2:

@@ -1,6 +1,6 @@
 from typing import Any, Callable, List, Mapping
 
-from autogen_core import Component, ComponentModel
+from autogen_core import Component, ComponentModel, AgentRuntime
 from pydantic import BaseModel
 
 from ...base import ChatAgent, TerminationCondition
@@ -197,14 +197,17 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
     def __init__(
         self,
         participants: List[ChatAgent],
+        *,
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
+        runtime: AgentRuntime | None = None,
     ) -> None:
         super().__init__(
             participants,
             group_chat_manager_class=SwarmGroupChatManager,
             termination_condition=termination_condition,
             max_turns=max_turns,
+            runtime=runtime,
         )
         # The first participant must be able to produce handoff messages.
         first_participant = self._participants[0]
