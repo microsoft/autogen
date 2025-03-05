@@ -107,6 +107,7 @@ class Run(SQLModel, table=True):
     messages: Union[List[Message], List[dict]] = Field(default_factory=list, sa_column=Column(JSON))
 
     model_config = ConfigDict(json_encoders={UUID: str, datetime: lambda v: v.isoformat()})
+    user_id: Optional[str] = None
 
 
 class Tool(SQLModel, table=True):
