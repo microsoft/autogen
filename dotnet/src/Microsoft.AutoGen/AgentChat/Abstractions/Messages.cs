@@ -4,7 +4,10 @@
 using System.Collections;
 using System.Diagnostics;
 using System.Text;
-
+using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
+using Microsoft.AutoGen.AgentChat.GroupChat;
 using Microsoft.Extensions.AI;
 
 namespace Microsoft.AutoGen.AgentChat.Abstractions;
@@ -612,5 +615,131 @@ public static class CompletionChatMessageExtensions
             AuthorName = msg.AuthorName,
             AdditionalProperties = msg.AdditionalProperties
         };
+    }
+}
+
+public static class MessageSerializationHelpers
+{
+    internal sealed class TypeNode(Type type)
+    {
+        public Type Type { get; } = type;
+        public TypeNode? Parent { get; set; }
+        public TypeNode Root => this.Parent?.Root ?? this;
+        public List<TypeNode> Children { get; } = new List<TypeNode>();
+
+        public IEnumerable<Type> ChildrenTransitiveClosure
+        {
+            get
+            {
+                return this.Children.Select(c => c.Type)
+                                    .Concat(Children.SelectMany(c => c.ChildrenTransitiveClosure));
+            }
+        }
+    }
+
+    internal sealed class TypeTree
+    {
+        private static IEnumerable<Type> GetDerivedTypes(Type type)
+        {
+            // Across all assemblies
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                // Get all types in the assembly
+                foreach (var derivedType in assembly.GetTypes().Where(t => type.IsAssignableFrom(t) && t != type))
+                {
+                    yield return derivedType;
+                }
+            }
+        }
+
+        private TypeNode EnsureTypeNode(Type type)
+        {
+            if (!this.TypeNodes.TryGetValue(type, out TypeNode? currentNode))
+            {
+                currentNode = this.TypeNodes[type] = new TypeNode(type);
+            }
+
+            return currentNode;
+        }
+
+        private void EnsureType(Type type)
+        {
+            TypeNode? currentNode = this.EnsureTypeNode(type);
+
+            while (currentNode != null &&
+                   currentNode.Parent == null &&
+                   !this.RootTypes.Contains(currentNode.Type))
+            {
+                Type parentType = currentNode.Type.BaseType
+                                  ?? throw new InvalidOperationException("We should never have a non-Root, underived base");
+
+                TypeNode parentNode = this.EnsureTypeNode(parentType);
+                currentNode.Parent = parentNode;
+                parentNode.Children.Add(currentNode);
+
+                currentNode = parentNode;
+            }
+        }
+
+        public HashSet<Type> RootTypes { get; }
+        public Dictionary<Type, TypeNode> TypeNodes { get; } = new Dictionary<Type, TypeNode>();
+
+        public TypeTree(params Type[] rootTypes)
+        {
+            this.RootTypes = new HashSet<Type>();
+            foreach (var rootType in rootTypes)
+            {
+                // Check that there are no other types that this type derives from in the root types
+                // or vice versa
+                if (this.RootTypes.Any(t => t.IsAssignableFrom(rootType) || rootType.IsAssignableFrom(t)))
+                {
+                    throw new ArgumentException($"Root types cannot be derived from each other: {rootType.Name}");
+                }
+
+                this.RootTypes.Add(rootType);
+
+                this.EnsureType(rootType);
+
+                foreach (var derivedType in GetDerivedTypes(rootType))
+                {
+                    this.EnsureType(derivedType);
+                }
+            }
+        }
+    }
+
+    internal static readonly TypeTree MessageTypeTree = new(typeof(AgentMessage), typeof(GroupChatEventBase));
+
+    internal sealed class MessagesTypeInfoResolver : DefaultJsonTypeInfoResolver
+    {
+        public override JsonTypeInfo GetTypeInfo(Type type, JsonSerializerOptions options)
+        {
+            JsonTypeInfo baseTypeInfo = base.GetTypeInfo(type, options);
+
+            if (MessageTypeTree.TypeNodes.TryGetValue(type, out TypeNode? typeNode) &&
+                typeNode.Children.Any()) // Only add polymorphism info if there are derived children
+            {
+                if (baseTypeInfo.PolymorphismOptions == null)
+                {
+                    baseTypeInfo.PolymorphismOptions = new JsonPolymorphismOptions();
+                }
+
+                baseTypeInfo.PolymorphismOptions.IgnoreUnrecognizedTypeDiscriminators = true;
+                baseTypeInfo.PolymorphismOptions.UnknownDerivedTypeHandling = JsonUnknownDerivedTypeHandling.FailSerialization;
+
+                foreach (Type childType in typeNode.ChildrenTransitiveClosure)
+                {
+                    if (childType.IsAbstract || childType.IsInterface || childType.IsGenericTypeDefinition)
+                    {
+                        // Can only deserialize concrete, complete types.
+                        continue;
+                    }
+
+                    baseTypeInfo.PolymorphismOptions.DerivedTypes.Add(new JsonDerivedType(childType, childType.FullName ?? childType.Name));
+                }
+            }
+
+            return baseTypeInfo;
+        }
     }
 }
