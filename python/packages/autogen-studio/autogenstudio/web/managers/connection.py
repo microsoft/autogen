@@ -16,6 +16,7 @@ from autogen_agentchat.messages import (
     TextMessage,
     ToolCallExecutionEvent,
     ToolCallRequestEvent,
+    ModelClientStreamingChunkEvent,
 )
 from autogen_core import CancellationToken
 from autogen_core import Image as AGImage
@@ -356,6 +357,7 @@ class WebSocketManager:
                     ToolCallRequestEvent,
                     ToolCallExecutionEvent,
                     LLMCallEventMessage,
+                    ModelClientStreamingChunkEvent,
                 ),
             ):
                 return {"type": "message", "data": message.model_dump()}
