@@ -376,6 +376,8 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                 kernel_function = KernelFunctionFromTool(tool)  # type: ignore
                 self._tools_plugin.functions[tool.schema["name"]] = kernel_function
 
+        kernel.add_plugin(self._tools_plugin)
+
     def _process_tool_calls(self, result: ChatMessageContent) -> list[FunctionCall]:
         """Process tool calls from SK ChatMessageContent"""
         function_calls: list[FunctionCall] = []
