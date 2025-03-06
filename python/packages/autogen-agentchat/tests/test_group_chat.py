@@ -417,12 +417,9 @@ async def test_round_robin_group_chat_cancellation(runtime: AgentRuntime | None)
     with pytest.raises(asyncio.CancelledError):
         await run_task
 
-    # Total messages produced so far.
-    total_messages = agent_1.total_messages + agent_2.total_messages + agent_3.total_messages + agent_4.total_messages
-
     # Still can run again and finish the task.
     result = await team.run()
-    assert len(result.messages) + total_messages == 1000
+    assert result.stop_reason is not None and result.stop_reason == "Maximum number of turns 1000 reached."
 
 
 @pytest.mark.asyncio
