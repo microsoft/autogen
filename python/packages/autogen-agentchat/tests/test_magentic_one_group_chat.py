@@ -129,11 +129,11 @@ async def test_magentic_one_group_chat_basic() -> None:
     state2 = await team2.save_state()
     assert state == state2
     manager_1 = await team._runtime.try_get_underlying_agent_instance(  # pyright: ignore
-        AgentId(f"group_chat_manager_{team._team_id}", team._team_id),  # pyright: ignore
+        AgentId(f"{team._group_chat_manager_name}_{team._team_id}", team._team_id),  # pyright: ignore
         MagenticOneOrchestrator,  # pyright: ignore
     )  # pyright: ignore
     manager_2 = await team2._runtime.try_get_underlying_agent_instance(  # pyright: ignore
-        AgentId(f"group_chat_manager_{team2._team_id}", team2._team_id),  # pyright: ignore
+        AgentId(f"{team2._group_chat_manager_name}_{team2._team_id}", team2._team_id),  # pyright: ignore
         MagenticOneOrchestrator,  # pyright: ignore
     )  # pyright: ignore
     assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore

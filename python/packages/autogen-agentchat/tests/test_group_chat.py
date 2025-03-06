@@ -271,11 +271,11 @@ async def test_round_robin_group_chat_state() -> None:
     assert agent3_model_ctx_messages == agent1_model_ctx_messages
     assert agent4_model_ctx_messages == agent2_model_ctx_messages
     manager_1 = await team1._runtime.try_get_underlying_agent_instance(  # pyright: ignore
-        AgentId(f"group_chat_manager_{team1._team_id}", team1._team_id),  # pyright: ignore
+        AgentId(f"{team1._group_chat_manager_name}_{team1._team_id}", team1._team_id),  # pyright: ignore
         RoundRobinGroupChatManager,  # pyright: ignore
     )  # pyright: ignore
     manager_2 = await team2._runtime.try_get_underlying_agent_instance(  # pyright: ignore
-        AgentId(f"group_chat_manager_{team2._team_id}", team2._team_id),  # pyright: ignore
+        AgentId(f"{team2._group_chat_manager_name}_{team2._team_id}", team2._team_id),  # pyright: ignore
         RoundRobinGroupChatManager,  # pyright: ignore
     )  # pyright: ignore
     assert manager_1._current_turn == manager_2._current_turn  # pyright: ignore
@@ -633,11 +633,11 @@ async def test_selector_group_chat_state() -> None:
     assert agent3_model_ctx_messages == agent1_model_ctx_messages
     assert agent4_model_ctx_messages == agent2_model_ctx_messages
     manager_1 = await team1._runtime.try_get_underlying_agent_instance(  # pyright: ignore
-        AgentId(f"group_chat_manager_{team1._team_id}", team1._team_id),  # pyright: ignore
+        AgentId(f"{team1._group_chat_manager_name}_{team1._team_id}", team1._team_id),  # pyright: ignore
         SelectorGroupChatManager,  # pyright: ignore
     )  # pyright: ignore
     manager_2 = await team2._runtime.try_get_underlying_agent_instance(  # pyright: ignore
-        AgentId(f"group_chat_manager_{team2._team_id}", team2._team_id),  # pyright: ignore
+        AgentId(f"{team2._group_chat_manager_name}_{team2._team_id}", team2._team_id),  # pyright: ignore
         SelectorGroupChatManager,  # pyright: ignore
     )  # pyright: ignore
     assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore
@@ -956,11 +956,11 @@ async def test_swarm_handoff() -> None:
     state2 = await team2.save_state()
     assert state == state2
     manager_1 = await team._runtime.try_get_underlying_agent_instance(  # pyright: ignore
-        AgentId(f"group_chat_manager_{team._team_id}", team._team_id),  # pyright: ignore
+        AgentId(f"{team._group_chat_manager_name}_{team._team_id}", team._team_id),  # pyright: ignore
         SwarmGroupChatManager,  # pyright: ignore
     )  # pyright: ignore
     manager_2 = await team2._runtime.try_get_underlying_agent_instance(  # pyright: ignore
-        AgentId(f"group_chat_manager_{team2._team_id}", team2._team_id),  # pyright: ignore
+        AgentId(f"{team2._group_chat_manager_name}_{team2._team_id}", team2._team_id),  # pyright: ignore
         SwarmGroupChatManager,  # pyright: ignore
     )  # pyright: ignore
     assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore

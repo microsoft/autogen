@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import re
 from typing import Any, Callable, Dict, List, Mapping, Sequence
@@ -19,6 +20,7 @@ from ...messages import (
 from ...state import SelectorManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
+from ._events import GroupChatTermination
 
 trace_logger = logging.getLogger(TRACE_LOGGER_NAME)
 
@@ -29,11 +31,13 @@ class SelectorGroupChatManager(BaseGroupChatManager):
 
     def __init__(
         self,
+        name: str,
         group_topic_type: str,
         output_topic_type: str,
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
+        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
         model_client: ChatCompletionClient,
@@ -43,11 +47,13 @@ class SelectorGroupChatManager(BaseGroupChatManager):
         max_selector_attempts: int,
     ) -> None:
         super().__init__(
+            name,
             group_topic_type,
             output_topic_type,
             participant_topic_types,
             participant_names,
             participant_descriptions,
+            output_message_queue,
             termination_condition,
             max_turns,
         )
@@ -414,6 +420,7 @@ Read the above conversation. Then select the next role from {participants} to pl
     ):
         super().__init__(
             participants,
+            group_chat_manager_name="SelectorGroupChatManager",
             group_chat_manager_class=SelectorGroupChatManager,
             termination_condition=termination_condition,
             max_turns=max_turns,
@@ -430,20 +437,24 @@ Read the above conversation. Then select the next role from {participants} to pl
 
     def _create_group_chat_manager_factory(
         self,
+        name: str,
         group_topic_type: str,
         output_topic_type: str,
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
+        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
     ) -> Callable[[], BaseGroupChatManager]:
         return lambda: SelectorGroupChatManager(
+            name,
             group_topic_type,
             output_topic_type,
             participant_topic_types,
             participant_names,
             participant_descriptions,
+            output_message_queue,
             termination_condition,
             max_turns,
             self._model_client,

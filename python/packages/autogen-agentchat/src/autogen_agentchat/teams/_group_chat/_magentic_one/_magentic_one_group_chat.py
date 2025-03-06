@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from typing import Callable, List
 
@@ -8,7 +9,9 @@ from typing_extensions import Self
 
 from .... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ....base import ChatAgent, TerminationCondition
+from ....messages import AgentEvent, ChatMessage
 from .._base_group_chat import BaseGroupChat
+from .._events import GroupChatTermination
 from ._magentic_one_orchestrator import MagenticOneOrchestrator
 from ._prompts import ORCHESTRATOR_FINAL_ANSWER_PROMPT
 
@@ -103,6 +106,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
     ):
         super().__init__(
             participants,
+            group_chat_manager_name="MagenticOneOrchestrator",
             group_chat_manager_class=MagenticOneOrchestrator,
             termination_condition=termination_condition,
             max_turns=max_turns,
@@ -118,15 +122,18 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
 
     def _create_group_chat_manager_factory(
         self,
+        name: str,
         group_topic_type: str,
         output_topic_type: str,
         participant_topic_types: List[str],
         participant_names: List[str],
         participant_descriptions: List[str],
+        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
     ) -> Callable[[], MagenticOneOrchestrator]:
         return lambda: MagenticOneOrchestrator(
+            name,
             group_topic_type,
             output_topic_type,
             participant_topic_types,
@@ -136,6 +143,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             self._model_client,
             self._max_stalls,
             self._final_answer_prompt,
+            output_message_queue,
             termination_condition,
         )
 
