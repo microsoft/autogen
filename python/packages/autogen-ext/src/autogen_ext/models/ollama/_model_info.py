@@ -18,7 +18,7 @@ _MODEL_INFO: Dict[str, ModelInfo] = {
         "json_output": True,
         "family": ModelFamily.UNKNOWN,
     },
-    "deepseek-r1": {"vision": False, "function_calling": False, "json_output": True, "family": ModelFamily.UNKNOWN},
+    "deepseek-r1": {"vision": False, "function_calling": False, "json_output": True, "family": ModelFamily.R1},
     "dolphin-llama3": {"vision": False, "function_calling": False, "json_output": True, "family": ModelFamily.UNKNOWN},
     "dolphin-mistral": {"vision": False, "function_calling": False, "json_output": True, "family": ModelFamily.UNKNOWN},
     "dolphin-mixtral": {"vision": False, "function_calling": False, "json_output": True, "family": ModelFamily.UNKNOWN},
