@@ -1,8 +1,13 @@
-from autogen_core import CancellationToken, Component, ComponentModel
+import logging
+
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, ComponentModel
 from autogen_core.code_executor import CodeBlock, CodeExecutor
+from autogen_core.logging import ToolCallEvent
 from autogen_core.tools import BaseTool
 from pydantic import BaseModel, Field, model_serializer
 from typing_extensions import Self
+
+logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class CodeExecutionInput(BaseModel):
@@ -84,7 +89,17 @@ class PythonCodeExecutionTool(
             code_blocks=code_blocks, cancellation_token=cancellation_token
         )
 
-        return CodeExecutionResult(success=result.exit_code == 0, output=result.output)
+        exec_result = CodeExecutionResult(success=result.exit_code == 0, output=result.output)
+
+        # Log the event
+        event = ToolCallEvent(
+            tool_name=self.name,
+            arguments=args.model_dump(),
+            result=exec_result.model_dump(),
+        )
+        logger.info(event)
+
+        return exec_result
 
     def _to_config(self) -> PythonCodeExecutionToolConfig:
         """Convert current instance to config object"""

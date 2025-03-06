@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import logging
 import warnings
 from textwrap import dedent
 from typing import Any, Callable, Sequence
@@ -7,14 +8,17 @@ from typing import Any, Callable, Sequence
 from pydantic import BaseModel
 from typing_extensions import Self
 
-from .. import CancellationToken
+from .. import EVENT_LOGGER_NAME, CancellationToken, MessageHandlerContext
 from .._component_config import Component
 from .._function_utils import (
     args_base_model_from_signature,
     get_typed_signature,
 )
 from ..code_executor._func_with_reqs import Import, import_to_str, to_code
+from ..logging import ToolCallEvent
 from ._base import BaseTool
+
+logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class FunctionToolConfig(BaseModel):
@@ -128,6 +132,20 @@ class FunctionTool(BaseTool[BaseModel, BaseModel], Component[FunctionToolConfig]
                 future = asyncio.get_event_loop().run_in_executor(None, functools.partial(self._func, **kwargs))
                 cancellation_token.link_future(future)
                 result = await future
+
+        # If we are running in the context of a handler we can get the agent_id
+        try:
+            agent_id = MessageHandlerContext.agent_id()
+        except RuntimeError:
+            agent_id = None
+        # Log the function call.
+        event = ToolCallEvent(
+            tool_name=self.name,
+            arguments=args.model_dump(),
+            result=self.return_value_as_string(result) if result is not None else None,
+            agent_id=agent_id,
+        )
+        logger.info(event)
 
         return result
 

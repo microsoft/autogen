@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 import warnings
 from typing import Any, AsyncGenerator, Dict, List, Mapping, Optional, Sequence, Union
-from typing_extensions import Self
 
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component
 from autogen_core.models import (
@@ -18,6 +17,7 @@ from autogen_core.models import (
 )
 from autogen_core.tools import Tool, ToolSchema
 from pydantic import BaseModel
+from typing_extensions import Self
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 
