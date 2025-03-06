@@ -92,7 +92,6 @@ html_logo = "_static/images/logo/logo.svg"
 html_favicon = "_static/images/logo/favicon-512x512.png"
 
 html_theme_options = {
-
     "header_links_before_dropdown": 6,
     "navbar_align": "left",
     "check_switcher": False,
