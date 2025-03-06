@@ -2,8 +2,8 @@ import json
 from enum import Enum
 from typing import Any, Dict, cast
 
-from ._message_handler_context import MessageHandlerContext
 from ._agent_id import AgentId
+from ._message_handler_context import MessageHandlerContext
 from ._topic import TopicId
 
 
