@@ -120,3 +120,11 @@ html[data-theme="light"] .bd-header {
 .bd-article .docutils .cell_output .output .highlight > pre:focus-visible{
   border: 2px outset var(--pst-color-secondary);
 }
+
+/* Copy button */
+.bd-article .docutils .docutils .copybtn:focus-visible:after {
+  /* border: 10px outset var(--pst-color-primary); */
+    display: block;
+    opacity: 1;
+    visibility: visible;
+}
