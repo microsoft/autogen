@@ -205,7 +205,6 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
     def __init__(
         self,
         participants: List[ChatAgent],
-        *,
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
