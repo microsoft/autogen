@@ -60,7 +60,7 @@ dev = [
 
     # Documentation
     "myst-nb==1.1.2",
-    "pydata-sphinx-theme==0.15.4",
+    "pydata-sphinx-theme==0.16.0",
     "sphinx-copybutton",
     "sphinx-design",
     "sphinx",
