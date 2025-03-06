@@ -1,28 +1,28 @@
 import argparse
 import asyncio
+import json
 import logging
+import os
 import subprocess
 import sys
-import json
-import os
 
 os.environ["TOKENIZERS_PARALLELISM"] = "false"  # disable parallelism to avoid warning
 import re
 import sqlite3  # new import for database operations
 from typing import List, Optional
-from tqdm import tqdm  # new import for progress bar
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base import Response
-from autogen_agentchat.messages import TextMessage, ToolCallSummaryMessage, ToolCallRequestEvent, ToolCallExecutionEvent
+from autogen_agentchat.messages import TextMessage, ToolCallExecutionEvent, ToolCallRequestEvent, ToolCallSummaryMessage
 from autogen_core import CancellationToken
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from rich.console import Console
-from rich.prompt import Prompt
-from rich.panel import Panel
-from rich.theme import Theme
 from chromadb import PersistentClient
 from chromadb.utils import embedding_functions  # new import for sentence transformer
+from rich.console import Console
+from rich.panel import Panel
+from rich.prompt import Prompt
+from rich.theme import Theme
+from tqdm import tqdm  # new import for progress bar
 
 custom_theme = Theme(
     {
@@ -145,7 +145,7 @@ async def get_user_input(prompt: str) -> str:
     return user_input
 
 
-async def gitty(owner: str, repo: str, command: str, number: int):
+async def gitty(owner: str, repo: str, command: str, number: int) -> None:
     console.print("[header]Gitty - GitHub Issue/PR Assistant[/header]")
     console.print(f"[thinking]Assessing issue #{number} for repository {owner}/{repo}...[/thinking]")
     console.print(f"https://github.com/{owner}/{repo}/issues/{number}")
@@ -275,7 +275,7 @@ def get_gitty_dir() -> str:
     return gitty_dir
 
 
-def edit_config_file(file_path: str):
+def edit_config_file(file_path: str) -> None:
     if not os.path.exists(file_path):
         with open(file_path, "w") as f:
             f.write("# Instructions for gitty agents\n")
@@ -285,7 +285,7 @@ def edit_config_file(file_path: str):
 
 
 # Updated function to fetch all issues and update the database.
-def fetch_and_update_issues(owner: str, repo: str, db_path: Optional[str] = None):
+def fetch_and_update_issues(owner: str, repo: str, db_path: Optional[str] = None) -> None:
     """
     Fetch all GitHub issues for the repo and update the local database.
     Only updates issues that have a more recent updatedAt timestamp.
@@ -391,7 +391,7 @@ def fetch_and_update_issues(owner: str, repo: str, db_path: Optional[str] = None
     print("Chroma DB update complete.")
 
 
-def check_gh_cli():
+def check_gh_cli() -> bool:
     """Check if GitHub CLI is installed and accessible."""
     try:
         subprocess.run(["gh", "--version"], capture_output=True, check=True)
@@ -402,7 +402,7 @@ def check_gh_cli():
         sys.exit(1)
 
 
-def check_openai_key():
+def check_openai_key() -> None:
     """Check if OpenAI API key is set in environment variables."""
     if not os.getenv("OPENAI_API_KEY"):
         console.print("[error]Error: OPENAI_API_KEY environment variable is not set.[/error]")
@@ -411,7 +411,7 @@ def check_openai_key():
         sys.exit(1)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(
         description="Gitty: A GitHub Issue/PR Assistant.\n\n"
         "This tool fetches GitHub issues or pull requests and uses an AI assistant to generate concise,\n"
@@ -492,6 +492,3 @@ def main():
         global_config_path = os.path.join(global_config_dir, "config")
         edit_config_file(global_config_path)
 
-
-if __name__ == "__main__":
-    main()
