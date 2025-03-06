@@ -388,7 +388,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 await (await self._get_agent(agent_id)).load_state(state[str(agent_id)])
 
     async def _process_send(self, message_envelope: SendMessageEnvelope) -> None:
-        with self._tracer_helper.trace_block("send", message_envelope.recipient, parent=message_envelope.metadata):
+        with self._tracer_helper.trace_block("send", message_envelope.recipient, parent=None):
             recipient = message_envelope.recipient
 
             if recipient.type not in self._known_agent_names:
@@ -417,11 +417,12 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     cancellation_token=message_envelope.cancellation_token,
                     message_id=message_envelope.message_id,
                 )
-                with MessageHandlerContext.populate_context(recipient_agent.id):
-                    response = await recipient_agent.on_message(
-                        message_envelope.message,
-                        ctx=message_context,
-                    )
+                with self._tracer_helper.trace_block("process", recipient_agent.id, parent=None):
+                    with MessageHandlerContext.populate_context(recipient_agent.id):
+                        response = await recipient_agent.on_message(
+                            message_envelope.message,
+                            ctx=message_context,
+                        )
             except CancelledError as e:
                 if not message_envelope.future.cancelled():
                     message_envelope.future.set_exception(e)
@@ -468,7 +469,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             self._message_queue.task_done()
 
     async def _process_publish(self, message_envelope: PublishMessageEnvelope) -> None:
-        with self._tracer_helper.trace_block("publish", message_envelope.topic_id, parent=message_envelope.metadata):
+        with self._tracer_helper.trace_block("publish", message_envelope.topic_id, parent=None):
             try:
                 responses: List[Awaitable[Any]] = []
                 recipients = await self._subscription_manager.get_subscribed_recipients(message_envelope.topic_id)
@@ -533,7 +534,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             # TODO if responses are given for a publish
 
     async def _process_response(self, message_envelope: ResponseMessageEnvelope) -> None:
-        with self._tracer_helper.trace_block("ack", message_envelope.recipient, parent=message_envelope.metadata):
+        with self._tracer_helper.trace_block("ack", message_envelope.recipient, parent=None):
             content = (
                 message_envelope.message.__dict__
                 if hasattr(message_envelope.message, "__dict__")
