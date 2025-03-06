@@ -129,7 +129,8 @@ class TeamManager:
                     yield event
         finally:
             # Cleanup - remove our handler
-            logger.handlers.remove(llm_event_logger)
+            if llm_event_logger in logger.handlers:
+                logger.handlers.remove(llm_event_logger)
 
             # Ensure cleanup happens
             if team and hasattr(team, "_participants"):
