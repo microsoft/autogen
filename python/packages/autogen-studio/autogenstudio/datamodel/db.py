@@ -43,7 +43,7 @@ class Message(SQLModel, table=True):
     version: Optional[str] = "0.0.1"
     config: Union[MessageConfig, dict] = Field(default_factory=MessageConfig, sa_column=Column(JSON))
     session_id: Optional[int] = Field(
-        default=None, sa_column=Column(Integer, ForeignKey("session.id", ondelete="CASCADE"))
+        default=None, sa_column=Column(Integer, ForeignKey("session.id", ondelete="NO ACTION"))
     )
     run_id: Optional[int] = Field(default=None, sa_column=Column(Integer, ForeignKey("run.id", ondelete="CASCADE")))
 
