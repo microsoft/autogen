@@ -1,7 +1,7 @@
 import logging
 from typing import Callable, List
 
-from autogen_core import Component, ComponentModel, AgentRuntime
+from autogen_core import AgentRuntime, Component, ComponentModel
 from autogen_core.models import ChatCompletionClient
 from pydantic import BaseModel
 from typing_extensions import Self
@@ -121,6 +121,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         group_topic_type: str,
         output_topic_type: str,
         participant_topic_types: List[str],
+        participant_names: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
@@ -129,6 +130,7 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
             group_topic_type,
             output_topic_type,
             participant_topic_types,
+            participant_names,
             participant_descriptions,
             max_turns,
             self._model_client,

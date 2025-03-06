@@ -1,6 +1,6 @@
 from typing import Any, Callable, List, Mapping
 
-from autogen_core import Component, ComponentModel, AgentRuntime
+from autogen_core import AgentRuntime, Component, ComponentModel
 from pydantic import BaseModel
 
 from ...base import ChatAgent, TerminationCondition
@@ -18,6 +18,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         group_topic_type: str,
         output_topic_type: str,
         participant_topic_types: List[str],
+        participant_names: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
@@ -26,11 +27,12 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             group_topic_type,
             output_topic_type,
             participant_topic_types,
+            participant_names,
             participant_descriptions,
             termination_condition,
             max_turns,
         )
-        self._current_speaker = participant_topic_types[0]
+        self._current_speaker = self._participant_names[0]
 
     async def validate_group_state(self, messages: List[ChatMessage] | None) -> None:
         """Validate the start messages for the group chat."""
@@ -38,9 +40,9 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         if messages:
             for message in messages:
                 if isinstance(message, HandoffMessage):
-                    if message.target not in self._participant_topic_types:
+                    if message.target not in self._participant_names:
                         raise ValueError(
-                            f"The target {message.target} is not one of the participants {self._participant_topic_types}. "
+                            f"The target {message.target} is not one of the participants {self._participant_names}. "
                             "If you are resuming Swarm with a new HandoffMessage make sure to set the target to a valid participant as the target."
                         )
                     return
@@ -48,9 +50,9 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         # Check if there is a handoff message in the thread that is not targeting a valid participant.
         for existing_message in reversed(self._message_thread):
             if isinstance(existing_message, HandoffMessage):
-                if existing_message.target not in self._participant_topic_types:
+                if existing_message.target not in self._participant_names:
                     raise ValueError(
-                        f"The existing handoff target {existing_message.target} is not one of the participants {self._participant_topic_types}. "
+                        f"The existing handoff target {existing_message.target} is not one of the participants {self._participant_names}. "
                         "If you are resuming Swarm with a new task make sure to include in your task "
                         "a HandoffMessage with a valid participant as the target. For example, if you are "
                         "resuming from a HandoffTermination, make sure the new task is a HandoffMessage "
@@ -65,7 +67,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
         self._message_thread.clear()
         if self._termination_condition is not None:
             await self._termination_condition.reset()
-        self._current_speaker = self._participant_topic_types[0]
+        self._current_speaker = self._participant_names[0]
 
     async def select_speaker(self, thread: List[AgentEvent | ChatMessage]) -> str:
         """Select a speaker from the participants based on handoff message.
@@ -76,7 +78,7 @@ class SwarmGroupChatManager(BaseGroupChatManager):
             if isinstance(message, HandoffMessage):
                 self._current_speaker = message.target
                 # The latest handoff message should always target a valid participant.
-                assert self._current_speaker in self._participant_topic_types
+                assert self._current_speaker in self._participant_names
                 return self._current_speaker
         return self._current_speaker
 
@@ -219,6 +221,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         group_topic_type: str,
         output_topic_type: str,
         participant_topic_types: List[str],
+        participant_names: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
@@ -228,6 +231,7 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
                 group_topic_type,
                 output_topic_type,
                 participant_topic_types,
+                participant_names,
                 participant_descriptions,
                 termination_condition,
                 max_turns,

@@ -56,6 +56,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         group_topic_type: str,
         output_topic_type: str,
         participant_topic_types: List[str],
+        participant_names: List[str],
         participant_descriptions: List[str],
         max_turns: int | None,
         model_client: ChatCompletionClient,
@@ -67,6 +68,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
             group_topic_type,
             output_topic_type,
             participant_topic_types,
+            participant_names,
             participant_descriptions,
             termination_condition,
             max_turns,
@@ -84,7 +86,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         # Produce a team description. Each agent sould appear on a single line.
         self._team_description = ""
-        for topic_type, description in zip(self._participant_topic_types, self._participant_descriptions, strict=True):
+        for topic_type, description in zip(self._participant_names, self._participant_descriptions, strict=True):
             self._team_description += re.sub(r"\s+", " ", f"{topic_type}: {description}").strip() + "\n"
         self._team_description = self._team_description.strip()
 
@@ -233,7 +235,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
     async def _reenter_outer_loop(self, cancellation_token: CancellationToken) -> None:
         """Re-enter Outer loop of the orchestrator after creating task ledger."""
         # Reset the agents
-        for participant_topic_type in self._participant_topic_types:
+        for participant_topic_type in self._participant_name_to_topic_type.values():
             await self._runtime.send_message(
                 GroupChatReset(),
                 recipient=AgentId(type=participant_topic_type, key=self.id.key),
@@ -278,7 +280,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         context = self._thread_to_context()
 
         progress_ledger_prompt = self._get_progress_ledger_prompt(
-            self._task, self._team_description, self._participant_topic_types
+            self._task, self._team_description, self._participant_names
         )
         context.append(UserMessage(content=progress_ledger_prompt, source=self._name))
         progress_ledger: Dict[str, Any] = {}
@@ -292,10 +294,10 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 progress_ledger = json.loads(ledger_str)
 
                 # If the team consists of a single agent, deterministically set the next speaker
-                if len(self._participant_topic_types) == 1:
+                if len(self._participant_names) == 1:
                     progress_ledger["next_speaker"] = {
                         "reason": "The team consists of only one agent.",
-                        "answer": self._participant_topic_types[0],
+                        "answer": self._participant_names[0],
                     }
 
                 # Validate the structure
@@ -321,7 +323,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
                 # Validate the next speaker if the task is not yet complete
                 if (
                     not progress_ledger["is_request_satisfied"]["answer"]
-                    and progress_ledger["next_speaker"]["answer"] not in self._participant_topic_types
+                    and progress_ledger["next_speaker"]["answer"] not in self._participant_names
                 ):
                     key_error = True
                     break
@@ -377,21 +379,18 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         )
 
         # Request that the step be completed
-        valid_next_speaker: bool = False
         next_speaker = progress_ledger["next_speaker"]["answer"]
-        for participant_topic_type in self._participant_topic_types:
-            if participant_topic_type == next_speaker:
-                await self.publish_message(
-                    GroupChatRequestPublish(),
-                    topic_id=DefaultTopicId(type=next_speaker),
-                    cancellation_token=cancellation_token,
-                )
-                valid_next_speaker = True
-                break
-        if not valid_next_speaker:
+        # Check if the next speaker is valid
+        if next_speaker not in self._participant_name_to_topic_type:
             raise ValueError(
-                f"Invalid next speaker: {next_speaker} from the ledger, participants are: {self._participant_topic_types}"
+                f"Invalid next speaker: {next_speaker} from the ledger, participants are: {self._participant_names}"
             )
+        participant_topic_type = self._participant_name_to_topic_type[next_speaker]
+        await self.publish_message(
+            GroupChatRequestPublish(),
+            topic_id=DefaultTopicId(type=participant_topic_type),
+            cancellation_token=cancellation_token,
+        )
 
     async def _update_task_ledger(self, cancellation_token: CancellationToken) -> None:
         """Update the task ledger (outer loop) with the latest facts and plan."""

@@ -6,7 +6,6 @@ from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping, Sequence
 
 from autogen_core import (
     AgentId,
-    AgentInstantiationContext,
     AgentRuntime,
     AgentType,
     CancellationToken,
@@ -56,14 +55,20 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._termination_condition = termination_condition
         self._max_turns = max_turns
 
-        # Constants for the group chat.
-        # The team ID is used to create unique topic types for the group chat to avoid
-        # collisions with other teams in the same runtime.
+        # The team ID is a UUID that is used to identify the team and its participants
+        # in the agent runtime. It is used to create unique topic types for each participant.
+        # Currently, team ID is binded to an object instance of the group chat class.
+        # So if you create two instances of group chat, there will be two teams with different IDs.
         self._team_id = str(uuid.uuid4())
+
+        # Constants for the group chat.
         self._group_topic_type = f"group_topic_{self._team_id}"
         self._output_topic_type = f"output_topic_{self._team_id}"
+        self._group_chat_manager_name = "group_chat_manager"
         self._group_chat_manager_topic_type = f"group_chat_manager_{self._team_id}"
-        self._participant_topic_types: List[str] = [f"{participant.name}_{self._team_id}" for participant in participants]
+        self._participant_topic_types: List[str] = [
+            f"{participant.name}_{self._team_id}" for participant in participants
+        ]
         self._collector_agent_type = f"collect_output_messages_{self._team_id}"
         self._participant_names: List[str] = [participant.name for participant in participants]
         self._participant_descriptions: List[str] = [participant.description for participant in participants]
@@ -73,12 +78,12 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | None] = asyncio.Queue()
 
         # Create a runtime for the team.
-        # Background exceptions must not be ignored as it results in non-surfaced exceptions and early team termination.
         if runtime is not None:
             self._runtime = runtime
             self._embedded_runtime = False
         else:
             # Use a embedded single-threaded runtime for the group chat.
+            # Background exceptions must not be ignored as it results in non-surfaced exceptions and early team termination.
             self._runtime = SingleThreadedAgentRuntime(ignore_unhandled_exceptions=False)
             self._embedded_runtime = True
 
@@ -94,6 +99,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         group_topic_type: str,
         output_topic_type: str,
         participant_topic_types: List[str],
+        participant_names: List[str],
         participant_descriptions: List[str],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
@@ -106,10 +112,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         agent: ChatAgent,
     ) -> Callable[[], ChatAgentContainer]:
         def _factory() -> ChatAgentContainer:
-            id = AgentInstantiationContext.current_agent_id()
-            assert id == AgentId(type=agent.name, key=self._team_id)
             container = ChatAgentContainer(parent_topic_type, output_topic_type, agent)
-            assert container.id == id
             return container
 
         return _factory
@@ -119,9 +122,8 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         group_chat_manager_agent_type = AgentType(self._group_chat_manager_topic_type)
 
         # Register participants.
-        for participant, participant_topic_type in zip(self._participants, self._participant_topic_types, strict=False):
-            # Use the participant topic type as the agent type.
-            agent_type = participant_topic_type
+        # Use the participant topic type as the agent type.
+        for participant, agent_type in zip(self._participants, self._participant_topic_types, strict=True):
             # Register the participant factory.
             await ChatAgentContainer.register(
                 runtime,
@@ -129,7 +131,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 factory=self._create_participant_factory(self._group_topic_type, self._output_topic_type, participant),
             )
             # Add subscriptions for the participant.
-            await runtime.add_subscription(TypeSubscription(topic_type=participant_topic_type, agent_type=agent_type))
+            await runtime.add_subscription(TypeSubscription(topic_type=agent_type, agent_type=agent_type))
             await runtime.add_subscription(TypeSubscription(topic_type=self._group_topic_type, agent_type=agent_type))
 
         # Register the group chat manager.
@@ -139,6 +141,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             factory=self._create_group_chat_manager_factory(
                 group_topic_type=self._group_topic_type,
                 output_topic_type=self._output_topic_type,
+                participant_names=self._participant_names,
                 participant_topic_types=self._participant_topic_types,
                 participant_descriptions=self._participant_descriptions,
                 termination_condition=self._termination_condition,
@@ -173,6 +176,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 event_logger.info(message.message)
                 self._stop_reason = message.message.content
                 # Put a None in the queue to indicate that the group chat has terminated.
+                # TODO: how do we ensure the GroupChatTermination message
+                # is the last message it receives and put in the queue?
+                # Do we need to use SequentialRoutedAgent for collector agent?
                 await self._output_message_queue.put(None)
 
         await ClosureAgent.register_closure(
@@ -419,6 +425,25 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         if not self._initialized:
             await self._init(self._runtime)
 
+        shutdown_task: asyncio.Task[None] | None = None
+        if self._embedded_runtime:
+
+            async def stop_runtime() -> None:
+                assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+                try:
+                    # This will propagate any exceptions raised.
+                    await self._runtime.stop_when_idle()
+                finally:
+                    # Stop the consumption of messages and end the stream.
+                    # NOTE: we also need to put a None here because when the group chat
+                    # has an exception, the closure agent may not be able to put a None in the queue,
+                    # as there may not be a GroupChatTermination event.
+                    await self._output_message_queue.put(None)
+
+            # Create a background task to stop the runtime when the group chat
+            # is stopped or has an exception.
+            shutdown_task = asyncio.create_task(stop_runtime())
+
         try:
             # Run the team by sending the start message to the group chat manager.
             # The group chat manager will start the group chat by relaying the message to the participants
@@ -439,6 +464,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 message = await message_future
                 if message is None:
                     # If the message is None, it means the group chat has terminated.
+                    # TODO: how do we handle termination when the runtime is not embedded
+                    # and there is an exception in the group chat?
+                    # The closure agent may not be able to put a None in the queue,
+                    # as there may not be a GroupChatTermination event.
                     break
                 yield message
                 if isinstance(message, ModelClientStreamingChunkEvent):
@@ -450,13 +479,11 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             yield TaskResult(messages=output_messages, stop_reason=self._stop_reason)
 
         finally:
-            # Wait for the shutdown task to finish.
             try:
-                if self._embedded_runtime:
-                    # This will propagate any exceptions raised in the shutdown task.
-                    # We need to ensure we cleanup though.
-                    assert isinstance(self._runtime, SingleThreadedAgentRuntime)
-                    await self._runtime.stop_when_idle()
+                if shutdown_task is not None:
+                    # Wait for the shutdown task to finish.
+                    # This will propagate any exceptions raised.
+                    await shutdown_task
             finally:
                 # Clear the output message queue.
                 while not self._output_message_queue.empty():
@@ -553,15 +580,20 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._is_running = True
 
         try:
+            # Store state of each agent by their name.
+            # NOTE: we don't use the agent ID as the key here because we need to be able to decouple
+            # the state of the agents from their identities in the agent runtime.
             agent_states: Dict[str, Mapping[str, Any]] = {}
             # Save the state of all participants.
-            for participant_topic_type in self._participant_topic_types:
-                agent_id = AgentId(type=participant_topic_type, key=self._team_id)
-                agent_states[str(agent_id)] = await self._runtime.agent_save_state(agent_id)
+            for name, agent_type in zip(self._participant_names, self._participant_topic_types, strict=True):
+                agent_id = AgentId(type=agent_type, key=self._team_id)
+                # NOTE: We are using the runtime's save state method rather than the agent instance's
+                # save_state method because we want to support saving state of remote agents.
+                agent_states[name] = await self._runtime.agent_save_state(agent_id)
             # Save the state of the group chat manager.
             agent_id = AgentId(type=self._group_chat_manager_topic_type, key=self._team_id)
-            agent_states[str(agent_id)] = await self._runtime.agent_save_state(agent_id)
-            return TeamState(agent_states=agent_states, team_id=self._team_id).model_dump()
+            agent_states[self._group_chat_manager_name] = await self._runtime.agent_save_state(agent_id)
+            return TeamState(agent_states=agent_states).model_dump()
         finally:
             # Indicate that the team is no longer running.
             self._is_running = False
@@ -577,19 +609,17 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
 
         try:
             team_state = TeamState.model_validate(state)
-            # Overwrite the team ID with the one from the state.
-            self._team_id = team_state.team_id
             # Load the state of all participants.
-            for participant_topic_type in self._participant_topic_types:
-                agent_id = AgentId(type=participant_topic_type, key=self._team_id)
-                if str(agent_id) not in team_state.agent_states:
-                    raise ValueError(f"Agent state for {agent_id} not found in the saved state.")
-                await self._runtime.agent_load_state(agent_id, team_state.agent_states[str(agent_id)])
+            for name, agent_type in zip(self._participant_names, self._participant_topic_types, strict=True):
+                agent_id = AgentId(type=agent_type, key=self._team_id)
+                if name not in team_state.agent_states:
+                    raise ValueError(f"Agent state for {name} not found in the saved state.")
+                await self._runtime.agent_load_state(agent_id, team_state.agent_states[name])
             # Load the state of the group chat manager.
             agent_id = AgentId(type=self._group_chat_manager_topic_type, key=self._team_id)
-            if str(agent_id) not in team_state.agent_states:
-                raise ValueError(f"Agent state for {agent_id} not found in the saved state.")
-            await self._runtime.agent_load_state(agent_id, team_state.agent_states[str(agent_id)])
+            if self._group_chat_manager_name not in team_state.agent_states:
+                raise ValueError(f"Agent state for {self._group_chat_manager_name} not found in the saved state.")
+            await self._runtime.agent_load_state(agent_id, team_state.agent_states[self._group_chat_manager_name])
 
         finally:
             # Indicate that the team is no longer running.
