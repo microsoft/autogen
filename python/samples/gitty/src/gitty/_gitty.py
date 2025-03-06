@@ -5,6 +5,7 @@ import subprocess
 import sys
 import json
 import os
+
 os.environ["TOKENIZERS_PARALLELISM"] = "false"  # disable parallelism to avoid warning
 import re
 import sqlite3  # new import for database operations
@@ -23,34 +24,30 @@ from rich.theme import Theme
 from chromadb import PersistentClient
 from chromadb.utils import embedding_functions  # new import for sentence transformer
 
-custom_theme = Theme({
-    "header": "bold",
-    "thinking": "italic yellow",
-    "acting": "italic red",
-    "prompt": "italic",
-    "observe": "italic",
-    "success": "bold green",
-})
+custom_theme = Theme(
+    {
+        "header": "bold",
+        "thinking": "italic yellow",
+        "acting": "italic red",
+        "prompt": "italic",
+        "observe": "italic",
+        "success": "bold green",
+    }
+)
 console = Console(theme=custom_theme)
 
 logger = logging.getLogger("gitty")
 logger.addHandler(logging.StreamHandler())
 
+
 async def generate_issue_tdlr(issue_number: str, tldr: str) -> str:
     "Generate a single sentence TLDR for the issue."
     return f"TLDR (#{issue_number}): " + tldr
 
+
 async def get_github_issue_content(owner: str, repo: str, issue_number: int) -> str:
-    cmd = [
-        "gh", "issue", "view", str(issue_number),
-        "--repo", f"{owner}/{repo}",
-        "--json", "body,author,comments"
-    ]
-    proc = await asyncio.create_subprocess_exec(
-        *cmd,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE
-    )
+    cmd = ["gh", "issue", "view", str(issue_number), "--repo", f"{owner}/{repo}", "--json", "body,author,comments"]
+    proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
     stdout, stderr = await proc.communicate()
     if proc.returncode != 0:
         error_detail = stderr.decode().strip()
@@ -71,13 +68,15 @@ async def get_github_issue_content(owner: str, repo: str, issue_number: int) -> 
     )
     return f"Content (#{issue_number})\n\nauthor: {issue_author}:\n{issue_body}\n\nComments:\n{comments_content}"
 
+
 # New helper function to extract mentioned issues using regex.
 def get_mentioned_issues(issue_number: int, issue_content: str) -> List[int]:
     # Finds issue numbers mentioned as "#123"
-    matches = re.findall(r'#(\d+)', issue_content)
+    matches = re.findall(r"#(\d+)", issue_content)
     # remove the current issue number from the list
     matches = [match for match in matches if int(match) != issue_number]
     return list(map(int, matches))
+
 
 # Updated helper function to extract related issues using a RAG approach via Chroma DB.
 def get_related_issues(issue_number: int, issue_content: str, n_results: int = 2) -> List[int]:
@@ -90,7 +89,7 @@ def get_related_issues(issue_number: int, issue_content: str, n_results: int = 2
         return []
     results = collection.query(
         query_texts=[issue_content],  # Chroma will embed the text for you
-        n_results=n_results
+        n_results=n_results,
     )
     ids = results.get("ids", [[]])[0]
 
@@ -99,7 +98,8 @@ def get_related_issues(issue_number: int, issue_content: str, n_results: int = 2
 
     return [int(_id) for _id in ids if _id.isdigit()]
 
-async def run(agent: AssistantAgent, task: str, log: bool=False) -> str:
+
+async def run(agent: AssistantAgent, task: str, log: bool = False) -> str:
     output_stream = agent.on_messages_stream(
         [TextMessage(content=task, source="user")],
         cancellation_token=CancellationToken(),
@@ -113,7 +113,7 @@ async def run(agent: AssistantAgent, task: str, log: bool=False) -> str:
         if isinstance(message, ToolCallExecutionEvent):
             for result in message.content:
                 # Compute formatted text separately to avoid backslashes in the f-string expression.
-                formatted_text = result.content[:200].replace('\n', r'\n')
+                formatted_text = result.content[:200].replace("\n", r"\n")
                 console.print(f"  [observe]> {formatted_text} [/observe]")
 
         if isinstance(message, Response):
@@ -130,10 +130,12 @@ async def run(agent: AssistantAgent, task: str, log: bool=False) -> str:
                 print(last_txt_message)
     return last_txt_message
 
+
 async def get_user_confirmation(prompt: str) -> bool:
     user_input = await get_user_input(f"{prompt} (y to confirm, or provide feedback)")
     user_input = user_input.lower().strip()
     return user_input == "y"
+
 
 async def get_user_input(prompt: str) -> str:
     user_input = Prompt.ask(f"\n? {prompt} (or type 'exit')")
@@ -141,6 +143,7 @@ async def get_user_input(prompt: str) -> str:
         console.print("[prompt]Exiting...[/prompt]")
         sys.exit(0)
     return user_input
+
 
 async def gitty(owner: str, repo: str, command: str, number: int):
     console.print("[header]Gitty - GitHub Issue/PR Assistant[/header]")
@@ -253,6 +256,7 @@ async def gitty(owner: str, repo: str, command: str, number: int):
             console.print("[success]The Suggested Response:[/success]")
             console.print(suggested_response)
 
+
 def get_repo_root() -> str:
     try:
         result = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True)
@@ -260,6 +264,7 @@ def get_repo_root() -> str:
     except subprocess.CalledProcessError:
         print("Error: not a git repository.")
         sys.exit(1)
+
 
 def get_gitty_dir() -> str:
     """Get the .gitty directory in the repository root. Create it if it doesn't exist."""
@@ -269,6 +274,7 @@ def get_gitty_dir() -> str:
         os.makedirs(gitty_dir)
     return gitty_dir
 
+
 def edit_config_file(file_path: str):
     if not os.path.exists(file_path):
         with open(file_path, "w") as f:
@@ -276,6 +282,7 @@ def edit_config_file(file_path: str):
             f.write("# Add your configuration below\n")
     editor = os.getenv("EDITOR", "vi")
     subprocess.run([editor, file_path])
+
 
 # Updated function to fetch all issues and update the database.
 def fetch_and_update_issues(owner: str, repo: str, db_path: Optional[str] = None):
@@ -291,12 +298,7 @@ def fetch_and_update_issues(owner: str, repo: str, db_path: Optional[str] = None
     print(f"Using database at: {db_path}")
 
     # Fetch issues using gh CLI (fetch summary without content)
-    cmd = [
-        "gh", "issue", "list",
-        "--repo", f"{owner}/{repo}",
-        "-L", "1000",
-        "--json", "number,title,updatedAt"
-    ]
+    cmd = ["gh", "issue", "list", "--repo", f"{owner}/{repo}", "-L", "1000", "--json", "number,title,updatedAt"]
     result = subprocess.run(cmd, capture_output=True, text=True)
     if result.returncode != 0:
         print("Error fetching issues:", result.stderr)
@@ -333,17 +335,23 @@ def fetch_and_update_issues(owner: str, repo: str, db_path: Optional[str] = None
             existing_updatedAt = row[0]
             if updatedAt > existing_updatedAt:
                 content = asyncio.run(get_github_issue_content(owner, repo, number))
-                cursor.execute("""
+                cursor.execute(
+                    """
                     UPDATE issues
                     SET title = ?, updatedAt = ?, content = ?
                     WHERE number = ?
-                """, (title, updatedAt, content, number))
+                """,
+                    (title, updatedAt, content, number),
+                )
         else:
             content = asyncio.run(get_github_issue_content(owner, repo, number))
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO issues (number, title, updatedAt, content)
                 VALUES (?, ?, ?, ?)
-            """, (number, title, updatedAt, content))
+            """,
+                (number, title, updatedAt, content),
+            )
     conn.commit()
     conn.close()
     print("Issue database update complete.")
@@ -382,6 +390,7 @@ def fetch_and_update_issues(owner: str, repo: str, db_path: Optional[str] = None
         )
     print("Chroma DB update complete.")
 
+
 def check_gh_cli():
     """Check if GitHub CLI is installed and accessible."""
     try:
@@ -392,6 +401,7 @@ def check_gh_cli():
         console.print("Please install it from: https://cli.github.com")
         sys.exit(1)
 
+
 def check_openai_key():
     """Check if OpenAI API key is set in environment variables."""
     if not os.getenv("OPENAI_API_KEY"):
@@ -400,17 +410,20 @@ def check_openai_key():
         console.print("  export OPENAI_API_KEY='your-api-key'")
         sys.exit(1)
 
+
 def main():
     parser = argparse.ArgumentParser(
         description="Gitty: A GitHub Issue/PR Assistant.\n\n"
-                    "This tool fetches GitHub issues or pull requests and uses an AI assistant to generate concise,\n"
-                    "technical responses to help make progress on your project. You can specify a repository using --repo\n"
-                    "or let the tool auto-detect the repository based on the current directory.",
+        "This tool fetches GitHub issues or pull requests and uses an AI assistant to generate concise,\n"
+        "technical responses to help make progress on your project. You can specify a repository using --repo\n"
+        "or let the tool auto-detect the repository based on the current directory.",
         epilog="Subcommands:\n  issue - Process and respond to GitHub issues\n  pr    - Process and respond to GitHub pull requests\n  local - Edit repo-specific gitty config\n  global- Edit global gitty config\n\n"
-               "Usage examples:\n  gitty issue 123\n  gitty pr 456\n  gitty local\n  gitty global",
+        "Usage examples:\n  gitty issue 123\n  gitty pr 456\n  gitty local\n  gitty global",
         formatter_class=argparse.RawTextHelpFormatter,
     )
-    parser.add_argument("command", choices=["issue", "pr", "fetch", "local", "global"], nargs="?", help="Command to execute")
+    parser.add_argument(
+        "command", choices=["issue", "pr", "fetch", "local", "global"], nargs="?", help="Command to execute"
+    )
     parser.add_argument("number", type=int, nargs="?", help="Issue or PR number (if applicable)")
 
     if len(sys.argv) == 1:
@@ -423,7 +436,7 @@ def main():
     # Check for gh CLI installation before processing commands that need it
     if command in ["issue", "pr", "fetch"]:
         check_gh_cli()
-    
+
     # Check for OpenAI API key before processing commands that need it
     if command in ["issue", "pr"]:
         check_openai_key()
@@ -435,8 +448,10 @@ def main():
                 "gh",
                 "repo",
                 "view",
-                "--json", "owner,name",
-                "-q", '.owner.login + "/" + .name',
+                "--json",
+                "owner,name",
+                "-q",
+                '.owner.login + "/" + .name',
             ],
             check=True,
             capture_output=True,
@@ -455,8 +470,10 @@ def main():
                 "gh",
                 "repo",
                 "view",
-                "--json", "owner,name",
-                "-q", '.owner.login + "/" + .name',
+                "--json",
+                "owner,name",
+                "-q",
+                '.owner.login + "/" + .name',
             ],
             check=True,
             capture_output=True,
@@ -474,6 +491,7 @@ def main():
         os.makedirs(global_config_dir, exist_ok=True)
         global_config_path = os.path.join(global_config_dir, "config")
         edit_config_file(global_config_path)
+
 
 if __name__ == "__main__":
     main()
