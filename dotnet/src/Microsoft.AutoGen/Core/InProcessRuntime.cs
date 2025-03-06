@@ -274,7 +274,6 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
         }
 
         this.shutdownSource = new CancellationTokenSource();
-        this.shouldContinue = () => true;
         this.messageDeliveryTask = Task.Run(() => this.RunAsync(this.shutdownSource.Token));
 
         return ValueTask.CompletedTask;
@@ -301,12 +300,15 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
         return ValueTask.CompletedTask;
     }
 
-    public Task RunUntilIdleAsync()
+    public async Task RunUntilIdleAsync()
     {
+        Func<bool> oldShouldContinue = this.shouldContinue;
         this.shouldContinue = () => !this.messageDeliveryQueue.IsEmpty;
 
         // TODO: Do we want detach semantics?
-        return this.messageDeliveryTask;
+        await this.messageDeliveryTask;
+
+        this.shouldContinue = oldShouldContinue;
     }
 
     private async Task FinishAsync(CancellationToken token)

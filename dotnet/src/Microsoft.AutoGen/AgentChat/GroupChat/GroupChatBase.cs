@@ -218,15 +218,8 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
         {
             AgentId chatManagerId = new AgentId(GroupChatManagerTopicType, this.TeamId);
             await this.Runtime!.SendMessageAsync(taskMessage, chatManagerId, cancellationToken: cancellationToken);
-
-            await this.PrepareRunUntilIdleAsync(cancellationToken);
+            this.ShutdownTask = Task.Run(this.Runtime!.RunUntilIdleAsync);
         };
-    }
-
-    private ValueTask PrepareRunUntilIdleAsync(CancellationToken _)
-    {
-        this.ShutdownTask = Task.Run(this.Runtime!.RunUntilIdleAsync);
-        return ValueTask.CompletedTask;
     }
 
     private async IAsyncEnumerable<TaskFrame> StreamOutput([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -283,6 +276,8 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
                 new GroupChatReset(),
                 new AgentId(GroupChatManagerTopicType, this.TeamId),
                 cancellationToken: cancel);
+
+            await this.Runtime!.RunUntilIdleAsync();
         }
         finally
         {
@@ -296,7 +291,6 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
         return this.RunManager.RunAsync(
             this.ResetInternalAsync,
             cancel,
-            this.PrepareRunUntilIdleAsync,
-            TaskAlreadyRunning);
+            message: TaskAlreadyRunning);
     }
 }
