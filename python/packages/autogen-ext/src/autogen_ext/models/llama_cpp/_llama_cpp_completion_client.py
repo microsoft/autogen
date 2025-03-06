@@ -164,9 +164,13 @@ class LlamaCppParams(TypedDict, total=False):
 class LlamaCppChatCompletionClient(ChatCompletionClient):
     """Chat completion client for LlamaCpp models.
     To use this client, you must install the `llama-cpp` extra:
+
     .. code-block:: bash
+
         pip install "autogen-ext[llama-cpp]"
+
     This client allows you to interact with LlamaCpp models, either by specifying a local model path or by downloading a model from Hugging Face Hub.
+
     Args:
         model_path (optional, str): The path to the LlamaCpp model file. Required if repo_id and filename are not provided.
         repo_id (optional, str): The Hugging Face Hub repository ID. Required if model_path is not provided.
@@ -177,15 +181,22 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         verbose (optional, bool): Whether to print verbose output.
         model_info (optional, ModelInfo): The capabilities of the model. Defaults to a ModelInfo instance with function_calling set to True.
         **kwargs: Additional parameters to pass to the Llama class.
+
     Examples:
+
         The following code snippet shows how to use the client with a local model file:
+
         .. code-block:: python
+
             llama_client = LlamaCppChatCompletionClient(
                 model_path="/path/to/your/model.gguf",
             result = await llama_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
             print(result)
+
         The following code snippet shows how to use the client with a model from Hugging Face Hub:
+
         .. code-block:: python
+
             llama_client = LlamaCppChatCompletionClient(
                 repo_id="TheBloke/Mistral-7B-Instruct-v0.1-GGUF",
                 filename="mistral-7b-instruct-v0.1.Q4_K_M.gguf",
