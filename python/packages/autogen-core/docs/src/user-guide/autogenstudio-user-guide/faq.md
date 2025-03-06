@@ -114,6 +114,28 @@ A: If you are running the server on a remote machine (or a local machine that fa
 autogenstudio ui --port 8081 --host 0.0.0.0
 ```
 
+## Q: How do I use AutoGen Studio with a different database?
+
+A: By default, AutoGen Studio uses SQLite as the database. However, it uses the SQLModel library, which supports multiple database backends. You can use any database supported by SQLModel, such as PostgreSQL or MySQL. To use a different database, you need to specify the connection string for the database using the `--database-uri` argument when running the application. Example connection strings include:
+
+- SQLite: `sqlite:///database.sqlite`
+- PostgreSQL: `postgresql+psycopg://user:password@localhost/dbname`
+- MySQL: `mysql+pymysql://user:password@localhost/dbname`
+- AzureSQL: `mssql+pyodbc:///?odbc_connect=DRIVER%3D%7BODBC+Driver+17+for+SQL+Server%7D%3BSERVER%3Dtcp%3Aservername.database.windows.net%2C1433%3BDATABASE%3Ddatabasename%3BUID%3Dusername%3BPWD%3Dpassword123%3BEncrypt%3Dyes%3BTrustServerCertificate%3Dno%3BConnection+Timeout%3D30%3B`
+
+You can then run the application with the specified database URI. For example, to use PostgreSQL, you can run the following command:
+
+```bash
+autogenstudio ui --database-uri postgresql+psycopg://user:password@localhost/dbname
+```
+
+> **Note:** Make sure to install the appropriate database drivers for your chosen database:
+>
+> - PostgreSQL: `pip install psycopg2` or `pip install psycopg2-binary`
+> - MySQL: `pip install pymysql`
+> - SQL Server/Azure SQL: `pip install pyodbc`
+> - Oracle: `pip install cx_oracle`
+
 ## Q: Can I export my agent workflows for use in a python app?
 
 Yes. In the Team Builder view, you select a team and download its specification. This file can be imported in a python application using the `TeamManager` class. For example:

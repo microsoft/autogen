@@ -29,7 +29,6 @@ class TeamState(BaseState):
     """State for a team of agents."""
 
     agent_states: Mapping[str, Any] = Field(default_factory=dict)
-    team_id: str = Field(default="")
     type: str = Field(default="TeamState")
 
 

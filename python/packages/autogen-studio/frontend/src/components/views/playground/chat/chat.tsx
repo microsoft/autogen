@@ -42,7 +42,7 @@ export default function ChatView({ session }: ChatViewProps) {
 
   const chatContainerRef = React.useRef<HTMLDivElement | null>(null);
   const [streamingContent, setStreamingContent] = React.useState<{
-    runId: string;
+    runId: number;
     content: string;
     source: string;
   } | null>(null);
@@ -62,7 +62,7 @@ export default function ChatView({ session }: ChatViewProps) {
   // Create a Message object from AgentMessageConfig
   const createMessage = (
     config: AgentMessageConfig,
-    runId: string,
+    runId: number,
     sessionId: number
   ): Message => ({
     created_at: new Date().toISOString(),
@@ -134,7 +134,7 @@ export default function ChatView({ session }: ChatViewProps) {
     };
   }, [activeSocket]);
 
-  const createRun = async (sessionId: number): Promise<string> => {
+  const createRun = async (sessionId: number): Promise<number> => {
     const payload = { session_id: sessionId, user_id: user?.email || "" };
     const response = await fetch(`${serverUrl}/runs/`, {
       method: "POST",
@@ -423,7 +423,7 @@ export default function ChatView({ session }: ChatViewProps) {
     }
   };
 
-  const setupWebSocket = (runId: string, query: string): WebSocket => {
+  const setupWebSocket = (runId: number, query: string): WebSocket => {
     if (!session || !session.id) {
       throw new Error("Invalid session configuration");
     }
