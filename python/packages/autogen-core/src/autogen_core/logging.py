@@ -2,6 +2,7 @@ import json
 from enum import Enum
 from typing import Any, Dict, cast
 
+from ._message_handler_context import MessageHandlerContext
 from ._agent_id import AgentId
 from ._topic import TopicId
 
@@ -14,7 +15,6 @@ class LLMCallEvent:
         response: Dict[str, Any],
         prompt_tokens: int,
         completion_tokens: int,
-        agent_id: AgentId | None = None,
         **kwargs: Any,
     ) -> None:
         """To be used by model clients to log the call to the LLM.
@@ -24,7 +24,6 @@ class LLMCallEvent:
             response (Dict[str, Any]): The response of the call. Must be json serializable.
             prompt_tokens (int): Number of tokens used in the prompt.
             completion_tokens (int): Number of tokens used in the completion.
-            agent_id (AgentId | None, optional): The agent id of the model. Defaults to None.
 
         Example:
 
@@ -43,8 +42,11 @@ class LLMCallEvent:
         self.kwargs["response"] = response
         self.kwargs["prompt_tokens"] = prompt_tokens
         self.kwargs["completion_tokens"] = completion_tokens
+        try:
+            agent_id = MessageHandlerContext.agent_id()
+        except RuntimeError:
+            agent_id = None
         self.kwargs["agent_id"] = None if agent_id is None else str(agent_id)
-        self.kwargs["type"] = "LLMCall"
 
     @property
     def prompt_tokens(self) -> int:
@@ -53,6 +55,49 @@ class LLMCallEvent:
     @property
     def completion_tokens(self) -> int:
         return cast(int, self.kwargs["completion_tokens"])
+
+    # This must output the event in a json serializable format
+    def __str__(self) -> str:
+        return json.dumps(self.kwargs)
+
+
+class ToolCallEvent:
+    def __init__(
+        self,
+        *,
+        tool_name: str,
+        arguments: Dict[str, Any],
+        result: Any = None,
+        **kwargs: Any,
+    ) -> None:
+        """Used by subclasses of :class:`~autogen_core.tools.BaseTool` to log executions of tools.
+
+        Args:
+            tool_name (str): The name of the tool.
+            arguments (Dict[str, Any]): The arguments of the tool. Must be json serializable.
+            result (Any, optional): The result of the tool. Must be json serializable. Defaults to None.
+
+        Example:
+
+            .. code-block:: python
+
+                from autogen_core import EVENT_LOGGER_NAME
+                from autogen_core.logging import ToolCallEvent
+
+                logger = logging.getLogger(EVENT_LOGGER_NAME)
+                logger.info(ToolCallEvent(tool_name="Tool1", call_id="123", arguments={"arg1": "value1"}))
+
+        """
+        self.kwargs = kwargs
+        self.kwargs["type"] = "ToolCall"
+        self.kwargs["tool_name"] = tool_name
+        self.kwargs["arguments"] = arguments
+        self.kwargs["result"] = result
+        try:
+            agent_id = MessageHandlerContext.agent_id()
+        except RuntimeError:
+            agent_id = None
+        self.kwargs["agent_id"] = None if agent_id is None else str(agent_id)
 
     # This must output the event in a json serializable format
     def __str__(self) -> str:

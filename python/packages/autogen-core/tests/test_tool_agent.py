@@ -1,9 +1,10 @@
 import asyncio
 import json
+import logging
 from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union
 
 import pytest
-from autogen_core import AgentId, CancellationToken, FunctionCall, SingleThreadedAgentRuntime
+from autogen_core import EVENT_LOGGER_NAME, AgentId, CancellationToken, FunctionCall, SingleThreadedAgentRuntime
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -25,6 +26,8 @@ from autogen_core.tool_agent import (
 )
 from autogen_core.tools import FunctionTool, Tool, ToolSchema
 
+logging.getLogger(EVENT_LOGGER_NAME).setLevel(logging.INFO)
+
 
 def _pass_function(input: str) -> str:
     return "pass"
@@ -40,7 +43,7 @@ async def _async_sleep_function(input: str) -> str:
 
 
 @pytest.mark.asyncio
-async def test_tool_agent() -> None:
+async def test_tool_agent(caplog: pytest.LogCaptureFixture) -> None:
     runtime = SingleThreadedAgentRuntime()
     await ToolAgent.register(
         runtime,
@@ -62,6 +65,9 @@ async def test_tool_agent() -> None:
         FunctionCall(id="1", arguments=json.dumps({"input": "pass"}), name="pass"), agent
     )
     assert result == FunctionExecutionResult(call_id="1", content="pass", is_error=False, name="pass")
+
+    # Check log.
+    assert any(("ToolCall" in record.message and str(agent) in record.message) for record in caplog.records)
 
     # Test raise function
     with pytest.raises(ToolExecutionException):

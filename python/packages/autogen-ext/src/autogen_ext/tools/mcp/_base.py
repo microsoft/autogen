@@ -1,7 +1,9 @@
+import logging
 from abc import ABC
 from typing import Any, Generic, Type, TypeVar
 
-from autogen_core import CancellationToken
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken
+from autogen_core.logging import ToolCallEvent
 from autogen_core.tools import BaseTool
 from json_schema_to_pydantic import create_model
 from mcp import Tool
@@ -11,6 +13,8 @@ from ._config import McpServerParams
 from ._session import create_mcp_server_session
 
 TServerParams = TypeVar("TServerParams", bound=McpServerParams)
+
+logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
@@ -67,6 +71,14 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
 
                 if result.isError:
                     raise Exception(f"MCP tool execution failed: {result.content}")
+
+                event = ToolCallEvent(
+                    tool_name=self.name,
+                    arguments=kwargs,
+                    result=result.content,
+                    # TODO: add other relevant fields to the MCP tool event.
+                )
+                logger.info(event)
 
                 return result.content
         except Exception as e:
