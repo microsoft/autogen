@@ -1,5 +1,6 @@
 document.addEventListener('DOMContentLoaded', function() {
   document.querySelectorAll('.copybtn').forEach(button => {
+      // Return focus to copy button after activation
       button.addEventListener('click', async function(event) {
           // Save the current focus
           const focusedElement = document.activeElement;
@@ -17,13 +18,9 @@ document.addEventListener('DOMContentLoaded', function() {
       // Save the element that had focus before opening the search
       const previousFocus = document.activeElement;
 
-      // Logic to open the search goes here
-
       // Add an event listener to handle closing the search
       document.addEventListener('keydown', (event) => {
         if (event.key === 'Escape') {
-          // Logic to close the search goes here
-
           // Restore focus to the previous element
           previousFocus.focus();
         }

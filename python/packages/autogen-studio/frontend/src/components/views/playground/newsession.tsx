@@ -27,6 +27,7 @@ const NewSessionControls = ({
   );
   const [search, setSearch] = useState<string>("");
 
+  console.log(" current teams", teams);
   // Filter teams based on search
   const filteredTeams = teams.filter((team) => {
     return (
