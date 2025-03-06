@@ -13,7 +13,7 @@ from autogen_core import (
     SingleThreadedAgentRuntime,
     TypeSubscription,
 )
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
@@ -566,7 +566,32 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             self._is_running = False
 
     async def save_state(self) -> Mapping[str, Any]:
-        """Save the state of the group chat team."""
+        """Save the state of the group chat team.
+
+        The state is saved by calling the :meth:`~autogen_core.AgentRuntime.agent_save_state` method
+        on each participant and the group chat manager with their internal agent ID.
+        The state is returned as a nested dictionary: a dictionary with key `agent_states`,
+        which is a dictionary the agent names as keys and the state as values.
+
+        .. code-block:: text
+
+            {
+                "agent_states": {
+                    "agent1": ...,
+                    "agent2": ...,
+                    "RoundRobinGroupChatManager": ...
+                }
+            }
+
+        .. note::
+
+            Starting v0.4.9, the state is using the agent name as the key instead of the agent ID,
+            and the `team_id` field is removed from the state. This is to allow the state to be
+            portable across different teams and runtimes. States saved with the old format
+            may not be compatible with the new format in the future.
+
+        """
+
         if not self._initialized:
             raise RuntimeError("The group chat has not been initialized. It must be run before it can be saved.")
 
@@ -594,7 +619,12 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             self._is_running = False
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
-        """Load the state of the group chat team."""
+        """Load an external state and overwrite the current state of the group chat team.
+
+        The state is loaded by calling the :meth:`~autogen_core.AgentRuntime.agent_load_state` method
+        on each participant and the group chat manager with their internal agent ID.
+        See :meth:`~autogen_agentchat.teams.BaseGroupChat.save_state` for the expected format of the state.
+        """
         if not self._initialized:
             await self._init(self._runtime)
 
@@ -615,6 +645,12 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             if self._group_chat_manager_name not in team_state.agent_states:
                 raise ValueError(f"Agent state for {self._group_chat_manager_name} not found in the saved state.")
             await self._runtime.agent_load_state(agent_id, team_state.agent_states[self._group_chat_manager_name])
+
+        except ValidationError as e:
+            raise ValueError(
+                "Invalid state format. The expected state format has changed since v0.4.9. "
+                "Please read the release note on GitHub."
+            ) from e
 
         finally:
             # Indicate that the team is no longer running.
