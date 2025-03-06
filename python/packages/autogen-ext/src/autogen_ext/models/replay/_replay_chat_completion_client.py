@@ -21,11 +21,13 @@ from pydantic import BaseModel
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 
+
 class ReplayChatCompletionClientConfig(BaseModel):
     """ReplayChatCompletionClient configuration."""
 
     chat_completions: Sequence[Union[str, CreateResult]]
     model_info: Optional[ModelInfo] = None
+
 
 class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompletionClientConfig]):
     """
@@ -144,8 +146,8 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._current_index = 0
         self._cached_bool_value = True
-        self._create_calls : List[Dict[str, Any]] = []
-    
+        self._create_calls: List[Dict[str, Any]] = []
+
     @property
     def create_calls(self) -> List[Dict[str, Any]]:
         """Return the arguments of the calls made to the create method."""
