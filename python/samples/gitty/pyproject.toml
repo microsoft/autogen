@@ -24,7 +24,7 @@ dependencies = [
 ]
 
 [project.scripts]
-gitty = "gitty._gitty:main"
+gitty = "gitty:main"
 
 [dependency-groups]
 dev = [
