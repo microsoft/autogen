@@ -2,29 +2,32 @@ import asyncio
 import logging
 import uuid
 from abc import ABC, abstractmethod
-from typing import Any, AsyncGenerator, Callable, List, Mapping, Sequence
+from typing import Any, AsyncGenerator, Callable, Dict, List, Mapping, Sequence
 
 from autogen_core import (
     AgentId,
-    AgentInstantiationContext,
     AgentRuntime,
     AgentType,
     CancellationToken,
-    ClosureAgent,
     ComponentBase,
-    MessageContext,
     SingleThreadedAgentRuntime,
     TypeSubscription,
 )
-from autogen_core._closure_agent import ClosureContext
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from ... import EVENT_LOGGER_NAME
 from ...base import ChatAgent, TaskResult, Team, TerminationCondition
-from ...messages import AgentEvent, BaseChatMessage, ChatMessage, ModelClientStreamingChunkEvent, TextMessage
+from ...messages import (
+    AgentEvent,
+    BaseChatMessage,
+    ChatMessage,
+    ModelClientStreamingChunkEvent,
+    StopMessage,
+    TextMessage,
+)
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
-from ._events import GroupChatMessage, GroupChatReset, GroupChatStart, GroupChatTermination
+from ._events import GroupChatReset, GroupChatStart, GroupChatTermination
 from ._sequential_routed_agent import SequentialRoutedAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -42,9 +45,11 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
     def __init__(
         self,
         participants: List[ChatAgent],
+        group_chat_manager_name: str,
         group_chat_manager_class: type[SequentialRoutedAgent],
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
+        runtime: AgentRuntime | None = None,
     ):
         if len(participants) == 0:
             raise ValueError("At least one participant is required.")
@@ -55,23 +60,42 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._termination_condition = termination_condition
         self._max_turns = max_turns
 
-        # Constants for the group chat.
+        # The team ID is a UUID that is used to identify the team and its participants
+        # in the agent runtime. It is used to create unique topic types for each participant.
+        # Currently, team ID is binded to an object instance of the group chat class.
+        # So if you create two instances of group chat, there will be two teams with different IDs.
         self._team_id = str(uuid.uuid4())
-        self._group_topic_type = "group_topic"
-        self._output_topic_type = "output_topic"
-        self._group_chat_manager_topic_type = "group_chat_manager"
-        self._participant_topic_types: List[str] = [participant.name for participant in participants]
-        self._participant_descriptions: List[str] = [participant.description for participant in participants]
-        self._collector_agent_type = "collect_output_messages"
 
-        # Constants for the closure agent to collect the output messages.
-        self._stop_reason: str | None = None
-        self._output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | None] = asyncio.Queue()
+        # Constants for the group chat team.
+        # The names are used to identify the agents within the team.
+        # The names may not be unique across different teams.
+        self._group_chat_manager_name = group_chat_manager_name
+        self._participant_names: List[str] = [participant.name for participant in participants]
+        self._participant_descriptions: List[str] = [participant.description for participant in participants]
+        # The group chat topic type is used for broadcast communication among all participants and the group chat manager.
+        self._group_topic_type = f"group_topic_{self._team_id}"
+        # The group chat manager topic type is used for direct communication with the group chat manager.
+        self._group_chat_manager_topic_type = f"{self._group_chat_manager_name}_{self._team_id}"
+        # The participant topic types are used for direct communication with each participant.
+        self._participant_topic_types: List[str] = [
+            f"{participant.name}_{self._team_id}" for participant in participants
+        ]
+        # The output topic type is used for emitting streaming messages from the group chat.
+        # The group chat manager will relay the messages to the output message queue.
+        self._output_topic_type = f"output_topic_{self._team_id}"
+
+        # The queue for collecting the output messages.
+        self._output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination] = asyncio.Queue()
 
         # Create a runtime for the team.
-        # TODO: The runtime should be created by a managed context.
-        # Background exceptions must not be ignored as it results in non-surfaced exceptions and early team termination.
-        self._runtime = SingleThreadedAgentRuntime(ignore_unhandled_exceptions=False)
+        if runtime is not None:
+            self._runtime = runtime
+            self._embedded_runtime = False
+        else:
+            # Use a embedded single-threaded runtime for the group chat.
+            # Background exceptions must not be ignored as it results in non-surfaced exceptions and early team termination.
+            self._runtime = SingleThreadedAgentRuntime(ignore_unhandled_exceptions=False)
+            self._embedded_runtime = True
 
         # Flag to track if the group chat has been initialized.
         self._initialized = False
@@ -82,10 +106,13 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
     @abstractmethod
     def _create_group_chat_manager_factory(
         self,
+        name: str,
         group_topic_type: str,
         output_topic_type: str,
         participant_topic_types: List[str],
+        participant_names: List[str],
         participant_descriptions: List[str],
+        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
     ) -> Callable[[], SequentialRoutedAgent]: ...
@@ -97,10 +124,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         agent: ChatAgent,
     ) -> Callable[[], ChatAgentContainer]:
         def _factory() -> ChatAgentContainer:
-            id = AgentInstantiationContext.current_agent_id()
-            assert id == AgentId(type=agent.name, key=self._team_id)
             container = ChatAgentContainer(parent_topic_type, output_topic_type, agent)
-            assert container.id == id
             return container
 
         return _factory
@@ -110,9 +134,8 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         group_chat_manager_agent_type = AgentType(self._group_chat_manager_topic_type)
 
         # Register participants.
-        for participant, participant_topic_type in zip(self._participants, self._participant_topic_types, strict=False):
-            # Use the participant topic type as the agent type.
-            agent_type = participant_topic_type
+        # Use the participant topic type as the agent type.
+        for participant, agent_type in zip(self._participants, self._participant_topic_types, strict=True):
             # Register the participant factory.
             await ChatAgentContainer.register(
                 runtime,
@@ -120,7 +143,9 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 factory=self._create_participant_factory(self._group_topic_type, self._output_topic_type, participant),
             )
             # Add subscriptions for the participant.
-            await runtime.add_subscription(TypeSubscription(topic_type=participant_topic_type, agent_type=agent_type))
+            # The participant should be able to receive messages from its own topic.
+            await runtime.add_subscription(TypeSubscription(topic_type=agent_type, agent_type=agent_type))
+            # The participant should be able to receive messages from the group topic.
             await runtime.add_subscription(TypeSubscription(topic_type=self._group_topic_type, agent_type=agent_type))
 
         # Register the group chat manager.
@@ -128,50 +153,33 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             runtime,
             type=group_chat_manager_agent_type.type,
             factory=self._create_group_chat_manager_factory(
+                name=self._group_chat_manager_name,
                 group_topic_type=self._group_topic_type,
                 output_topic_type=self._output_topic_type,
+                participant_names=self._participant_names,
                 participant_topic_types=self._participant_topic_types,
                 participant_descriptions=self._participant_descriptions,
+                output_message_queue=self._output_message_queue,
                 termination_condition=self._termination_condition,
                 max_turns=self._max_turns,
             ),
         )
         # Add subscriptions for the group chat manager.
+        # The group chat manager should be able to receive messages from the its own topic.
         await runtime.add_subscription(
             TypeSubscription(
                 topic_type=self._group_chat_manager_topic_type, agent_type=group_chat_manager_agent_type.type
             )
         )
+        # The group chat manager should be able to receive messages from the group topic.
         await runtime.add_subscription(
             TypeSubscription(topic_type=self._group_topic_type, agent_type=group_chat_manager_agent_type.type)
         )
-
-        async def collect_output_messages(
-            _runtime: ClosureContext,
-            message: GroupChatStart | GroupChatMessage | GroupChatTermination,
-            ctx: MessageContext,
-        ) -> None:
-            """Collect output messages from the group chat."""
-            if isinstance(message, GroupChatStart):
-                if message.messages is not None:
-                    for msg in message.messages:
-                        event_logger.info(msg)
-                        await self._output_message_queue.put(msg)
-            elif isinstance(message, GroupChatMessage):
-                event_logger.info(message.message)
-                await self._output_message_queue.put(message.message)
-            elif isinstance(message, GroupChatTermination):
-                event_logger.info(message.message)
-                self._stop_reason = message.message.content
-
-        await ClosureAgent.register_closure(
-            runtime,
-            type=self._collector_agent_type,
-            closure=collect_output_messages,
-            subscriptions=lambda: [
-                TypeSubscription(topic_type=self._output_topic_type, agent_type=self._collector_agent_type),
-            ],
+        # The group chat manager will relay the messages from output topic to the output message queue.
+        await runtime.add_subscription(
+            TypeSubscription(topic_type=self._output_topic_type, agent_type=group_chat_manager_agent_type.type)
         )
+
         self._initialized = True
 
     async def run(
@@ -400,26 +408,40 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             raise ValueError("The team is already running, it cannot run again until it is stopped.")
         self._is_running = True
 
-        # Start the runtime.
-        # TODO: The runtime should be started by a managed context.
-        self._runtime.start()
+        if self._embedded_runtime:
+            # Start the embedded runtime.
+            assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+            self._runtime.start()
 
         if not self._initialized:
             await self._init(self._runtime)
 
-        # Start a coroutine to stop the runtime and signal the output message queue is complete.
-        async def stop_runtime() -> None:
-            try:
-                await self._runtime.stop_when_idle()
-            finally:
-                await self._output_message_queue.put(None)
+        shutdown_task: asyncio.Task[None] | None = None
+        if self._embedded_runtime:
 
-        shutdown_task = asyncio.create_task(stop_runtime())
+            async def stop_runtime() -> None:
+                assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+                try:
+                    # This will propagate any exceptions raised.
+                    await self._runtime.stop_when_idle()
+                finally:
+                    # Stop the consumption of messages and end the stream.
+                    # NOTE: we also need to put a GroupChatTermination event here because when the group chat
+                    # has an exception, the group chat manager may not be able to put a GroupChatTermination event in the queue.
+                    await self._output_message_queue.put(
+                        GroupChatTermination(
+                            message=StopMessage(content="Exception occurred.", source=self._group_chat_manager_name)
+                        )
+                    )
+
+            # Create a background task to stop the runtime when the group chat
+            # is stopped or has an exception.
+            shutdown_task = asyncio.create_task(stop_runtime())
 
         try:
             # Run the team by sending the start message to the group chat manager.
             # The group chat manager will start the group chat by relaying the message to the participants
-            # and the closure agent.
+            # and the group chat manager.
             await self._runtime.send_message(
                 GroupChatStart(messages=messages),
                 recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
@@ -427,6 +449,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             )
             # Collect the output messages in order.
             output_messages: List[AgentEvent | ChatMessage] = []
+            stop_reason: str | None = None
             # Yield the messsages until the queue is empty.
             while True:
                 message_future = asyncio.ensure_future(self._output_message_queue.get())
@@ -434,7 +457,13 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                     cancellation_token.link_future(message_future)
                 # Wait for the next message, this will raise an exception if the task is cancelled.
                 message = await message_future
-                if message is None:
+                if isinstance(message, GroupChatTermination):
+                    # If the message is None, it means the group chat has terminated.
+                    # TODO: how do we handle termination when the runtime is not embedded
+                    # and there is an exception in the group chat?
+                    # The group chat manager may not be able to put a GroupChatTermination event in the queue,
+                    # and this loop will never end.
+                    stop_reason = message.message.content
                     break
                 yield message
                 if isinstance(message, ModelClientStreamingChunkEvent):
@@ -443,14 +472,14 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 output_messages.append(message)
 
             # Yield the final result.
-            yield TaskResult(messages=output_messages, stop_reason=self._stop_reason)
+            yield TaskResult(messages=output_messages, stop_reason=stop_reason)
 
         finally:
-            # Wait for the shutdown task to finish.
             try:
-                # This will propagate any exceptions raised in the shutdown task.
-                # We need to ensure we cleanup though.
-                await shutdown_task
+                if shutdown_task is not None:
+                    # Wait for the shutdown task to finish.
+                    # This will propagate any exceptions raised.
+                    await shutdown_task
             finally:
                 # Clear the output message queue.
                 while not self._output_message_queue.empty():
@@ -506,8 +535,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             raise RuntimeError("The group chat is currently running. It must be stopped before it can be reset.")
         self._is_running = True
 
-        # Start the runtime.
-        self._runtime.start()
+        if self._embedded_runtime:
+            # Start the runtime.
+            assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+            self._runtime.start()
 
         try:
             # Send a reset messages to all participants.
@@ -522,11 +553,12 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
                 recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
             )
         finally:
-            # Stop the runtime.
-            await self._runtime.stop_when_idle()
+            if self._embedded_runtime:
+                # Stop the runtime.
+                assert isinstance(self._runtime, SingleThreadedAgentRuntime)
+                await self._runtime.stop_when_idle()
 
             # Reset the output message queue.
-            self._stop_reason = None
             while not self._output_message_queue.empty():
                 self._output_message_queue.get_nowait()
 
@@ -534,7 +566,32 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             self._is_running = False
 
     async def save_state(self) -> Mapping[str, Any]:
-        """Save the state of the group chat team."""
+        """Save the state of the group chat team.
+
+        The state is saved by calling the :meth:`~autogen_core.AgentRuntime.agent_save_state` method
+        on each participant and the group chat manager with their internal agent ID.
+        The state is returned as a nested dictionary: a dictionary with key `agent_states`,
+        which is a dictionary the agent names as keys and the state as values.
+
+        .. code-block:: text
+
+            {
+                "agent_states": {
+                    "agent1": ...,
+                    "agent2": ...,
+                    "RoundRobinGroupChatManager": ...
+                }
+            }
+
+        .. note::
+
+            Starting v0.4.9, the state is using the agent name as the key instead of the agent ID,
+            and the `team_id` field is removed from the state. This is to allow the state to be
+            portable across different teams and runtimes. States saved with the old format
+            may not be compatible with the new format in the future.
+
+        """
+
         if not self._initialized:
             raise RuntimeError("The group chat has not been initialized. It must be run before it can be saved.")
 
@@ -543,15 +600,31 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._is_running = True
 
         try:
-            # Save the state of the runtime. This will save the state of the participants and the group chat manager.
-            agent_states = await self._runtime.save_state()
-            return TeamState(agent_states=agent_states, team_id=self._team_id).model_dump()
+            # Store state of each agent by their name.
+            # NOTE: we don't use the agent ID as the key here because we need to be able to decouple
+            # the state of the agents from their identities in the agent runtime.
+            agent_states: Dict[str, Mapping[str, Any]] = {}
+            # Save the state of all participants.
+            for name, agent_type in zip(self._participant_names, self._participant_topic_types, strict=True):
+                agent_id = AgentId(type=agent_type, key=self._team_id)
+                # NOTE: We are using the runtime's save state method rather than the agent instance's
+                # save_state method because we want to support saving state of remote agents.
+                agent_states[name] = await self._runtime.agent_save_state(agent_id)
+            # Save the state of the group chat manager.
+            agent_id = AgentId(type=self._group_chat_manager_topic_type, key=self._team_id)
+            agent_states[self._group_chat_manager_name] = await self._runtime.agent_save_state(agent_id)
+            return TeamState(agent_states=agent_states).model_dump()
         finally:
             # Indicate that the team is no longer running.
             self._is_running = False
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
-        """Load the state of the group chat team."""
+        """Load an external state and overwrite the current state of the group chat team.
+
+        The state is loaded by calling the :meth:`~autogen_core.AgentRuntime.agent_load_state` method
+        on each participant and the group chat manager with their internal agent ID.
+        See :meth:`~autogen_agentchat.teams.BaseGroupChat.save_state` for the expected format of the state.
+        """
         if not self._initialized:
             await self._init(self._runtime)
 
@@ -560,10 +633,25 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self._is_running = True
 
         try:
-            # Load the state of the runtime. This will load the state of the participants and the group chat manager.
             team_state = TeamState.model_validate(state)
-            self._team_id = team_state.team_id
-            await self._runtime.load_state(team_state.agent_states)
+            # Load the state of all participants.
+            for name, agent_type in zip(self._participant_names, self._participant_topic_types, strict=True):
+                agent_id = AgentId(type=agent_type, key=self._team_id)
+                if name not in team_state.agent_states:
+                    raise ValueError(f"Agent state for {name} not found in the saved state.")
+                await self._runtime.agent_load_state(agent_id, team_state.agent_states[name])
+            # Load the state of the group chat manager.
+            agent_id = AgentId(type=self._group_chat_manager_topic_type, key=self._team_id)
+            if self._group_chat_manager_name not in team_state.agent_states:
+                raise ValueError(f"Agent state for {self._group_chat_manager_name} not found in the saved state.")
+            await self._runtime.agent_load_state(agent_id, team_state.agent_states[self._group_chat_manager_name])
+
+        except ValidationError as e:
+            raise ValueError(
+                "Invalid state format. The expected state format has changed since v0.4.9. "
+                "Please read the release note on GitHub."
+            ) from e
+
         finally:
             # Indicate that the team is no longer running.
             self._is_running = False

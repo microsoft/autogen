@@ -1,6 +1,7 @@
+import asyncio
 from typing import Any, Callable, List, Mapping
 
-from autogen_core import Component, ComponentModel
+from autogen_core import AgentRuntime, Component, ComponentModel
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -9,6 +10,7 @@ from ...messages import AgentEvent, ChatMessage
 from ...state import RoundRobinManagerState
 from ._base_group_chat import BaseGroupChat
 from ._base_group_chat_manager import BaseGroupChatManager
+from ._events import GroupChatTermination
 
 
 class RoundRobinGroupChatManager(BaseGroupChatManager):
@@ -16,18 +18,24 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
 
     def __init__(
         self,
+        name: str,
         group_topic_type: str,
         output_topic_type: str,
         participant_topic_types: List[str],
+        participant_names: List[str],
         participant_descriptions: List[str],
+        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None = None,
     ) -> None:
         super().__init__(
+            name,
             group_topic_type,
             output_topic_type,
             participant_topic_types,
+            participant_names,
             participant_descriptions,
+            output_message_queue,
             termination_condition,
             max_turns,
         )
@@ -60,8 +68,8 @@ class RoundRobinGroupChatManager(BaseGroupChatManager):
     async def select_speaker(self, thread: List[AgentEvent | ChatMessage]) -> str:
         """Select a speaker from the participants in a round-robin fashion."""
         current_speaker_index = self._next_speaker_index
-        self._next_speaker_index = (current_speaker_index + 1) % len(self._participant_topic_types)
-        current_speaker = self._participant_topic_types[current_speaker_index]
+        self._next_speaker_index = (current_speaker_index + 1) % len(self._participant_names)
+        current_speaker = self._participant_names[current_speaker_index]
         return current_speaker
 
 
@@ -148,34 +156,45 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
     component_config_schema = RoundRobinGroupChatConfig
     component_provider_override = "autogen_agentchat.teams.RoundRobinGroupChat"
 
+    # TODO: Add * to the constructor to separate the positional parameters from the kwargs.
+    # This may be a breaking change so let's wait until a good time to do it.
     def __init__(
         self,
         participants: List[ChatAgent],
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
+        runtime: AgentRuntime | None = None,
     ) -> None:
         super().__init__(
             participants,
+            group_chat_manager_name="RoundRobinGroupChatManager",
             group_chat_manager_class=RoundRobinGroupChatManager,
             termination_condition=termination_condition,
             max_turns=max_turns,
+            runtime=runtime,
         )
 
     def _create_group_chat_manager_factory(
         self,
+        name: str,
         group_topic_type: str,
         output_topic_type: str,
         participant_topic_types: List[str],
+        participant_names: List[str],
         participant_descriptions: List[str],
+        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
     ) -> Callable[[], RoundRobinGroupChatManager]:
         def _factory() -> RoundRobinGroupChatManager:
             return RoundRobinGroupChatManager(
+                name,
                 group_topic_type,
                 output_topic_type,
                 participant_topic_types,
+                participant_names,
                 participant_descriptions,
+                output_message_queue,
                 termination_condition,
                 max_turns,
             )
