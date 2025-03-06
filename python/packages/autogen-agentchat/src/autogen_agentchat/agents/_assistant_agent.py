@@ -1192,7 +1192,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
             name=self.name,
             model_client=self._model_client.dump_component(),
             tools=[tool.dump_component() for tool in self._tools],
-            handoffs=list(self._handoffs.values()),
+            handoffs=list(self._handoffs.values()) if self._handoffs else None,
             model_context=self._model_context.dump_component(),
             memory=[memory.dump_component() for memory in self._memory] if self._memory else None,
             description=self.description,
