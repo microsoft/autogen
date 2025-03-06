@@ -1,14 +1,17 @@
+import asyncio
 import logging
 from typing import Callable, List
 
-from autogen_core import Component, ComponentModel
+from autogen_core import AgentRuntime, Component, ComponentModel
 from autogen_core.models import ChatCompletionClient
 from pydantic import BaseModel
 from typing_extensions import Self
 
 from .... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
 from ....base import ChatAgent, TerminationCondition
+from ....messages import AgentEvent, ChatMessage
 from .._base_group_chat import BaseGroupChat
+from .._events import GroupChatTermination
 from ._magentic_one_orchestrator import MagenticOneOrchestrator
 from ._prompts import ORCHESTRATOR_FINAL_ANSWER_PROMPT
 
@@ -97,14 +100,17 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         *,
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = 20,
+        runtime: AgentRuntime | None = None,
         max_stalls: int = 3,
         final_answer_prompt: str = ORCHESTRATOR_FINAL_ANSWER_PROMPT,
     ):
         super().__init__(
             participants,
+            group_chat_manager_name="MagenticOneOrchestrator",
             group_chat_manager_class=MagenticOneOrchestrator,
             termination_condition=termination_condition,
             max_turns=max_turns,
+            runtime=runtime,
         )
 
         # Validate the participants.
@@ -116,22 +122,28 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
 
     def _create_group_chat_manager_factory(
         self,
+        name: str,
         group_topic_type: str,
         output_topic_type: str,
         participant_topic_types: List[str],
+        participant_names: List[str],
         participant_descriptions: List[str],
+        output_message_queue: asyncio.Queue[AgentEvent | ChatMessage | GroupChatTermination],
         termination_condition: TerminationCondition | None,
         max_turns: int | None,
     ) -> Callable[[], MagenticOneOrchestrator]:
         return lambda: MagenticOneOrchestrator(
+            name,
             group_topic_type,
             output_topic_type,
             participant_topic_types,
+            participant_names,
             participant_descriptions,
             max_turns,
             self._model_client,
             self._max_stalls,
             self._final_answer_prompt,
+            output_message_queue,
             termination_condition,
         )
 
