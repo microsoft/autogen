@@ -1,6 +1,5 @@
 import os
-import asyncio
-import uuid
+import asyncio 
 import pytest
 from sqlmodel import Session, text, select
 from typing import Generator
@@ -120,7 +119,7 @@ class TestDatabaseOperations:
         test_db.upsert(team1)
         session1 = SessionModel(user_id=test_user, team_id=team1.id, name="Session1")
         test_db.upsert(session1)
-        run1_id = uuid.uuid4()
+        run1_id = 1
         test_db.upsert(Run(
             id=run1_id, 
             user_id=test_user, 
@@ -141,7 +140,7 @@ class TestDatabaseOperations:
         # Test Session -> Run -> Message cascade
         session2 = SessionModel(user_id=test_user, team_id=team1.id, name="Session2")
         test_db.upsert(session2)
-        run2_id = uuid.uuid4()
+        run2_id = 2
         test_db.upsert(Run(
             id=run2_id, 
             user_id=test_user, 

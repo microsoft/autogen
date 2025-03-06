@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import logging
 import warnings
-from typing import Any, AsyncGenerator, List, Mapping, Optional, Sequence, Union
+from typing import Any, AsyncGenerator, Dict, List, Mapping, Optional, Sequence, Union
+from typing_extensions import Self
 
-from autogen_core import EVENT_LOGGER_NAME, CancellationToken
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component
 from autogen_core.models import (
     ChatCompletionClient,
     CreateResult,
@@ -13,13 +14,22 @@ from autogen_core.models import (
     ModelFamily,
     ModelInfo,
     RequestUsage,
+    validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
+from pydantic import BaseModel
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
-class ReplayChatCompletionClient(ChatCompletionClient):
+class ReplayChatCompletionClientConfig(BaseModel):
+    """ReplayChatCompletionClient configuration."""
+
+    chat_completions: Sequence[Union[str, CreateResult]]
+    model_info: Optional[ModelInfo] = None
+
+
+class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompletionClientConfig]):
     """
     A mock chat completion client that replays predefined responses using an index-based approach.
 
@@ -111,25 +121,37 @@ class ReplayChatCompletionClient(ChatCompletionClient):
     """
 
     __protocol__: ChatCompletionClient
+    component_type = "replay_chat_completion_client"
+    component_provider_override = "autogen_ext.models.replay.ReplayChatCompletionClient"
+    component_config_schema = ReplayChatCompletionClientConfig
 
-    # TODO: Support FunctionCall in responses
     # TODO: Support logprobs in Responses
-    # TODO: Support model capabilities
 
     def __init__(
         self,
         chat_completions: Sequence[Union[str, CreateResult]],
+        model_info: Optional[ModelInfo] = None,
     ):
         self.chat_completions = list(chat_completions)
         self.provided_message_count = len(self.chat_completions)
-        self._model_info = ModelInfo(
-            vision=False, function_calling=False, json_output=False, family=ModelFamily.UNKNOWN
-        )
+        if model_info is not None:
+            self._model_info = model_info
+            validate_model_info(self._model_info)
+        else:
+            self._model_info = ModelInfo(
+                vision=False, function_calling=False, json_output=False, family=ModelFamily.UNKNOWN
+            )
         self._total_available_tokens = 10000
         self._cur_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._current_index = 0
         self._cached_bool_value = True
+        self._create_calls: List[Dict[str, Any]] = []
+
+    @property
+    def create_calls(self) -> List[Dict[str, Any]]:
+        """Return the arguments of the calls made to the create method."""
+        return self._create_calls
 
     async def create(
         self,
@@ -159,6 +181,15 @@ class ReplayChatCompletionClient(ChatCompletionClient):
 
         self._update_total_usage()
         self._current_index += 1
+        self._create_calls.append(
+            {
+                "messages": messages,
+                "tools": tools,
+                "json_output": json_output,
+                "extra_create_args": extra_create_args,
+                "cancellation_token": cancellation_token,
+            }
+        )
         return response
 
     async def create_stream(
@@ -259,3 +290,16 @@ class ReplayChatCompletionClient(ChatCompletionClient):
         self._cur_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
         self._current_index = 0
+
+    def _to_config(self) -> ReplayChatCompletionClientConfig:
+        return ReplayChatCompletionClientConfig(
+            chat_completions=self.chat_completions,
+            model_info=self._model_info,
+        )
+
+    @classmethod
+    def _from_config(cls, config: ReplayChatCompletionClientConfig) -> Self:
+        return cls(
+            chat_completions=config.chat_completions,
+            model_info=config.model_info,
+        )
