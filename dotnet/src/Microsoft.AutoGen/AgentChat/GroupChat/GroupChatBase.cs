@@ -80,7 +80,6 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
 
     private readonly RuntimeLayer runtimeLayer;
 
-    private readonly List<AgentMessage> messageThread = new();
     private Dictionary<string, AgentChatConfig> Participants { get; } = new();
 
     protected GroupChatBase(List<IChatAgent> participants, ITerminationCondition? terminationCondition = null, int? maxTurns = null)
@@ -97,8 +96,6 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
             this.Participants[participant.Name] = config;
             this.GroupChatOptions.Participants[participant.Name] = new GroupParticipant(config.ParticipantTopicType, participant.Description);
         }
-
-        this.messageThread = new List<AgentMessage>(); // TODO: Allow injecting this
 
         this.TeamId = Guid.NewGuid().ToString().ToLowerInvariant();
 
@@ -139,17 +136,15 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
         public InProcessRuntime? Runtime { get; private set; }
         public OutputSink? OutputSink { get; private set; }
 
+        public Task? InitOnceTask { get; set; }
         public Task ShutdownTask { get; set; } = Task.CompletedTask;
 
         public async ValueTask DeinitializeAsync()
         {
             await this.ShutdownTask;
-
-            this.Runtime = null;
-            this.OutputSink = null;
         }
 
-        public async ValueTask InitializeAsync()
+        private async Task CreateRuntime()
         {
             this.Runtime = new InProcessRuntime();
 
@@ -162,8 +157,18 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
 
             this.OutputSink = new OutputSink();
             await this.Runtime.RegisterOutputCollectorAsync(this.OutputSink, this.GroupChat.GroupChatOptions.OutputTopicType);
+        }
 
-            await this.Runtime.StartAsync();
+        public async ValueTask InitializeAsync()
+        {
+            if (this.InitOnceTask == null)
+            {
+                this.InitOnceTask = this.CreateRuntime();
+            }
+
+            await this.InitOnceTask;
+
+            await this.Runtime!.StartAsync();
         }
     }
 
@@ -214,8 +219,14 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
             AgentId chatManagerId = new AgentId(GroupChatManagerTopicType, this.TeamId);
             await this.Runtime!.SendMessageAsync(taskMessage, chatManagerId, cancellationToken: cancellationToken);
 
-            this.ShutdownTask = Task.Run(this.Runtime!.RunUntilIdleAsync);
+            await this.PrepareRunUntilIdleAsync(cancellationToken);
         };
+    }
+
+    private ValueTask PrepareRunUntilIdleAsync(CancellationToken _)
+    {
+        this.ShutdownTask = Task.Run(this.Runtime!.RunUntilIdleAsync);
+        return ValueTask.CompletedTask;
     }
 
     private async IAsyncEnumerable<TaskFrame> StreamOutput([EnumeratorCancellation] CancellationToken cancellationToken)
@@ -256,8 +267,36 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
             TaskAlreadyRunning);
     }
 
+    private async ValueTask ResetInternalAsync(CancellationToken cancel)
+    {
+        try
+        {
+            foreach (var participant in this.Participants.Values)
+            {
+                await this.Runtime!.SendMessageAsync(
+                    new GroupChatReset(),
+                    new AgentId(participant.ParticipantTopicType, this.TeamId),
+                    cancellationToken: cancel);
+            }
+
+            await this.Runtime!.SendMessageAsync(
+                new GroupChatReset(),
+                new AgentId(GroupChatManagerTopicType, this.TeamId),
+                cancellationToken: cancel);
+        }
+        finally
+        {
+            this.OutputSink?.Reset();
+        }
+    }
+
     public ValueTask ResetAsync(CancellationToken cancel)
     {
-        return ValueTask.CompletedTask;
+        const string TaskAlreadyRunning = "The group chat is currently running. It must be stopped before it can be reset.";
+        return this.RunManager.RunAsync(
+            this.ResetInternalAsync,
+            cancel,
+            this.PrepareRunUntilIdleAsync,
+            TaskAlreadyRunning);
     }
 }

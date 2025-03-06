@@ -274,6 +274,7 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
         }
 
         this.shutdownSource = new CancellationTokenSource();
+        this.shouldContinue = () => true;
         this.messageDeliveryTask = Task.Run(() => this.RunAsync(this.shutdownSource.Token));
 
         return ValueTask.CompletedTask;
@@ -317,6 +318,9 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
                 await agent.CloseAsync();
             }
         }
+
+        this.shutdownSource = null;
+        this.finishSource = null;
     }
 
     Task IHostedService.StartAsync(CancellationToken cancellationToken) => this.StartAsync(cancellationToken).AsTask();
