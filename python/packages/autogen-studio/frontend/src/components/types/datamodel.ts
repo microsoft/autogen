@@ -277,7 +277,7 @@ export interface DBModel {
 export interface Message extends DBModel {
   config: AgentMessageConfig;
   session_id: number;
-  run_id: string;
+  run_id: number;
 }
 
 export interface Team extends DBModel {
@@ -321,7 +321,7 @@ export interface TeamResult {
 }
 
 export interface Run {
-  id: string;
+  id: number;
   created_at: string;
   updated_at?: string;
   status: RunStatus;

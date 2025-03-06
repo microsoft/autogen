@@ -1,6 +1,5 @@
 # /api/runs routes
 from typing import Dict
-from uuid import UUID
 
 from fastapi import APIRouter, Body, Depends, HTTPException
 from pydantic import BaseModel
@@ -40,7 +39,7 @@ async def create_run(
             ),
             return_json=False,
         )
-        return {"status": run.status, "data": {"run_id": str(run.data.id)}}
+        return {"status": run.status, "data": {"run_id": run.data.id}}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e)) from e
 
@@ -49,7 +48,7 @@ async def create_run(
 
 
 @router.get("/{run_id}")
-async def get_run(run_id: UUID, db=Depends(get_db)) -> Dict:
+async def get_run(run_id: int, db=Depends(get_db)) -> Dict:
     """Get run details including task and result"""
     run = db.get(Run, filters={"id": run_id}, return_json=False)
     if not run.status or not run.data:
@@ -59,7 +58,7 @@ async def get_run(run_id: UUID, db=Depends(get_db)) -> Dict:
 
 
 @router.get("/{run_id}/messages")
-async def get_run_messages(run_id: UUID, db=Depends(get_db)) -> Dict:
+async def get_run_messages(run_id: int, db=Depends(get_db)) -> Dict:
     """Get all messages for a run"""
     messages = db.get(Message, filters={"run_id": run_id}, order="created_at asc", return_json=False)
 

@@ -2,7 +2,6 @@
 import asyncio
 import json
 from datetime import datetime
-from uuid import UUID
 
 from fastapi import APIRouter, Depends, WebSocket, WebSocketDisconnect
 from loguru import logger
@@ -17,7 +16,7 @@ router = APIRouter()
 @router.websocket("/runs/{run_id}")
 async def run_websocket(
     websocket: WebSocket,
-    run_id: UUID,
+    run_id: int,
     ws_manager: WebSocketManager = Depends(get_websocket_manager),
     db=Depends(get_db),
 ):
