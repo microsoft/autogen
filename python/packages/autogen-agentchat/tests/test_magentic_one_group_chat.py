@@ -1,9 +1,10 @@
 import asyncio
 import json
 import logging
-from typing import Sequence
+from typing import AsyncGenerator, Sequence
 
 import pytest
+import pytest_asyncio
 from autogen_agentchat import EVENT_LOGGER_NAME
 from autogen_agentchat.agents import (
     BaseChatAgent,
@@ -17,7 +18,7 @@ from autogen_agentchat.teams import (
     MagenticOneGroupChat,
 )
 from autogen_agentchat.teams._group_chat._magentic_one._magentic_one_orchestrator import MagenticOneOrchestrator
-from autogen_core import AgentId, CancellationToken
+from autogen_core import AgentId, AgentRuntime, CancellationToken, SingleThreadedAgentRuntime
 from autogen_ext.models.replay import ReplayChatCompletionClient
 from utils import FileLogHandler
 
@@ -55,8 +56,19 @@ class _EchoAgent(BaseChatAgent):
         self._last_message = None
 
 
+@pytest_asyncio.fixture(params=["single_threaded", "embedded"])  # type: ignore
+async def runtime(request: pytest.FixtureRequest) -> AsyncGenerator[AgentRuntime | None, None]:
+    if request.param == "single_threaded":
+        runtime = SingleThreadedAgentRuntime()
+        runtime.start()
+        yield runtime
+        await runtime.stop()
+    elif request.param == "embedded":
+        yield None
+
+
 @pytest.mark.asyncio
-async def test_magentic_one_group_chat_cancellation() -> None:
+async def test_magentic_one_group_chat_cancellation(runtime: AgentRuntime | None) -> None:
     agent_1 = _EchoAgent("agent_1", description="echo agent 1")
     agent_2 = _EchoAgent("agent_2", description="echo agent 2")
     agent_3 = _EchoAgent("agent_3", description="echo agent 3")
@@ -67,7 +79,9 @@ async def test_magentic_one_group_chat_cancellation() -> None:
     )
 
     # Set max_turns to a large number to avoid stopping due to max_turns before cancellation.
-    team = MagenticOneGroupChat(participants=[agent_1, agent_2, agent_3, agent_4], model_client=model_client)
+    team = MagenticOneGroupChat(
+        participants=[agent_1, agent_2, agent_3, agent_4], model_client=model_client, runtime=runtime
+    )
     cancellation_token = CancellationToken()
     run_task = asyncio.create_task(
         team.run(
@@ -83,7 +97,7 @@ async def test_magentic_one_group_chat_cancellation() -> None:
 
 
 @pytest.mark.asyncio
-async def test_magentic_one_group_chat_basic() -> None:
+async def test_magentic_one_group_chat_basic(runtime: AgentRuntime | None) -> None:
     agent_1 = _EchoAgent("agent_1", description="echo agent 1")
     agent_2 = _EchoAgent("agent_2", description="echo agent 2")
     agent_3 = _EchoAgent("agent_3", description="echo agent 3")
@@ -115,7 +129,9 @@ async def test_magentic_one_group_chat_basic() -> None:
         ],
     )
 
-    team = MagenticOneGroupChat(participants=[agent_1, agent_2, agent_3, agent_4], model_client=model_client)
+    team = MagenticOneGroupChat(
+        participants=[agent_1, agent_2, agent_3, agent_4], model_client=model_client, runtime=runtime
+    )
     result = await team.run(task="Write a program that prints 'Hello, world!'")
     assert len(result.messages) == 5
     assert result.messages[2].content == "Continue task"
@@ -124,16 +140,18 @@ async def test_magentic_one_group_chat_basic() -> None:
 
     # Test save and load.
     state = await team.save_state()
-    team2 = MagenticOneGroupChat(participants=[agent_1, agent_2, agent_3, agent_4], model_client=model_client)
+    team2 = MagenticOneGroupChat(
+        participants=[agent_1, agent_2, agent_3, agent_4], model_client=model_client, runtime=runtime
+    )
     await team2.load_state(state)
     state2 = await team2.save_state()
     assert state == state2
     manager_1 = await team._runtime.try_get_underlying_agent_instance(  # pyright: ignore
-        AgentId("group_chat_manager", team._team_id),  # pyright: ignore
+        AgentId(f"{team._group_chat_manager_name}_{team._team_id}", team._team_id),  # pyright: ignore
         MagenticOneOrchestrator,  # pyright: ignore
     )  # pyright: ignore
     manager_2 = await team2._runtime.try_get_underlying_agent_instance(  # pyright: ignore
-        AgentId("group_chat_manager", team2._team_id),  # pyright: ignore
+        AgentId(f"{team2._group_chat_manager_name}_{team2._team_id}", team2._team_id),  # pyright: ignore
         MagenticOneOrchestrator,  # pyright: ignore
     )  # pyright: ignore
     assert manager_1._message_thread == manager_2._message_thread  # pyright: ignore
@@ -145,7 +163,7 @@ async def test_magentic_one_group_chat_basic() -> None:
 
 
 @pytest.mark.asyncio
-async def test_magentic_one_group_chat_with_stalls() -> None:
+async def test_magentic_one_group_chat_with_stalls(runtime: AgentRuntime | None) -> None:
     agent_1 = _EchoAgent("agent_1", description="echo agent 1")
     agent_2 = _EchoAgent("agent_2", description="echo agent 2")
     agent_3 = _EchoAgent("agent_3", description="echo agent 3")
@@ -189,7 +207,10 @@ async def test_magentic_one_group_chat_with_stalls() -> None:
     )
 
     team = MagenticOneGroupChat(
-        participants=[agent_1, agent_2, agent_3, agent_4], model_client=model_client, max_stalls=2
+        participants=[agent_1, agent_2, agent_3, agent_4],
+        model_client=model_client,
+        max_stalls=2,
+        runtime=runtime,
     )
     result = await team.run(task="Write a program that prints 'Hello, world!'")
     assert len(result.messages) == 6
