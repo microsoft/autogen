@@ -202,6 +202,8 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
     component_config_schema = SwarmConfig
     component_provider_override = "autogen_agentchat.teams.Swarm"
 
+    # TODO: Add * to the constructor to separate the positional parameters from the kwargs.
+    # This may be a breaking change so let's wait until a good time to do it.
     def __init__(
         self,
         participants: List[ChatAgent],

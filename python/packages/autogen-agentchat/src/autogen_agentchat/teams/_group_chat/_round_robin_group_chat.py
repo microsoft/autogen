@@ -156,6 +156,8 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
     component_config_schema = RoundRobinGroupChatConfig
     component_provider_override = "autogen_agentchat.teams.RoundRobinGroupChat"
 
+    # TODO: Add * to the constructor to separate the positional parameters from the kwargs.
+    # This may be a breaking change so let's wait until a good time to do it.
     def __init__(
         self,
         participants: List[ChatAgent],
