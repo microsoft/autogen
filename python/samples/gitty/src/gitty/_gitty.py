@@ -1,105 +1,23 @@
-import argparse
-import asyncio
-import json
-import logging
 import os
-import subprocess
 import sys
-
-os.environ["TOKENIZERS_PARALLELISM"] = "false"  # disable parallelism to avoid warning
-import re
-import sqlite3  # new import for database operations
-from typing import List, Optional
 
 from autogen_agentchat.agents import AssistantAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import TextMessage, ToolCallExecutionEvent, ToolCallRequestEvent, ToolCallSummaryMessage
 from autogen_core import CancellationToken
 from autogen_ext.models.openai import OpenAIChatCompletionClient
-from chromadb import PersistentClient
-from chromadb.utils import embedding_functions  # new import for sentence transformer
+
 from rich.console import Console
 from rich.panel import Panel
 from rich.prompt import Prompt
-from rich.theme import Theme
-from tqdm import tqdm  # new import for progress bar
 
-custom_theme = Theme(
-    {
-        "header": "bold",
-        "thinking": "italic yellow",
-        "acting": "italic red",
-        "prompt": "italic",
-        "observe": "italic",
-        "success": "bold green",
-    }
-)
+from ._github import get_github_issue_content, get_mentioned_issues, get_related_issues, generate_issue_tdlr
+from ._config import custom_theme, get_gitty_dir
+
+
 console = Console(theme=custom_theme)
 
-logger = logging.getLogger("gitty")
-logger.addHandler(logging.StreamHandler())
-
-
-async def generate_issue_tdlr(issue_number: str, tldr: str) -> str:
-    "Generate a single sentence TLDR for the issue."
-    return f"TLDR (#{issue_number}): " + tldr
-
-
-async def get_github_issue_content(owner: str, repo: str, issue_number: int) -> str:
-    cmd = ["gh", "issue", "view", str(issue_number), "--repo", f"{owner}/{repo}", "--json", "body,author,comments"]
-    proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
-    stdout, stderr = await proc.communicate()
-    if proc.returncode != 0:
-        error_detail = stderr.decode().strip()
-        print(f"Error fetching issue: {error_detail}")
-        sys.exit(1)
-    try:
-        issue_data = json.loads(stdout)
-    except json.JSONDecodeError as e:
-        print("Error decoding gh cli output:", e)
-        sys.exit(1)
-
-    issue_body = issue_data.get("body", "No content")
-    issue_author = issue_data.get("author", {}).get("login", "Unknown user")
-    comments = issue_data.get("comments", [])
-    comments_content = "\n\n".join(
-        f"{comment.get('author', {}).get('login', 'Unknown user')}: {comment.get('body', 'No content')}"
-        for comment in comments
-    )
-    return f"Content (#{issue_number})\n\nauthor: {issue_author}:\n{issue_body}\n\nComments:\n{comments_content}"
-
-
-# New helper function to extract mentioned issues using regex.
-def get_mentioned_issues(issue_number: int, issue_content: str) -> List[int]:
-    # Finds issue numbers mentioned as "#123"
-    matches = re.findall(r"#(\d+)", issue_content)
-    # remove the current issue number from the list
-    matches = [match for match in matches if int(match) != issue_number]
-    return list(map(int, matches))
-
-
-# Updated helper function to extract related issues using a RAG approach via Chroma DB.
-def get_related_issues(issue_number: int, issue_content: str, n_results: int = 2) -> List[int]:
-    gitty_dir = get_gitty_dir()
-    client = PersistentClient(path=os.path.join(gitty_dir, "chroma"))
-    try:
-        collection = client.get_collection("issues")
-    except Exception:
-        console.print("[error]Error: Chroma DB not found. Please run 'gitty fetch' to update the database.[/error]")
-        return []
-    results = collection.query(
-        query_texts=[issue_content],  # Chroma will embed the text for you
-        n_results=n_results,
-    )
-    ids = results.get("ids", [[]])[0]
-
-    if str(issue_number) in ids:
-        ids.remove(str(issue_number))
-
-    return [int(_id) for _id in ids if _id.isdigit()]
-
-
-async def run(agent: AssistantAgent, task: str, log: bool = False) -> str:
+async def _run(agent: AssistantAgent, task: str, log: bool = False) -> str:
     output_stream = agent.on_messages_stream(
         [TextMessage(content=task, source="user")],
         cancellation_token=CancellationToken(),
@@ -131,13 +49,7 @@ async def run(agent: AssistantAgent, task: str, log: bool = False) -> str:
     return last_txt_message
 
 
-async def get_user_confirmation(prompt: str) -> bool:
-    user_input = await get_user_input(f"{prompt} (y to confirm, or provide feedback)")
-    user_input = user_input.lower().strip()
-    return user_input == "y"
-
-
-async def get_user_input(prompt: str) -> str:
+async def _get_user_input(prompt: str) -> str:
     user_input = Prompt.ask(f"\n? {prompt} (or type 'exit')")
     if user_input.lower().strip() == "exit":
         console.print("[prompt]Exiting...[/prompt]")
@@ -145,7 +57,7 @@ async def get_user_input(prompt: str) -> str:
     return user_input
 
 
-async def gitty(owner: str, repo: str, command: str, number: int) -> None:
+async def run_gitty(owner: str, repo: str, command: str, number: int) -> None:
     console.print("[header]Gitty - GitHub Issue/PR Assistant[/header]")
     console.print(f"[thinking]Assessing issue #{number} for repository {owner}/{repo}...[/thinking]")
     console.print(f"https://github.com/{owner}/{repo}/issues/{number}")
@@ -163,6 +75,7 @@ async def gitty(owner: str, repo: str, command: str, number: int) -> None:
     try:
         gitty_dir = get_gitty_dir()
         local_config_path = os.path.join(gitty_dir, "config")
+        print(f"Local config path: {local_config_path}")
         if os.path.exists(local_config_path):
             with open(local_config_path, "r") as f:
                 local_instructions = f.read().strip()
@@ -175,9 +88,11 @@ async def gitty(owner: str, repo: str, command: str, number: int) -> None:
         "Your response must be very concise and focus on precision. Just be direct and to the point."
     )
     if global_instructions:
-        base_system_message += "\n\nAdditional Instructions from global config:\n" + global_instructions
+        base_system_message += "\n\nAdditional Instructions from global config. These instructions should take priority over previous instructions. \n" + global_instructions
     if local_instructions:
-        base_system_message += "\n\nAdditional Instructions from local config:\n" + local_instructions
+        base_system_message += "\n\nAdditional Instructions from local config. These instructions should take priority over previous instructions. \n" + local_instructions
+
+    print(base_system_message)
 
     agent = AssistantAgent(
         name="GittyAgent",
@@ -188,24 +103,24 @@ async def gitty(owner: str, repo: str, command: str, number: int) -> None:
 
     console.print("\n[thinking]- Fetching issue content...[/thinking]")
     task = f"Fetch comments for the {command} #{number} for the {owner}/{repo} repository"
-    text = await run(agent, task)
+    text = await _run(agent, task)
 
     console.print("\n[thinking]- Checking for mentioned issues...[/thinking]")
     mentioned_issues = get_mentioned_issues(number, text)
     if len(mentioned_issues) > 0:
         console.print(f"  [observe]> Found mentioned issues: {mentioned_issues}[/observe]")
         task = f"Fetch mentioned issues and generate tldrs for each of them: {mentioned_issues}"
-        text = await run(agent, task)
+        text = await _run(agent, task)
     else:
         console.print("  [observe]> No mentioned issues found.[/observe]")
 
-    related_issues = get_related_issues(number, text)
+    related_issues = get_related_issues(number, text, get_gitty_dir())
     console.print("\n[thinking]- Checking for other related issues...[/thinking]")
 
     if len(related_issues) > 0:
         console.print(f"  [observe]> Found related issues: {related_issues}.[/observe]")
         task = f"Fetch related issues and generate tldrs for each of them: {related_issues}"
-        text = await run(agent, task)
+        text = await _run(agent, task)
     else:
         console.print("  [observe]> No related issues found.[/observe]")
 
@@ -222,24 +137,22 @@ async def gitty(owner: str, repo: str, command: str, number: int) -> None:
         "- What type of a new response from the maintainers would help make progress on this issue? Be concise."
     )
 
-    await run(agent, updated_prompt, log=False)
+    await _run(agent, updated_prompt, log=False)
 
-    summary_text = await run(agent, "Summarize what is the status of this issue. Be concise.")
+    summary_text = await _run(agent, "Summarize what is the status of this issue. Be concise.")
     console.print("\n[success]> The Summary of the Issue:[/success]")
     console.print("  " + summary_text)
 
-    # console.print("[thinking]! Thinking...[/thinking]")
-
-    suggested_response = await run(
+    suggested_response = await _run(
         agent,
-        "On behalf of the maintainers, generate a response to the issue/pr that is technical and helpful to make progress. Be concise. Use as few sentences as possible. 1-2 sentence preferred. Do not engage in open ended dialog. If not response is necessary to make progress, say 'No response needed'.",
+        "On behalf of the maintainers, generate a response to the issue/pr that is technical and helpful to make progress. Be concise. Use as few sentences as possible. 1-2 sentence preferred. Do not engage in open ended dialog. If not response is necessary to make progress, say 'No response needed'. Make sure you follow the instructions in the system message, especially the local and global instructions.",
     )
 
     console.print("\n[success]> The Suggested Response:[/success]")
     console.print("  " + suggested_response)
 
     while True:
-        user_feedback = await get_user_input("Provide feedback")
+        user_feedback = await _get_user_input("Provide feedback")
         if user_feedback.lower().strip() == "exit":
             console.print("[prompt]Exiting...[/prompt]")
             break
@@ -249,163 +162,9 @@ async def gitty(owner: str, repo: str, command: str, number: int) -> None:
             break
         else:
             console.print("\n[thinking]Thinking...[/thinking]")
-            suggested_response = await run(
+            suggested_response = await _run(
                 agent,
                 f"Accommodate the following feedback: {user_feedback}. Then generate a response to the issue/pr that is technical and helpful to make progress. Be concise.",
             )
             console.print("[success]The Suggested Response:[/success]")
             console.print(suggested_response)
-
-
-def get_repo_root() -> str:
-    try:
-        result = subprocess.run(["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True, check=True)
-        return result.stdout.strip()
-    except subprocess.CalledProcessError:
-        print("Error: not a git repository.")
-        sys.exit(1)
-
-
-def get_gitty_dir() -> str:
-    """Get the .gitty directory in the repository root. Create it if it doesn't exist."""
-    repo_root = get_repo_root()
-    gitty_dir = os.path.join(repo_root, ".gitty")
-    if not os.path.exists(gitty_dir):
-        os.makedirs(gitty_dir)
-    return gitty_dir
-
-
-def edit_config_file(file_path: str) -> None:
-    if not os.path.exists(file_path):
-        with open(file_path, "w") as f:
-            f.write("# Instructions for gitty agents\n")
-            f.write("# Add your configuration below\n")
-    editor = os.getenv("EDITOR", "vi")
-    subprocess.run([editor, file_path])
-
-
-# Updated function to fetch all issues and update the database.
-def fetch_and_update_issues(owner: str, repo: str, db_path: Optional[str] = None) -> None:
-    """
-    Fetch all GitHub issues for the repo and update the local database.
-    Only updates issues that have a more recent updatedAt timestamp.
-    The database stores full issue content as produced by get_github_issue_content.
-    If db_path is not provided, it is set to "<repo_root>/.gitty.db".
-    """
-    if db_path is None:
-        gitty_dir = get_gitty_dir()
-        db_path = os.path.join(gitty_dir, "issues.db")
-    print(f"Using database at: {db_path}")
-
-    # Fetch issues using gh CLI (fetch summary without content)
-    cmd = ["gh", "issue", "list", "--repo", f"{owner}/{repo}", "-L", "1000", "--json", "number,title,updatedAt"]
-    result = subprocess.run(cmd, capture_output=True, text=True)
-    if result.returncode != 0:
-        print("Error fetching issues:", result.stderr)
-        return
-    try:
-        issues = json.loads(result.stdout)
-    except json.JSONDecodeError as e:
-        print("Error decoding issues JSON:", e)
-        return
-
-    print(f"Fetched {len(issues)} issues. Beginning update...")
-
-    # Connect to or create the SQLite database
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS issues (
-            number INTEGER PRIMARY KEY,
-            title TEXT,
-            updatedAt TEXT,
-            content TEXT
-        )
-    """)
-
-    for issue in tqdm(issues, desc="Fetching issues"):
-        number = issue.get("number")
-        title = issue.get("title")
-        updatedAt = issue.get("updatedAt")
-        # Retrieve full issue content using the async method
-
-        cursor.execute("SELECT updatedAt FROM issues WHERE number = ?", (number,))
-        row = cursor.fetchone()
-        if row:
-            existing_updatedAt = row[0]
-            if updatedAt > existing_updatedAt:
-                content = asyncio.run(get_github_issue_content(owner, repo, number))
-                cursor.execute(
-                    """
-                    UPDATE issues
-                    SET title = ?, updatedAt = ?, content = ?
-                    WHERE number = ?
-                """,
-                    (title, updatedAt, content, number),
-                )
-        else:
-            content = asyncio.run(get_github_issue_content(owner, repo, number))
-            cursor.execute(
-                """
-                INSERT INTO issues (number, title, updatedAt, content)
-                VALUES (?, ?, ?, ?)
-            """,
-                (number, title, updatedAt, content),
-            )
-    conn.commit()
-    conn.close()
-    print("Issue database update complete.")
-
-    # Update Chroma DB with latest issues
-    gitty_dir = get_gitty_dir()
-    persist_directory = os.path.join(gitty_dir, "chroma")
-    # Updated Chroma client construction (removed deprecated Settings usage)
-    chroma_client = PersistentClient(path=persist_directory)
-    try:
-        collection = chroma_client.get_collection("issues")
-    except Exception:
-        collection = chroma_client.create_collection("issues")
-
-    conn = sqlite3.connect(db_path)
-    cursor = conn.cursor()
-    cursor.execute("SELECT number, title, content FROM issues")
-    rows = cursor.fetchall()
-    conn.close()
-
-    # New embedding function using sentence_transformers
-    sentence_transformer_ef = embedding_functions.DefaultEmbeddingFunction()
-
-    if sentence_transformer_ef is None:
-        print("Error: Default embedding function is not available.")
-        exit(1)
-
-    for issue_number, title, content in rows:
-        meta = {"title": title}  # metadata for each issue
-        embedding = sentence_transformer_ef([content])[0]
-        collection.upsert(
-            documents=[content],
-            embeddings=[embedding],
-            metadatas=[meta],
-            ids=[str(issue_number)],
-        )
-    print("Chroma DB update complete.")
-
-
-def check_gh_cli() -> bool:
-    """Check if GitHub CLI is installed and accessible."""
-    try:
-        subprocess.run(["gh", "--version"], capture_output=True, check=True)
-        return True
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        console.print("[error]Error: GitHub CLI (gh) is not installed or not found in PATH.[/error]")
-        console.print("Please install it from: https://cli.github.com")
-        sys.exit(1)
-
-
-def check_openai_key() -> None:
-    """Check if OpenAI API key is set in environment variables."""
-    if not os.getenv("OPENAI_API_KEY"):
-        console.print("[error]Error: OPENAI_API_KEY environment variable is not set.[/error]")
-        console.print("Please set your OpenAI API key using:")
-        console.print("  export OPENAI_API_KEY='your-api-key'")
-        sys.exit(1)

@@ -5,16 +5,39 @@ import subprocess
 import sys
 from rich.console import Console
 
-from ._gitty import (
-    gitty,
-    fetch_and_update_issues,
-    get_gitty_dir,
-    edit_config_file,
-    check_gh_cli,
-    check_openai_key,
-)
+from ._gitty import run_gitty, get_gitty_dir
+from ._db import fetch_and_update_issues
 
 console = Console()
+
+def check_openai_key() -> None:
+    """Check if OpenAI API key is set in environment variables."""
+    if not os.getenv("OPENAI_API_KEY"):
+        print("Error: OPENAI_API_KEY environment variable is not set.")
+        print("Please set your OpenAI API key using:")
+        print("  export OPENAI_API_KEY='your-api-key'")
+        sys.exit(1)
+
+
+def check_gh_cli() -> bool:
+    """Check if GitHub CLI is installed and accessible."""
+    try:
+        subprocess.run(["gh", "--version"], capture_output=True, check=True)
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        print("[error]Error: GitHub CLI (gh) is not installed or not found in PATH.[/error]")
+        print("Please install it from: https://cli.github.com")
+        sys.exit(1)
+
+
+def edit_config_file(file_path: str) -> None:
+    if not os.path.exists(file_path):
+        with open(file_path, "w") as f:
+            f.write("# Instructions for gitty agents\n")
+            f.write("# Add your configuration below\n")
+    editor = os.getenv("EDITOR", "vi")
+    subprocess.run([editor, file_path])
+
 
 def main() -> None:
     parser = argparse.ArgumentParser(
@@ -64,9 +87,9 @@ def main() -> None:
         owner, repo = pipe.stdout.decode().strip().split("/")
         number = args.number
         if command == "issue":
-            asyncio.run(gitty(owner, repo, command, number))
+            asyncio.run(run_gitty(owner, repo, command, number))
         else:
-            console.print(f"Command '{command}' is not implemented.")
+            print(f"Command '{command}' is not implemented.")
             sys.exit(1)
     elif command == "fetch":
         pipe = subprocess.run(
