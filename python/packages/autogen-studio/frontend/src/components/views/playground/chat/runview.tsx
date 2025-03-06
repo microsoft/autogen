@@ -27,7 +27,7 @@ interface RunViewProps {
   onCancel?: () => void;
   isFirstRun?: boolean;
   streamingContent?: {
-    runId: string;
+    runId: number;
     content: string;
     source: string;
   } | null;
@@ -211,8 +211,7 @@ const RunView: React.FC<RunViewProps> = ({
             }
           >
             <span className="cursor-help">
-              Run ...{run.id.slice(-6)} |{" "}
-              {getRelativeTimeString(run?.created_at || "")}{" "}
+              Run ...{run.id} | {getRelativeTimeString(run?.created_at || "")}{" "}
             </span>
           </Tooltip>
           {!isFirstRun && (
