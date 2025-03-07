@@ -82,6 +82,14 @@ internal sealed class OutputSink : IOutputCollectionSink
             await this.semapohre.WaitAsync(cancellation);
         }
     }
+
+    internal void Reset()
+    {
+        lock (this.sync)
+        {
+            this.receivingSinkFrame = null;
+        }
+    }
 }
 
 // TODO: Abstract the core logic of this out into the equivalent of ClosureAgent, because that seems like a
