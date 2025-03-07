@@ -229,6 +229,9 @@ class ReplayChatCompletionClient(ChatCompletionClient, Component[ReplayChatCompl
 
         self._current_index += 1
 
+    async def close(self) -> None:
+        pass
+
     def actual_usage(self) -> RequestUsage:
         return self._cur_usage
 

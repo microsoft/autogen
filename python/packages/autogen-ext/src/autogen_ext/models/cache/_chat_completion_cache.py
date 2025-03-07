@@ -206,6 +206,9 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
 
         return _generator()
 
+    async def close(self) -> None:
+        await self.client.close()
+
     def actual_usage(self) -> RequestUsage:
         return self.client.actual_usage()
 
