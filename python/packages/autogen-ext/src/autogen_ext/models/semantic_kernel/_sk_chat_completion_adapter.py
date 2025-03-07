@@ -654,6 +654,9 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             thought=thought,
         )
 
+    async def close(self) -> None:
+        pass  # No explicit close method in SK client?
+
     def actual_usage(self) -> RequestUsage:
         return RequestUsage(prompt_tokens=self._total_prompt_tokens, completion_tokens=self._total_completion_tokens)
 
