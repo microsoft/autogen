@@ -490,6 +490,9 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
         yield result
 
+    async def close(self) -> None:
+        await self._client.close()
+
     def actual_usage(self) -> RequestUsage:
         return self._actual_usage
 

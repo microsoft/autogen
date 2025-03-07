@@ -126,6 +126,9 @@ async def test_caller_loop() -> None:
         ) -> AsyncGenerator[Union[str, CreateResult], None]:
             raise NotImplementedError()
 
+        async def close(self) -> None:
+            pass
+
         def actual_usage(self) -> RequestUsage:
             return RequestUsage(prompt_tokens=0, completion_tokens=0)
 

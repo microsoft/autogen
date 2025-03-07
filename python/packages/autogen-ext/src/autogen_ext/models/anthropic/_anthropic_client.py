@@ -775,6 +775,9 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
         yield result
 
+    async def close(self) -> None:
+        await self._client.close()
+
     def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         """
         Estimate the number of tokens used by messages and tools.

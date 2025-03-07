@@ -166,6 +166,9 @@ class ChatCompletionClientRecorder(ChatCompletionClient):
             cancellation_token=cancellation_token,
         )
 
+    async def close(self) -> None:
+        await self.base_client.close()
+
     def actual_usage(self) -> RequestUsage:
         # Calls base_client.actual_usage() and returns the result.
         return self.base_client.actual_usage()
