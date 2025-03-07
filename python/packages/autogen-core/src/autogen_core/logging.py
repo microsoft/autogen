@@ -67,15 +67,14 @@ class ToolCallEvent:
         *,
         tool_name: str,
         arguments: Dict[str, Any],
-        result: str | None = None,
-        **kwargs: Any,
+        result: str,
     ) -> None:
         """Used by subclasses of :class:`~autogen_core.tools.BaseTool` to log executions of tools.
 
         Args:
             tool_name (str): The name of the tool.
             arguments (Dict[str, Any]): The arguments of the tool. Must be json serializable.
-            result (str, optional): The result of the tool. Must be a string or None. Defaults to None.
+            result (str): The result of the tool. Must be a string.
 
         Example:
 
@@ -88,7 +87,7 @@ class ToolCallEvent:
                 logger.info(ToolCallEvent(tool_name="Tool1", call_id="123", arguments={"arg1": "value1"}))
 
         """
-        self.kwargs = kwargs
+        self.kwargs: Dict[str, Any] = {}
         self.kwargs["type"] = "ToolCall"
         self.kwargs["tool_name"] = tool_name
         self.kwargs["arguments"] = arguments

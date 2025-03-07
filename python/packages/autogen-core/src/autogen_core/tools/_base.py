@@ -153,8 +153,8 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
         # Log the tool call event
         event = ToolCallEvent(
             tool_name=self.name,
-            arguments=args,  # Using the raw args passed to run_json
-            result=self.return_value_as_string(return_value) if return_value is not None else None,
+            arguments=dict(args),  # Using the raw args passed to run_json
+            result=self.return_value_as_string(return_value),
         )
         logger.info(event)
 
