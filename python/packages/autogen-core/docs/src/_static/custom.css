@@ -139,3 +139,9 @@ html[data-theme="light"] .bd-header {
   text-decoration: none;
   color: inherit;
 }
+
+/* Long autodoc module names wrap on prev/next links */
+/* TODO: Should we extend this to the entire site? */
+.prev-next-title {
+  word-break: break-word;
+}

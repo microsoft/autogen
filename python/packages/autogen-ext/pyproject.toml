@@ -30,7 +30,7 @@ ollama = ["ollama>=0.4.7", "tiktoken>=0.8.0"]
 openai = ["openai>=1.52.2", "tiktoken>=0.8.0", "aiofiles"]
 file-surfer = [
     "autogen-agentchat==0.4.8",
-    "markitdown>=0.0.1a2",
+    "markitdown~=0.0.1",
 ]
 graphrag = ["graphrag>=1.0.1"]
 chromadb = ["chromadb"]
@@ -38,11 +38,11 @@ web-surfer = [
     "autogen-agentchat==0.4.8",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
-    "markitdown>=0.0.1a2",
+    "markitdown~=0.0.1",
 ]
 magentic-one = [
     "autogen-agentchat==0.4.8",
-    "markitdown>=0.0.1a2",
+    "markitdown~=0.0.1",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
 ]
