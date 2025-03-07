@@ -66,7 +66,6 @@ internal sealed class ChatAgentRouter : HostableAgentAdapter,
         // place.
         await foreach (ChatStreamFrame frame in this.agent.StreamAsync(this.MessageBuffer, messageContext.CancellationToken))
         {
-            // TODO: call publish message
             switch (frame.Type)
             {
                 case ChatStreamFrame.FrameType.Response:
