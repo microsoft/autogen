@@ -124,8 +124,8 @@ async def test_mcp_tool_execution(
 
     with caplog.at_level(logging.INFO):
         adapter = StdioMcpToolAdapter(server_params=sample_server_params, tool=sample_tool)
-        result = await adapter.run(
-            args=create_model(sample_tool.inputSchema)(**{"test_param": "test"}),
+        result = await adapter.run_json(
+            args=create_model(sample_tool.inputSchema)(**{"test_param": "test"}).model_dump(),
             cancellation_token=cancellation_token,
         )
 
@@ -228,8 +228,8 @@ async def test_sse_tool_execution(
 
     with caplog.at_level(logging.INFO):
         adapter = SseMcpToolAdapter(server_params=params, tool=sample_sse_tool)
-        result = await adapter.run(
-            args=create_model(sample_sse_tool.inputSchema)(**{"test_param": "test"}),
+        result = await adapter.run_json(
+            args=create_model(sample_sse_tool.inputSchema)(**{"test_param": "test"}).model_dump(),
             cancellation_token=CancellationToken(),
         )
 
