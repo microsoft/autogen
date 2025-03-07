@@ -501,6 +501,11 @@ public class FunctionExecutionResult
     public required string Id { get; set; }
 
     /// <summary>
+    /// The name of the function that was called.
+    /// </summary>
+    public required string Name { get; set; }
+
+    /// <summary>
     /// The result of calling the function.
     /// </summary>
     public required string Content { get; set; }

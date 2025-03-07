@@ -14,14 +14,16 @@ public sealed class MaxMessageTermination : ITerminationCondition
     /// Initializes a new instance of the <see cref="MaxMessageTermination"/> class.
     /// </summary>
     /// <param name="maxMessages">The maximum number of messages allowed in the conversation.</param>
-    public MaxMessageTermination(int maxMessages)
+    public MaxMessageTermination(int maxMessages, bool includeAgentEvent = false)
     {
         this.MaxMessages = maxMessages;
         this.MessageCount = 0;
+        this.IncludeAgentEvent = includeAgentEvent;
     }
 
     public int MaxMessages { get; }
     public int MessageCount { get; private set; }
+    public bool IncludeAgentEvent { get; }
 
     public bool IsTerminated => this.MessageCount >= this.MaxMessages;
 
@@ -32,7 +34,7 @@ public sealed class MaxMessageTermination : ITerminationCondition
             throw new TerminatedException();
         }
 
-        this.MessageCount += messages.Count;
+        this.MessageCount += messages.Where(m => this.IncludeAgentEvent || m is not AgentEvent).Count();
 
         if (this.IsTerminated)
         {
