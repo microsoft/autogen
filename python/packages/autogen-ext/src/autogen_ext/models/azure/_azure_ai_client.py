@@ -404,9 +404,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                 self._client.complete(messages=azure_messages, tools=converted_tools, stream=True, **create_args)
             )
         else:
-            task = asyncio.create_task(
-                self._client.complete(messages=azure_messages, max_tokens=20, stream=True, **create_args)
-            )
+            task = asyncio.create_task(self._client.complete(messages=azure_messages, stream=True, **create_args))
 
         if cancellation_token is not None:
             cancellation_token.link_future(task)
