@@ -1,6 +1,6 @@
 import json
 from enum import Enum
-from typing import Any, Dict, cast
+from typing import Any, Dict, List, cast
 
 from ._agent_id import AgentId
 from ._message_handler_context import MessageHandlerContext
@@ -11,7 +11,7 @@ class LLMCallEvent:
     def __init__(
         self,
         *,
-        messages: Dict[str, Any],
+        messages: List[Dict[str, Any]],
         response: Dict[str, Any],
         prompt_tokens: int,
         completion_tokens: int,
@@ -20,7 +20,7 @@ class LLMCallEvent:
         """To be used by model clients to log the call to the LLM.
 
         Args:
-            messages (Dict[str, Any]): The messages of the call. Must be json serializable.
+            messages (List[Dict[str, Any]]): The messages used in the call. Must be json serializable.
             response (Dict[str, Any]): The response of the call. Must be json serializable.
             prompt_tokens (int): Number of tokens used in the prompt.
             completion_tokens (int): Number of tokens used in the completion.
