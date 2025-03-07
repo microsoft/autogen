@@ -123,10 +123,21 @@ html[data-theme="light"] .bd-header {
 
 /* Copy button */
 .bd-article .docutils .docutils .copybtn:focus-visible:after {
-  /* border: 10px outset var(--pst-color-primary); */
     display: block;
     opacity: 1;
     visibility: visible;
+}
+
+/* Allow voice access to find clickable cards */
+.sd-card a {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1;
+  text-decoration: none;
+  color: inherit;
 }
 
 /* Long autodoc module names wrap on prev/next links */
