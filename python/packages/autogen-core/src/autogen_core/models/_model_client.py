@@ -153,6 +153,9 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
     ) -> AsyncGenerator[Union[str, CreateResult], None]: ...
 
     @abstractmethod
+    async def close(self) -> None: ...
+
+    @abstractmethod
     def actual_usage(self) -> RequestUsage: ...
 
     @abstractmethod
