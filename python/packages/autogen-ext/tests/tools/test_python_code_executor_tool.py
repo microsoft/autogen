@@ -19,7 +19,7 @@ async def test_python_code_execution_tool(caplog: pytest.LogCaptureFixture) -> N
         with caplog.at_level(logging.INFO):
             # Test simple code execution
             code = "print('hello world!')"
-            result = await tool.run(args=CodeExecutionInput(code=code), cancellation_token=CancellationToken())
+            result = await tool.run_json(args={"code": code}, cancellation_token=CancellationToken())
             # Check log output
             assert "hello world!" in caplog.text
 
