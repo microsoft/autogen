@@ -2,18 +2,14 @@ from __future__ import annotations
 
 import asyncio
 import inspect
-import logging
 from typing import TYPE_CHECKING, Any, Callable, Dict, Type, cast
 
-from autogen_core import EVENT_LOGGER_NAME, CancellationToken
-from autogen_core.logging import ToolCallEvent
+from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
 from pydantic import BaseModel, Field, create_model
 
 if TYPE_CHECKING:
     from langchain_core.tools import BaseTool as LangChainTool
-
-logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class LangChainToolAdapter(BaseTool[BaseModel, Any]):
@@ -193,27 +189,10 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
 
         # Determine if the callable is asynchronous
         if inspect.iscoroutinefunction(self._callable):
-            result = await self._callable(**kwargs)
+            return await self._callable(**kwargs)
         else:
             # Run in a thread to avoid blocking the event loop
-            result = await asyncio.to_thread(self._call_sync, kwargs)
-
-        # Log the event
-        serializable_result: Any = None
-        if isinstance(result, BaseModel):
-            serializable_result = result.model_dump()
-        elif isinstance(result, str):
-            serializable_result = result
-        else:
-            serializable_result = str(result)
-        event = ToolCallEvent(
-            tool_name=self.name,
-            arguments=args.model_dump(),
-            result=serializable_result,
-        )
-        logger.info(event)
-
-        return result
+            return await asyncio.to_thread(self._call_sync, kwargs)
 
     def _call_sync(self, kwargs: Dict[str, Any]) -> Any:
         return self._callable(**kwargs)

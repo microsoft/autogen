@@ -67,7 +67,7 @@ class ToolCallEvent:
         *,
         tool_name: str,
         arguments: Dict[str, Any],
-        result: Any = None,
+        result: str | None = None,
         **kwargs: Any,
     ) -> None:
         """Used by subclasses of :class:`~autogen_core.tools.BaseTool` to log executions of tools.
@@ -75,7 +75,7 @@ class ToolCallEvent:
         Args:
             tool_name (str): The name of the tool.
             arguments (Dict[str, Any]): The arguments of the tool. Must be json serializable.
-            result (Any, optional): The result of the tool. Must be json serializable. Defaults to None.
+            result (str, optional): The result of the tool. Must be a string or None. Defaults to None.
 
         Example:
 

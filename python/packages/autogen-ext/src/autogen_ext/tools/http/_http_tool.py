@@ -1,16 +1,12 @@
-import logging
 import re
 from typing import Any, Literal, Optional, Type
 
 import httpx
-from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component
-from autogen_core.logging import ToolCallEvent
+from autogen_core import CancellationToken, Component
 from autogen_core.tools import BaseTool
 from json_schema_to_pydantic import create_model
 from pydantic import BaseModel, Field
 from typing_extensions import Self
-
-logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class HttpToolConfig(BaseModel):
@@ -228,15 +224,10 @@ class HttpTool(BaseTool[BaseModel, Any], Component[HttpToolConfig]):
                 case _:  # Default case POST
                     response = await client.post(url, headers=self.server_params.headers, json=model_dump)
 
-        result: Any = None
         match self.server_params.return_type:
             case "text":
-                result = response.text
+                return response.text
             case "json":
-                result = response.json()
+                return response.json()
             case _:
                 raise ValueError(f"Invalid return type: {self.server_params.return_type}")
-        # Log the event
-        event = ToolCallEvent(tool_name=self.name, arguments=args.model_dump(), result=result)
-        logger.info(event)
-        return result

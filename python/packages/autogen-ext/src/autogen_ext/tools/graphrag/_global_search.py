@@ -1,11 +1,9 @@
 # mypy: disable-error-code="no-any-unimported,misc"
-import logging
 from pathlib import Path
 
 import pandas as pd
 import tiktoken
-from autogen_core import EVENT_LOGGER_NAME, CancellationToken
-from autogen_core.logging import ToolCallEvent
+from autogen_core import CancellationToken
 from autogen_core.tools import BaseTool
 from graphrag.config.config_file_loader import load_config_from_file
 from graphrag.query.indexer_adapters import (
@@ -25,8 +23,6 @@ from ._config import MapReduceConfig
 
 _default_context_config = ContextConfig()
 _default_mapreduce_config = MapReduceConfig()
-
-logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class GlobalSearchToolArgs(BaseModel):
@@ -183,15 +179,7 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
     async def run(self, args: GlobalSearchToolArgs, cancellation_token: CancellationToken) -> GlobalSearchToolReturn:
         search_result = await self._search_engine.asearch(args.query)
         assert isinstance(search_result.response, str), "Expected response to be a string"
-        result = GlobalSearchToolReturn(answer=search_result.response)
-        # Log the event
-        event = ToolCallEvent(
-            tool_name=self.name,
-            arguments=args.model_dump(),
-            result=result.model_dump(),
-        )
-        logger.info(event)
-        return result
+        return GlobalSearchToolReturn(answer=search_result.response)
 
     @classmethod
     def from_settings(cls, settings_path: str | Path) -> "GlobalSearchTool":
