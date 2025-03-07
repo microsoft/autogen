@@ -772,6 +772,9 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
 
         yield result
 
+    async def close(self) -> None:
+        pass  # ollama has no close method?
+
     def actual_usage(self) -> RequestUsage:
         return self._actual_usage
 
