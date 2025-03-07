@@ -532,7 +532,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
         logger.info(
             LLMCallEvent(
-                messages=cast(Dict[str, Any], oai_messages),
+                messages=cast(List[Dict[str, Any]], oai_messages),
                 response=result.model_dump(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,

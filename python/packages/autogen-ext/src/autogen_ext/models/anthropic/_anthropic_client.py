@@ -504,7 +504,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
         logger.info(
             LLMCallEvent(
-                messages=cast(Dict[str, Any], anthropic_messages),
+                messages=cast(List[Dict[str, Any]], anthropic_messages),
                 response=result.model_dump(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
