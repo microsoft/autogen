@@ -26,7 +26,6 @@ from autogen_core import (
     Component,
     FunctionCall,
     Image,
-    MessageHandlerContext,
 )
 from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
@@ -483,19 +482,12 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             completion_tokens=(result.eval_count if result.eval_count is not None else 0),
         )
 
-        # If we are running in the context of a handler we can get the agent_id
-        try:
-            agent_id = MessageHandlerContext.agent_id()
-        except RuntimeError:
-            agent_id = None
-
         logger.info(
             LLMCallEvent(
-                messages=cast(Dict[str, Any], ollama_messages),
+                messages=cast(List[Dict[str, Any]], ollama_messages),
                 response=result.model_dump(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
-                agent_id=agent_id,
             )
         )
 

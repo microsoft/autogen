@@ -1,9 +1,11 @@
 import json
+import logging
 import warnings
 from typing import Any, Literal, Mapping, Optional, Sequence
 
-from autogen_core import FunctionCall
+from autogen_core import EVENT_LOGGER_NAME, FunctionCall
 from autogen_core._cancellation_token import CancellationToken
+from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
     ChatCompletionClient,
     CreateResult,
@@ -31,6 +33,8 @@ from typing_extensions import AsyncGenerator, Union
 from autogen_ext.tools.semantic_kernel import KernelFunctionFromTool
 
 from .._utils.parse_r1_content import parse_r1_content
+
+logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 class SKChatCompletionAdapter(ChatCompletionClient):
@@ -464,6 +468,15 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             usage = result[0].metadata["usage"]
             prompt_tokens = getattr(usage, "prompt_tokens", 0)
             completion_tokens = getattr(usage, "completion_tokens", 0)
+
+        logger.info(
+            LLMCallEvent(
+                messages=[msg.model_dump() for msg in chat_history],
+                response=result[0].model_dump(),
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+            )
+        )
 
         self._total_prompt_tokens += prompt_tokens
         self._total_completion_tokens += completion_tokens

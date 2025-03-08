@@ -1,3 +1,4 @@
+import logging
 import os
 from typing import Any, AsyncGenerator
 from unittest.mock import AsyncMock
@@ -335,7 +336,9 @@ async def test_sk_chat_completion_with_tools(sk_client: AzureChatCompletion) -> 
 
 
 @pytest.mark.asyncio
-async def test_sk_chat_completion_without_tools(sk_client: AzureChatCompletion) -> None:
+async def test_sk_chat_completion_without_tools(
+    sk_client: AzureChatCompletion, caplog: pytest.LogCaptureFixture
+) -> None:
     # Create adapter and kernel
     adapter = SKChatCompletionAdapter(sk_client)
     kernel = Kernel(memory=NullMemory())
@@ -346,15 +349,19 @@ async def test_sk_chat_completion_without_tools(sk_client: AzureChatCompletion) 
         UserMessage(content="Say hello!", source="user"),
     ]
 
-    # Call create without tools
-    result = await adapter.create(messages=messages, extra_create_args={"kernel": kernel})
+    with caplog.at_level(logging.INFO):
+        # Call create without tools
+        result = await adapter.create(messages=messages, extra_create_args={"kernel": kernel})
 
-    # Verify response
-    assert isinstance(result.content, str)
-    assert result.finish_reason == "stop"
-    assert result.usage.prompt_tokens >= 0
-    assert result.usage.completion_tokens >= 0
-    assert not result.cached
+        # Verify response
+        assert isinstance(result.content, str)
+        assert result.finish_reason == "stop"
+        assert result.usage.prompt_tokens >= 0
+        assert result.usage.completion_tokens >= 0
+        assert not result.cached
+
+        # Check log output
+        assert "LLMCall" in caplog.text and result.content in caplog.text
 
 
 @pytest.mark.asyncio
