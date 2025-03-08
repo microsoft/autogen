@@ -47,8 +47,10 @@ from autogen_agentchat.agents import AssistantAgent
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 
 async def main() -> None:
-    agent = AssistantAgent("assistant", OpenAIChatCompletionClient(model="gpt-4o"))
+    model_client = OpenAIChatCompletionClient(model="gpt-4o")
+    agent = AssistantAgent("assistant", model_client=model_client)
     print(await agent.run(task="Say 'Hello World!'"))
+    await model_client.close()
 
 asyncio.run(main())
 ```
@@ -85,6 +87,7 @@ async def main() -> None:
         await Console(team.run_stream(task="Find information about AutoGen and write a short summary."))
     finally:
         await web_surfer.close()
+        await model_client.close()
 
 asyncio.run(main())
 ```
