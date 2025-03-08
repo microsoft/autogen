@@ -189,12 +189,10 @@ class LangChainToolAdapter(BaseTool[BaseModel, Any]):
 
         # Determine if the callable is asynchronous
         if inspect.iscoroutinefunction(self._callable):
-            result = await self._callable(**kwargs)
+            return await self._callable(**kwargs)
         else:
             # Run in a thread to avoid blocking the event loop
-            result = await asyncio.to_thread(self._call_sync, kwargs)
-
-        return result
+            return await asyncio.to_thread(self._call_sync, kwargs)
 
     def _call_sync(self, kwargs: Dict[str, Any]) -> Any:
         return self._callable(**kwargs)

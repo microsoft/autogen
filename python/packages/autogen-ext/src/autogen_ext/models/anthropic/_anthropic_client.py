@@ -44,7 +44,6 @@ from autogen_core import (
     Component,
     FunctionCall,
     Image,
-    MessageHandlerContext,
 )
 from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
@@ -503,19 +502,12 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             completion_tokens=result.usage.output_tokens,
         )
 
-        # Log the event if in a handler context
-        try:
-            agent_id = MessageHandlerContext.agent_id()
-        except RuntimeError:
-            agent_id = None
-
         logger.info(
             LLMCallEvent(
-                messages=cast(Dict[str, Any], anthropic_messages),
+                messages=cast(List[Dict[str, Any]], anthropic_messages),
                 response=result.model_dump(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
-                agent_id=agent_id,
             )
         )
 
