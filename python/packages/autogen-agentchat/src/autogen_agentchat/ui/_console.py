@@ -5,10 +5,9 @@ import time
 from inspect import iscoroutinefunction
 from typing import AsyncGenerator, Awaitable, Callable, Dict, List, Optional, TypeVar, Union, cast
 
-from colorama import Fore, Style, init
-
 from autogen_core import CancellationToken, Image
 from autogen_core.models import RequestUsage
+from colorama import Fore, Style, init
 
 from autogen_agentchat.agents import UserProxyAgent
 from autogen_agentchat.base import Response, TaskResult
@@ -37,6 +36,7 @@ T = TypeVar("T", bound=TaskResult | Response)
 
 # Initialize colorama
 init(autoreset=True)
+
 
 class UserInputManager:
     def __init__(self, callback: InputFuncType):
@@ -79,7 +79,9 @@ class UserInputManager:
             self.input_events[request_id] = event
 
 
-def aprint(output: str, end: str = "\n", flush: bool = False, color_map=None, source:str="") -> Awaitable[None]:
+def aprint(
+    output: str, end: str = "\n", flush: bool = False, color_map: Optional[Dict[str, str]] = None, source: str = ""
+) -> Awaitable[None]:
     """
     Asynchronously print colored output based on the source.
 
@@ -92,10 +94,6 @@ def aprint(output: str, end: str = "\n", flush: bool = False, color_map=None, so
     Returns:
         Awaitable for the print operation
     """
-    # Define color mappings for different agent roles
-    if color_map is None:
-        color_map = {}
-
     # Determine the source identifier
     if isinstance(source, str):
         source_name = source.lower()
@@ -108,11 +106,12 @@ def aprint(output: str, end: str = "\n", flush: bool = False, color_map=None, so
 
     if color_map:
         # Select appropriate color based on source
-        color = Fore.WHITE  # Default color
+        color: str = Fore.WHITE  # Default color
         for role, role_color in color_map.items():
-            if role in source_name:
-                color = role_color
-                break
+            if isinstance(role, str) and isinstance(role_color, str):
+                if role in source_name:
+                    color = role_color
+                    break
 
         # Apply color to the output
         colored_output = f"{color}{output}{Style.RESET_ALL}"
@@ -122,13 +121,14 @@ def aprint(output: str, end: str = "\n", flush: bool = False, color_map=None, so
     # Run print asynchronously
     return asyncio.to_thread(print, colored_output, end=end, flush=flush)
 
+
 async def Console(
     stream: AsyncGenerator[AgentEvent | ChatMessage | T, None],
     *,
     no_inline_images: bool = False,
     output_stats: bool = False,
     user_input_manager: UserInputManager | None = None,
-    colormap=None,
+    colormap: Optional[Dict[str, str]] = None,
 ) -> T:
     """
     Consumes the message stream from :meth:`~autogen_agentchat.base.TaskRunner.run_stream`
@@ -140,7 +140,7 @@ async def Console(
             This can be from :meth:`~autogen_agentchat.base.TaskRunner.run_stream` or :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream`.
         no_inline_images (bool, optional): If terminal is iTerm2 will render images inline. Use this to disable this behavior. Defaults to False.
         output_stats (bool, optional): (Experimental) If True, will output a summary of the messages and inline token usage info. Defaults to False.
-        colormap: The color map for customizing the color of agent's messages in commandlines. Defaults to {}. The key is the agent's name, the value is the color at `colorama`.
+        colormap: The color map for customizing the color of agent's messages in commandlines. Defaults to {}. The key is the agent's name, the value is the color at `colorama`. None if no using default colors in commandlines.
               e.g.,  color_map = {
                 "critic": Fore.RED,
                 "writer": Fore.GREEN,
@@ -151,9 +151,6 @@ async def Console(
         last_processed: A :class:`~autogen_agentchat.base.TaskResult` if the stream is from :meth:`~autogen_agentchat.base.TaskRunner.run_stream`
             or a :class:`~autogen_agentchat.base.Response` if the stream is from :meth:`~autogen_agentchat.base.ChatAgent.on_messages_stream`.
     """
-    if colormap is None:
-        color_map = {}
-
     render_image_iterm = _is_running_in_iterm() and _is_output_a_tty() and not no_inline_images
     start_time = time.time()
     total_usage = RequestUsage(prompt_tokens=0, completion_tokens=0)
@@ -217,7 +214,13 @@ async def Console(
             message = cast(AgentEvent | ChatMessage, message)  # type: ignore
             if not streaming_chunks:
                 # Print message sender.
-                await aprint(f"{'-' * 10} {message.source} {'-' * 10}", end="\n", flush=True, color_map=colormap, source=message.source)
+                await aprint(
+                    f"{'-' * 10} {message.source} {'-' * 10}",
+                    end="\n",
+                    flush=True,
+                    color_map=colormap,
+                    source=message.source,
+                )
             if isinstance(message, ModelClientStreamingChunkEvent):
                 await aprint(message.content, end="", color_map=colormap, source=message.source)
                 streaming_chunks.append(message.content)
@@ -228,7 +231,13 @@ async def Console(
                     await aprint("", end="\n", flush=True, color_map=colormap, source=message.source)
                 else:
                     # Print message content.
-                    await aprint(_message_to_str(message, render_image_iterm=render_image_iterm), end="\n", flush=True, color_map=colormap, source=message.source)
+                    await aprint(
+                        _message_to_str(message, render_image_iterm=render_image_iterm),
+                        end="\n",
+                        flush=True,
+                        color_map=colormap,
+                        source=message.source,
+                    )
                 if message.models_usage:
                     if output_stats:
                         await aprint(
@@ -236,7 +245,7 @@ async def Console(
                             end="\n",
                             flush=True,
                             color_map=colormap,
-                            source=message.source
+                            source=message.source,
                         )
                     total_usage.completion_tokens += message.models_usage.completion_tokens
                     total_usage.prompt_tokens += message.models_usage.prompt_tokens
