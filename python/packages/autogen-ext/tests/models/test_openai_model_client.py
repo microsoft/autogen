@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 from typing import Annotated, Any, AsyncGenerator, Dict, List, Literal, Tuple, TypeVar
 from unittest.mock import MagicMock
@@ -222,11 +223,15 @@ async def test_azure_openai_chat_completion_client() -> None:
 
 
 @pytest.mark.asyncio
-async def test_openai_chat_completion_client_create(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_openai_chat_completion_client_create(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
-    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
-    result = await client.create(messages=[UserMessage(content="Hello", source="user")])
-    assert result.content == "Hello"
+    with caplog.at_level(logging.INFO):
+        client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
+        result = await client.create(messages=[UserMessage(content="Hello", source="user")])
+        assert result.content == "Hello"
+        assert "LLMCall" in caplog.text and "Hello" in caplog.text
 
 
 @pytest.mark.asyncio

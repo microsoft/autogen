@@ -1,10 +1,12 @@
 import asyncio
+import logging
 import re
 from asyncio import Task
 from inspect import getfullargspec
 from typing import Any, Dict, List, Mapping, Optional, Sequence, cast
 
-from autogen_core import CancellationToken, FunctionCall, Image
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken, FunctionCall, Image
+from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -61,6 +63,8 @@ from .._utils.parse_r1_content import parse_r1_content
 
 create_kwargs = set(getfullargspec(ChatCompletionsClient.complete).kwonlyargs)
 AzureMessage = Union[AzureSystemMessage, AzureUserMessage, AzureAssistantMessage, AzureToolMessage]
+
+logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 def _is_github_model(endpoint: str) -> bool:
@@ -339,6 +343,15 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             completion_tokens=result.usage.completion_tokens if result.usage else 0,
         )
 
+        logger.info(
+            LLMCallEvent(
+                messages=[m.as_dict() for m in azure_messages],
+                response=result.as_dict(),
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+            )
+        )
+
         choice = result.choices[0]
         if choice.finish_reason == CompletionsFinishReason.TOOL_CALLS:
             assert choice.message.tool_calls is not None
@@ -489,6 +502,9 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         self.add_usage(usage)
 
         yield result
+
+    async def close(self) -> None:
+        await self._client.close()
 
     def actual_usage(self) -> RequestUsage:
         return self._actual_usage
