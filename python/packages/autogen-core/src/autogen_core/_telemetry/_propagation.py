@@ -1,9 +1,10 @@
 from dataclasses import dataclass
-from typing import Dict, Mapping, Optional
+from typing import Dict, Mapping, Optional, Sequence
 
-from opentelemetry.context import Context
+from opentelemetry.context import Context,
 from opentelemetry.propagate import extract
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
+from opentelemetry.trace import Link
 
 
 @dataclass(kw_only=True)
@@ -12,6 +13,7 @@ class EnvelopeMetadata:
 
     traceparent: Optional[str] = None
     tracestate: Optional[str] = None
+    links: Optional[Sequence[Link]] = None
 
 
 def _get_carrier_for_envelope_metadata(envelope_metadata: EnvelopeMetadata) -> Dict[str, str]:
@@ -95,3 +97,23 @@ def get_telemetry_context(metadata: TelemetryMetadataContainer) -> Context:
         return extract(_get_carrier_for_remote_call_metadata(metadata))
     else:
         raise ValueError(f"Unknown metadata type: {type(metadata)}")
+
+
+def get_telemetry_links(
+    metadata: TelemetryMetadataContainer,
+) -> Optional[Sequence[Link]]:
+    """
+    Retrieves the telemetry links from the given metadata.
+
+    Args:
+        metadata (Optional[EnvelopeMetadata]): The metadata containing the telemetry links.
+
+    Returns:
+        Optional[Sequence[Link]]: The telemetry links extracted from the metadata, or None if there are no links.
+    """
+    if metadata is None:
+        return None
+    elif isinstance(metadata, EnvelopeMetadata):
+        return metadata.links
+    else:
+        return None
