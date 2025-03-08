@@ -67,7 +67,6 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
 
                 if result.isError:
                     raise Exception(f"MCP tool execution failed: {result.content}")
-
                 return result.content
         except Exception as e:
             raise Exception(str(e)) from e

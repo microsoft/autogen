@@ -1,3 +1,4 @@
+import logging
 from typing import Optional, Type, cast
 
 import pytest
@@ -42,7 +43,7 @@ class CustomCalculatorTool(LangChainTool):
 
 
 @pytest.mark.asyncio
-async def test_langchain_tool_adapter() -> None:
+async def test_langchain_tool_adapter(caplog: pytest.LogCaptureFixture) -> None:
     # Create a LangChain tool
     langchain_tool = add  # type: ignore
 
@@ -66,9 +67,12 @@ async def test_langchain_tool_adapter() -> None:
     assert set(schema["parameters"]["required"]) == {"a", "b"}
     assert len(schema["parameters"]["properties"]) == 2
 
-    # Test run method
-    result = await adapter.run_json({"a": 2, "b": 3}, CancellationToken())
-    assert result == 5
+    # Check log.
+    with caplog.at_level(logging.INFO):
+        # Test run method
+        result = await adapter.run_json({"a": 2, "b": 3}, CancellationToken())
+        assert result == 5
+        assert str(result) in caplog.text
 
     # Test that the adapter's run method can be called multiple times
     result = await adapter.run_json({"a": 5, "b": 7}, CancellationToken())
