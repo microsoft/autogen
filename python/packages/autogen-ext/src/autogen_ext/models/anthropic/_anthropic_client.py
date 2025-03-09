@@ -910,16 +910,23 @@ class AnthropicChatCompletionClient(
 
     .. code-block:: python
 
+        import asyncio
         from autogen_ext.models.anthropic import AnthropicChatCompletionClient
         from autogen_core.models import UserMessage
 
-        anthropic_client = AnthropicChatCompletionClient(
-            model="claude-3-sonnet-20240229",
-            api_key="your-api-key",  # Optional if ANTHROPIC_API_KEY is set in environment
-        )
 
-        result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])
-        print(result)
+        async def main():
+            anthropic_client = AnthropicChatCompletionClient(
+                model="claude-3-sonnet-20240229",
+                api_key="your-api-key",  # Optional if ANTHROPIC_API_KEY is set in environment
+            )
+
+            result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
+            print(result)
+
+
+        if __name__ == "__main__":
+            asyncio.run(main())
 
     To load the client from a configuration:
 
@@ -933,25 +940,6 @@ class AnthropicChatCompletionClient(
         }
 
         client = ChatCompletionClient.load_component(config)
-
-    The client supports function calling with Claude models that have the capability:
-
-    .. code-block:: python
-
-        from autogen_core.tools import FunctionTool
-
-
-        def get_weather(location: str) -> str:
-            '''Get the weather for a location'''
-            return f"The weather in {location} is sunny."
-
-
-        tool = FunctionTool(get_weather)
-
-        result = await anthropic_client.create(
-            [UserMessage(content="What's the weather in Paris?", source="user")],
-            tools=[tool],
-        )
     """
 
     component_type = "model"
