@@ -158,6 +158,8 @@ def lang_to_cmd(lang: str) -> str:
         return lang
     if lang in ["shell"]:
         return "sh"
+    if lang in ["pwsh", "powershell", "ps1"]:
+        return "pwsh"
     else:
         raise ValueError(f"Unsupported language: {lang}")
 
