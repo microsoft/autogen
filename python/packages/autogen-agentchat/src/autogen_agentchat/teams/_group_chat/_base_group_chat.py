@@ -44,7 +44,10 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
 
     def __init__(
         self,
-        participants: List[ChatAgent],
+        *,
+        name: str,
+        description: str,
+        participants: List[ChatAgent | Team],
         group_chat_manager_name: str,
         group_chat_manager_class: type[SequentialRoutedAgent],
         termination_condition: TerminationCondition | None = None,
@@ -55,6 +58,8 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             raise ValueError("At least one participant is required.")
         if len(participants) != len(set(participant.name for participant in participants)):
             raise ValueError("The participant names must be unique.")
+        self._name = name
+        self._description = description
         self._participants = participants
         self._base_group_chat_manager_class = group_chat_manager_class
         self._termination_condition = termination_condition
@@ -103,6 +108,16 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         # Flag to track if the group chat is running.
         self._is_running = False
 
+    @property
+    def name(self) -> str:
+        """The name of the group chat."""
+        return self._name
+
+    @property
+    def description(self) -> str:
+        """The description of the group chat."""
+        return self._description
+
     @abstractmethod
     def _create_group_chat_manager_factory(
         self,
@@ -121,7 +136,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         self,
         parent_topic_type: str,
         output_topic_type: str,
-        agent: ChatAgent,
+        agent: ChatAgent | Team,
     ) -> Callable[[], ChatAgentContainer]:
         def _factory() -> ChatAgentContainer:
             container = ChatAgentContainer(parent_topic_type, output_topic_type, agent)

@@ -10,7 +10,7 @@ from typing_extensions import Self
 
 from ... import TRACE_LOGGER_NAME
 from ...agents import BaseChatAgent
-from ...base import ChatAgent, TerminationCondition
+from ...base import ChatAgent, Team, TerminationCondition
 from ...messages import (
     AgentEvent,
     BaseAgentEvent,
@@ -398,11 +398,16 @@ class SelectorGroupChat(BaseGroupChat, Component[SelectorGroupChatConfig]):
     component_config_schema = SelectorGroupChatConfig
     component_provider_override = "autogen_agentchat.teams.SelectorGroupChat"
 
+    DEFAULT_NAME = "SelectorGroupChat"
+    DEFAULT_DESCRIPTION = "A team of agents."
+
     def __init__(
         self,
-        participants: List[ChatAgent],
+        participants: List[ChatAgent | Team],
         model_client: ChatCompletionClient,
         *,
+        name: str = DEFAULT_NAME,
+        description: str = DEFAULT_DESCRIPTION,
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
@@ -419,7 +424,9 @@ Read the above conversation. Then select the next role from {participants} to pl
         selector_func: Callable[[Sequence[AgentEvent | ChatMessage]], str | None] | None = None,
     ):
         super().__init__(
-            participants,
+            name=name,
+            description=description,
+            participants=participants,
             group_chat_manager_name="SelectorGroupChatManager",
             group_chat_manager_class=SelectorGroupChatManager,
             termination_condition=termination_condition,

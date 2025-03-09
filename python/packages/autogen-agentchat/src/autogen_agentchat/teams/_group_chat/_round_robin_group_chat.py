@@ -5,7 +5,7 @@ from autogen_core import AgentRuntime, Component, ComponentModel
 from pydantic import BaseModel
 from typing_extensions import Self
 
-from ...base import ChatAgent, TerminationCondition
+from ...base import ChatAgent, Team, TerminationCondition
 from ...messages import AgentEvent, ChatMessage
 from ...state import RoundRobinManagerState
 from ._base_group_chat import BaseGroupChat
@@ -156,17 +156,23 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
     component_config_schema = RoundRobinGroupChatConfig
     component_provider_override = "autogen_agentchat.teams.RoundRobinGroupChat"
 
-    # TODO: Add * to the constructor to separate the positional parameters from the kwargs.
-    # This may be a breaking change so let's wait until a good time to do it.
+    DEFAULT_NAME = "RoundRobinGroupChat"
+    DEFAULT_DESCRIPTION = "A team of agents."
+
     def __init__(
         self,
-        participants: List[ChatAgent],
+        participants: List[ChatAgent | Team],
+        *,
+        name: str = DEFAULT_NAME,
+        description: str = DEFAULT_DESCRIPTION,
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
     ) -> None:
         super().__init__(
-            participants,
+            name=name,
+            description=description,
+            participants=participants,
             group_chat_manager_name="RoundRobinGroupChatManager",
             group_chat_manager_class=RoundRobinGroupChatManager,
             termination_condition=termination_condition,
@@ -212,7 +218,12 @@ class RoundRobinGroupChat(BaseGroupChat, Component[RoundRobinGroupChatConfig]):
 
     @classmethod
     def _from_config(cls, config: RoundRobinGroupChatConfig) -> Self:
-        participants = [ChatAgent.load_component(participant) for participant in config.participants]
+        participants: List[Team | ChatAgent] = []
+        for participant in config.participants:
+            if participant.component_type == Team.component_type:
+                participants.append(Team.load_component(participant))
+            else:
+                participants.append(ChatAgent.load_component(participant))
         termination_condition = (
             TerminationCondition.load_component(config.termination_condition) if config.termination_condition else None
         )
