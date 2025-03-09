@@ -388,7 +388,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                 await (await self._get_agent(agent_id)).load_state(state[str(agent_id)])
 
     async def _process_send(self, message_envelope: SendMessageEnvelope) -> None:
-        with self._tracer_helper.trace_block("send", message_envelope.recipient, parent=None):
+        with self._tracer_helper.trace_block("send", message_envelope.recipient, parent=message_envelope.metadata):
             recipient = message_envelope.recipient
 
             if recipient.type not in self._known_agent_names:
@@ -417,7 +417,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     cancellation_token=message_envelope.cancellation_token,
                     message_id=message_envelope.message_id,
                 )
-                with self._tracer_helper.trace_block("process", recipient_agent.id, parent=None):
+                with self._tracer_helper.trace_block("process", recipient_agent.id, parent=message_envelope.metadata):
                     with MessageHandlerContext.populate_context(recipient_agent.id):
                         response = await recipient_agent.on_message(
                             message_envelope.message,
@@ -469,7 +469,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             self._message_queue.task_done()
 
     async def _process_publish(self, message_envelope: PublishMessageEnvelope) -> None:
-        with self._tracer_helper.trace_block("publish", message_envelope.topic_id, parent=None):
+        with self._tracer_helper.trace_block("publish", message_envelope.topic_id, parent=message_envelope.metadata):
             try:
                 responses: List[Awaitable[Any]] = []
                 recipients = await self._subscription_manager.get_subscribed_recipients(message_envelope.topic_id)
@@ -504,7 +504,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     agent = await self._get_agent(agent_id)
 
                     async def _on_message(agent: Agent, message_context: MessageContext) -> Any:
-                        with self._tracer_helper.trace_block("process", agent.id, parent=None):
+                        with self._tracer_helper.trace_block("process", agent.id, parent=message_envelope.metadata):
                             with MessageHandlerContext.populate_context(agent.id):
                                 try:
                                     return await agent.on_message(

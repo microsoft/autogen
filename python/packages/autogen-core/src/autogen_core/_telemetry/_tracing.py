@@ -66,7 +66,7 @@ class TraceHelper(Generic[Operation, Destination, ExtraAttributes]):
         span_name = self.instrumentation_builder_config.get_span_name(operation, destination)
         span_kind = kind or self.instrumentation_builder_config.get_span_kind(operation)
         # context = get_telemetry_context(parent) if parent else None
-        context = None
+        context = None # TODO: we may need to remove other code for using custom context.
         links = get_telemetry_links(parent) if parent else None
         attributes_with_defaults: Dict[str, types.AttributeValue] = {}
         for key, value in (attributes or {}).items():

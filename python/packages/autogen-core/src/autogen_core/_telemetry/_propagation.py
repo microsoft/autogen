@@ -1,10 +1,10 @@
 from dataclasses import dataclass
 from typing import Dict, Mapping, Optional, Sequence
 
-from opentelemetry.context import Context,
+from opentelemetry.context import Context
 from opentelemetry.propagate import extract
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
-from opentelemetry.trace import Link
+from opentelemetry.trace import Link, get_current_span
 
 
 @dataclass(kw_only=True)
@@ -114,6 +114,14 @@ def get_telemetry_links(
     if metadata is None:
         return None
     elif isinstance(metadata, EnvelopeMetadata):
-        return metadata.links
+        context = extract(_get_carrier_for_envelope_metadata(metadata))
+    elif hasattr(metadata, "__getitem__"):
+        context = extract(_get_carrier_for_remote_call_metadata(metadata))
     else:
         return None
+    # Retrieve the extracted SpanContext from the context.
+    linked_span = get_current_span(context)
+    # Use the linked span to get the SpanContext.
+    span_context = linked_span.get_span_context()
+    # Create a Link object using the SpanContext.
+    return [Link(span_context)]
