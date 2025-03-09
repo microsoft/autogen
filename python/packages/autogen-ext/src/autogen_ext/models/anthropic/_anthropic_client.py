@@ -921,7 +921,7 @@ class AnthropicChatCompletionClient(
                 api_key="your-api-key",  # Optional if ANTHROPIC_API_KEY is set in environment
             )
 
-            result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])
+            result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")]) # type: ignore
             print(result)
 
 
