@@ -1,4 +1,5 @@
 import json
+import os
 import traceback
 from typing import List, Sequence, Tuple
 
@@ -75,11 +76,12 @@ class FileSurfer(BaseChatAgent, Component[FileSurferConfig]):
         name: str,
         model_client: ChatCompletionClient,
         description: str = DEFAULT_DESCRIPTION,
+        work_dir: str = os.getcwd(),
     ) -> None:
         super().__init__(name, description)
         self._model_client = model_client
         self._chat_history: List[LLMMessage] = []
-        self._browser = MarkdownFileBrowser(viewport_size=1024 * 5)
+        self._browser = MarkdownFileBrowser(viewport_size=1024 * 5, base_path=work_dir)
 
     @property
     def produced_message_types(self) -> Sequence[type[ChatMessage]]:
