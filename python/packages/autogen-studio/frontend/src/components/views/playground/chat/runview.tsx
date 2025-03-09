@@ -27,7 +27,7 @@ interface RunViewProps {
   onCancel?: () => void;
   isFirstRun?: boolean;
   streamingContent?: {
-    runId: string;
+    runId: number;
     content: string;
     source: string;
   } | null;
@@ -100,18 +100,18 @@ const RunView: React.FC<RunViewProps> = ({
   const [isExpanded, setIsExpanded] = useState(true);
   const threadContainerRef = useRef<HTMLDivElement | null>(null);
   const isActive = run.status === "active" || run.status === "awaiting_input";
-  const [isFlowVisible, setIsFlowVisible] = useState(true);
 
-  const showLLMEvents = useSettingsStore(
-    (state) => state.playground.showLLMEvents
+  const { uiSettings } = useSettingsStore();
+  const [isFlowVisible, setIsFlowVisible] = useState(
+    uiSettings.show_agent_flow_by_default ?? true
   );
 
   const visibleMessages = useMemo(() => {
-    if (showLLMEvents) {
+    if (uiSettings.show_llm_call_events) {
       return run.messages;
     }
     return run.messages.filter((msg) => msg.config.source !== "llm_call_event");
-  }, [run.messages, showLLMEvents]);
+  }, [run.messages, uiSettings.show_llm_call_events]);
 
   // Replace existing scroll effect with this simpler one
   useEffect(() => {
@@ -211,8 +211,7 @@ const RunView: React.FC<RunViewProps> = ({
             }
           >
             <span className="cursor-help">
-              Run ...{run.id.slice(-6)} |{" "}
-              {getRelativeTimeString(run?.created_at || "")}{" "}
+              Run ...{run.id} | {getRelativeTimeString(run?.created_at || "")}{" "}
             </span>
           </Tooltip>
           {!isFirstRun && (

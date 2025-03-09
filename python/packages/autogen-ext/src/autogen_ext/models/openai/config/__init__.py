@@ -10,6 +10,10 @@ class ResponseFormat(TypedDict):
     type: Literal["text", "json_object"]
 
 
+class StreamOptions(TypedDict):
+    include_usage: bool
+
+
 class CreateArguments(TypedDict, total=False):
     frequency_penalty: Optional[float]
     logit_bias: Optional[Dict[str, int]]
@@ -22,6 +26,7 @@ class CreateArguments(TypedDict, total=False):
     temperature: Optional[float]
     top_p: Optional[float]
     user: str
+    stream_options: Optional[StreamOptions]
 
 
 AsyncAzureADTokenProvider = Callable[[], Union[str, Awaitable[str]]]
@@ -67,6 +72,7 @@ class CreateArgumentsConfigModel(BaseModel):
     temperature: float | None = None
     top_p: float | None = None
     user: str | None = None
+    stream_options: StreamOptions | None = None
 
 
 class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):

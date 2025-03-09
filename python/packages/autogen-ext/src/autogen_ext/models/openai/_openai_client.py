@@ -29,7 +29,6 @@ from autogen_core import (
     Component,
     FunctionCall,
     Image,
-    MessageHandlerContext,
 )
 from autogen_core.logging import LLMCallEvent
 from autogen_core.models import (
@@ -37,7 +36,6 @@ from autogen_core.models import (
     ChatCompletionClient,
     ChatCompletionTokenLogprob,
     CreateResult,
-    FinishReasons,
     FunctionExecutionResultMessage,
     LLMMessage,
     ModelCapabilities,  # type: ignore
@@ -75,6 +73,7 @@ from openai.types.shared_params import FunctionDefinition, FunctionParameters
 from pydantic import BaseModel
 from typing_extensions import Self, Unpack
 
+from .._utils.normalize_stop_reason import normalize_stop_reason
 from .._utils.parse_r1_content import parse_r1_content
 from . import _model_info
 from .config import (
@@ -349,25 +348,6 @@ def assert_valid_name(name: str) -> str:
     return name
 
 
-def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
-    if stop_reason is None:
-        return "unknown"
-
-    # Convert to lower case
-    stop_reason = stop_reason.lower()
-
-    KNOWN_STOP_MAPPINGS: Dict[str, FinishReasons] = {
-        "stop": "stop",
-        "length": "length",
-        "content_filter": "content_filter",
-        "function_calls": "function_calls",
-        "end_turn": "stop",
-        "tool_calls": "function_calls",
-    }
-
-    return KNOWN_STOP_MAPPINGS.get(stop_reason, "unknown")
-
-
 class BaseOpenAIChatCompletionClient(ChatCompletionClient):
     def __init__(
         self,
@@ -550,19 +530,12 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             completion_tokens=(result.usage.completion_tokens if result.usage is not None else 0),
         )
 
-        # If we are running in the context of a handler we can get the agent_id
-        try:
-            agent_id = MessageHandlerContext.agent_id()
-        except RuntimeError:
-            agent_id = None
-
         logger.info(
             LLMCallEvent(
-                messages=cast(Dict[str, Any], oai_messages),
+                messages=cast(List[Dict[str, Any]], oai_messages),
                 response=result.model_dump(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
-                agent_id=agent_id,
             )
         )
 
@@ -963,6 +936,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 except StopAsyncIteration:
                     break
 
+    async def close(self) -> None:
+        await self._client.close()
+
     def actual_usage(self) -> RequestUsage:
         return self._actual_usage
 
@@ -1112,6 +1088,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             "this is content" becomes "Reviewer said: this is content."
             This can be useful for models that do not support the `name` field in
             message. Defaults to False.
+        stream_options (optional, dict): Additional options for streaming. Currently only `include_usage` is supported.
 
     Examples:
 
@@ -1213,7 +1190,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                         UserMessage(content="I am happy.", source="user"),
                         AssistantMessage(content=response1.content, source="assistant"),
                         FunctionExecutionResultMessage(
-                            content=[FunctionExecutionResult(content="happy", call_id=response1.content[0].id, is_error=False)]
+                            content=[FunctionExecutionResult(content="happy", call_id=response1.content[0].id, is_error=False, name="sentiment_analysis")]
                         ),
                     ],
                 )

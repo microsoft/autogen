@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 from datetime import datetime
 from typing import Any, AsyncGenerator, List
@@ -170,9 +171,13 @@ async def test_azure_ai_chat_completion_client(azure_client: AzureAIChatCompleti
 
 
 @pytest.mark.asyncio
-async def test_azure_ai_chat_completion_client_create(azure_client: AzureAIChatCompletionClient) -> None:
-    result = await azure_client.create(messages=[UserMessage(content="Hello", source="user")])
-    assert result.content == "Hello"
+async def test_azure_ai_chat_completion_client_create(
+    azure_client: AzureAIChatCompletionClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    with caplog.at_level(logging.INFO):
+        result = await azure_client.create(messages=[UserMessage(content="Hello", source="user")])
+        assert result.content == "Hello"
+        assert "LLMCall" in caplog.text and "Hello" in caplog.text
 
 
 @pytest.mark.asyncio

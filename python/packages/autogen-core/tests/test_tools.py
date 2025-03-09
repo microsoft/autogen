@@ -1,4 +1,5 @@
 import inspect
+from dataclasses import dataclass
 from functools import partial
 from typing import Annotated, List
 
@@ -7,7 +8,7 @@ from autogen_core import CancellationToken
 from autogen_core._function_utils import get_typed_signature
 from autogen_core.tools import BaseTool, FunctionTool
 from autogen_core.tools._base import ToolSchema
-from pydantic import BaseModel, Field, model_serializer
+from pydantic import BaseModel, Field, ValidationError, model_serializer
 from pydantic_core import PydanticUndefined
 
 
@@ -527,3 +528,64 @@ def test_nested_tool_properties() -> None:
     assert tool.args_type() == MyNestedArgs
     assert tool.return_type() == MyResult
     assert tool.state_type() is None
+
+
+# --- Define a sample Pydantic model and tool function ---
+
+
+class AddInput(BaseModel):
+    x: int
+    y: int
+
+
+def add_tool(input: AddInput) -> int:
+    return input.x + input.y
+
+
+@pytest.mark.asyncio
+async def test_func_tool_with_pydantic_model_conversion_success() -> None:
+    tool = FunctionTool(add_tool, description="Tool to add two numbers.")
+    test_input = {"input": {"x": 2, "y": 3}}
+    result = await tool.run_json(test_input, CancellationToken())
+
+    assert result == 5
+    assert tool.return_value_as_string(result) == "5"
+
+
+@pytest.mark.asyncio
+async def test_func_tool_with_pydantic_model_conversion_failure() -> None:
+    tool = FunctionTool(add_tool, description="Tool to add two numbers.")
+    test_input = {"input": {"x": 2}}
+
+    with pytest.raises(ValidationError, match="Field required"):
+        await tool.run_json(test_input, CancellationToken())
+
+
+# --- Additional test using a dataclass ---
+@dataclass
+class MultiplyInput:
+    a: int
+    b: int
+
+
+def multiply_tool(input: MultiplyInput) -> int:
+    return input.a * input.b
+
+
+@pytest.mark.asyncio
+async def test_func_tool_with_dataclass_conversion_success() -> None:
+    tool = FunctionTool(multiply_tool, description="Tool to multiply two numbers.")
+    test_input = {"input": {"a": 4, "b": 5}}
+    result = await tool.run_json(test_input, CancellationToken())
+    assert result == 20
+    assert tool.return_value_as_string(result) == "20"
+
+
+@pytest.mark.asyncio
+async def test_func_tool_with_dataclass_conversion_failure() -> None:
+    tool = FunctionTool(multiply_tool, description="Tool to multiply two numbers.")
+    # Missing field 'b'
+    test_input = {"input": {"a": 4}}
+
+    with pytest.raises(ValidationError, match="Field required"):
+        await tool.run_json(test_input, CancellationToken())

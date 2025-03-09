@@ -84,23 +84,42 @@ public class AgentChatSmokeTest
         }
     }
 
-    [Fact]
-    public async Task Test_RoundRobin_SpeakAndTerminating()
+    private ValueTask<TaskResult> RunChatAsync(TerminatingAgent terminatingAgent, out ITeam chat)
     {
-        TerminatingAgent terminatingAgent = new("Terminate", "Terminate");
-
-        ITeam chat = new RoundRobinGroupChat(
+        chat = new RoundRobinGroupChat(
             [
                 new SpeakMessageAgent("Speak", "Speak", "Hello"),
                 terminatingAgent
             ],
             terminationCondition: new StopMessageTermination());
 
-        TaskResult result = await chat.RunAsync("");
+        return chat.RunAsync("");
+    }
+
+    [Fact]
+    public async Task Test_RoundRobin_SpeakAndTerminating()
+    {
+        TerminatingAgent terminatingAgent = new("Terminate", "Terminate");
+
+        TaskResult result = await this.RunChatAsync(terminatingAgent, out _);
 
         Assert.Equal(3, result.Messages.Count);
         Assert.Equal("", Assert.IsType<TextMessage>(result.Messages[0]).Content);
         Assert.Equal("Hello", Assert.IsType<TextMessage>(result.Messages[1]).Content);
         Assert.Equal("Terminating; got: Hello", Assert.IsType<StopMessage>(result.Messages[2]).Content);
+    }
+
+    [Fact]
+    public async Task Test_RoundRobin_SpeakTerminateReset()
+    {
+        TerminatingAgent terminatingAgent = new("Terminate", "Terminate");
+
+        await this.RunChatAsync(terminatingAgent, out ITeam chat);
+
+        Assert.NotNull(terminatingAgent.IncomingMessages);
+
+        await chat.ResetAsync();
+
+        Assert.Null(terminatingAgent.IncomingMessages);
     }
 }
