@@ -11,7 +11,7 @@ from azure.identity import DefaultAzureCredential, get_bearer_token_provider
 
 def load_config(file_path: str = os.path.join(os.path.dirname(__file__), "config.yaml")) -> AppConfig:
     model_client = {}
-    with open(file_path, "r") as file:
+    with open(file_path, "r",encoding='utf-8') as file:
         config_data = yaml.safe_load(file)
         model_client = config_data["client_config"]
         del config_data["client_config"]

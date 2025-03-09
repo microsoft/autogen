@@ -403,5 +403,5 @@ if __name__ == "__main__":
     gallery = create_default_gallery()
 
     # Save to file
-    with open("gallery_default.json", "w") as f:
+    with open("gallery_default.json", "w",encoding='utf-8') as f:
         f.write(gallery.model_dump_json(indent=2))

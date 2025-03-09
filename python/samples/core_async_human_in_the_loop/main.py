@@ -333,7 +333,7 @@ if __name__ == "__main__":
     # if os.path.exists("state.json"):
     #     os.remove("state.json")
 
-    with open("model_config.yml") as f:
+    with open("model_config.yml",encoding='utf-8') as f:
         model_config = yaml.safe_load(f)
 
     def get_user_input(question_for_user: str):

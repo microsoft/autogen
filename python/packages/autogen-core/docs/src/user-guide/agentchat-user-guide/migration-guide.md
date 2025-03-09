@@ -459,11 +459,11 @@ async def main() -> None:
     state = await assistant.save_state()
 
     # (Optional) Write state to disk.
-    with open("assistant_state.json", "w") as f:
+    with open("assistant_state.json", "w",encoding='utf-8') as f:
         json.dump(state, f)
 
     # (Optional) Load it back from disk.
-    with open("assistant_state.json", "r") as f:
+    with open("assistant_state.json", "r",encoding='utf-8') as f:
         state = json.load(f)
         print(state) # Inspect the state, which contains the chat history.
 
@@ -937,14 +937,14 @@ async def main() -> None:
 
     # Save the state of the group chat and all participants.
     state = await group_chat.save_state()
-    with open("group_chat_state.json", "w") as f:
+    with open("group_chat_state.json", "w",encoding='utf-8') as f:
         json.dump(state, f)
 
     # Create a new team with the same participants configuration.
     group_chat = create_team()
 
     # Load the state of the group chat and all participants.
-    with open("group_chat_state.json", "r") as f:
+    with open("group_chat_state.json", "r",encoding='utf-8') as f:
         state = json.load(f)
     await group_chat.load_state(state)
 
