@@ -357,16 +357,13 @@ $functions"""
             # Build environment
             env = os.environ.copy()
             if self._virtual_env_context:
-                virtual_env_exe_abs_path = os.path.abspath(self._virtual_env_context.env_exe)
                 virtual_env_bin_abs_path = os.path.abspath(self._virtual_env_context.bin_path)
                 env["PATH"] = f"{virtual_env_bin_abs_path}{os.pathsep}{env['PATH']}"
 
             # Decide how to invoke the script
             if lang == "python":
                 program = (
-                    self._virtual_env_context.env_exe
-                    if self._virtual_env_context
-                    else sys.executable
+                    os.path.abspath(self._virtual_env_context.env_exe) if self._virtual_env_context else sys.executable
                 )
                 extra_args = [str(written_file.absolute())]
             elif lang in {"pwsh", "powershell", "ps1"}:
