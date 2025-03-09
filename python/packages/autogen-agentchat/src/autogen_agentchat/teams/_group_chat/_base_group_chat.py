@@ -590,6 +590,12 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             portable across different teams and runtimes. States saved with the old format
             may not be compatible with the new format in the future.
 
+        .. caution::
+
+            When calling :func:`~autogen_agentchat.teams.BaseGroupChat.save_state` on a team
+            while it is running, the state may not be consistent and may result in an unexpected state.
+            It is recommended to call this method when the team is not running or after it is stopped.
+
         """
         if not self._initialized:
             await self._init(self._runtime)
