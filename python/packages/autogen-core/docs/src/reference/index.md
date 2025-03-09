@@ -51,6 +51,7 @@ python/autogen_ext.models.cache
 python/autogen_ext.models.openai
 python/autogen_ext.models.replay
 python/autogen_ext.models.azure
+python/autogen_ext.models.anthropic
 python/autogen_ext.models.semantic_kernel
 python/autogen_ext.models.ollama
 python/autogen_ext.tools.code_execution
