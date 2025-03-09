@@ -203,3 +203,24 @@ def test_serialize_deserialize() -> None:
         executor_config = executor.dump_component()
         loaded_executor = LocalCommandLineCodeExecutor.load_component(executor_config)
         assert executor.work_dir == loaded_executor.work_dir
+
+
+@pytest.mark.asyncio
+@pytest.mark.skipif(
+    shutil.which("powershell") is None and shutil.which("pwsh") is None,
+    reason="No PowerShell interpreter (powershell or pwsh) found on this environment.",
+)
+@pytest.mark.parametrize("executor_and_temp_dir", ["local"], indirect=True)
+async def test_ps1_script(executor_and_temp_dir: ExecutorFixture) -> None:
+    """
+    Test execution of a simple PowerShell script.
+    This test is skipped if powershell/pwsh is not installed.
+    """
+    executor, _ = executor_and_temp_dir
+    cancellation_token = CancellationToken()
+    code = 'Write-Host "hello from powershell!"'
+    code_blocks = [CodeBlock(code=code, language="powershell")]
+    result = await executor.execute_code_blocks(code_blocks, cancellation_token)
+    assert result.exit_code == 0
+    assert "hello from powershell!" in result.output
+    assert result.code_file is not None
