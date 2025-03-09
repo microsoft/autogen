@@ -11,6 +11,8 @@ namespace Microsoft.AutoGen.Contracts;
 /// </summary>
 public interface ISaveState
 {
+    public static ValueTask<JsonElement> DefaultSaveStateAsync() => new(JsonDocument.Parse("{}").RootElement);
+
     /// <summary>
     /// Saves the current state of the object.
     /// </summary>
@@ -19,10 +21,7 @@ public interface ISaveState
     /// containing the saved state. The structure of the state is implementation-defined
     /// but must be JSON serializable.
     /// </returns>
-    public virtual ValueTask<JsonElement> SaveStateAsync()
-    {
-        return new ValueTask<JsonElement>(JsonDocument.Parse("{}").RootElement);
-    }
+    public virtual ValueTask<JsonElement> SaveStateAsync() => DefaultSaveStateAsync();
 
     /// <summary>
     /// Loads a previously saved state into the object.
@@ -32,9 +31,6 @@ public interface ISaveState
     /// is implementation-defined but must be JSON serializable.
     /// </param>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public virtual ValueTask LoadStateAsync(JsonElement state)
-    {
-        return ValueTask.CompletedTask;
-    }
+    public virtual ValueTask LoadStateAsync(JsonElement state) => ValueTask.CompletedTask;
 }
 

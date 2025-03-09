@@ -33,7 +33,7 @@ public abstract class GroupChatManagerBase : IGroupChatHandler
     protected ITerminationCondition? TerminationCondition => this.options.TerminationCondition;
     protected int? MaxTurns => this.options.MaxTurns;
 
-    private int CurrentTurn { get; set; }
+    protected int CurrentTurn { get; set; }
 
     protected List<AgentMessage> MessageThread;
 
@@ -182,6 +182,6 @@ public abstract class GroupChatManagerBase : IGroupChatHandler
 
     public ValueTask HandleAsync(object item, MessageContext messageContext)
     {
-        throw new InvalidOperationException($"Unhandled message in group chat manager: {item.GetType()}");
+        throw new NotImplementedException();
     }
 }

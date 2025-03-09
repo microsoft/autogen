@@ -42,6 +42,6 @@ public interface IHostableAgent : IAgent
     /// Called when the runtime is closing.
     /// </summary>
     /// <returns>A task representing the asynchronous operation.</returns>
-    public ValueTask CloseAsync() => ValueTask.CompletedTask;
+    public ValueTask CloseAsync();
 }
 

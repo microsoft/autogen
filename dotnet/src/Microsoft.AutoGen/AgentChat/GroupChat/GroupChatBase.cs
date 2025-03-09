@@ -4,7 +4,9 @@
 using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Microsoft.AutoGen.AgentChat.Abstractions;
+using Microsoft.AutoGen.AgentChat.State;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 
@@ -159,6 +161,8 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
             await this.Runtime.RegisterOutputCollectorAsync(this.OutputSink, this.GroupChat.GroupChatOptions.OutputTopicType);
         }
 
+        public bool HasRunOnce => this.InitOnceTask != null;
+
         public async ValueTask InitializeAsync()
         {
             if (this.InitOnceTask == null)
@@ -292,5 +296,55 @@ public abstract class GroupChatBase<TManager> : ITeam where TManager : GroupChat
             this.ResetInternalAsync,
             cancel,
             message: TaskAlreadyRunning);
+    }
+
+    public ValueTask<JsonElement> SaveStateAsync()
+    {
+        if (!this.runtimeLayer.HasRunOnce)
+        {
+            throw new InvalidOperationException("The group chat has not been initialized. It must be run before it can be saved.");
+        }
+
+        const string TaskAlreadyRunning = "The team cannot be saved while it is running.";
+        return this.RunManager.RunAsync(
+            SaveStateInternalAsync,
+            CancellationToken.None, // TODO: Change this API?
+            message: TaskAlreadyRunning);
+
+        async ValueTask<JsonElement> SaveStateInternalAsync(CancellationToken _)
+        {
+            TeamState teamState = new()
+            {
+                TeamId = this.TeamId,
+                RuntimeState = await this.Runtime!.SaveStateAsync(),
+            };
+
+            JsonElement result = SerializedState.Create(teamState).AsJson();
+
+            await this.Runtime!.StopAsync();
+
+            return result;
+        }
+    }
+
+    public ValueTask LoadStateAsync(JsonElement state)
+    {
+        const string TaskAlreadyRunning = "The team cannot be loaded while it is running.";
+
+        return this.RunManager.RunAsync(
+            LoadStateInternalAsync,
+            CancellationToken.None, // TODO: Change this API?
+            message: TaskAlreadyRunning);
+
+        async ValueTask LoadStateInternalAsync(CancellationToken _)
+        {
+            TeamState parsedState = new SerializedState(state).As<TeamState>();
+
+            this.TeamId = parsedState.TeamId;
+
+            await this.Runtime!.LoadStateAsync(parsedState.RuntimeState.AsJson());
+
+            await this.Runtime!.StopAsync();
+        }
     }
 }
