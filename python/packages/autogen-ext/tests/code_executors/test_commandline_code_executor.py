@@ -18,6 +18,9 @@ from autogen_core.code_executor import CodeBlock
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 
 
+HAS_POWERSHELL: bool = shutil.which("powershell") is not None or shutil.which("pwsh") is not None
+
+
 @pytest_asyncio.fixture(scope="function")  # type: ignore
 async def executor_and_temp_dir(
     request: pytest.FixtureRequest,
@@ -207,7 +210,7 @@ def test_serialize_deserialize() -> None:
 
 @pytest.mark.asyncio
 @pytest.mark.skipif(
-    shutil.which("powershell") is None and shutil.which("pwsh") is None,
+    not HAS_POWERSHELL,
     reason="No PowerShell interpreter (powershell or pwsh) found on this environment.",
 )
 @pytest.mark.parametrize("executor_and_temp_dir", ["local"], indirect=True)
