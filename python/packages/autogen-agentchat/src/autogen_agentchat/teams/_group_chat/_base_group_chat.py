@@ -590,33 +590,30 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             portable across different teams and runtimes. States saved with the old format
             may not be compatible with the new format in the future.
 
+        .. caution::
+
+            When calling :func:`~autogen_agentchat.teams.BaseGroupChat.save_state` on a team
+            while it is running, the state may not be consistent and may result in an unexpected state.
+            It is recommended to call this method when the team is not running or after it is stopped.
+
         """
-
         if not self._initialized:
-            raise RuntimeError("The group chat has not been initialized. It must be run before it can be saved.")
+            await self._init(self._runtime)
 
-        if self._is_running:
-            raise RuntimeError("The team cannot be saved while it is running.")
-        self._is_running = True
-
-        try:
-            # Store state of each agent by their name.
-            # NOTE: we don't use the agent ID as the key here because we need to be able to decouple
-            # the state of the agents from their identities in the agent runtime.
-            agent_states: Dict[str, Mapping[str, Any]] = {}
-            # Save the state of all participants.
-            for name, agent_type in zip(self._participant_names, self._participant_topic_types, strict=True):
-                agent_id = AgentId(type=agent_type, key=self._team_id)
-                # NOTE: We are using the runtime's save state method rather than the agent instance's
-                # save_state method because we want to support saving state of remote agents.
-                agent_states[name] = await self._runtime.agent_save_state(agent_id)
-            # Save the state of the group chat manager.
-            agent_id = AgentId(type=self._group_chat_manager_topic_type, key=self._team_id)
-            agent_states[self._group_chat_manager_name] = await self._runtime.agent_save_state(agent_id)
-            return TeamState(agent_states=agent_states).model_dump()
-        finally:
-            # Indicate that the team is no longer running.
-            self._is_running = False
+        # Store state of each agent by their name.
+        # NOTE: we don't use the agent ID as the key here because we need to be able to decouple
+        # the state of the agents from their identities in the agent runtime.
+        agent_states: Dict[str, Mapping[str, Any]] = {}
+        # Save the state of all participants.
+        for name, agent_type in zip(self._participant_names, self._participant_topic_types, strict=True):
+            agent_id = AgentId(type=agent_type, key=self._team_id)
+            # NOTE: We are using the runtime's save state method rather than the agent instance's
+            # save_state method because we want to support saving state of remote agents.
+            agent_states[name] = await self._runtime.agent_save_state(agent_id)
+        # Save the state of the group chat manager.
+        agent_id = AgentId(type=self._group_chat_manager_topic_type, key=self._team_id)
+        agent_states[self._group_chat_manager_name] = await self._runtime.agent_save_state(agent_id)
+        return TeamState(agent_states=agent_states).model_dump()
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         """Load an external state and overwrite the current state of the group chat team.
