@@ -4,6 +4,7 @@
 import asyncio
 import os
 import shutil
+import platform
 import sys
 import tempfile
 import venv
@@ -18,7 +19,9 @@ from autogen_core.code_executor import CodeBlock
 from autogen_ext.code_executors.local import LocalCommandLineCodeExecutor
 
 
-HAS_POWERSHELL: bool = shutil.which("powershell") is not None or shutil.which("pwsh") is not None
+HAS_POWERSHELL: bool = platform.system() == "Windows" and (
+    shutil.which("powershell") is not None or shutil.which("pwsh") is not None
+)
 
 
 @pytest_asyncio.fixture(scope="function")  # type: ignore
