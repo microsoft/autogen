@@ -24,6 +24,7 @@ class MarkdownFileBrowser:
 
         Arguments:
             viewport_size: Approximately how many *characters* fit in the viewport. Viewport dimensions are adjusted dynamically to avoid cutting off words (default: 8192).
+            base_path: The base path to use for the file browser. Defaults to the current working directory.
         """
         self.viewport_size = viewport_size  # Applies only to the standard uri types
         self.history: List[Tuple[str, float]] = list()
