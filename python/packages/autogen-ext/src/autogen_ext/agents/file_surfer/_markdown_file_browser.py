@@ -17,7 +17,7 @@ class MarkdownFileBrowser:
 
     # TODO: Fix unfollowed import
     def __init__(  # type: ignore
-        self, viewport_size: Union[int, None] = 1024 * 8, base_path: Union[str, None] = None
+        self, viewport_size: Union[int, None] = 1024 * 8, base_path: str = os.getcwd()
     ):
         """
         Instantiate a new MarkdownFileBrowser.
@@ -32,7 +32,7 @@ class MarkdownFileBrowser:
         self.viewport_current_page = 0
         self.viewport_pages: List[Tuple[int, int]] = list()
         self._markdown_converter = MarkItDown()
-        self._base_path = base_path or os.getcwd()
+        self._base_path = base_path
         self._page_content: str = ""
         self._find_on_page_query: Union[str, None] = None
         self._find_on_page_last_result: Union[int, None] = None  # Location of the last result
