@@ -21,7 +21,15 @@ class ChatAgentContainer(SequentialRoutedAgent):
     """
 
     def __init__(self, parent_topic_type: str, output_topic_type: str, agent: ChatAgent) -> None:
-        super().__init__(description=agent.description)
+        super().__init__(
+            description=agent.description,
+            sequential_message_types=[
+                GroupChatStart,
+                GroupChatRequestPublish,
+                GroupChatReset,
+                GroupChatAgentResponse,
+            ],
+        )
         self._parent_topic_type = parent_topic_type
         self._output_topic_type = output_topic_type
         self._agent = agent

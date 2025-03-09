@@ -41,7 +41,15 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
     ):
-        super().__init__(description="Group chat manager")
+        super().__init__(
+            description="Group chat manager",
+            sequential_message_types=[
+                GroupChatStart,
+                GroupChatAgentResponse,
+                GroupChatMessage,
+                GroupChatReset,
+            ],
+        )
         self._name = name
         self._group_topic_type = group_topic_type
         self._output_topic_type = output_topic_type
