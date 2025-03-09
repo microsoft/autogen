@@ -940,25 +940,6 @@ class AnthropicChatCompletionClient(
         }
 
         client = ChatCompletionClient.load_component(config)
-
-    The client supports function calling with Claude models that have the capability:
-
-    .. code-block:: python
-
-        from autogen_core.tools import FunctionTool
-
-
-        def get_weather(location: str) -> str:
-            '''Get the weather for a location'''
-            return f"The weather in {location} is sunny."
-
-
-        tool = FunctionTool(get_weather)
-
-        result = await anthropic_client.create(
-            [UserMessage(content="What's the weather in Paris?", source="user")],
-            tools=[tool],
-        )
     """
 
     component_type = "model"
