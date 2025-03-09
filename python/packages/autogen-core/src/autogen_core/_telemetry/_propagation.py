@@ -3,8 +3,8 @@ from typing import Dict, Mapping, Optional, Sequence
 
 from opentelemetry.context import Context
 from opentelemetry.propagate import extract
-from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 from opentelemetry.trace import Link, get_current_span
+from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 
 @dataclass(kw_only=True)
