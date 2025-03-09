@@ -5,7 +5,15 @@ from autogen_core import DefaultTopicId, MessageContext, event, rpc
 from ...base import ChatAgent, Response
 from ...messages import ChatMessage
 from ...state import ChatAgentContainerState
-from ._events import GroupChatAgentResponse, GroupChatMessage, GroupChatRequestPublish, GroupChatReset, GroupChatStart
+from ._events import (
+    GroupChatAgentResponse,
+    GroupChatMessage,
+    GroupChatPause,
+    GroupChatRequestPublish,
+    GroupChatReset,
+    GroupChatResume,
+    GroupChatStart,
+)
 from ._sequential_routed_agent import SequentialRoutedAgent
 
 
@@ -81,6 +89,16 @@ class ChatAgentContainer(SequentialRoutedAgent):
             topic_id=DefaultTopicId(type=self._parent_topic_type),
             cancellation_token=ctx.cancellation_token,
         )
+
+    @rpc
+    async def handle_pause(self, message: GroupChatPause, ctx: MessageContext) -> None:
+        """Handle a pause event by pausing the agent."""
+        await self._agent.on_pause(ctx.cancellation_token)
+
+    @rpc
+    async def handle_resume(self, message: GroupChatResume, ctx: MessageContext) -> None:
+        """Handle a resume event by resuming the agent."""
+        await self._agent.on_resume(ctx.cancellation_token)
 
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
         raise ValueError(f"Unhandled message in agent container: {type(message)}")
