@@ -534,7 +534,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
             # TODO if responses are given for a publish
 
     async def _process_response(self, message_envelope: ResponseMessageEnvelope) -> None:
-        with self._tracer_helper.trace_block("ack", message_envelope.recipient, parent=None):
+        with self._tracer_helper.trace_block("ack", message_envelope.recipient, parent=message_envelope.metadata):
             content = (
                 message_envelope.message.__dict__
                 if hasattr(message_envelope.message, "__dict__")
