@@ -16,6 +16,20 @@ class Team(ABC, TaskRunner, ComponentBase[BaseModel]):
         ...
 
     @abstractmethod
+    async def pause(self) -> None:
+        """Pause the team and all its participants. This is useful for
+        pausing the :meth:`autogen_agentchat.base.TaskRunner.run` or
+        :meth:`autogen_agentchat.base.TaskRunner.run_stream` methods from
+        concurrently, while keeping them alive."""
+        ...
+
+    @abstractmethod
+    async def resume(self) -> None:
+        """Resume the team and all its participants from a pause after
+        :meth:`pause` was called."""
+        ...
+
+    @abstractmethod
     async def save_state(self) -> Mapping[str, Any]:
         """Save the current state of the team."""
         ...

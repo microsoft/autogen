@@ -67,6 +67,18 @@ class ChatAgent(ABC, TaskRunner, ComponentBase[BaseModel]):
         ...
 
     @abstractmethod
+    async def on_pause(self, cancellation_token: CancellationToken) -> None:
+        """Called when the agent is paused. The agent may be running in :meth:`on_messages` or
+        :meth:`on_messages_stream` when this method is called."""
+        ...
+
+    @abstractmethod
+    async def on_resume(self, cancellation_token: CancellationToken) -> None:
+        """Called when the agent is resumed. The agent may be running in :meth:`on_messages` or
+        :meth:`on_messages_stream` when this method is called."""
+        ...
+
+    @abstractmethod
     async def save_state(self) -> Mapping[str, Any]:
         """Save agent state for later restoration"""
         ...
@@ -78,5 +90,5 @@ class ChatAgent(ABC, TaskRunner, ComponentBase[BaseModel]):
 
     @abstractmethod
     async def close(self) -> None:
-        """Called when the runtime is stopped or any stop method is called"""
+        """Release any resources held by the agent."""
         ...
