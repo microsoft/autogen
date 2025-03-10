@@ -195,14 +195,9 @@ jobs:
         with:
           python-version: "3.11"
 
-      - name: Install Visual Studio Build Tools
-        run: |
-          choco install visualstudio2022buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
-      
       - name: Install Python deps
         run: |
-          uv sync --locked --all-extras
-          uv pip install llama-cpp-python[all] --verbose
+          uv sync --locked --all-extras --no-extra llama-cpp
         shell: pwsh
         working-directory: ./python
 
