@@ -735,9 +735,9 @@ requires-dist = [
     { name = "json-schema-to-pydantic", marker = "extra == 'http-tool'", specifier = ">=0.2.0" },
     { name = "json-schema-to-pydantic", marker = "extra == 'mcp'", specifier = ">=0.2.2" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = "~=0.3.3" },
-    { name = "markitdown", marker = "extra == 'file-surfer'", specifier = ">=0.0.1a2" },
-    { name = "markitdown", marker = "extra == 'magentic-one'", specifier = ">=0.0.1a2" },
-    { name = "markitdown", marker = "extra == 'web-surfer'", specifier = ">=0.0.1a2" },
+    { name = "markitdown", marker = "extra == 'file-surfer'", specifier = "~=0.0.1" },
+    { name = "markitdown", marker = "extra == 'magentic-one'", specifier = "~=0.0.1" },
+    { name = "markitdown", marker = "extra == 'web-surfer'", specifier = "~=0.0.1" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.1.3" },
     { name = "nbclient", marker = "extra == 'jupyter-executor'", specifier = ">=0.10.2" },
     { name = "ollama", marker = "extra == 'ollama'", specifier = ">=0.4.7" },
@@ -870,6 +870,20 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/50/d8/30873d2b7b57dee9263e53d142da044c4600a46f2d28374b3e38b023df16/autopep8-2.3.2.tar.gz", hash = "sha256:89440a4f969197b69a995e4ce0661b031f455a9f776d2c5ba3dbd83466931758", size = 92210 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/9e/43/53afb8ba17218f19b77c7834128566c5bbb100a0ad9ba2e8e89d089d7079/autopep8-2.3.2-py2.py3-none-any.whl", hash = "sha256:ce8ad498672c845a0c3de2629c15b635ec2b05ef8177a6e7c91c74f3e9b51128", size = 45807 },
+]
+
+[[package]]
+name = "azure-ai-documentintelligence"
+version = "1.0.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "azure-core" },
+    { name = "isodate" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/ca/fd/cd0d493e9dc93a5ce097db7508f1b2467a73dcc7022c235b409ce48b9679/azure_ai_documentintelligence-1.0.0.tar.gz", hash = "sha256:c8b6efc0fc7e65d7892c9585cfd256f7d8b3f2b46cecf92c75ab82e629eac253", size = 169420 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/84/a8/c9c66d4d04b8aee06ebdc9a6077736b222b9b2fe92364fed6f9a1c08ece0/azure_ai_documentintelligence-1.0.0-py3-none-any.whl", hash = "sha256:cdedb1a67c075f58f47a413ec5846bf8d532a83a71f0c51ec49ce9b5bfe2a519", size = 105454 },
 ]
 
 [[package]]
@@ -3955,14 +3969,17 @@ wheels = [
 
 [[package]]
 name = "markitdown"
-version = "0.0.1a3"
+version = "0.0.1"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
+    { name = "azure-ai-documentintelligence" },
+    { name = "azure-identity" },
     { name = "beautifulsoup4" },
     { name = "charset-normalizer" },
     { name = "mammoth" },
     { name = "markdownify" },
     { name = "numpy" },
+    { name = "olefile" },
     { name = "openai" },
     { name = "openpyxl" },
     { name = "pandas" },
@@ -3973,11 +3990,12 @@ dependencies = [
     { name = "python-pptx" },
     { name = "requests" },
     { name = "speechrecognition" },
+    { name = "xlrd" },
     { name = "youtube-transcript-api" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/cf/ee/fb24f08015cb7f9875016897e11f8e566eb856275d9efe18cff865469a51/markitdown-0.0.1a3.tar.gz", hash = "sha256:f6c8f5f7f5541e91c6c535218318968fefd71e2a6faa0eb782b3492e04cd023d", size = 16073 }
+sdist = { url = "https://files.pythonhosted.org/packages/07/c6/21f17f3d8beffbf658fcab20331461733c88d254f49e714c384de1f21991/markitdown-0.0.1.tar.gz", hash = "sha256:54795c3ed3d28fa1d5b7103275b0fa784d992291b9f51963dd912b1eba75be40", size = 21597 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/8f/f1/b67a849dfbe3bc95fea6b7ba60ed47dbf5b5442131345e4c4f5d48c6216e/markitdown-0.0.1a3-py3-none-any.whl", hash = "sha256:6efcab2f05714675486dc2ddf912415734b1caa0343f73f75d852046f04e5f37", size = 16199 },
+    { url = "https://files.pythonhosted.org/packages/49/44/bf36f276284a7c9e61877bcbdc545d57654f9d2a21254e91769806ad2e02/markitdown-0.0.1-py3-none-any.whl", hash = "sha256:22a62d8429146adcc2d809c2f02c6d96ef51b301143d663fada5de04444affd0", size = 21956 },
 ]
 
 [[package]]
@@ -4740,6 +4758,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/6d/fa/fbf4001037904031639e6bfbfc02badfc7e12f137a8afa254df6c4c8a670/oauthlib-3.2.2.tar.gz", hash = "sha256:9859c40929662bec5d64f34d01c99e093149682a3f38915dc0655d5a633dd918", size = 177352 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/7e/80/cab10959dc1faead58dc8384a781dfbf93cb4d33d50988f7a69f1b7c9bbe/oauthlib-3.2.2-py3-none-any.whl", hash = "sha256:8139f29aac13e25d502680e9e19963e83f16838d48a0d71c287fe40e7067fbca", size = 151688 },
+]
+
+[[package]]
+name = "olefile"
+version = "0.47"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/69/1b/077b508e3e500e1629d366249c3ccb32f95e50258b231705c09e3c7a4366/olefile-0.47.zip", hash = "sha256:599383381a0bf3dfbd932ca0ca6515acd174ed48870cbf7fee123d698c192c1c", size = 112240 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/17/d3/b64c356a907242d719fc668b71befd73324e47ab46c8ebbbede252c154b2/olefile-0.47-py2.py3-none-any.whl", hash = "sha256:543c7da2a7adadf21214938bb79c83ea12b473a4b6ee4ad4bf854e7715e13d1f", size = 114565 },
 ]
 
 [[package]]
@@ -8203,6 +8230,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/c9/4a/44d3c295350d776427904d73c189e10aeae66d7f555bb2feee16d1e4ba5a/wsproto-1.2.0.tar.gz", hash = "sha256:ad565f26ecb92588a3e43bc3d96164de84cd9902482b130d0ddbaa9664a85065", size = 53425 }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/78/58/e860788190eba3bcce367f74d29c4675466ce8dddfba85f7827588416f01/wsproto-1.2.0-py3-none-any.whl", hash = "sha256:b9acddd652b585d75b20477888c56642fdade28bdfd3579aa24a4d2c037dd736", size = 24226 },
+]
+
+[[package]]
+name = "xlrd"
+version = "2.0.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/a6/b3/19a2540d21dea5f908304375bd43f5ed7a4c28a370dc9122c565423e6b44/xlrd-2.0.1.tar.gz", hash = "sha256:f72f148f54442c6b056bf931dbc34f986fd0c3b0b6b5a58d013c9aef274d0c88", size = 100259 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/a6/0c/c2a72d51fe56e08a08acc85d13013558a2d793028ae7385448a6ccdfae64/xlrd-2.0.1-py2.py3-none-any.whl", hash = "sha256:6a33ee89877bd9abc1158129f6e94be74e2679636b8a205b43b85206c3f0bbdd", size = 96531 },
 ]
 
 [[package]]
