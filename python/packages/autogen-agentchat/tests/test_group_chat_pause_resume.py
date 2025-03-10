@@ -1,13 +1,13 @@
 import asyncio
-from typing import List, Sequence
+from typing import AsyncGenerator, List, Sequence
 
 import pytest
+import pytest_asyncio
 from autogen_agentchat.agents import BaseChatAgent
 from autogen_agentchat.base import Response
 from autogen_agentchat.messages import ChatMessage, TextMessage
-from autogen_agentchat.teams._group_chat._chat_agent_container import ChatAgentContainer
-from autogen_agentchat.teams._group_chat._events import GroupChatPause, GroupChatRequestPublish, GroupChatResume
-from autogen_core import AgentId, CancellationToken, SingleThreadedAgentRuntime, TopicId, TypeSubscription
+from autogen_agentchat.teams import RoundRobinGroupChat
+from autogen_core import AgentRuntime, CancellationToken, SingleThreadedAgentRuntime
 
 
 class TestAgent(BaseChatAgent):
@@ -75,37 +75,38 @@ class TestAgent(BaseChatAgent):
                 pass
 
 
+@pytest_asyncio.fixture(params=["single_threaded", "embedded"])  # type: ignore
+async def runtime(request: pytest.FixtureRequest) -> AsyncGenerator[AgentRuntime | None, None]:
+    if request.param == "single_threaded":
+        runtime = SingleThreadedAgentRuntime()
+        runtime.start()
+        yield runtime
+        await runtime.stop()
+    elif request.param == "embedded":
+        yield None
+
+
 @pytest.mark.asyncio
-async def test_group_chat_agent_container_pause_resume() -> None:
-    runtime = SingleThreadedAgentRuntime(ignore_unhandled_exceptions=False)
-    runtime.start()
+async def test_group_chat_pause_resume(runtime: AgentRuntime | None) -> None:
     agent = TestAgent(name="test_agent", description="test agent")
 
-    await ChatAgentContainer.register(
-        runtime=runtime,
-        type="test_agent",
-        factory=lambda: ChatAgentContainer(
-            parent_topic_type="test_parent",
-            output_topic_type="test_output",
-            agent=agent,
-        ),
-    )
-    await runtime.add_subscription(TypeSubscription("test_parent", "test_agent"))
+    team = RoundRobinGroupChat([agent], runtime=runtime, max_turns=1)
 
+    # Run the team in a separate task.
+    team_task = asyncio.create_task(team.run())
+
+    # Get the current counter.
     curr_counter = agent.counter
 
-    # Simulate a message being sent to the agent.
-    await runtime.publish_message(GroupChatRequestPublish(), topic_id=TopicId(type="test_parent", source="default"))
-
-    # Let the agent process the message.
+    # Let the agent process the counter for a while.
     await asyncio.sleep(1)
 
     # Check that the agent's counter has increased.
     assert curr_counter < agent.counter
     curr_counter = agent.counter
 
-    # Pause the agent.
-    await runtime.send_message(GroupChatPause(), AgentId("test_agent", "default"))
+    # Pause the team.
+    await team.pause()
 
     # Wait for a while for the agent to process the pause.
     await asyncio.sleep(1)
@@ -120,7 +121,7 @@ async def test_group_chat_agent_container_pause_resume() -> None:
     assert curr_counter == agent.counter
 
     # Resume the agent.
-    await runtime.send_message(GroupChatResume(), AgentId("test_agent", "default"))
+    await team.resume()
 
     # Wait for a while for the agent to process the resume.
     await asyncio.sleep(1)
@@ -134,6 +135,8 @@ async def test_group_chat_agent_container_pause_resume() -> None:
     # Check that the agent's counter has increased.
     assert curr_counter < agent.counter
 
-    # Clean up
-    await runtime.stop()
+    # Clean up -- force the agent to respond and terminate the team.
     await agent.close()
+
+    # Wait for the team to terminate.
+    await team_task
