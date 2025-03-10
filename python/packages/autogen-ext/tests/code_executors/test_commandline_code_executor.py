@@ -212,6 +212,7 @@ def test_serialize_deserialize() -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.windows
 @pytest.mark.skipif(
     not HAS_POWERSHELL,
     reason="No PowerShell interpreter (powershell or pwsh) found on this environment.",
