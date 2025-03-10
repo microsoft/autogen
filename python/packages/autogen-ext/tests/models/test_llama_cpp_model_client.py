@@ -13,6 +13,7 @@ from autogen_core.models import RequestUsage, SystemMessage, UserMessage
 # from autogen_core.tools import FunctionTool
 try:
     from llama_cpp import ChatCompletionMessageToolCalls
+
     if TYPE_CHECKING:
         from autogen_ext.models.llama_cpp._llama_cpp_completion_client import LlamaCppChatCompletionClient
 except ImportError:
