@@ -188,20 +188,35 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
 
         .. code-block:: python
 
-            llama_client = LlamaCppChatCompletionClient(
-                model_path="/path/to/your/model.gguf",
-            result = await llama_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
-            print(result)
+            from autogen_core.models import CreateResult, UserMessage
+            from llama_cpp import Llama
+
+            from autogen_ext.models.llama_cpp import LlamaCppChatCompletionClient
+
+
+            async def main():
+                llama_client:Llama = LlamaCppChatCompletionClient(model_path = "/path/to/your/model.gguf")
+                result:CreateResult = await llama_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
+                return result
 
         The following code snippet shows how to use the client with a model from Hugging Face Hub:
 
         .. code-block:: python
 
-            llama_client = LlamaCppChatCompletionClient(
-                repo_id="TheBloke/Mistral-7B-Instruct-v0.1-GGUF",
-                filename="mistral-7b-instruct-v0.1.Q4_K_M.gguf",
-            result = await llama_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
-            print(result)
+            from autogen_core.models import CreateResult, UserMessage
+            from llama_cpp import Llama
+
+            from autogen_ext.models.llama_cpp import LlamaCppChatCompletionClient
+
+
+            async def main():
+                llama_client: Llama = LlamaCppChatCompletionClient(
+                    repo_id="unsloth/phi-4-GGUF", filename="phi-4-Q2_K_L.gguf", n_gpu_layers=-1, seed=1337, n_ctx=5000
+                )
+                result: CreateResult = await llama_client.create(
+                    [UserMessage(content="What is the capital of France?", source="user")]
+                )  # type: ignore
+                return result
     """
 
     def __init__(
