@@ -11,10 +11,13 @@ import torch
 from autogen_core.models import RequestUsage, SystemMessage, UserMessage
 
 # from autogen_core.tools import FunctionTool
-from llama_cpp import ChatCompletionMessageToolCalls
-
-if TYPE_CHECKING:
-    from autogen_ext.models.llama_cpp._llama_cpp_completion_client import LlamaCppChatCompletionClient
+try:
+    from llama_cpp import ChatCompletionMessageToolCalls
+    if TYPE_CHECKING:
+        from autogen_ext.models.llama_cpp._llama_cpp_completion_client import LlamaCppChatCompletionClient
+except ImportError:
+    # If llama_cpp is not installed, we can't run the tests.
+    pytest.skip("Skipping LlamaCppChatCompletionClient tests: llama-cpp-python not installed", allow_module_level=True)
 
 
 # Fake Llama class to simulate responses
