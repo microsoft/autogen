@@ -628,6 +628,9 @@ jupyter-executor = [
 langchain = [
     { name = "langchain-core" },
 ]
+llama-cpp = [
+    { name = "llama-cpp-python" },
+]
 magentic-one = [
     { name = "autogen-agentchat" },
     { name = "markitdown" },
@@ -735,6 +738,7 @@ requires-dist = [
     { name = "json-schema-to-pydantic", marker = "extra == 'http-tool'", specifier = ">=0.2.0" },
     { name = "json-schema-to-pydantic", marker = "extra == 'mcp'", specifier = ">=0.2.2" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = "~=0.3.3" },
+    { name = "llama-cpp-python", marker = "extra == 'llama-cpp'", specifier = ">=0.1.9" },
     { name = "markitdown", marker = "extra == 'file-surfer'", specifier = "~=0.0.1" },
     { name = "markitdown", marker = "extra == 'magentic-one'", specifier = "~=0.0.1" },
     { name = "markitdown", marker = "extra == 'web-surfer'", specifier = "~=0.0.1" },
@@ -3500,6 +3504,18 @@ sdist = { url = "https://files.pythonhosted.org/packages/1e/fd/7e2c875c069118c00
 wheels = [
     { url = "https://files.pythonhosted.org/packages/43/b1/9355547c3b9043ba2821e7797f322c753dfa4d2a3da7bb05690fce689eaa/llama_cloud-0.1.11-py3-none-any.whl", hash = "sha256:b703765d03783a5a0fc57a52adc9892f8b91b0c19bbecb85a54ad4e813342951", size = 250609 },
 ]
+
+[[package]]
+name = "llama-cpp-python"
+version = "0.3.7"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "diskcache" },
+    { name = "jinja2" },
+    { name = "numpy" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/a6/38/7a47b1fb1d83eaddd86ca8ddaf20f141cbc019faf7b425283d8e5ef710e5/llama_cpp_python-0.3.7.tar.gz", hash = "sha256:0566a0dcc0f38005c4093309a87f67c2452449522e3e17e15cd735a62957894c", size = 66715891 }
 
 [[package]]
 name = "llama-index"
