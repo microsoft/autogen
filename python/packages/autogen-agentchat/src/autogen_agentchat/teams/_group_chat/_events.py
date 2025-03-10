@@ -2,7 +2,7 @@ from typing import List
 
 from pydantic import BaseModel
 
-from ...base import Response
+from ...base import Response, TaskResult
 from ...messages import AgentEvent, ChatMessage, StopMessage
 
 
@@ -16,8 +16,15 @@ class GroupChatStart(BaseModel):
 class GroupChatAgentResponse(BaseModel):
     """A response published to a group chat."""
 
-    agent_response: Response
+    response: Response
     """The response from an agent."""
+
+
+class GroupChatTeamResponse(BaseModel):
+    """A response published to a group chat."""
+
+    task_result: TaskResult
+    """The response from a team."""
 
 
 class GroupChatRequestPublish(BaseModel):
