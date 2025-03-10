@@ -27,7 +27,7 @@ from autogen_core import (
     FunctionCall,
     Image,
 )
-from autogen_core.logging import LLMCallEvent
+from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -676,7 +676,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         content_chunks: List[str] = []
         full_tool_calls: List[FunctionCall] = []
         completion_tokens = 0
-
+        first_chunk = True
         while True:
             try:
                 chunk_future = asyncio.ensure_future(anext(stream))
@@ -684,6 +684,14 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
                     cancellation_token.link_future(chunk_future)
                 chunk = await chunk_future
 
+                if first_chunk:
+                    first_chunk = False
+                    # Emit the start event.
+                    logger.info(
+                        LLMStreamStartEvent(
+                            messages=cast(List[Dict[str, Any]], ollama_messages),
+                        )
+                    )
                 # set the stop_reason for the usage chunk to the prior stop_reason
                 stop_reason = chunk.done_reason if chunk.done and stop_reason is None else stop_reason
                 # First try get content
@@ -757,6 +765,15 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             logprobs=None,
+        )
+
+        # Emit the end event.
+        logger.info(
+            LLMStreamEndEvent(
+                response=result.model_dump(),
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+            )
         )
 
         self._total_usage = _add_usage(self._total_usage, usage)

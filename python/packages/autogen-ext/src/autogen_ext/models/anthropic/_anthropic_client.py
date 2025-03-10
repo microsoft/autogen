@@ -45,7 +45,7 @@ from autogen_core import (
     FunctionCall,
     Image,
 )
-from autogen_core.logging import LLMCallEvent
+from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -665,8 +665,18 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         output_tokens: int = 0
         stop_reason: Optional[str] = None
 
+        first_chunk = True
+
         # Process the stream
         async for chunk in stream:
+            if first_chunk:
+                first_chunk = False
+                # Emit the start event.
+                logger.info(
+                    LLMStreamStartEvent(
+                        messages=cast(List[Dict[str, Any]], anthropic_messages),
+                    )
+                )
             # Handle different event types
             if chunk.type == "content_block_start":
                 if chunk.content_block.type == "tool_use":
@@ -759,6 +769,15 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             thought=thought,
+        )
+
+        # Emit the end event.
+        logger.info(
+            LLMStreamEndEvent(
+                response=result.model_dump(),
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+            )
         )
 
         # Update usage statistics
