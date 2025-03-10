@@ -153,7 +153,7 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
             attributes={
                 "tool_name": self._name,
                 "tool_description": self._description,
-                "tool_args": str(args),
+                "tool_args": json.dumps(args),
             },
         ):
             # Execute the tool's run method
