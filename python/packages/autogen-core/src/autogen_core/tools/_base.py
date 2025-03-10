@@ -7,6 +7,7 @@ from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypedDict, TypeV
 import jsonref
 from pydantic import BaseModel
 from typing_extensions import NotRequired
+from opentelemetry.trace import get_current_span, get_tracer
 
 from .. import EVENT_LOGGER_NAME, CancellationToken
 from .._component_config import ComponentBase
@@ -147,8 +148,16 @@ class BaseTool(ABC, Tool, Generic[ArgsT, ReturnT], ComponentBase[BaseModel]):
     async def run(self, args: ArgsT, cancellation_token: CancellationToken) -> ReturnT: ...
 
     async def run_json(self, args: Mapping[str, Any], cancellation_token: CancellationToken) -> Any:
-        # Execute the tool's run method
-        return_value = await self.run(self._args_type.model_validate(args), cancellation_token)
+        with get_tracer("base_tool").start_as_current_span(
+            self._name,
+            attributes={
+                "tool_name": self._name,
+                "tool_description": self._description,
+                "tool_args": str(args),
+            },
+        ):
+            # Execute the tool's run method
+            return_value = await self.run(self._args_type.model_validate(args), cancellation_token)
 
         # Log the tool call event
         event = ToolCallEvent(
