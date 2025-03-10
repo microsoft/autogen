@@ -130,6 +130,9 @@ mcp = [
     "json-schema-to-pydantic>=0.2.2"
 ]
 
+[tool.uv.sources]
+mcp = { git = "https://github.com/kagent-dev/python-sdk", rev = "4a2bab156b691b274c4f34c5f34dd9bb9ec17e32" }
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
 
