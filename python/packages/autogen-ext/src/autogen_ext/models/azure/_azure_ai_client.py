@@ -437,7 +437,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                 # Emit the start event.
                 logger.info(
                     LLMStreamStartEvent(
-                        messages=cast(List[Dict[str, Any]], azure_messages),
+                        messages=[m.as_dict() for m in azure_messages],
                     )
                 )
             assert isinstance(chunk, StreamingChatCompletionsUpdate)

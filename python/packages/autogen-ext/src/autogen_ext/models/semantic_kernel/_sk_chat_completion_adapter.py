@@ -577,13 +577,6 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         # accumulating chunk arguments for that call if new items have id=None
         last_function_call_id: Optional[str] = None
 
-        # Emit the start event.
-        logger.info(
-            LLMStreamStartEvent(
-                messages=cast(List[Dict[str, Any]], chat_history),
-            )
-        )
-
         first_chunk = True
 
         async for streaming_messages in self._sk_client.get_streaming_chat_message_contents(
@@ -594,7 +587,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                 # Emit the start event.
                 logger.info(
                     LLMStreamStartEvent(
-                        messages=cast(List[Dict[str, Any]], chat_history),
+                        messages=[msg.model_dump() for msg in chat_history],
                     )
                 )
             for msg in streaming_messages:
