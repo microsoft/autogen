@@ -6,6 +6,15 @@ using Microsoft.AutoGen.Protobuf;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
 
+public static class ServerCallContextExtensions
+{
+    public static string GetClientId(this ServerCallContext context)
+    {
+        return context.RequestHeaders.Get("client-id")?.Value ??
+               throw new RpcException(new Status(StatusCode.InvalidArgument, "Grpc Client ID is required."));
+    }
+}
+
 public sealed class GrpcWorkerConnection : IAsyncDisposable
 {
     private static long s_nextConnectionId;
@@ -25,6 +34,9 @@ public sealed class GrpcWorkerConnection : IAsyncDisposable
         ServerCallContext = context;
         _outboundMessages = Channel.CreateUnbounded<Message>(new UnboundedChannelOptions { AllowSynchronousContinuations = true, SingleReader = true, SingleWriter = false });
     }
+
+    public string ClientId => this.ServerCallContext.GetClientId();
+
     public Task Connect()
     {
         var didSuppress = false;

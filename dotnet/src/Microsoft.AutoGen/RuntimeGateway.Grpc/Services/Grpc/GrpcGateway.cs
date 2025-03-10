@@ -2,14 +2,35 @@
 // GrpcGateway.cs
 
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using Grpc.Core;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Protobuf;
 using Microsoft.AutoGen.RuntimeGateway.Grpc.Abstractions;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
+
+/// <summary>
+/// Contains options for configuring the gRPC gateway.
+/// </summary>
+public sealed class GrpcGatewayOptions
+{
+    /// <summary>
+    /// Whether the gateway should be configured to support multiple runtime clients registering an AgentType. The
+    /// behaviour defaults to <c>false</c> which is consistent with the Python Agent Runtime Gateway, but this flag
+    /// can be used to reenable this capability, for example, to allow load balancing an AgentType across multiple
+    /// clients.
+    /// </summary>
+    /// <remarks>
+    /// Note that this is an experimental feature and may not be supported in this manner in the future. As well,
+    /// consider that there are some challenges to implementing agents this way: For example, state does not transfer
+    /// automatically across agent instances)
+    /// </remarks>
+    public bool SupportAgentTypeMultiplexing { get; set; }
+}
 
 /// <summary>
 /// Represents the gRPC gateway service that handles communication between the agent worker and the cluster.
@@ -36,19 +57,22 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection> _agentDirectory = new();
     private readonly ConcurrentDictionary<(GrpcWorkerConnection, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
 
+    private readonly GrpcGatewayOptions _options;
+
     /// <summary>
     /// Initializes a new instance of the <see cref="GrpcGateway"/> class.
     /// </summary>
     /// <param name="clusterClient">The cluster client.</param>
     /// <param name="logger">The logger.</param>
-    public GrpcGateway(IClusterClient clusterClient, ILogger<GrpcGateway> logger)
+    public GrpcGateway(IClusterClient clusterClient, ILogger<GrpcGateway> logger, IOptions<GrpcGatewayOptions> options)
     {
+        _options = options.Value ?? new GrpcGatewayOptions(); // We do not support reconfiguring this after startup
+
         _logger = logger;
         _clusterClient = clusterClient;
         _reference = clusterClient.CreateObjectReference<IGateway>(this);
         _gatewayRegistry = clusterClient.GetGrain<IRegistryGrain>(0);
         _messageRegistry = clusterClient.GetGrain<IMessageRegistryGrain>(0);
-
     }
 
     /// <summary>
@@ -131,10 +155,48 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                 {
                     throw new RpcException(new Status(StatusCode.InvalidArgument, $"Grpc Worker Connection not found for ClientId {clientId}. Retry after you call OpenChannel() first."));
                 }
-                connection.AddSupportedType(request.Type);
-                _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
 
-                await _gatewayRegistry.RegisterAgentTypeAsync(request, clientId, _reference).ConfigureAwait(true);
+                // If we are not supporting multiplexing, we need to ensure that the agent type is not already registered by
+                // any other worker; if it is registered by the current worker, we can skip registering it
+                bool skipRegistration = false;
+                if (!_options.SupportAgentTypeMultiplexing &&
+                    _supportedAgentTypes.TryGetValue(request.Type, out List<GrpcWorkerConnection>? currentWorkers))
+                {
+                    // We should never have more than one worker unless SupportAgentTypeMultiplexing is true, so the first time we
+                    // see a worker whose connection is not the one we are registering, we should throw an error
+                    GrpcWorkerConnection? currentWorker = currentWorkers.SingleOrDefault();
+                    if (currentWorker != null)
+                    {
+                        if (currentWorker == connection)
+                        {
+                            // Already registered by the current worker; skip registration
+                            skipRegistration = true;
+                        }
+                        else if (currentWorker.ClientId == clientId)
+                        {
+                            // Old connection replaced with a new one; remove the old one, do not skip registration
+                            _supportedAgentTypes[request.Type].Remove(currentWorker);
+                        }
+                        else
+                        {
+                            throw new RpcException(new Status(StatusCode.InvalidArgument, $"AgentType {request.Type} is already registered by another worker {currentWorker.ClientId}. (Registering for {clientId})"));
+                        }
+                    }
+
+                }
+
+                if (skipRegistration)
+                {
+                    Debug.Assert(connection.GetSupportedTypes().Contains(request.Type), $"Skipping registration for AgentType({request.Type}) that is not registered by the Connection(client={clientId})");
+                    Debug.Assert(_supportedAgentTypes[request.Type].Contains(connection), $"Skipping registration for Connection(client={clientId}) that is not configured for the AgentType({request.Type}).");
+                }
+                else
+                {
+                    connection.AddSupportedType(request.Type);
+                    _supportedAgentTypes.GetOrAdd(request.Type, _ => []).Add(connection);
+
+                    await _gatewayRegistry.RegisterAgentTypeAsync(request, clientId, _reference).ConfigureAwait(true);
+                }
             };
 
             await InvokeOrDeferRegistrationAction(clientId, registerLambda).ConfigureAwait(true);
