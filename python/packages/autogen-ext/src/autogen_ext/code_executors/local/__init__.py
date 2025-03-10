@@ -369,7 +369,7 @@ $functions"""
             else:
                 # Get the appropriate command for the language
                 program = lang_to_cmd(lang)
-                
+
                 # Special handling for PowerShell
                 if program == "pwsh":
                     extra_args = [
