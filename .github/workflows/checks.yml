@@ -201,9 +201,9 @@ jobs:
         shell: pwsh
         working-directory: ./python
 
-      - name: Run single PowerShell-required test
-        # You can still invoke coverage, e.g. via pytest --cov or coverage run
+      - name: Run tests for Windows
         run: |
+          .venv/Scripts/activate.ps1
           poe --directory ./packages/autogen-ext test-windows
         shell: pwsh
         working-directory: ./python
