@@ -17,13 +17,14 @@ class MarkdownFileBrowser:
 
     # TODO: Fix unfollowed import
     def __init__(  # type: ignore
-        self, viewport_size: Union[int, None] = 1024 * 8
+        self, viewport_size: Union[int, None] = 1024 * 8, base_path: str = os.getcwd()
     ):
         """
         Instantiate a new MarkdownFileBrowser.
 
         Arguments:
             viewport_size: Approximately how many *characters* fit in the viewport. Viewport dimensions are adjusted dynamically to avoid cutting off words (default: 8192).
+            base_path: The base path to use for the file browser. Defaults to the current working directory.
         """
         self.viewport_size = viewport_size  # Applies only to the standard uri types
         self.history: List[Tuple[str, float]] = list()
@@ -31,16 +32,17 @@ class MarkdownFileBrowser:
         self.viewport_current_page = 0
         self.viewport_pages: List[Tuple[int, int]] = list()
         self._markdown_converter = MarkItDown()
-        self.set_path(os.getcwd())
+        self._base_path = base_path
         self._page_content: str = ""
         self._find_on_page_query: Union[str, None] = None
         self._find_on_page_last_result: Union[int, None] = None  # Location of the last result
+        self.set_path(self._base_path)
 
     @property
     def path(self) -> str:
         """Return the path of the current page."""
         if len(self.history) == 0:
-            return os.getcwd()
+            return self._base_path
         else:
             return self.history[-1][0]
 
