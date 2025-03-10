@@ -366,20 +366,22 @@ $functions"""
                     os.path.abspath(self._virtual_env_context.env_exe) if self._virtual_env_context else sys.executable
                 )
                 extra_args = [str(written_file.absolute())]
-            elif lang in {"pwsh", "powershell", "ps1"}:
-                # Use powershell/pwsh for .ps1 scripts with proper flags
-                program = "powershell"
-                extra_args = [
-                    "-NoProfile",
-                    "-ExecutionPolicy",
-                    "Bypass",
-                    "-File",
-                    str(written_file.absolute()),
-                ]
             else:
-                # Shell commands (bash, sh, etc.)
+                # Get the appropriate command for the language
                 program = lang_to_cmd(lang)
-                extra_args = [str(written_file.absolute())]
+                
+                # Special handling for PowerShell
+                if program == "pwsh":
+                    extra_args = [
+                        "-NoProfile",
+                        "-ExecutionPolicy",
+                        "Bypass",
+                        "-File",
+                        str(written_file.absolute()),
+                    ]
+                else:
+                    # Shell commands (bash, sh, etc.)
+                    extra_args = [str(written_file.absolute())]
 
             # Create a subprocess and run
             task = asyncio.create_task(
