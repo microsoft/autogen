@@ -8,7 +8,7 @@ from pydantic import BaseModel
 from typing_extensions import Self
 
 from .... import EVENT_LOGGER_NAME, TRACE_LOGGER_NAME
-from ....base import ChatAgent, TerminationCondition
+from ....base import ChatAgent, Team, TerminationCondition
 from ....messages import AgentEvent, ChatMessage
 from .._base_group_chat import BaseGroupChat
 from .._events import GroupChatTermination
@@ -93,11 +93,16 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
     component_config_schema = MagenticOneGroupChatConfig
     component_provider_override = "autogen_agentchat.teams.MagenticOneGroupChat"
 
+    DEFAULT_NAME = "MagenticOneGroupChat"
+    DEFAULT_DESCRIPTION = "A team of agents."
+
     def __init__(
         self,
-        participants: List[ChatAgent],
+        participants: List[ChatAgent | Team],
         model_client: ChatCompletionClient,
         *,
+        name: str = DEFAULT_NAME,
+        description: str = DEFAULT_DESCRIPTION,
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = 20,
         runtime: AgentRuntime | None = None,
@@ -105,7 +110,9 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
         final_answer_prompt: str = ORCHESTRATOR_FINAL_ANSWER_PROMPT,
     ):
         super().__init__(
-            participants,
+            name=name,
+            description=description,
+            participants=participants,
             group_chat_manager_name="MagenticOneOrchestrator",
             group_chat_manager_class=MagenticOneOrchestrator,
             termination_condition=termination_condition,
@@ -161,7 +168,12 @@ class MagenticOneGroupChat(BaseGroupChat, Component[MagenticOneGroupChatConfig])
 
     @classmethod
     def _from_config(cls, config: MagenticOneGroupChatConfig) -> Self:
-        participants = [ChatAgent.load_component(participant) for participant in config.participants]
+        participants: List[Team | ChatAgent] = []
+        for participant in config.participants:
+            if participant.component_type == Team.component_type:
+                participants.append(Team.load_component(participant))
+            else:
+                participants.append(ChatAgent.load_component(participant))
         model_client = ChatCompletionClient.load_component(config.model_client)
         termination_condition = (
             TerminationCondition.load_component(config.termination_condition) if config.termination_condition else None

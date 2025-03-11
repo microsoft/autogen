@@ -16,6 +16,7 @@ from .... import TRACE_LOGGER_NAME
 from ....base import Response, TerminationCondition
 from ....messages import (
     AgentEvent,
+    BaseChatMessage,
     ChatMessage,
     HandoffMessage,
     MultiModalMessage,
@@ -34,6 +35,7 @@ from .._events import (
     GroupChatRequestPublish,
     GroupChatReset,
     GroupChatStart,
+    GroupChatTeamResponse,
     GroupChatTermination,
 )
 from ._prompts import (
@@ -180,13 +182,23 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
         await self._reenter_outer_loop(ctx.cancellation_token)
 
     @event
-    async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:  # type: ignore
+    async def handle_agent_response(
+        self, message: GroupChatAgentResponse | GroupChatTeamResponse, ctx: MessageContext
+    ) -> None:  # type: ignore
         delta: List[AgentEvent | ChatMessage] = []
-        if message.agent_response.inner_messages is not None:
-            for inner_message in message.agent_response.inner_messages:
-                delta.append(inner_message)
-        self._message_thread.append(message.agent_response.chat_message)
-        delta.append(message.agent_response.chat_message)
+        if isinstance(message, GroupChatAgentResponse):
+            if message.response.inner_messages is not None:
+                for inner_message in message.response.inner_messages:
+                    delta.append(inner_message)
+            self._message_thread.append(message.response.chat_message)
+            delta.append(message.response.chat_message)
+        elif isinstance(message, GroupChatTeamResponse):
+            for msg in message.task_result.messages:
+                delta.append(msg)
+                if isinstance(msg, BaseChatMessage):
+                    # NOTE: following the same pattern as the agent response, we add
+                    # to the message thread if it is a chat message.
+                    self._message_thread.append(msg)
 
         if self._termination_condition is not None:
             stop_message = await self._termination_condition(delta)
@@ -269,7 +281,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         # Broadcast
         await self.publish_message(
-            GroupChatAgentResponse(agent_response=Response(chat_message=ledger_message)),
+            GroupChatAgentResponse(response=Response(chat_message=ledger_message)),
             topic_id=DefaultTopicId(type=self._group_topic_type),
         )
 
@@ -383,7 +395,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         # Broadcast it
         await self.publish_message(  # Broadcast
-            GroupChatAgentResponse(agent_response=Response(chat_message=message)),
+            GroupChatAgentResponse(response=Response(chat_message=message)),
             topic_id=DefaultTopicId(type=self._group_topic_type),
             cancellation_token=cancellation_token,
         )
@@ -455,7 +467,7 @@ class MagenticOneOrchestrator(BaseGroupChatManager):
 
         # Broadcast
         await self.publish_message(
-            GroupChatAgentResponse(agent_response=Response(chat_message=message)),
+            GroupChatAgentResponse(response=Response(chat_message=message)),
             topic_id=DefaultTopicId(type=self._group_topic_type),
             cancellation_token=cancellation_token,
         )

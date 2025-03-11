@@ -12,6 +12,7 @@ from ._events import (
     GroupChatRequestPublish,
     GroupChatReset,
     GroupChatStart,
+    GroupChatTeamResponse,
     GroupChatTermination,
 )
 from ._sequential_routed_agent import SequentialRoutedAgent
@@ -127,15 +128,19 @@ class BaseGroupChatManager(SequentialRoutedAgent, ABC):
         )
 
     @event
-    async def handle_agent_response(self, message: GroupChatAgentResponse, ctx: MessageContext) -> None:
+    async def handle_agent_response(
+        self, message: GroupChatAgentResponse | GroupChatTeamResponse, ctx: MessageContext
+    ) -> None:
         # Append the message to the message thread and construct the delta.
         delta: List[AgentEvent | ChatMessage] = []
-        if message.agent_response.inner_messages is not None:
-            for inner_message in message.agent_response.inner_messages:
-                self._message_thread.append(inner_message)
-                delta.append(inner_message)
-        self._message_thread.append(message.agent_response.chat_message)
-        delta.append(message.agent_response.chat_message)
+        if isinstance(message, GroupChatAgentResponse):
+            if message.response.inner_messages is not None:
+                delta.extend(message.response.inner_messages)
+            delta.append(message.response.chat_message)
+        elif isinstance(message, GroupChatTeamResponse):
+            for msg in message.task_result.messages:
+                delta.append(msg)
+        self._message_thread.extend(delta)
 
         # Check if the conversation should be terminated.
         if self._termination_condition is not None:

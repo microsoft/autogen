@@ -4,7 +4,7 @@ from typing import Any, Callable, List, Mapping
 from autogen_core import AgentRuntime, Component, ComponentModel
 from pydantic import BaseModel
 
-from ...base import ChatAgent, TerminationCondition
+from ...base import ChatAgent, Team, TerminationCondition
 from ...messages import AgentEvent, ChatMessage, HandoffMessage
 from ...state import SwarmManagerState
 from ._base_group_chat import BaseGroupChat
@@ -202,17 +202,25 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
     component_config_schema = SwarmConfig
     component_provider_override = "autogen_agentchat.teams.Swarm"
 
+    DEFAULT_NAME = "SwarmGroupChat"
+    DEFAULT_DESCRIPTION = "A team of agents."
+
     # TODO: Add * to the constructor to separate the positional parameters from the kwargs.
     # This may be a breaking change so let's wait until a good time to do it.
     def __init__(
         self,
-        participants: List[ChatAgent],
+        participants: List[ChatAgent | Team],
+        *,
+        name: str = DEFAULT_NAME,
+        description: str = DEFAULT_DESCRIPTION,
         termination_condition: TerminationCondition | None = None,
         max_turns: int | None = None,
         runtime: AgentRuntime | None = None,
     ) -> None:
         super().__init__(
-            participants,
+            name=name,
+            description=description,
+            participants=participants,
             group_chat_manager_name="SwarmGroupChatManager",
             group_chat_manager_class=SwarmGroupChatManager,
             termination_condition=termination_condition,
@@ -221,6 +229,8 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
         )
         # The first participant must be able to produce handoff messages.
         first_participant = self._participants[0]
+        if isinstance(first_participant, Team):
+            raise ValueError("The first participant must be a ChatAgent.")
         if HandoffMessage not in first_participant.produced_message_types:
             raise ValueError("The first participant must be able to produce a handoff messages.")
 
@@ -262,6 +272,12 @@ class Swarm(BaseGroupChat, Component[SwarmConfig]):
 
     @classmethod
     def _from_config(cls, config: SwarmConfig) -> "Swarm":
+        participants: List[Team | ChatAgent] = []
+        for participant in config.participants:
+            if participant.component_type == Team.component_type:
+                participants.append(Team.load_component(participant))
+            else:
+                participants.append(ChatAgent.load_component(participant))
         participants = [ChatAgent.load_component(participant) for participant in config.participants]
         termination_condition = (
             TerminationCondition.load_component(config.termination_condition) if config.termination_condition else None
