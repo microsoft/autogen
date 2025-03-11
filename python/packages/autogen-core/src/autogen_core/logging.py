@@ -29,6 +29,7 @@ class LLMCallEvent:
 
             .. code-block:: python
 
+                import logging
                 from autogen_core import EVENT_LOGGER_NAME
                 from autogen_core.logging import LLMCallEvent
 
@@ -73,6 +74,7 @@ class LLMStreamStartEvent:
 
         .. code-block:: python
 
+            import logging
             from autogen_core import EVENT_LOGGER_NAME
             from autogen_core.logging import LLMStreamStartEvent
 
@@ -122,6 +124,7 @@ class LLMStreamEndEvent:
 
             .. code-block:: python
 
+                import logging
                 from autogen_core import EVENT_LOGGER_NAME
                 from autogen_core.logging import LLMStreamEndEvent
 
