@@ -43,12 +43,14 @@ We strongly encourage developers to build their own components and publish them 
 
 :::{grid-item-card} {fas}`magnifying-glass;pst-color-primary` Discover
 :link: ./discover.html
+:aria-label: Discover Community Extensions
 
 Discover community extensions and samples
 :::
 
 :::{grid-item-card} {fas}`code;pst-color-primary` Create your own
 :link: ./create-your-own.html
+:aria-label: Create New Extension
 
 Create your own extension
 :::
