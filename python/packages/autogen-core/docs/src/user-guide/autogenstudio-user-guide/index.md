@@ -7,8 +7,12 @@ myst:
 
 # AutoGen Studio
 
-[![PyPI version](https://badge.fury.io/py/autogenstudio.svg)](https://badge.fury.io/py/autogenstudio)
-[![Downloads](https://static.pepy.tech/badge/autogenstudio/week)](https://pepy.tech/project/autogenstudio)
+<a href="https://badge.fury.io/py/autogenstudio" aria-label="PyPI version">
+  <img src="https://badge.fury.io/py/autogenstudio.svg" alt="PyPI version">
+</a>
+<a href="https://pepy.tech/project/autogenstudio" aria-label="Downloads">
+  <img src="https://static.pepy.tech/badge/autogenstudio/week" alt="Downloads">
+</a>
 
 AutoGen Studio is a low-code interface built to help you rapidly prototype AI agents, enhance them with tools, compose them into teams and interact with them to accomplish tasks. It is built on [AutoGen AgentChat](https://microsoft.github.io/autogen) - a high-level API for building multi-agent applications.
 
@@ -61,44 +65,3 @@ We welcome contributions to AutoGen Studio. We recommend the following general s
 
 - Review the overall AutoGen project [contribution guide](https://github.com/microsoft/autogen/blob/main/CONTRIBUTING.md)
 - Please review the AutoGen Studio [roadmap](https://github.com/microsoft/autogen/issues/4006) to get a sense of the current priorities for the project. Help is appreciated especially with Studio issues tagged with `help-wanted`
-- Please use the tag [`proj-studio`](https://github.com/microsoft/autogen/issues?q=is%3Aissue%20state%3Aopen%20label%3Aproj-studio) tag for any issues, questions, and PRs related to Studio
-- Please initiate a discussion on the roadmap issue or a new issue to discuss your proposed contribution.
-- Submit a pull request with your contribution!
-- If you are modifying AutoGen Studio, it has its own devcontainer. See instructions in `.devcontainer/README.md` to use it
-
-## A Note on Security
-
-AutoGen Studio is a research prototype and is **not meant to be used** in a production environment. Some baseline practices are encouraged e.g., using Docker code execution environment for your agents.
-
-However, other considerations such as rigorous tests related to jailbreaking, ensuring LLMs only have access to the right keys of data given the end user's permissions, and other security features are not implemented in AutoGen Studio.
-
-If you are building a production application, please use the AutoGen framework and implement the necessary security features.
-
-## Acknowledgements and Citation
-
-AutoGen Studio is based on the [AutoGen](https://microsoft.github.io/autogen) project. It was adapted from a research prototype built in October 2023 (original credits: Victor Dibia, Gagan Bansal, Adam Fourney, Piali Choudhury, Saleema Amershi, Ahmed Awadallah, Chi Wang).
-
-If you use AutoGen Studio in your research, please cite the following paper:
-
-```
-@inproceedings{autogenstudio,
-  title={AUTOGEN STUDIO: A No-Code Developer Tool for Building and Debugging Multi-Agent Systems},
-  author={Dibia, Victor and Chen, Jingya and Bansal, Gagan and Syed, Suff and Fourney, Adam and Zhu, Erkang and Wang, Chi and Amershi, Saleema},
-  booktitle={Proceedings of the 2024 Conference on Empirical Methods in Natural Language Processing: System Demonstrations},
-  pages={72--79},
-  year={2024}
-}
-```
-
-## Next Steps
-
-To begin, follow the [installation instructions](installation.md) to install AutoGen Studio.
-
-```{toctree}
-:maxdepth: 1
-:hidden:
-
-installation
-usage
-faq
-```
