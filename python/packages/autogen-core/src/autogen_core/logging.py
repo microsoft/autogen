@@ -32,8 +32,10 @@ class LLMCallEvent:
                 from autogen_core import EVENT_LOGGER_NAME
                 from autogen_core.logging import LLMCallEvent
 
+                response = {"content": "Hello, world!"}
+                messages = [{"role": "user", "content": "Hello, world!"}]
                 logger = logging.getLogger(EVENT_LOGGER_NAME)
-                logger.info(LLMCallEvent(prompt_tokens=10, completion_tokens=20))
+                logger.info(LLMCallEvent(prompt_tokens=10, completion_tokens=20, response=response, messages=messages))
 
         """
         self.kwargs = kwargs
@@ -74,8 +76,9 @@ class LLMStreamStartEvent:
             from autogen_core import EVENT_LOGGER_NAME
             from autogen_core.logging import LLMStreamStartEvent
 
+            messages = [{"role": "user", "content": "Hello, world!"}]
             logger = logging.getLogger(EVENT_LOGGER_NAME)
-            logger.info(LLMStreamStartEvent())
+            logger.info(LLMStreamStartEvent(messages=messages))
 
     """
 
@@ -122,8 +125,9 @@ class LLMStreamEndEvent:
                 from autogen_core import EVENT_LOGGER_NAME
                 from autogen_core.logging import LLMStreamEndEvent
 
+                response = {"content": "Hello, world!"}
                 logger = logging.getLogger(EVENT_LOGGER_NAME)
-                logger.info(LLMStreamEndEvent(prompt_tokens=10, completion_tokens=20))
+                logger.info(LLMStreamEndEvent(prompt_tokens=10, completion_tokens=20, response=response))
 
         """
         self.kwargs = kwargs
