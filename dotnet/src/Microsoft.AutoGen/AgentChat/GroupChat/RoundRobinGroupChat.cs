@@ -1,14 +1,17 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // RoundRobinGroupChat.cs
 
+using System.Text.Json;
 using Microsoft.AutoGen.AgentChat.Abstractions;
+using Microsoft.AutoGen.AgentChat.State;
+using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.AgentChat.GroupChat;
 
 /// <summary>
 /// A group chat manager that selects the next speaker in a round-robin fashion.
 /// </summary>
-public class RoundRobinGroupChatManager : GroupChatManagerBase
+public class RoundRobinGroupChatManager : GroupChatManagerBase, ISaveState
 {
     private readonly List<string> participantTopicTypes;
     private int nextSpeakerIndex;
@@ -27,6 +30,29 @@ public class RoundRobinGroupChatManager : GroupChatManagerBase
         this.nextSpeakerIndex = (this.nextSpeakerIndex + 1) % this.participantTopicTypes.Count;
 
         return ValueTask.FromResult(result);
+    }
+
+    ValueTask<JsonElement> ISaveState.SaveStateAsync()
+    {
+        RoundRobinManagerState state = new RoundRobinManagerState
+        {
+            NextSpeakerIndex = this.nextSpeakerIndex,
+            CurrentTurn = this.CurrentTurn,
+            MessageThread = this.MessageThread
+        };
+
+        return ValueTask.FromResult(SerializedState.Create(state).AsJson());
+    }
+
+    ValueTask ISaveState.LoadStateAsync(JsonElement state)
+    {
+        RoundRobinManagerState parsedState = new SerializedState(state).As<RoundRobinManagerState>();
+        this.MessageThread = parsedState.MessageThread;
+        this.CurrentTurn = parsedState.CurrentTurn;
+
+        this.nextSpeakerIndex = parsedState.NextSpeakerIndex;
+
+        return ValueTask.CompletedTask;
     }
 }
 
