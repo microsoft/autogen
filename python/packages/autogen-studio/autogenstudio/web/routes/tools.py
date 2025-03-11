@@ -18,10 +18,13 @@ class McpToolParams(BaseModel):
 
 @router.post("/discover")
 async def resolve_mcp_tool(params: McpToolParams):
-    tools = await mcp_server_tools(params.server_params)
-    if not tools:
-        raise HTTPException(status_code=400, detail="Failed to retrieve tools")
-    return [tool.dump_component() for tool in tools]
+    try:
+        tools = await mcp_server_tools(params.server_params)
+        if not tools:
+            raise HTTPException(status_code=400, detail="Failed to retrieve tools")
+        return [tool.dump_component() for tool in tools]
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("/")
