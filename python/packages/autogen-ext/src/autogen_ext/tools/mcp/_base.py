@@ -68,6 +68,12 @@ class McpToolAdapter(BaseTool[BaseModel, Any], ABC, Generic[TServerParams]):
                 if result.isError:
                     raise Exception(f"MCP tool execution failed: {result.content}")
                 return result.content
+        except ExceptionGroup as eg:
+            # Construct a message with all nested exception messages and args
+            exception_msg = "\n".join(
+                [f"{e.__class__.__name__}: {str(e)}\n{e.args}" for e in eg.exceptions if e is not None]
+            )
+            raise Exception(exception_msg) from eg
         except Exception as e:
             raise Exception(str(e)) from e
 
