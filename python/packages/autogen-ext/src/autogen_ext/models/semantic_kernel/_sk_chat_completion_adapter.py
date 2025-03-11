@@ -1,7 +1,7 @@
 import json
 import logging
 import warnings
-from typing import Any, Dict, List, Literal, Mapping, Optional, Sequence, cast
+from typing import Any, Literal, Mapping, Optional, Sequence
 
 from autogen_core import EVENT_LOGGER_NAME, FunctionCall
 from autogen_core._cancellation_token import CancellationToken
