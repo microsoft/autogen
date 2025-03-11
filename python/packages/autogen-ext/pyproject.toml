@@ -32,6 +32,11 @@ file-surfer = [
     "autogen-agentchat==0.4.8",
     "markitdown~=0.0.1",
 ]
+
+llama-cpp = [
+    "llama-cpp-python>=0.1.9",
+]
+
 graphrag = ["graphrag>=1.0.1"]
 chromadb = ["chromadb"]
 web-surfer = [
