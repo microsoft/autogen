@@ -72,7 +72,7 @@ class LLMStreamStartEvent:
         .. code-block:: python
 
             from autogen_core import EVENT_LOGGER_NAME
-            from autogen_core.logging import
+            from autogen_core.logging import LLMStreamStartEvent
 
             logger = logging.getLogger(EVENT_LOGGER_NAME)
             logger.info(LLMStreamStartEvent())
