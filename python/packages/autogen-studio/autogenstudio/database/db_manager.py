@@ -15,7 +15,7 @@ from .schema_manager import SchemaManager
 class DatabaseManager:
     _init_lock = threading.Lock()
 
-    def __init__(self, engine_uri: str, base_dir: Optional[Union[str, Path]] = None) -> None: 
+    def __init__(self, engine_uri: str, base_dir: Optional[Union[str, Path]] = None) -> None:
         """
         Initialize DatabaseManager with database connection settings.
         Does not perform any database operations.
