@@ -5,9 +5,9 @@ from collections.abc import Sequence
 from typing import Any, Dict, Generic, Mapping, Protocol, Type, TypedDict, TypeVar, cast, runtime_checkable
 
 import jsonref
+from opentelemetry.trace import get_tracer
 from pydantic import BaseModel
 from typing_extensions import NotRequired
-from opentelemetry.trace import get_current_span, get_tracer
 
 from .. import EVENT_LOGGER_NAME, CancellationToken
 from .._component_config import ComponentBase
