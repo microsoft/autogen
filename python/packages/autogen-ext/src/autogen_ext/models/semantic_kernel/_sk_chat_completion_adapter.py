@@ -5,7 +5,7 @@ from typing import Any, Literal, Mapping, Optional, Sequence
 
 from autogen_core import EVENT_LOGGER_NAME, FunctionCall
 from autogen_core._cancellation_token import CancellationToken
-from autogen_core.logging import LLMCallEvent
+from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
 from autogen_core.models import (
     ChatCompletionClient,
     CreateResult,
@@ -577,9 +577,19 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         # accumulating chunk arguments for that call if new items have id=None
         last_function_call_id: Optional[str] = None
 
+        first_chunk = True
+
         async for streaming_messages in self._sk_client.get_streaming_chat_message_contents(
             chat_history, settings=settings, kernel=kernel
         ):
+            if first_chunk:
+                first_chunk = False
+                # Emit the start event.
+                logger.info(
+                    LLMStreamStartEvent(
+                        messages=[msg.model_dump() for msg in chat_history],
+                    )
+                )
             for msg in streaming_messages:
                 # Track token usage
                 if msg.metadata and "usage" in msg.metadata:
@@ -659,13 +669,24 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         if isinstance(accumulated_text, str) and self._model_info["family"] == ModelFamily.R1:
             thought, accumulated_text = parse_r1_content(accumulated_text)
 
-        yield CreateResult(
+        result = CreateResult(
             content=accumulated_text,
             finish_reason="stop",
             usage=RequestUsage(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
             cached=False,
             thought=thought,
         )
+
+        # Emit the end event.
+        logger.info(
+            LLMStreamEndEvent(
+                response=result.model_dump(),
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+            )
+        )
+
+        yield result
 
     async def close(self) -> None:
         pass  # No explicit close method in SK client?
