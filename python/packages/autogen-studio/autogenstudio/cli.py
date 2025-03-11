@@ -30,7 +30,7 @@ def ui(
     workers: int = 1,
     reload: Annotated[bool, typer.Option("--reload")] = False,
     docs: bool = True,
-    appdir: str = None,
+    appdir: str | None = None,
     database_uri: Optional[str] = None,
     auth_config: Optional[str] = None,   
     upgrade_database: bool = False,

@@ -10,7 +10,6 @@ from typing import Any, Dict, List, Tuple, Union
 from dotenv import load_dotenv
 from loguru import logger
 
-from ..datamodel import Model
 from ..version import APP_NAME
 
 
@@ -239,18 +238,6 @@ def init_app_folders(app_file_path: str) -> Dict[str, str]:
     }
     logger.info(f"Initialized application data folder: {app_root}")
     return folders
-
-
-def sanitize_model(model: Model):
-    """
-    Sanitize model dictionary to remove None values and empty strings and only keep valid keys.
-    """
-    if isinstance(model, Model):
-        model = model.model_dump()
-    valid_keys = ["model", "base_url", "api_key", "api_type", "api_version"]
-    # only add key if value is not None
-    sanitized_model = {k: v for k, v in model.items() if (v is not None and v != "") and k in valid_keys}
-    return sanitized_model
 
 
 class Version:

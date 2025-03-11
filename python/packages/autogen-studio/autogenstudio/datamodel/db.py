@@ -9,7 +9,15 @@ from pydantic import ConfigDict
 from sqlalchemy import ForeignKey, Integer, String
 from sqlmodel import JSON, Column, DateTime, Field, SQLModel, func
 
-from .types import GalleryConfig, MessageConfig, MessageMeta, SettingsConfig, TeamResult
+from .types import (
+    GalleryComponents,
+    GalleryConfig,
+    GalleryMetadata,
+    MessageConfig,
+    MessageMeta,
+    SettingsConfig,
+    TeamResult,
+)
 
 
 class Team(SQLModel, table=True):
@@ -41,7 +49,9 @@ class Message(SQLModel, table=True):
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
     version: Optional[str] = "0.0.1"
-    config: Union[MessageConfig, dict] = Field(default_factory=MessageConfig, sa_column=Column(JSON))
+    config: Union[MessageConfig, dict] = Field(
+        default_factory=lambda: MessageConfig(source="", content=""), sa_column=Column(JSON)
+    )
     session_id: Optional[int] = Field(
         default=None, sa_column=Column(Integer, ForeignKey("session.id", ondelete="NO ACTION"))
     )
@@ -93,7 +103,9 @@ class Run(SQLModel, table=True):
     status: RunStatus = Field(default=RunStatus.CREATED)
 
     # Store the original user task
-    task: Union[MessageConfig, dict] = Field(default_factory=MessageConfig, sa_column=Column(JSON))
+    task: Union[MessageConfig, dict] = Field(
+        default_factory=lambda: MessageConfig(source="", content=""), sa_column=Column(JSON)
+    )
 
     # Store TeamResult which contains TaskResult
     team_result: Union[TeamResult, dict] = Field(default=None, sa_column=Column(JSON))
@@ -102,7 +114,7 @@ class Run(SQLModel, table=True):
     version: Optional[str] = "0.0.1"
     messages: Union[List[Message], List[dict]] = Field(default_factory=list, sa_column=Column(JSON))
 
-    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})  # type: ignore[call-arg]
     user_id: Optional[str] = None
 
 
@@ -119,9 +131,17 @@ class Gallery(SQLModel, table=True):
     )  # pylint: disable=not-callable
     user_id: Optional[str] = None
     version: Optional[str] = "0.0.1"
-    config: Union[GalleryConfig, dict] = Field(default_factory=GalleryConfig, sa_column=Column(JSON))
+    config: Union[GalleryConfig, dict] = Field(
+        default_factory=lambda: GalleryConfig(
+            id="",
+            name="",
+            metadata=GalleryMetadata(author="", version=""),
+            components=GalleryComponents(agents=[], models=[], tools=[], terminations=[], teams=[]),
+        ),
+        sa_column=Column(JSON),
+    )
 
-    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})
+    model_config = ConfigDict(json_encoders={datetime: lambda v: v.isoformat()})  # type: ignore[call-arg]
 
 
 class Settings(SQLModel, table=True):
