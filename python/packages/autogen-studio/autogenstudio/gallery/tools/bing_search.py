@@ -184,7 +184,7 @@ async def bing_search(
 
         return results[:num_results]
 
-    except httpx.RequestException as e:
+    except httpx.HTTPError as e:
         error_msg = str(e)
         if "InvalidApiKey" in error_msg:
             raise ValueError("Invalid API key. Please check your BING_SEARCH_KEY environment variable.") from e
