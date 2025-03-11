@@ -6,7 +6,7 @@ from inspect import getfullargspec
 from typing import Any, Dict, List, Mapping, Optional, Sequence, cast
 
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, FunctionCall, Image
-from autogen_core.logging import LLMCallEvent
+from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -430,7 +430,16 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         completion_tokens = 0
         chunk: Optional[StreamingChatCompletionsUpdate] = None
         choice: Optional[StreamingChatChoiceUpdate] = None
+        first_chunk = True
         async for chunk in await task:  # type: ignore
+            if first_chunk:
+                first_chunk = False
+                # Emit the start event.
+                logger.info(
+                    LLMStreamStartEvent(
+                        messages=[m.as_dict() for m in azure_messages],
+                    )
+                )
             assert isinstance(chunk, StreamingChatCompletionsUpdate)
             choice = chunk.choices[0] if len(chunk.choices) > 0 else None
             if choice and choice.finish_reason is not None:
@@ -497,6 +506,15 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             usage=usage,
             cached=False,
             thought=thought,
+        )
+
+        # Log the end of the stream.
+        logger.info(
+            LLMStreamEndEvent(
+                response=result.model_dump(),
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+            )
         )
 
         self.add_usage(usage)

@@ -1,7 +1,7 @@
 import contextlib
 from typing import Dict, Generic, Iterator, Optional
 
-from opentelemetry.trace import NoOpTracerProvider, Span, SpanKind, TracerProvider
+from opentelemetry.trace import NoOpTracerProvider, Span, SpanKind, TracerProvider, get_tracer_provider
 from opentelemetry.util import types
 
 from ._propagation import TelemetryMetadataContainer, get_telemetry_links
@@ -22,9 +22,10 @@ class TraceHelper(Generic[Operation, Destination, ExtraAttributes]):
         tracer_provider: TracerProvider | None,
         instrumentation_builder_config: TracingConfig[Operation, Destination, ExtraAttributes],
     ) -> None:
-        self.tracer = (tracer_provider if tracer_provider else NoOpTracerProvider()).get_tracer(
-            f"autogen {instrumentation_builder_config.name}"
-        )
+        # Evaluate in order: first try tracer_provider param, then get_tracer_provider(), finally fallback to NoOp
+        # This allows for nested tracing with a default tracer provided by the user
+        self.tracer_provider = tracer_provider or get_tracer_provider() or NoOpTracerProvider()
+        self.tracer = self.tracer_provider.get_tracer(f"autogen {instrumentation_builder_config.name}")
         self.instrumentation_builder_config = instrumentation_builder_config
 
     @contextlib.contextmanager
