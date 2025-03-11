@@ -13,14 +13,15 @@ import {
   GripVertical,
 } from "lucide-react";
 import Sider from "antd/es/layout/Sider";
-import { useGalleryStore } from "../../gallery/store";
-import { ComponentTypes } from "../../../types/datamodel";
+import { ComponentTypes, Gallery } from "../../../types/datamodel";
 
 interface ComponentConfigTypes {
   [key: string]: any;
 }
 
-interface LibraryProps {}
+interface LibraryProps {
+  defaultGallery: Gallery;
+}
 
 interface PresetItemProps {
   id: string;
@@ -71,14 +72,12 @@ const PresetItem: React.FC<PresetItemProps> = ({
   );
 };
 
-export const ComponentLibrary: React.FC<LibraryProps> = () => {
+export const ComponentLibrary: React.FC<LibraryProps> = ({
+  defaultGallery,
+}) => {
   const [searchTerm, setSearchTerm] = React.useState("");
   const [isMinimized, setIsMinimized] = React.useState(false);
-  const defaultGallery = useGalleryStore((state) => state.getSelectedGallery());
 
-  if (!defaultGallery) {
-    return null;
-  }
   // Map gallery components to sections format
   const sections = React.useMemo(
     () => [

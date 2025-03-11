@@ -215,7 +215,9 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
             var agentState = await this.agentInstances[agentId].SaveStateAsync();
             state[agentId.ToString()] = agentState;
         }
-        return JsonSerializer.SerializeToElement(state);
+
+        JsonElement jsonElement = JsonSerializer.SerializeToElement(state);
+        return jsonElement;
     }
 
     public ValueTask<AgentType> RegisterAgentFactoryAsync<TAgent>(AgentType type, Func<AgentId, IAgentRuntime, ValueTask<TAgent>> factoryFunc) where TAgent : IHostableAgent
