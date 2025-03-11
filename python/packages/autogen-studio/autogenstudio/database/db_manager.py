@@ -15,7 +15,7 @@ from .schema_manager import SchemaManager
 class DatabaseManager:
     _init_lock = threading.Lock()
 
-    def __init__(self, engine_uri: str, base_dir: Optional[Path] = None):
+    def __init__(self, engine_uri: str, base_dir: Optional[Union[str, Path]] = None) -> None:
         """
         Initialize DatabaseManager with database connection settings.
         Does not perform any database operations.
@@ -25,6 +25,9 @@ class DatabaseManager:
             base_dir: Base directory for migration files. If None, uses current directory
         """
         connection_args = {"check_same_thread": True} if "sqlite" in engine_uri else {}
+
+        if base_dir is not None and isinstance(base_dir, str):
+            base_dir = Path(base_dir)
 
         self.engine = create_engine(engine_uri, connect_args=connection_args)
         self.schema_manager = SchemaManager(
@@ -187,7 +190,7 @@ class DatabaseManager:
     def get(
         self,
         model_class: SQLModel,
-        filters: dict = None,
+        filters: dict | None = None,
         return_json: bool = False,
         order: str = "desc",
     ):
