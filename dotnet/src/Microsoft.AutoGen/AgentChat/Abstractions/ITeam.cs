@@ -1,12 +1,14 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ITeam.cs
 
+using Microsoft.AutoGen.Contracts;
+
 namespace Microsoft.AutoGen.AgentChat.Abstractions;
 
 /// <summary>
 /// A team of agents.
 /// </summary>
-public interface ITeam : ITaskRunner
+public interface ITeam : ITaskRunner, ISaveState
 {
     /// <summary>
     /// Reset the team and all its participants to its initial state.
