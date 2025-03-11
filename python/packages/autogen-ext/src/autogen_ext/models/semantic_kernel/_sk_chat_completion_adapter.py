@@ -2,7 +2,7 @@ import json
 import logging
 import warnings
 from typing import Any, Literal, Mapping, Optional, Sequence
-
+from pydantic import BaseModel
 from autogen_core import EVENT_LOGGER_NAME, FunctionCall
 from autogen_core._cancellation_token import CancellationToken
 from autogen_core.logging import LLMCallEvent
@@ -36,7 +36,19 @@ from .._utils.parse_r1_content import parse_r1_content
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 
-
+def ensure_serializable(data: pydantic.BaseModel) -> pydantic.BaseModel:
+    """
+    Workaround for https://github.com/pydantic/pydantic/issues/7713, see https://github.com/pydantic/pydantic/issues/7713#issuecomment-2604574418
+    """
+    try:
+        json.dumps(data)
+    except TypeError:
+        # use `vars` to coerce nested data into dictionaries
+        data_json_from_dicts = json.dumps(data, default=lambda x: vars(x))
+        data_obj = json.loads(data_json_from_dicts)
+        data = type(data)(**data_obj)
+    return data
+    
 class SKChatCompletionAdapter(ChatCompletionClient):
     """
     SKChatCompletionAdapter is an adapter that allows using Semantic Kernel model clients
@@ -472,7 +484,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         logger.info(
             LLMCallEvent(
                 messages=[msg.model_dump() for msg in chat_history],
-                response=result[0].model_dump(),
+                response=ensure_serializable(result[0]).model_dump(),
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
             )
