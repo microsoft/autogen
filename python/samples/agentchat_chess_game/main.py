@@ -126,6 +126,8 @@ async def main(human_player: bool, max_tries: int) -> None:
     print("----------------")
     print(f"Game over! Result: {result}")
 
+    await player._model_client.close()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
