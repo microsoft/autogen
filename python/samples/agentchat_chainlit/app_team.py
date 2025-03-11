@@ -79,7 +79,7 @@ async def chat(message: cl.Message) -> None:
             # Stream the model client response to the user.
             if streaming_response is None:
                 # Start a new streaming response.
-                streaming_response = cl.Message(content="", author=msg.source)
+                streaming_response = cl.Message(content=msg.source + ": ", author=msg.source)
             await streaming_response.stream_token(msg.content)
         elif streaming_response is not None:
             # Done streaming the model client response.

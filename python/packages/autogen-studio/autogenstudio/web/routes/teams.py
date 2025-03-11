@@ -4,6 +4,7 @@ from typing import Dict
 from fastapi import APIRouter, Depends, HTTPException
 
 from ...datamodel import Team
+from ...gallery.builder import create_default_gallery
 from ..deps import get_db
 
 router = APIRouter()
@@ -13,6 +14,13 @@ router = APIRouter()
 async def list_teams(user_id: str, db=Depends(get_db)) -> Dict:
     """List all teams for a user"""
     response = db.get(Team, filters={"user_id": user_id})
+    if not response.data or len(response.data) == 0:
+        default_gallery = create_default_gallery()
+        default_team = Team(user_id=user_id, component=default_gallery.components.teams[0].model_dump())
+
+        db.upsert(default_team)
+        response = db.get(Team, filters={"user_id": user_id})
+
     return {"status": True, "data": response.data}
 
 

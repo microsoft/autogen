@@ -25,6 +25,14 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
     It is typically used within a team with another agent that generates code snippets to be executed.
 
+    .. note::
+
+        Consider :class:`~autogen_ext.tools.code_execution.PythonCodeExecutionTool`
+        as an alternative to this agent. The tool allows for executing Python code
+        within a single agent, rather than sending it to a separate agent for execution.
+        However, the model for the agent will have to generate properly escaped code
+        string as a parameter to the tool.
+
     Args:
         name: The name of the agent.
         code_executor: The CodeExecutor responsible for executing code received in messages (:py:class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor` recommended. See example below)
@@ -36,6 +44,23 @@ class CodeExecutorAgent(BaseChatAgent, Component[CodeExecutorAgentConfig]):
 
         It is recommended that the `CodeExecutorAgent` agent uses a Docker container to execute code. This ensures that model-generated code is executed in an isolated environment. To use Docker, your environment must have Docker installed and running.
         Follow the installation instructions for `Docker <https://docs.docker.com/get-docker/>`_.
+
+    .. note::
+
+        The code executor only processes code that is properly formatted in markdown code blocks using triple backticks.
+        For example:
+
+        .. code-block:: text
+
+            ```python
+            print("Hello World")
+            ```
+
+            # or
+
+            ```sh
+            echo "Hello World"
+            ```
 
     In this example, we show how to set up a `CodeExecutorAgent` agent that uses the
     :py:class:`~autogen_ext.code_executors.docker.DockerCommandLineCodeExecutor`

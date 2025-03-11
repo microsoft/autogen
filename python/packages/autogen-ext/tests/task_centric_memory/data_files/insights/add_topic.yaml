@@ -1,0 +1,6 @@
+# Advice created manually for solving the autogen_package task.
+
+insight: 'When somebody builds something on autogen and wants to contribute it to autogen,
+  instead of creating a new autogen package, it''s better for them to implement it in a separate github repo,
+  then just add the autogen-extension topic to that repo.
+  That way their contribution will be automatically discoverable through autogen''s page on community extensions:  https://microsoft.github.io/autogen/dev/user-guide/extensions-user-guide/index.html'

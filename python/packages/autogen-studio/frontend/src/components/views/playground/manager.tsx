@@ -27,7 +27,7 @@ export const SessionManager: React.FC = () => {
   const { user } = useContext(appContext);
   const { session, setSession, sessions, setSessions } = useConfigStore();
 
-  const defaultGallery = useGalleryStore((state) => state.getSelectedGallery());
+  const galleryStore = useGalleryStore();
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -196,15 +196,22 @@ export const SessionManager: React.FC = () => {
       if (teamsData.length > 0) {
         setTeams(teamsData);
       } else {
+        console.log("No teams found, creating default team");
+        await galleryStore.fetchGalleries(user.email);
+        const defaultGallery = galleryStore.getSelectedGallery();
+
         const sampleTeam = defaultGallery?.config.components.teams[0];
-        // If no teams, create a default team
-        const defaultTeam = await teamAPI.createTeam(
-          {
+        console.log("Default Gallery .. manager fetching ", sampleTeam);
+        // // If no teams, create a default team
+        if (sampleTeam) {
+          const teamData: Team = {
             component: sampleTeam,
-          },
-          user.email
-        );
-        setTeams([defaultTeam]);
+          };
+          const defaultTeam = await teamAPI.createTeam(teamData, user.email);
+          console.log("Default team created:", teamData);
+
+          setTeams([defaultTeam]);
+        }
       }
     } catch (error) {
       console.error("Error fetching teams:", error);
