@@ -1,10 +1,12 @@
 import asyncio
+import logging
 import re
 from asyncio import Task
 from inspect import getfullargspec
 from typing import Any, Dict, List, Mapping, Optional, Sequence, cast
 
-from autogen_core import CancellationToken, FunctionCall, Image
+from autogen_core import EVENT_LOGGER_NAME, CancellationToken, FunctionCall, Image
+from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -61,6 +63,8 @@ from .._utils.parse_r1_content import parse_r1_content
 
 create_kwargs = set(getfullargspec(ChatCompletionsClient.complete).kwonlyargs)
 AzureMessage = Union[AzureSystemMessage, AzureUserMessage, AzureAssistantMessage, AzureToolMessage]
+
+logger = logging.getLogger(EVENT_LOGGER_NAME)
 
 
 def _is_github_model(endpoint: str) -> bool:
@@ -339,6 +343,15 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             completion_tokens=result.usage.completion_tokens if result.usage else 0,
         )
 
+        logger.info(
+            LLMCallEvent(
+                messages=[m.as_dict() for m in azure_messages],
+                response=result.as_dict(),
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+            )
+        )
+
         choice = result.choices[0]
         if choice.finish_reason == CompletionsFinishReason.TOOL_CALLS:
             assert choice.message.tool_calls is not None
@@ -404,9 +417,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                 self._client.complete(messages=azure_messages, tools=converted_tools, stream=True, **create_args)
             )
         else:
-            task = asyncio.create_task(
-                self._client.complete(messages=azure_messages, max_tokens=20, stream=True, **create_args)
-            )
+            task = asyncio.create_task(self._client.complete(messages=azure_messages, stream=True, **create_args))
 
         if cancellation_token is not None:
             cancellation_token.link_future(task)
@@ -419,7 +430,16 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         completion_tokens = 0
         chunk: Optional[StreamingChatCompletionsUpdate] = None
         choice: Optional[StreamingChatChoiceUpdate] = None
+        first_chunk = True
         async for chunk in await task:  # type: ignore
+            if first_chunk:
+                first_chunk = False
+                # Emit the start event.
+                logger.info(
+                    LLMStreamStartEvent(
+                        messages=[m.as_dict() for m in azure_messages],
+                    )
+                )
             assert isinstance(chunk, StreamingChatCompletionsUpdate)
             choice = chunk.choices[0] if len(chunk.choices) > 0 else None
             if choice and choice.finish_reason is not None:
@@ -488,9 +508,21 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             thought=thought,
         )
 
+        # Log the end of the stream.
+        logger.info(
+            LLMStreamEndEvent(
+                response=result.model_dump(),
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+            )
+        )
+
         self.add_usage(usage)
 
         yield result
+
+    async def close(self) -> None:
+        await self._client.close()
 
     def actual_usage(self) -> RequestUsage:
         return self._actual_usage

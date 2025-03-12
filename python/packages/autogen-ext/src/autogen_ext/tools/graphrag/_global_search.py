@@ -177,9 +177,9 @@ class GlobalSearchTool(BaseTool[GlobalSearchToolArgs, GlobalSearchToolReturn]):
         )
 
     async def run(self, args: GlobalSearchToolArgs, cancellation_token: CancellationToken) -> GlobalSearchToolReturn:
-        result = await self._search_engine.asearch(args.query)
-        assert isinstance(result.response, str), "Expected response to be a string"
-        return GlobalSearchToolReturn(answer=result.response)
+        search_result = await self._search_engine.asearch(args.query)
+        assert isinstance(search_result.response, str), "Expected response to be a string"
+        return GlobalSearchToolReturn(answer=search_result.response)
 
     @classmethod
     def from_settings(cls, settings_path: str | Path) -> "GlobalSearchTool":

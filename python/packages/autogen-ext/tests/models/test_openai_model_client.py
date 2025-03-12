@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 from typing import Annotated, Any, AsyncGenerator, Dict, List, Literal, Tuple, TypeVar
 from unittest.mock import MagicMock
@@ -222,30 +223,43 @@ async def test_azure_openai_chat_completion_client() -> None:
 
 
 @pytest.mark.asyncio
-async def test_openai_chat_completion_client_create(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_openai_chat_completion_client_create(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
-    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
-    result = await client.create(messages=[UserMessage(content="Hello", source="user")])
-    assert result.content == "Hello"
+    with caplog.at_level(logging.INFO):
+        client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
+        result = await client.create(messages=[UserMessage(content="Hello", source="user")])
+        assert result.content == "Hello"
+        assert "LLMCall" in caplog.text and "Hello" in caplog.text
 
 
 @pytest.mark.asyncio
-async def test_openai_chat_completion_client_create_stream_with_usage(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_openai_chat_completion_client_create_stream_with_usage(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
     client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
     chunks: List[str | CreateResult] = []
-    async for chunk in client.create_stream(
-        messages=[UserMessage(content="Hello", source="user")],
-        # include_usage not the default of the OPENAI API and must be explicitly set
-        extra_create_args={"stream_options": {"include_usage": True}},
-    ):
-        chunks.append(chunk)
-    assert chunks[0] == "Hello"
-    assert chunks[1] == " Another Hello"
-    assert chunks[2] == " Yet Another Hello"
-    assert isinstance(chunks[-1], CreateResult)
-    assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
-    assert chunks[-1].usage == RequestUsage(prompt_tokens=3, completion_tokens=3)
+    with caplog.at_level(logging.INFO):
+        async for chunk in client.create_stream(
+            messages=[UserMessage(content="Hello", source="user")],
+            # include_usage not the default of the OPENAI API and must be explicitly set
+            extra_create_args={"stream_options": {"include_usage": True}},
+        ):
+            chunks.append(chunk)
+
+        assert "LLMStreamStart" in caplog.text
+        assert "LLMStreamEnd" in caplog.text
+
+        assert chunks[0] == "Hello"
+        assert chunks[1] == " Another Hello"
+        assert chunks[2] == " Yet Another Hello"
+        assert isinstance(chunks[-1], CreateResult)
+        assert isinstance(chunks[-1].content, str)
+        assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
+        assert chunks[-1].content in caplog.text
+        assert chunks[-1].usage == RequestUsage(prompt_tokens=3, completion_tokens=3)
 
 
 @pytest.mark.asyncio
