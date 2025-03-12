@@ -2,8 +2,6 @@
 // GrpcGateway.cs
 
 using System.Collections.Concurrent;
-
-//using System.Collections.Generic;
 using Grpc.Core;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Protobuf;
@@ -33,18 +31,10 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private readonly IMessageRegistryGrain _messageRegistry;
     private readonly IGateway _reference;
     private readonly ConcurrentDictionary<string, List<GrpcWorkerConnection<Message>>> _supportedAgentTypes = [];
-    /// <summary>
-    /// a map of the clientids form the grpc connection headers to the worker connections that service that id
-    /// for the Message Channel
-    /// </summary>
     public readonly ConcurrentDictionary<string, GrpcWorkerConnection<Message>> _workers = new();
-    /// <summary>
-    /// a map of the clientids form the grpc connection headers to the worker connections for the Control Channel
-    /// </summary>
     public readonly ConcurrentDictionary<string, GrpcWorkerConnection<ControlMessage>> _controlWorkers = new();
     private readonly ConcurrentDictionary<(string Type, string Key), GrpcWorkerConnection<Message>> _agentDirectory = new();
     private readonly ConcurrentDictionary<(GrpcWorkerConnection<Message>, string), TaskCompletionSource<RpcResponse>> _pendingRequests = new();
-    private readonly ConcurrentDictionary<(GrpcWorkerConnection<ControlMessage>, string), TaskCompletionSource<RpcResponse>> _pendingControlRequests = new();
 
     /// <summary>
     /// Initializes a new instance of the <see cref="GrpcGateway"/> class.
@@ -272,9 +262,11 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         var clientId = context.RequestHeaders.Get("client-id")?.Value
             ?? throw new RpcException(new Status(StatusCode.InvalidArgument, "Client ID is required."));
         var workerProcess = new GrpcWorkerConnection<TMessage>(this, requestStream, responseStream, context);
+
         if (typeof(TMessage) == typeof(Message))
         {
             _workers.GetOrAdd(clientId, _ => (GrpcWorkerConnection<Message>)(object)workerProcess);
+            await this.AttachDanglingRegistrations(clientId).ConfigureAwait(false);
         }
         else if (typeof(TMessage) == typeof(ControlMessage))
         {
@@ -284,6 +276,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         {
             throw new InvalidOperationException($"Unsupported message type: {typeof(TMessage).Name}");
         }
+
         await workerProcess.Connect().ConfigureAwait(false);
     }
 
@@ -367,19 +360,12 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     {
         if (connection is GrpcWorkerConnection<Message> messageConnection)
         {
-            if (_pendingRequests.TryRemove((messageConnection, response.RequestId), out var completion))
+            if (!_pendingRequests.TryRemove((messageConnection, response.RequestId), out var completion))
             {
-                completion.SetResult(response);
+                _logger.LogWarning("Received response for unknown request id: {RequestId}.", response.RequestId);
                 return;
             }
-        }
-        else if (connection is GrpcWorkerConnection<ControlMessage> controlConnection)
-        {
-            if (_pendingControlRequests.TryRemove((controlConnection, response.RequestId), out var completion))
-            {
-                completion.SetResult(response);
-                return;
-            }
+            completion.SetResult(response);
         }
     }
 
