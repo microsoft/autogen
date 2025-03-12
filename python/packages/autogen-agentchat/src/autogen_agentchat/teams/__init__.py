@@ -4,6 +4,7 @@ Each team inherits from the BaseGroupChat class.
 """
 
 from ._group_chat._base_group_chat import BaseGroupChat
+from ._group_chat._chat_agent_container import TeamRuntimeContext
 from ._group_chat._magentic_one import MagenticOneGroupChat
 from ._group_chat._round_robin_group_chat import RoundRobinGroupChat
 from ._group_chat._selector_group_chat import SelectorGroupChat
@@ -15,4 +16,5 @@ __all__ = [
     "SelectorGroupChat",
     "Swarm",
     "MagenticOneGroupChat",
+    "TeamRuntimeContext",
 ]
