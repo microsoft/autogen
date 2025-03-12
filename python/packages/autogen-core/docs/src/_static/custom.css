@@ -32,12 +32,15 @@ html[data-theme="dark"] {
   color: white;
   text-shadow: 0.5px 0 0 currentColor;
 }
-nav.bd-links .current>a  {
+
+nav.bd-links .current>a {
   box-shadow: inset 1px 0 0 var(--pst-color-primary);
 }
+
 @media (forced-colors: active) {
+
   /* Top breadcrumbs navigation (ie: Home > Core > ...) */
-  .bd-breadcrumbs .breadcrumb-item > a:focus-visible{
+  .bd-breadcrumbs .breadcrumb-item>a:focus-visible {
     border: 2px solid var(--pst-color-primary);
   }
 
@@ -45,7 +48,8 @@ nav.bd-links .current>a  {
   nav.bd-links .navbar-nav .toctree-l1>a:focus-visible {
     border: 2px solid var(--pst-color-primary);
   }
-  nav.bd-links .current>a  {
+
+  nav.bd-links .current>a {
     box-shadow: none;
     border-left: 4px solid var(--pst-color-primary) !important;
   }
@@ -55,15 +59,18 @@ nav.bd-links .current>a  {
     box-shadow: none;
     border-left: 5px solid var(--pst-color-primary) !important;
   }
+
   .bd-sidebar-secondary .sidebar-secondary-items .nav-item>a:focus-visible {
     border: 2px solid var(--pst-color-primary);
   }
 }
+
 html[data-theme="light"] .bd-header {
   border-bottom: 1px solid var(--pst-color-border);
 }
 
-.admonition, div.admonition {
+.admonition,
+div.admonition {
   border: 1px solid var(--pst-color-border);
 }
 
@@ -85,16 +92,19 @@ html[data-theme="light"] .bd-header {
   border-top: 3px solid var(--pst-color-border);
 
 }
+
 .bd-content .sd-tab-set>input:checked+label {
   border: none;
   transform: translateY(0);
   font-weight: 700;
   border-bottom: 4px solid var(--pst-color-secondary);
 }
+
 .bd-content .sd-tab-set>input:focus-visible+label {
   border: 2px outset var(--pst-color-secondary);
   transform: translateY(0);
 }
+
 .bd-content .sd-tab-set>label {
   border: none;
   background-color: transparent;
@@ -116,25 +126,23 @@ html[data-theme="light"] .bd-header {
 .headerlink {
   visibility: visible !important;
 }
+
 /* jupyter notebook output cells */
-.bd-article .docutils .cell_output .output .highlight > pre:focus-visible{
+.bd-article .docutils .cell_output .output .highlight>pre:focus-visible {
   border: 2px outset var(--pst-color-secondary);
 }
 
 /* Copy button */
 .bd-article .docutils .docutils .copybtn:focus-visible:after {
-    display: block;
-    opacity: 1;
-    visibility: visible;
+  display: block;
+  opacity: 1;
+  visibility: visible;
 }
 
 /* Allow voice access to find clickable cards */
 .sd-card a {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  position: relative;
+  display: block;
   z-index: 1;
   text-decoration: none;
   color: inherit;
