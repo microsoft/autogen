@@ -9,6 +9,7 @@ using Xunit;
 
 namespace Microsoft.AutoGen.AgentChat.Tests;
 
+[Trait("Category", "UnitV2")]
 public static class TerminationExtensions
 {
     public static async Task InvokeExpectingNullAsync<TTermination>(this TTermination termination, IList<AgentMessage> messages, bool reset = true)
