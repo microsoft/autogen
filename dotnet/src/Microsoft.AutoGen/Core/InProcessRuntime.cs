@@ -3,7 +3,6 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
-using System.Reflection;
 using System.Text.Json;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Hosting;
@@ -15,8 +14,8 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
     public bool DeliverToSelf { get; set; } //= false;
 
     internal Dictionary<AgentId, IHostableAgent> agentInstances = new();
-    Dictionary<string, ISubscriptionDefinition> subscriptions = new();
-    Dictionary<AgentType, Func<AgentId, IAgentRuntime, ValueTask<IHostableAgent>>> agentFactories = new();
+    private Dictionary<string, ISubscriptionDefinition> subscriptions = new();
+    private Dictionary<AgentType, Func<AgentId, IAgentRuntime, ValueTask<IHostableAgent>>> agentFactories = new();
 
     private ValueTask<T> ExecuteTracedAsync<T>(Func<ValueTask<T>> func)
     {
@@ -113,21 +112,7 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
 
             this.messageDeliveryQueue.Enqueue(delivery);
 
-            try
-            {
-                return await delivery.Future;
-            }
-            catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException innerOCEx)
-            {
-                if (!cancellationToken.IsCancellationRequested)
-                {
-                    // If the parent token was not cancelled, we do not have the true cause of the cancellation.
-                    // Pass an arbitrary cancelled token through the exception.
-                    cancellationToken = new CancellationToken(canceled: true);
-                }
-
-                throw new OperationCanceledException($"Delivery of message {messageId} was cancelled.", innerOCEx, cancellationToken);
-            }
+            return await delivery.Future;
         });
     }
 
@@ -274,11 +259,34 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
     private CancellationTokenSource? finishSource;
     private async Task RunAsync(CancellationToken cancellation)
     {
+        Dictionary<Guid, Task> pendingTasks = new();
         while (!cancellation.IsCancellationRequested && shouldContinue())
         {
-            _ = Task.Run(async () => await this.ProcessNextMessageAsync(cancellation));
+            // Get a unique task id
+            Guid taskId;
+            do
+            {
+                taskId = Guid.NewGuid();
+            } while (pendingTasks.ContainsKey(taskId));
+
+            // There is potentially a race condition here, but even if we leak a Task, we will
+            // still catch it on the Finish() pass.
+            ValueTask processTask = this.ProcessNextMessageAsync(cancellation);
+            await Task.Yield();
+
+            // Check if the task is already completed
+            if (processTask.IsCompleted)
+            {
+                continue;
+            }
+            else
+            {
+                Task actualTask = processTask.AsTask();
+                pendingTasks.Add(taskId, actualTask.ContinueWith(t => pendingTasks.Remove(taskId), TaskScheduler.Current));
+            }
         }
 
+        await Task.WhenAll(pendingTasks.Values.ToArray());
         await this.FinishAsync(this.finishSource?.Token ?? CancellationToken.None);
     }
 

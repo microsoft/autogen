@@ -1,17 +1,18 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // MessageDelivery.cs
 
+using System.Reflection;
 using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.Core;
 
-internal sealed class MessageDelivery(MessageEnvelope message, Func<MessageEnvelope, CancellationToken, ValueTask> servicer, IResultSink<object?>? resultSink = null)
+internal sealed class MessageDelivery(MessageEnvelope message, Func<MessageEnvelope, CancellationToken, ValueTask> servicer, IResultSink<object?> resultSink)
 {
     public MessageEnvelope Message { get; } = message;
     public Func<MessageEnvelope, CancellationToken, ValueTask> Servicer { get; } = servicer;
-    public IResultSink<object?>? ResultSink { get; } = resultSink;
+    public IResultSink<object?> ResultSink { get; } = resultSink;
 
-    public ValueTask<object?> Future => this.ResultSink != null ? this.ResultSink.Future : ValueTask.FromResult((object?)null);
+    public ValueTask<object?> Future => this.ResultSink.Future;
 
     public ValueTask InvokeAsync(CancellationToken cancellation)
     {
@@ -53,9 +54,9 @@ internal sealed class MessageEnvelope
                 object? result = await servicer(envelope, cancellation);
                 resultSink.SetResult(result);
             }
-            catch (OperationCanceledException)
+            catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException innerOCEx)
             {
-                resultSink.SetCancelled();
+                resultSink.SetCancelled(innerOCEx);
             }
             catch (Exception ex)
             {
@@ -70,6 +71,20 @@ internal sealed class MessageEnvelope
     {
         this.Topic = topic;
 
-        return new MessageDelivery(this, servicer);
+        ResultSink<object?> waitForPublish = new ResultSink<object?>();
+        Func<MessageEnvelope, CancellationToken, ValueTask> boundServicer = async (envelope, cancellation) =>
+        {
+            try
+            {
+                await servicer(envelope, cancellation);
+                waitForPublish.SetResult(null);
+            }
+            catch (Exception ex)
+            {
+                waitForPublish.SetException(ex);
+            }
+        };
+
+        return new MessageDelivery(this, servicer, waitForPublish);
     }
 }
