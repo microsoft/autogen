@@ -1,3 +1,4 @@
+import logging
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
@@ -109,6 +110,7 @@ async def test_mcp_tool_execution(
     mock_tool_response: MagicMock,
     cancellation_token: CancellationToken,
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test that adapter properly executes tools through ClientSession."""
     mock_context = AsyncMock()
@@ -120,15 +122,19 @@ async def test_mcp_tool_execution(
 
     mock_session.call_tool.return_value = mock_tool_response
 
-    adapter = StdioMcpToolAdapter(server_params=sample_server_params, tool=sample_tool)
-    result = await adapter.run(
-        args=create_model(sample_tool.inputSchema)(**{"test_param": "test"}),
-        cancellation_token=cancellation_token,
-    )
+    with caplog.at_level(logging.INFO):
+        adapter = StdioMcpToolAdapter(server_params=sample_server_params, tool=sample_tool)
+        result = await adapter.run_json(
+            args=create_model(sample_tool.inputSchema)(**{"test_param": "test"}).model_dump(),
+            cancellation_token=cancellation_token,
+        )
 
-    assert result == mock_tool_response.content
-    mock_session.initialize.assert_called_once()
-    mock_session.call_tool.assert_called_once()
+        assert result == mock_tool_response.content
+        mock_session.initialize.assert_called_once()
+        mock_session.call_tool.assert_called_once()
+
+        # Check log.
+        assert "test_output" in caplog.text
 
 
 @pytest.mark.asyncio
@@ -206,6 +212,7 @@ async def test_sse_tool_execution(
     sample_sse_tool: Tool,
     mock_sse_session: AsyncMock,
     monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     """Test that SSE adapter properly executes tools through ClientSession."""
     params = SseServerParams(url="http://test-url")
@@ -219,15 +226,19 @@ async def test_sse_tool_execution(
         lambda *args, **kwargs: mock_context,  # type: ignore
     )
 
-    adapter = SseMcpToolAdapter(server_params=params, tool=sample_sse_tool)
-    result = await adapter.run(
-        args=create_model(sample_sse_tool.inputSchema)(**{"test_param": "test"}),
-        cancellation_token=CancellationToken(),
-    )
+    with caplog.at_level(logging.INFO):
+        adapter = SseMcpToolAdapter(server_params=params, tool=sample_sse_tool)
+        result = await adapter.run_json(
+            args=create_model(sample_sse_tool.inputSchema)(**{"test_param": "test"}).model_dump(),
+            cancellation_token=CancellationToken(),
+        )
 
-    assert result == mock_sse_session.call_tool.return_value.content
-    mock_sse_session.initialize.assert_called_once()
-    mock_sse_session.call_tool.assert_called_once()
+        assert result == mock_sse_session.call_tool.return_value.content
+        mock_sse_session.initialize.assert_called_once()
+        mock_sse_session.call_tool.assert_called_once()
+
+        # Check log.
+        assert "test_output" in caplog.text
 
 
 @pytest.mark.asyncio

@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import os
 from datetime import datetime
 from typing import Any, AsyncGenerator, List
@@ -170,16 +171,31 @@ async def test_azure_ai_chat_completion_client(azure_client: AzureAIChatCompleti
 
 
 @pytest.mark.asyncio
-async def test_azure_ai_chat_completion_client_create(azure_client: AzureAIChatCompletionClient) -> None:
-    result = await azure_client.create(messages=[UserMessage(content="Hello", source="user")])
-    assert result.content == "Hello"
+async def test_azure_ai_chat_completion_client_create(
+    azure_client: AzureAIChatCompletionClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    with caplog.at_level(logging.INFO):
+        result = await azure_client.create(messages=[UserMessage(content="Hello", source="user")])
+        assert result.content == "Hello"
+        assert "LLMCall" in caplog.text and "Hello" in caplog.text
 
 
 @pytest.mark.asyncio
-async def test_azure_ai_chat_completion_client_create_stream(azure_client: AzureAIChatCompletionClient) -> None:
-    chunks: List[str | CreateResult] = []
-    async for chunk in azure_client.create_stream(messages=[UserMessage(content="Hello", source="user")]):
-        chunks.append(chunk)
+async def test_azure_ai_chat_completion_client_create_stream(
+    azure_client: AzureAIChatCompletionClient, caplog: pytest.LogCaptureFixture
+) -> None:
+    with caplog.at_level(logging.INFO):
+        chunks: List[str | CreateResult] = []
+        async for chunk in azure_client.create_stream(messages=[UserMessage(content="Hello", source="user")]):
+            chunks.append(chunk)
+
+        assert "LLMStreamStart" in caplog.text
+        assert "LLMStreamEnd" in caplog.text
+
+        final_result: str | CreateResult = chunks[-1]
+        assert isinstance(final_result, CreateResult)
+        assert isinstance(final_result.content, str)
+        assert final_result.content in caplog.text
 
     assert chunks[0] == "Hello"
     assert chunks[1] == " Another Hello"

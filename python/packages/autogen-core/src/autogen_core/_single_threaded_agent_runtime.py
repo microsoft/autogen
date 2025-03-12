@@ -417,11 +417,12 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     cancellation_token=message_envelope.cancellation_token,
                     message_id=message_envelope.message_id,
                 )
-                with MessageHandlerContext.populate_context(recipient_agent.id):
-                    response = await recipient_agent.on_message(
-                        message_envelope.message,
-                        ctx=message_context,
-                    )
+                with self._tracer_helper.trace_block("process", recipient_agent.id, parent=message_envelope.metadata):
+                    with MessageHandlerContext.populate_context(recipient_agent.id):
+                        response = await recipient_agent.on_message(
+                            message_envelope.message,
+                            ctx=message_context,
+                        )
             except CancelledError as e:
                 if not message_envelope.future.cancelled():
                     message_envelope.future.set_exception(e)
@@ -503,7 +504,7 @@ class SingleThreadedAgentRuntime(AgentRuntime):
                     agent = await self._get_agent(agent_id)
 
                     async def _on_message(agent: Agent, message_context: MessageContext) -> Any:
-                        with self._tracer_helper.trace_block("process", agent.id, parent=None):
+                        with self._tracer_helper.trace_block("process", agent.id, parent=message_envelope.metadata):
                             with MessageHandlerContext.populate_context(agent.id):
                                 try:
                                     return await agent.on_message(

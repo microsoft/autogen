@@ -3,10 +3,13 @@ import base64
 import io
 import os
 import random
+import warnings
 from typing import Any, Callable, Dict, Optional, Tuple, Union, cast
 
 # TODO: Fix unfollowed import
 try:
+    # Suppress warnings from markitdown -- which is pretty chatty
+    warnings.filterwarnings(action="ignore", module="markitdown")
     from markitdown import MarkItDown  # type: ignore
 except ImportError:
     MarkItDown = None
