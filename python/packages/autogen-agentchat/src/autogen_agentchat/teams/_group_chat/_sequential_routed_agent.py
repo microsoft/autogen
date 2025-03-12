@@ -36,10 +36,13 @@ class FIFOLock:
 
 class SequentialRoutedAgent(RoutedAgent):
     """A subclass of :class:`autogen_core.RoutedAgent` that ensures
-    messages are handled sequentially in the order they arrive.
+    that messages of certain types are processed sequentially
+    using a FIFO lock.
 
     This is useful for agents that need to maintain a strict order of
     processing messages, such as in a group chat scenario.
+
+
 
     Args:
 

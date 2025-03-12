@@ -569,8 +569,18 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         """Pause its participants when the team is running by calling their
         :meth:`~autogen_agentchat.base.ChatAgent.on_pause` method via direct RPC calls.
 
-        The team must be initialized before it can be paused. If the team is not
-        running, no action is taken.
+        .. attention::
+
+            This is an experimental feature introduced in v0.4.9 and may subject
+            to change or removal in the future.
+
+        The team must be initialized before it can be paused.
+
+        Different from termination, pausing the team does not cause the
+        :meth:`run` or :meth:`run_stream` method to return. It calls the
+        :meth:`~autogen_agentchat.base.ChatAgent.on_pause` method on each
+        participant, and if the participant does not implement the method, it
+        will be a no-op.
 
         .. note::
 
@@ -578,6 +588,7 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             and ensure that the agent can be resumed later.
             Make sure to implement the :meth:`~autogen_agentchat.agents.BaseChatAgent.on_pause`
             method in your agent class for custom pause behavior.
+            By default, the agent will not do anything when called.
 
         Raises:
             RuntimeError: If the team has not been initialized. Exceptions from
@@ -587,10 +598,6 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         """
         if not self._initialized:
             raise RuntimeError("The group chat has not been initialized. It must be run before it can be paused.")
-
-        if not self._is_running:
-            # The team is not running, so we cannot pause it.
-            return
 
         # Send a pause message to all participants.
         for participant_topic_type in self._participant_topic_types:
@@ -608,8 +615,18 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         """Resume its participants when the team is running and paused by calling their
         :meth:`~autogen_agentchat.base.ChatAgent.on_resume` method via direct RPC calls.
 
-        The team must be initialized before it can be resumed. If the team is not
-        running, no action is taken.
+        .. attention::
+
+            This is an experimental feature introduced in v0.4.9 and may subject
+            to change or removal in the future.
+
+        The team must be initialized before it can be resumed.
+
+        Different from termination and restart with a new task, resuming the team
+        does not cause the :meth:`run` or :meth:`run_stream` method to return.
+        It calls the :meth:`~autogen_agentchat.base.ChatAgent.on_resume` method on each
+        participant, and if the participant does not implement the method, it
+        will be a no-op.
 
         .. note::
 
@@ -626,10 +643,6 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
         """
         if not self._initialized:
             raise RuntimeError("The group chat has not been initialized. It must be run before it can be resumed.")
-
-        if not self._is_running:
-            # The team is not running, so we cannot resume it.
-            return
 
         # Send a resume message to all participants.
         for participant_topic_type in self._participant_topic_types:
