@@ -484,7 +484,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
 
         logger.info(
             LLMCallEvent(
-                messages=cast(List[Dict[str, Any]], ollama_messages),
+                messages=[m.model_dump() for m in ollama_messages],
                 response=result.model_dump(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
@@ -689,7 +689,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
                     # Emit the start event.
                     logger.info(
                         LLMStreamStartEvent(
-                            messages=cast(List[Dict[str, Any]], ollama_messages),
+                            messages=[m.model_dump() for m in ollama_messages],
                         )
                     )
                 # set the stop_reason for the usage chunk to the prior stop_reason
