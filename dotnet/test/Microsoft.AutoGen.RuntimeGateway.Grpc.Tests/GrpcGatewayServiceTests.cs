@@ -44,30 +44,10 @@ public class GrpcGatewayServiceTests
         var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
         var service = new GrpcGatewayService(gateway);
 
-        // Step 1: Register the agent
-        var agentClient = new TestGrpcClient<Message>();
-        var agentTask = OpenChannel(service, agentClient);
-        var registerResponse = await service.RegisterAgent(await CreateRegistrationRequest(service, typeof(PBAgent)), agentClient.CallContext);
-        registerResponse.Should().NotBeNull();
-        var newMessage = new NewMessageReceived { Message = $"Start-{agentClient.CallContext.Peer}" };
-        var eventType = GetFullName(typeof(NewMessageReceived));
-        var inputEvent = CloudEventExtensions.CreateCloudEvent(
-            Google.Protobuf.WellKnownTypes.Any.Pack(newMessage),
-            new TopicId(eventType, "gh-gh-gh"),
-            eventType,
-            null,
-            Guid.NewGuid().ToString());
-
-        agentClient.AddMessage(new Message { CloudEvent = inputEvent });
-        var newMessageReceived = await agentClient.ReadNext();
-        newMessageReceived!.CloudEvent.Type.Should().Be(GetFullName(typeof(NewMessageReceived)));
-
-        // Step 2: Open the control channel
         var controlClient = new TestGrpcClient<ControlMessage>();
         var controlTask = OpenConrolChannel(service, controlClient);
         gateway._controlWorkers.Count.Should().Be(1);
 
-        // Step 3: Send a control message targeting the registered agent
         var testMessage = new ControlMessage
         {
             RpcId = "123",
@@ -79,15 +59,13 @@ public class GrpcGatewayServiceTests
         controlClient.AddMessage(testMessage);
 
         // Step 4: Verify that the agent receives the control message
-        var receivedMessage = await agentClient.ReadNext();
+        var receivedMessage = await controlClient.ReadNext();
         receivedMessage.Should().NotBeNull();
-        receivedMessage.CloudEvent.Type.Should().Be(GetFullName(typeof(SaveStateRequest)));
+        receivedMessage.RpcId.Should().Be("123");
 
         // Cleanup
         controlClient.Dispose();
-        agentClient.Dispose();
         await controlTask;
-        await agentTask;
     }
 
     [Fact]

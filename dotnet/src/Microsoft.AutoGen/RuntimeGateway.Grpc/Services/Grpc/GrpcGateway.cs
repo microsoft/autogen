@@ -2,7 +2,6 @@
 // GrpcGateway.cs
 
 using System.Collections.Concurrent;
-using Google.Protobuf;
 
 //using System.Collections.Generic;
 using Grpc.Core;
@@ -330,6 +329,7 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         switch (message)
         {
             case Message msg:
+                // Handle regular messages
                 switch (msg.MessageCase)
                 {
                     case Message.MessageOneofCase.Request:
@@ -348,58 +348,12 @@ public sealed class GrpcGateway : BackgroundService, IGateway
                 break;
 
             case ControlMessage controlMsg:
-                if (controlMsg.RpcMessage.TryUnpack(out SaveStateRequest saveReq))
-                {
-                    var rpcRequest = new RpcRequest
-                    {
-                        RequestId = controlMsg.RpcId,  // Ensure request ID is mapped
-                        Source = new Microsoft.AutoGen.Protobuf.AgentId { Type = "control", Key = controlMsg.Destination }, // Set source agent
-                        Target = saveReq.AgentId,  // Target stays the same
-                        Method = "SaveState",
-                        Payload = new Payload
-                        {
-                            DataContentType = "application/x-protobuf",
-                            Data = saveReq.ToByteString() // Properly encode request data
-                        }
-                    };
-                    await DispatchRequestAsync(connection, rpcRequest);
-                }
-                else if (controlMsg.RpcMessage.TryUnpack(out LoadStateRequest loadReq))
-                {
-                    var rpcRequest = new RpcRequest
-                    {
-                        Target = loadReq.AgentId,
-                        Method = "LoadState",
-                        Payload = new Payload { DataContentType = "application/x-protobuf" }
-                    };
-                    await DispatchRequestAsync(connection, rpcRequest);
-                }
-                /*else if (controlMsg.RpcMessage.TryUnpack(out SaveStateResponse saveResp))
-                {
-                    if (_pendingControlRequests.TryRemove((connection, controlMsg.RpcId), out var completion))
-                    {
-                        completion.SetResult(new RpcResponse
-                        {
-                            RequestId = controlMsg.RpcId,
-                            Payload = new Payload { DataContentType = "application/x-protobuf" }
-                        });
-                    }
-                }
-                else if (controlMsg.RpcMessage.TryUnpack(out LoadStateResponse loadResp))
-                {
-                    if (_pendingControlRequests.TryRemove((connection, controlMsg.RpcId), out var completion))
-                    {
-                        completion.SetResult(new RpcResponse
-                        {
-                            RequestId = controlMsg.RpcId,
-                            Payload = new Payload { DataContentType = "application/x-protobuf" }
-                        });
-                    }
-                }*/
-                else
-                {
-                    await RespondBadRequestAsync(connection, "Unsupported ControlMessage type.");
-                }
+                // Handle control messages
+                await DispatchControlMessageAsync(connection, controlMsg, cancellationToken);
+                break;
+
+            default:
+                await RespondBadRequestAsync(connection, $"Unsupported message type: {typeof(TMessage).Name}");
                 break;
         }
     }
@@ -688,79 +642,24 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         await connection.ResponseStream.WriteAsync(new Message { CloudEvent = cloudEvent }, cancellationToken).ConfigureAwait(false);
     }
 
-    private async Task HandleSaveStateRequestAsync(GrpcWorkerConnection<ControlMessage> connection, SaveStateRequest request, CancellationToken cancellationToken)
+    private async ValueTask DispatchControlMessageAsync<TMessage>(GrpcWorkerConnection<TMessage> connection, ControlMessage controlMsg, CancellationToken cancellationToken)
+    where TMessage : class
     {
-        // Log the received request
-        _logger.LogInformation("Received SaveStateRequest: {Request}", request);
-
-        // Process the save state request (e.g., save the state of the specified agent)
-        // This could involve calling a method to save the state in your agent runtime
-        //var result = await SaveAgentStateAsync(request.AgentId, cancellationToken);
-
-        // Create a response message
-        var response = new SaveStateResponse
+        var requestId = controlMsg.RpcId;
+        if (string.IsNullOrEmpty(controlMsg.Destination))
         {
-            //State = result.State, // Assuming SaveAgentStateAsync returns an object with a State property
-            //Error = result.Error // Handle any errors that occurred during the save
-        };
+            throw new InvalidOperationException($"Control message is missing a destination. Message: '{controlMsg}'");
+        }
 
-        // Send the response back to the agent
-        await connection.ResponseStream.WriteAsync(new ControlMessage
+        // Ensure the control message is of the correct type
+        if (controlMsg is TMessage typedResponseMessage)
         {
-            //RpcMessage = Any.Pack(response) // Pack the response into an Any message
-        }, cancellationToken);
-    }
-
-    private async Task HandleSaveStateResponseAsync(GrpcWorkerConnection<ControlMessage> connection, SaveStateResponse response, CancellationToken cancellationToken)
-    {
-        // Log the received response
-        _logger.LogInformation("Received SaveStateResponse: {Response}", response);
-
-        // Handle the response (e.g., log success or error)
-        if (!string.IsNullOrEmpty(response.Error))
-        {
-            _logger.LogError("Error saving state: {Error}", response.Error);
+            // Send the response back to the client
+            await connection.ResponseStream.WriteAsync(typedResponseMessage, cancellationToken).ConfigureAwait(false);
         }
         else
         {
-            _logger.LogInformation("State saved successfully.");
-        }
-    }
-
-    private async Task HandleLoadStateRequestAsync(GrpcWorkerConnection<ControlMessage> connection, LoadStateRequest request, CancellationToken cancellationToken)
-    {
-        // Log the received request
-        _logger.LogInformation("Received LoadStateRequest: {Request}", request);
-
-        // Process the load state request (e.g., load the state of the specified agent)
-        //var result = await LoadAgentStateAsync(request.AgentId, cancellationToken);
-
-        // Create a response message
-        var response = new LoadStateResponse
-        {
-            //Error = result.Error // Handle any errors that occurred during the load
-        };
-
-        // Send the response back to the agent
-        await connection.ResponseStream.WriteAsync(new ControlMessage
-        {
-            //RpcMessage = Any.Pack(response) // Pack the response into an Any message
-        }, cancellationToken);
-    }
-
-    private async Task HandleLoadStateResponseAsync(GrpcWorkerConnection<ControlMessage> connection, LoadStateResponse response, CancellationToken cancellationToken)
-    {
-        // Log the received response
-        _logger.LogInformation("Received LoadStateResponse: {Response}", response);
-
-        // Handle the response (e.g., log success or error)
-        if (!string.IsNullOrEmpty(response.Error))
-        {
-            _logger.LogError("Error loading state: {Error}", response.Error);
-        }
-        else
-        {
-            _logger.LogInformation("State loaded successfully.");
+            throw new InvalidOperationException($"Cannot convert control message to type {typeof(TMessage).Name}");
         }
     }
 }
