@@ -21,6 +21,7 @@ export interface EditPath {
   componentType: string;
   id: string;
   parentField: string;
+  index?: number; // Added index for array items
 }
 
 export interface ComponentEditorProps {
@@ -64,6 +65,16 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
             | undefined;
 
           if (Array.isArray(field)) {
+            // If index is provided, use it directly (preferred method)
+            if (
+              typeof path.index === "number" &&
+              path.index >= 0 &&
+              path.index < field.length
+            ) {
+              return field[path.index];
+            }
+
+            // Fallback to label/name lookup for backward compatibility
             return (
               field.find(
                 (item) =>
@@ -106,6 +117,21 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
 
       const updateField = (fieldValue: any): any => {
         if (Array.isArray(fieldValue)) {
+          // If we have an index, use it directly for the update
+          if (
+            typeof currentPath.index === "number" &&
+            currentPath.index >= 0 &&
+            currentPath.index < fieldValue.length
+          ) {
+            return fieldValue.map((item, idx) => {
+              if (idx === currentPath.index) {
+                return updateComponentAtPath(item, remainingPath, updates);
+              }
+              return item;
+            });
+          }
+
+          // Fallback to label/name lookup
           return fieldValue.map((item) => {
             if (!("component_type" in item)) return item;
             if (
@@ -155,9 +181,17 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
   );
 
   const handleNavigate = useCallback(
-    (componentType: string, id: string, parentField: string) => {
+    (
+      componentType: string,
+      id: string,
+      parentField: string,
+      index?: number
+    ) => {
       if (!navigationDepth) return;
-      setEditPath((prev) => [...prev, { componentType, id, parentField }]);
+      setEditPath((prev) => [
+        ...prev,
+        { componentType, id, parentField, index },
+      ]);
     },
     [navigationDepth]
   );
@@ -220,6 +254,7 @@ export const ComponentEditor: React.FC<ComponentEditorProps> = ({
         <TerminationFields
           component={currentComponent}
           onChange={handleComponentUpdate}
+          onNavigate={handleNavigate}
         />
       );
     }

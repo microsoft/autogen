@@ -8,8 +8,10 @@ from typing import AsyncGenerator, Callable, List, Optional, Union
 
 import aiofiles
 import yaml
+from autogen_agentchat.agents import UserProxyAgent
 from autogen_agentchat.base import TaskResult, Team
 from autogen_agentchat.messages import AgentEvent, ChatMessage
+from autogen_agentchat.teams import BaseGroupChat
 from autogen_core import EVENT_LOGGER_NAME, CancellationToken, Component, ComponentModel
 from autogen_core.logging import LLMCallEvent
 
@@ -70,7 +72,7 @@ class TeamManager:
         team_config: Union[str, Path, dict, ComponentModel],
         input_func: Optional[Callable] = None,
         env_vars: Optional[List[EnvironmentVariable]] = None,
-    ) -> Component:
+    ) -> BaseGroupChat:
         """Create team instance from config"""
         if isinstance(team_config, (str, Path)):
             config = await self.load_from_file(team_config)
@@ -85,10 +87,10 @@ class TeamManager:
             for var in env_vars:
                 os.environ[var.name] = var.value
 
-        team = Team.load_component(config)
+        team: BaseGroupChat = BaseGroupChat.load_component(config)
 
         for agent in team._participants:
-            if hasattr(agent, "input_func"):
+            if hasattr(agent, "input_func") and isinstance(agent, UserProxyAgent) and input_func:
                 agent.input_func = input_func
 
         return team
