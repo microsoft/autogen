@@ -30,6 +30,7 @@ ollama = ["ollama>=0.4.7", "tiktoken>=0.8.0"]
 openai = ["openai>=1.52.2", "tiktoken>=0.8.0", "aiofiles"]
 file-surfer = [
     "autogen-agentchat==0.4.9",
+    "magika>=0.6.1rc2",
     "markitdown~=0.1.0a2",
 ]
 
@@ -43,10 +44,12 @@ web-surfer = [
     "autogen-agentchat==0.4.9",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
+    "magika>=0.6.1rc2",
     "markitdown~=0.1.0a2",
 ]
 magentic-one = [
     "autogen-agentchat==0.4.9",
+    "magika>=0.6.1rc2",
     "markitdown~=0.1.0a2",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
@@ -144,11 +147,6 @@ dev = [
     "langchain-experimental",
     "pandas-stubs>=2.2.3.241126",
     "httpx>=0.28.1",
-]
-
-[tool.uv]
-override-dependencies = [
-    "magika>=0.6.0rc1",
 ]
 
 [tool.ruff]

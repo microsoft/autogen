@@ -610,6 +610,7 @@ docker = [
 ]
 file-surfer = [
     { name = "autogen-agentchat" },
+    { name = "magika" },
     { name = "markitdown" },
 ]
 gemini = [
@@ -637,6 +638,7 @@ llama-cpp = [
 ]
 magentic-one = [
     { name = "autogen-agentchat" },
+    { name = "magika" },
     { name = "markitdown" },
     { name = "pillow" },
     { name = "playwright" },
@@ -704,6 +706,7 @@ video-surfer = [
 ]
 web-surfer = [
     { name = "autogen-agentchat" },
+    { name = "magika" },
     { name = "markitdown" },
     { name = "pillow" },
     { name = "playwright" },
@@ -743,6 +746,9 @@ requires-dist = [
     { name = "json-schema-to-pydantic", marker = "extra == 'mcp'", specifier = ">=0.2.2" },
     { name = "langchain-core", marker = "extra == 'langchain'", specifier = "~=0.3.3" },
     { name = "llama-cpp-python", marker = "extra == 'llama-cpp'", specifier = ">=0.1.9" },
+    { name = "magika", marker = "extra == 'file-surfer'", specifier = ">=0.6.1rc2" },
+    { name = "magika", marker = "extra == 'magentic-one'", specifier = ">=0.6.1rc2" },
+    { name = "magika", marker = "extra == 'web-surfer'", specifier = ">=0.6.1rc2" },
     { name = "markitdown", marker = "extra == 'file-surfer'", specifier = "~=0.1.0a2" },
     { name = "markitdown", marker = "extra == 'magentic-one'", specifier = "~=0.1.0a2" },
     { name = "markitdown", marker = "extra == 'web-surfer'", specifier = "~=0.1.0a2" },
@@ -2343,7 +2349,7 @@ grpc = [
 
 [[package]]
 name = "google-api-python-client"
-version = "2.163.0"
+version = "2.164.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "google-api-core" },
@@ -2352,9 +2358,9 @@ dependencies = [
     { name = "httplib2" },
     { name = "uritemplate" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/29/9f/535346bb1469ec91139c38f0438ad70bd229a6b11452367065fe49303860/google_api_python_client-2.163.0.tar.gz", hash = "sha256:88dee87553a2d82176e2224648bf89272d536c8f04dcdda37ef0a71473886dd7", size = 12588615 }
+sdist = { url = "https://files.pythonhosted.org/packages/32/5b/4ed16fac5ef6928d0c1ca0fba42f27e73938f04729ef97e63d7a7bb5fd6d/google_api_python_client-2.164.0.tar.gz", hash = "sha256:116f5a05dfb95ed7f7ea0d0f561fc5464146709c583226cc814690f9bb221492", size = 12595711 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/91/3d/203d1c18cb239313ac125721f284e94c01c7eee947adb2ef2d9a85ac8d66/google_api_python_client-2.163.0-py2.py3-none-any.whl", hash = "sha256:080e8bc0669cb4c1fb8efb8da2f5b91a2625d8f0e7796cfad978f33f7016c6c4", size = 13097882 },
+    { url = "https://files.pythonhosted.org/packages/94/0d/4eacf5bff40a42e6be3086b85164f0624fee9724c11bb2c79305fbc2f355/google_api_python_client-2.164.0-py2.py3-none-any.whl", hash = "sha256:b2037c3d280793c8d5180b04317b16be4acd5f77af5dfa7213ace32d140a9ffe", size = 13106781 },
 ]
 
 [[package]]
@@ -4498,16 +4504,16 @@ wheels = [
 
 [[package]]
 name = "msal"
-version = "1.31.1"
+version = "1.32.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
     { name = "pyjwt", extra = ["crypto"] },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/3f/f3/cdf2681e83a73c3355883c2884b6ff2f2d2aadfc399c28e9ac4edc3994fd/msal-1.31.1.tar.gz", hash = "sha256:11b5e6a3f802ffd3a72107203e20c4eac6ef53401961b880af2835b723d80578", size = 145362 }
+sdist = { url = "https://files.pythonhosted.org/packages/aa/5f/ef42ef25fba682e83a8ee326a1a788e60c25affb58d014495349e37bce50/msal-1.32.0.tar.gz", hash = "sha256:5445fe3af1da6be484991a7ab32eaa82461dc2347de105b76af92c610c3335c2", size = 149817 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/30/7c/489cd931a752d05753d730e848039f08f65f86237cf1b8724d0a1cbd700b/msal-1.31.1-py3-none-any.whl", hash = "sha256:29d9882de247e96db01386496d59f29035e5e841bcac892e6d7bf4390bf6bd17", size = 113216 },
+    { url = "https://files.pythonhosted.org/packages/93/5a/2e663ef56a5d89eba962941b267ebe5be8c5ea340a9929d286e2f5fac505/msal-1.32.0-py3-none-any.whl", hash = "sha256:9dbac5384a10bbbf4dae5c7ea0d707d14e087b92c5aa4954b3feaa2d1aa0bcb7", size = 114655 },
 ]
 
 [[package]]
