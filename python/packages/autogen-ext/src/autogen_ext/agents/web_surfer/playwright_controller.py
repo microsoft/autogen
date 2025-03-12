@@ -6,14 +6,6 @@ import random
 import warnings
 from typing import Any, Callable, Dict, Optional, Tuple, Union, cast
 
-# TODO: Fix unfollowed import
-markitdown = None
-try:
-    # Suppress warnings from markitdown -- which is pretty chatty
-    warnings.filterwarnings(action="ignore", module="markitdown")
-    import markitdown
-except ImportError:
-    pass
 from playwright._impl._errors import Error as PlaywrightError
 from playwright._impl._errors import TimeoutError
 from playwright.async_api import Download, Page
@@ -24,6 +16,14 @@ from ._types import (
     interactiveregion_from_dict,
     visualviewport_from_dict,
 )
+
+markitdown = None
+try:
+    # Suppress warnings from markitdown -- which is pretty chatty
+    warnings.filterwarnings(action="ignore", module="markitdown")
+    import markitdown
+except ImportError:
+    pass
 
 
 class PlaywrightController:
