@@ -4,6 +4,7 @@ import io
 import os
 import random
 import warnings
+from types import ModuleType
 from typing import Any, Callable, Dict, Optional, Tuple, Union, cast
 
 from playwright._impl._errors import Error as PlaywrightError
@@ -17,7 +18,7 @@ from ._types import (
     visualviewport_from_dict,
 )
 
-markitdown = None
+markitdown: ModuleType | None = None
 try:
     # Suppress warnings from markitdown -- which is pretty chatty
     warnings.filterwarnings(action="ignore", module="markitdown")
