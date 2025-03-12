@@ -36,6 +36,7 @@ from .._utils.parse_r1_content import parse_r1_content
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
 
+
 def ensure_serializable(data: BaseModel) -> BaseModel:
     """
     Workaround for https://github.com/pydantic/pydantic/issues/7713, see https://github.com/pydantic/pydantic/issues/7713#issuecomment-2604574418
@@ -48,7 +49,8 @@ def ensure_serializable(data: BaseModel) -> BaseModel:
         data_obj = json.loads(data_json_from_dicts)
         data = type(data)(**data_obj)
     return data
-    
+
+
 class SKChatCompletionAdapter(ChatCompletionClient):
     """
     SKChatCompletionAdapter is an adapter that allows using Semantic Kernel model clients
