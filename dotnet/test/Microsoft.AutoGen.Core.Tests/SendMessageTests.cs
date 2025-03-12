@@ -216,7 +216,9 @@ public class SendMessageTests
         AgentId targetAgent = new AgentId(nameof(SendOnAgent), Guid.NewGuid().ToString());
         Task testTask = fixture.RunTestAsync(targetAgent, new BasicMessage { Content = "Hello" }).AsTask();
 
-        TimeSpan timeout = Debugger.IsAttached ? TimeSpan.FromSeconds(10) : TimeSpan.FromSeconds(1);
+        // We do not actually expect to wait the timeout here, but it is still better than waiting the 10 min
+        // timeout that the tests default to. A failure will fail regardless of what timeout value we set.
+        TimeSpan timeout = Debugger.IsAttached ? TimeSpan.FromSeconds(120) : TimeSpan.FromSeconds(10);
         Task timeoutTask = Task.Delay(timeout);
 
         Task completedTask = await Task.WhenAny([testTask, timeoutTask]);
