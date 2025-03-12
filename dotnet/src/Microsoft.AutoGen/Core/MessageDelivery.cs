@@ -48,8 +48,19 @@ internal sealed class MessageEnvelope
         ResultSink<object?> resultSink = new ResultSink<object?>();
         Func<MessageEnvelope, CancellationToken, ValueTask> boundServicer = async (envelope, cancellation) =>
         {
-            object? result = await servicer(envelope, cancellation);
-            resultSink.SetResult(result);
+            try
+            {
+                object? result = await servicer(envelope, cancellation);
+                resultSink.SetResult(result);
+            }
+            catch (OperationCanceledException)
+            {
+                resultSink.SetCancelled();
+            }
+            catch (Exception ex)
+            {
+                resultSink.SetException(ex);
+            }
         };
 
         return new MessageDelivery(this, boundServicer, resultSink);

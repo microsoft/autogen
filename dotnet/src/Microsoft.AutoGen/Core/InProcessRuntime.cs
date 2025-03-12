@@ -3,6 +3,7 @@
 
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using System.Reflection;
 using System.Text.Json;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Hosting;
@@ -104,14 +105,29 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
 
     public ValueTask<object?> SendMessageAsync(object message, AgentId recepient, AgentId? sender = null, string? messageId = null, CancellationToken cancellationToken = default)
     {
-        return this.ExecuteTracedAsync(() =>
+        return this.ExecuteTracedAsync(async () =>
         {
             MessageDelivery delivery = new MessageEnvelope(message, messageId, cancellationToken)
                                             .WithSender(sender)
                                             .ForSend(recepient, this.SendMessageServicer);
 
             this.messageDeliveryQueue.Enqueue(delivery);
-            return delivery.Future;
+
+            try
+            {
+                return await delivery.Future;
+            }
+            catch (TargetInvocationException ex) when (ex.InnerException is OperationCanceledException innerOCEx)
+            {
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    // If the parent token was not cancelled, we do not have the true cause of the cancellation.
+                    // Pass an arbitrary cancelled token through the exception.
+                    cancellationToken = new CancellationToken(canceled: true);
+                }
+
+                throw new OperationCanceledException($"Delivery of message {messageId} was cancelled.", innerOCEx, cancellationToken);
+            }
         });
     }
 
@@ -242,7 +258,7 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
         return ValueTask.FromResult(new AgentProxy(agentId, this));
     }
 
-    public ValueTask ProcessNextMessage(CancellationToken cancellation = default)
+    public ValueTask ProcessNextMessageAsync(CancellationToken cancellation = default)
     {
         Debug.WriteLine("Processing next message...");
         if (this.messageDeliveryQueue.TryDequeue(out MessageDelivery? delivery))
@@ -260,7 +276,7 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
     {
         while (!cancellation.IsCancellationRequested && shouldContinue())
         {
-            await this.ProcessNextMessage(cancellation);
+            _ = Task.Run(async () => await this.ProcessNextMessageAsync(cancellation));
         }
 
         await this.FinishAsync(this.finishSource?.Token ?? CancellationToken.None);
