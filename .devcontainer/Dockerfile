@@ -2,6 +2,7 @@
 FROM mcr.microsoft.com/devcontainers/base:ubuntu
 
 # [Optional] Uncomment this section to install additional OS packages.
+
 # Adding all potentially useful dev tools I can think of... 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get -y install --no-install-recommends curl wget ssh git unzip jq net-tools nmap telnet traceroute iputils-ping dnsutils socat openssh-client rsync expect whois
@@ -12,3 +13,5 @@ RUN curl -LO https://dl.k8s.io/release/v1.24.0/bin/linux/amd64/kubectl && instal
 RUN wget https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && \
     chmod 700 get-helm-3 &&\
     ./get-helm-3
+
+#ENV KUBECONFIG=/workspaces/autogen/kubeconfig
