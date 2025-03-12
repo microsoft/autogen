@@ -38,7 +38,7 @@ public class GrpcGatewayServiceTests
     }
 
     [Fact]
-    public async Task Test_ControlChannel_Reaches_Agent()
+    public async Task Test_ControlChannel_Pass_Message_Through_Gateway()
     {
         var logger = Mock.Of<ILogger<GrpcGateway>>();
         var gateway = new GrpcGateway(_fixture.Cluster.Client, logger);
