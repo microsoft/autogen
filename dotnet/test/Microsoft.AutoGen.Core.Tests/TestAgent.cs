@@ -113,9 +113,11 @@ public class SubscribedSelfPublishAgent(AgentId id,
             Source = "TestTopic",
             Content = item
         };
+
         // This will publish the new message type which will be handled by the TextMessage handler
         await this.PublishMessageAsync(strToText, new TopicId("TestTopic"));
     }
+
     public ValueTask HandleAsync(TextMessage item, MessageContext messageContext)
     {
         _text = item;
