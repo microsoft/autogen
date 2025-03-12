@@ -207,7 +207,7 @@ class MarkdownFileBrowser:
         try:
             if os.path.isdir(path):  # TODO: Fix markdown_converter types
                 res = self._markdown_converter.convert_stream(  # type: ignore
-                    io.StringIO(self._fetch_local_dir(path)), file_extension=".txt"
+                    io.BytesIO(self._fetch_local_dir(path).encode("utf-8")), file_extension=".txt"
                 )
                 self.page_title = res.title
                 self._set_page_content(res.text_content, split_pages=False)

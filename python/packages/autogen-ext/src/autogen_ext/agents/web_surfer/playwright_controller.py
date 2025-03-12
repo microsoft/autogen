@@ -7,12 +7,13 @@ import warnings
 from typing import Any, Callable, Dict, Optional, Tuple, Union, cast
 
 # TODO: Fix unfollowed import
+markitdown = None
 try:
     # Suppress warnings from markitdown -- which is pretty chatty
     warnings.filterwarnings(action="ignore", module="markitdown")
-    from markitdown import MarkItDown  # type: ignore
+    import marktitdown
 except ImportError:
-    MarkItDown = None
+    pass
 from playwright._impl._errors import Error as PlaywrightError
 from playwright._impl._errors import TimeoutError
 from playwright.async_api import Download, Page
@@ -561,8 +562,8 @@ class PlaywrightController:
             str: The markdown content of the page.
         """
         assert page is not None
-        if self._markdown_converter is None and MarkItDown is not None:
-            self._markdown_converter = MarkItDown()
+        if self._markdown_converter is None and markitdown is not None:
+            self._markdown_converter = markitdown.MarkItDown()
             html = await page.evaluate("document.documentElement.outerHTML;")
             res = self._markdown_converter.convert_stream(io.StringIO(html), file_extension=".html", url=page.url)  # type: ignore
             assert hasattr(res, "text_content") and isinstance(res.text_content, str)
