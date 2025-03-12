@@ -14,4 +14,5 @@ RUN wget https://raw.githubusercontent.com/helm/helm/main/scripts/get-helm-3 && 
     chmod 700 get-helm-3 &&\
     ./get-helm-3
 
+# Now setting this Var in .env file in each Python sample dir
 #ENV KUBECONFIG=/workspaces/autogen/kubeconfig
