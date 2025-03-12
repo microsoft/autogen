@@ -11,7 +11,7 @@ markitdown = None
 try:
     # Suppress warnings from markitdown -- which is pretty chatty
     warnings.filterwarnings(action="ignore", module="markitdown")
-    import marktitdown
+    import markitdown
 except ImportError:
     pass
 from playwright._impl._errors import Error as PlaywrightError
