@@ -12,7 +12,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.RuntimeGateway.Grpc;
-#pragma warning disable IDE0059, IDE0060
 /// <summary>
 /// Represents the gRPC gateway service that handles communication between the agent worker and the cluster.
 /// </summary>
@@ -464,95 +463,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }).ConfigureAwait(false);
     }
 
-    private async ValueTask DispatchSaveStateRequestAsync(
-        GrpcWorkerConnection<ControlMessage> connection,
-        ControlMessage controlMsg)
-    {
-        if (controlMsg.RpcMessage.TryUnpack(out SaveStateRequest request))
-        {
-            _logger.LogInformation("Received SaveStateRequest for AgentId {AgentId}", request.AgentId);
-
-            // Find the agent connection
-            var agentId = (request.AgentId.Type, request.AgentId.Key);
-            if (!_agentDirectory.TryGetValue(agentId, out var agentConnection) || agentConnection == null || agentConnection.Completion.IsCompleted)
-            {
-                _logger.LogWarning("No active agent found for AgentId {AgentId}", request.AgentId);
-
-                // Send error response directly
-                await connection.ResponseStream.WriteAsync(new ControlMessage
-                {
-                    RpcId = controlMsg.RpcId,
-                    RespondTo = controlMsg.RpcId,
-                    RpcMessage = Google.Protobuf.WellKnownTypes.Any.Pack(new SaveStateResponse { Error = "Agent not found." })
-                });
-                return;
-            }
-
-            // Ensure agentConnection is valid before using it
-            /*if (!_pendingControlRequests.ContainsKey((agentConnection, controlMsg.RpcId)))
-            {
-                var newRequestId = Guid.NewGuid().ToString();
-                var completion = new TaskCompletionSource<RpcResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
-                _pendingControlRequests.TryAdd((agentConnection, newRequestId), completion);
-
-                // Forward the SaveStateRequest to the agent
-                var forwardMessage = new ControlMessage
-                {
-                    RpcId = newRequestId,
-                    Destination = controlMsg.Destination,
-                    RpcMessage = Google.Protobuf.WellKnownTypes.Any.Pack(request)
-                };
-
-                await agentConnection.ResponseStream.WriteAsync(forwardMessage);
-
-                // Wait for the agent's response
-                var response = await completion.Task.WaitAsync(s_agentResponseTimeout);
-                response.RpcId = controlMsg.RpcId;
-
-                // Send the response back to the original sender
-                await connection.ResponseStream.WriteAsync(new ControlMessage
-                {
-                    RpcId = controlMsg.RpcId,
-                    RespondTo = controlMsg.RpcId,
-                    RpcMessage = Google.Protobuf.WellKnownTypes.Any.Pack(response)
-                });
-
-                _logger.LogInformation("SaveStateRequest processed for AgentId {AgentId}", request.AgentId);
-            }
-            else
-            {
-                _logger.LogWarning("Duplicate request detected for AgentId {AgentId}, ignoring.", request.AgentId);
-            }*/
-        }
-    }
-
-    private void DispatchSaveStateResponse<TMessage>(GrpcWorkerConnection<TMessage> connection, ControlMessage controlMsg)
-    where TMessage : class
-    {
-        if (controlMsg.RpcMessage.TryUnpack(out SaveStateResponse response))
-        {
-            //HandleSaveStateResponse(connection as GrpcWorkerConnection<ControlMessage>, response, default);
-        }
-    }
-
-    private async ValueTask DispatchLoadStateRequestAsync<TMessage>(GrpcWorkerConnection<TMessage> connection, ControlMessage controlMsg)
-    where TMessage : class
-    {
-        if (controlMsg.RpcMessage.TryUnpack(out LoadStateRequest request))
-        {
-            //await HandleLoadStateRequestAsync(connection as GrpcWorkerConnection<ControlMessage>, request, default);
-        }
-    }
-
-    private void DispatchLoadStateResponse<TMessage>(GrpcWorkerConnection<TMessage> connection, ControlMessage controlMsg)
-    where TMessage : class
-    {
-        if (controlMsg.RpcMessage.TryUnpack(out LoadStateResponse response))
-        {
-            //HandleLoadStateResponse(connection as GrpcWorkerConnection<ControlMessage>, response, default);
-        }
-    }
-
     /// <summary>
     /// Invokes a request delegate.
     /// </summary>
@@ -645,7 +555,6 @@ public sealed class GrpcGateway : BackgroundService, IGateway
     private async ValueTask DispatchControlMessageAsync<TMessage>(GrpcWorkerConnection<TMessage> connection, ControlMessage controlMsg, CancellationToken cancellationToken)
     where TMessage : class
     {
-        var requestId = controlMsg.RpcId;
         if (string.IsNullOrEmpty(controlMsg.Destination))
         {
             throw new InvalidOperationException($"Control message is missing a destination. Message: '{controlMsg}'");
@@ -663,4 +572,3 @@ public sealed class GrpcGateway : BackgroundService, IGateway
         }
     }
 }
-#pragma warning disable IDE0059, IDE0060

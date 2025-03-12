@@ -483,7 +483,6 @@ public sealed class GrpcAgentRuntime : IHostedService, IAgentRuntime, IMessageSi
                 var cloudEvent = message.CloudEvent ?? throw new InvalidOperationException("CloudEvent is null.");
                 await HandlePublish(cloudEvent);
                 break;
-                throw new InvalidOperationException("ControlMessage is not supported.");
             default:
                 throw new InvalidOperationException($"Unexpected message '{message}'.");
         }
