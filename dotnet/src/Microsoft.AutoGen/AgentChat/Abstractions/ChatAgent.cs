@@ -2,6 +2,7 @@
 // ChatAgent.cs
 
 using System.Text.RegularExpressions;
+using Microsoft.AutoGen.Contracts;
 
 namespace Microsoft.AutoGen.AgentChat.Abstractions;
 
@@ -165,7 +166,8 @@ public class ChatStreamFrame : StreamingFrame<Response, AgentMessage>;
 /// </summary>
 public interface IChatAgent :
                  IHandleChat<IEnumerable<ChatMessage>, Response>,
-                 IHandleStream<IEnumerable<ChatMessage>, ChatStreamFrame>
+                 IHandleStream<IEnumerable<ChatMessage>, ChatStreamFrame>,
+                 ISaveState
 {
     /// <summary>
     /// The name of the agent. This is used by team to uniquely identify the agent.It should be unique within the team.

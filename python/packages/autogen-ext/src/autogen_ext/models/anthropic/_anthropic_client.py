@@ -44,9 +44,8 @@ from autogen_core import (
     Component,
     FunctionCall,
     Image,
-    MessageHandlerContext,
 )
-from autogen_core.logging import LLMCallEvent
+from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -503,19 +502,12 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             completion_tokens=result.usage.output_tokens,
         )
 
-        # Log the event if in a handler context
-        try:
-            agent_id = MessageHandlerContext.agent_id()
-        except RuntimeError:
-            agent_id = None
-
         logger.info(
             LLMCallEvent(
-                messages=cast(Dict[str, Any], anthropic_messages),
+                messages=cast(List[Dict[str, Any]], anthropic_messages),
                 response=result.model_dump(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
-                agent_id=agent_id,
             )
         )
 
@@ -673,8 +665,18 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         output_tokens: int = 0
         stop_reason: Optional[str] = None
 
+        first_chunk = True
+
         # Process the stream
         async for chunk in stream:
+            if first_chunk:
+                first_chunk = False
+                # Emit the start event.
+                logger.info(
+                    LLMStreamStartEvent(
+                        messages=cast(List[Dict[str, Any]], anthropic_messages),
+                    )
+                )
             # Handle different event types
             if chunk.type == "content_block_start":
                 if chunk.content_block.type == "tool_use":
@@ -769,11 +771,23 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
             thought=thought,
         )
 
+        # Emit the end event.
+        logger.info(
+            LLMStreamEndEvent(
+                response=result.model_dump(),
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+            )
+        )
+
         # Update usage statistics
         self._total_usage = _add_usage(self._total_usage, usage)
         self._actual_usage = _add_usage(self._actual_usage, usage)
 
         yield result
+
+    async def close(self) -> None:
+        await self._client.close()
 
     def count_tokens(self, messages: Sequence[LLMMessage], *, tools: Sequence[Tool | ToolSchema] = []) -> int:
         """
@@ -915,16 +929,23 @@ class AnthropicChatCompletionClient(
 
     .. code-block:: python
 
+        import asyncio
         from autogen_ext.models.anthropic import AnthropicChatCompletionClient
         from autogen_core.models import UserMessage
 
-        anthropic_client = AnthropicChatCompletionClient(
-            model="claude-3-sonnet-20240229",
-            api_key="your-api-key",  # Optional if ANTHROPIC_API_KEY is set in environment
-        )
 
-        result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])
-        print(result)
+        async def main():
+            anthropic_client = AnthropicChatCompletionClient(
+                model="claude-3-sonnet-20240229",
+                api_key="your-api-key",  # Optional if ANTHROPIC_API_KEY is set in environment
+            )
+
+            result = await anthropic_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
+            print(result)
+
+
+        if __name__ == "__main__":
+            asyncio.run(main())
 
     To load the client from a configuration:
 
@@ -938,25 +959,6 @@ class AnthropicChatCompletionClient(
         }
 
         client = ChatCompletionClient.load_component(config)
-
-    The client supports function calling with Claude models that have the capability:
-
-    .. code-block:: python
-
-        from autogen_core.tools import FunctionTool
-
-
-        def get_weather(location: str) -> str:
-            '''Get the weather for a location'''
-            return f"The weather in {location} is sunny."
-
-
-        tool = FunctionTool(get_weather)
-
-        result = await anthropic_client.create(
-            [UserMessage(content="What's the weather in Paris?", source="user")],
-            tools=[tool],
-        )
     """
 
     component_type = "model"
