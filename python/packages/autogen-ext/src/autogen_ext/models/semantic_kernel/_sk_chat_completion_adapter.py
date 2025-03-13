@@ -2,7 +2,7 @@ import json
 import logging
 import warnings
 from typing import Any, Literal, Mapping, Optional, Sequence
-from pydantic import BaseModel
+
 from autogen_core import EVENT_LOGGER_NAME, FunctionCall
 from autogen_core._cancellation_token import CancellationToken
 from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
@@ -16,6 +16,7 @@ from autogen_core.models import (
     validate_model_info,
 )
 from autogen_core.tools import BaseTool, Tool, ToolSchema
+from pydantic import BaseModel
 from semantic_kernel.connectors.ai.chat_completion_client_base import ChatCompletionClientBase
 from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
 from semantic_kernel.connectors.ai.prompt_execution_settings import PromptExecutionSettings
@@ -45,7 +46,7 @@ def ensure_serializable(data: BaseModel) -> BaseModel:
         json.dumps(data)
     except TypeError:
         # use `vars` to coerce nested data into dictionaries
-        data_json_from_dicts = json.dumps(data, default=lambda x: vars(x))
+        data_json_from_dicts = json.dumps(data, default=lambda x: vars(x))  # type: ignore
         data_obj = json.loads(data_json_from_dicts)
         data = type(data)(**data_obj)
     return data
