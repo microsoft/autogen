@@ -9,7 +9,7 @@ internal interface IResultSink<TResult> : IValueTaskSource<TResult>
 {
     public void SetResult(TResult result);
     public void SetException(Exception exception);
-    public void SetCancelled();
+    public void SetCancelled(OperationCanceledException? ocEx = null);
 
     public ValueTask<TResult> Future { get; }
 }
@@ -34,10 +34,10 @@ public sealed class ResultSink<TResult> : IResultSink<TResult>
     }
 
     public bool IsCancelled { get; private set; }
-    public void SetCancelled()
+    public void SetCancelled(OperationCanceledException? ocEx = null)
     {
         this.IsCancelled = true;
-        this.core.SetException(new OperationCanceledException());
+        this.core.SetException(ocEx ?? new OperationCanceledException());
     }
 
     public void SetException(Exception exception)
