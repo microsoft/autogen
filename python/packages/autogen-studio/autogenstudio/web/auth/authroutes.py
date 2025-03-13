@@ -3,7 +3,7 @@ from typing import Optional
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from loguru import logger
-
+import html
 from .exceptions import ProviderAuthException
 from .manager import AuthManager
 from .models import User
@@ -54,6 +54,7 @@ async def oauth_callback(
     if error:
         logger.error(f"OAuth callback error: {error}")
         # Return HTML that sends error to parent window
+        escaped_error = html.escape(error)
         html_content = f"""
         <!DOCTYPE html>
         <html>
@@ -65,20 +66,19 @@ async def oauth_callback(
                         // Send error to parent window
                         window.opener.postMessage({{
                             type: 'auth-error',
-                            error: '{error}'
+                            error: '{escaped_error}'
                         }}, '*');
                         // Close this window
                         window.close();
                     }} else {{
                         // Redirect to main app with error
-                        window.location.href = '/?auth_error={error}';
+                        window.location.href = '/?auth_error={escaped_error}';
                     }}
                 }};
             </script>
         </head>
         <body>
             <p>Authentication failed. This window should close automatically.</p>
-        </body>
         </html>
         """
         return Response(content=html_content, media_type="text/html")
