@@ -1,23 +1,11 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
-// TestAgent.cs
+// TestAgents.cs
 
 using System.Text.Json;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.Extensions.Logging;
 
 namespace Microsoft.AutoGen.Core.Tests;
-
-public class TextMessage
-{
-    public string Source { get; set; } = "";
-    public string Content { get; set; } = "";
-}
-
-public class RpcTextMessage
-{
-    public string Source { get; set; } = "";
-    public string Content { get; set; } = "";
-}
 
 /// <summary>
 /// The test agent is a simple agent that is used for testing purposes.
@@ -126,4 +114,85 @@ public class SubscribedSelfPublishAgent(AgentId id,
 
     private TextMessage _text = new TextMessage { Source = "DefaultTopic", Content = "DefaultContent" };
     public TextMessage Text => _text;
+}
+
+public sealed class ReceiverAgent : BaseAgent, IHandle<BasicMessage>
+{
+    public List<BasicMessage> Messages { get; } = new();
+
+    public ReceiverAgent(AgentId id, IAgentRuntime runtime, string description, ILogger<BaseAgent>? logger = null)
+        : base(id, runtime, description, logger)
+    {
+    }
+
+    public bool DidReceive => this.Messages.Count > 0;
+
+    public ValueTask HandleAsync(BasicMessage item, MessageContext messageContext)
+    {
+        this.Messages.Add(item);
+
+        return ValueTask.CompletedTask;
+    }
+}
+
+public sealed class ProcessorAgent : BaseAgent, IHandle<BasicMessage, BasicMessage>
+{
+    private Func<string, string> ProcessFunc { get; }
+
+    public ProcessorAgent(AgentId id, IAgentRuntime runtime, Func<string, string> processFunc, string description, ILogger<BaseAgent>? logger = null)
+        : base(id, runtime, description, logger)
+    {
+        this.ProcessFunc = processFunc;
+    }
+
+    public bool DidProcess => this.ProcessedMessage != null;
+    public BasicMessage? ProcessedMessage { get; private set; }
+
+    public ValueTask<BasicMessage> HandleAsync(BasicMessage item, MessageContext messageContext)
+    {
+        this.ProcessedMessage = item;
+        BasicMessage result = new() { Content = this.ProcessFunc(item.Content) };
+
+        return ValueTask.FromResult(result);
+    }
+}
+
+public sealed class CancelAgent : BaseAgent, IHandle<BasicMessage, BasicMessage>
+{
+    public CancelAgent(AgentId id, IAgentRuntime runtime, string description, ILogger<BaseAgent>? logger = null)
+        : base(id, runtime, description, logger)
+    {
+    }
+
+    public bool DidCancel { get; private set; }
+
+    public ValueTask<BasicMessage> HandleAsync(BasicMessage item, MessageContext messageContext)
+    {
+        this.DidCancel = true;
+
+        CancellationToken cancelledToken = new CancellationToken(canceled: true);
+        cancelledToken.ThrowIfCancellationRequested();
+
+        return ValueTask.FromResult(item);
+    }
+}
+
+public sealed class TestException : Exception
+{ }
+
+public sealed class ErrorAgent : BaseAgent, IHandle<BasicMessage, BasicMessage>
+{
+    public ErrorAgent(AgentId id, IAgentRuntime runtime, string description, ILogger<BaseAgent>? logger = null)
+        : base(id, runtime, description, logger)
+    {
+    }
+
+    public bool DidThrow { get; private set; }
+
+    public ValueTask<BasicMessage> HandleAsync(BasicMessage item, MessageContext messageContext)
+    {
+        this.DidThrow = true;
+
+        throw new TestException();
+    }
 }

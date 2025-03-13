@@ -13,6 +13,7 @@ internal sealed class MessageDelivery(MessageEnvelope message, Func<MessageEnvel
     public IResultSink<object?> ResultSink { get; } = resultSink;
 
     public ValueTask<object?> Future => this.ResultSink.Future;
+    public ValueTask FutureNoResult => this.ResultSink.FutureNoResult;
 
     public ValueTask InvokeAsync(CancellationToken cancellation)
     {
@@ -79,12 +80,12 @@ internal sealed class MessageEnvelope
                 await servicer(envelope, cancellation);
                 waitForPublish.SetResult(null);
             }
-            catch (Exception ex)
+            catch (Exception ex) // Do we want to special-case cancellation, and hoist the exception type like above?
             {
                 waitForPublish.SetException(ex);
             }
         };
 
-        return new MessageDelivery(this, servicer, waitForPublish);
+        return new MessageDelivery(this, boundServicer, waitForPublish);
     }
 }
