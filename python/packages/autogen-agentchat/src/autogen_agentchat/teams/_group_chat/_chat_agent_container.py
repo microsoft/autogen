@@ -20,84 +20,19 @@ from ._sequential_routed_agent import SequentialRoutedAgent
 
 
 class TeamRuntimeContext:
-    """A static class that provides context for agent instantiation.
+    """A static class that provides context for any agents running within a team.
 
-    This static class can be used to access the current runtime and agent ID
+    This static class can be used to access the current runtime and output topic
     during agent instantiation -- inside the factory function or the agent's
     class constructor.
 
-    Example:
-
-        Get the current runtime and agent ID inside the factory function and
-        the agent's constructor:
-
-        .. code-block:: python
-
-            import asyncio
-            from dataclasses import dataclass
-
-            from autogen_core import (
-                AgentId,
-                AgentInstantiationContext,
-                MessageContext,
-                RoutedAgent,
-                SingleThreadedAgentRuntime,
-                message_handler,
-            )
-
-
-            @dataclass
-            class TestMessage:
-                content: str
-
-
-            class TestAgent(RoutedAgent):
-                def __init__(self, description: str):
-                    super().__init__(description)
-                    # Get the current runtime -- we don't use it here, but it's available.
-                    _ = AgentInstantiationContext.current_runtime()
-                    # Get the current agent ID.
-                    agent_id = AgentInstantiationContext.current_agent_id()
-                    print(f"Current AgentID from constructor: {agent_id}")
-
-                @message_handler
-                async def handle_test_message(self, message: TestMessage, ctx: MessageContext) -> None:
-                    print(f"Received message: {message.content}")
-
-
-            def test_agent_factory() -> TestAgent:
-                # Get the current runtime -- we don't use it here, but it's available.
-                _ = AgentInstantiationContext.current_runtime()
-                # Get the current agent ID.
-                agent_id = AgentInstantiationContext.current_agent_id()
-                print(f"Current AgentID from factory: {agent_id}")
-                return TestAgent(description="Test agent")
-
-
-            async def main() -> None:
-                # Create a SingleThreadedAgentRuntime instance.
-                runtime = SingleThreadedAgentRuntime()
-
-                # Start the runtime.
-                runtime.start()
-
-                # Register the agent type with a factory function.
-                await runtime.register_factory("test_agent", test_agent_factory)
-
-                # Send a message to the agent. The runtime will instantiate the agent and call the message handler.
-                await runtime.send_message(TestMessage(content="Hello, world!"), AgentId("test_agent", "default"))
-
-                # Stop the runtime.
-                await runtime.stop()
-
-
-            asyncio.run(main())
-
+    This allows agents to publish messages to the output topic which thereby allowing
+    observability into any streaming components running within non-streaming contexts.
     """
 
     def __init__(self) -> None:
         raise RuntimeError(
-            "TeamRuntimeContext cannot be instantiated. It is a static class that provides context management for agent instantiation."
+            "TeamRuntimeContext cannot be instantiated. It is a static class that provides context management for an agent within a team."
         )
 
     _TEAM_RUNTIME_CONTEXT_VAR: ClassVar[ContextVar[tuple[AgentRuntime, TopicId]]] = ContextVar(
@@ -224,7 +159,7 @@ class ChatAgentContainer(SequentialRoutedAgent):
 
     async def save_state(self) -> Mapping[str, Any]:
         agent_state = await self._agent.save_state()
-        state = ChatAgentContainerState(agent_state=agent_state, message_buffer=list(self._message_buffer))
+        state = ChatAgentContainerState(agent_state=agent_state)
         return state.model_dump()
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
