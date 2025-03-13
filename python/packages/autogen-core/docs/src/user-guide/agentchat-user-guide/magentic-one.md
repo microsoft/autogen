@@ -67,6 +67,7 @@ async def main() -> None:
     )
     team = MagenticOneGroupChat([assistant], model_client=model_client)
     await Console(team.run_stream(task="Provide a different proof for Fermat's Last Theorem"))
+    await model_client.close()
 
 
 asyncio.run(main())

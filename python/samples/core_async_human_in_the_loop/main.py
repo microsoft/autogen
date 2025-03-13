@@ -306,6 +306,7 @@ async def main(model_config: Dict[str, Any], latest_user_input: Optional[str] = 
 
     runtime.start()
     await runtime.stop_when(lambda: termination_handler.is_terminated or needs_user_input_handler.needs_user_input)
+    await model_client.close()
 
     user_input_needed = None
     if needs_user_input_handler.user_input_content is not None:

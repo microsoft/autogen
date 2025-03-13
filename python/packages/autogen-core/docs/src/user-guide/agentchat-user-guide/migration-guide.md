@@ -220,6 +220,7 @@ async def main():
         print(response)  # Should print response from OpenAI
         response = await cache_client.create([UserMessage(content="Hello, how are you?", source="user")])
         print(response)  # Should print cached response
+        await openai_model_client.close()
 
 
 asyncio.run(main())
@@ -287,6 +288,8 @@ async def main() -> None:
     response = await assistant.on_messages([TextMessage(content="Hello!", source="user")], cancellation_token)
     print(response)
 
+    await model_client.close()
+
 asyncio.run(main())
 ```
 
@@ -326,6 +329,8 @@ async def main() -> None:
     )
     response = await assistant.on_messages([message], cancellation_token)
     print(response)
+
+    await model_client.close()
 
 asyncio.run(main())
 ```
@@ -476,6 +481,8 @@ async def main() -> None:
 
     # Carry on the same chat again.
     response = await assistant.on_messages([TextMessage(content="Tell me a joke.", source="user")], cancellation_token)
+    # Close the connection to the model client.
+    await model_client.close()
 
 asyncio.run(main())
 ```
@@ -554,6 +561,9 @@ async def main() -> None:
     stream = group_chat.run_stream(task="Write a python script to print 'Hello, world!'")
     # `Console` is a simple UI to display the stream.
     await Console(stream)
+    
+    # Close the connection to the model client.
+    await model_client.close()
 
 asyncio.run(main())
 ```
@@ -632,6 +642,7 @@ async def main() -> None:
             break
         response = await assistant.on_messages([TextMessage(content=user_input, source="user")], CancellationToken())
         print("Assistant:", response.chat_message.content)
+    await model_client.close()
 
 asyncio.run(main())
 ```
@@ -869,6 +880,8 @@ async def main() -> None:
     stream = group_chat.run_stream(task="Write a short story about a robot that discovers it has feelings.")
     # `Console` is a simple UI to display the stream.
     await Console(stream)
+    # Close the connection to the model client.
+    await model_client.close()
 
 asyncio.run(main())
 ```
@@ -900,9 +913,7 @@ from autogen_agentchat.conditions import TextMentionTermination
 from autogen_agentchat.ui import Console
 from autogen_ext.models.openai import OpenAIChatCompletionClient
 
-def create_team() -> RoundRobinGroupChat:
-    model_client = OpenAIChatCompletionClient(model="gpt-4o", seed=42, temperature=0)
-
+def create_team(model_client : OpenAIChatCompletionClient) -> RoundRobinGroupChat:
     writer = AssistantAgent(
         name="writer",
         description="A writer.",
@@ -927,8 +938,9 @@ def create_team() -> RoundRobinGroupChat:
 
 
 async def main() -> None:
+    model_client = OpenAIChatCompletionClient(model="gpt-4o", seed=42, temperature=0)
     # Create team.
-    group_chat = create_team()
+    group_chat = create_team(model_client)
 
     # `run_stream` returns an async generator to stream the intermediate messages.
     stream = group_chat.run_stream(task="Write a short story about a robot that discovers it has feelings.")
@@ -951,6 +963,9 @@ async def main() -> None:
     # Resume the chat.
     stream = group_chat.run_stream(task="Translate the story into Chinese.")
     await Console(stream)
+
+    # Close the connection to the model client.
+    await model_client.close()
 
 asyncio.run(main())
 ```
@@ -1024,9 +1039,7 @@ def search_web_tool(query: str) -> str:
 def percentage_change_tool(start: float, end: float) -> float:
     return ((end - start) / start) * 100
 
-def create_team() -> SelectorGroupChat:
-    model_client = OpenAIChatCompletionClient(model="gpt-4o")
-
+def create_team(model_client : OpenAIChatCompletionClient) -> SelectorGroupChat:
     planning_agent = AssistantAgent(
         "PlanningAgent",
         description="An agent for planning tasks, this agent should be the first to engage when given a new task.",
@@ -1092,7 +1105,8 @@ def create_team() -> SelectorGroupChat:
     return team
 
 async def main() -> None:
-    team = create_team()
+    model_client = OpenAIChatCompletionClient(model="gpt-4o")
+    team = create_team(model_client)
     task = "Who was the Miami Heat player with the highest points in the 2006-2007 season, and what was the percentage change in his total rebounds between the 2007-2008 and 2008-2009 seasons?"
     await Console(team.run_stream(task=task))
 
@@ -1268,6 +1282,8 @@ async def main() -> None:
             break
         response = await assistant.on_messages([TextMessage(content=user_input, source="user")], CancellationToken())
         print("Assistant:", response.chat_message.content)
+    
+    await model_client.close()
 
 asyncio.run(main())
 ```
