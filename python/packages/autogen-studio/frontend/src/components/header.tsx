@@ -1,6 +1,8 @@
 import Icon from "./icons";
 import {
   Disclosure,
+  DisclosureButton,
+  DisclosurePanel,
   Menu,
   MenuButton,
   MenuItem,
@@ -124,14 +126,14 @@ const Header = ({ meta, link }: any) => {
 
               <div className="flex items-center md:hidden">
                 {/* Mobile menu button */}
-                <Disclosure.Button className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-secondary hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent">
+                <DisclosureButton className="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-secondary hover:bg-secondary focus:outline-none focus:ring-2 focus:ring-inset focus:ring-accent">
                   <span className="sr-only">Open main menu</span>
                   {open ? (
                     <XMarkIcon className="block h-6 w-6" aria-hidden="true" />
                   ) : (
                     <Bars3Icon className="block h-6 w-6" aria-hidden="true" />
                   )}
-                </Disclosure.Button>
+                </DisclosureButton>
               </div>
               {
                 <div className="hidden lg:ml-4 md:flex md:items-center">
@@ -210,19 +212,19 @@ const Header = ({ meta, link }: any) => {
             </div>
           </div>
 
-          <Disclosure.Panel className="md:hidden">
+          <DisclosurePanel className="md:hidden">
             <div className="pt-2 pb-3 space-y-1">
               {/* Current: "bg-indigo-50 border-accent text-accent", Default: "border-transparent text-gray-600 hover:bg-primary hover:border-gray-300 hover:text-primary" */}
               {links.map((data, index) => {
                 return (
-                  <Disclosure.Button
+                  <DisclosureButton
                     key={index + "linkrow"}
                     as="a"
                     href={data.href}
                     className="bg-secondary border-accent text-accent block pl-3 pr-4 py-2 border-l-4 text-base font-medium"
                   >
                     {data.name}
-                  </Disclosure.Button>
+                  </DisclosureButton>
                 );
               })}
             </div>
@@ -260,18 +262,18 @@ const Header = ({ meta, link }: any) => {
                   </button>
                 </div>
                 <div className="mt-3 space-y-1">
-                  <Disclosure.Button
+                  <DisclosureButton
                     as="a"
                     href="#"
                     onClick={() => logout()}
                     className="block px-4 py-2 text-base font-medium text-secondary hover:text-primary "
                   >
                     Sign out
-                  </Disclosure.Button>
+                  </DisclosureButton>
                 </div>
               </div>
             )}
-          </Disclosure.Panel>
+          </DisclosurePanel>
         </>
       )}
     </Disclosure>
