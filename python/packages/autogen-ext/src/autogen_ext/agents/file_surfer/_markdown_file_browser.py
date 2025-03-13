@@ -1,6 +1,7 @@
 # ruff: noqa: E722
 import datetime
 import io
+import json
 import os
 import re
 import time
@@ -205,25 +206,55 @@ class MarkdownFileBrowser:
             path: The path of the file or directory to open.
         """
         try:
-            if os.path.isdir(path):  # TODO: Fix markdown_converter types
-                res = self._markdown_converter.convert_stream(  # type: ignore
+            if os.path.isdir(path):
+                res = self._markdown_converter.convert_stream(
                     io.StringIO(self._fetch_local_dir(path)), file_extension=".txt"
                 )
                 self.page_title = res.title
                 self._set_page_content(res.text_content, split_pages=False)
+            elif path.endswith('.json'):
+                with open(path, 'r', encoding='utf-8') as file:
+                    json_data = json.load(file)
+                markdown_content = self._convert_json_to_markdown(json_data)
+                self.page_title = f"JSON: {os.path.basename(path)}"
+                self._set_page_content(markdown_content)
             else:
                 res = self._markdown_converter.convert_local(path)
                 self.page_title = res.title
                 self._set_page_content(res.text_content)
         except UnsupportedFormatException:
-            self.page_title = "UnsupportedFormatException"
-            self._set_page_content(f"# Cannot preview '{path}' as Markdown.")
+                self.page_title = "UnsupportedFormatException"
+                self._set_page_content(f"# Cannot preview '{path}' as Markdown.")
         except FileConversionException:
-            self.page_title = "FileConversionException."
-            self._set_page_content(f"# Error converting '{path}' to Markdown.")
+                self.page_title = "FileConversionException."
+                self._set_page_content(f"# Error converting '{path}' to Markdown.")
         except FileNotFoundError:
-            self.page_title = "FileNotFoundError"
-            self._set_page_content(f"# File not found: {path}")
+                self.page_title = "FileNotFoundError"
+                self._set_page_content(f"# File not found: {path}")
+
+    def _convert_json_to_markdown(self, json_obj, level=0):
+        """Convert a JSON object to a markdown string.
+
+        Arguments:
+            json_obj: The JSON object or list to convert.
+            level: The current nesting level in the JSON hierarchy.
+        """
+        markdown_output = []
+
+        indent = "  " * level
+        if isinstance(json_obj, dict):
+            for key, value in json_obj.items():
+                markdown_output.append(f"{indent}- **{key}:**")
+                markdown_output.append(self._convert_json_to_markdown(value, level + 1))
+        elif isinstance(json_obj, list):
+            for item in json_obj:
+                markdown_output.append(self._convert_json_to_markdown(item, level))
+        else:
+            markdown_output.append(f"{indent}{json_obj}")
+
+        return "\n".join(markdown_output)
+
+
 
     def _fetch_local_dir(self, local_path: str) -> str:
         """Render a local directory listing in HTML to assist with local file browsing via the "file://" protocol.
