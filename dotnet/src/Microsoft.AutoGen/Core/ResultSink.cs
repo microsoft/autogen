@@ -5,13 +5,14 @@ using System.Threading.Tasks.Sources;
 
 namespace Microsoft.AutoGen.Core;
 
-internal interface IResultSink<TResult> : IValueTaskSource<TResult>
+internal interface IResultSink<TResult> : IValueTaskSource<TResult>, IValueTaskSource
 {
     public void SetResult(TResult result);
     public void SetException(Exception exception);
     public void SetCancelled(OperationCanceledException? ocEx = null);
 
     public ValueTask<TResult> Future { get; }
+    public ValueTask FutureNoResult { get; }
 }
 
 public sealed class ResultSink<TResult> : IResultSink<TResult>
@@ -50,5 +51,9 @@ public sealed class ResultSink<TResult> : IResultSink<TResult>
         this.core.SetResult(result);
     }
 
+    void IValueTaskSource.GetResult(short token) => _ = this.GetResult(token);
+
     public ValueTask<TResult> Future => new(this, this.core.Version);
+    public ValueTask FutureNoResult => new(this, this.core.Version);
 }
+
