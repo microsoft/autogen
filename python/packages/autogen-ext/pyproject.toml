@@ -136,7 +136,7 @@ mcp = [
 ]
 
 [tool.uv.sources]
-mcp = { git = "https://github.com/kagent-dev/python-sdk", rev = "4a2bab156b691b274c4f34c5f34dd9bb9ec17e32" }
+mcp = { git = "https://github.com/kagent-dev/python-sdk", rev = "56e86a5c90468014fd94cd95dcdfe0644c5b19b6" }
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/autogen_ext"]
