@@ -16,6 +16,7 @@ from autogen_core.models import (
     validate_model_info,
 )
 from autogen_core.tools import BaseTool, Tool, ToolSchema
+from pydantic import BaseModel
 from semantic_kernel.connectors.ai.chat_completion_client_base import ChatCompletionClientBase
 from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
 from semantic_kernel.connectors.ai.prompt_execution_settings import PromptExecutionSettings
@@ -35,6 +36,20 @@ from autogen_ext.tools.semantic_kernel import KernelFunctionFromTool
 from .._utils.parse_r1_content import parse_r1_content
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)
+
+
+def ensure_serializable(data: BaseModel) -> BaseModel:
+    """
+    Workaround for https://github.com/pydantic/pydantic/issues/7713, see https://github.com/pydantic/pydantic/issues/7713#issuecomment-2604574418
+    """
+    try:
+        json.dumps(data)
+    except TypeError:
+        # use `vars` to coerce nested data into dictionaries
+        data_json_from_dicts = json.dumps(data, default=lambda x: vars(x))  # type: ignore
+        data_obj = json.loads(data_json_from_dicts)
+        data = type(data)(**data_obj)
+    return data
 
 
 class SKChatCompletionAdapter(ChatCompletionClient):
@@ -472,7 +487,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         logger.info(
             LLMCallEvent(
                 messages=[msg.model_dump() for msg in chat_history],
-                response=result[0].model_dump(),
+                response=ensure_serializable(result[0]).model_dump(),
                 prompt_tokens=prompt_tokens,
                 completion_tokens=completion_tokens,
             )

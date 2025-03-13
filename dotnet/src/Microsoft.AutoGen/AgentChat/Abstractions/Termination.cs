@@ -3,6 +3,29 @@
 
 namespace Microsoft.AutoGen.AgentChat.Abstractions;
 
+public static class TerminationConditionExtensions
+{
+    /// <summary>
+    /// Combine this termination condition with another using a logical OR.
+    /// </summary>
+    /// <param name="other">Another termination condition.</param>
+    /// <returns>The combined termination condition, with appropriate short-circuiting.</returns>
+    public static ITerminationCondition Or(this ITerminationCondition this_, ITerminationCondition other)
+    {
+        return new CombinerCondition(CombinerCondition.Or, this_, other);
+    }
+
+    /// <summary>
+    /// Combine this termination condition with another using a logical AND.
+    /// </summary>
+    /// <param name="other">Another termination condition.</param>
+    /// <returns>The combined termination condition, with appropriate short-circuiting.</returns>
+    public static ITerminationCondition And(this ITerminationCondition this_, ITerminationCondition other)
+    {
+        return new CombinerCondition(CombinerCondition.And, this_, other);
+    }
+}
+
 /// <summary>
 /// A stateful condition that determines when a conversation should be terminated.
 ///
@@ -12,7 +35,8 @@ namespace Microsoft.AutoGen.AgentChat.Abstractions;
 ///
 /// Once a termination condition has been reached, it must be <see cref="Reset()"/> before it can be used again.
 ///
-/// Termination conditions can be combined using the <see cref="Or"/> and <see cref="And"/> methods.
+/// Termination conditions can be combined using the <see cref="TerminationConditionExtensions.Or"/> and
+/// <see cref="TerminationConditionExtensions.And"/> methods.
 /// </summary>
 public interface ITerminationCondition
 {
@@ -38,23 +62,37 @@ public interface ITerminationCondition
     public void Reset();
 
     /// <summary>
-    /// Combine this termination condition with another using a logical OR.
+    /// Combine two termination conditions with another using an associative, short-circuiting OR.
     /// </summary>
-    /// <param name="other">Another termination condition.</param>
-    /// <returns>The combined termination condition, with appropriate short-circuiting.</returns>
-    public ITerminationCondition Or(ITerminationCondition other)
+    /// <param name="left">
+    /// The left-hand side termination condition. If this condition is already a disjunction, the RHS condition is added to the list of clauses.
+    /// </param>
+    /// <param name="right">
+    /// The right-hand side termination condition. If the LHS condition is already a disjunction, this condition is added to the list of clauses.
+    /// </param>
+    /// <returns>
+    /// The combined termination condition, with appropriate short-circuiting.
+    /// </returns>
+    public static ITerminationCondition operator |(ITerminationCondition left, ITerminationCondition right)
     {
-        return new CombinerCondition(CombinerCondition.Or, this, other);
+        return left.Or(right);
     }
 
     /// <summary>
-    /// Combine this termination condition with another using a logical AND.
+    /// Combine two termination conditions with another using an associative, short-circuiting AND.
     /// </summary>
-    /// <param name="other">Another termination condition.</param>
-    /// <returns>The combined termination condition, with appropriate short-circuiting.</returns>
-    public ITerminationCondition And(ITerminationCondition other)
+    /// <param name="left">
+    /// The left-hand side termination condition. If this condition is already a conjunction, the RHS condition is added to the list of clauses.
+    /// </param>
+    /// <param name="right">
+    /// The right-hand side termination condition. If the LHS condition is already a conjunction, this condition is added to the list of clauses.
+    /// </param>
+    /// <returns>
+    /// The combined termination condition, with appropriate short-circuiting.
+    /// </returns>
+    public static ITerminationCondition operator &(ITerminationCondition left, ITerminationCondition right)
     {
-        return new CombinerCondition(CombinerCondition.And, this, other);
+        return left.And(right);
     }
 }
 
@@ -166,39 +204,5 @@ internal sealed class CombinerCondition : ITerminationCondition
         }
 
         return null;
-    }
-
-    /// <inheritdoc cref="ITerminationCondition.Or" />
-    /// <remarks>
-    /// If this condition is already a disjunction, the new condition is added to the list of clauses.
-    /// </remarks>
-    ITerminationCondition ITerminationCondition.Or(ITerminationCondition other)
-    {
-        if (this.conjunction == Or)
-        {
-            this.clauses.Add(other);
-            return this;
-        }
-        else
-        {
-            return new CombinerCondition(Or, this, new CombinerCondition(Or, other));
-        }
-    }
-
-    /// <inheritdoc cref="ITerminationCondition.And" />
-    /// <remarks>
-    /// If this condition is already a conjunction, the new condition is added to the list of clauses.
-    /// </remarks>
-    ITerminationCondition ITerminationCondition.And(ITerminationCondition other)
-    {
-        if (this.conjunction == And)
-        {
-            this.clauses.Add(other);
-            return this;
-        }
-        else
-        {
-            return new CombinerCondition(And, this, new CombinerCondition(And, other));
-        }
     }
 }
