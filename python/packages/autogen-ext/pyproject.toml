@@ -30,7 +30,8 @@ ollama = ["ollama>=0.4.7", "tiktoken>=0.8.0"]
 openai = ["openai>=1.52.2", "tiktoken>=0.8.0", "aiofiles"]
 file-surfer = [
     "autogen-agentchat==0.4.9",
-    "markitdown~=0.0.1",
+    "magika>=0.6.1rc2",
+    "markitdown[all]~=0.1.0a3",
 ]
 
 llama-cpp = [
@@ -43,11 +44,13 @@ web-surfer = [
     "autogen-agentchat==0.4.9",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
-    "markitdown~=0.0.1",
+    "magika>=0.6.1rc2",
+    "markitdown[all]~=0.1.0a3",
 ]
 magentic-one = [
     "autogen-agentchat==0.4.9",
-    "markitdown~=0.0.1",
+    "magika>=0.6.1rc2",
+    "markitdown[all]~=0.1.0a3",
     "playwright>=1.48.0",
     "pillow>=11.0.0",
 ]

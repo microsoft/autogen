@@ -14,8 +14,8 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
     public bool DeliverToSelf { get; set; } //= false;
 
     internal Dictionary<AgentId, IHostableAgent> agentInstances = new();
-    Dictionary<string, ISubscriptionDefinition> subscriptions = new();
-    Dictionary<AgentType, Func<AgentId, IAgentRuntime, ValueTask<IHostableAgent>>> agentFactories = new();
+    private Dictionary<string, ISubscriptionDefinition> subscriptions = new();
+    private Dictionary<AgentType, Func<AgentId, IAgentRuntime, ValueTask<IHostableAgent>>> agentFactories = new();
 
     private ValueTask<T> ExecuteTracedAsync<T>(Func<ValueTask<T>> func)
     {
@@ -104,14 +104,15 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
 
     public ValueTask<object?> SendMessageAsync(object message, AgentId recepient, AgentId? sender = null, string? messageId = null, CancellationToken cancellationToken = default)
     {
-        return this.ExecuteTracedAsync(() =>
+        return this.ExecuteTracedAsync(async () =>
         {
             MessageDelivery delivery = new MessageEnvelope(message, messageId, cancellationToken)
                                             .WithSender(sender)
                                             .ForSend(recepient, this.SendMessageServicer);
 
             this.messageDeliveryQueue.Enqueue(delivery);
-            return delivery.Future;
+
+            return await delivery.Future;
         });
     }
 
@@ -242,7 +243,7 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
         return ValueTask.FromResult(new AgentProxy(agentId, this));
     }
 
-    public ValueTask ProcessNextMessage(CancellationToken cancellation = default)
+    public ValueTask ProcessNextMessageAsync(CancellationToken cancellation = default)
     {
         Debug.WriteLine("Processing next message...");
         if (this.messageDeliveryQueue.TryDequeue(out MessageDelivery? delivery))
@@ -258,11 +259,34 @@ public sealed class InProcessRuntime : IAgentRuntime, IHostedService
     private CancellationTokenSource? finishSource;
     private async Task RunAsync(CancellationToken cancellation)
     {
+        Dictionary<Guid, Task> pendingTasks = new();
         while (!cancellation.IsCancellationRequested && shouldContinue())
         {
-            await this.ProcessNextMessage(cancellation);
+            // Get a unique task id
+            Guid taskId;
+            do
+            {
+                taskId = Guid.NewGuid();
+            } while (pendingTasks.ContainsKey(taskId));
+
+            // There is potentially a race condition here, but even if we leak a Task, we will
+            // still catch it on the Finish() pass.
+            ValueTask processTask = this.ProcessNextMessageAsync(cancellation);
+            await Task.Yield();
+
+            // Check if the task is already completed
+            if (processTask.IsCompleted)
+            {
+                continue;
+            }
+            else
+            {
+                Task actualTask = processTask.AsTask();
+                pendingTasks.Add(taskId, actualTask.ContinueWith(t => pendingTasks.Remove(taskId), TaskScheduler.Current));
+            }
         }
 
+        await Task.WhenAll(pendingTasks.Values.ToArray());
         await this.FinishAsync(this.finishSource?.Token ?? CancellationToken.None);
     }
 
