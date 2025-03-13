@@ -32,7 +32,8 @@ const CallbackPage = ({ data, location }: any) => {
           return;
         }
 
-        // Handle the authorization code
+        // Handle the authorization code - for popup window
+        // The actual token handling is done by the backend HTML response
         await handleAuthCallback(code, state || undefined);
         setIsProcessing(false);
       } catch (err) {
@@ -71,7 +72,7 @@ const CallbackPage = ({ data, location }: any) => {
         ) : (
           <Alert
             message="Authentication Successful"
-            description="You have been successfully authenticated. Redirecting..."
+            description="You have been successfully authenticated. You can close this window now."
             type="success"
             showIcon
             className="max-w-md"

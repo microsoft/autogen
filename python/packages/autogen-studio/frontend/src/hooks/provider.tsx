@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { AuthProvider, useAuth } from "../auth/context";
 import { getLocalStorage, setLocalStorage } from "../components/utils/utils";
+import { User } from "../auth/api";
 
 export interface AppContextType {
   darkMode: string;
   setDarkMode: any;
-  user: any;
+  user: User | null;
   setUser: any;
   logout: any;
   cookie_name: string;
@@ -34,7 +35,7 @@ const AppProvider = ({ children }: any) => {
     <appContext.Provider
       value={{
         user,
-        setUser: () => {}, // This is now handled by AuthProvider
+        setUser: () => {},
         logout,
         cookie_name: "coral_app_cookie_",
         darkMode,

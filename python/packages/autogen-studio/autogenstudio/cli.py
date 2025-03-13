@@ -32,7 +32,7 @@ def ui(
     docs: bool = True,
     appdir: str | None = None,
     database_uri: Optional[str] = None,
-    auth_config: Optional[str] = None,   
+    auth_config: Optional[str] = None,
     upgrade_database: bool = False,
 ):
     """
@@ -55,7 +55,7 @@ def ui(
         "AUTOGENSTUDIO_PORT": port,
         "AUTOGENSTUDIO_API_DOCS": str(docs),
     }
-    
+
     if appdir:
         env_vars["AUTOGENSTUDIO_APPDIR"] = appdir
     if database_uri:

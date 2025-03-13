@@ -1,5 +1,12 @@
 import Icon from "./icons";
-import { Disclosure, Menu, Transition } from "@headlessui/react";
+import {
+  Disclosure,
+  Menu,
+  MenuButton,
+  MenuItem,
+  MenuItems,
+  Transition,
+} from "@headlessui/react";
 import {
   XMarkIcon,
   Bars3Icon,
@@ -20,7 +27,7 @@ const Header = ({ meta, link }: any) => {
   const { user, logout } = React.useContext(appContext);
   const userName = user ? user.name : "Unknown";
   const userAvatarUrl = user ? user.avatar_url : "";
-  const user_id = user ? user.username : "unknown";
+  const user_id = user ? user.id : "unknown";
 
   const links: any[] = [
     { name: "Build", href: "/build" },
@@ -140,7 +147,7 @@ const Header = ({ meta, link }: any) => {
                       {/* Profile dropdown */}
                       <Menu as="div" className="ml-4 relative flex-shrink-0">
                         <div>
-                          <Menu.Button className="bg-primary rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent">
+                          <MenuButton className="bg-primary rounded-full flex text-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-accent">
                             <span className="sr-only">Open user menu</span>
                             {userAvatarUrl && (
                               <img
@@ -154,7 +161,7 @@ const Header = ({ meta, link }: any) => {
                                 {userName[0]}
                               </div>
                             )}
-                          </Menu.Button>
+                          </MenuButton>
                         </div>
                         <Transition
                           as={Fragment}
@@ -165,8 +172,8 @@ const Header = ({ meta, link }: any) => {
                           leaveFrom="transform opacity-100 scale-100"
                           leaveTo="transform opacity-0 scale-95"
                         >
-                          <Menu.Items className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-primary ring-1 ring-black ring-opacity-5 focus:outline-none">
-                            {/* <Menu.Item>
+                          <MenuItems className="origin-top-right absolute right-0 mt-2 w-48 rounded-md shadow-lg py-1 bg-primary ring-1 ring-black ring-opacity-5 focus:outline-none">
+                            {/* <MenuItem>
                         {({ active }) => (
                           <a
                             href="#"
@@ -175,9 +182,9 @@ const Header = ({ meta, link }: any) => {
                             Your Profile
                           </a>
                         )}
-                      </Menu.Item> */}
+                      </MenuItem> */}
 
-                            <Menu.Item>
+                            <MenuItem>
                               {({ active }) => (
                                 <a
                                   href="#"
@@ -192,8 +199,8 @@ const Header = ({ meta, link }: any) => {
                                   Sign out
                                 </a>
                               )}
-                            </Menu.Item>
-                          </Menu.Items>
+                            </MenuItem>
+                          </MenuItems>
                         </Transition>
                       </Menu>
                     </>

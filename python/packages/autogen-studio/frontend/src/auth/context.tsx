@@ -8,7 +8,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   authType: string;
-  login: () => Promise<void>;
+  login: () => Promise<string>;
   logout: () => void;
   handleAuthCallback: (code: string, state?: string) => Promise<void>;
 }
@@ -77,19 +77,50 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     loadUser();
   }, []);
 
-  // Login function - redirects to provider's login page
-  const login = async (): Promise<void> => {
+  // Setup message listener for popup window communication
+  useEffect(() => {
+    const handleAuthMessage = (event: MessageEvent) => {
+      const data = event.data;
+
+      if (data.type === "auth-success" && data.token && data.user) {
+        // Store token
+        saveToken(data.token);
+
+        // Update user state
+        setUser(data.user);
+
+        // Show success message
+        message.success("Successfully logged in");
+
+        // Redirect to home
+        navigate("/");
+      } else if (data.type === "auth-error") {
+        message.error(`Authentication failed: ${data.error}`);
+      }
+    };
+
+    window.addEventListener("message", handleAuthMessage);
+
+    return () => {
+      window.removeEventListener("message", handleAuthMessage);
+    };
+  }, []);
+
+  // Login function - gets login URL but doesn't redirect
+  // (redirection is handled in the login component with popup)
+  const login = async (): Promise<string> => {
     try {
       if (authType === "none") {
         // No auth required
-        return;
+        return "";
       }
 
       const loginUrl = await authAPI.getLoginUrl();
-      window.location.href = loginUrl;
+      return loginUrl;
     } catch (error) {
       message.error("Failed to initiate login");
       console.error("Login error:", error);
+      return "";
     }
   };
 
@@ -99,6 +130,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     state?: string
   ): Promise<void> => {
     try {
+      // For popup window approach
+      if (window.opener) {
+        // This is handled by the backend HTML response
+        // Just display a message in the popup
+        message.success(
+          "Authentication successful! You can close this window."
+        );
+        return;
+      }
+
+      // For direct redirect approach (backup)
       const { token, user } = await authAPI.handleCallback(code, state);
       saveToken(token);
       setUser(user);
@@ -133,6 +175,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
 // Hook to use auth context
 export const useAuth = (): AuthContextType => {
+  if (typeof window === "undefined") {
+    // Return default values or empty implementation
+    return {
+      user: null,
+      isAuthenticated: false,
+      isLoading: true,
+      authType: "none",
+      login: async () => "",
+      logout: () => {},
+      handleAuthCallback: async () => {},
+    } as AuthContextType;
+  }
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error("useAuth must be used within an AuthProvider");

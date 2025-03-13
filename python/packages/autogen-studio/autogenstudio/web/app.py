@@ -10,12 +10,12 @@ from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from ..version import VERSION
+from .auth import authroutes
+from .auth.middleware import AuthMiddleware
 from .config import settings
 from .deps import cleanup_managers, init_auth_manager, init_managers, register_auth_dependencies
 from .initialization import AppInitializer
 from .routes import gallery, runs, sessions, settingsroute, teams, validation, ws
-from .auth.middleware import AuthMiddleware
-from .auth import authroutes
 
 # Initialize application
 app_file_path = os.path.dirname(os.path.abspath(__file__))
@@ -34,7 +34,6 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await init_managers(initializer.database_uri, initializer.config_dir, initializer.app_root)
 
         await register_auth_dependencies(app, auth_manager)
-
 
         # Any other initialization code
         logger.info(
@@ -165,7 +164,6 @@ async def health_check():
         "status": True,
         "message": "Service is healthy",
     }
-
 
 
 # Mount static file directories

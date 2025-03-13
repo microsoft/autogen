@@ -8,10 +8,10 @@ from fastapi.websockets import WebSocketState
 from loguru import logger
 
 from ...datamodel import Run, RunStatus
+from ..auth.dependencies import get_ws_auth_manager
+from ..auth.wsauth import WebSocketAuthHandler
 from ..deps import get_db, get_websocket_manager
 from ..managers import WebSocketManager
-from ..auth.wsauth import WebSocketAuthHandler
-from ..auth.dependencies import get_ws_auth_manager
 
 router = APIRouter()
 
@@ -22,7 +22,7 @@ async def run_websocket(
     run_id: int,
     ws_manager: WebSocketManager = Depends(get_websocket_manager),
     db=Depends(get_db),
-    auth_manager=Depends(get_ws_auth_manager)
+    auth_manager=Depends(get_ws_auth_manager),
 ):
     """WebSocket endpoint for run communication"""
 
@@ -33,35 +33,36 @@ async def run_websocket(
             logger.error(f"Error in start_stream for run {run_id}: {str(e)}")
             # Optionally notify the client about the error
             if websocket.client_state == WebSocketState.CONNECTED:
-                await websocket.send_json({
-                    "type": "error",
-                    "error": f"Stream processing error: {str(e)}",
-                    "timestamp": datetime.utcnow().isoformat()
-                })
+                await websocket.send_json(
+                    {
+                        "type": "error",
+                        "error": f"Stream processing error: {str(e)}",
+                        "timestamp": datetime.utcnow().isoformat(),
+                    }
+                )
+
     try:
         # Verify run exists before connecting
         run_response = db.get(Run, filters={"id": run_id}, return_json=False)
         if not run_response.status or not run_response.data:
             await websocket.close(code=4004, reason="Run not found")
             return
-            
+
         run = run_response.data[0]
-        print(f"*** Run found: {run}", auth_manager)
-        
+
         if run.status not in [RunStatus.CREATED, RunStatus.ACTIVE]:
             await websocket.close(code=4003, reason="Run not in valid state")
             return
-         
+
         # Connect websocket (this handles acceptance internally)
         connected = await ws_manager.connect(websocket, run_id)
         if not connected:
             return  # No need to close here as connect() failure would have closed it
-        
+
         # Handle authentication if enabled
         if auth_manager is not None:
             ws_auth = WebSocketAuthHandler(auth_manager)
             success, user = await ws_auth.authenticate(websocket)
-            print("auth status", success, user)
             if not success:
                 logger.warning(f"Authentication failed for WebSocket connection to run {run_id}")
                 await websocket.send_json(
@@ -74,7 +75,7 @@ async def run_websocket(
                 # Close the connection with a specific code
                 # await websocket.close(code=4001, reason="Authentication failed")
                 return
-                
+
             if user and run.user_id != user.id and "admin" not in (user.roles or []):
                 await websocket.send_json(
                     {
