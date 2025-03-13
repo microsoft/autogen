@@ -14,10 +14,6 @@ class StreamOptions(TypedDict):
     include_usage: bool
 
 
-class StreamOptions(TypedDict):
-    include_usage: bool
-
-
 class CreateArguments(TypedDict, total=False):
     frequency_penalty: Optional[float]
     logit_bias: Optional[Dict[str, int]]
