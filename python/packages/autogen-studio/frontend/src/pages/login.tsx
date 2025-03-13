@@ -100,7 +100,9 @@ const LoginPage = ({ data }: any) => {
             <div className="mb-3">
               <Icon icon="app" size={12} />
             </div>
-            <Title level={3}>Sign in to {data.site.siteMetadata.title}</Title>
+            <div className="text-2xl mb-1 font-semibold text-primary">
+              Sign in to {data.site.siteMetadata.title}
+            </div>
             <div className="text-secondary text-sm">
               {" "}
               Build and prototype multi-agent applications
