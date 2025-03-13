@@ -165,7 +165,7 @@ team = BaseGroupChat.load_component(team_config)
 A: Yes, you can run AutoGen Studio in a Docker container. You can build the Docker image using the provided [Dockerfile](https://github.com/microsoft/autogen/blob/autogenstudio/samples/apps/autogen-studio/Dockerfile) and run the container using the following commands:
 
 ```bash
-FROM python:3.10
+FROM python:3.10-slim
 
 WORKDIR /code
 
