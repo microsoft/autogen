@@ -23,7 +23,7 @@ class Message:
 @default_subscription
 class _TestAgent(SequentialRoutedAgent):
     def __init__(self, description: str) -> None:
-        super().__init__(description=description)
+        super().__init__(description=description, sequential_message_types=[Message])
         self.messages: List[Message] = []
 
     @message_handler

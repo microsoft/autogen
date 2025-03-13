@@ -29,9 +29,8 @@ from autogen_core import (
     Component,
     FunctionCall,
     Image,
-    MessageHandlerContext,
 )
-from autogen_core.logging import LLMCallEvent
+from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -531,19 +530,12 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             completion_tokens=(result.usage.completion_tokens if result.usage is not None else 0),
         )
 
-        # If we are running in the context of a handler we can get the agent_id
-        try:
-            agent_id = MessageHandlerContext.agent_id()
-        except RuntimeError:
-            agent_id = None
-
         logger.info(
             LLMCallEvent(
-                messages=cast(Dict[str, Any], oai_messages),
+                messages=cast(List[Dict[str, Any]], oai_messages),
                 response=result.model_dump(),
                 prompt_tokens=usage.prompt_tokens,
                 completion_tokens=usage.completion_tokens,
-                agent_id=agent_id,
             )
         )
 
@@ -756,8 +748,18 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         empty_chunk_warning_threshold: int = 10
         empty_chunk_count = 0
 
+        first_chunk = True
+
         # Process the stream of chunks.
         async for chunk in chunks:
+            if first_chunk:
+                first_chunk = False
+                # Emit the start event.
+                logger.info(
+                    LLMStreamStartEvent(
+                        messages=cast(List[Dict[str, Any]], oai_messages),
+                    )
+                )
             # Empty chunks has been observed when the endpoint is under heavy load.
             #  https://github.com/microsoft/autogen/issues/4213
             if len(chunk.choices) == 0:
@@ -877,6 +879,15 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             thought=thought,
         )
 
+        # Log the end of the stream.
+        logger.info(
+            LLMStreamEndEvent(
+                response=result.model_dump(),
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+            )
+        )
+
         # Update the total usage.
         self._total_usage = _add_usage(self._total_usage, usage)
         self._actual_usage = _add_usage(self._actual_usage, usage)
@@ -943,6 +954,9 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                     # Then we can consider handling other event types which may simplify the code overall.
                 except StopAsyncIteration:
                     break
+
+    async def close(self) -> None:
+        await self._client.close()
 
     def actual_usage(self) -> RequestUsage:
         return self._actual_usage

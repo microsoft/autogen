@@ -36,18 +36,17 @@ async def generate_image(
     if response.data:
         for image_data in response.data:
             # Generate a unique filename
-            file_name = f"{uuid.uuid4()}.png"
+            file_name: str = f"{uuid.uuid4()}.png"
 
             # Use output_dir if provided, otherwise use current directory
             file_path = Path(output_dir) / file_name if output_dir else Path(file_name)
 
             base64_str = image_data.b64_json
-            img = Image.open(io.BytesIO(base64.decodebytes(bytes(base64_str, "utf-8"))))
-
-            # Save the image to a file
-            img.save(file_path)
-
-            saved_files.append(str(file_path))
+            if base64_str:
+                img = Image.open(io.BytesIO(base64.decodebytes(bytes(base64_str, "utf-8"))))
+                # Save the image to a file
+                img.save(file_path)
+                saved_files.append(str(file_path))
 
     return saved_files
 
