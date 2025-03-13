@@ -24,15 +24,17 @@ class AuthMiddleware(BaseHTTPMiddleware):
         # Skip auth for OPTIONS requests (CORS preflight)
         if request.method == "OPTIONS":
             return await call_next(request)
- 
-        path = request.url.path 
-        
-        if (path == "/" or
-            path == "/login" or
-            path == "/callback" or
-            path.startswith("/page-data/") or  # Add this line
-            path in self.auth_manager.config.exclude_paths or
-            re.match(r'/[^/]+\.(js|css|png|ico|svg|jpg|webmanifest|json)$', path)):  # Add json extension
+
+        path = request.url.path
+
+        if (
+            path == "/"
+            or path == "/login"
+            or path == "/callback"
+            or path.startswith("/page-data/")  # Add this line
+            or path in self.auth_manager.config.exclude_paths
+            or re.match(r"/[^/]+\.(js|css|png|ico|svg|jpg|webmanifest|json)$", path)
+        ):  # Add json extension
             return await call_next(request)
 
         # Skip auth if disabled

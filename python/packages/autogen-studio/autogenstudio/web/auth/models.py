@@ -35,7 +35,7 @@ class AuthConfig(BaseModel):
     jwt_secret: Optional[str] = None
     token_expiry_minutes: int = 60
     exclude_paths: List[str] = [
-        "/", # root for serving frontend
+        "/",  # root for serving frontend
         "/api/health",
         "/api/version",
         "/api/auth/login-url",
