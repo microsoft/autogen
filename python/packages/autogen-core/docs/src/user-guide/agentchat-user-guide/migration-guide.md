@@ -45,6 +45,7 @@ See each feature below for detailed information on how to migrate.
   - [Assistant Agent](#assistant-agent)
   - [Multi-Modal Agent](#multi-modal-agent)
   - [User Proxy](#user-proxy)
+  - [RAG Agent](#rag-agent)
   - [Conversable Agent and Register Reply](#conversable-agent-and-register-reply)
   - [Save and Load Agent State](#save-and-load-agent-state)
   - [Two-Agent Chat](#two-agent-chat)
@@ -360,6 +361,54 @@ user_proxy = UserProxyAgent("user_proxy")
 
 See {py:class}`~autogen_agentchat.agents.UserProxyAgent`
 for more details and how to customize the input function with timeout.
+
+## RAG Agent
+
+In `v0.2`, there was the concept of teachable agents as well as a RAG agents that could take a database config.
+
+```python
+teachable_agent = ConversableAgent(
+    name="teachable_agent",
+    llm_config=llm_config
+)
+
+# Instantiate a Teachability object. Its parameters are all optional.
+teachability = Teachability(
+    reset_db=False,
+    path_to_db_dir="./tmp/interactive/teachability_db"
+)
+
+teachability.add_to_agent(teachable_agent)
+```
+
+In `v0.4`, you can implement a RAG agent using the {py:class}`~autogen_core.memory.Memory` class. Specifically, you can define a memory store class, and pass that as a parameter to the assistant agent. See the [Memory](memory.ipynb) tutorial for more details.
+
+This clear separation of concerns allows you to implement a memory store that uses any database or storage system you want (you have to inherit from the `Memory` class) and use it with an assistant agent. The example below shows how to use a ChromaDB vector memory store with the assistant agent. In addition, your application logic should determine how and when to add content to the memory store. For example, you may choose to call `memory.add` for every response from the assistant agent or use a separate LLM call to determine if the content should be added to the memory store.
+
+```python
+
+# ...
+# example of a ChromaDBVectorMemory class
+chroma_user_memory = ChromaDBVectorMemory(
+    config=PersistentChromaDBVectorMemoryConfig(
+        collection_name="preferences",
+        persistence_path=os.path.join(str(Path.home()), ".chromadb_autogen"),
+        k=2,  # Return top  k results
+        score_threshold=0.4,  # Minimum similarity score
+    )
+)
+
+# you can add logic such as a document indexer that adds content to the memory store
+
+assistant_agent = AssistantAgent(
+    name="assistant_agent",
+    model_client=OpenAIChatCompletionClient(
+        model="gpt-4o",
+    ),
+    tools=[get_weather],
+    memory=[chroma_user_memory],
+)
+```
 
 ## Conversable Agent and Register Reply
 
