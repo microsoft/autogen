@@ -745,9 +745,9 @@ requires-dist = [
     { name = "magika", marker = "extra == 'file-surfer'", specifier = ">=0.6.1rc2" },
     { name = "magika", marker = "extra == 'magentic-one'", specifier = ">=0.6.1rc2" },
     { name = "magika", marker = "extra == 'web-surfer'", specifier = ">=0.6.1rc2" },
-    { name = "markitdown", extras = ["all"], marker = "extra == 'file-surfer'", specifier = "~=0.1.0a2" },
-    { name = "markitdown", extras = ["all"], marker = "extra == 'magentic-one'", specifier = "~=0.1.0a2" },
-    { name = "markitdown", extras = ["all"], marker = "extra == 'web-surfer'", specifier = "~=0.1.0a2" },
+    { name = "markitdown", extras = ["all"], marker = "extra == 'file-surfer'", specifier = "~=0.1.0a3" },
+    { name = "markitdown", extras = ["all"], marker = "extra == 'magentic-one'", specifier = "~=0.1.0a3" },
+    { name = "markitdown", extras = ["all"], marker = "extra == 'web-surfer'", specifier = "~=0.1.0a3" },
     { name = "mcp", marker = "extra == 'mcp'", specifier = ">=1.1.3" },
     { name = "nbclient", marker = "extra == 'jupyter-executor'", specifier = ">=0.10.2" },
     { name = "ollama", marker = "extra == 'ollama'", specifier = ">=0.4.7" },
@@ -4009,7 +4009,7 @@ wheels = [
 
 [[package]]
 name = "markitdown"
-version = "0.1.0a2"
+version = "0.1.0a3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "beautifulsoup4" },
@@ -4018,9 +4018,9 @@ dependencies = [
     { name = "markdownify" },
     { name = "requests" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/9f/04/632aece78a1c19971202d76a317e7a345aca1546ca6525156096f3100f45/markitdown-0.1.0a2.tar.gz", hash = "sha256:f685c3042ff02bc3144ec635022efb28d7a3343a6107b91b5efe2cd648f8d55a", size = 28743 }
+sdist = { url = "https://files.pythonhosted.org/packages/b9/94/a9c1148229ec5bbf0dfec87289cefe3bd2a7d5efc2a1c2b02c0353e76b67/markitdown-0.1.0a3.tar.gz", hash = "sha256:10122a7aabff4380a1a7770a8ab75338241ba97ece35665fe082e2a0bcb71556", size = 28812 }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/e7/b1/e7dc8487c90f9b93c91d8198c0207efbb3521e1fb1834d46ebce0edf27bb/markitdown-0.1.0a2-py3-none-any.whl", hash = "sha256:7f80aaf3aa36ab98caea924851345e70e52ec07b26a4da25058ec920887288d3", size = 44281 },
+    { url = "https://files.pythonhosted.org/packages/db/7b/b0c4def78049503bd4102c9b2fa7c9a4917afb48e9f06317e5bb644e07ba/markitdown-0.1.0a3-py3-none-any.whl", hash = "sha256:02de241396a85d07bf20d901376acd77ff542e2712d8d03af046c912dd60ccf4", size = 44362 },
 ]
 
 [package.optional-dependencies]
