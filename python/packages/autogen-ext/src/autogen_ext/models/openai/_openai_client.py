@@ -30,7 +30,7 @@ from autogen_core import (
     FunctionCall,
     Image,
 )
-from autogen_core.logging import LLMCallEvent
+from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
 from autogen_core.models import (
     AssistantMessage,
     ChatCompletionClient,
@@ -748,8 +748,18 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         empty_chunk_warning_threshold: int = 10
         empty_chunk_count = 0
 
+        first_chunk = True
+
         # Process the stream of chunks.
         async for chunk in chunks:
+            if first_chunk:
+                first_chunk = False
+                # Emit the start event.
+                logger.info(
+                    LLMStreamStartEvent(
+                        messages=cast(List[Dict[str, Any]], oai_messages),
+                    )
+                )
             # Empty chunks has been observed when the endpoint is under heavy load.
             #  https://github.com/microsoft/autogen/issues/4213
             if len(chunk.choices) == 0:
@@ -867,6 +877,15 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             cached=False,
             logprobs=logprobs,
             thought=thought,
+        )
+
+        # Log the end of the stream.
+        logger.info(
+            LLMStreamEndEvent(
+                response=result.model_dump(),
+                prompt_tokens=usage.prompt_tokens,
+                completion_tokens=usage.completion_tokens,
+            )
         )
 
         # Update the total usage.
