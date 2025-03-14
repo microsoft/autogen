@@ -32,6 +32,7 @@ def ui(
     docs: bool = True,
     appdir: str | None = None,
     database_uri: Optional[str] = None,
+    auth_config: Optional[str] = None,
     upgrade_database: bool = False,
 ):
     """
@@ -44,19 +45,26 @@ def ui(
         reload (bool, optional): Whether to reload the UI on code changes. Defaults to False.
         docs (bool, optional): Whether to generate API docs. Defaults to False.
         appdir (str, optional): Path to the AutoGen Studio app directory. Defaults to None.
-        database-uri (str, optional): Database URI to connect to. Defaults to None.
+        database_uri (str, optional): Database URI to connect to. Defaults to None.
+        auth_config (str, optional): Path to authentication configuration YAML. Defaults to None.
+        upgrade_database (bool, optional): Whether to upgrade the database. Defaults to False.
     """
-
     # Write configuration
     env_vars = {
         "AUTOGENSTUDIO_HOST": host,
         "AUTOGENSTUDIO_PORT": port,
         "AUTOGENSTUDIO_API_DOCS": str(docs),
     }
+
     if appdir:
         env_vars["AUTOGENSTUDIO_APPDIR"] = appdir
     if database_uri:
         env_vars["AUTOGENSTUDIO_DATABASE_URI"] = database_uri
+    if auth_config:
+        if not os.path.exists(auth_config):
+            typer.echo(f"Error: Auth config file not found: {auth_config}", err=True)
+            raise typer.Exit(1)
+        env_vars["AUTOGENSTUDIO_AUTH_CONFIG"] = auth_config
     if upgrade_database:
         env_vars["AUTOGENSTUDIO_UPGRADE_DATABASE"] = "1"
 

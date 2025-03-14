@@ -103,7 +103,7 @@ class DatabaseManager:
                 try:
                     # Disable foreign key checks for SQLite
                     if "sqlite" in str(self.engine.url):
-                        session.exec(text("PRAGMA foreign_keys=OFF"))
+                        session.exec(text("PRAGMA foreign_keys=OFF"))  # type: ignore
 
                     # Drop all tables
                     SQLModel.metadata.drop_all(self.engine)
@@ -111,7 +111,7 @@ class DatabaseManager:
 
                     # Re-enable foreign key checks for SQLite
                     if "sqlite" in str(self.engine.url):
-                        session.exec(text("PRAGMA foreign_keys=ON"))
+                        session.exec(text("PRAGMA foreign_keys=ON"))  # type: ignore
 
                     session.commit()
 
