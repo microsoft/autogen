@@ -35,7 +35,7 @@ class AuthMiddleware(BaseHTTPMiddleware):
             or path.startswith("/page-data/")
             or path in self.auth_manager.config.exclude_paths
             or re.match(r"/[^/]+\.(js|css|png|ico|svg|jpg|webmanifest|json)$", path)
-            or re.match(r".*\.(js\.map|svg)$", path)  
+            or re.match(r".*\.(js\.map|svg)$", path)
         ):
             return await call_next(request)
 
