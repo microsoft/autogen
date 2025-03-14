@@ -2,8 +2,6 @@ import contextlib
 import sys
 from typing import TYPE_CHECKING, Any, ContextManager, Generator, List, Sequence, Union
 
-from llama_cpp import ChatCompletionRequestResponseFormat
-from pydantic import BaseModel
 import pytest
 import torch
 
@@ -11,6 +9,8 @@ import torch
 # from autogen_agentchat.messages import TextMessage
 # from autogen_core import CancellationToken
 from autogen_core.models import RequestUsage, SystemMessage, UserMessage
+from llama_cpp import ChatCompletionRequestResponseFormat
+from pydantic import BaseModel
 
 # from autogen_core.tools import FunctionTool
 try:
@@ -46,7 +46,11 @@ class FakeLlama:
         return list(b)
 
     def create_chat_completion(
-        self, messages: Any, tools: List[ChatCompletionMessageToolCalls] | None, stream: bool = False, response_format: ChatCompletionRequestResponseFormat | None = None,
+        self,
+        messages: Any,
+        tools: List[ChatCompletionMessageToolCalls] | None,
+        stream: bool = False,
+        response_format: ChatCompletionRequestResponseFormat | None = None,
     ) -> dict[str, Any]:
         # Return fake non-streaming response.
 
@@ -97,6 +101,7 @@ async def test_llama_cpp_create(get_completion_client: "ContextManager[type[Llam
         assert usage.prompt_tokens == 1
         assert usage.completion_tokens == 2
         assert result.finish_reason in ("stop", "unknown")
+
 
 @pytest.mark.asyncio
 async def test_llama_cpp_create_structured_output(

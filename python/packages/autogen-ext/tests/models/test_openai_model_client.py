@@ -484,7 +484,9 @@ async def test_structured_output(monkeypatch: pytest.MonkeyPatch) -> None:
     )
 
     # Test that the openai client was called with the correct response format.
-    create_result = await model_client.create(messages=[UserMessage(content="I am happy.", source="user")], output_type=AgentResponse)
+    create_result = await model_client.create(
+        messages=[UserMessage(content="I am happy.", source="user")], output_type=AgentResponse
+    )
     assert isinstance(create_result.content, str)
     response = AgentResponse.model_validate(json.loads(create_result.content))
     assert (
@@ -544,7 +546,9 @@ async def test_structured_output_with_tool_calls(monkeypatch: pytest.MonkeyPatch
     )
 
     # Test that the openai client was called with the correct response format.
-    create_result = await model_client.create(messages=[UserMessage(content="I am happy.", source="user")], output_type=AgentResponse)
+    create_result = await model_client.create(
+        messages=[UserMessage(content="I am happy.", source="user")], output_type=AgentResponse
+    )
     assert isinstance(create_result.content, list)
     assert len(create_result.content) == 1
     assert create_result.content[0] == FunctionCall(
@@ -617,7 +621,9 @@ async def test_structured_output_with_streaming(monkeypatch: pytest.MonkeyPatch)
 
     # Test that the openai client was called with the correct response format.
     chunks: List[str | CreateResult] = []
-    async for chunk in model_client.create_stream(messages=[UserMessage(content="I am happy.", source="user")], output_type=AgentResponse):
+    async for chunk in model_client.create_stream(
+        messages=[UserMessage(content="I am happy.", source="user")], output_type=AgentResponse
+    ):
         chunks.append(chunk)
     assert len(chunks) > 0
     assert isinstance(chunks[-1], CreateResult)
@@ -725,7 +731,9 @@ async def test_structured_output_with_streaming_tool_calls(monkeypatch: pytest.M
 
     # Test that the openai client was called with the correct response format.
     chunks: List[str | CreateResult] = []
-    async for chunk in model_client.create_stream(messages=[UserMessage(content="I am happy.", source="user")], output_type=AgentResponse):
+    async for chunk in model_client.create_stream(
+        messages=[UserMessage(content="I am happy.", source="user")], output_type=AgentResponse
+    ):
         chunks.append(chunk)
     assert len(chunks) > 0
     assert isinstance(chunks[-1], CreateResult)
@@ -1347,7 +1355,9 @@ async def test_openai_structured_output() -> None:
     )
 
     # Test that the openai client was called with the correct response format.
-    create_result = await model_client.create(messages=[UserMessage(content="I am happy.", source="user")], output_type=AgentResponse)
+    create_result = await model_client.create(
+        messages=[UserMessage(content="I am happy.", source="user")], output_type=AgentResponse
+    )
     assert isinstance(create_result.content, str)
     response = AgentResponse.model_validate(json.loads(create_result.content))
     assert response.thoughts
@@ -1370,7 +1380,9 @@ async def test_openai_structured_output_with_streaming() -> None:
     )
 
     # Test that the openai client was called with the correct response format.
-    stream = model_client.create_stream(messages=[UserMessage(content="I am happy.", source="user")], output_type=AgentResponse)
+    stream = model_client.create_stream(
+        messages=[UserMessage(content="I am happy.", source="user")], output_type=AgentResponse
+    )
     chunks: List[str | CreateResult] = []
     async for chunk in stream:
         chunks.append(chunk)

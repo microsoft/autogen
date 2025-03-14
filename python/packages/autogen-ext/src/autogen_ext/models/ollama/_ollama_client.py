@@ -328,6 +328,7 @@ def normalize_stop_reason(stop_reason: str | None) -> FinishReasons:
     stop_reason = stop_reason.lower()
 
     KNOWN_STOP_MAPPINGS: Dict[str, FinishReasons] = {
+        "stop": "stop",
         "end_turn": "stop",
         "tool_calls": "function_calls",
     }
@@ -410,16 +411,30 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
 
-        response_format_value: Optional[Mapping[str, Any]] = None
+        response_format_value: Mapping[str, Any] | str | None = None
+
+        if output_type is not None:
+            response_format_value = output_type.model_json_schema()
 
         if "response_format" in create_args:
+            # Legacy support for response_format.
             value = create_args["response_format"]
-            # If value is a Pydantic model class, use the beta client
             if isinstance(value, type) and issubclass(value, BaseModel):
+                if output_type is not None:
+                    raise ValueError("output_type and response_format are mutually exclusive")
                 response_format_value = value.model_json_schema()
             else:
-                # response_format_value is not a Pydantic model class
-                # TODO: Should this be an warning/error?
+                raise ValueError(f"response_format must be a Pydantic model class, not {type(value)}")
+
+        if json_output is not None:
+            # Support for json_output.
+            if output_type is not None:
+                raise ValueError("output_type and json_output are mutually exclusive")
+            if self.model_info["json_output"] is False and json_output is True:
+                raise ValueError("Model does not support JSON output.")
+            if json_output is True:
+                response_format_value = "json"
+            else:
                 response_format_value = None
 
         # Remove 'response_format' from create_args to prevent passing it twice
@@ -432,15 +447,6 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
                 if isinstance(message, UserMessage):
                     if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
                         raise ValueError("Model does not support vision and image was provided")
-
-        if json_output is not None:
-            if self.model_info["json_output"] is False and json_output is True:
-                raise ValueError("Model does not support JSON output.")
-
-            if json_output is True:
-                create_args["response_format"] = {"type": "json_object"}
-            else:
-                create_args["response_format"] = {"type": "text"}
 
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output.")
@@ -607,15 +613,25 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
 
-        response_format_value: Optional[Mapping[str, Any]] = None
+        response_format_value: Mapping[str, Any] | str | None = None
+
+        if output_type is not None:
+            response_format_value = output_type.model_json_schema()
 
         if "response_format" in create_args:
+            # Legacy support for response_format.
             value = create_args["response_format"]
-            # If value is a Pydantic model class, use the beta client
             if isinstance(value, type) and issubclass(value, BaseModel):
                 response_format_value = value.model_json_schema()
             else:
-                # response_format_value is not a Pydantic model class
+                raise ValueError(f"response_format must be a Pydantic model class, not {type(value)}")
+
+        if json_output is not None:
+            if self.model_info["json_output"] is False and json_output is True:
+                raise ValueError("Model does not support JSON output.")
+            if json_output is True:
+                response_format_value = "json"
+            else:
                 response_format_value = None
 
         # Remove 'response_format' from create_args to prevent passing it twice
@@ -628,15 +644,6 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
                 if isinstance(message, UserMessage):
                     if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
                         raise ValueError("Model does not support vision and image was provided")
-
-        if json_output is not None:
-            if self.model_info["json_output"] is False and json_output is True:
-                raise ValueError("Model does not support JSON output.")
-
-            if json_output is True:
-                create_args["response_format"] = {"type": "json_object"}
-            else:
-                create_args["response_format"] = {"type": "text"}
 
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output.")
