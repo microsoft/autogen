@@ -2,6 +2,12 @@ import React, { createContext, useState, useEffect, useContext } from "react";
 import { authAPI, User } from "./api";
 import { message } from "antd";
 import { navigate } from "gatsby";
+import {
+  sanitizeUrl,
+  sanitizeRedirectUrl,
+  isValidMessageOrigin,
+  isValidUserObject,
+} from "../components/utils/security-utils";
 
 interface AuthContextType {
   user: User | null;
@@ -80,9 +86,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   // Setup message listener for popup window communication
   useEffect(() => {
     const handleAuthMessage = (event: MessageEvent) => {
+      if (!isValidMessageOrigin(event.origin)) {
+        console.error(
+          `Rejected message from untrusted origin: ${event.origin}`
+        );
+        return;
+      }
+
       const data = event.data;
 
       if (data.type === "auth-success" && data.token && data.user) {
+        if (!isValidUserObject(data.user)) {
+          console.error("Invalid user data structure received");
+          return;
+        }
+
+        if (data.user.avatar_url) {
+          data.user.avatar_url = sanitizeUrl(data.user.avatar_url);
+        }
+
         // Store token
         saveToken(data.token);
 
@@ -93,7 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         message.success("Successfully logged in");
 
         // Redirect to home
-        navigate("/");
+        navigate(sanitizeRedirectUrl("/"));
       } else if (data.type === "auth-error") {
         message.error(`Authentication failed: ${data.error}`);
       }
@@ -116,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       const loginUrl = await authAPI.getLoginUrl();
-      return loginUrl;
+      return sanitizeUrl(loginUrl) || "";
     } catch (error) {
       message.error("Failed to initiate login");
       console.error("Login error:", error);
