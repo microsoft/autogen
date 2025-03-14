@@ -231,7 +231,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
             result = await client.create([UserMessage(content="What is the capital of France?", source="user")])
             print(result)
-            
+
             # Close the client.
             await client.close()
 
@@ -273,7 +273,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             print()
 
             # Close the client.
-            await client.close()            
+            await client.close()
 
 
         if __name__ == "__main__":

@@ -1131,6 +1131,9 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             result = await openai_client.create([UserMessage(content="What is the capital of France?", source="user")])  # type: ignore
             print(result)
 
+            # Close the client when done.
+            await openai_client.close()
+
         To use the client with a non-OpenAI model, you need to provide the base URL of the model and the model info.
         For example, to use Ollama, you can use the following code snippet:
 
@@ -1151,6 +1154,9 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                 },
             )
 
+            # Close the client when done.
+            await custom_model_client.close()
+
         To use streaming mode, you can use the following code snippet:
 
         .. code-block:: python
@@ -1159,16 +1165,16 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             from autogen_core.models import UserMessage
             from autogen_ext.models.openai import OpenAIChatCompletionClient
 
-            # Similar for AzureOpenAIChatCompletionClient.
-            model_client = OpenAIChatCompletionClient(model="gpt-4o")  # assuming OPENAI_API_KEY is set in the environment.
-
-            messages = [UserMessage(content="Write a very short story about a dragon.", source="user")]
-
-            # Create a stream.
-            stream = model_client.create_stream(messages=messages)
-
 
             async def main() -> None:
+                # Similar for AzureOpenAIChatCompletionClient.
+                model_client = OpenAIChatCompletionClient(model="gpt-4o")  # assuming OPENAI_API_KEY is set in the environment.
+
+                messages = [UserMessage(content="Write a very short story about a dragon.", source="user")]
+
+                # Create a stream.
+                stream = model_client.create_stream(messages=messages)
+
                 # Iterate over the stream and print the responses.
                 print("Streamed responses:")
                 async for response in stream:
@@ -1180,6 +1186,9 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                         print("\\n\\n------------\\n")
                         print("The complete response:", flush=True)
                         print(response.content, flush=True)
+
+                # Close the client when done.
+                await model_client.close()
 
 
             asyncio.run(main())
@@ -1219,14 +1228,14 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
             # which is required for structured output mode.
             tool = FunctionTool(sentiment_analysis, description="Sentiment Analysis", strict=True)
 
-            # Create an OpenAIChatCompletionClient instance.
-            model_client = OpenAIChatCompletionClient(
-                model="gpt-4o-mini",
-                response_format=AgentResponse,  # type: ignore
-            )
-
 
             async def main() -> None:
+                # Create an OpenAIChatCompletionClient instance.
+                model_client = OpenAIChatCompletionClient(
+                    model="gpt-4o-mini",
+                    response_format=AgentResponse,  # type: ignore
+                )
+
                 # Generate a response using the tool.
                 response1 = await model_client.create(
                     messages=[
@@ -1254,6 +1263,8 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                 # Should be a structured output.
                 # {"thoughts": "The user is happy.", "response": "happy"}
 
+                # Close the client when done.
+                await model_client.close()
 
             asyncio.run(main())
 
