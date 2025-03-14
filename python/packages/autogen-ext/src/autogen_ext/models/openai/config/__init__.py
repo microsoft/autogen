@@ -2,7 +2,7 @@ from typing import Awaitable, Callable, Dict, List, Literal, Optional, Union
 
 from autogen_core import ComponentModel
 from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 from typing_extensions import Required, TypedDict
 
 
@@ -77,7 +77,7 @@ class CreateArgumentsConfigModel(BaseModel):
 
 class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
     model: str
-    api_key: str | None = None
+    api_key: SecretStr | None = None
     timeout: float | None = None
     max_retries: int | None = None
     model_capabilities: ModelCapabilities | None = None  # type: ignore
