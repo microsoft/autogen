@@ -69,7 +69,11 @@ export const sanitizeRedirectUrl = (url: string | undefined | null): string => {
  * Validates if a message event is from a trusted origin
  */
 export const isValidMessageOrigin = (origin: string): boolean => {
-  const trustedOrigins = [window.location.origin, "http://localhost:8081"];
+  const trustedOrigins = [
+    window.location.origin,
+    "https://localhost:8000",
+    "http://localhost:8081",
+  ];
 
   return trustedOrigins.includes(origin);
 };
