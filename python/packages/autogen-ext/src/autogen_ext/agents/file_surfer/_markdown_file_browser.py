@@ -247,7 +247,7 @@ class MarkdownFileBrowser:
             full_path = os.path.join(local_path, entry)
 
             mtime = ""
-            try
+            try:
                 mtime = datetime.datetime.fromtimestamp(os.path.getmtime(full_path)).strftime("%Y-%m-%d %H:%M")
             except Exception as e:
                 # Handles PermissionError, etc.
@@ -256,7 +256,7 @@ class MarkdownFileBrowser:
             if os.path.isdir(full_path):
                 entry = entry + os.path.sep
             else:
-                try
+                try:
                     size = str(os.path.getsize(full_path))
                 except Exception as e:
                     # Handles PermissionError, etc.
