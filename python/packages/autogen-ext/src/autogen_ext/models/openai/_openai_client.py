@@ -817,29 +817,31 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
 
             # First try get content
             # Separate field acquisition reasoning process
-            if choice.delta.model_extra.get("reasoning_content"):
-                if len(choice.delta.reasoning_content) > 0:
-                    yield process_reasoning(reasoning_deltas, choice.delta.reasoning_content)
-                continue
+            if self._model_info["family"] == ModelFamily.R1:
+                if choice.delta.model_extra.get("reasoning_content"):
+                    if len(choice.delta.reasoning_content) > 0:
+                        yield process_reasoning(reasoning_deltas, choice.delta.reasoning_content)
+                    continue
 
             if choice.delta.content:
                 # intercept reasoning process
-                if choice.delta.content.startswith("<think>"):
-                    is_reasoning = True
-                    choice.delta.content = choice.delta.content[len("<think>"):].strip()
-                    if len(choice.delta.content) > 0:
-                        yield process_reasoning(reasoning_deltas, choice.delta.content)
-                    continue
-                elif choice.delta.content.endswith("</think>"):
-                    is_reasoning = False
-                    choice.delta.content = choice.delta.content[:-len("</think>")].strip()
-                    if len(choice.delta.content) > 0:
-                        yield process_reasoning(reasoning_deltas, choice.delta.content)
-                    continue
-                elif is_reasoning:
-                    if len(choice.delta.content) > 0:
-                        yield process_reasoning(reasoning_deltas, choice.delta.content)
-                    continue
+                if self._model_info["family"] == ModelFamily.R1:
+                    if choice.delta.content.startswith("<think>"):
+                        is_reasoning = True
+                        choice.delta.content = choice.delta.content[len("<think>"):].strip()
+                        if len(choice.delta.content) > 0:
+                            yield process_reasoning(reasoning_deltas, choice.delta.content)
+                        continue
+                    elif choice.delta.content.endswith("</think>"):
+                        is_reasoning = False
+                        choice.delta.content = choice.delta.content[:-len("</think>")].strip()
+                        if len(choice.delta.content) > 0:
+                            yield process_reasoning(reasoning_deltas, choice.delta.content)
+                        continue
+                    elif is_reasoning:
+                        if len(choice.delta.content) > 0:
+                            yield process_reasoning(reasoning_deltas, choice.delta.content)
+                        continue
 
                 if len(choice.delta.content) > 0:
                     content_deltas.append(choice.delta.content)
