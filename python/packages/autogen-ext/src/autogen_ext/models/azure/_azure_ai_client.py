@@ -203,11 +203,12 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
             pip install "autogen-ext[azure]"
 
-    The following code snippet shows how to use the client:
+    The following code snippet shows how to use the client with GitHub Models:
 
         .. code-block:: python
 
             import asyncio
+            import os
             from azure.core.credentials import AzureKeyCredential
             from autogen_ext.models.azure import AzureAIChatCompletionClient
             from autogen_core.models import UserMessage
@@ -215,8 +216,11 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
             async def main():
                 client = AzureAIChatCompletionClient(
-                    endpoint="endpoint",
-                    credential=AzureKeyCredential("api_key"),
+                    model="Phi-4",
+                    endpoint="https://models.inference.ai.azure.com",
+                    # To authenticate with the model you will need to generate a personal access token (PAT) in your GitHub settings.
+                    # Create your PAT token by following instructions here: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens
+                    credential=AzureKeyCredential(os.environ["GITHUB_TOKEN"]),
                     model_info={
                         "json_output": False,
                         "function_calling": False,
@@ -231,6 +235,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
             if __name__ == "__main__":
                 asyncio.run(main())
+
 
     """
 
