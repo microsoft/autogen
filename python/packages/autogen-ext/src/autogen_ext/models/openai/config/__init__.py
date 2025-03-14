@@ -2,12 +2,16 @@ from typing import Awaitable, Callable, Dict, List, Literal, Optional, Union
 
 from autogen_core import ComponentModel
 from autogen_core.models import ModelCapabilities, ModelInfo  # type: ignore
-from pydantic import BaseModel
+from pydantic import BaseModel, SecretStr
 from typing_extensions import Required, TypedDict
 
 
 class ResponseFormat(TypedDict):
     type: Literal["text", "json_object"]
+
+
+class StreamOptions(TypedDict):
+    include_usage: bool
 
 
 class CreateArguments(TypedDict, total=False):
@@ -22,6 +26,7 @@ class CreateArguments(TypedDict, total=False):
     temperature: Optional[float]
     top_p: Optional[float]
     user: str
+    stream_options: Optional[StreamOptions]
 
 
 AsyncAzureADTokenProvider = Callable[[], Union[str, Awaitable[str]]]
@@ -67,11 +72,12 @@ class CreateArgumentsConfigModel(BaseModel):
     temperature: float | None = None
     top_p: float | None = None
     user: str | None = None
+    stream_options: StreamOptions | None = None
 
 
 class BaseOpenAIClientConfigurationConfigModel(CreateArgumentsConfigModel):
     model: str
-    api_key: str | None = None
+    api_key: SecretStr | None = None
     timeout: float | None = None
     max_retries: int | None = None
     model_capabilities: ModelCapabilities | None = None  # type: ignore

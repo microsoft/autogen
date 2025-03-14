@@ -44,3 +44,15 @@ class GroupChatReset(BaseModel):
     """A request to reset the agents in the group chat."""
 
     ...
+
+
+class GroupChatPause(BaseModel):
+    """A request to pause the group chat."""
+
+    ...
+
+
+class GroupChatResume(BaseModel):
+    """A request to resume the group chat."""
+
+    ...

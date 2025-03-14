@@ -5,7 +5,15 @@ from autogen_core import DefaultTopicId, MessageContext, event, rpc
 from ...base import ChatAgent, Response
 from ...messages import ChatMessage
 from ...state import ChatAgentContainerState
-from ._events import GroupChatAgentResponse, GroupChatMessage, GroupChatRequestPublish, GroupChatReset, GroupChatStart
+from ._events import (
+    GroupChatAgentResponse,
+    GroupChatMessage,
+    GroupChatPause,
+    GroupChatRequestPublish,
+    GroupChatReset,
+    GroupChatResume,
+    GroupChatStart,
+)
 from ._sequential_routed_agent import SequentialRoutedAgent
 
 
@@ -21,7 +29,15 @@ class ChatAgentContainer(SequentialRoutedAgent):
     """
 
     def __init__(self, parent_topic_type: str, output_topic_type: str, agent: ChatAgent) -> None:
-        super().__init__(description=agent.description)
+        super().__init__(
+            description=agent.description,
+            sequential_message_types=[
+                GroupChatStart,
+                GroupChatRequestPublish,
+                GroupChatReset,
+                GroupChatAgentResponse,
+            ],
+        )
         self._parent_topic_type = parent_topic_type
         self._output_topic_type = output_topic_type
         self._agent = agent
@@ -73,6 +89,16 @@ class ChatAgentContainer(SequentialRoutedAgent):
             topic_id=DefaultTopicId(type=self._parent_topic_type),
             cancellation_token=ctx.cancellation_token,
         )
+
+    @rpc
+    async def handle_pause(self, message: GroupChatPause, ctx: MessageContext) -> None:
+        """Handle a pause event by pausing the agent."""
+        await self._agent.on_pause(ctx.cancellation_token)
+
+    @rpc
+    async def handle_resume(self, message: GroupChatResume, ctx: MessageContext) -> None:
+        """Handle a resume event by resuming the agent."""
+        await self._agent.on_resume(ctx.cancellation_token)
 
     async def on_unhandled_message(self, message: Any, ctx: MessageContext) -> None:
         raise ValueError(f"Unhandled message in agent container: {type(message)}")

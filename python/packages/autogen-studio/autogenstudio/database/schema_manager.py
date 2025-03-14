@@ -104,27 +104,6 @@ class SchemaManager:
             self.alembic_ini_path.unlink()
             logger.info("Removed alembic.ini")
 
-    def _ensure_alembic_setup(self, *, force: bool = False) -> None:
-        """
-        Ensures Alembic is properly set up, initializing if necessary.
-
-        Args:
-            force: If True, removes existing configuration and reinitializes
-        """
-        try:
-            self._validate_alembic_setup()
-            if force:
-                logger.info("Force initialization requested. Cleaning up existing configuration...")
-                self._cleanup_existing_alembic()
-                self._initialize_alembic()
-        except FileNotFoundError:
-            logger.info("Alembic configuration not found. Initializing...")
-            if self.alembic_dir.exists():
-                logger.warning("Found existing alembic directory but missing configuration")
-                self._cleanup_existing_alembic()
-            self._initialize_alembic()
-            logger.info("Alembic initialization complete")
-
     def _initialize_alembic(self) -> bool:
         """Initialize alembic structure and configuration"""
         try:
@@ -193,10 +172,12 @@ def run_migrations_online() -> None:
         poolclass=pool.NullPool,
     )
     with connectable.connect() as connection:
+        is_sqlite = connection.dialect.name == "sqlite"
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
             compare_type=True
+            render_as_batch=is_sqlite,
         )
         with context.begin_transaction():
             context.run_migrations()
@@ -213,10 +194,11 @@ else:
         """
         Generates content for alembic.ini file.
         """
+        engine_url = str(self.engine.url).replace("%", "%%")
         return f"""
 [alembic]
 script_location = {self.alembic_dir}
-sqlalchemy.url = {self.engine.url}
+sqlalchemy.url = {engine_url}
 
 [loggers]
 keys = root,sqlalchemy,alembic
@@ -384,12 +366,12 @@ datefmt = %H:%M:%S
             context = MigrationContext.configure(conn)
             return context.get_current_revision()
 
-    def get_head_revision(self) -> str:
+    def get_head_revision(self) -> Optional[str]:
         """
         Gets the latest available revision.
 
         Returns:
-            str: Head revision string
+            Optional[str]: Head revision string or None if no revisions exist
         """
         config = self.get_alembic_config()
         script = ScriptDirectory.from_config(config)
@@ -466,7 +448,10 @@ datefmt = %H:%M:%S
             if self.upgrade_schema():
                 return True, "Schema was automatically upgraded"
             else:
-                return False, "Automatic schema upgrade failed"
+                return (
+                    False,
+                    "Automatic schema upgrade failed. You are seeing this message because there were differences in your current database schema and the most recent version of the Autogen Studio app database. You can ignore the error, or specifically, you can install AutoGen Studio in a new path `autogenstudio ui --appdir <new path>`.",
+                )
 
         return False, status
 

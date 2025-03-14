@@ -1,8 +1,9 @@
 from dataclasses import dataclass
-from typing import Dict, Mapping, Optional
+from typing import Dict, Mapping, Optional, Sequence
 
 from opentelemetry.context import Context
 from opentelemetry.propagate import extract
+from opentelemetry.trace import Link, get_current_span
 from opentelemetry.trace.propagation.tracecontext import TraceContextTextMapPropagator
 
 
@@ -12,6 +13,7 @@ class EnvelopeMetadata:
 
     traceparent: Optional[str] = None
     tracestate: Optional[str] = None
+    links: Optional[Sequence[Link]] = None
 
 
 def _get_carrier_for_envelope_metadata(envelope_metadata: EnvelopeMetadata) -> Dict[str, str]:
@@ -95,3 +97,31 @@ def get_telemetry_context(metadata: TelemetryMetadataContainer) -> Context:
         return extract(_get_carrier_for_remote_call_metadata(metadata))
     else:
         raise ValueError(f"Unknown metadata type: {type(metadata)}")
+
+
+def get_telemetry_links(
+    metadata: TelemetryMetadataContainer,
+) -> Optional[Sequence[Link]]:
+    """
+    Retrieves the telemetry links from the given metadata.
+
+    Args:
+        metadata (Optional[EnvelopeMetadata]): The metadata containing the telemetry links.
+
+    Returns:
+        Optional[Sequence[Link]]: The telemetry links extracted from the metadata, or None if there are no links.
+    """
+    if metadata is None:
+        return None
+    elif isinstance(metadata, EnvelopeMetadata):
+        context = extract(_get_carrier_for_envelope_metadata(metadata))
+    elif hasattr(metadata, "__getitem__"):
+        context = extract(_get_carrier_for_remote_call_metadata(metadata))
+    else:
+        return None
+    # Retrieve the extracted SpanContext from the context.
+    linked_span = get_current_span(context)
+    # Use the linked span to get the SpanContext.
+    span_context = linked_span.get_span_context()
+    # Create a Link object using the SpanContext.
+    return [Link(span_context)]

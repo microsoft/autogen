@@ -17,13 +17,14 @@ class MarkdownFileBrowser:
 
     # TODO: Fix unfollowed import
     def __init__(  # type: ignore
-        self, viewport_size: Union[int, None] = 1024 * 8
+        self, viewport_size: Union[int, None] = 1024 * 8, base_path: str = os.getcwd()
     ):
         """
         Instantiate a new MarkdownFileBrowser.
 
         Arguments:
             viewport_size: Approximately how many *characters* fit in the viewport. Viewport dimensions are adjusted dynamically to avoid cutting off words (default: 8192).
+            base_path: The base path to use for the file browser. Defaults to the current working directory.
         """
         self.viewport_size = viewport_size  # Applies only to the standard uri types
         self.history: List[Tuple[str, float]] = list()
@@ -31,16 +32,17 @@ class MarkdownFileBrowser:
         self.viewport_current_page = 0
         self.viewport_pages: List[Tuple[int, int]] = list()
         self._markdown_converter = MarkItDown()
-        self.set_path(os.getcwd())
+        self._base_path = base_path
         self._page_content: str = ""
         self._find_on_page_query: Union[str, None] = None
         self._find_on_page_last_result: Union[int, None] = None  # Location of the last result
+        self.set_path(self._base_path)
 
     @property
     def path(self) -> str:
         """Return the path of the current page."""
         if len(self.history) == 0:
-            return os.getcwd()
+            return self._base_path
         else:
             return self.history[-1][0]
 
@@ -205,7 +207,7 @@ class MarkdownFileBrowser:
         try:
             if os.path.isdir(path):  # TODO: Fix markdown_converter types
                 res = self._markdown_converter.convert_stream(  # type: ignore
-                    io.StringIO(self._fetch_local_dir(path)), file_extension=".txt"
+                    io.BytesIO(self._fetch_local_dir(path).encode("utf-8")), file_extension=".txt"
                 )
                 self.page_title = res.title
                 self._set_page_content(res.text_content, split_pages=False)
@@ -243,12 +245,22 @@ class MarkdownFileBrowser:
         for entry in os.listdir(local_path):
             size = ""
             full_path = os.path.join(local_path, entry)
-            mtime = datetime.datetime.fromtimestamp(os.path.getmtime(full_path)).strftime("%Y-%m-%d %H:%M")
+
+            mtime = ""
+            try:
+                mtime = datetime.datetime.fromtimestamp(os.path.getmtime(full_path)).strftime("%Y-%m-%d %H:%M")
+            except Exception as e:
+                # Handles PermissionError, etc.
+                mtime = f"N/A: {type(e).__name__}"
 
             if os.path.isdir(full_path):
                 entry = entry + os.path.sep
             else:
-                size = str(os.path.getsize(full_path))
+                try:
+                    size = str(os.path.getsize(full_path))
+                except Exception as e:
+                    # Handles PermissionError, etc.
+                    size = f"N/A: {type(e).__name__}"
 
             listing += f"| {entry} | {size} | {mtime} |\n"
         return listing

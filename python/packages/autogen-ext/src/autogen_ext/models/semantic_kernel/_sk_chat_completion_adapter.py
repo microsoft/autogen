@@ -1,9 +1,11 @@
 import json
+import logging
 import warnings
 from typing import Any, Literal, Mapping, Optional, Sequence
 
-from autogen_core import FunctionCall
+from autogen_core import EVENT_LOGGER_NAME, FunctionCall
 from autogen_core._cancellation_token import CancellationToken
+from autogen_core.logging import LLMCallEvent, LLMStreamEndEvent, LLMStreamStartEvent
 from autogen_core.models import (
     ChatCompletionClient,
     CreateResult,
@@ -14,12 +16,17 @@ from autogen_core.models import (
     validate_model_info,
 )
 from autogen_core.tools import BaseTool, Tool, ToolSchema
+from pydantic import BaseModel
 from semantic_kernel.connectors.ai.chat_completion_client_base import ChatCompletionClientBase
 from semantic_kernel.connectors.ai.function_choice_behavior import FunctionChoiceBehavior
 from semantic_kernel.connectors.ai.prompt_execution_settings import PromptExecutionSettings
-from semantic_kernel.contents.chat_history import ChatHistory
-from semantic_kernel.contents.chat_message_content import ChatMessageContent
-from semantic_kernel.contents.function_call_content import FunctionCallContent
+from semantic_kernel.contents import (
+    ChatHistory,
+    ChatMessageContent,
+    FinishReason,
+    FunctionCallContent,
+    FunctionResultContent,
+)
 from semantic_kernel.functions.kernel_plugin import KernelPlugin
 from semantic_kernel.kernel import Kernel
 from typing_extensions import AsyncGenerator, Union
@@ -27,6 +34,22 @@ from typing_extensions import AsyncGenerator, Union
 from autogen_ext.tools.semantic_kernel import KernelFunctionFromTool
 
 from .._utils.parse_r1_content import parse_r1_content
+
+logger = logging.getLogger(EVENT_LOGGER_NAME)
+
+
+def ensure_serializable(data: BaseModel) -> BaseModel:
+    """
+    Workaround for https://github.com/pydantic/pydantic/issues/7713, see https://github.com/pydantic/pydantic/issues/7713#issuecomment-2604574418
+    """
+    try:
+        json.dumps(data)
+    except TypeError:
+        # use `vars` to coerce nested data into dictionaries
+        data_json_from_dicts = json.dumps(data, default=lambda x: vars(x))  # type: ignore
+        data_obj = json.loads(data_json_from_dicts)
+        data = type(data)(**data_obj)
+    return data
 
 
 class SKChatCompletionAdapter(ChatCompletionClient):
@@ -265,7 +288,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         validate_model_info(self._model_info)
         self._total_prompt_tokens = 0
         self._total_completion_tokens = 0
-        self._tools_plugin: Optional[KernelPlugin] = None
+        self._tools_plugin: KernelPlugin = KernelPlugin(name="autogen_tools")
 
     def _convert_to_chat_history(self, messages: Sequence[LLMMessage]) -> ChatHistory:
         """Convert Autogen LLMMessages to SK ChatHistory"""
@@ -279,19 +302,51 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                 if isinstance(msg.content, str):
                     chat_history.add_user_message(msg.content)
                 else:
-                    # Handle list of str/Image - would need to convert to SK content types
+                    # Handle list of str/Image - convert to string for now
                     chat_history.add_user_message(str(msg.content))
 
             elif msg.type == "AssistantMessage":
-                if isinstance(msg.content, str):
-                    chat_history.add_assistant_message(msg.content)
+                # Check if it's a function-call style message
+                if isinstance(msg.content, list) and all(isinstance(fc, FunctionCall) for fc in msg.content):
+                    # If there's a 'thought' field, you can add that as plain assistant text
+                    if msg.thought:
+                        chat_history.add_assistant_message(msg.thought)
+
+                    function_call_contents: list[FunctionCallContent] = []
+                    for fc in msg.content:
+                        function_call_contents.append(
+                            FunctionCallContent(
+                                id=fc.id,
+                                name=fc.name,
+                                plugin_name=self._tools_plugin.name,
+                                function_name=fc.name,
+                                arguments=fc.arguments,
+                            )
+                        )
+
+                    # Mark the assistant's message as tool-calling
+                    chat_history.add_assistant_message(
+                        function_call_contents,
+                        finish_reason=FinishReason.TOOL_CALLS,
+                    )
                 else:
-                    # Handle function calls - would need to convert to SK function call format
-                    chat_history.add_assistant_message(str(msg.content))
+                    # Plain assistant text
+                    chat_history.add_assistant_message(msg.content)
 
             elif msg.type == "FunctionExecutionResultMessage":
+                # Add each function result as a separate tool message
+                tool_results: list[FunctionResultContent] = []
                 for result in msg.content:
-                    chat_history.add_tool_message(result.content)
+                    tool_results.append(
+                        FunctionResultContent(
+                            id=result.call_id,
+                            plugin_name=self._tools_plugin.name,
+                            function_name=result.name,
+                            result=result.content,
+                        )
+                    )
+                # A single "tool" message with one or more results
+                chat_history.add_tool_message(tool_results)
 
         return chat_history
 
@@ -323,11 +378,6 @@ class SKChatCompletionAdapter(ChatCompletionClient):
 
     def _sync_tools_with_kernel(self, kernel: Kernel, tools: Sequence[Tool | ToolSchema]) -> None:
         """Sync tools with kernel by updating the plugin"""
-        # Create new plugin if none exists
-        if not self._tools_plugin:
-            self._tools_plugin = KernelPlugin(name="autogen_tools")
-            kernel.add_plugin(self._tools_plugin)
-
         # Get current tool names in plugin
         current_tool_names = set(self._tools_plugin.functions.keys())
 
@@ -344,6 +394,8 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                 # Convert Tool to KernelFunction using KernelFunctionFromTool
                 kernel_function = KernelFunctionFromTool(tool)  # type: ignore
                 self._tools_plugin.functions[tool.schema["name"]] = kernel_function
+
+        kernel.add_plugin(self._tools_plugin)
 
     def _process_tool_calls(self, result: ChatMessageContent) -> list[FunctionCall]:
         """Process tool calls from SK ChatMessageContent"""
@@ -414,6 +466,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             CreateResult: The result of the chat completion.
         """
         kernel = self._get_kernel(extra_create_args)
+
         chat_history = self._convert_to_chat_history(messages)
         user_settings = self._get_prompt_settings(extra_create_args)
         settings = self._build_execution_settings(user_settings, tools)
@@ -430,6 +483,15 @@ class SKChatCompletionAdapter(ChatCompletionClient):
             usage = result[0].metadata["usage"]
             prompt_tokens = getattr(usage, "prompt_tokens", 0)
             completion_tokens = getattr(usage, "completion_tokens", 0)
+
+        logger.info(
+            LLMCallEvent(
+                messages=[msg.model_dump() for msg in chat_history],
+                response=ensure_serializable(result[0]).model_dump(),
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+            )
+        )
 
         self._total_prompt_tokens += prompt_tokens
         self._total_completion_tokens += completion_tokens
@@ -530,9 +592,19 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         # accumulating chunk arguments for that call if new items have id=None
         last_function_call_id: Optional[str] = None
 
+        first_chunk = True
+
         async for streaming_messages in self._sk_client.get_streaming_chat_message_contents(
             chat_history, settings=settings, kernel=kernel
         ):
+            if first_chunk:
+                first_chunk = False
+                # Emit the start event.
+                logger.info(
+                    LLMStreamStartEvent(
+                        messages=[msg.model_dump() for msg in chat_history],
+                    )
+                )
             for msg in streaming_messages:
                 # Track token usage
                 if msg.metadata and "usage" in msg.metadata:
@@ -612,13 +684,27 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         if isinstance(accumulated_text, str) and self._model_info["family"] == ModelFamily.R1:
             thought, accumulated_text = parse_r1_content(accumulated_text)
 
-        yield CreateResult(
+        result = CreateResult(
             content=accumulated_text,
             finish_reason="stop",
             usage=RequestUsage(prompt_tokens=prompt_tokens, completion_tokens=completion_tokens),
             cached=False,
             thought=thought,
         )
+
+        # Emit the end event.
+        logger.info(
+            LLMStreamEndEvent(
+                response=result.model_dump(),
+                prompt_tokens=prompt_tokens,
+                completion_tokens=completion_tokens,
+            )
+        )
+
+        yield result
+
+    async def close(self) -> None:
+        pass  # No explicit close method in SK client?
 
     def actual_usage(self) -> RequestUsage:
         return RequestUsage(prompt_tokens=self._total_prompt_tokens, completion_tokens=self._total_completion_tokens)

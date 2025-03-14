@@ -190,6 +190,20 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
         """Resets the agent to its initialization state."""
         ...
 
+    async def on_pause(self, cancellation_token: CancellationToken) -> None:
+        """Called when the agent is paused while running in its :meth:`on_messages` or
+        :meth:`on_messages_stream` method. This is a no-op by default in the
+        :class:`BaseChatAgent` class. Subclasses can override this method to
+        implement custom pause behavior."""
+        pass
+
+    async def on_resume(self, cancellation_token: CancellationToken) -> None:
+        """Called when the agent is resumed from a pause while running in
+        its :meth:`on_messages` or :meth:`on_messages_stream` method.
+        This is a no-op by default in the :class:`BaseChatAgent` class.
+        Subclasses can override this method to implement custom resume behavior."""
+        pass
+
     async def save_state(self) -> Mapping[str, Any]:
         """Export state. Default implementation for stateless agents."""
         return BaseState().model_dump()
@@ -199,5 +213,7 @@ class BaseChatAgent(ChatAgent, ABC, ComponentBase[BaseModel]):
         BaseState.model_validate(state)
 
     async def close(self) -> None:
-        """Called when the runtime is closed"""
+        """Release any resources held by the agent. This is a no-op by default in the
+        :class:`BaseChatAgent` class. Subclasses can override this method to
+        implement custom close behavior."""
         pass

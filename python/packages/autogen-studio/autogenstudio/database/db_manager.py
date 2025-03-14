@@ -15,7 +15,7 @@ from .schema_manager import SchemaManager
 class DatabaseManager:
     _init_lock = threading.Lock()
 
-    def __init__(self, engine_uri: str, base_dir: Optional[Path] = None):
+    def __init__(self, engine_uri: str, base_dir: Optional[Union[str, Path]] = None) -> None:
         """
         Initialize DatabaseManager with database connection settings.
         Does not perform any database operations.
@@ -25,6 +25,9 @@ class DatabaseManager:
             base_dir: Base directory for migration files. If None, uses current directory
         """
         connection_args = {"check_same_thread": True} if "sqlite" in engine_uri else {}
+
+        if base_dir is not None and isinstance(base_dir, str):
+            base_dir = Path(base_dir)
 
         self.engine = create_engine(engine_uri, connect_args=connection_args)
         self.schema_manager = SchemaManager(
@@ -51,6 +54,10 @@ class DatabaseManager:
             return Response(message="Database initialization already in progress", status=False)
 
         try:
+            # Enable foreign key constraints for SQLite
+            if "sqlite" in str(self.engine.url):
+                with self.engine.connect() as conn:
+                    conn.execute(text("PRAGMA foreign_keys=ON"))
             inspector = inspect(self.engine)
             tables_exist = inspector.get_table_names()
             if not tables_exist:
@@ -183,7 +190,7 @@ class DatabaseManager:
     def get(
         self,
         model_class: SQLModel,
-        filters: dict = None,
+        filters: dict | None = None,
         return_json: bool = False,
         order: str = "desc",
     ):
@@ -221,6 +228,8 @@ class DatabaseManager:
 
         with Session(self.engine) as session:
             try:
+                if "sqlite" in str(self.engine.url):
+                    session.exec(text("PRAGMA foreign_keys=ON"))
                 statement = select(model_class)
                 if filters:
                     conditions = [getattr(model_class, col) == value for col, value in filters.items()]

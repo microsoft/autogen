@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 import os
 from typing import Annotated, Any, AsyncGenerator, Dict, List, Literal, Tuple, TypeVar
 from unittest.mock import MagicMock
@@ -189,6 +190,20 @@ async def test_openai_chat_completion_client_with_gemini_model() -> None:
 
 
 @pytest.mark.asyncio
+async def test_openai_chat_completion_client_serialization() -> None:
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="sk-password")
+    assert client
+    config = client.dump_component()
+    assert config
+    assert "sk-password" not in str(config)
+    serialized_config = config.model_dump_json()
+    assert serialized_config
+    assert "sk-password" not in serialized_config
+    client2 = OpenAIChatCompletionClient.load_component(config)
+    assert client2
+
+
+@pytest.mark.asyncio
 async def test_openai_chat_completion_client_raise_on_unknown_model() -> None:
     with pytest.raises(ValueError, match="model_info is required"):
         _ = OpenAIChatCompletionClient(model="unknown", api_key="api_key")
@@ -222,30 +237,43 @@ async def test_azure_openai_chat_completion_client() -> None:
 
 
 @pytest.mark.asyncio
-async def test_openai_chat_completion_client_create(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_openai_chat_completion_client_create(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
-    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
-    result = await client.create(messages=[UserMessage(content="Hello", source="user")])
-    assert result.content == "Hello"
+    with caplog.at_level(logging.INFO):
+        client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
+        result = await client.create(messages=[UserMessage(content="Hello", source="user")])
+        assert result.content == "Hello"
+        assert "LLMCall" in caplog.text and "Hello" in caplog.text
 
 
 @pytest.mark.asyncio
-async def test_openai_chat_completion_client_create_stream_with_usage(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_openai_chat_completion_client_create_stream_with_usage(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
     client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
     chunks: List[str | CreateResult] = []
-    async for chunk in client.create_stream(
-        messages=[UserMessage(content="Hello", source="user")],
-        # include_usage not the default of the OPENAI API and must be explicitly set
-        extra_create_args={"stream_options": {"include_usage": True}},
-    ):
-        chunks.append(chunk)
-    assert chunks[0] == "Hello"
-    assert chunks[1] == " Another Hello"
-    assert chunks[2] == " Yet Another Hello"
-    assert isinstance(chunks[-1], CreateResult)
-    assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
-    assert chunks[-1].usage == RequestUsage(prompt_tokens=3, completion_tokens=3)
+    with caplog.at_level(logging.INFO):
+        async for chunk in client.create_stream(
+            messages=[UserMessage(content="Hello", source="user")],
+            # include_usage not the default of the OPENAI API and must be explicitly set
+            extra_create_args={"stream_options": {"include_usage": True}},
+        ):
+            chunks.append(chunk)
+
+        assert "LLMStreamStart" in caplog.text
+        assert "LLMStreamEnd" in caplog.text
+
+        assert chunks[0] == "Hello"
+        assert chunks[1] == " Another Hello"
+        assert chunks[2] == " Yet Another Hello"
+        assert isinstance(chunks[-1], CreateResult)
+        assert isinstance(chunks[-1].content, str)
+        assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
+        assert chunks[-1].content in caplog.text
+        assert chunks[-1].usage == RequestUsage(prompt_tokens=3, completion_tokens=3)
 
 
 @pytest.mark.asyncio
@@ -334,7 +362,9 @@ async def test_openai_chat_completion_client_count_tokens(monkeypatch: pytest.Mo
             ],
             source="user",
         ),
-        FunctionExecutionResultMessage(content=[FunctionExecutionResult(content="Hello", call_id="1", is_error=False)]),
+        FunctionExecutionResultMessage(
+            content=[FunctionExecutionResult(content="Hello", call_id="1", is_error=False, name="tool1")]
+        ),
     ]
 
     def tool1(test: str, test2: str) -> str:
@@ -1230,7 +1260,14 @@ async def _test_model_client_with_function_calling(model_client: OpenAIChatCompl
     messages.append(AssistantMessage(content=create_result.content, source="assistant"))
     messages.append(
         FunctionExecutionResultMessage(
-            content=[FunctionExecutionResult(content="passed", call_id=create_result.content[0].id, is_error=False)]
+            content=[
+                FunctionExecutionResult(
+                    content="passed",
+                    call_id=create_result.content[0].id,
+                    is_error=False,
+                    name=create_result.content[0].name,
+                )
+            ]
         )
     )
     create_result = await model_client.create(messages=messages)
@@ -1260,8 +1297,12 @@ async def _test_model_client_with_function_calling(model_client: OpenAIChatCompl
     messages.append(
         FunctionExecutionResultMessage(
             content=[
-                FunctionExecutionResult(content="passed", call_id=create_result.content[0].id, is_error=False),
-                FunctionExecutionResult(content="failed", call_id=create_result.content[1].id, is_error=True),
+                FunctionExecutionResult(
+                    content="passed", call_id=create_result.content[0].id, is_error=False, name="pass_tool"
+                ),
+                FunctionExecutionResult(
+                    content="failed", call_id=create_result.content[1].id, is_error=True, name="fail_tool"
+                ),
             ]
         )
     )
@@ -1380,7 +1421,11 @@ async def test_openai_structured_output_with_tool_calls() -> None:
             UserMessage(content="I am happy.", source="user"),
             AssistantMessage(content=response1.content, source="assistant"),
             FunctionExecutionResultMessage(
-                content=[FunctionExecutionResult(content="happy", call_id=response1.content[0].id, is_error=False)]
+                content=[
+                    FunctionExecutionResult(
+                        content="happy", call_id=response1.content[0].id, is_error=False, name=tool.name
+                    )
+                ]
             ),
         ],
     )
@@ -1439,7 +1484,11 @@ async def test_openai_structured_output_with_streaming_tool_calls() -> None:
             UserMessage(content="I am happy.", source="user"),
             AssistantMessage(content=create_result1.content, source="assistant"),
             FunctionExecutionResultMessage(
-                content=[FunctionExecutionResult(content="happy", call_id=create_result1.content[0].id, is_error=False)]
+                content=[
+                    FunctionExecutionResult(
+                        content="happy", call_id=create_result1.content[0].id, is_error=False, name=tool.name
+                    )
+                ]
             ),
         ],
     )
