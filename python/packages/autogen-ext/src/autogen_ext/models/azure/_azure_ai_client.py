@@ -52,6 +52,7 @@ from azure.ai.inference.models import (
 from azure.ai.inference.models import (
     UserMessage as AzureUserMessage,
 )
+from pydantic import BaseModel
 from typing_extensions import AsyncGenerator, Union, Unpack
 
 from autogen_ext.models.azure.config import (
@@ -302,12 +303,15 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
+        output_type: Optional[type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
         extra_create_args_keys = set(extra_create_args.keys())
         if not create_kwargs.issuperset(extra_create_args_keys):
             raise ValueError(f"Extra create args are invalid: {extra_create_args_keys - create_kwargs}")
+        if output_type is not None:
+            raise ValueError("output_type is currently not supported for AzureAIChatCompletionClient")
 
         # Copy the create args and overwrite anything in extra_create_args
         create_args = self._create_args.copy()
@@ -395,12 +399,16 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
+        output_type: Optional[type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
         extra_create_args_keys = set(extra_create_args.keys())
         if not create_kwargs.issuperset(extra_create_args_keys):
             raise ValueError(f"Extra create args are invalid: {extra_create_args_keys - create_kwargs}")
+
+        if output_type is not None:
+            raise ValueError("output_type is currently not supported for AzureAIChatCompletionClient")
 
         create_args: Dict[str, Any] = self._create_args.copy()
         create_args.update(extra_create_args)

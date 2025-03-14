@@ -283,7 +283,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         self._prompt_settings = prompt_settings
         self._sk_client = sk_client
         self._model_info = model_info or ModelInfo(
-            vision=False, function_calling=False, json_output=False, family=ModelFamily.UNKNOWN
+            vision=False, function_calling=False, json_output=False, family=ModelFamily.UNKNOWN, structured_output=False
         )
         validate_model_info(self._model_info)
         self._total_prompt_tokens = 0
@@ -438,6 +438,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
+        output_type: Optional[type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
@@ -465,6 +466,9 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         Returns:
             CreateResult: The result of the chat completion.
         """
+        if output_type is not None:
+            raise ValueError("output_type is not currently supported in SKChatCompletionAdapter")
+
         kernel = self._get_kernel(extra_create_args)
 
         chat_history = self._convert_to_chat_history(messages)
@@ -546,6 +550,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
+        output_type: Optional[type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
@@ -573,6 +578,9 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         Yields:
             Union[str, CreateResult]: Either a string chunk of the response or a CreateResult containing function calls.
         """
+
+        if output_type is not None:
+            raise ValueError("output_type is not currently supported in SKChatCompletionAdapter")
 
         kernel = self._get_kernel(extra_create_args)
         chat_history = self._convert_to_chat_history(messages)

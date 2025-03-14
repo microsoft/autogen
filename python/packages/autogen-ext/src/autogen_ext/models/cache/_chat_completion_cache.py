@@ -131,6 +131,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
+        output_type: Optional[type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
@@ -163,6 +164,7 @@ class ChatCompletionCache(ChatCompletionClient, Component[ChatCompletionCacheCon
         *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
+        output_type: Optional[type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:

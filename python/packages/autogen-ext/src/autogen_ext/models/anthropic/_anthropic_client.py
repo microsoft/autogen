@@ -61,6 +61,7 @@ from autogen_core.models import (
     validate_model_info,
 )
 from autogen_core.tools import Tool, ToolSchema
+from pydantic import BaseModel
 from typing_extensions import Self, Unpack
 
 from . import _model_info
@@ -413,6 +414,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
+        output_type: Optional[type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
@@ -434,6 +436,9 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
             if json_output is True:
                 create_args["response_format"] = {"type": "json_object"}
+
+        if output_type is not None:
+            raise ValueError("output_type is currently not supported for Anthropic models")
 
         # Process system message separately
         system_message = None
@@ -568,6 +573,7 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
         *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
+        output_type: Optional[type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
         max_consecutive_empty_chunk_tolerance: int = 0,
@@ -593,6 +599,9 @@ class BaseAnthropicChatCompletionClient(ChatCompletionClient):
 
             if json_output is True:
                 create_args["response_format"] = {"type": "json_object"}
+
+        if output_type is not None:
+            raise ValueError("output_type is currently not supported for Anthropic models")
 
         # Process system message separately
         system_message = None

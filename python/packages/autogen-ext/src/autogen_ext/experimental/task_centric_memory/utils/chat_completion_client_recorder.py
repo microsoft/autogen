@@ -13,6 +13,7 @@ from autogen_core.models import (
     RequestUsage,
 )
 from autogen_core.tools import Tool, ToolSchema
+from pydantic import BaseModel
 
 from .page_logger import PageLogger
 
@@ -88,6 +89,7 @@ class ChatCompletionClientRecorder(ChatCompletionClient):
         *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
+        output_type: Optional[type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
@@ -155,6 +157,7 @@ class ChatCompletionClientRecorder(ChatCompletionClient):
         *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
+        output_type: Optional[type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:

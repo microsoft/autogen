@@ -107,6 +107,8 @@ class ModelInfo(TypedDict, total=False):
     """True if the model supports json output, otherwise False. Note: this is different to structured json."""
     family: Required[ModelFamily.ANY | str]
     """Model family should be one of the constants from :py:class:`ModelFamily` or a string representing an unknown model family."""
+    structured_output: Required[bool]
+    """True if the model supports structured output, otherwise False. This is different to json_output."""
 
 
 def validate_model_info(model_info: ModelInfo) -> None:
@@ -122,6 +124,15 @@ def validate_model_info(model_info: ModelInfo) -> None:
                 f"Missing required field '{field}' in ModelInfo. "
                 "Starting in v0.4.7, the required fields are enforced."
             )
+    new_required_fields = ["structured_output"]
+    for field in new_required_fields:
+        if field not in model_info:
+            warnings.warn(
+                f"Missing required field '{field}' in ModelInfo. "
+                "This field will be required in a future version of AutoGen.",
+                UserWarning,
+                stacklevel=2,
+            )
 
 
 class ChatCompletionClient(ComponentBase[BaseModel], ABC):
@@ -135,6 +146,7 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool] = None,
+        output_type: Optional[type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult: ...
@@ -148,6 +160,7 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool] = None,
+        output_type: Optional[type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]: ...

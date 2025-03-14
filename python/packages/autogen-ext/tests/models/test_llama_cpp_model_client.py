@@ -2,6 +2,8 @@ import contextlib
 import sys
 from typing import TYPE_CHECKING, Any, ContextManager, Generator, List, Sequence, Union
 
+from llama_cpp import ChatCompletionRequestResponseFormat
+from pydantic import BaseModel
 import pytest
 import torch
 
@@ -21,6 +23,13 @@ except ImportError:
     pytest.skip("Skipping LlamaCppChatCompletionClient tests: llama-cpp-python not installed", allow_module_level=True)
 
 
+class AgentResponse(BaseModel):
+    """A response from the agent."""
+
+    thoughts: str
+    content: str
+
+
 # Fake Llama class to simulate responses
 class FakeLlama:
     def __init__(
@@ -30,15 +39,24 @@ class FakeLlama:
     ) -> None:
         self.model_path = model_path
         self.n_ctx = lambda: 1024
+        self._structured_response = AgentResponse(thoughts="Test thoughts", content="Test content")
 
     # Added tokenize method for testing purposes.
     def tokenize(self, b: bytes) -> list[int]:
         return list(b)
 
     def create_chat_completion(
-        self, messages: Any, tools: List[ChatCompletionMessageToolCalls] | None, stream: bool = False
+        self, messages: Any, tools: List[ChatCompletionMessageToolCalls] | None, stream: bool = False, response_format: ChatCompletionRequestResponseFormat | None = None,
     ) -> dict[str, Any]:
         # Return fake non-streaming response.
+
+        if response_format is not None:
+            assert self._structured_response is not None
+            # If response_format is provided, return a different format.
+            return {
+                "usage": {"prompt_tokens": 1, "completion_tokens": 2},
+                "choices": [{"message": {"content": self._structured_response.model_dump_json()}}],
+            }
 
         return {
             "usage": {"prompt_tokens": 1, "completion_tokens": 2},
@@ -79,6 +97,21 @@ async def test_llama_cpp_create(get_completion_client: "ContextManager[type[Llam
         assert usage.prompt_tokens == 1
         assert usage.completion_tokens == 2
         assert result.finish_reason in ("stop", "unknown")
+
+@pytest.mark.asyncio
+async def test_llama_cpp_create_structured_output(
+    get_completion_client: "ContextManager[type[LlamaCppChatCompletionClient]]",
+) -> None:
+    with get_completion_client as Client:
+        client = Client(model_path="dummy")
+        messages: Sequence[Union[SystemMessage, UserMessage]] = [
+            SystemMessage(content="Test system"),
+            UserMessage(content="Test user", source="user"),
+        ]
+        result = await client.create(messages=messages, json_output=True)
+        assert isinstance(result.content, str)
+        assert AgentResponse.model_validate_json(result.content).thoughts == "Test thoughts"
+        assert AgentResponse.model_validate_json(result.content).content == "Test content"
 
 
 # Commmented out due to raising not implemented error will leave in case streaming is supported in the future.

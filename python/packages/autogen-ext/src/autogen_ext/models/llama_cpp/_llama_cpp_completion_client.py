@@ -1,3 +1,4 @@
+import asyncio
 import logging  # added import
 import re
 from typing import Any, AsyncGenerator, Dict, List, Literal, Mapping, Optional, Sequence, TypedDict, Union, cast
@@ -30,6 +31,7 @@ from llama_cpp import (
     Llama,
     llama_chat_format,
 )
+from pydantic import BaseModel
 from typing_extensions import Unpack
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)  # initialize logger
@@ -256,9 +258,11 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool] = None,
+        output_type: Optional[type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
+        create_args = dict(extra_create_args)
         # Convert LLMMessage objects to dictionaries with 'role' and 'content'
         # converted_messages: List[Dict[str, str | Image | list[str | Image] | list[FunctionCall]]] = []
         converted_messages: list[
@@ -283,12 +287,28 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
             else:
                 raise ValueError(f"Unsupported message type: {type(msg)}")
 
+        if output_type is not None and json_output:
+            raise ValueError("output_type and json_output cannot be used together.")
+        if output_type is not None:
+            create_args["response_format"] = output_type.model_json_schema()
+        if json_output:
+            create_args["response_format"] = {"type": "json_object"}
+
         if self.model_info["function_calling"]:
-            response = self.llm.create_chat_completion(
-                messages=converted_messages, tools=convert_tools(tools), stream=False
+            # Run this in on the event loop to avoid blocking.
+            response_future = asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: self.llm.create_chat_completion(
+                    messages=converted_messages, tools=convert_tools(tools), stream=False, **create_args
+                ),
             )
         else:
-            response = self.llm.create_chat_completion(messages=converted_messages, stream=False)
+            response_future = asyncio.get_event_loop().run_in_executor(
+                None, lambda: self.llm.create_chat_completion(messages=converted_messages, stream=False, **create_args)
+            )
+        if cancellation_token:
+            cancellation_token.link_future(response_future)
+        response = await response_future
 
         if not isinstance(response, dict):
             raise ValueError("Unexpected response type from LlamaCpp model.")
@@ -372,6 +392,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
         json_output: Optional[bool] = None,
+        output_type: Optional[type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
@@ -403,7 +424,9 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
 
     @property
     def model_info(self) -> ModelInfo:
-        return ModelInfo(vision=False, json_output=False, family="llama-cpp", function_calling=True)
+        return ModelInfo(
+            vision=False, json_output=False, family="llama-cpp", function_calling=True, structured_output=True
+        )
 
     def remaining_tokens(
         self,

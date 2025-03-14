@@ -406,6 +406,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
+        output_type: Optional[Type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
@@ -422,10 +423,16 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         use_beta_client: bool = False
         response_format_value: Optional[Type[BaseModel]] = None
 
+        if output_type is not None:
+            response_format_value = output_type
+            use_beta_client = True
+
         if "response_format" in create_args:
             value = create_args["response_format"]
             # If value is a Pydantic model class, use the beta client
             if isinstance(value, type) and issubclass(value, BaseModel):
+                if response_format_value is not None:
+                    raise ValueError("response_format and output_type are mutually exclusive")
                 response_format_value = value
                 use_beta_client = True
             else:
@@ -628,6 +635,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         *,
         tools: Sequence[Tool | ToolSchema] = [],
         json_output: Optional[bool] = None,
+        output_type: Optional[Type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
         max_consecutive_empty_chunk_tolerance: int = 0,
@@ -639,6 +647,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             messages (Sequence[LLMMessage]): A sequence of messages to be processed.
             tools (Sequence[Tool | ToolSchema], optional): A sequence of tools to be used in the completion. Defaults to `[]`.
             json_output (Optional[bool], optional): If True, the output will be in JSON format. Defaults to None.
+            output_type (Optional[Type[BaseModel]], optional): The type of the output as a Pydantic model. Defaults to None. If set, structured output is used and a serialized JSON object is returned in the final :class:`CreateResult`.
             extra_create_args (Mapping[str, Any], optional): Additional arguments for the creation process. Default to `{}`.
             cancellation_token (Optional[CancellationToken], optional): A token to cancel the operation. Defaults to None.
             max_consecutive_empty_chunk_tolerance (int): [Deprecated] The maximum number of consecutive empty chunks to tolerate before raising a ValueError. This seems to only be needed to set when using `AzureOpenAIChatCompletionClient`. Defaults to 0. This parameter is deprecated, empty chunks will be skipped.
@@ -671,10 +680,16 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         use_beta_client: bool = False
         response_format_value: Optional[Type[BaseModel]] = None
 
+        if output_type is not None:
+            response_format_value = output_type
+            use_beta_client = True
+
         if "response_format" in create_args:
             value = create_args["response_format"]
             # If value is a Pydantic model class, use the beta client
             if isinstance(value, type) and issubclass(value, BaseModel):
+                if response_format_value is not None:
+                    raise ValueError("response_format and output_type are mutually exclusive")
                 response_format_value = value
                 use_beta_client = True
             else:
