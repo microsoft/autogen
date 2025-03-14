@@ -28,11 +28,21 @@ github:
   scopes: ["user:email"]
 ```
 
-```{caution}
+```{note}
+
+**JWT Secret**
+
+
 - Generate a strong, unique JWT secret (at least 32 random bytes). You can run `openssl rand -hex 32` to generate a secure random key.
 - Never commit your JWT secret to version control
 - In production, store secrets in environment variables or secure secret management services
 - Regularly rotate your JWT secret to limit the impact of potential breaches
+
+**Callback URL**
+
+- The callback URL is the URL that GitHub will redirect to after the user has authenticated. It should match the URL you set in your GitHub OAuth application settings.
+- Ensure that the callback URL is accessible from the internet if you are running AutoGen Studio on a remote server.
+
 ```
 
 Please see the documentation on [GitHub OAuth](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authenticating-to-the-rest-api-with-an-oauth-app) for more details on obtaining the `client_id` and `client_secret`.
