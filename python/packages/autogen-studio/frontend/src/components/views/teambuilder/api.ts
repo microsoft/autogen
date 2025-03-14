@@ -1,5 +1,6 @@
 import { Team, Component, ComponentConfig } from "../../types/datamodel";
-import { getServerUrl } from "../../utils";
+import { BaseAPI } from "../../utils/baseapi";
+import { getServerUrl } from "../../utils/utils";
 
 interface ValidationError {
   field: string;
@@ -13,17 +14,7 @@ export interface ValidationResponse {
   warnings: ValidationError[];
 }
 
-export class TeamAPI {
-  private getBaseUrl(): string {
-    return getServerUrl();
-  }
-
-  private getHeaders(): HeadersInit {
-    return {
-      "Content-Type": "application/json",
-    };
-  }
-
+export class TeamAPI extends BaseAPI {
   async listTeams(userId: string): Promise<Team[]> {
     const response = await fetch(
       `${this.getBaseUrl()}/teams/?user_id=${userId}`,
@@ -93,17 +84,7 @@ export class TeamAPI {
 
 // move validationapi to its own class
 
-export class ValidationAPI {
-  private getBaseUrl(): string {
-    return getServerUrl();
-  }
-
-  private getHeaders(): HeadersInit {
-    return {
-      "Content-Type": "application/json",
-    };
-  }
-
+export class ValidationAPI extends BaseAPI {
   async validateComponent(
     component: Component<ComponentConfig>
   ): Promise<ValidationResponse> {

@@ -10,8 +10,10 @@ from fastapi.staticfiles import StaticFiles
 from loguru import logger
 
 from ..version import VERSION
+from .auth import authroutes
+from .auth.middleware import AuthMiddleware
 from .config import settings
-from .deps import cleanup_managers, init_managers
+from .deps import cleanup_managers, init_auth_manager, init_managers, register_auth_dependencies
 from .initialization import AppInitializer
 from .routes import gallery, runs, sessions, settingsroute, teams, validation, ws
 
@@ -30,6 +32,8 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         # Initialize managers (DB, Connection, Team)
         await init_managers(initializer.database_uri, initializer.config_dir, initializer.app_root)
+
+        await register_auth_dependencies(app, auth_manager)
 
         # Any other initialization code
         logger.info(
@@ -51,6 +55,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.error(f"Error during shutdown: {str(e)}")
 
 
+auth_manager = init_auth_manager(initializer.config_dir)
 # Create FastAPI application
 app = FastAPI(lifespan=lifespan, debug=True)
 
@@ -67,6 +72,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+app.add_middleware(AuthMiddleware, auth_manager=auth_manager)
 
 # Create API router with version and documentation
 api = FastAPI(
@@ -125,6 +131,13 @@ api.include_router(
     gallery.router,
     prefix="/gallery",
     tags=["gallery"],
+    responses={404: {"description": "Not found"}},
+)
+# Include authentication routes
+api.include_router(
+    authroutes.router,
+    prefix="/auth",
+    tags=["auth"],
     responses={404: {"description": "Not found"}},
 )
 

@@ -189,7 +189,7 @@ const RunView: React.FC<RunViewProps> = ({
     }
   };
 
-  const lastResultMessage = run.team_result?.task_result.messages.slice(-1)[0];
+  const lastResultMessage = run.team_result?.task_result?.messages.slice(-1)[0];
   const lastMessage = getLastMeaningfulMessage(visibleMessages);
 
   return (

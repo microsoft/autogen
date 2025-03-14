@@ -1,17 +1,7 @@
 import { Settings } from "../../types/datamodel";
-import { getServerUrl } from "../../utils";
+import { BaseAPI } from "../../utils/baseapi";
 
-export class SettingsAPI {
-  private getBaseUrl(): string {
-    return getServerUrl();
-  }
-
-  private getHeaders(): HeadersInit {
-    return {
-      "Content-Type": "application/json",
-    };
-  }
-
+export class SettingsAPI extends BaseAPI {
   async getSettings(userId: string): Promise<Settings> {
     const response = await fetch(
       `${this.getBaseUrl()}/settings/?user_id=${userId}`,
