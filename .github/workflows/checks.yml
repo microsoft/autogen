@@ -197,7 +197,7 @@ jobs:
 
       - name: Install Python deps
         run: |
-          uv sync --locked --all-extras --no-extra llama-cpp
+          uv sync --locked --all-extras
         shell: pwsh
         working-directory: ./python
 
