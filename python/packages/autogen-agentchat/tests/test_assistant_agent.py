@@ -25,6 +25,7 @@ from autogen_core.models import (
     AssistantMessage,
     CreateResult,
     FunctionExecutionResult,
+    FunctionExecutionResultMessage,
     LLMMessage,
     RequestUsage,
     SystemMessage,
@@ -79,6 +80,15 @@ async def test_run_with_tools(monkeypatch: pytest.MonkeyPatch) -> None:
         ],
     )
     result = await agent.run(task="task")
+
+    # Make sure the create call was made with the correct parameters.
+    assert len(model_client.create_calls) == 1
+    llm_messages = model_client.create_calls[0]["messages"]
+    assert len(llm_messages) == 2
+    assert isinstance(llm_messages[0], SystemMessage)
+    assert llm_messages[0].content == agent._system_messages[0].content  # type: ignore
+    assert isinstance(llm_messages[1], UserMessage)
+    assert llm_messages[1].content == "task"
 
     assert len(result.messages) == 5
     assert isinstance(result.messages[0], TextMessage)
@@ -149,6 +159,23 @@ async def test_run_with_tools_and_reflection() -> None:
         reflect_on_tool_use=True,
     )
     result = await agent.run(task="task")
+
+    # Make sure the create call was made with the correct parameters.
+    assert len(model_client.create_calls) == 2
+    llm_messages = model_client.create_calls[0]["messages"]
+    assert len(llm_messages) == 2
+    assert isinstance(llm_messages[0], SystemMessage)
+    assert llm_messages[0].content == agent._system_messages[0].content  # type: ignore
+    assert isinstance(llm_messages[1], UserMessage)
+    assert llm_messages[1].content == "task"
+    llm_messages = model_client.create_calls[1]["messages"]
+    assert len(llm_messages) == 4
+    assert isinstance(llm_messages[0], SystemMessage)
+    assert llm_messages[0].content == agent._system_messages[0].content  # type: ignore
+    assert isinstance(llm_messages[1], UserMessage)
+    assert llm_messages[1].content == "task"
+    assert isinstance(llm_messages[2], AssistantMessage)
+    assert isinstance(llm_messages[3], FunctionExecutionResultMessage)
 
     assert len(result.messages) == 4
     assert isinstance(result.messages[0], TextMessage)
