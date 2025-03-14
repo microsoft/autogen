@@ -408,6 +408,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             raise ValueError(f"Extra create args are invalid: {extra_create_args_keys - create_kwargs}")
 
         if output_type is not None:
+            # TODO: support structured output for AzureAIChatCompletionClient.
             raise ValueError("output_type is currently not supported for AzureAIChatCompletionClient")
 
         create_args: Dict[str, Any] = self._create_args.copy()
