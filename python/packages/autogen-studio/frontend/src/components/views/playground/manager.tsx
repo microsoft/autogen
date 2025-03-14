@@ -188,7 +188,7 @@ export const SessionManager: React.FC = () => {
 
   // Add teams fetching
   const fetchTeams = useCallback(async () => {
-    console.log("Fetching teams", user);
+    // console.log("Fetching teams", user);
     if (!user?.id) return;
 
     try {
