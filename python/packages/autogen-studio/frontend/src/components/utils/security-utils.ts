@@ -6,10 +6,8 @@
  * Only allows http:// and https:// protocols
  */
 // In security-utils.ts
-export const sanitizeUrl = (
-  url: string | undefined | null,
-  skipHtmlEncoding = false
-): string => {
+export const sanitizeUrl = (url: string | undefined | null): string => {
+  //   return url;
   console.log("sanitizeUrl", url);
   if (!url || typeof url !== "string") return "";
 
@@ -18,16 +16,8 @@ export const sanitizeUrl = (
     try {
       // Create URL object to validate structure
       new URL(url);
-
-      // For OAuth URLs, skip HTML encoding
-      if (skipHtmlEncoding || url.includes("oauth")) {
-        return url; // Return the original URL for OAuth flows
-      }
-
-      // For regular URLs that need sanitization:
-      // First encode URI characters (only if not already encoded)
-      const encodedUrl = url.includes("%") ? url : encodeURI(url);
-
+      // First encode URI characters
+      const encodedUrl = encodeURI(url);
       // Then escape HTML special characters
       return encodedUrl.replace(/[&<>"']/g, function (m) {
         switch (m) {

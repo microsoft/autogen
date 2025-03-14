@@ -138,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
 
       const loginUrl = await authAPI.getLoginUrl();
-      return sanitizeUrl(loginUrl) || "";
+      return loginUrl || "";
     } catch (error) {
       message.error("Failed to initiate login");
       console.error("Login error:", error);
