@@ -6,7 +6,11 @@
  * Only allows http:// and https:// protocols
  */
 // In security-utils.ts
-export const sanitizeUrl = (url: string | undefined | null): string => {
+export const sanitizeUrl = (
+  url: string | undefined | null,
+  skipHtmlEncoding = false
+): string => {
+  console.log("sanitizeUrl", url);
   if (!url || typeof url !== "string") return "";
 
   // Only allow http and https protocols
@@ -14,8 +18,16 @@ export const sanitizeUrl = (url: string | undefined | null): string => {
     try {
       // Create URL object to validate structure
       new URL(url);
-      // First encode URI characters
-      const encodedUrl = encodeURI(url);
+
+      // For OAuth URLs, skip HTML encoding
+      if (skipHtmlEncoding || url.includes("oauth")) {
+        return url; // Return the original URL for OAuth flows
+      }
+
+      // For regular URLs that need sanitization:
+      // First encode URI characters (only if not already encoded)
+      const encodedUrl = url.includes("%") ? url : encodeURI(url);
+
       // Then escape HTML special characters
       return encodedUrl.replace(/[&<>"']/g, function (m) {
         switch (m) {
@@ -71,7 +83,7 @@ export const sanitizeRedirectUrl = (url: string | undefined | null): string => {
 export const isValidMessageOrigin = (origin: string): boolean => {
   const trustedOrigins = [
     window.location.origin,
-    "https://localhost:8000",
+    "http://localhost:8000",
     "http://localhost:8081",
   ];
 

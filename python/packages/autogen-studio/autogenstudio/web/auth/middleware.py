@@ -31,10 +31,12 @@ class AuthMiddleware(BaseHTTPMiddleware):
             path == "/"
             or path == "/login"
             or path == "/callback"
-            or path.startswith("/page-data/")  # Add this line
+            or path == "/images"
+            or path.startswith("/page-data/")
             or path in self.auth_manager.config.exclude_paths
             or re.match(r"/[^/]+\.(js|css|png|ico|svg|jpg|webmanifest|json)$", path)
-        ):  # Add json extension
+            or re.match(r".*\.(js\.map|svg)$", path)  
+        ):
             return await call_next(request)
 
         # Skip auth if disabled
