@@ -190,6 +190,20 @@ async def test_openai_chat_completion_client_with_gemini_model() -> None:
 
 
 @pytest.mark.asyncio
+async def test_openai_chat_completion_client_serialization() -> None:
+    client = OpenAIChatCompletionClient(model="gpt-4o", api_key="sk-password")
+    assert client
+    config = client.dump_component()
+    assert config
+    assert "sk-password" not in str(config)
+    serialized_config = config.model_dump_json()
+    assert serialized_config
+    assert "sk-password" not in serialized_config
+    client2 = OpenAIChatCompletionClient.load_component(config)
+    assert client2
+
+
+@pytest.mark.asyncio
 async def test_openai_chat_completion_client_raise_on_unknown_model() -> None:
     with pytest.raises(ValueError, match="model_info is required"):
         _ = OpenAIChatCompletionClient(model="unknown", api_key="api_key")
@@ -235,22 +249,31 @@ async def test_openai_chat_completion_client_create(
 
 
 @pytest.mark.asyncio
-async def test_openai_chat_completion_client_create_stream_with_usage(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_openai_chat_completion_client_create_stream_with_usage(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
     monkeypatch.setattr(AsyncCompletions, "create", _mock_create)
     client = OpenAIChatCompletionClient(model="gpt-4o", api_key="api_key")
     chunks: List[str | CreateResult] = []
-    async for chunk in client.create_stream(
-        messages=[UserMessage(content="Hello", source="user")],
-        # include_usage not the default of the OPENAI API and must be explicitly set
-        extra_create_args={"stream_options": {"include_usage": True}},
-    ):
-        chunks.append(chunk)
-    assert chunks[0] == "Hello"
-    assert chunks[1] == " Another Hello"
-    assert chunks[2] == " Yet Another Hello"
-    assert isinstance(chunks[-1], CreateResult)
-    assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
-    assert chunks[-1].usage == RequestUsage(prompt_tokens=3, completion_tokens=3)
+    with caplog.at_level(logging.INFO):
+        async for chunk in client.create_stream(
+            messages=[UserMessage(content="Hello", source="user")],
+            # include_usage not the default of the OPENAI API and must be explicitly set
+            extra_create_args={"stream_options": {"include_usage": True}},
+        ):
+            chunks.append(chunk)
+
+        assert "LLMStreamStart" in caplog.text
+        assert "LLMStreamEnd" in caplog.text
+
+        assert chunks[0] == "Hello"
+        assert chunks[1] == " Another Hello"
+        assert chunks[2] == " Yet Another Hello"
+        assert isinstance(chunks[-1], CreateResult)
+        assert isinstance(chunks[-1].content, str)
+        assert chunks[-1].content == "Hello Another Hello Yet Another Hello"
+        assert chunks[-1].content in caplog.text
+        assert chunks[-1].usage == RequestUsage(prompt_tokens=3, completion_tokens=3)
 
 
 @pytest.mark.asyncio

@@ -27,7 +27,7 @@ from ...messages import (
 )
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
-from ._events import GroupChatReset, GroupChatStart, GroupChatTermination
+from ._events import GroupChatPause, GroupChatReset, GroupChatResume, GroupChatStart, GroupChatTermination
 from ._sequential_routed_agent import SequentialRoutedAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -564,6 +564,97 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
 
             # Indicate that the team is no longer running.
             self._is_running = False
+
+    async def pause(self) -> None:
+        """Pause its participants when the team is running by calling their
+        :meth:`~autogen_agentchat.base.ChatAgent.on_pause` method via direct RPC calls.
+
+        .. attention::
+
+            This is an experimental feature introduced in v0.4.9 and may subject
+            to change or removal in the future.
+
+        The team must be initialized before it can be paused.
+
+        Different from termination, pausing the team does not cause the
+        :meth:`run` or :meth:`run_stream` method to return. It calls the
+        :meth:`~autogen_agentchat.base.ChatAgent.on_pause` method on each
+        participant, and if the participant does not implement the method, it
+        will be a no-op.
+
+        .. note::
+
+            It is the responsibility of the agent class to handle the pause
+            and ensure that the agent can be resumed later.
+            Make sure to implement the :meth:`~autogen_agentchat.agents.BaseChatAgent.on_pause`
+            method in your agent class for custom pause behavior.
+            By default, the agent will not do anything when called.
+
+        Raises:
+            RuntimeError: If the team has not been initialized. Exceptions from
+                the participants when calling their implementations of
+                :class:`~autogen_agentchat.base.ChatAgent.on_pause` are
+                propagated to this method and raised.
+        """
+        if not self._initialized:
+            raise RuntimeError("The group chat has not been initialized. It must be run before it can be paused.")
+
+        # Send a pause message to all participants.
+        for participant_topic_type in self._participant_topic_types:
+            await self._runtime.send_message(
+                GroupChatPause(),
+                recipient=AgentId(type=participant_topic_type, key=self._team_id),
+            )
+        # Send a pause message to the group chat manager.
+        await self._runtime.send_message(
+            GroupChatPause(),
+            recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+        )
+
+    async def resume(self) -> None:
+        """Resume its participants when the team is running and paused by calling their
+        :meth:`~autogen_agentchat.base.ChatAgent.on_resume` method via direct RPC calls.
+
+        .. attention::
+
+            This is an experimental feature introduced in v0.4.9 and may subject
+            to change or removal in the future.
+
+        The team must be initialized before it can be resumed.
+
+        Different from termination and restart with a new task, resuming the team
+        does not cause the :meth:`run` or :meth:`run_stream` method to return.
+        It calls the :meth:`~autogen_agentchat.base.ChatAgent.on_resume` method on each
+        participant, and if the participant does not implement the method, it
+        will be a no-op.
+
+        .. note::
+
+            It is the responsibility of the agent class to handle the resume
+            and ensure that the agent continues from where it was paused.
+            Make sure to implement the :meth:`~autogen_agentchat.agents.BaseChatAgent.on_resume`
+            method in your agent class for custom resume behavior.
+
+        Raises:
+            RuntimeError: If the team has not been initialized. Exceptions from
+                the participants when calling their implementations of :class:`~autogen_agentchat.base.ChatAgent.on_resume`
+                method are propagated to this method and raised.
+
+        """
+        if not self._initialized:
+            raise RuntimeError("The group chat has not been initialized. It must be run before it can be resumed.")
+
+        # Send a resume message to all participants.
+        for participant_topic_type in self._participant_topic_types:
+            await self._runtime.send_message(
+                GroupChatResume(),
+                recipient=AgentId(type=participant_topic_type, key=self._team_id),
+            )
+        # Send a resume message to the group chat manager.
+        await self._runtime.send_message(
+            GroupChatResume(),
+            recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+        )
 
     async def save_state(self) -> Mapping[str, Any]:
         """Save the state of the group chat team.

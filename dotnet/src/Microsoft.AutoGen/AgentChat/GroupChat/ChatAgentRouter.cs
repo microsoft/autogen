@@ -1,7 +1,9 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // ChatAgentRouter.cs
 
+using System.Text.Json;
 using Microsoft.AutoGen.AgentChat.Abstractions;
+using Microsoft.AutoGen.AgentChat.State;
 using Microsoft.AutoGen.Contracts;
 using Microsoft.AutoGen.Core;
 using Microsoft.Extensions.Logging;
@@ -24,7 +26,8 @@ internal sealed class ChatAgentRouter : HostableAgentAdapter,
                                         IHandle<GroupChatStart>,
                                         IHandle<GroupChatAgentResponse>,
                                         IHandle<GroupChatRequestPublish>,
-                                        IHandle<GroupChatReset>
+                                        IHandle<GroupChatReset>,
+                                        ISaveState
 {
     private readonly TopicId parentTopic;
     private readonly TopicId outputTopic;
@@ -92,6 +95,25 @@ internal sealed class ChatAgentRouter : HostableAgentAdapter,
     {
         this.MessageBuffer.Clear();
         return this.agent.ResetAsync(messageContext.CancellationToken);
+    }
+
+    async ValueTask<JsonElement> ISaveState.SaveStateAsync()
+    {
+        ChatAgentContainerState state = new ChatAgentContainerState
+        {
+            AgentState = new SerializedState(await this.agent.SaveStateAsync()),
+            MessageBuffer = this.MessageBuffer
+        };
+
+        return SerializedState.Create(state).AsJson();
+    }
+
+    ValueTask ISaveState.LoadStateAsync(JsonElement state)
+    {
+        ChatAgentContainerState parsedState = new SerializedState(state).As<ChatAgentContainerState>();
+        this.MessageBuffer = parsedState.MessageBuffer;
+
+        return this.agent.LoadStateAsync(parsedState.AgentState.AsJson());
     }
 }
 

@@ -4,15 +4,9 @@ import io
 import os
 import random
 import warnings
+from types import ModuleType
 from typing import Any, Callable, Dict, Optional, Tuple, Union, cast
 
-# TODO: Fix unfollowed import
-try:
-    # Suppress warnings from markitdown -- which is pretty chatty
-    warnings.filterwarnings(action="ignore", module="markitdown")
-    from markitdown import MarkItDown  # type: ignore
-except ImportError:
-    MarkItDown = None
 from playwright._impl._errors import Error as PlaywrightError
 from playwright._impl._errors import TimeoutError
 from playwright.async_api import Download, Page
@@ -23,6 +17,14 @@ from ._types import (
     interactiveregion_from_dict,
     visualviewport_from_dict,
 )
+
+markitdown: ModuleType | None = None
+try:
+    # Suppress warnings from markitdown -- which is pretty chatty
+    warnings.filterwarnings(action="ignore", module="markitdown")
+    import markitdown
+except ImportError:
+    pass
 
 
 class PlaywrightController:
@@ -561,8 +563,8 @@ class PlaywrightController:
             str: The markdown content of the page.
         """
         assert page is not None
-        if self._markdown_converter is None and MarkItDown is not None:
-            self._markdown_converter = MarkItDown()
+        if self._markdown_converter is None and markitdown is not None:
+            self._markdown_converter = markitdown.MarkItDown()
             html = await page.evaluate("document.documentElement.outerHTML;")
             res = self._markdown_converter.convert_stream(io.StringIO(html), file_extension=".html", url=page.url)  # type: ignore
             assert hasattr(res, "text_content") and isinstance(res.text_content, str)

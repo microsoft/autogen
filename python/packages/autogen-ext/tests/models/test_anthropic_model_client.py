@@ -29,6 +29,25 @@ def _add_numbers(a: int, b: int) -> int:
 
 
 @pytest.mark.asyncio
+async def test_anthropic_serialization_api_key() -> None:
+    client = AnthropicChatCompletionClient(
+        model="claude-3-haiku-20240307",  # Use haiku for faster/cheaper testing
+        api_key="sk-password",
+        temperature=0.0,  # Added temperature param to test
+        stop_sequences=["STOP"],  # Added stop sequence
+    )
+    assert client
+    config = client.dump_component()
+    assert config
+    assert "sk-password" not in str(config)
+    serialized_config = config.model_dump_json()
+    assert serialized_config
+    assert "sk-password" not in serialized_config
+    client2 = AnthropicChatCompletionClient.load_component(config)
+    assert client2
+
+
+@pytest.mark.asyncio
 async def test_anthropic_basic_completion(caplog: pytest.LogCaptureFixture) -> None:
     """Test basic message completion with Claude."""
     api_key = os.getenv("ANTHROPIC_API_KEY")
@@ -73,7 +92,7 @@ async def test_anthropic_basic_completion(caplog: pytest.LogCaptureFixture) -> N
 
 
 @pytest.mark.asyncio
-async def test_anthropic_streaming() -> None:
+async def test_anthropic_streaming(caplog: pytest.LogCaptureFixture) -> None:
     """Test streaming capabilities with Claude."""
     api_key = os.getenv("ANTHROPIC_API_KEY")
     if not api_key:
@@ -86,20 +105,28 @@ async def test_anthropic_streaming() -> None:
 
     # Test streaming completion
     chunks: List[str | CreateResult] = []
-    async for chunk in client.create_stream(
-        messages=[
-            UserMessage(content="Count from 1 to 5. Each number on its own line.", source="user"),
-        ]
-    ):
-        chunks.append(chunk)
+    prompt = "Count from 1 to 5. Each number on its own line."
+    with caplog.at_level(logging.INFO):
+        async for chunk in client.create_stream(
+            messages=[
+                UserMessage(content=prompt, source="user"),
+            ]
+        ):
+            chunks.append(chunk)
+        # Verify we got multiple chunks
+        assert len(chunks) > 1
 
-    # Verify we got multiple chunks
-    assert len(chunks) > 1
+        # Check final result
+        final_result = chunks[-1]
+        assert isinstance(final_result, CreateResult)
+        assert final_result.finish_reason == "stop"
 
-    # Check final result
-    final_result = chunks[-1]
-    assert isinstance(final_result, CreateResult)
-    assert final_result.finish_reason == "stop"
+        assert "LLMStreamStart" in caplog.text
+        assert "LLMStreamEnd" in caplog.text
+        assert isinstance(final_result.content, str)
+        for i in range(1, 6):
+            assert str(i) in caplog.text
+        assert prompt in caplog.text
 
     # Check content contains numbers 1-5
     assert isinstance(final_result.content, str)
