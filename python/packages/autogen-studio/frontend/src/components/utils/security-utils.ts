@@ -5,12 +5,37 @@
  * Sanitizes URLs to prevent XSS attacks via javascript: protocol
  * Only allows http:// and https:// protocols
  */
+// In security-utils.ts
 export const sanitizeUrl = (url: string | undefined | null): string => {
   if (!url || typeof url !== "string") return "";
 
   // Only allow http and https protocols
   if (url.startsWith("http://") || url.startsWith("https://")) {
-    return url;
+    try {
+      // Create URL object to validate structure
+      new URL(url);
+      // First encode URI characters
+      const encodedUrl = encodeURI(url);
+      // Then escape HTML special characters
+      return encodedUrl.replace(/[&<>"']/g, function (m) {
+        switch (m) {
+          case "&":
+            return "&amp;";
+          case "<":
+            return "&lt;";
+          case ">":
+            return "&gt;";
+          case '"':
+            return "&quot;";
+          case "'":
+            return "&#39;";
+          default:
+            return m;
+        }
+      });
+    } catch {
+      return "";
+    }
   }
 
   return "";
