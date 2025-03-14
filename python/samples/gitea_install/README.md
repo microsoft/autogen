@@ -11,6 +11,7 @@ First, you need a shell with AutoGen core and required dependencies installed.
 ```bash
 pip install "autogen-ext[openai,azure]"
 python3 -m pip install python-dotenv
+pip install autogen_agentchat playwright
 ```
 
 ## LLM Configuration
