@@ -10,6 +10,7 @@ import { ChevronDown, Menu as MenuIcon } from "lucide-react";
 import { appContext } from "../hooks/provider";
 import { useConfigStore } from "../hooks/store";
 import { Link } from "gatsby";
+import { sanitizeUrl } from "./utils/security-utils";
 
 type ContentHeaderProps = {
   onMobileMenuToggle: () => void;
@@ -148,7 +149,7 @@ const ContentHeader = ({
                   {user.avatar_url ? (
                     <img
                       className="h-8 w-8 rounded-full"
-                      src={user.avatar_url}
+                      src={sanitizeUrl(user.avatar_url)}
                       alt={user.name}
                     />
                   ) : (

@@ -1,9 +1,10 @@
+import html
 from typing import Optional
 
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Request, Response
 from fastapi.responses import JSONResponse
 from loguru import logger
-import html
+
 from .exceptions import ProviderAuthException
 from .manager import AuthManager
 from .models import User

@@ -20,6 +20,7 @@ import { Fragment } from "react";
 import { appContext } from "../hooks/provider";
 import { Link } from "gatsby";
 import React from "react";
+import { sanitizeUrl } from "./utils/security-utils";
 
 function classNames(...classes: string[]) {
   return classes.filter(Boolean).join(" ");
@@ -28,7 +29,7 @@ function classNames(...classes: string[]) {
 const Header = ({ meta, link }: any) => {
   const { user, logout } = React.useContext(appContext);
   const userName = user ? user.name : "Unknown";
-  const userAvatarUrl = user ? user.avatar_url : "";
+  const userAvatarUrl = user ? sanitizeUrl(user.avatar_url) : "";
   const user_id = user ? user.id : "unknown";
 
   const links: any[] = [
