@@ -11,22 +11,6 @@ from ..deps import get_db
 router = APIRouter()
 
 
-class McpToolParams(BaseModel):
-    type: Literal["stdio", "sse"]
-    server_params: SseServerParams | StdioServerParams
-
-
-@router.post("/discover")
-async def resolve_mcp_tool(params: McpToolParams):
-    try:
-        tools = await mcp_server_tools(params.server_params)
-        if not tools:
-            raise HTTPException(status_code=400, detail="Failed to retrieve tools")
-        return [tool.dump_component() for tool in tools]
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-
 @router.get("/")
 async def list_tools(user_id: str, db=Depends(get_db)) -> Dict:
     response = db.get(Tool, filters={"user_id": user_id})

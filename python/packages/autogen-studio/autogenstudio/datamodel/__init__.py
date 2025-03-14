@@ -1,4 +1,4 @@
-from .db import Gallery, Message, Run, RunStatus, Session, Settings, Team, Tool
+from .db import Gallery, Message, Run, RunStatus, Session, Settings, Team, Tool, McpServer
 from .types import (
     EnvironmentVariable,
     GalleryComponents,
@@ -34,4 +34,5 @@ __all__ = [
     "Settings",
     "EnvironmentVariable",
     "Gallery",
+    "McpServer",
 ]
