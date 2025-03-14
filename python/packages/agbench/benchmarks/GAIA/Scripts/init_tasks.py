@@ -42,7 +42,7 @@ def create_jsonl(name, tasks, files_dir, template):
     if not os.path.isdir(TASKS_DIR):
         os.mkdir(TASKS_DIR)
 
-    with open(os.path.join(TASKS_DIR, name + ".jsonl"), "wt") as fh:
+    with open(os.path.join(TASKS_DIR, name + ".jsonl"), "wt",encoding='utf-8') as fh:
         for task in tasks:
             print(f"Converting: [{name}] {task['task_id']}")
 
@@ -85,13 +85,13 @@ def main():
 
     # Load the GAIA data
     gaia_validation_tasks = [[], [], []]
-    with open(os.path.join(gaia_validation_files, "metadata.jsonl")) as fh:
+    with open(os.path.join(gaia_validation_files, "metadata.jsonl"),encoding='utf-8') as fh:
         for line in fh:
             data = json.loads(line)
             gaia_validation_tasks[data["Level"] - 1].append(data)
 
     gaia_test_tasks = [[], [], []]
-    with open(os.path.join(gaia_test_files, "metadata.jsonl")) as fh:
+    with open(os.path.join(gaia_test_files, "metadata.jsonl"),encoding='utf-8') as fh:
         for line in fh:
             data = json.loads(line)
 

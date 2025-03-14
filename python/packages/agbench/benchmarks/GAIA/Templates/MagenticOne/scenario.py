@@ -20,7 +20,7 @@ warnings.filterwarnings(action="ignore", message="unclosed", category=ResourceWa
 async def main() -> None:
 
     # Load model configuration and create the model client.
-    with open("config.yaml", "r") as f:
+    with open("config.yaml", "r",encoding='utf-8') as f:
         config = yaml.safe_load(f)
 
     orchestrator_client = ChatCompletionClient.load_component(config["orchestrator_client"])
@@ -30,7 +30,7 @@ async def main() -> None:
     
     # Read the prompt
     prompt = ""
-    with open("prompt.txt", "rt") as fh:
+    with open("prompt.txt", "rt",encoding='utf-8') as fh:
         prompt = fh.read().strip()
     filename = "__FILE_NAME__".strip()
 
