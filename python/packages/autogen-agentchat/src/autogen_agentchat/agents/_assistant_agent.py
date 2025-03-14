@@ -772,7 +772,7 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
         handoff_tools: List[BaseTool[Any, Any]],
         agent_name: str,
         cancellation_token: CancellationToken,
-    ) -> AsyncGenerator[Union[CreateResult, ModelClientStreamingChunkEvent], None]:
+    ) -> AsyncGenerator[Union[CreateResult, ModelClientStreamingChunkEvent, ThoughtEvent], None]:
         """
         Perform a model inference and yield either streaming chunk events or the final CreateResult.
         """
@@ -789,7 +789,12 @@ class AssistantAgent(BaseChatAgent, Component[AssistantAgentConfig]):
                 if isinstance(chunk, CreateResult):
                     model_result = chunk
                 elif isinstance(chunk, str):
-                    yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
+                    # output classification
+                    if chunk.startswith("[Thought]"):
+                        thought_content = chunk[len("[Thought]"):].strip()
+                        yield ThoughtEvent(content=thought_content, source=agent_name)
+                    else:
+                        yield ModelClientStreamingChunkEvent(content=chunk, source=agent_name)
                 else:
                     raise RuntimeError(f"Invalid chunk type: {type(chunk)}")
             if model_result is None:
