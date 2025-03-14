@@ -1347,13 +1347,13 @@ class AzureOpenAIChatCompletionClient(
     BaseOpenAIChatCompletionClient, Component[AzureOpenAIClientConfigurationConfigModel]
 ):
     """Chat completion client for Azure OpenAI hosted models.
-    
+
     To use this client, you must install the `azure` and `openai` extensions:
 
     .. code-block:: bash
 
         pip install "autogen-ext[openai,azure]"
-    
+
     Args:
 
         model (str): Which OpenAI model to use.
@@ -1406,7 +1406,7 @@ class AzureOpenAIChatCompletionClient(
             azure_ad_token_provider=token_provider,  # Optional if you choose key-based authentication.
             # api_key="sk-...", # For key-based authentication.
         )
-    
+
     See other usage examples in the :class:`OpenAIChatCompletionClient` class.
 
     To load the client that uses identity based aith from a configuration, you can use the `load_component` method:
