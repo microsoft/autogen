@@ -27,7 +27,7 @@ from ...messages import (
 )
 from ...state import TeamState
 from ._chat_agent_container import ChatAgentContainer
-from ._events import GroupChatReset, GroupChatStart, GroupChatTermination
+from ._events import GroupChatPause, GroupChatReset, GroupChatResume, GroupChatStart, GroupChatTermination
 from ._sequential_routed_agent import SequentialRoutedAgent
 
 event_logger = logging.getLogger(EVENT_LOGGER_NAME)
@@ -565,6 +565,97 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             # Indicate that the team is no longer running.
             self._is_running = False
 
+    async def pause(self) -> None:
+        """Pause its participants when the team is running by calling their
+        :meth:`~autogen_agentchat.base.ChatAgent.on_pause` method via direct RPC calls.
+
+        .. attention::
+
+            This is an experimental feature introduced in v0.4.9 and may subject
+            to change or removal in the future.
+
+        The team must be initialized before it can be paused.
+
+        Different from termination, pausing the team does not cause the
+        :meth:`run` or :meth:`run_stream` method to return. It calls the
+        :meth:`~autogen_agentchat.base.ChatAgent.on_pause` method on each
+        participant, and if the participant does not implement the method, it
+        will be a no-op.
+
+        .. note::
+
+            It is the responsibility of the agent class to handle the pause
+            and ensure that the agent can be resumed later.
+            Make sure to implement the :meth:`~autogen_agentchat.agents.BaseChatAgent.on_pause`
+            method in your agent class for custom pause behavior.
+            By default, the agent will not do anything when called.
+
+        Raises:
+            RuntimeError: If the team has not been initialized. Exceptions from
+                the participants when calling their implementations of
+                :class:`~autogen_agentchat.base.ChatAgent.on_pause` are
+                propagated to this method and raised.
+        """
+        if not self._initialized:
+            raise RuntimeError("The group chat has not been initialized. It must be run before it can be paused.")
+
+        # Send a pause message to all participants.
+        for participant_topic_type in self._participant_topic_types:
+            await self._runtime.send_message(
+                GroupChatPause(),
+                recipient=AgentId(type=participant_topic_type, key=self._team_id),
+            )
+        # Send a pause message to the group chat manager.
+        await self._runtime.send_message(
+            GroupChatPause(),
+            recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+        )
+
+    async def resume(self) -> None:
+        """Resume its participants when the team is running and paused by calling their
+        :meth:`~autogen_agentchat.base.ChatAgent.on_resume` method via direct RPC calls.
+
+        .. attention::
+
+            This is an experimental feature introduced in v0.4.9 and may subject
+            to change or removal in the future.
+
+        The team must be initialized before it can be resumed.
+
+        Different from termination and restart with a new task, resuming the team
+        does not cause the :meth:`run` or :meth:`run_stream` method to return.
+        It calls the :meth:`~autogen_agentchat.base.ChatAgent.on_resume` method on each
+        participant, and if the participant does not implement the method, it
+        will be a no-op.
+
+        .. note::
+
+            It is the responsibility of the agent class to handle the resume
+            and ensure that the agent continues from where it was paused.
+            Make sure to implement the :meth:`~autogen_agentchat.agents.BaseChatAgent.on_resume`
+            method in your agent class for custom resume behavior.
+
+        Raises:
+            RuntimeError: If the team has not been initialized. Exceptions from
+                the participants when calling their implementations of :class:`~autogen_agentchat.base.ChatAgent.on_resume`
+                method are propagated to this method and raised.
+
+        """
+        if not self._initialized:
+            raise RuntimeError("The group chat has not been initialized. It must be run before it can be resumed.")
+
+        # Send a resume message to all participants.
+        for participant_topic_type in self._participant_topic_types:
+            await self._runtime.send_message(
+                GroupChatResume(),
+                recipient=AgentId(type=participant_topic_type, key=self._team_id),
+            )
+        # Send a resume message to the group chat manager.
+        await self._runtime.send_message(
+            GroupChatResume(),
+            recipient=AgentId(type=self._group_chat_manager_topic_type, key=self._team_id),
+        )
+
     async def save_state(self) -> Mapping[str, Any]:
         """Save the state of the group chat team.
 
@@ -590,33 +681,30 @@ class BaseGroupChat(Team, ABC, ComponentBase[BaseModel]):
             portable across different teams and runtimes. States saved with the old format
             may not be compatible with the new format in the future.
 
+        .. caution::
+
+            When calling :func:`~autogen_agentchat.teams.BaseGroupChat.save_state` on a team
+            while it is running, the state may not be consistent and may result in an unexpected state.
+            It is recommended to call this method when the team is not running or after it is stopped.
+
         """
-
         if not self._initialized:
-            raise RuntimeError("The group chat has not been initialized. It must be run before it can be saved.")
+            await self._init(self._runtime)
 
-        if self._is_running:
-            raise RuntimeError("The team cannot be saved while it is running.")
-        self._is_running = True
-
-        try:
-            # Store state of each agent by their name.
-            # NOTE: we don't use the agent ID as the key here because we need to be able to decouple
-            # the state of the agents from their identities in the agent runtime.
-            agent_states: Dict[str, Mapping[str, Any]] = {}
-            # Save the state of all participants.
-            for name, agent_type in zip(self._participant_names, self._participant_topic_types, strict=True):
-                agent_id = AgentId(type=agent_type, key=self._team_id)
-                # NOTE: We are using the runtime's save state method rather than the agent instance's
-                # save_state method because we want to support saving state of remote agents.
-                agent_states[name] = await self._runtime.agent_save_state(agent_id)
-            # Save the state of the group chat manager.
-            agent_id = AgentId(type=self._group_chat_manager_topic_type, key=self._team_id)
-            agent_states[self._group_chat_manager_name] = await self._runtime.agent_save_state(agent_id)
-            return TeamState(agent_states=agent_states).model_dump()
-        finally:
-            # Indicate that the team is no longer running.
-            self._is_running = False
+        # Store state of each agent by their name.
+        # NOTE: we don't use the agent ID as the key here because we need to be able to decouple
+        # the state of the agents from their identities in the agent runtime.
+        agent_states: Dict[str, Mapping[str, Any]] = {}
+        # Save the state of all participants.
+        for name, agent_type in zip(self._participant_names, self._participant_topic_types, strict=True):
+            agent_id = AgentId(type=agent_type, key=self._team_id)
+            # NOTE: We are using the runtime's save state method rather than the agent instance's
+            # save_state method because we want to support saving state of remote agents.
+            agent_states[name] = await self._runtime.agent_save_state(agent_id)
+        # Save the state of the group chat manager.
+        agent_id = AgentId(type=self._group_chat_manager_topic_type, key=self._team_id)
+        agent_states[self._group_chat_manager_name] = await self._runtime.agent_save_state(agent_id)
+        return TeamState(agent_states=agent_states).model_dump()
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
         """Load an external state and overwrite the current state of the group chat team.

@@ -31,7 +31,7 @@ const DockerGuide: React.FC = () => {
           </a>
           that you can use to build your Docker container.{" "}
         </div>
-        code={`FROM mcr.microsoft.com/devcontainers/python:3.10
+        code={`FROM python:3.10-slim
 
 WORKDIR /code
 
@@ -56,7 +56,7 @@ CMD gunicorn -w $((2 * $(getconf _NPROCESSORS_ONLN) + 1)) --timeout 12600 -k uvi
         title="2. Build and Run"
         description="Build and run your Docker container:"
         code={`docker build -t autogenstudio .
-docker run -p 8000:8000 autogenstudio`}
+docker run -p 8081:8081 autogenstudio`}
         onCopy={copyToClipboard}
       />
     </div>

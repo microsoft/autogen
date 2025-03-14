@@ -1,6 +1,7 @@
 # api/deps.py
 import logging
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Optional
 
 from fastapi import Depends, HTTPException, status
@@ -82,7 +83,7 @@ async def get_current_user(
 # Manager initialization and cleanup
 
 
-async def init_managers(database_uri: str, config_dir: str, app_root: str) -> None:
+async def init_managers(database_uri: str, config_dir: str | Path, app_root: str | Path) -> None:
     """Initialize all manager instances"""
     global _db_manager, _websocket_manager, _team_manager
 
@@ -180,11 +181,11 @@ def require_managers(*manager_names: str):
     """Decorator to require specific managers for a route"""
 
     async def dependency():
-        status = get_manager_status()
-        missing = [name for name in manager_names if not status.get(f"{name}_manager")]
+        manager_status = get_manager_status()  # Different name
+        missing = [name for name in manager_names if not manager_status.get(f"{name}_manager")]
         if missing:
             raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,  # Now this refers to the imported module
                 detail=f"Required managers not available: {', '.join(missing)}",
             )
         return True
