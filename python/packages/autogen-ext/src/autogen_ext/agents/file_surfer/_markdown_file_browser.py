@@ -256,7 +256,11 @@ class MarkdownFileBrowser:
             if os.path.isdir(full_path):
                 entry = entry + os.path.sep
             else:
-                size = str(os.path.getsize(full_path))
+                try
+                    size = str(os.path.getsize(full_path))
+                except Exception as e:
+                    # Handles PermissionError, etc.
+                    size = f"N/A: {type(e).__name__}"
 
             listing += f"| {entry} | {size} | {mtime} |\n"
         return listing
