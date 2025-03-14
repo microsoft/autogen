@@ -290,7 +290,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         if output_type is not None and json_output:
             raise ValueError("output_type and json_output cannot be used together.")
         if output_type is not None:
-            create_args["response_format"] = output_type.model_json_schema()
+            create_args["response_format"] = {"type": "json_object", "schema": output_type.model_json_schema()}
         if json_output:
             create_args["response_format"] = {"type": "json_object"}
 
