@@ -231,6 +231,9 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
 
             result = await client.create([UserMessage(content="What is the capital of France?", source="user")])
             print(result)
+            
+            # Close the client.
+            await client.close()
 
 
         if __name__ == "__main__":
@@ -268,6 +271,9 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
             async for chunk in stream:
                 print(chunk, end="", flush=True)
             print()
+
+            # Close the client.
+            await client.close()            
 
 
         if __name__ == "__main__":
