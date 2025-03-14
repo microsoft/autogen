@@ -257,8 +257,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         tools: Sequence[Tool | ToolSchema] = [],
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
-        json_output: Optional[bool] = None,
-        output_type: Optional[type[BaseModel]] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
@@ -287,11 +286,9 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
             else:
                 raise ValueError(f"Unsupported message type: {type(msg)}")
 
-        if output_type is not None and json_output:
-            raise ValueError("output_type and json_output cannot be used together.")
-        if output_type is not None:
-            create_args["response_format"] = {"type": "json_object", "schema": output_type.model_json_schema()}
-        if json_output:
+        if isinstance(json_output, type) and issubclass(json_output, BaseModel):
+            create_args["response_format"] = {"type": "json_object", "schema": json_output.model_json_schema()}
+        elif json_output is True:
             create_args["response_format"] = {"type": "json_object"}
 
         if self.model_info["function_calling"]:
@@ -391,8 +388,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         tools: Sequence[Tool | ToolSchema] = [],
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
-        json_output: Optional[bool] = None,
-        output_type: Optional[type[BaseModel]] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:

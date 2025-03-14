@@ -396,8 +396,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
-        output_type: Optional[type[BaseModel]] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
@@ -412,30 +411,28 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         create_args.update(extra_create_args)
 
         response_format_value: Mapping[str, Any] | str | None = None
-
-        if output_type is not None:
-            response_format_value = output_type.model_json_schema()
+        
+        if json_output is not None:
+            # Support for json_output.
+            if self.model_info["json_output"] is False and json_output is True:
+                raise ValueError("Model does not support JSON output.")
+            if json_output is True:
+                response_format_value = "json"
+            elif isinstance(json_output, type) and issubclass(json_output, BaseModel):
+                response_format_value = json_output.model_json_schema()
+            else:
+                raise ValueError(f"json_output must be a boolean or a Pydantic model class, not {type(json_output)}")
 
         if "response_format" in create_args:
             # Legacy support for response_format.
             value = create_args["response_format"]
             if isinstance(value, type) and issubclass(value, BaseModel):
-                if output_type is not None:
-                    raise ValueError("output_type and response_format are mutually exclusive")
+                if response_format_value is not None:
+                    raise ValueError("response_format and json_output are mutually exclusive")
                 response_format_value = value.model_json_schema()
             else:
                 raise ValueError(f"response_format must be a Pydantic model class, not {type(value)}")
 
-        if json_output is not None:
-            # Support for json_output.
-            if output_type is not None:
-                raise ValueError("output_type and json_output are mutually exclusive")
-            if self.model_info["json_output"] is False and json_output is True:
-                raise ValueError("Model does not support JSON output.")
-            if json_output is True:
-                response_format_value = "json"
-            else:
-                response_format_value = None
 
         # Remove 'response_format' from create_args to prevent passing it twice
         create_args_no_response_format = {k: v for k, v in create_args.items() if k != "response_format"}
@@ -571,8 +568,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
-        output_type: Optional[type[BaseModel]] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
         max_consecutive_empty_chunk_tolerance: int = 0,
@@ -583,7 +579,7 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
         Args:
             messages (Sequence[LLMMessage]): A sequence of messages to be processed.
             tools (Sequence[Tool | ToolSchema], optional): A sequence of tools to be used in the completion. Defaults to `[]`.
-            json_output (Optional[bool], optional): If True, the output will be in JSON format. Defaults to None.
+            json_output (Optional[bool | type[BaseModel]], optional): If True, the output will be in JSON format. If a Pydantic model class, the output will be in that format. Defaults to None.
             extra_create_args (Mapping[str, Any], optional): Additional arguments for the creation process. Default to `{}`.
             cancellation_token (Optional[CancellationToken], optional): A token to cancel the operation. Defaults to None.
             max_consecutive_empty_chunk_tolerance (int): The maximum number of consecutive empty chunks to tolerate before raising a ValueError. This seems to only be needed to set when using `AzureOpenAIChatCompletionClient`. Defaults to 0.
@@ -615,24 +611,26 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
 
         response_format_value: Mapping[str, Any] | str | None = None
 
-        if output_type is not None:
-            response_format_value = output_type.model_json_schema()
+        if json_output is not None:
+            # Support for json_output.
+            if self.model_info["json_output"] is False and json_output is True:
+                raise ValueError("Model does not support JSON output.")
+            if json_output is True:
+                response_format_value = "json"
+            elif isinstance(json_output, type) and issubclass(json_output, BaseModel):
+                response_format_value = json_output.model_json_schema()
+            else:
+                raise ValueError(f"json_output must be a boolean or a Pydantic model class, not {type(json_output)}")
 
         if "response_format" in create_args:
             # Legacy support for response_format.
             value = create_args["response_format"]
             if isinstance(value, type) and issubclass(value, BaseModel):
+                if response_format_value is not None:
+                    raise ValueError("response_format and json_output are mutually exclusive")
                 response_format_value = value.model_json_schema()
             else:
                 raise ValueError(f"response_format must be a Pydantic model class, not {type(value)}")
-
-        if json_output is not None:
-            if self.model_info["json_output"] is False and json_output is True:
-                raise ValueError("Model does not support JSON output.")
-            if json_output is True:
-                response_format_value = "json"
-            else:
-                response_format_value = None
 
         # Remove 'response_format' from create_args to prevent passing it twice
         create_args_no_response_format = {k: v for k, v in create_args.items() if k != "response_format"}

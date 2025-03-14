@@ -405,8 +405,7 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
-        output_type: Optional[Type[BaseModel]] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
@@ -422,17 +421,27 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
         # Declare use_beta_client
         use_beta_client: bool = False
         response_format_value: Optional[Type[BaseModel]] = None
+        
+        if json_output is not None:
+            if self.model_info["json_output"] is False and json_output is True:
+                raise ValueError("Model does not support JSON output.")
 
-        if output_type is not None:
-            response_format_value = output_type
-            use_beta_client = True
+            if json_output is True:
+                create_args["response_format"] = {"type": "json_object"}
+            elif json_output is False:
+                create_args["response_format"] = {"type": "text"}
+            else:
+                # json_output is a Pydantic model class
+                if isinstance(json_output, type) and issubclass(json_output, BaseModel):
+                    response_format_value = json_output
+                    use_beta_client = True
 
         if "response_format" in create_args:
+            if response_format_value is not None:
+                raise ValueError("response_format and json_output are mutually exclusive")
+            # Legacy support for response_format
             value = create_args["response_format"]
-            # If value is a Pydantic model class, use the beta client
             if isinstance(value, type) and issubclass(value, BaseModel):
-                if response_format_value is not None:
-                    raise ValueError("response_format and output_type are mutually exclusive")
                 response_format_value = value
                 use_beta_client = True
             else:
@@ -450,15 +459,6 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 if isinstance(message, UserMessage):
                     if isinstance(message.content, list) and any(isinstance(x, Image) for x in message.content):
                         raise ValueError("Model does not support vision and image was provided")
-
-        if json_output is not None:
-            if self.model_info["json_output"] is False and json_output is True:
-                raise ValueError("Model does not support JSON output.")
-
-            if json_output is True:
-                create_args["response_format"] = {"type": "json_object"}
-            else:
-                create_args["response_format"] = {"type": "text"}
 
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output.")

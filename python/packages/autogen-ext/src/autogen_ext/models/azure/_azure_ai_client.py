@@ -276,7 +276,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         self,
         messages: Sequence[LLMMessage],
         tools: Sequence[Tool | ToolSchema],
-        json_output: Optional[bool],
+        json_output: Optional[bool | type[BaseModel]],
         create_args: Dict[str, Any],
     ) -> None:
         if self.model_info["vision"] is False:
@@ -288,9 +288,15 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         if json_output is not None:
             if self.model_info["json_output"] is False and json_output is True:
                 raise ValueError("Model does not support JSON output")
+            
+            if isinstance(json_output, type):
+                # TODO: we should support this in the future.
+                raise ValueError("Structured output is not currently supported for AzureAIChatCompletionClient")
 
             if json_output is True and "response_format" not in create_args:
                 create_args["response_format"] = "json_object"
+            
+
 
         if self.model_info["json_output"] is False and json_output is True:
             raise ValueError("Model does not support JSON output")
@@ -302,17 +308,14 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
-        output_type: Optional[type[BaseModel]] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
         extra_create_args_keys = set(extra_create_args.keys())
         if not create_kwargs.issuperset(extra_create_args_keys):
             raise ValueError(f"Extra create args are invalid: {extra_create_args_keys - create_kwargs}")
-        if output_type is not None:
-            raise ValueError("output_type is currently not supported for AzureAIChatCompletionClient")
-
+        
         # Copy the create args and overwrite anything in extra_create_args
         create_args = self._create_args.copy()
         create_args.update(extra_create_args)
@@ -398,8 +401,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
-        output_type: Optional[type[BaseModel]] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
@@ -407,9 +409,6 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
         if not create_kwargs.issuperset(extra_create_args_keys):
             raise ValueError(f"Extra create args are invalid: {extra_create_args_keys - create_kwargs}")
 
-        if output_type is not None:
-            # TODO: support structured output for AzureAIChatCompletionClient.
-            raise ValueError("output_type is currently not supported for AzureAIChatCompletionClient")
 
         create_args: Dict[str, Any] = self._create_args.copy()
         create_args.update(extra_create_args)
