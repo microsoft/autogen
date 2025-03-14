@@ -19,13 +19,20 @@ To enable GitHub authentication, create a `auth.yaml` file in your app directory
 
 ```yaml
 type: github
-jwt_secret: "your-secret-key"
+jwt_secret: "your-secret-key" # keep secure!
 token_expiry_minutes: 60
 github:
   client_id: "your-github-client-id"
   client_secret: "your-github-client-secret"
   callback_url: "http://localhost:8081/api/auth/callback"
   scopes: ["user:email"]
+```
+
+```{caution}
+- Generate a strong, unique JWT secret (at least 32 random bytes). You can run `openssl rand -hex 32` to generate a secure random key.
+- Never commit your JWT secret to version control
+- In production, store secrets in environment variables or secure secret management services
+- Regularly rotate your JWT secret to limit the impact of potential breaches
 ```
 
 Please see the documentation on [GitHub OAuth](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authenticating-to-the-rest-api-with-an-oauth-app) for more details on obtaining the `client_id` and `client_secret`.
