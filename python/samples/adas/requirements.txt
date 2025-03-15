@@ -1,0 +1,4 @@
+azure-identity
+numpy
+pygithub
+scipy
