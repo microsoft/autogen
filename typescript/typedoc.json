@@ -1,0 +1,19 @@
+{
+  "$schema": "https://typedoc.org/schema.json",
+  "entryPoints": ["./src/index.ts"],
+  "out": "_site/api",
+  "plugin": ["typedoc-plugin-markdown"],
+  "excludePrivate": true,
+  "excludeProtected": true,
+  "excludeExternals": true,
+  "githubPages": true,
+  "readme": "none",
+  "name": "AutoGen TypeScript API",
+  "categorizeByGroup": true,
+  "categoryOrder": [
+    "Contracts",
+    "Core",
+    "Utils",
+    "*"
+  ]
+}
