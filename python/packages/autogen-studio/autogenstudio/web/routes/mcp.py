@@ -1,3 +1,4 @@
+import json
 from typing import Dict, Literal
 
 from autogen_ext.tools.mcp._config import SseServerParams, StdioServerParams
@@ -102,41 +103,34 @@ async def refresh_server_tools(server_id: int, user_id: str, db=Depends(get_db))
         raise HTTPException(status_code=404, detail="Server not found")
     
     server = server_response.data[0]
+    params = None
     
-    # Extract server type and parameters from component
-    server_component = server.component
-    server_config = server_component.get("config", {})
-    server_type = server_config.get("type")
-    server_details = server_config.get("details")
-    
-    # Create McpToolParams for the server
-    if server_type == "command":
-        # Parse command string into command and args
-        parts = server_details.split()
-        command = parts[0]
-        args = parts[1:] if len(parts) > 1 else []
-        
+    config = server.component.get("config", {})
+    server_params = config.get("server_params", {})
+    if "command" in server_params:
+        print(f"Server params: {server_params}")
         params = McpToolParams(
             type="stdio",
             server_params=StdioServerParams(
-                command=command,
-                args=args
+                command=server_params["command"],
+                args=server_params["args"], # []"args", []),
+                env=server_params["env"]
             )
         )
-    elif server_type == "url":
+    elif "url" in server_params:
         params = McpToolParams(
             type="sse",
             server_params=SseServerParams(
-                url=server_details
+                url=server_params["url"]
             )
         )
     else:
-        raise HTTPException(status_code=400, detail="Invalid server type")
-    
+        raise HTTPException(status_code=400, detail="Invalid server configuration")
+
     try:
         # Use the same discovery logic as the tools endpoint
         tools_components = await discover_server_tools(params)
-        
+                
         # Update server last_connected timestamp
         from datetime import datetime
         server.last_connected = datetime.now()
@@ -147,18 +141,22 @@ async def refresh_server_tools(server_id: int, user_id: str, db=Depends(get_db))
         existing_tools = existing_tools_response.data if existing_tools_response.status else []
         
         # Create a set of existing tool identifiers for quick lookup
-        existing_tool_ids = {tool.component.get("provider") for tool in existing_tools}
+        for tool in existing_tools:
+            print(f"Existing tool: {type(tool.component)} {type(tool)}")
+
+        existing_tool_ids = {tool.component['provider'] for tool in existing_tools}
         
         # Add new tools that don't already exist
         new_tools_count = 0
         for tool_component in tools_components:
-            provider = tool_component.get("provider")
+            provider = tool_component.provider
+            print(f"Tool provider: {provider}")
             
             if provider not in existing_tool_ids:
                 new_tool = Tool(
                     user_id=user_id,
                     server_id=server_id,
-                    component=tool_component
+                    component=tool_component.dict()
                 )
                 db.upsert(new_tool)
                 new_tools_count += 1

@@ -149,7 +149,6 @@ class McpServer(SQLModel, table=True):
         default_factory=datetime.now, sa_column=Column(DateTime(timezone=True), onupdate=func.now())
     )
     user_id: Optional[str] = None
-    server_id: str = Field(index=True)
     last_connected: Optional[datetime] = None
     version: Optional[str] = "0.0.1"
     component: Union[ComponentModel, dict] = Field(sa_column=Column(JSON))

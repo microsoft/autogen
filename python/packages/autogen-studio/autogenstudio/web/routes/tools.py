@@ -37,7 +37,7 @@ async def create_tool(tool: Tool, db=Depends(get_db)) -> Dict:
 async def create_tools(tools: list[Tool], db=Depends(get_db)) -> Dict:
     for tool in tools:
         db.upsert(tool)
-    return {"status": True, "message": "Tools created successfully"}
+    return {"status": True, "data": tools}
 
 
 @router.delete("/{tool_id}")
