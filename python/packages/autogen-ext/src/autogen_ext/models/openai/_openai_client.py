@@ -1131,6 +1131,7 @@ class OpenAIChatCompletionClient(BaseOpenAIChatCompletionClient, Component[OpenA
                     "function_calling": False,
                     "json_output": False,
                     "family": ModelFamily.R1,
+                    "structured_output": True,
                 },
             )
 

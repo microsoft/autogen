@@ -440,7 +440,8 @@ class BaseOllamaChatCompletionClient(ChatCompletionClient):
             elif isinstance(json_output, type) and issubclass(json_output, BaseModel):
                 if response_format_value is not None:
                     raise ValueError(
-                        "response_format and json_output cannot be set to a Pydantic model class at the same time."
+                        "response_format and json_output cannot be set to a Pydantic model class at the same time. "
+                        "Use json_output instead."
                     )
                 # Beta client mode with Pydantic model class.
                 response_format_value = json_output.model_json_schema()
