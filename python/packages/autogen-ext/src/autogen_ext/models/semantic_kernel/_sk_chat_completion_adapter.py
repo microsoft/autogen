@@ -135,6 +135,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                         "json_output": True,
                         "vision": True,
                         "family": ModelFamily.CLAUDE_3_5_SONNET,
+                        "structured_output": True,
                     },
                 )
 
@@ -201,6 +202,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                         "function_calling": True,
                         "json_output": True,
                         "vision": True,
+                        "structured_output": True,
                     },
                 )
 
