@@ -1,6 +1,8 @@
-from typing import Any, List, Mapping
+from contextlib import contextmanager
+from contextvars import ContextVar
+from typing import Any, ClassVar, Generator, List, Mapping
 
-from autogen_core import DefaultTopicId, MessageContext, event, rpc
+from autogen_core import AgentId, AgentRuntime, DefaultTopicId, MessageContext, TopicId, event, rpc
 
 from ...base import ChatAgent, Response
 from ...messages import ChatMessage
@@ -15,6 +17,55 @@ from ._events import (
     GroupChatStart,
 )
 from ._sequential_routed_agent import SequentialRoutedAgent
+
+
+class TeamRuntimeContext:
+    """A static class that provides context for any agents running within a team.
+
+    This static class can be used to access the current runtime and output topic
+    during agent instantiation -- inside the factory function or the agent's
+    class constructor.
+
+    This allows agents to publish messages to the output topic which thereby allowing
+    observability into any streaming components running within non-streaming contexts.
+    """
+
+    def __init__(self) -> None:
+        raise RuntimeError(
+            "TeamRuntimeContext cannot be instantiated. It is a static class that provides context management for an agent within a team."
+        )
+
+    _TEAM_RUNTIME_CONTEXT_VAR: ClassVar[ContextVar[tuple[AgentRuntime, TopicId]]] = ContextVar(
+        "_TEAM_RUNTIME_CONTEXT_VAR"
+    )
+
+    @classmethod
+    @contextmanager
+    def populate_context(cls, ctx: tuple[AgentRuntime, TopicId]) -> Generator[None, Any, None]:
+        """:meta private:"""
+        token = TeamRuntimeContext._TEAM_RUNTIME_CONTEXT_VAR.set(ctx)
+        try:
+            yield
+        finally:
+            TeamRuntimeContext._TEAM_RUNTIME_CONTEXT_VAR.reset(token)
+
+    @classmethod
+    def current_runtime(cls) -> AgentRuntime:
+        try:
+            return cls._TEAM_RUNTIME_CONTEXT_VAR.get()[0]
+        except LookupError as e:
+            raise RuntimeError(
+                "TeamRuntimeContext.runtime() must be called within an instantiation context such as when the AgentRuntime is instantiating an agent. Mostly likely this was caused by directly instantiating an agent instead of using the AgentRuntime to do so."
+            ) from e
+
+    @classmethod
+    def output_channel(cls) -> TopicId:
+        try:
+            return cls._TEAM_RUNTIME_CONTEXT_VAR.get()[1]
+        except LookupError as e:
+            raise RuntimeError(
+                "TeamRuntimeContext.agent_id() must be called within an instantiation context such as when the AgentRuntime is instantiating an agent. Mostly likely this was caused by directly instantiating an agent instead of using the AgentRuntime to do so."
+            ) from e
 
 
 class ChatAgentContainer(SequentialRoutedAgent):
@@ -64,23 +115,26 @@ class ChatAgentContainer(SequentialRoutedAgent):
     async def handle_request(self, message: GroupChatRequestPublish, ctx: MessageContext) -> None:
         """Handle a content request event by passing the messages in the buffer
         to the delegate agent and publish the response."""
-        # Pass the messages in the buffer to the delegate agent.
-        response: Response | None = None
-        async for msg in self._agent.on_messages_stream(self._message_buffer, ctx.cancellation_token):
-            if isinstance(msg, Response):
-                # Log the response.
-                await self.publish_message(
-                    GroupChatMessage(message=msg.chat_message),
-                    topic_id=DefaultTopicId(type=self._output_topic_type),
+        with TeamRuntimeContext.populate_context((self._runtime, DefaultTopicId(type=self._output_topic_type))):
+            # Pass the messages in the buffer to the delegate agent.
+            response: Response | None = None
+            async for msg in self._agent.on_messages_stream(self._message_buffer, ctx.cancellation_token):
+                if isinstance(msg, Response):
+                    # Log the response.
+                    await self.publish_message(
+                        GroupChatMessage(message=msg.chat_message),
+                        topic_id=DefaultTopicId(type=self._output_topic_type),
+                    )
+                    response = msg
+                else:
+                    # Log the message.
+                    await self.publish_message(
+                        GroupChatMessage(message=msg), topic_id=DefaultTopicId(type=self._output_topic_type)
+                    )
+            if response is None:
+                raise ValueError(
+                    "The agent did not produce a final response. Check the agent's on_messages_stream method."
                 )
-                response = msg
-            else:
-                # Log the message.
-                await self.publish_message(
-                    GroupChatMessage(message=msg), topic_id=DefaultTopicId(type=self._output_topic_type)
-                )
-        if response is None:
-            raise ValueError("The agent did not produce a final response. Check the agent's on_messages_stream method.")
 
         # Publish the response to the group chat.
         self._message_buffer.clear()
@@ -105,7 +159,7 @@ class ChatAgentContainer(SequentialRoutedAgent):
 
     async def save_state(self) -> Mapping[str, Any]:
         agent_state = await self._agent.save_state()
-        state = ChatAgentContainerState(agent_state=agent_state, message_buffer=list(self._message_buffer))
+        state = ChatAgentContainerState(agent_state=agent_state)
         return state.model_dump()
 
     async def load_state(self, state: Mapping[str, Any]) -> None:
