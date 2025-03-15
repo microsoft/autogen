@@ -135,6 +135,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                         "json_output": True,
                         "vision": True,
                         "family": ModelFamily.CLAUDE_3_5_SONNET,
+                        "structured_output": True,
                     },
                 )
 
@@ -201,6 +202,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
                         "function_calling": True,
                         "json_output": True,
                         "vision": True,
+                        "structured_output": True,
                     },
                 )
 
@@ -283,7 +285,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         self._prompt_settings = prompt_settings
         self._sk_client = sk_client
         self._model_info = model_info or ModelInfo(
-            vision=False, function_calling=False, json_output=False, family=ModelFamily.UNKNOWN
+            vision=False, function_calling=False, json_output=False, family=ModelFamily.UNKNOWN, structured_output=False
         )
         validate_model_info(self._model_info)
         self._total_prompt_tokens = 0
@@ -437,7 +439,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
@@ -465,6 +467,9 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         Returns:
             CreateResult: The result of the chat completion.
         """
+        if isinstance(json_output, type) and issubclass(json_output, BaseModel):
+            raise ValueError("structured output is not currently supported in SKChatCompletionAdapter")
+
         kernel = self._get_kernel(extra_create_args)
 
         chat_history = self._convert_to_chat_history(messages)
@@ -545,7 +550,7 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         messages: Sequence[LLMMessage],
         *,
         tools: Sequence[Tool | ToolSchema] = [],
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
@@ -573,6 +578,9 @@ class SKChatCompletionAdapter(ChatCompletionClient):
         Yields:
             Union[str, CreateResult]: Either a string chunk of the response or a CreateResult containing function calls.
         """
+
+        if isinstance(json_output, type) and issubclass(json_output, BaseModel):
+            raise ValueError("structured output is not currently supported in SKChatCompletionAdapter")
 
         kernel = self._get_kernel(extra_create_args)
         chat_history = self._convert_to_chat_history(messages)

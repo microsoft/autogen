@@ -1,3 +1,4 @@
+import asyncio
 import logging  # added import
 import re
 from typing import Any, AsyncGenerator, Dict, List, Literal, Mapping, Optional, Sequence, TypedDict, Union, cast
@@ -11,6 +12,7 @@ from autogen_core.models import (
     FinishReasons,
     FunctionExecutionResultMessage,
     LLMMessage,
+    ModelFamily,
     ModelInfo,
     RequestUsage,
     SystemMessage,
@@ -30,6 +32,7 @@ from llama_cpp import (
     Llama,
     llama_chat_format,
 )
+from pydantic import BaseModel
 from typing_extensions import Unpack
 
 logger = logging.getLogger(EVENT_LOGGER_NAME)  # initialize logger
@@ -172,6 +175,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
     This client allows you to interact with LlamaCpp models, either by specifying a local model path or by downloading a model from Hugging Face Hub.
 
     Args:
+        model_info (optional, ModelInfo): The information about the model. Defaults to :attr:`~LlamaCppChatCompletionClient.DEFAULT_MODEL_INFO`.
         model_path (optional, str): The path to the LlamaCpp model file. Required if repo_id and filename are not provided.
         repo_id (optional, str): The Hugging Face Hub repository ID. Required if model_path is not provided.
         filename (optional, str): The filename of the model within the Hugging Face Hub repository. Required if model_path is not provided.
@@ -179,7 +183,6 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         n_ctx (optional, int): The context size.
         n_batch (optional, int): The batch size.
         verbose (optional, bool): Whether to print verbose output.
-        model_info (optional, ModelInfo): The capabilities of the model. Defaults to a ModelInfo instance with function_calling set to True.
         **kwargs: Additional parameters to pass to the Llama class.
 
     Examples:
@@ -223,6 +226,10 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
             asyncio.run(main())
     """
 
+    DEFAULT_MODEL_INFO: ModelInfo = ModelInfo(
+        vision=False, json_output=True, family=ModelFamily.UNKNOWN, function_calling=True, structured_output=True
+    )
+
     def __init__(
         self,
         model_info: Optional[ModelInfo] = None,
@@ -234,6 +241,10 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
 
         if model_info:
             validate_model_info(model_info)
+            self._model_info = model_info
+        else:
+            # Default model info.
+            self._model_info = self.DEFAULT_MODEL_INFO
 
         if "repo_id" in kwargs and "filename" in kwargs and kwargs["repo_id"] and kwargs["filename"]:
             repo_id: str = cast(str, kwargs.pop("repo_id"))
@@ -255,10 +266,11 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         tools: Sequence[Tool | ToolSchema] = [],
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> CreateResult:
+        create_args = dict(extra_create_args)
         # Convert LLMMessage objects to dictionaries with 'role' and 'content'
         # converted_messages: List[Dict[str, str | Image | list[str | Image] | list[FunctionCall]]] = []
         converted_messages: list[
@@ -283,12 +295,28 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
             else:
                 raise ValueError(f"Unsupported message type: {type(msg)}")
 
+        if isinstance(json_output, type) and issubclass(json_output, BaseModel):
+            create_args["response_format"] = {"type": "json_object", "schema": json_output.model_json_schema()}
+        elif json_output is True:
+            create_args["response_format"] = {"type": "json_object"}
+        elif json_output is not False and json_output is not None:
+            raise ValueError("json_output must be a boolean, a BaseModel subclass or None.")
+
         if self.model_info["function_calling"]:
-            response = self.llm.create_chat_completion(
-                messages=converted_messages, tools=convert_tools(tools), stream=False
+            # Run this in on the event loop to avoid blocking.
+            response_future = asyncio.get_event_loop().run_in_executor(
+                None,
+                lambda: self.llm.create_chat_completion(
+                    messages=converted_messages, tools=convert_tools(tools), stream=False, **create_args
+                ),
             )
         else:
-            response = self.llm.create_chat_completion(messages=converted_messages, stream=False)
+            response_future = asyncio.get_event_loop().run_in_executor(
+                None, lambda: self.llm.create_chat_completion(messages=converted_messages, stream=False, **create_args)
+            )
+        if cancellation_token:
+            cancellation_token.link_future(response_future)
+        response = await response_future
 
         if not isinstance(response, dict):
             raise ValueError("Unexpected response type from LlamaCpp model.")
@@ -371,7 +399,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
         tools: Sequence[Tool | ToolSchema] = [],
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
     ) -> AsyncGenerator[Union[str, CreateResult], None]:
@@ -403,7 +431,7 @@ class LlamaCppChatCompletionClient(ChatCompletionClient):
 
     @property
     def model_info(self) -> ModelInfo:
-        return ModelInfo(vision=False, json_output=False, family="llama-cpp", function_calling=True)
+        return self._model_info
 
     def remaining_tokens(
         self,

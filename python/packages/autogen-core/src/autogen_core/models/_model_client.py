@@ -107,6 +107,8 @@ class ModelInfo(TypedDict, total=False):
     """True if the model supports json output, otherwise False. Note: this is different to structured json."""
     family: Required[ModelFamily.ANY | str]
     """Model family should be one of the constants from :py:class:`ModelFamily` or a string representing an unknown model family."""
+    structured_output: Required[bool]
+    """True if the model supports structured output, otherwise False. This is different to json_output."""
 
 
 def validate_model_info(model_info: ModelInfo) -> None:
@@ -122,6 +124,15 @@ def validate_model_info(model_info: ModelInfo) -> None:
                 f"Missing required field '{field}' in ModelInfo. "
                 "Starting in v0.4.7, the required fields are enforced."
             )
+    new_required_fields = ["structured_output"]
+    for field in new_required_fields:
+        if field not in model_info:
+            warnings.warn(
+                f"Missing required field '{field}' in ModelInfo. "
+                "This field will be required in a future version of AutoGen.",
+                UserWarning,
+                stacklevel=2,
+            )
 
 
 class ChatCompletionClient(ComponentBase[BaseModel], ABC):
@@ -134,10 +145,24 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         tools: Sequence[Tool | ToolSchema] = [],
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
-    ) -> CreateResult: ...
+    ) -> CreateResult:
+        """Creates a single response from the model.
+
+        Args:
+            messages (Sequence[LLMMessage]): The messages to send to the model.
+            tools (Sequence[Tool | ToolSchema], optional): The tools to use with the model. Defaults to [].
+            json_output (Optional[bool | type[BaseModel]], optional): Whether to use JSON mode, structured output, or neither. Defaults to None. If set to a type, it will be used as the output type
+                for structured output. If set to a boolean, it will be used to determine whether to use JSON mode or not.
+            extra_create_args (Mapping[str, Any], optional): Extra arguments to pass to the underlying client. Defaults to {}.
+            cancellation_token (Optional[CancellationToken], optional): A token for cancellation. Defaults to None.
+
+        Returns:
+            CreateResult: The result of the model call.
+        """
+        ...
 
     @abstractmethod
     def create_stream(
@@ -147,10 +172,24 @@ class ChatCompletionClient(ComponentBase[BaseModel], ABC):
         tools: Sequence[Tool | ToolSchema] = [],
         # None means do not override the default
         # A value means to override the client default - often specified in the constructor
-        json_output: Optional[bool] = None,
+        json_output: Optional[bool | type[BaseModel]] = None,
         extra_create_args: Mapping[str, Any] = {},
         cancellation_token: Optional[CancellationToken] = None,
-    ) -> AsyncGenerator[Union[str, CreateResult], None]: ...
+    ) -> AsyncGenerator[Union[str, CreateResult], None]:
+        """Creates a stream of string chunks from the model ending with a CreateResult.
+
+        Args:
+            messages (Sequence[LLMMessage]): The messages to send to the model.
+            tools (Sequence[Tool | ToolSchema], optional): The tools to use with the model. Defaults to [].
+            json_output (Optional[bool | type[BaseModel]], optional): Whether to use JSON mode, structured output, or neither. Defaults to None. If set to a type, it will be used as the output type
+                for structured output. If set to a boolean, it will be used to determine whether to use JSON mode or not.
+            extra_create_args (Mapping[str, Any], optional): Extra arguments to pass to the underlying client. Defaults to {}.
+            cancellation_token (Optional[CancellationToken], optional): A token for cancellation. Defaults to None.
+
+        Returns:
+            AsyncGenerator[Union[str, CreateResult], None]: A generator that yields string chunks and ends with a :py:class:`CreateResult`.
+        """
+        ...
 
     @abstractmethod
     async def close(self) -> None: ...
