@@ -227,6 +227,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                     "function_calling": False,
                     "vision": False,
                     "family": "unknown",
+                    "structured_output": False,
                 },
             )
 
@@ -264,6 +265,7 @@ class AzureAIChatCompletionClient(ChatCompletionClient):
                     "function_calling": False,
                     "vision": False,
                     "family": "unknown",
+                    "structured_output": False,
                 },
             )
 

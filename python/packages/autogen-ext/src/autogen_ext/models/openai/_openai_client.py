@@ -437,6 +437,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
             # Legacy support for getting beta client mode from response_format.
             value = create_args["response_format"]
             if isinstance(value, type) and issubclass(value, BaseModel):
+                if self.model_info["structured_output"] is False:
+                    raise ValueError("Model does not support structured output.")
                 warnings.warn(
                     "Using response_format to specify structured output type will be deprecated. "
                     "Use json_output instead.",
@@ -457,6 +459,8 @@ class BaseOpenAIChatCompletionClient(ChatCompletionClient):
                 # Text mode.
                 create_args["response_format"] = ResponseFormatText(type="text")
             elif isinstance(json_output, type) and issubclass(json_output, BaseModel):
+                if self.model_info["structured_output"] is False:
+                    raise ValueError("Model does not support structured output.")
                 if response_format_value is not None:
                     raise ValueError(
                         "response_format and json_output cannot be set to a Pydantic model class at the same time."
